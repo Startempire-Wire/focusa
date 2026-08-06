@@ -1,27 +1,44 @@
 {
   "schema": "focusa.spec135.svelte_task_evidence.v1",
   "task_id": "ID-005",
-  "result": "Added fail-closed WorkstreamContext extraction from an explicit WorkstreamKey and/or exact AttachmentKey. Conflicting owner, continuity, or workspace-binding claims are rejected; continuity or session data alone cannot select a Workstream.",
+  "result": "Implemented concrete ActorRef and AuthorityContext ownership and bound fail-closed WorkstreamContext extraction to the canonical WorkstreamRequestEnvelope -> WorkstreamEvent -> reduce_workstream path. An exact WorkstreamKey or exact AttachmentKey is required; conflicting owners and subordinate metadata conflicts are rejected.",
   "targets": [
     "crates/focusa-core/src/workstream_context.rs",
+    "crates/focusa-core/src/workstream_state.rs",
+    "crates/focusa-core/src/reducer.rs",
     "crates/focusa-core/src/lib.rs",
+    "crates/focusa-api/src/scope.rs",
+    "crates/focusa-api/src/middleware/principal.rs",
     "tests/spec158_workstream_context_source_test.py"
   ],
   "checks": [
-    "rustfmt --edition 2021 crates/focusa-core/src/workstream_context.rs",
-    "python3 tests/spec158_workstream_context_source_test.py"
+    "rustfmt --edition 2024 crates/focusa-core/src/workstream_context.rs crates/focusa-core/src/workstream_state.rs crates/focusa-core/src/reducer.rs crates/focusa-api/src/scope.rs crates/focusa-api/src/middleware/principal.rs (exit 0)",
+    "rustfmt --edition 2024 --check the changed Rust sources (exit 0)",
+    "python3 tests/spec158_workstream_context_source_test.py (exit 0; Spec 158 Workstream context source contract: PASS)",
+    "python3 -m py_compile tests/spec158_workstream_context_source_test.py (exit 0)",
+    "git diff --check (exit 0)"
   ],
   "remaining_checks": [
     "cargo test -p focusa-core workstream_context --lib"
   ],
-  "remaining_work": [
-    "Bind extraction to the canonical request envelope once concrete ActorRef and AuthorityContext owners are migrated"
-  ],
+  "remaining_work": [],
   "blockers": [
-    "Cargo validation remains deferred under the operator's pre-50-percent build prohibition"
+    "Cargo validation remains deferred; no Cargo command was run in this implementation pass."
   ],
   "evidence_refs": [
-    "docs/spec158/01-identity-ownership-and-reducer.md"
+    "docs/spec158/01-identity-ownership-and-reducer.md",
+    "docs/spec158/02-persistence-migration-and-quarantine.md",
+    "docs/spec158/03-client-runtime-and-desktop-contracts.md",
+    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md",
+    "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
+    "tests/spec158_workstream_context_source_test.py"
+  ],
+  "acceptance": [
+    "Missing both WorkstreamKey and AttachmentKey fails closed without latest-record or similarity fallback.",
+    "An exact AttachmentKey resolves only its embedded WorkstreamKey and AttachmentKey.validate_owner rejects foreign ownership.",
+    "Continuity-only, session-only, UI-selection, CWD, and presentation metadata cannot resolve ownership.",
+    "The canonical request envelope is extracted before WorkstreamEvent construction and reducer partition routing.",
+    "ActorRef and AuthorityContext are concrete typed owners; non-canonical or missing actor/authority fails closed."
   ],
   "status": "implemented_partial"
 }

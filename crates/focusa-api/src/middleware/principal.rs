@@ -18,6 +18,19 @@ pub struct ApiRequestPrincipal {
     pub source: ApiPrincipalSource,
 }
 
+impl ApiRequestPrincipal {
+    /// Adapt the existing API authentication owner to the canonical request
+    /// actor without allowing authentication to select Workstream ownership.
+    pub fn actor_ref(
+        &self,
+    ) -> Result<
+        focusa_core::workstream_context::ActorRef,
+        focusa_core::workstream_context::WorkstreamContextError,
+    > {
+        focusa_core::workstream_context::ActorRef::from_authenticated_principal(&self.principal)
+    }
+}
+
 pub async fn request_principal(headers: &HeaderMap) -> Option<ApiRequestPrincipal> {
     let daemon_user = std::env::var("USER").unwrap_or_else(|_| "unknown".into());
     let authorization = headers

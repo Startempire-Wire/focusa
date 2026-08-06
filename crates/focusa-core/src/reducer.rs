@@ -512,6 +512,10 @@ pub fn reduce_workstream(
     event: WorkstreamEvent,
 ) -> Result<WorkstreamReductionResult, ReducerError> {
     event
+        .context
+        .validate_for_workstream(&event.workstream)
+        .map_err(|error| ReducerError::WorkstreamPartition(error.to_string()))?;
+    event
         .workstream
         .legacy_scope()
         .validate()
@@ -6413,6 +6417,23 @@ mod tests {
         )
     }
 
+    fn canonical_partition_request(
+        workstream: crate::workstream_identity::WorkstreamKey,
+    ) -> crate::workstream_context::WorkstreamRequestEnvelope {
+        crate::workstream_context::WorkstreamRequestEnvelope::for_workstream(
+            workstream,
+            crate::workstream_context::ActorRef::new(
+                crate::workstream_context::ActorType::Operator,
+                "actor:partition-test",
+            )
+            .expect("test actor"),
+            crate::workstream_context::AuthorityContext::canonical(
+                "authority:partition-test",
+                "partition test authority",
+            ),
+        )
+    }
+
     #[test]
     fn reducer_workstream_partition_routes_one_entry_and_preserves_foreign_entry() {
         let key_a = canonical_partition_workstream("planning", "host-a:worktree-main");
@@ -6442,24 +6463,33 @@ mod tests {
         assert!(matches!(
             reduce_workstream(
                 ProjectState::<WorkstreamState>::new(),
-                WorkstreamEvent::new(key_a.clone(), event.clone()),
+                WorkstreamEvent::new(canonical_partition_request(key_a.clone()), event.clone())
+                    .expect("canonical request envelope"),
             ),
             Err(ReducerError::WorkstreamPartition(message))
                 if message.contains("not registered")
         ));
 
-        let first = reduce_workstream(project, WorkstreamEvent::new(key_a.clone(), event.clone()))
-            .expect("first Workstream event reduces")
-            .new_state;
+        let first = reduce_workstream(
+            project,
+            WorkstreamEvent::new(canonical_partition_request(key_a.clone()), event.clone())
+                .expect("canonical request envelope"),
+        )
+        .expect("first Workstream event reduces")
+        .new_state;
         let first_a = first.workstream(&id_a).expect("planning entry");
         let first_a_revision = first_a.reducer_revision();
         let first_a_frame_count = first_a.focus_stack().frames.len();
         assert_eq!(first_a_revision, 1);
         assert_eq!(first_a_frame_count, 1);
 
-        let second = reduce_workstream(first, WorkstreamEvent::new(key_b.clone(), event.clone()))
-            .expect("same event under another Workstream reduces")
-            .new_state;
+        let second = reduce_workstream(
+            first,
+            WorkstreamEvent::new(canonical_partition_request(key_b.clone()), event.clone())
+                .expect("canonical request envelope"),
+        )
+        .expect("same event under another Workstream reduces")
+        .new_state;
         let second_a = second.workstream(&id_a).expect("planning entry remains");
         let second_b = second.workstream(&id_b).expect("delivery entry");
         assert_eq!(second_a.reducer_revision(), first_a_revision);
@@ -6472,7 +6502,8 @@ mod tests {
         assert!(matches!(
             reduce_workstream(
                 second.clone(),
-                WorkstreamEvent::new(foreign_key, event.clone()),
+                WorkstreamEvent::new(canonical_partition_request(foreign_key), event.clone())
+                    .expect("canonical request envelope"),
             ),
             Err(ReducerError::WorkstreamPartition(message))
                 if message.contains("does not exactly own")
@@ -6480,7 +6511,8 @@ mod tests {
         assert!(matches!(
             reduce_workstream(
                 second,
-                WorkstreamEvent::at_revision(key_a, 0, event),
+                WorkstreamEvent::at_revision(canonical_partition_request(key_a), 0, event)
+                    .expect("canonical request envelope"),
             ),
             Err(ReducerError::WorkstreamPartition(message))
                 if message.contains("stale Workstream revision")
