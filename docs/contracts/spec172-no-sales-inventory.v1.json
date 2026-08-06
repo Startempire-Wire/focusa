@@ -1,0 +1,84 @@
+{
+  "schema": "focusa.spec172.no_sales_inventory.v1",
+  "inventory_id": "focusa-vbcqu.20.15.6",
+  "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md#19-no-sales-proof-and-cutover",
+  "evidence_posture": {
+    "source": "already-recorded local read-only evidence only",
+    "raw_records_stored": false,
+    "customer_identifiers_stored": false,
+    "credentials_stored": false,
+    "values_allowed": ["redacted aggregate counts", "sha256 semantic digests", "non-identifying classifications"]
+  },
+  "decision": {
+    "zero_sales_proven": false,
+    "clean_cutover_allowed": false,
+    "status": "blocked_ambiguous",
+    "confirmed_genuine_sales_redacted_count": 0,
+    "reason": "Live Stripe, install-site, and manual-grant records remain ambiguous. No completed sale is confirmed by the bounded evidence, but absence of a confirmed sale is not zero-sales proof. Preserve every ambiguous record and customer right."
+  },
+  "required_rails": [
+    "edd",
+    "gravity_forms",
+    "stripe",
+    "install_site_custom_license_and_webhooks",
+    "manual_keys_and_access_grants",
+    "synthetic_test_records"
+  ],
+  "rails": [
+    {
+      "rail": "edd",
+      "classification": "synthetic_test_only",
+      "redacted_aggregate_counts": {"customers": 5, "orders": 4, "order_items": 4, "transactions": 0, "licenses": 11, "activations": 0, "subscriptions": 0, "refunds": 0, "chargebacks": 0},
+      "semantic_digest_sha256": "3ad0031f6b08679fe287bbd022475c1863638f21906b3faf19b2fb9c25445f92",
+      "basis": "Offer-marked order items are recorded as test-mode manual orders; no transaction, activation, subscription, refund, or chargeback proves a genuine approved sale.",
+      "next_read_only_evidence_needed": "None for the bounded EDD snapshot; preserve rows and re-read fully paginated EDD customers, orders, items, transactions, licenses, activations, subscriptions, refund order types, and chargebacks immediately before any future cutover decision."
+    },
+    {
+      "rail": "gravity_forms",
+      "classification": "no_offer_match_in_bounded_snapshot",
+      "redacted_aggregate_counts": {"entries": 6, "entry_meta": 36, "stripe_feeds": 0, "payment_callbacks": 0, "payment_transactions": 0},
+      "semantic_digest_sha256": "42b7b4f0a52c6c5fd2773c514691e9bf31b40ae135f3415bffab6157c8f52f23",
+      "basis": "The bounded snapshot contains no Focusa/UIAI/Bundle semantic marker and no payment/feed record.",
+      "next_read_only_evidence_needed": "None for the bounded Gravity Forms snapshot; immediately before any future cutover, re-read all paginated entries and metadata plus Stripe feed configuration, callbacks, and payment transactions and recompute the semantic digest."
+    },
+    {
+      "rail": "stripe",
+      "classification": "ambiguous",
+      "redacted_aggregate_counts": {"test_offer_objects": 19, "live_expired_sessions": 7, "live_incomplete_payment_intents": 2, "live_succeeded_offer_charges": 0, "live_offer_refunds": 0, "live_offer_disputes": 0},
+      "semantic_digest_sha256": "f77d25a94ecf11c8b984f3d62b2bed514d660f6cab307f9266fba169a1405264",
+      "basis": "Test-account matches are synthetic. Nine live-mode incomplete or expired objects do not prove payment, but their relationship to historical offer claims is unresolved.",
+      "next_read_only_evidence_needed": "For each of the nine redacted live-mode matches, read the Stripe Customer, Checkout Session, PaymentIntent, Charge, Refund, and Dispute linkage, metadata, amount/currency, livemode, payment and refund status, and created timestamp; correlate by immutable Stripe IDs to the install-site webhook/audit record and classify genuine, synthetic, or unrelated without storing identity fields."
+    },
+    {
+      "rail": "install_site_custom_license_and_webhooks",
+      "classification": "ambiguous",
+      "redacted_aggregate_counts": {"custom_licenses": 83, "audit_events": 393, "machine_activations": 5, "synthetic_offer_records": 7, "ambiguous_offer_records": 55, "unrelated_product_records": 21},
+      "semantic_digest_sha256": "d09ce6c5df3ba235dc6756ea4f89ea0427f371f317062e1aabf01118dc45b744",
+      "basis": "Fifty-five offer records lack sufficient synthetic or customer-purchase semantics; status and webhook counts alone cannot establish safe discard or genuine approval.",
+      "next_read_only_evidence_needed": "For each of the 55 redacted ambiguous records, read source, product, status, creation/refund/revoke audit chain, immutable Stripe object references, webhook event type and livemode, and payment/refund outcome; join those references to the Stripe rail and emit only class counts plus a recomputed digest."
+    },
+    {
+      "rail": "manual_keys_and_access_grants",
+      "classification": "ambiguous",
+      "redacted_aggregate_counts": {"edd_manual_test_orders": 4, "edd_software_licenses": 11, "install_site_api_offer_grants": 27, "synthetic_grants": 1, "ambiguous_grants": 26},
+      "semantic_digest_sha256": "5bd8ff9efb29e13718c6acdfe9f64fe8e64529a615757665509dfc4a58e7fb41",
+      "basis": "One API grant has synthetic semantics and 26 do not. These overlap EDD and install-site records and cannot be treated as no-sale evidence.",
+      "next_read_only_evidence_needed": "For each of the 26 redacted ambiguous grants, read issuer/source, creation reason, operator audit reference, linked EDD order/item/transaction and Stripe object IDs, product, status, and revoke/refund chain; classify only after immutable-ID correlation and emit no key or identity value."
+    },
+    {
+      "rail": "synthetic_test_records",
+      "classification": "synthetic_test_only",
+      "redacted_aggregate_counts": {"edd_manual_test_orders": 4, "stripe_test_offer_objects": 19, "install_site_explicit_synthetic_records": 7, "manual_explicit_synthetic_grants": 1},
+      "semantic_digest_sha256": "fa69e2b16151595f16eb9c911eaaed0ca702ecfd4d43a39d9bb34e1f614cbe8b",
+      "basis": "Synthetic/test evidence is classified separately and never contributes to a genuine-sales count.",
+      "next_read_only_evidence_needed": "Recompute this separate class from immutable test-mode and explicit synthetic markers after resolving overlaps; never infer synthetic status merely from missing payment evidence."
+    }
+  ],
+  "reconciliation": {
+    "deployed_surface_inventory": "docs/contracts/spec152e-deployed-surface-inventory.v1.json",
+    "product_registry": "docs/contracts/spec152e-edd-product-registry.v1.json",
+    "dedicated_offer_checkout_enabled_redacted_count": 0,
+    "legacy_records_preserved": true
+  },
+  "verification": "python3 tests/spec172_no_sales_inventory_test.py"
+}

@@ -1,0 +1,58 @@
+Spec 172 / focusa-vbcqu.20.15.6 bounded blocker acceptance
+
+Scope
+- Added docs/contracts/spec172-no-sales-inventory.v1.json.
+- Added tests/spec172_no_sales_inventory_test.py.
+- Used only existing Spec 172 text, local deployed-surface inventory, local product registry, and already-recorded redacted local evidence.
+- No external service was accessed and no production state was mutated.
+
+Truthful decision
+- zero_sales_proven=false
+- clean_cutover_allowed=false
+- status=blocked_ambiguous
+- No genuine sale is confirmed by this bounded package, but that is not proof of zero sales.
+- Stripe live-mode matches, install-site custom license/webhook records, and manual/API grants remain ambiguous.
+- All ambiguous records and potential customer rights must be preserved. The no-migration clean-cutover path remains blocked.
+
+Coverage
+- EDD customers/orders/items/transactions/licenses/activations/subscriptions/refunds/chargebacks.
+- Gravity Forms entries/metadata/Stripe feeds/payment records.
+- Stripe Customers/Checkout Sessions/PaymentIntents/Charges/Refunds/Disputes.
+- Install-site custom licenses, audit/webhook history, and activations.
+- Manual keys and access grants.
+- Synthetic/test records as a separate class.
+
+Privacy
+- Contract contains only redacted aggregate counts, semantic SHA-256 digests, and non-identifying classifications.
+- No customer row, identity, email, key, token, credential, card data, or raw webhook payload is stored.
+
+Exact next evidence
+The inventory records an exact read-only evidence request on every rail. Ambiguous rails require immutable-ID correlation of Stripe lifecycle objects, install-site audit/webhook chains, and manual grant provenance/order/payment links, with output limited to class counts and recomputed digests. Missing payment evidence must not be interpreted as synthetic status.
+
+Verification record
+- Canonical project root: /tmp/focusa-rel3-candidate
+- Verification source HEAD: 47c9c433567fdae32e3bb6d58abe0bf4fbc6d95f
+- Package state at verification: this atom's three files are uncommitted working-tree additions on that HEAD; the hash is the exact baseline commit, not a claim that the package is contained in it.
+
+Commands and exit codes
+1. `git rev-parse HEAD`
+   - exit: 0
+   - result: `47c9c433567fdae32e3bb6d58abe0bf4fbc6d95f`
+2. `python3 tests/spec172_no_sales_inventory_test.py`
+   - exit: 0
+   - bounded result: `Spec 172 no-sales inventory blocker: PASS`
+3. `git diff --check`
+   - exit: 0
+   - bounded result: no whitespace errors reported
+
+Remaining blockers
+- Nine redacted live-mode Stripe matches require read-only lifecycle and immutable-ID correlation.
+- Fifty-five redacted install-site offer records require read-only audit/webhook/payment correlation.
+- Twenty-six redacted manual/API grants require read-only issuer, order, payment, refund, and revoke provenance correlation.
+- Counts overlap across rails and are not additive. Until those records are classified, zero sales is unproven and clean cutover is forbidden.
+
+Rollback
+Revert only these atom additions: `docs/contracts/spec172-no-sales-inventory.v1.json`, `tests/spec172_no_sales_inventory_test.py`, and `docs/evidence/spec172/focusa-vbcqu.20.15.6-acceptance.txt`. Preserve verified identities, customers, orders, refunds, License Types, keys, nodes, sequences, customer data, migration journals, all underlying evidence, and accepted unrelated work. Perform no production mutation or deletion.
+
+Disposition
+This is a stable, locally verifiable blocker package, not a zero-sales completion claim. focusa-vbcqu.20.15.6 remains blocked and must not be closed from this evidence.
