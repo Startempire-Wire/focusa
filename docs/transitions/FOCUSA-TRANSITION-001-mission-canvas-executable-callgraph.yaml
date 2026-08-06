@@ -193,11 +193,11 @@ atomic_tasks:
     execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-007.json
     parent: MC-010
     title: Quarantine ambiguous legacy ownership
-    status: blocked
+    status: implemented_partial
     depends_on: [ID-006]
-    read: [/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md]
-    targets: [Spec 158 persistence migration owner]
-    calls: [LegacyRecord.classify, LegacyQuarantine.append]
+    read: [docs/spec158/02-persistence-migration-and-quarantine.md]
+    targets: [crates/focusa-core/src/workstream_quarantine.rs, crates/focusa-core/src/lib.rs, tests/spec158_workstream_quarantine_source_test.py]
+    calls: [LegacyQuarantineRow.classify, LegacyQuarantine.append]
     input: ambiguous, conflicting, foreign, or unverified legacy record
     output: quarantine row with reason and source refs
     check: cargo test -p focusa-core legacy_quarantine --lib

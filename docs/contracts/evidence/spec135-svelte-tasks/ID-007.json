@@ -1,0 +1,24 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "ID-007",
+  "result": "Added append-only legacy ownership quarantine covering every required Spec 158 reason class. Rows retain source hash, payload reference, evidence and bounded candidate information without granting canonical Workstream ownership.",
+  "targets": [
+    "crates/focusa-core/src/workstream_quarantine.rs",
+    "crates/focusa-core/src/lib.rs",
+    "tests/spec158_workstream_quarantine_source_test.py"
+  ],
+  "checks": [
+    "rustfmt --edition 2021 crates/focusa-core/src/workstream_quarantine.rs",
+    "python3 tests/spec158_workstream_quarantine_source_test.py"
+  ],
+  "remaining_checks": [
+    "cargo test -p focusa-core legacy_quarantine --lib"
+  ],
+  "blockers": [
+    "Cargo validation remains deferred under the operator's pre-50-percent build prohibition"
+  ],
+  "evidence_refs": [
+    "docs/spec158/02-persistence-migration-and-quarantine.md"
+  ],
+  "status": "implemented_partial"
+}
