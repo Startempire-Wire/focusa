@@ -786,7 +786,7 @@ atomic_tasks:
     execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-015.json
     parent: MC-110
     title: Render conditional Work Rail contribution
-    status: blocked
+    status: implemented_partial
     depends_on: [UI-005, UI-012]
     read: [docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md, apps/pi-extension/src/work-rail-widget.ts]
     targets: [apps/desktop/src/lib/mission-canvas/contributions/WorkRailContribution.svelte]

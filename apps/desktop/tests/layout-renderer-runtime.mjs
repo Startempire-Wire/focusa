@@ -115,6 +115,26 @@ try {
   assert.match(twoQueueProjection, />Follow-up Queue</);
   assert.match(twoQueueProjection, /queue-region/);
   assert.doesNotMatch(twoQueueProjection, /Renderer unavailable/);
+
+  const { default: WorkRailContribution } = await server.ssrLoadModule('/src/lib/mission-canvas/contributions/WorkRailContribution.svelte');
+  const workRail = {
+    ...twoQueueFixture.eligible_contributions.find(({ kind }) => kind === 'steering_queue'),
+    contribution_id: 'contribution:work-rail',
+    kind: 'work_rail',
+    data_ref: { kind: 'work_rail', ref: 'work-rail:project', revision: 4, freshness: 'current' },
+    operation_ids: [],
+    accessibility: {
+      focus_semantic_id: 'semantic:work-rail',
+      label: 'Focusa Work Rail',
+      description: 'Canonical project work for the focused Work Surface',
+      landmark_role: 'region'
+    }
+  };
+  const { body: workRailProjection } = render(WorkRailContribution, { props: { contribution: workRail, projection: twoQueueFixture } });
+  assert.match(workRailProjection, /data-work-rail-ref="work-rail:project"/);
+  assert.match(workRailProjection, />Focusa Work Rail</);
+  assert.match(workRailProjection, /revision 4/);
+  assert.doesNotMatch(workRailProjection, /New Workpoint/);
   const requestedUrls = [];
   const { MissionCanvasHttpTransport, MissionCanvasTransportError } = await server.ssrLoadModule('/src/lib/mission-canvas/http-transport.ts');
   const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787/', async (url) => {
