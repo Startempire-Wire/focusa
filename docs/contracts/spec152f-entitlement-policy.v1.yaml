@@ -1,0 +1,303 @@
+schema: focusa.spec152f.entitlement_policy.v1
+policy_id: focusa-simple-entitlement
+policy_version: 1
+product: focusa
+authority:
+  customer_commerce_human_key_entitlement: WPUIAI.com EDD
+  runtime_grant: authority_issued_signed_lease
+  client_grants_forbidden: true
+  facade_grants_forbidden: true
+  local_evaluation_forbidden: true
+commercial_model:
+  base_gate_count: 1
+  premium_family_count: 4
+  independent_surface_paywalls_forbidden: true
+  inventory_is_not_sku_catalog: true
+  base_compatibility_features:
+    - focusa.core.evidence
+    - focusa.core.mission
+    - focusa.core.workpoint
+premium_families:
+  - automation
+  - premium_updates
+  - release_proof
+  - team_remote
+families:
+  - id: account_recovery
+    treatment: always_available
+    base_product_required: false
+    feature_resolution: none
+    active_feature_keys: []
+    security_controls_still_required: true
+    examples: [registration, verification, checkout, activation, status, account, diagnostics, repair, stable_security_update, rollback, uninstall]
+  - id: read_projection
+    treatment: read_allowance
+    base_product_required: false
+    feature_resolution: none
+    active_feature_keys: []
+    security_controls_still_required: true
+    examples: [status_read, project_read, evidence_read, history_read, denial_explanation]
+  - id: base_focusa
+    treatment: base_entitlement
+    base_product_required: true
+    feature_resolution: compatibility_projection
+    active_feature_keys: [focusa.core.evidence, focusa.core.mission, focusa.core.workpoint]
+    security_controls_still_required: true
+    examples: [project_mutation, mission, focus_state, workpoint, trajectory, work_loop, cognition]
+  - id: automation
+    treatment: optional_premium
+    base_product_required: true
+    feature_resolution: operation_bound
+    active_feature_keys: [focusa.agent.parallelism, focusa.agent.silent_sessions]
+    security_controls_still_required: true
+    examples: [silent_session, scheduled_work, parallel_agent, parallel_provider]
+  - id: team_remote
+    treatment: optional_premium
+    base_product_required: true
+    feature_resolution: operation_bound
+    active_feature_keys: [focusa.remote.stream, focusa.team.multi_operator]
+    security_controls_still_required: true
+    examples: [additional_device, peer, synchronization, remote_stream, multi_operator]
+  - id: release_proof
+    treatment: optional_premium
+    base_product_required: true
+    feature_resolution: operation_bound
+    active_feature_keys: [focusa.release.proof]
+    security_controls_still_required: true
+    examples: [release_orchestration, governed_proof, release_intelligence]
+  - id: premium_updates
+    treatment: optional_premium
+    base_product_required: true
+    feature_resolution: operation_bound
+    active_feature_keys: [focusa.install.channel.nightly, focusa.install.channel.preview, focusa.update.unattended]
+    security_controls_still_required: true
+    examples: [unattended_update, managed_rollout, preview_channel, nightly_channel]
+  - id: customer_data_export
+    treatment: always_available_basic_with_optional_premium_packaging
+    base_product_required: false
+    feature_resolution: optional_operation_bound
+    active_feature_keys: [focusa.export.packaged]
+    security_controls_still_required: true
+    examples: [basic_customer_data_export, recovery_package, premium_hosted_package]
+  - id: internal_maintenance
+    treatment: inherit_initiating_operation
+    base_product_required: false
+    feature_resolution: inherited
+    active_feature_keys: []
+    security_controls_still_required: true
+    examples: [scheduler, worker, telemetry, cache_maintenance, migration_helper]
+feature_compatibility:
+  - key: focusa.agent.parallelism
+    family: automation
+    enforcement: premium_operation_feature
+  - key: focusa.agent.silent_sessions
+    family: automation
+    enforcement: premium_operation_feature
+  - key: focusa.core.evidence
+    family: base_focusa
+    enforcement: base_product_compatibility_projection
+  - key: focusa.core.mission
+    family: base_focusa
+    enforcement: base_product_compatibility_projection
+  - key: focusa.core.workpoint
+    family: base_focusa
+    enforcement: base_product_compatibility_projection
+  - key: focusa.export.packaged
+    family: customer_data_export
+    enforcement: optional_premium_packaging_only
+  - key: focusa.install.channel.nightly
+    family: premium_updates
+    enforcement: premium_operation_feature
+  - key: focusa.install.channel.preview
+    family: premium_updates
+    enforcement: premium_operation_feature
+  - key: focusa.install.channel.stable
+    family: account_recovery
+    enforcement: stable_security_allowance_not_purchase_requirement
+  - key: focusa.release.proof
+    family: release_proof
+    enforcement: premium_operation_feature
+  - key: focusa.remote.stream
+    family: team_remote
+    enforcement: premium_operation_feature
+  - key: focusa.repair.execute
+    family: account_recovery
+    enforcement: recovery_allowance
+  - key: focusa.team.multi_operator
+    family: team_remote
+    enforcement: premium_operation_feature
+  - key: focusa.update.apply
+    family: account_recovery
+    enforcement: stable_manual_security_allowance_contextual
+  - key: focusa.update.unattended
+    family: premium_updates
+    enforcement: premium_operation_feature
+state_grid:
+  - state: pending_unverified
+    policies:
+      account_recovery: allow
+      read_projection: read_local_only
+      base_focusa: deny
+      automation: deny
+      team_remote: deny
+      release_proof: deny
+      premium_updates: deny
+      customer_data_export: allow_existing_local_only
+      internal_maintenance: inherit
+  - state: verified_no_grant
+    policies:
+      account_recovery: allow
+      read_projection: read
+      base_focusa: deny
+      automation: deny
+      team_remote: deny
+      release_proof: deny
+      premium_updates: deny
+      customer_data_export: allow
+      internal_maintenance: inherit
+  - state: evaluation
+    policies:
+      account_recovery: allow
+      read_projection: read
+      base_focusa: require_base
+      automation: require_feature
+      team_remote: require_feature
+      release_proof: require_feature
+      premium_updates: require_feature
+      customer_data_export: allow
+      internal_maintenance: inherit
+  - state: active_paid
+    policies:
+      account_recovery: allow
+      read_projection: read
+      base_focusa: require_base
+      automation: require_feature
+      team_remote: require_feature
+      release_proof: require_feature
+      premium_updates: require_feature
+      customer_data_export: allow
+      internal_maintenance: inherit
+  - state: offline_grace
+    policies:
+      account_recovery: allow_offline_only
+      read_projection: read
+      base_focusa: require_base
+      automation: require_cached_feature
+      team_remote: require_cached_feature
+      release_proof: require_cached_feature
+      premium_updates: require_cached_feature_when_safe
+      customer_data_export: allow
+      internal_maintenance: inherit
+  - state: expired
+    policies:
+      account_recovery: allow
+      read_projection: read
+      base_focusa: deny
+      automation: deny
+      team_remote: deny
+      release_proof: deny
+      premium_updates: deny
+      customer_data_export: allow
+      internal_maintenance: inherit
+  - state: refunded_or_revoked
+    policies:
+      account_recovery: allow
+      read_projection: read
+      base_focusa: deny
+      automation: deny
+      team_remote: deny
+      release_proof: deny
+      premium_updates: deny
+      customer_data_export: allow
+      internal_maintenance: inherit
+  - state: missing_or_corrupt
+    policies:
+      account_recovery: allow
+      read_projection: read_local_only
+      base_focusa: deny
+      automation: deny
+      team_remote: deny
+      release_proof: deny
+      premium_updates: deny
+      customer_data_export: allow
+      internal_maintenance: inherit
+stable_update_and_export_exceptions:
+  stable_security_update:
+    family: account_recovery
+    commercial_entitlement_required: false
+    still_requires: [artifact_signature, trust_metadata, platform_permission, confirmation_when_applicable]
+  repair_and_rollback:
+    family: account_recovery
+    commercial_entitlement_required: false
+    still_requires: [artifact_signature, trust_metadata, platform_permission, confirmation_when_applicable]
+  basic_customer_data_export:
+    family: customer_data_export
+    commercial_entitlement_required: false
+    still_requires: [identity, authorization, scope, privacy_redaction]
+  premium_packaged_export:
+    family: customer_data_export
+    commercial_entitlement_required: true
+    required_feature: focusa.export.packaged
+future_dimensions:
+  - id: capability_family
+    commercial_activation: active
+    missing_claim_effect: registered_family_policy
+    authority: policy_registry
+  - id: sub_capability
+    commercial_activation: dormant
+    missing_claim_effect: no_effect
+    authority: future_operator_approved_policy
+  - id: operation
+    commercial_activation: dormant
+    missing_claim_effect: no_effect
+    authority: audit_only_until_activation
+  - id: limit_bucket
+    commercial_activation: active_only_when_declared
+    missing_claim_effect: no_limit_unless_registered_policy_requires_one
+    authority: server_owned_registry_and_lease
+  - id: product_tier
+    commercial_activation: active
+    missing_claim_effect: deny_base_for_missing_or_wrong_product
+    authority: WPUIAI.com_EDD
+  - id: role_permission
+    commercial_activation: dormant_for_commerce
+    missing_claim_effect: no_commercial_effect
+    authority: security_authorization_only
+  - id: node_device
+    commercial_activation: active
+    missing_claim_effect: deny_runtime_for_unbound_node
+    authority: signed_lease_and_node_registry
+  - id: channel
+    commercial_activation: active_for_preview_nightly_and_unattended
+    missing_claim_effect: stable_security_allowance_only
+    authority: policy_registry_and_signed_lease
+  - id: time_window
+    commercial_activation: active
+    missing_claim_effect: deny_runtime_without_usable_time_bounds
+    authority: signed_lease
+  - id: origin_facade
+    commercial_activation: dormant_for_commerce
+    missing_claim_effect: no_commercial_effect
+    authority: routing_and_security_policy_only
+future_activation_requirements:
+  - business_justification
+  - stable_family_boundary
+  - authority_ownership
+  - backward_compatibility
+  - recovery_analysis
+  - presenter_inheritance
+  - limit_semantics
+  - denial_ux
+  - acceptance_evidence
+  - operator_approval
+invariants:
+  - recovery_family_never_requires_commercial_feature
+  - basic_customer_data_export_never_requires_commercial_feature
+  - stable_security_update_repair_rollback_never_require_commercial_feature
+  - premium_requires_base_first
+  - offline_grace_never_expands_features_or_limits
+  - refund_revoke_or_higher_sequence_overrides_cached_grants
+  - dormant_dimension_absence_never_denies_capability
+  - licensing_never_grants_operator_role_cognitive_focus_trajectory_or_workpoint_authority
+  - unknown_side_effect_fails_closed_before_execution
+  - presenters_and_facades_never_own_commercial_truth

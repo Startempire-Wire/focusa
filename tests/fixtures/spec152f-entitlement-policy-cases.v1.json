@@ -1,0 +1,470 @@
+{
+  "family_count": 9,
+  "feature_compatibility_count": 15,
+  "grid_case_count": 72,
+  "grid_cases": [
+    {
+      "case_id": "pending_unverified::account_recovery",
+      "expected_decision": "allow",
+      "family": "account_recovery",
+      "state": "pending_unverified"
+    },
+    {
+      "case_id": "pending_unverified::read_projection",
+      "expected_decision": "read_local_only",
+      "family": "read_projection",
+      "state": "pending_unverified"
+    },
+    {
+      "case_id": "pending_unverified::base_focusa",
+      "expected_decision": "deny",
+      "family": "base_focusa",
+      "state": "pending_unverified"
+    },
+    {
+      "case_id": "pending_unverified::automation",
+      "expected_decision": "deny",
+      "family": "automation",
+      "state": "pending_unverified"
+    },
+    {
+      "case_id": "pending_unverified::team_remote",
+      "expected_decision": "deny",
+      "family": "team_remote",
+      "state": "pending_unverified"
+    },
+    {
+      "case_id": "pending_unverified::release_proof",
+      "expected_decision": "deny",
+      "family": "release_proof",
+      "state": "pending_unverified"
+    },
+    {
+      "case_id": "pending_unverified::premium_updates",
+      "expected_decision": "deny",
+      "family": "premium_updates",
+      "state": "pending_unverified"
+    },
+    {
+      "case_id": "pending_unverified::customer_data_export",
+      "expected_decision": "allow_existing_local_only",
+      "family": "customer_data_export",
+      "state": "pending_unverified"
+    },
+    {
+      "case_id": "pending_unverified::internal_maintenance",
+      "expected_decision": "inherit",
+      "family": "internal_maintenance",
+      "state": "pending_unverified"
+    },
+    {
+      "case_id": "verified_no_grant::account_recovery",
+      "expected_decision": "allow",
+      "family": "account_recovery",
+      "state": "verified_no_grant"
+    },
+    {
+      "case_id": "verified_no_grant::read_projection",
+      "expected_decision": "read",
+      "family": "read_projection",
+      "state": "verified_no_grant"
+    },
+    {
+      "case_id": "verified_no_grant::base_focusa",
+      "expected_decision": "deny",
+      "family": "base_focusa",
+      "state": "verified_no_grant"
+    },
+    {
+      "case_id": "verified_no_grant::automation",
+      "expected_decision": "deny",
+      "family": "automation",
+      "state": "verified_no_grant"
+    },
+    {
+      "case_id": "verified_no_grant::team_remote",
+      "expected_decision": "deny",
+      "family": "team_remote",
+      "state": "verified_no_grant"
+    },
+    {
+      "case_id": "verified_no_grant::release_proof",
+      "expected_decision": "deny",
+      "family": "release_proof",
+      "state": "verified_no_grant"
+    },
+    {
+      "case_id": "verified_no_grant::premium_updates",
+      "expected_decision": "deny",
+      "family": "premium_updates",
+      "state": "verified_no_grant"
+    },
+    {
+      "case_id": "verified_no_grant::customer_data_export",
+      "expected_decision": "allow",
+      "family": "customer_data_export",
+      "state": "verified_no_grant"
+    },
+    {
+      "case_id": "verified_no_grant::internal_maintenance",
+      "expected_decision": "inherit",
+      "family": "internal_maintenance",
+      "state": "verified_no_grant"
+    },
+    {
+      "case_id": "evaluation::account_recovery",
+      "expected_decision": "allow",
+      "family": "account_recovery",
+      "state": "evaluation"
+    },
+    {
+      "case_id": "evaluation::read_projection",
+      "expected_decision": "read",
+      "family": "read_projection",
+      "state": "evaluation"
+    },
+    {
+      "case_id": "evaluation::base_focusa",
+      "expected_decision": "require_base",
+      "family": "base_focusa",
+      "state": "evaluation"
+    },
+    {
+      "case_id": "evaluation::automation",
+      "expected_decision": "require_feature",
+      "family": "automation",
+      "state": "evaluation"
+    },
+    {
+      "case_id": "evaluation::team_remote",
+      "expected_decision": "require_feature",
+      "family": "team_remote",
+      "state": "evaluation"
+    },
+    {
+      "case_id": "evaluation::release_proof",
+      "expected_decision": "require_feature",
+      "family": "release_proof",
+      "state": "evaluation"
+    },
+    {
+      "case_id": "evaluation::premium_updates",
+      "expected_decision": "require_feature",
+      "family": "premium_updates",
+      "state": "evaluation"
+    },
+    {
+      "case_id": "evaluation::customer_data_export",
+      "expected_decision": "allow",
+      "family": "customer_data_export",
+      "state": "evaluation"
+    },
+    {
+      "case_id": "evaluation::internal_maintenance",
+      "expected_decision": "inherit",
+      "family": "internal_maintenance",
+      "state": "evaluation"
+    },
+    {
+      "case_id": "active_paid::account_recovery",
+      "expected_decision": "allow",
+      "family": "account_recovery",
+      "state": "active_paid"
+    },
+    {
+      "case_id": "active_paid::read_projection",
+      "expected_decision": "read",
+      "family": "read_projection",
+      "state": "active_paid"
+    },
+    {
+      "case_id": "active_paid::base_focusa",
+      "expected_decision": "require_base",
+      "family": "base_focusa",
+      "state": "active_paid"
+    },
+    {
+      "case_id": "active_paid::automation",
+      "expected_decision": "require_feature",
+      "family": "automation",
+      "state": "active_paid"
+    },
+    {
+      "case_id": "active_paid::team_remote",
+      "expected_decision": "require_feature",
+      "family": "team_remote",
+      "state": "active_paid"
+    },
+    {
+      "case_id": "active_paid::release_proof",
+      "expected_decision": "require_feature",
+      "family": "release_proof",
+      "state": "active_paid"
+    },
+    {
+      "case_id": "active_paid::premium_updates",
+      "expected_decision": "require_feature",
+      "family": "premium_updates",
+      "state": "active_paid"
+    },
+    {
+      "case_id": "active_paid::customer_data_export",
+      "expected_decision": "allow",
+      "family": "customer_data_export",
+      "state": "active_paid"
+    },
+    {
+      "case_id": "active_paid::internal_maintenance",
+      "expected_decision": "inherit",
+      "family": "internal_maintenance",
+      "state": "active_paid"
+    },
+    {
+      "case_id": "offline_grace::account_recovery",
+      "expected_decision": "allow_offline_only",
+      "family": "account_recovery",
+      "state": "offline_grace"
+    },
+    {
+      "case_id": "offline_grace::read_projection",
+      "expected_decision": "read",
+      "family": "read_projection",
+      "state": "offline_grace"
+    },
+    {
+      "case_id": "offline_grace::base_focusa",
+      "expected_decision": "require_base",
+      "family": "base_focusa",
+      "state": "offline_grace"
+    },
+    {
+      "case_id": "offline_grace::automation",
+      "expected_decision": "require_cached_feature",
+      "family": "automation",
+      "state": "offline_grace"
+    },
+    {
+      "case_id": "offline_grace::team_remote",
+      "expected_decision": "require_cached_feature",
+      "family": "team_remote",
+      "state": "offline_grace"
+    },
+    {
+      "case_id": "offline_grace::release_proof",
+      "expected_decision": "require_cached_feature",
+      "family": "release_proof",
+      "state": "offline_grace"
+    },
+    {
+      "case_id": "offline_grace::premium_updates",
+      "expected_decision": "require_cached_feature_when_safe",
+      "family": "premium_updates",
+      "state": "offline_grace"
+    },
+    {
+      "case_id": "offline_grace::customer_data_export",
+      "expected_decision": "allow",
+      "family": "customer_data_export",
+      "state": "offline_grace"
+    },
+    {
+      "case_id": "offline_grace::internal_maintenance",
+      "expected_decision": "inherit",
+      "family": "internal_maintenance",
+      "state": "offline_grace"
+    },
+    {
+      "case_id": "expired::account_recovery",
+      "expected_decision": "allow",
+      "family": "account_recovery",
+      "state": "expired"
+    },
+    {
+      "case_id": "expired::read_projection",
+      "expected_decision": "read",
+      "family": "read_projection",
+      "state": "expired"
+    },
+    {
+      "case_id": "expired::base_focusa",
+      "expected_decision": "deny",
+      "family": "base_focusa",
+      "state": "expired"
+    },
+    {
+      "case_id": "expired::automation",
+      "expected_decision": "deny",
+      "family": "automation",
+      "state": "expired"
+    },
+    {
+      "case_id": "expired::team_remote",
+      "expected_decision": "deny",
+      "family": "team_remote",
+      "state": "expired"
+    },
+    {
+      "case_id": "expired::release_proof",
+      "expected_decision": "deny",
+      "family": "release_proof",
+      "state": "expired"
+    },
+    {
+      "case_id": "expired::premium_updates",
+      "expected_decision": "deny",
+      "family": "premium_updates",
+      "state": "expired"
+    },
+    {
+      "case_id": "expired::customer_data_export",
+      "expected_decision": "allow",
+      "family": "customer_data_export",
+      "state": "expired"
+    },
+    {
+      "case_id": "expired::internal_maintenance",
+      "expected_decision": "inherit",
+      "family": "internal_maintenance",
+      "state": "expired"
+    },
+    {
+      "case_id": "refunded_or_revoked::account_recovery",
+      "expected_decision": "allow",
+      "family": "account_recovery",
+      "state": "refunded_or_revoked"
+    },
+    {
+      "case_id": "refunded_or_revoked::read_projection",
+      "expected_decision": "read",
+      "family": "read_projection",
+      "state": "refunded_or_revoked"
+    },
+    {
+      "case_id": "refunded_or_revoked::base_focusa",
+      "expected_decision": "deny",
+      "family": "base_focusa",
+      "state": "refunded_or_revoked"
+    },
+    {
+      "case_id": "refunded_or_revoked::automation",
+      "expected_decision": "deny",
+      "family": "automation",
+      "state": "refunded_or_revoked"
+    },
+    {
+      "case_id": "refunded_or_revoked::team_remote",
+      "expected_decision": "deny",
+      "family": "team_remote",
+      "state": "refunded_or_revoked"
+    },
+    {
+      "case_id": "refunded_or_revoked::release_proof",
+      "expected_decision": "deny",
+      "family": "release_proof",
+      "state": "refunded_or_revoked"
+    },
+    {
+      "case_id": "refunded_or_revoked::premium_updates",
+      "expected_decision": "deny",
+      "family": "premium_updates",
+      "state": "refunded_or_revoked"
+    },
+    {
+      "case_id": "refunded_or_revoked::customer_data_export",
+      "expected_decision": "allow",
+      "family": "customer_data_export",
+      "state": "refunded_or_revoked"
+    },
+    {
+      "case_id": "refunded_or_revoked::internal_maintenance",
+      "expected_decision": "inherit",
+      "family": "internal_maintenance",
+      "state": "refunded_or_revoked"
+    },
+    {
+      "case_id": "missing_or_corrupt::account_recovery",
+      "expected_decision": "allow",
+      "family": "account_recovery",
+      "state": "missing_or_corrupt"
+    },
+    {
+      "case_id": "missing_or_corrupt::read_projection",
+      "expected_decision": "read_local_only",
+      "family": "read_projection",
+      "state": "missing_or_corrupt"
+    },
+    {
+      "case_id": "missing_or_corrupt::base_focusa",
+      "expected_decision": "deny",
+      "family": "base_focusa",
+      "state": "missing_or_corrupt"
+    },
+    {
+      "case_id": "missing_or_corrupt::automation",
+      "expected_decision": "deny",
+      "family": "automation",
+      "state": "missing_or_corrupt"
+    },
+    {
+      "case_id": "missing_or_corrupt::team_remote",
+      "expected_decision": "deny",
+      "family": "team_remote",
+      "state": "missing_or_corrupt"
+    },
+    {
+      "case_id": "missing_or_corrupt::release_proof",
+      "expected_decision": "deny",
+      "family": "release_proof",
+      "state": "missing_or_corrupt"
+    },
+    {
+      "case_id": "missing_or_corrupt::premium_updates",
+      "expected_decision": "deny",
+      "family": "premium_updates",
+      "state": "missing_or_corrupt"
+    },
+    {
+      "case_id": "missing_or_corrupt::customer_data_export",
+      "expected_decision": "allow",
+      "family": "customer_data_export",
+      "state": "missing_or_corrupt"
+    },
+    {
+      "case_id": "missing_or_corrupt::internal_maintenance",
+      "expected_decision": "inherit",
+      "family": "internal_maintenance",
+      "state": "missing_or_corrupt"
+    }
+  ],
+  "negative_mutations": [
+    {
+      "expected_error": "duplicate family id",
+      "id": "duplicate_family"
+    },
+    {
+      "expected_error": "unknown active feature",
+      "id": "unknown_active_feature"
+    },
+    {
+      "expected_error": "recovery family requires commercial feature",
+      "id": "recovery_requires_feature"
+    },
+    {
+      "expected_error": "dormant dimension absence changes authorization",
+      "id": "dormant_absence_denies"
+    },
+    {
+      "expected_error": "state grid is not exhaustive",
+      "id": "missing_state_family"
+    },
+    {
+      "expected_error": "duplicate feature compatibility key",
+      "id": "duplicate_feature_compatibility"
+    }
+  ],
+  "policy_canonical_sha256": "99b36a1bf2dd262825b719f6bbbfd7e6a1b87d33ead0b97bfa6c372ed0c4e5a8",
+  "policy_id": "focusa-simple-entitlement",
+  "policy_version": 1,
+  "schema": "focusa.spec152f.entitlement_policy_cases.v1",
+  "state_count": 8
+}

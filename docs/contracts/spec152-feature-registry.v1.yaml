@@ -1,3 +1,7 @@
+# Commercial treatment and base/premium/recovery compatibility are authoritative in
+# docs/contracts/spec152f-entitlement-policy.v1.yaml. This registry retains stable
+# feature identifiers; it does not make core compatibility claims separate purchases
+# or make basic export, repair, rollback, or stable security updates premium.
 schema: focusa.feature_registry.v1
 product: focusa
 features:
