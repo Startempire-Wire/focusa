@@ -1,0 +1,50 @@
+Spec 152F machine-readable entitlement policy acceptance
+Work item: focusa-vbcqu.20.14.2
+Implementation commit: 4a614fde6f924e7237c2ded3b152f8e9bd08b300
+
+OUTPUTS
+- Policy registry: docs/contracts/spec152f-entitlement-policy.v1.yaml
+  file SHA256: 90402e748d4e6e218db700c865af092861d82c560c3f292a5ccb7073d5fdf938
+  canonical semantic SHA256: 99b36a1bf2dd262825b719f6bbbfd7e6a1b87d33ead0b97bfa6c372ed0c4e5a8
+- Golden grid cases: tests/fixtures/spec152f-entitlement-policy-cases.v1.json
+  SHA256: 1d885f29d71975dc21f7a5d56671be51bf4289f64801d8ad91c94cab130bffd8
+- Deterministic validator: tests/spec152f_entitlement_policy_contract_test.py
+  SHA256: 35be44b060a240ccc68920d4331fa48c7b6bdf126e2b45ea582f7f3067c314cf
+- Feature registry compatibility pointer: docs/contracts/spec152-feature-registry.v1.yaml
+  SHA256: fb62a85d1af0d6d7d8bd90248d883ca584b911345f95b797c3f9b2dc4787c1ac
+
+FROZEN POLICY
+- Capability families: 9
+- Base commercial gates: 1
+- Optional premium families: 4
+- Entitlement states: 8
+- Explicit state/family grid cells: 72
+- Existing feature IDs mapped: 15/15
+- Future granularity dimensions: 10
+- Negative validator mutations: 6
+- Independent surface paywalls: forbidden
+- Local Evaluation and caller/facade grants: forbidden
+
+RECOVERY AND CUSTOMER CONTROL
+The policy explicitly preserves account/recovery, safe reads, basic customer-data export, repair, stable security updates, rollback, and uninstall without commercial entitlement. Authentication, authorization, scope, confirmation, artifact trust, and privacy controls remain independently required.
+
+FUTURE GRANULARITY
+Dormant sub-capability, operation, role-permission commerce, and facade-origin commerce dimensions have no authorization effect when claims are absent. Activation requires business justification, stable boundary, authority ownership, compatibility, recovery analysis, presenter inheritance, limit semantics, denial UX, acceptance evidence, and operator approval.
+
+VERIFICATION
+PASS python3 tests/spec152f_entitlement_policy_contract_test.py
+  families=9 premium_families=4 states=8 grid_cases=72 feature_compatibility=15 negative_mutations=6
+  policy_sha256=99b36a1bf2dd262825b719f6bbbfd7e6a1b87d33ead0b97bfa6c372ed0c4e5a8
+PASS python3 tests/spec152_feature_registry_test.py
+  feature_count=15 unknown_keys=fail_closed
+  digest=5aa0adb524f051274179bc8e4699625648322df9496124990b136b4a485181e0
+PASS python3 scripts/generate-spec152-feature-registry.py --check
+PASS git diff --check
+PASS policy, fixture, and validator are each below 500 lines
+
+ROLLBACK
+Revert implementation commit 4a614fde and this evidence commit only. Preserve Spec 152E authority, customers, orders, refunds, keys, nodes, sequences, data, prior evidence, and the registered Spec 152F task graph. A rollback restores implementation-open policy state; it must not activate a local Evaluation or independent presenter paywall.
+
+RESULT
+TECHNICAL_ACCEPTANCE: VERIFIED
+Every Spec 152F state/family grid cell and every existing feature identifier has one deterministic machine policy. Unknown active features, duplicate families or feature mappings, recovery commercial requirements, non-exhaustive grids, and denying dormant dimensions fail validation. This receipt proves the frozen policy contract only; runtime enforcement remains open in downstream atoms.
