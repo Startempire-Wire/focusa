@@ -14,6 +14,7 @@
   import CommandPalette from '$lib/ui/CommandPalette.svelte';
   import { installMotionPreference, scene, setMotionPreference } from '$lib/ui/motion';
   import type { PresentationCommand } from '$lib/shell/command-manifest';
+  import type { ResolvedWorkspaceProjection } from '$lib/mission-canvas/types';
 
   const sidebarGroups: ReadonlyArray<{ id: string; label: string; workspaceIds: readonly string[] }> = [
     { id: 'orient', label: 'Orient', workspaceIds: ['mission-canvas', 'mission-deck'] },
@@ -36,6 +37,7 @@
     detail: 'Reading infrastructure health only.'
   });
   let activeWorkspace = $derived(workspaceById(activeWorkspaceId));
+  let developmentProjection = $state<ResolvedWorkspaceProjection>();
   let daemonOrbState = $derived<'idle' | 'loading' | 'error'>(daemon.kind === 'checking' ? 'loading' : daemon.kind === 'unavailable' ? 'error' : 'idle');
   let sidebarMode = $state<DesktopSidebarMode>('expanded');
   let sidebarWidth = $state(248);
@@ -82,6 +84,19 @@
     window.addEventListener('pointermove', resizeSidebar);
     window.addEventListener('pointerup', endSidebarResize, { once: true });
   }
+
+  $effect(() => {
+    const workspaceId = activeWorkspace.id;
+    const previewHost = shellMode === 'browser preview';
+    let cancelled = false;
+    developmentProjection = undefined;
+    if (import.meta.env.DEV && previewHost) {
+      void import('$lib/mission-canvas/development-preview').then((module) => {
+        if (!cancelled) developmentProjection = module.developmentProjection(workspaceId);
+      });
+    }
+    return () => { cancelled = true; };
+  });
 
   onMount(() => {
     shellMode = '__TAURI_INTERNALS__' in window ? 'native desktop' : 'browser preview';
@@ -199,8 +214,11 @@
     <div class="view-scene" in:scene={{ duration: 220, y: 5 }} out:scene={{ duration: 110, y: 2 }}>
     {#if uiMode === 'tui'}
       <AgentTuiSurface />
-    {:else if activeWorkspace.id === 'mission-canvas'}
-      <MissionCanvasShell />
+    {:else if activeWorkspace.id === 'mission-canvas' || developmentProjection}
+      {#if developmentProjection}
+        <div class="development-fixture-label" role="status">Schema fixture · noncanonical development preview</div>
+      {/if}
+      <MissionCanvasShell projection={developmentProjection} />
     {:else}
       <section class="workspace-heading">
         <div>
