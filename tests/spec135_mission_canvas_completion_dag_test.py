@@ -32,6 +32,9 @@ assert graph["operator_confirmations"] == {
 assert graph["cardinal_translation_rule"]["id"] == "CARDINAL-135-SVELTE-001"
 assert graph["cardinal_translation_rule"]["destination"] == "apps/desktop Mission Canvas Svelte GUI tab"
 assert all(node["translation_contract_ref"] == "CARDINAL-135-SVELTE-001" for node in graph["nodes"])
+assert graph["weak_model_execution_boundary"]["execution_packet_catalog"] == "docs/contracts/spec135-svelte-task-execution-index.v1.json"
+assert all(node["execution_authority"] == "requirement_and_dependency_provenance_only" for node in graph["nodes"])
+assert all(node["desktop_execution_graph_ref"] == graph["weak_model_execution_boundary"]["only_executable_graph"] for node in graph["nodes"])
 assert graph["trajectory_alignment"]["mlg"].startswith("Close all 30 remaining")
 assert graph["trajectory_alignment"]["ready_frontier"] == [
     "SPEC135-RI4",

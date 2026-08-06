@@ -1,0 +1,126 @@
+{
+  "schema": "focusa.spec135.svelte_task_execution_packet.v1",
+  "task_id": "PTY-011",
+  "task_class": "integration",
+  "title": "Implement explicit close and shutdown semantics",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "current_status": "blocked",
+  "execution_mode": "execute_only_after_dependencies_complete",
+  "depends_on": [
+    "PTY-009",
+    "PTY-010"
+  ],
+  "source_requirement": {
+    "parent_callgraph_node": "MC-170",
+    "source_refs": [
+      "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md"
+    ],
+    "pi_overlay_behavior_sources": [],
+    "behavior_to_preserve": "explicit close intent and exact identity",
+    "parent_acceptance": [
+      "Pi remains alive while Mission Canvas is visible.",
+      "Mission Canvas and Agent TUI show the same Pi session and Attachment.",
+      "resize, input, output, interrupt, detach, close, restart, and stale-output rejection are defined and implemented.",
+      "ordinary child-process pipes are not used."
+    ]
+  },
+  "destination": {
+    "host": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "exact_target_paths": [
+      "apps/desktop/src-tauri/src/pty/lifecycle.rs"
+    ],
+    "named_symbols_or_calls": [
+      "close_preview",
+      "close_commit",
+      "PtyHandle.terminate",
+      "Receipt.emit"
+    ],
+    "generated_operation": null,
+    "agent_tui_boundary": "Agent TUI remains the separate authentic PTY-backed Pi terminal; it is never the Mission Canvas renderer."
+  },
+  "typed_input": "explicit close intent and exact identity",
+  "required_output": "governed runtime termination",
+  "ordered_steps": [
+    {
+      "step": 1,
+      "action": "dependency_gate",
+      "instruction": "Verify every dependency is complete with evidence: ['PTY-009', 'PTY-010']. Stop on blocked, partial, or missing evidence."
+    },
+    {
+      "step": 2,
+      "action": "read_authority",
+      "instruction": "Read these sources completely before editing: ['docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
+    },
+    {
+      "step": 3,
+      "action": "inspect_destination",
+      "instruction": "Inspect only these destination paths and named symbols before changing code: ['apps/desktop/src-tauri/src/pty/lifecycle.rs']; symbols/calls: ['close_preview', 'close_commit', 'PtyHandle.terminate', 'Receipt.emit']. Do not invent a substitute path or API."
+    },
+    {
+      "step": 4,
+      "action": "implement",
+      "instruction": "Transform the typed input into the required output: INPUT=explicit close intent and exact identity; OUTPUT=governed runtime termination. Preserve every source behavior and use generated DTOs/operation metadata."
+    },
+    {
+      "step": 5,
+      "action": "negative_cases",
+      "instruction": "Prove foreign scope, missing authority, stale revision/cursor, unavailable capability, and ineligible/empty contribution behavior whenever applicable; fail closed rather than infer."
+    },
+    {
+      "step": 6,
+      "action": "validate",
+      "instruction": "Run exactly these commands: ['cargo test -p focusa-desktop pty_close']. Do not substitute screenshots for functional checks."
+    },
+    {
+      "step": 7,
+      "action": "evidence",
+      "instruction": "Write the bounded result and command outputs to docs/contracts/evidence/spec135-svelte-tasks/PTY-011.json and link the changed files and exact acceptance statements."
+    }
+  ],
+  "authority_boundaries": [
+    "Core owns eligibility, layout resolution, identity, authority, persistence, operations, and recomposition.",
+    "Svelte renders canonical ResolvedWorkspaceProjection output and approved generated renderers; it does not infer contributions or layout.",
+    "ScopeRef/ProjectRootKey -> WorkstreamId -> ContinuityId -> AttachmentKey -> SessionId/InstanceId -> runtime object -> WorkSurfaceId is the authority chain.",
+    "UIAI Engine exclusively owns browser execution and visual proof.",
+    "Generated OpenAPI, operation registry, TypeScript client, and validators own transport DTOs and route metadata."
+  ],
+  "prohibited_shortcuts": [
+    "fixed dashboard or route-local screen inventory",
+    "client-local eligibility or layout resolver",
+    "invented ID, label, operation, renderer, activity, profile, panel, or workflow",
+    "project_root plus continuity_id treated as complete authority",
+    "ordinary child-process pipes substituted for PTY",
+    "competing Svelte A2UI/schema renderer",
+    "fixture, screenshot, or terminal output treated as production completion",
+    "editing an unresolved symbolic target or bypassing an incomplete dependency"
+  ],
+  "validation_commands": [
+    "cargo test -p focusa-desktop pty_close"
+  ],
+  "acceptance": [
+    "Closing a view and terminating canonical runtime are separate operations.",
+    "Pi remains alive while Mission Canvas is visible.",
+    "Mission Canvas and Agent TUI show the same Pi session and Attachment.",
+    "resize, input, output, interrupt, detach, close, restart, and stale-output rejection are defined and implemented.",
+    "ordinary child-process pipes are not used."
+  ],
+  "evidence_artifact": "docs/contracts/evidence/spec135-svelte-tasks/PTY-011.json",
+  "stop_conditions": {
+    "unresolved_specification_items": [],
+    "stop_if": [
+      "any dependency lacks completion evidence",
+      "exact Workstream/Attachment authority is unavailable for an authority-bearing action",
+      "a named generated operation, renderer, semantic binding, or target path cannot be found",
+      "the requested behavior would require inventing product semantics",
+      "the check command is absent or cannot exercise the required output"
+    ],
+    "recovery": "Do not guess. Mark the packet blocked with the missing exact item and continue only when its owning dependency or graph amendment resolves it."
+  },
+  "reopen_if": [
+    "any cited Spec 135 behavior is absent from the Svelte destination",
+    "the implementation renders only a static/fixture path",
+    "authority, stale-state, empty-state, or negative-case checks fail",
+    "the generated contract or operation registry changes",
+    "visual composition contradicts the adaptive handoff grammar after functional checks pass"
+  ]
+}

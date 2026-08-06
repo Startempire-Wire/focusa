@@ -2,7 +2,7 @@
 
 **Status:** Operator approved P00 execution; later phases remain dependency-gated
 **Graph:** `docs/contracts/spec135-mission-canvas-completion-dag.v2.json`
-**Graph digest:** `eea37f3159b4e7773e85b9c8b3572c19817758ad31e1d12854020180b2434312`
+**Graph digest:** `5ccf534bfb22da9b98fcdec8d169418341520c627f9fdf84e81113af0ff0472c`
 **Granularity:** 308 implementation tasks, 381 total nodes including gates, 623 dependency edges
 
 ## 1. Necessary pivot

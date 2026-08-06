@@ -785,6 +785,8 @@ def build_graph() -> dict[str, Any]:
         previous_phase_gate = phase_gate
     for node in nodes:
         node["translation_contract_ref"] = "CARDINAL-135-SVELTE-001"
+        node["execution_authority"] = "requirement_and_dependency_provenance_only"
+        node["desktop_execution_graph_ref"] = "docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-executable-callgraph.yaml"
     graph = {
         "schema": "focusa.spec135.mission_canvas_completion_dag.v2",
         "version": 2,
@@ -804,6 +806,12 @@ def build_graph() -> dict[str, Any]:
                 "Treat visual handoffs as examples of the adaptive visual grammar, never as fixed dashboards or substitutes for functional translation.",
             ],
             "completion_gate": "No task is complete if it only reproduces terminal presentation, static screenshots, fixture-only behavior, or a fixed Svelte screen while any cited Spec 135 behavior remains untranslated.",
+        },
+        "weak_model_execution_boundary": {
+            "completion_dag_role": "Requirement, dependency, and acceptance provenance only; these nodes are not direct file-edit instructions.",
+            "only_executable_graph": "docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-executable-callgraph.yaml",
+            "execution_packet_catalog": "docs/contracts/spec135-svelte-task-execution-index.v1.json",
+            "rule": "A model must select one executable task, load its packet, obey stop conditions, edit only exact targets, run exact checks, and capture the named evidence artifact.",
         },
         "authority_precedence": AUTHORITY,
         "operator_confirmations": {

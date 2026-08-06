@@ -1,0 +1,164 @@
+{
+  "schema": "focusa.spec135.svelte_task_execution_packet.v1",
+  "task_id": "OPS-019",
+  "task_class": "operation",
+  "title": "Implement operation focusa.mission_canvas.draft.sync",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "current_status": "blocked_until_dependencies_complete",
+  "execution_mode": "execute_only_after_dependencies_complete",
+  "depends_on": [
+    "OPS-018"
+  ],
+  "source_requirement": {
+    "parent_callgraph_node": null,
+    "source_refs": [
+      "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+      "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+      "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+      "crates/focusa-api/src/routes/mission_canvas.rs"
+    ],
+    "pi_overlay_behavior_sources": [],
+    "behavior_to_preserve": "Idempotently persists draft and rejects stale or foreign revision.",
+    "parent_acceptance": []
+  },
+  "destination": {
+    "host": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "exact_target_paths": [
+      "crates/focusa-api/src/routes/mission_canvas.rs",
+      "crates/focusa-core/src/mission_canvas/",
+      "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+      "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+      "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+      "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+      "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+      "tests/spec135_mission_canvas_generated_parity_test.py",
+      "tests/spec135_mission_canvas_operation_contract_test.py",
+      "apps/desktop/tests/operation-consumer-runtime.mjs"
+    ],
+    "named_symbols_or_calls": [
+      "draftSync",
+      "focusa.mission_canvas.draft.sync",
+      "generated client method",
+      "generated operation ID lookup",
+      "HTTP method and path from registry",
+      "WorkstreamContext extraction",
+      "capability and permission check",
+      "core service call",
+      "Result or Receipt with exact WorkstreamKey",
+      "runtime validation in Desktop"
+    ],
+    "generated_operation": {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.draft.sync",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/drafts/sync",
+      "permissions_required": [
+        "mission_canvas:draft"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "CanvasDraftState",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": true,
+      "response_schema_ref": "CanvasDraftState",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    "agent_tui_boundary": "Agent TUI remains the separate authentic PTY-backed Pi terminal; it is never the Mission Canvas renderer."
+  },
+  "typed_input": "Generated request schema CanvasDraftState with exact scope ['project_root', 'continuity_id', 'session_id', 'attachment_id'].",
+  "required_output": "Validated CanvasDraftState returned through generated method draftSync.",
+  "ordered_steps": [
+    {
+      "step": 1,
+      "action": "dependency_gate",
+      "instruction": "Verify every dependency is complete with evidence: ['OPS-018']. Stop on blocked, partial, or missing evidence."
+    },
+    {
+      "step": 2,
+      "action": "read_authority",
+      "instruction": "Read these sources completely before editing: ['docs/contracts/spec135/mission-canvas-v1/operation-registry.json', 'docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json', 'docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts', 'crates/focusa-api/src/routes/mission_canvas.rs']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
+    },
+    {
+      "step": 3,
+      "action": "inspect_destination",
+      "instruction": "Inspect only these destination paths and named symbols before changing code: ['crates/focusa-api/src/routes/mission_canvas.rs', 'crates/focusa-core/src/mission_canvas/', 'docs/contracts/spec135/mission-canvas-v1/operation-registry.json', 'docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json', 'docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts', 'docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts', 'apps/desktop/src/lib/mission-canvas/http-transport.ts', 'tests/spec135_mission_canvas_generated_parity_test.py', 'tests/spec135_mission_canvas_operation_contract_test.py', 'apps/desktop/tests/operation-consumer-runtime.mjs']; symbols/calls: ['draftSync', 'focusa.mission_canvas.draft.sync', 'generated client method', 'generated operation ID lookup', 'HTTP method and path from registry', 'WorkstreamContext extraction', 'capability and permission check', 'core service call', 'Result or Receipt with exact WorkstreamKey', 'runtime validation in Desktop']. Do not invent a substitute path or API."
+    },
+    {
+      "step": 4,
+      "action": "implement",
+      "instruction": "Transform the typed input into the required output: INPUT=Generated request schema CanvasDraftState with exact scope ['project_root', 'continuity_id', 'session_id', 'attachment_id'].; OUTPUT=Validated CanvasDraftState returned through generated method draftSync.. Preserve every source behavior and use generated DTOs/operation metadata."
+    },
+    {
+      "step": 5,
+      "action": "negative_cases",
+      "instruction": "Prove foreign scope, missing authority, stale revision/cursor, unavailable capability, and ineligible/empty contribution behavior whenever applicable; fail closed rather than infer."
+    },
+    {
+      "step": 6,
+      "action": "validate",
+      "instruction": "Run exactly these commands: ['python3 tests/spec135_mission_canvas_generated_parity_test.py', 'python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.draft.sync', 'node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.draft.sync --client draftSync']. Do not substitute screenshots for functional checks."
+    },
+    {
+      "step": 7,
+      "action": "evidence",
+      "instruction": "Write the bounded result and command outputs to docs/contracts/evidence/spec135-svelte-tasks/OPS-019.json and link the changed files and exact acceptance statements."
+    }
+  ],
+  "authority_boundaries": [
+    "Core owns eligibility, layout resolution, identity, authority, persistence, operations, and recomposition.",
+    "Svelte renders canonical ResolvedWorkspaceProjection output and approved generated renderers; it does not infer contributions or layout.",
+    "ScopeRef/ProjectRootKey -> WorkstreamId -> ContinuityId -> AttachmentKey -> SessionId/InstanceId -> runtime object -> WorkSurfaceId is the authority chain.",
+    "UIAI Engine exclusively owns browser execution and visual proof.",
+    "Generated OpenAPI, operation registry, TypeScript client, and validators own transport DTOs and route metadata."
+  ],
+  "prohibited_shortcuts": [
+    "fixed dashboard or route-local screen inventory",
+    "client-local eligibility or layout resolver",
+    "invented ID, label, operation, renderer, activity, profile, panel, or workflow",
+    "project_root plus continuity_id treated as complete authority",
+    "ordinary child-process pipes substituted for PTY",
+    "competing Svelte A2UI/schema renderer",
+    "fixture, screenshot, or terminal output treated as production completion",
+    "editing an unresolved symbolic target or bypassing an incomplete dependency"
+  ],
+  "validation_commands": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.draft.sync",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.draft.sync --client draftSync"
+  ],
+  "acceptance": [
+    "Idempotently persists draft and rejects stale or foreign revision."
+  ],
+  "evidence_artifact": "docs/contracts/evidence/spec135-svelte-tasks/OPS-019.json",
+  "stop_conditions": {
+    "unresolved_specification_items": [],
+    "stop_if": [
+      "any dependency lacks completion evidence",
+      "exact Workstream/Attachment authority is unavailable for an authority-bearing action",
+      "a named generated operation, renderer, semantic binding, or target path cannot be found",
+      "the requested behavior would require inventing product semantics",
+      "the check command is absent or cannot exercise the required output"
+    ],
+    "recovery": "Do not guess. Mark the packet blocked with the missing exact item and continue only when its owning dependency or graph amendment resolves it."
+  },
+  "reopen_if": [
+    "any cited Spec 135 behavior is absent from the Svelte destination",
+    "the implementation renders only a static/fixture path",
+    "authority, stale-state, empty-state, or negative-case checks fail",
+    "the generated contract or operation registry changes",
+    "visual composition contradicts the adaptive handoff grammar after functional checks pass"
+  ]
+}

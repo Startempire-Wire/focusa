@@ -1,0 +1,124 @@
+{
+  "schema": "focusa.spec135.svelte_task_execution_packet.v1",
+  "task_id": "ID-010",
+  "task_class": "atomic",
+  "title": "Cut Workstream identity APIs and generated schemas",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "current_status": "blocked",
+  "execution_mode": "stop_specification_gap",
+  "depends_on": [
+    "ID-005",
+    "ID-009"
+  ],
+  "source_requirement": {
+    "parent_callgraph_node": "MC-010",
+    "source_refs": [
+      "/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md",
+      "/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md",
+      "/tmp/focusa-spec158-transition/docs__spec158__03-client-runtime-and-desktop-contracts.md"
+    ],
+    "pi_overlay_behavior_sources": [],
+    "behavior_to_preserve": "canonical identity and reducer schemas",
+    "parent_acceptance": []
+  },
+  "destination": {
+    "host": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "exact_target_paths": [
+      "tests/spec158_mission_canvas_identity_contract_test.py"
+    ],
+    "named_symbols_or_calls": [
+      "OpenAPI.generate",
+      "TypeScript.generate",
+      "CapabilityRegistry.generate"
+    ],
+    "generated_operation": null,
+    "agent_tui_boundary": "Agent TUI remains the separate authentic PTY-backed Pi terminal; it is never the Mission Canvas renderer."
+  },
+  "typed_input": "canonical identity and reducer schemas",
+  "required_output": "one Workstream-aware cross-client contract",
+  "ordered_steps": [
+    {
+      "step": 1,
+      "action": "dependency_gate",
+      "instruction": "Verify every dependency is complete with evidence: ['ID-005', 'ID-009']. Stop on blocked, partial, or missing evidence."
+    },
+    {
+      "step": 2,
+      "action": "read_authority",
+      "instruction": "Read these sources completely before editing: ['/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md', '/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md', '/tmp/focusa-spec158-transition/docs__spec158__03-client-runtime-and-desktop-contracts.md']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
+    },
+    {
+      "step": 3,
+      "action": "inspect_destination",
+      "instruction": "Inspect only these destination paths and named symbols before changing code: ['tests/spec158_mission_canvas_identity_contract_test.py']; symbols/calls: ['OpenAPI.generate', 'TypeScript.generate', 'CapabilityRegistry.generate']. Do not invent a substitute path or API."
+    },
+    {
+      "step": 4,
+      "action": "implement",
+      "instruction": "Transform the typed input into the required output: INPUT=canonical identity and reducer schemas; OUTPUT=one Workstream-aware cross-client contract. Preserve every source behavior and use generated DTOs/operation metadata."
+    },
+    {
+      "step": 5,
+      "action": "negative_cases",
+      "instruction": "Prove foreign scope, missing authority, stale revision/cursor, unavailable capability, and ineligible/empty contribution behavior whenever applicable; fail closed rather than infer."
+    },
+    {
+      "step": 6,
+      "action": "validate",
+      "instruction": "Run exactly these commands: ['python3 tests/spec158_mission_canvas_identity_contract_test.py']. Do not substitute screenshots for functional checks."
+    },
+    {
+      "step": 7,
+      "action": "evidence",
+      "instruction": "Write the bounded result and command outputs to docs/contracts/evidence/spec135-svelte-tasks/ID-010.json and link the changed files and exact acceptance statements."
+    }
+  ],
+  "authority_boundaries": [
+    "Core owns eligibility, layout resolution, identity, authority, persistence, operations, and recomposition.",
+    "Svelte renders canonical ResolvedWorkspaceProjection output and approved generated renderers; it does not infer contributions or layout.",
+    "ScopeRef/ProjectRootKey -> WorkstreamId -> ContinuityId -> AttachmentKey -> SessionId/InstanceId -> runtime object -> WorkSurfaceId is the authority chain.",
+    "UIAI Engine exclusively owns browser execution and visual proof.",
+    "Generated OpenAPI, operation registry, TypeScript client, and validators own transport DTOs and route metadata."
+  ],
+  "prohibited_shortcuts": [
+    "fixed dashboard or route-local screen inventory",
+    "client-local eligibility or layout resolver",
+    "invented ID, label, operation, renderer, activity, profile, panel, or workflow",
+    "project_root plus continuity_id treated as complete authority",
+    "ordinary child-process pipes substituted for PTY",
+    "competing Svelte A2UI/schema renderer",
+    "fixture, screenshot, or terminal output treated as production completion",
+    "editing an unresolved symbolic target or bypassing an incomplete dependency"
+  ],
+  "validation_commands": [
+    "python3 tests/spec158_mission_canvas_identity_contract_test.py"
+  ],
+  "acceptance": [
+    "Every canonical Result and Receipt echoes exact WorkstreamKey."
+  ],
+  "evidence_artifact": "docs/contracts/evidence/spec135-svelte-tasks/ID-010.json",
+  "stop_conditions": {
+    "unresolved_specification_items": [
+      "Spec 158 OpenAPI",
+      "generated-client",
+      "CLI",
+      "MCP",
+      "and Pi-tool owners"
+    ],
+    "stop_if": [
+      "any dependency lacks completion evidence",
+      "exact Workstream/Attachment authority is unavailable for an authority-bearing action",
+      "a named generated operation, renderer, semantic binding, or target path cannot be found",
+      "the requested behavior would require inventing product semantics",
+      "the check command is absent or cannot exercise the required output"
+    ],
+    "recovery": "Do not guess. Mark the packet blocked with the missing exact item and continue only when its owning dependency or graph amendment resolves it."
+  },
+  "reopen_if": [
+    "any cited Spec 135 behavior is absent from the Svelte destination",
+    "the implementation renders only a static/fixture path",
+    "authority, stale-state, empty-state, or negative-case checks fail",
+    "the generated contract or operation registry changes",
+    "visual composition contradicts the adaptive handoff grammar after functional checks pass"
+  ]
+}

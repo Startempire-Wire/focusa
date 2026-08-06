@@ -20,6 +20,17 @@ cardinal_translation_contract:
     - Interpret handoff screenshots as adaptive visual grammar and recomposition examples, never fixed screens.
     - A task is not done when it produces only terminal output, a static screenshot, fixture-only behavior, or a fixed Svelte dashboard.
 
+weak_model_execution_contract:
+  packet_catalog: docs/contracts/spec135-svelte-task-execution-index.v1.json
+  applies_to: all 133 tasks
+  rules:
+    - Select one task from execution_order and load its exact execution_packet_ref before editing.
+    - Obey execution_mode; blocked dependencies, unresolved targets, or missing authority are stop conditions rather than invitations to infer.
+    - Read every source ref completely and edit only exact target paths named by the packet.
+    - Follow ordered steps through negative cases, exact validation commands, and the evidence artifact.
+    - Never execute the 381-node completion DAG directly; it supplies requirement provenance and dependencies while this graph and packet catalog supply edit authority.
+    - Previously complete tasks must be reopened when their packet reopen_if conditions hold under the cardinal translation rule.
+
 agent_contract:
   select:
     - Select the first task in execution_order whose status is ready and whose dependencies are complete.
@@ -74,6 +85,7 @@ status_meanings:
 atomic_tasks:
   - id: EX-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/EX-001.json
     parent: MC-000
     title: Link parent and executable callgraphs from the Desktop graph
     status: complete
@@ -88,6 +100,7 @@ atomic_tasks:
 
   - id: ID-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-001.json
     parent: MC-010
     title: Add ScopeRef and ProjectRootKey target types
     status: blocked_external
@@ -102,6 +115,7 @@ atomic_tasks:
 
   - id: ID-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-002.json
     parent: MC-010
     title: Add stable WorkstreamId and WorkstreamKey
     status: blocked
@@ -116,6 +130,7 @@ atomic_tasks:
 
   - id: ID-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-003.json
     parent: MC-010
     title: Add AttachmentKey ownership type
     status: blocked
@@ -130,6 +145,7 @@ atomic_tasks:
 
   - id: ID-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-004.json
     parent: MC-010
     title: Partition ProjectState by WorkstreamId
     status: blocked
@@ -144,6 +160,7 @@ atomic_tasks:
 
   - id: ID-005
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-005.json
     parent: MC-010
     title: Implement WorkstreamContext extraction
     status: blocked
@@ -158,6 +175,7 @@ atomic_tasks:
 
   - id: ID-006
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-006.json
     parent: MC-010
     title: Define Workstream creation and migration mapping
     status: blocked
@@ -172,6 +190,7 @@ atomic_tasks:
 
   - id: ID-007
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-007.json
     parent: MC-010
     title: Quarantine ambiguous legacy ownership
     status: blocked
@@ -186,6 +205,7 @@ atomic_tasks:
 
   - id: ID-008
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-008.json
     parent: MC-010
     title: Materialize shadow Workstream persistence
     status: blocked
@@ -200,6 +220,7 @@ atomic_tasks:
 
   - id: ID-009
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-009.json
     parent: MC-010
     title: Cut active Workstream selection into canonical reducer state
     status: blocked
@@ -214,6 +235,7 @@ atomic_tasks:
 
   - id: ID-010
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-010.json
     parent: MC-010
     title: Cut Workstream identity APIs and generated schemas
     status: blocked
@@ -223,11 +245,12 @@ atomic_tasks:
     calls: [OpenAPI.generate, TypeScript.generate, CapabilityRegistry.generate]
     input: canonical identity and reducer schemas
     output: one Workstream-aware cross-client contract
-    check: canonical Spec 158 generated-contract parity gate
+    check: python3 tests/spec158_mission_canvas_identity_contract_test.py
     done: Every canonical Result and Receipt echoes exact WorkstreamKey.
 
   - id: CORE-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CORE-001.json
     parent: MC-020
     title: Replace MissionCanvasScope legacy fields with WorkstreamKey
     status: blocked
@@ -243,6 +266,7 @@ atomic_tasks:
 
   - id: CORE-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CORE-002.json
     parent: MC-020
     title: Bind CandidateContribution to exact scope revision
     status: blocked
@@ -258,6 +282,7 @@ atomic_tasks:
 
   - id: CORE-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CORE-003.json
     parent: MC-020
     title: Bind ResolvedWorkspaceProjection to exact WorkstreamKey
     status: blocked
@@ -273,6 +298,7 @@ atomic_tasks:
 
   - id: CORE-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CORE-004.json
     parent: MC-020
     title: Update projection digest for Workstream identity
     status: blocked
@@ -288,6 +314,7 @@ atomic_tasks:
 
   - id: CORE-005
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CORE-005.json
     parent: MC-020
     title: Re-key MissionCanvasStore by WorkstreamKey
     status: blocked
@@ -303,6 +330,7 @@ atomic_tasks:
 
   - id: CORE-006
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CORE-006.json
     parent: MC-020
     title: Update resolve_projection scope validation
     status: blocked
@@ -318,6 +346,7 @@ atomic_tasks:
 
   - id: CORE-007
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CORE-007.json
     parent: MC-020
     title: Translate Pi WorkSurfaceProjection identity into the Desktop projection model
     status: blocked
@@ -333,6 +362,7 @@ atomic_tasks:
 
   - id: CORE-008
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CORE-008.json
     parent: MC-020
     title: Translate Pi session inventory into an exact-identity Desktop contribution
     status: blocked
@@ -348,12 +378,13 @@ atomic_tasks:
 
   - id: CORE-009
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CORE-009.json
     parent: MC-020
     title: Add Mission Canvas identity migration fixtures
     status: blocked
     depends_on: [CORE-005, CORE-008]
     read: [tests/spec135_g1_work_surface_test.py, tests/spec135_resolved_projection_contract_test.py]
-    targets: [tests/fixtures/spec158-mission-canvas-identity/, Mission Canvas identity tests]
+    targets: [tests/fixtures/spec158-mission-canvas-identity/, tests/spec158_mission_canvas_identity_contract_test.py]
     calls: [legacy_fixture.migrate, ambiguous_fixture.quarantine]
     input: unique, ambiguous, and cross-Workstream legacy records
     output: deterministic migration expectations
@@ -362,12 +393,13 @@ atomic_tasks:
 
   - id: CONTRACT-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CONTRACT-001.json
     parent: MC-030
     title: Regenerate Mission Canvas JSON Schema
     status: blocked
     depends_on: [CORE-009]
     read: [scripts/generate-spec135-mission-canvas-derived-contracts.py]
-    targets: [generated Mission Canvas JSON Schema artifacts]
+    targets: [docs/contracts/spec135/mission-canvas-v1/schema/]
     calls: [schema_generator.run]
     input: corrected Rust domain types
     output: Workstream-aware schemas
@@ -376,6 +408,7 @@ atomic_tasks:
 
   - id: CONTRACT-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CONTRACT-002.json
     parent: MC-030
     title: Regenerate Mission Canvas OpenAPI
     status: blocked
@@ -390,6 +423,7 @@ atomic_tasks:
 
   - id: CONTRACT-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CONTRACT-003.json
     parent: MC-030
     title: Regenerate Operation Registry and action bindings
     status: blocked
@@ -404,6 +438,7 @@ atomic_tasks:
 
   - id: CONTRACT-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CONTRACT-004.json
     parent: MC-030
     title: Regenerate TypeScript types
     status: blocked
@@ -418,6 +453,7 @@ atomic_tasks:
 
   - id: CONTRACT-005
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CONTRACT-005.json
     parent: MC-030
     title: Regenerate TypeScript client
     status: blocked
@@ -432,6 +468,7 @@ atomic_tasks:
 
   - id: CONTRACT-006
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CONTRACT-006.json
     parent: MC-030
     title: Regenerate runtime validators
     status: blocked
@@ -446,6 +483,7 @@ atomic_tasks:
 
   - id: CONTRACT-007
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CONTRACT-007.json
     parent: MC-040
     title: Create shared Mission Canvas contracts package entrypoint
     status: blocked
@@ -455,11 +493,12 @@ atomic_tasks:
     calls: [generated_types.reexport, generated_client.reexport, generated_validators.reexport]
     input: generated artifacts
     output: one package import path for Desktop and Pi
-    check: package-specific TypeScript check
+    check: npm --prefix apps/desktop run check
     done: Package re-exports generated artifacts without copying DTO definitions.
 
   - id: CONTRACT-008
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CONTRACT-008.json
     parent: MC-040
     title: Add shared layout traversal helpers
     status: blocked
@@ -469,11 +508,12 @@ atomic_tasks:
     calls: [visitLayoutNode, collectLayoutContributionIds]
     input: generated LayoutNode only
     output: pure traversal utilities
-    check: package test for all single, split, stack, grid, tabs, and inspector variants
+    check: node apps/desktop/tests/layout-renderer-runtime.mjs
     done: Helpers traverse canonical geometry but never choose eligibility or layout.
 
   - id: FIXTURE-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/FIXTURE-001.json
     parent: MC-040
     title: Generate populated Desktop projection fixture from the canonical contract fixture
     status: complete
@@ -488,6 +528,7 @@ atomic_tasks:
 
   - id: FIXTURE-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/FIXTURE-002.json
     parent: MC-040
     title: Generate empty-optionals projection fixture
     status: complete
@@ -497,11 +538,12 @@ atomic_tasks:
     calls: [resolve_projection, validate_no_dead_chrome]
     input: candidates with empty Work Rail, queues, and inspector sections
     output: projection omitting all empty optionals
-    check: projection fixture validator
+    check: python3 apps/desktop/tests/generate-mission-canvas-fixtures.py --check
     done: Layout contains no omitted contribution ID.
 
   - id: FIXTURE-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/FIXTURE-003.json
     parent: MC-040
     title: Generate one-queue and zero-queue fixtures
     status: complete
@@ -511,11 +553,12 @@ atomic_tasks:
     calls: [resolve_projection]
     input: one meaningful queue then no meaningful queues
     output: canonical queue layout variants
-    check: projection fixture validator
+    check: python3 apps/desktop/tests/generate-mission-canvas-fixtures.py --check
     done: One queue spans and zero queues produce no queue node.
 
   - id: FIXTURE-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/FIXTURE-004.json
     parent: MC-040
     title: Generate all LayoutNode variant fixtures
     status: complete
@@ -525,11 +568,12 @@ atomic_tasks:
     calls: [resolve_layout]
     input: valid candidates and constraints for each supported variant
     output: single, split, stack, grid, tabs, and inspector fixture projections
-    check: projection fixture validator
+    check: python3 apps/desktop/tests/generate-mission-canvas-fixtures.py --check
     done: Every canonical LayoutNode variant has one valid renderer fixture.
 
   - id: UI-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-001.json
     parent: MC-050
     title: Add generated-client HTTP transport adapter
     status: complete
@@ -544,6 +588,7 @@ atomic_tasks:
 
   - id: UI-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-002.json
     parent: MC-050
     title: Add exact Desktop Workstream context store
     status: blocked
@@ -558,6 +603,7 @@ atomic_tasks:
 
   - id: UI-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-003.json
     parent: MC-050
     title: Add projection state machine
     status: implemented_partial
@@ -572,6 +618,7 @@ atomic_tasks:
 
   - id: UI-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-004.json
     parent: MC-060
     title: Create stable MissionCanvasFrame component
     status: complete
@@ -586,6 +633,7 @@ atomic_tasks:
 
   - id: UI-005
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-005.json
     parent: MC-100
     title: Create trusted contribution renderer registry
     status: complete
@@ -600,6 +648,7 @@ atomic_tasks:
 
   - id: UI-006
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-006.json
     parent: MC-090
     title: Render single LayoutNode
     status: complete
@@ -614,6 +663,7 @@ atomic_tasks:
 
   - id: UI-007
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-007.json
     parent: MC-090
     title: Render split LayoutNode
     status: complete
@@ -628,6 +678,7 @@ atomic_tasks:
 
   - id: UI-008
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-008.json
     parent: MC-090
     title: Render stack LayoutNode
     status: complete
@@ -642,6 +693,7 @@ atomic_tasks:
 
   - id: UI-009
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-009.json
     parent: MC-090
     title: Render grid LayoutNode
     status: complete
@@ -656,6 +708,7 @@ atomic_tasks:
 
   - id: UI-010
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-010.json
     parent: MC-090
     title: Render tabs LayoutNode
     status: complete
@@ -670,6 +723,7 @@ atomic_tasks:
 
   - id: UI-011
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-011.json
     parent: MC-090
     title: Render inspector LayoutNode
     status: complete
@@ -684,6 +738,7 @@ atomic_tasks:
 
   - id: UI-012
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-012.json
     parent: MC-090
     title: Compose recursive ProjectionLayoutRenderer
     status: complete
@@ -698,6 +753,7 @@ atomic_tasks:
 
   - id: UI-013
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-013.json
     parent: MC-070
     title: Render actual Work Surface strip
     status: implemented_partial
@@ -712,6 +768,7 @@ atomic_tasks:
 
   - id: UI-014
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-014.json
     parent: MC-080
     title: Render activity navigation from registry
     status: complete
@@ -726,6 +783,7 @@ atomic_tasks:
 
   - id: UI-015
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-015.json
     parent: MC-110
     title: Render conditional Work Rail contribution
     status: blocked
@@ -740,6 +798,7 @@ atomic_tasks:
 
   - id: UI-016
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-016.json
     parent: MC-120
     title: Render Steering Queue contribution
     status: implemented_partial
@@ -754,6 +813,7 @@ atomic_tasks:
 
   - id: UI-017
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-017.json
     parent: MC-120
     title: Render Follow-up Queue contribution
     status: blocked
@@ -768,6 +828,7 @@ atomic_tasks:
 
   - id: UI-018
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-018.json
     parent: MC-120
     title: Compose one-queue, two-queue, and zero-queue region
     status: implemented_partial
@@ -782,6 +843,7 @@ atomic_tasks:
 
   - id: UI-019
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-019.json
     parent: MC-130
     title: Implement draft controller
     status: implemented_partial
@@ -796,6 +858,7 @@ atomic_tasks:
 
   - id: UI-020
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-020.json
     parent: MC-130
     title: Render canonical Prompt Editor contribution
     status: implemented_partial
@@ -810,6 +873,7 @@ atomic_tasks:
 
   - id: UI-021
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/UI-021.json
     parent: MC-060
     title: Wire fixture-driven recursive Canvas in development tests
     status: complete
@@ -824,12 +888,13 @@ atomic_tasks:
 
   - id: DOMAIN-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-001.json
     parent: MC-105
     title: Bind Overview activity renderer
     status: blocked
     depends_on: [UI-005, CONTRACT-007]
     read: [docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md]
-    targets: [apps/desktop/src/lib/mission-canvas/activity-renderers.ts, trusted Overview contribution components]
+    targets: [apps/desktop/src/lib/mission-canvas/activity-renderers.ts, apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [rendererBinding.resolve]
     input: emitted Project, Trajectory, Workpoint, Evidence, and active-surface contributions
     output: only eligible overview contributions
@@ -838,12 +903,13 @@ atomic_tasks:
 
   - id: DOMAIN-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-002.json
     parent: MC-105
     title: Bind Context activity renderer
     status: blocked
     depends_on: [UI-005, CONTRACT-007]
     read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
-    targets: [trusted Context contribution components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [ProjectContextArtifact.render, ProjectContextClaim.render, semanticGraph.render]
     input: canonical Context contribution bindings
     output: provenance-aware Context surface
@@ -852,12 +918,13 @@ atomic_tasks:
 
   - id: DOMAIN-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-003.json
     parent: MC-105
     title: Bind Role activity renderer
     status: blocked
     depends_on: [UI-005, CONTRACT-007]
     read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
-    targets: [trusted Role contribution components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [ProjectAgentRoleProfile.render, RoleComposer.render]
     input: canonical Role Profile and draft state
     output: governed Role surface
@@ -866,12 +933,13 @@ atomic_tasks:
 
   - id: DOMAIN-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-004.json
     parent: MC-105
     title: Bind Interview activity renderer
     status: blocked
     depends_on: [UI-005, CONTRACT-007]
     read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
-    targets: [trusted Interview contribution components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [InterviewSession.render, QuestionRecord.render, AnswerRecord.render]
     input: canonical Grill Interview session
     output: one-question-at-a-time resumable Interview surface
@@ -880,12 +948,13 @@ atomic_tasks:
 
   - id: DOMAIN-005
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-005.json
     parent: MC-105
     title: Bind Spec activity renderer
     status: blocked
     depends_on: [UI-005, CONTRACT-007]
     read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
-    targets: [trusted Spec contribution components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [CristHandoffPacket.render, Spec120Cycle.render, ProjectGenesisSpec.render]
     input: canonical Spec artifacts and approval state
     output: governed Spec workbench contribution
@@ -894,12 +963,13 @@ atomic_tasks:
 
   - id: DOMAIN-006
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-006.json
     parent: MC-105
     title: Bind Tasks and Work activity renderer
     status: blocked
     depends_on: [UI-005, UI-015, CONTRACT-007]
     read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
-    targets: [trusted Tasks contribution components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [TaskPlan.render, ProviderCapability.render, Workpoint.render]
     input: canonical task plan, provider state, Workpoint, and Work Rail
     output: actionable Tasks/Work composition
@@ -908,12 +978,13 @@ atomic_tasks:
 
   - id: DOMAIN-007
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-007.json
     parent: MC-105
     title: Bind Sessions activity renderer
     status: blocked
     depends_on: [UI-005, UI-013, CORE-008]
     read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
-    targets: [trusted Sessions contribution components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [WorkSurfaceInventory.render, SessionAttachmentIdentity.render]
     input: exact Work Surface, Session, Instance, and Attachment inventory
     output: multiplexed runtime inventory
@@ -922,12 +993,13 @@ atomic_tasks:
 
   - id: DOMAIN-008
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-008.json
     parent: MC-105
     title: Bind Documents activity renderer
     status: blocked
     depends_on: [UI-005, CONTRACT-007]
     read: [docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md]
-    targets: [trusted document and provenance components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [ContextArtifact.render, DocumentRenderer.render, Provenance.render]
     input: canonical document artifact and provenance
     output: document Work Surface contribution
@@ -936,12 +1008,13 @@ atomic_tasks:
 
   - id: DOMAIN-009
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-009.json
     parent: MC-105
     title: Bind Research activity renderer
     status: blocked
     depends_on: [UI-005, CONTRACT-007]
     read: [docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md]
-    targets: [trusted research contribution components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [ResearchSource.render, ClaimGraph.render, UIAIArtifactRef.render]
     input: canonical research sources, claims, and artifacts
     output: provenance-aware Research composition
@@ -950,12 +1023,13 @@ atomic_tasks:
 
   - id: DOMAIN-010
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-010.json
     parent: MC-105
     title: Bind Evidence activity renderer
     status: blocked
     depends_on: [UI-005, CONTRACT-007]
     read: [docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md]
-    targets: [trusted Evidence and Receipt components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [Evidence.render, Receipt.render, Verification.render, Promotion.render]
     input: canonical Evidence and Receipts
     output: proof, provenance, verification, and promotion composition
@@ -964,12 +1038,13 @@ atomic_tasks:
 
   - id: DOMAIN-011
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-011.json
     parent: MC-105
     title: Bind History activity renderer
     status: blocked
     depends_on: [UI-005, LIVE-001]
     read: [docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md]
-    targets: [trusted History contribution components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [CanonicalEventHistory.render]
     input: cursor-scoped durable events
     output: bounded Workstream history
@@ -978,12 +1053,13 @@ atomic_tasks:
 
   - id: DOMAIN-012
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/DOMAIN-012.json
     parent: MC-105
     title: Bind Controls activity renderer
     status: blocked
     depends_on: [UI-005, CONTRACT-007]
     read: [docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md]
-    targets: [trusted Controls contribution components]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [Capabilities.render, Permissions.render, ProfileManagement.render, LayoutMemory.render, OmissionDiagnostics.render]
     input: canonical management and diagnostics data
     output: explicit management flow separate from daily workspace
@@ -992,6 +1068,7 @@ atomic_tasks:
 
   - id: PROFILE-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PROFILE-001.json
     parent: MC-140
     title: Render eligible profile selector
     status: complete
@@ -1006,6 +1083,7 @@ atomic_tasks:
 
   - id: PROFILE-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PROFILE-002.json
     parent: MC-140
     title: Preserve profile layout memory
     status: implemented_partial
@@ -1020,86 +1098,92 @@ atomic_tasks:
 
   - id: PROFILE-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PROFILE-003.json
     parent: MC-140
     title: Verify General profile recomposition
     status: blocked
     depends_on: [DOMAIN-001, PROFILE-002]
     read: [tests/fixtures/spec135-profile-activity-matrix.json]
-    targets: [General profile component tests]
+    targets: [apps/desktop/tests/profile-activity-recomposition-runtime.mjs]
     calls: [profileSelect, projectionResolve]
     input: identical canonical state
     output: General projection
-    check: General profile matrix test
+    check: node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile general
     done: Only resolver-emitted General contributions render.
 
   - id: PROFILE-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PROFILE-004.json
     parent: MC-140
     title: Verify Software profile recomposition
     status: blocked
     depends_on: [DOMAIN-002, DOMAIN-005, DOMAIN-006, PROFILE-002]
     read: [tests/fixtures/spec135-profile-activity-matrix.json]
-    targets: [Software profile component tests]
+    targets: [apps/desktop/tests/profile-activity-recomposition-runtime.mjs]
     calls: [profileSelect, projectionResolve]
     input: identical canonical state
     output: Software projection
-    check: Software profile matrix test
+    check: node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile software
     done: Context, Spec, Tasks, Sessions, and other activities use canonical emitted contributions.
 
   - id: PROFILE-005
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PROFILE-005.json
     parent: MC-140
     title: Verify Legal profile recomposition
     status: blocked
     depends_on: [DOMAIN-008, DOMAIN-011, PROFILE-002]
     read: [tests/fixtures/spec135-profile-activity-matrix.json]
-    targets: [Legal profile component tests]
+    targets: [apps/desktop/tests/profile-activity-recomposition-runtime.mjs]
     calls: [profileSelect, projectionResolve]
     input: identical canonical state
     output: Legal projection
-    check: Legal profile matrix test
+    check: node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile legal
     done: Legal terminology, artifacts, authority emphasis, and geometry come from registry/projection.
 
   - id: PROFILE-006
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PROFILE-006.json
     parent: MC-140
     title: Verify Markets profile recomposition
     status: blocked
     depends_on: [DOMAIN-010, PROFILE-002]
     read: [tests/fixtures/spec135-profile-activity-matrix.json]
-    targets: [Markets profile component tests]
+    targets: [apps/desktop/tests/profile-activity-recomposition-runtime.mjs]
     calls: [profileSelect, projectionResolve]
     input: identical canonical state
     output: Markets projection
-    check: Markets profile matrix test
+    check: node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile markets
     done: Markets risk/evidence contributions render only when emitted.
 
   - id: PROFILE-007
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PROFILE-007.json
     parent: MC-140
     title: Verify Research profile recomposition
     status: blocked
     depends_on: [DOMAIN-009, DOMAIN-010, PROFILE-002]
     read: [tests/fixtures/spec135-profile-activity-matrix.json]
-    targets: [Research profile component tests]
+    targets: [apps/desktop/tests/profile-activity-recomposition-runtime.mjs]
     calls: [profileSelect, projectionResolve]
     input: identical canonical state
     output: Research projection
-    check: Research profile matrix test
+    check: node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile research
     done: Sources, claims, Evidence, and renderer bindings come from projection.
 
   - id: PROFILE-008
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PROFILE-008.json
     parent: MC-140
     title: Verify Custom profile recomposition
     status: blocked
     depends_on: [DOMAIN-012, PROFILE-002]
     read: [tests/fixtures/spec135-profile-activity-matrix.json]
-    targets: [Custom profile component tests]
+    targets: [apps/desktop/tests/profile-activity-recomposition-runtime.mjs]
     calls: [profileSelect, projectionResolve]
     input: installed custom profile definition
     output: Custom projection
-    check: Custom profile matrix test
+    check: node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile custom
     done: Custom profile cannot introduce unknown semantic or renderer binding IDs.
 
 operation_task_defaults:
@@ -1136,35 +1220,36 @@ operation_task_defaults:
   completion_rule: The operation passes positive and negative cases with no handwritten Desktop DTO or route metadata.
 
 operation_tasks:
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-001, operation: focusa.mission_canvas.projection.get, client: projectionGet, depends_on: [UI-001, UI-002], done: Returns latest validated projection for exact Workstream only.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-002, operation: focusa.mission_canvas.projection.resolve, client: projectionResolve, depends_on: [OPS-001, CORE-006], done: Resolves profile/activity/viewport inputs through Focusa Core and returns revision.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-003, operation: focusa.mission_canvas.profile.list, client: profileList, depends_on: [UI-001, UI-002], done: Returns only profiles with meaningful eligible projection.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-004, operation: focusa.mission_canvas.profile.select, client: profileSelect, depends_on: [OPS-002, OPS-003], done: Selects profile canonically and returns recomposed projection plus Receipt.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-005, operation: focusa.mission_canvas.profile.get, client: profileGet, depends_on: [OPS-003], done: Returns exact registered profile or typed not-found.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-006, operation: focusa.mission_canvas.activity.list, client: activityList, depends_on: [UI-001, UI-002], done: Returns registered applicable activities.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-007, operation: focusa.mission_canvas.activity.select, client: activitySelect, depends_on: [OPS-002, OPS-006], done: Selects activity and returns recomposed projection without changing Workstream authority.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-008, operation: focusa.mission_canvas.domain_pack.install, client: domain_packInstall, depends_on: [ID-010], done: Installs through explicit management flow and returns governed Result/Receipt.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-009, operation: focusa.mission_canvas.layout_memory.get, client: layout_memoryGet, depends_on: [UI-001, UI-002], done: Returns memory scoped by exact Workstream and profile.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-010, operation: focusa.mission_canvas.layout_memory.update, client: layout_memoryUpdate, depends_on: [OPS-009], done: Persists semantic placement preference with idempotency and Receipt.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-011, operation: focusa.mission_canvas.layout.mutate, client: layoutMutate, depends_on: [OPS-002], done: Preview/commit mutation returns canonical layout and rejects unknown contribution IDs.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-012, operation: focusa.mission_canvas.registry.list, client: registryList, depends_on: [UI-001, UI-002], done: Returns typed requested registry with revision.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-013, operation: focusa.mission_canvas.rich_host.resolve, client: rich_hostResolve, depends_on: [ID-010], done: Resolves Focusa Desktop Tauri as primary host and Pi overlay as compatibility only.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-014, operation: focusa.mission_canvas.rich_host.launch, client: rich_hostLaunch, depends_on: [OPS-013], done: Launches/presents Desktop for exact Workstream without forking Pi.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-015, operation: focusa.mission_canvas.rich_host.focus, client: rich_hostFocus, depends_on: [OPS-014], done: Focuses existing Desktop presentation without changing canonical activity.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-016, operation: focusa.mission_canvas.rich_host.hide, client: rich_hostHide, depends_on: [OPS-014], done: Hides presentation while preserving runtime, surface, and drafts.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-017, operation: focusa.mission_canvas.rich_host.close, client: rich_hostClose, depends_on: [OPS-014], done: Closes view using explicit lifecycle semantics without silent canonical destruction.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-018, operation: focusa.mission_canvas.draft.get, client: draftGet, depends_on: [UI-001, UI-002], done: Returns exact Workstream/Surface/recipient draft revision.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-019, operation: focusa.mission_canvas.draft.sync, client: draftSync, depends_on: [OPS-018], done: Idempotently persists draft and rejects stale or foreign revision.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-020, operation: focusa.mission_canvas.recipient.resolve, client: recipientResolve, depends_on: [UI-002, CORE-007], done: Returns authorized exact recipient or blocked reason.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-021, operation: focusa.mission_canvas.recomposition.evidence.get, client: recompositionEvidenceGet, depends_on: [OPS-002], done: Returns evidence matching projection revision/profile/activity/contribution set.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-022, operation: focusa.mission_canvas.recomposition.receipt.get, client: recompositionReceiptGet, depends_on: [OPS-002], done: Returns Receipt matching exact Workstream and revision.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-023, operation: focusa.mission_canvas.recomposition.diagnostics.list, client: recompositionDiagnosticsList, depends_on: [OPS-002], done: Returns internal omission reasons only on explicit diagnostics request.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-024, operation: focusa.mission_canvas.pi_session.event.append, client: pi_sessionEventAppend, depends_on: [PTY-008, ID-010], done: Appends exact Attachment/Session event with stable ID and sequence.}
-  - {translation_contract_ref: CARDINAL-135-SVELTE-001, id: OPS-025, operation: focusa.mission_canvas.events.stream, client: eventsStream, depends_on: [ID-010], done: Replays then tails exact Workstream events by cursor.}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-001.json, id: OPS-001, operation: focusa.mission_canvas.projection.get, client: projectionGet, depends_on: [UI-001, UI-002], done: "Returns latest validated projection for exact Workstream only."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-002.json, id: OPS-002, operation: focusa.mission_canvas.projection.resolve, client: projectionResolve, depends_on: [OPS-001, CORE-006], done: "Resolves profile/activity/viewport inputs through Focusa Core and returns revision."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-003.json, id: OPS-003, operation: focusa.mission_canvas.profile.list, client: profileList, depends_on: [UI-001, UI-002], done: "Returns only profiles with meaningful eligible projection."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-004.json, id: OPS-004, operation: focusa.mission_canvas.profile.select, client: profileSelect, depends_on: [OPS-002, OPS-003], done: "Selects profile canonically and returns recomposed projection plus Receipt."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-005.json, id: OPS-005, operation: focusa.mission_canvas.profile.get, client: profileGet, depends_on: [OPS-003], done: "Returns exact registered profile or typed not-found."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-006.json, id: OPS-006, operation: focusa.mission_canvas.activity.list, client: activityList, depends_on: [UI-001, UI-002], done: "Returns registered applicable activities."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-007.json, id: OPS-007, operation: focusa.mission_canvas.activity.select, client: activitySelect, depends_on: [OPS-002, OPS-006], done: "Selects activity and returns recomposed projection without changing Workstream authority."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-008.json, id: OPS-008, operation: focusa.mission_canvas.domain_pack.install, client: domain_packInstall, depends_on: [ID-010], done: "Installs through explicit management flow and returns governed Result/Receipt."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-009.json, id: OPS-009, operation: focusa.mission_canvas.layout_memory.get, client: layout_memoryGet, depends_on: [UI-001, UI-002], done: "Returns memory scoped by exact Workstream and profile."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-010.json, id: OPS-010, operation: focusa.mission_canvas.layout_memory.update, client: layout_memoryUpdate, depends_on: [OPS-009], done: "Persists semantic placement preference with idempotency and Receipt."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-011.json, id: OPS-011, operation: focusa.mission_canvas.layout.mutate, client: layoutMutate, depends_on: [OPS-002], done: "Preview/commit mutation returns canonical layout and rejects unknown contribution IDs."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-012.json, id: OPS-012, operation: focusa.mission_canvas.registry.list, client: registryList, depends_on: [UI-001, UI-002], done: "Returns typed requested registry with revision."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-013.json, id: OPS-013, operation: focusa.mission_canvas.rich_host.resolve, client: rich_hostResolve, depends_on: [ID-010], done: "Resolves Focusa Desktop Tauri as primary host and Pi overlay as compatibility only."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-014.json, id: OPS-014, operation: focusa.mission_canvas.rich_host.launch, client: rich_hostLaunch, depends_on: [OPS-013], done: "Launches/presents Desktop for exact Workstream without forking Pi."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-015.json, id: OPS-015, operation: focusa.mission_canvas.rich_host.focus, client: rich_hostFocus, depends_on: [OPS-014], done: "Focuses existing Desktop presentation without changing canonical activity."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-016.json, id: OPS-016, operation: focusa.mission_canvas.rich_host.hide, client: rich_hostHide, depends_on: [OPS-014], done: "Hides presentation while preserving runtime, surface, and drafts."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-017.json, id: OPS-017, operation: focusa.mission_canvas.rich_host.close, client: rich_hostClose, depends_on: [OPS-014], done: "Closes view using explicit lifecycle semantics without silent canonical destruction."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-018.json, id: OPS-018, operation: focusa.mission_canvas.draft.get, client: draftGet, depends_on: [UI-001, UI-002], done: "Returns exact Workstream/Surface/recipient draft revision."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-019.json, id: OPS-019, operation: focusa.mission_canvas.draft.sync, client: draftSync, depends_on: [OPS-018], done: "Idempotently persists draft and rejects stale or foreign revision."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-020.json, id: OPS-020, operation: focusa.mission_canvas.recipient.resolve, client: recipientResolve, depends_on: [UI-002, CORE-007], done: "Returns authorized exact recipient or blocked reason."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-021.json, id: OPS-021, operation: focusa.mission_canvas.recomposition.evidence.get, client: recompositionEvidenceGet, depends_on: [OPS-002], done: "Returns evidence matching projection revision/profile/activity/contribution set."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-022.json, id: OPS-022, operation: focusa.mission_canvas.recomposition.receipt.get, client: recompositionReceiptGet, depends_on: [OPS-002], done: "Returns Receipt matching exact Workstream and revision."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-023.json, id: OPS-023, operation: focusa.mission_canvas.recomposition.diagnostics.list, client: recompositionDiagnosticsList, depends_on: [OPS-002], done: "Returns internal omission reasons only on explicit diagnostics request."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-024.json, id: OPS-024, operation: focusa.mission_canvas.pi_session.event.append, client: pi_sessionEventAppend, depends_on: [PTY-008, ID-010], done: "Appends exact Attachment/Session event with stable ID and sequence."}
+  - {translation_contract_ref: CARDINAL-135-SVELTE-001, execution_packet_ref: docs/contracts/spec135-svelte-task-packets/OPS-025.json, id: OPS-025, operation: focusa.mission_canvas.events.stream, client: eventsStream, depends_on: [ID-010], done: "Replays then tails exact Workstream events by cursor."}
 
 integration_tasks:
   - id: GEN-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/GEN-001.json
     parent: MC-150
     title: Host GeneratedSurface contribution with existing A2UI/Lit renderer
     status: blocked
@@ -1174,39 +1259,42 @@ integration_tasks:
     calls: [GeneratedSurfaceEnvelope.validate, A2UI_web_core.process, A2UI_Lit.render]
     input: trusted generated surface envelope
     output: generated Work Surface contribution
-    check: existing A2UI deterministic fixture plus Desktop component test
+    check: node apps/desktop/tests/generated-surface-runtime.mjs --case snapshot
     done: Desktop does not implement a second A2UI processor or renderer.
 
   - id: GEN-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/GEN-002.json
     parent: MC-150
     title: Bind Focusa Custom Element actions
     status: blocked
     depends_on: [GEN-001, CONTRACT-003]
     read: [docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md]
-    targets: [Desktop generated action adapter]
+    targets: [apps/desktop/src/lib/mission-canvas/generated-surface-renderer.ts]
     calls: [UiActionBinding.lookup, OperationRegistry.lookup, preview, commit]
     input: trusted catalog action
     output: governed Result, Evidence, Receipt, and generated delta
-    check: generated action binding parity test
+    check: node apps/desktop/tests/generated-surface-runtime.mjs --case action-binding
     done: Component cannot call unregistered operation or bypass permission projection.
 
   - id: GEN-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/GEN-003.json
     parent: MC-150
     title: Bind Context Role Interview Spec and Tasks generated surfaces
     status: blocked
     depends_on: [GEN-002, DOMAIN-002, DOMAIN-003, DOMAIN-004, DOMAIN-005, DOMAIN-006]
     read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
-    targets: [generated stage Work Surface bindings]
+    targets: [apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts]
     calls: [Context.surface, Role.surface, Interview.surface, Spec.surface, Tasks.surface]
     input: canonical stage envelopes
     output: five resumable generated stage surfaces
-    check: Cross-Functional Alpha stage component fixtures
+    check: node apps/desktop/tests/generated-surface-runtime.mjs --case crist-stages
     done: Each stage has primary action, autosave/resume, recovery states, and terminal fallback truth.
 
   - id: BROWSER-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/BROWSER-001.json
     parent: MC-160
     title: Render exact UIAI browser artifact Work Surface
     status: blocked
@@ -1216,11 +1304,12 @@ integration_tasks:
     calls: [UIAISessionRef.validate, BrowserArtifactRef.validate, ArtifactRenderer.render]
     input: exact browser session/context/artifact references
     output: isolated browser Work Surface projection
-    check: Desktop component test with typed UIAI artifact fixture
+    check: node apps/desktop/tests/generated-browser-acceptance.mjs --case uiai-artifact
     done: Desktop never executes browser actions or stores browser auth state.
 
   - id: PTY-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-001.json
     parent: MC-170
     title: Replace frontend Pi identity DTO with generated Attachment types
     status: blocked
@@ -1235,12 +1324,13 @@ integration_tasks:
 
   - id: PTY-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-002.json
     parent: MC-170
     title: Define Tauri PTY command and event envelopes
     status: implemented_partial
     depends_on: [PTY-001]
     read: [/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md]
-    targets: [apps/desktop/src-tauri/src/pty/model.rs, generated frontend bridge types]
+    targets: [apps/desktop/src-tauri/src/pty/model.rs, apps/desktop/src/lib/shell/pi-attachment-contract.ts]
     calls: [PtyCommand.deserialize, PtyEvent.serialize]
     input: attach, input, resize, interrupt, detach, close commands
     output: typed command/event enums with attachment key and generation
@@ -1249,6 +1339,7 @@ integration_tasks:
 
   - id: PTY-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-003.json
     parent: MC-170
     title: Add cross-platform PTY dependency and adapter trait
     status: blocked
@@ -1263,6 +1354,7 @@ integration_tasks:
 
   - id: PTY-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-004.json
     parent: MC-170
     title: Implement PTY process registry
     status: blocked
@@ -1277,6 +1369,7 @@ integration_tasks:
 
   - id: PTY-005
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-005.json
     parent: MC-170
     title: Implement PTY spawn with exact Workstream environment
     status: blocked
@@ -1291,6 +1384,7 @@ integration_tasks:
 
   - id: PTY-006
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-006.json
     parent: MC-170
     title: Stream PTY output to Tauri events
     status: implemented_partial
@@ -1305,6 +1399,7 @@ integration_tasks:
 
   - id: PTY-007
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-007.json
     parent: MC-170
     title: Route terminal input to exact PTY
     status: implemented_partial
@@ -1319,6 +1414,7 @@ integration_tasks:
 
   - id: PTY-008
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-008.json
     parent: MC-170
     title: Propagate terminal resize
     status: implemented_partial
@@ -1333,6 +1429,7 @@ integration_tasks:
 
   - id: PTY-009
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-009.json
     parent: MC-170
     title: Implement interrupt semantics
     status: implemented_partial
@@ -1347,6 +1444,7 @@ integration_tasks:
 
   - id: PTY-010
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-010.json
     parent: MC-170
     title: Implement detach without runtime destruction
     status: implemented_partial
@@ -1361,6 +1459,7 @@ integration_tasks:
 
   - id: PTY-011
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-011.json
     parent: MC-170
     title: Implement explicit close and shutdown semantics
     status: blocked
@@ -1375,6 +1474,7 @@ integration_tasks:
 
   - id: PTY-012
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-012.json
     parent: MC-170
     title: Register Tauri PTY commands
     status: blocked
@@ -1389,6 +1489,7 @@ integration_tasks:
 
   - id: PTY-013
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-013.json
     parent: MC-170
     title: Connect AgentTuiSurface to native PTY bridge
     status: implemented_partial
@@ -1403,6 +1504,7 @@ integration_tasks:
 
   - id: PTY-014
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-014.json
     parent: MC-170
     title: Reject stale PTY output in frontend
     status: implemented_partial
@@ -1417,20 +1519,22 @@ integration_tasks:
 
   - id: PTY-015
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/PTY-015.json
     parent: MC-170
     title: Preserve Pi process across Canvas and Agent TUI switching
     status: implemented_partial
     depends_on: [PTY-013, PTY-014, UI-013]
     read: [apps/desktop/src/routes/+page.svelte]
-    targets: [apps/desktop/src/routes/+page.svelte, Desktop surface controller]
+    targets: [apps/desktop/src/routes/+page.svelte, apps/desktop/src/lib/shell/AgentTuiSurface.svelte]
     calls: [presentationMode.switch, PtyRegistry.keepAlive, WorkSurfaceFocus.restore]
     input: Mission Canvas or Agent TUI presentation selection
     output: complete-inner-surface replacement over same Pi process
-    check: Desktop integration test with process generation and output sequence
+    check: node apps/desktop/tests/agent-tui-runtime.mjs --case stale-output
     done: Switching twice returns to same Attachment, process generation, transcript stream, and draft.
 
   - id: LIVE-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/LIVE-001.json
     parent: MC-180
     title: Implement Workstream-scoped event client
     status: implemented_partial
@@ -1445,6 +1549,7 @@ integration_tasks:
 
   - id: LIVE-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/LIVE-002.json
     parent: MC-180
     title: Coalesce projection invalidations
     status: complete
@@ -1459,6 +1564,7 @@ integration_tasks:
 
   - id: LIVE-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/LIVE-003.json
     parent: MC-180
     title: Preserve presentation state during projection refresh
     status: complete
@@ -1473,26 +1579,28 @@ integration_tasks:
 
   - id: LIVE-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/LIVE-004.json
     parent: MC-220
     title: Restore projection after Desktop restart
     status: implemented_partial
     depends_on: [LIVE-001, LIVE-003, PROFILE-002, PTY-010]
     read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
-    targets: [Desktop restoration controller]
+    targets: [apps/desktop/src/lib/mission-canvas/restoration-controller.ts]
     calls: [canonicalContext.load, projectionGet, layoutMemoryGet, PtyRegistry.reattach]
     input: canonical Workstream and stored presentation references
     output: restored Canvas and Work Surfaces
-    check: Desktop restart integration test
+    check: node apps/desktop/tests/restoration-runtime.mjs
     done: No local snapshot becomes canonical; missing surfaces are reconciled truthfully.
 
   - id: LIVE-005
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/LIVE-005.json
     parent: MC-220
     title: Handle active capability loss and return
     status: complete
     depends_on: [LIVE-002, UI-012]
     read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
-    targets: [Desktop capability-loss controller]
+    targets: [apps/desktop/src/lib/mission-canvas/capability-loss-controller.ts]
     calls: [projectionRefresh, deadControl.remove, safeContent.preserve]
     input: capability change event
     output: recomposed projection and bounded notification when needed
@@ -1501,6 +1609,7 @@ integration_tasks:
 
   - id: CUT-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CUT-001.json
     parent: MC-230
     title: Wire production MissionCanvasShell to projection controller
     status: implemented_partial
@@ -1515,6 +1624,7 @@ integration_tasks:
 
   - id: CUT-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CUT-002.json
     parent: MC-230
     title: Remove local static activity and surface arrays
     status: complete
@@ -1529,6 +1639,7 @@ integration_tasks:
 
   - id: CUT-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CUT-003.json
     parent: MC-230
     title: Remove fixed status, transcript, queue, and prompt placeholders
     status: complete
@@ -1543,6 +1654,7 @@ integration_tasks:
 
   - id: CUT-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CUT-004.json
     parent: MC-200
     title: Route Pi mission-canvas command to Desktop present operation
     status: blocked
@@ -1552,11 +1664,12 @@ integration_tasks:
     calls: [desktopPresent.exactWorkstream, compatibilityProjection.open]
     input: current exact Workstream context and explicit host preference
     output: Desktop presentation or truthful bounded terminal fallback
-    check: Pi extension command test
+    check: npm --prefix apps/pi-extension test -- mission-canvas-desktop-present
     done: Default uses Desktop when available and never launches wrong Workstream.
 
   - id: CUT-005
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/CUT-005.json
     parent: MC-200
     title: Reduce menubar to bounded Desktop handoff
     status: blocked
@@ -1566,91 +1679,97 @@ integration_tasks:
     calls: [DesktopPresent.invoke]
     input: exact project-bound handoff context
     output: status, resume, pairing, lifecycle, and Desktop open actions only
-    check: menubar contract test
+    check: npm --prefix apps/menubar test -- desktop-handoff
     done: Menubar no longer owns full Mission Canvas content.
 
   - id: ACCEPT-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ACCEPT-001.json
     parent: MC-240
     title: Verify all thirteen no-dead-chrome scenarios functionally
     status: blocked
     depends_on: [CUT-003, PROFILE-008, LIVE-005]
     read: [tests/fixtures/spec135-thirteen-no-dead-chrome-proofs.json]
-    targets: [Desktop Mission Canvas functional acceptance suite]
+    targets: [apps/desktop/tests/mission-canvas-functional-acceptance.mjs]
     calls: [projectionResolve, MissionCanvasFrame.render]
     input: thirteen canonical scenarios
     output: functional assertions over semantic state and DOM
-    check: Desktop Mission Canvas functional acceptance command
+    check: node apps/desktop/tests/mission-canvas-functional-acceptance.mjs
     done: All thirteen scenarios pass without snapshot-only assertions.
 
   - id: ACCEPT-002
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ACCEPT-002.json
     parent: MC-240
     title: Verify all twelve activities and six profiles
     status: blocked
     depends_on: [DOMAIN-012, PROFILE-008, CUT-003]
     read: [tests/fixtures/spec135-profile-activity-matrix.json]
-    targets: [Desktop profile/activity functional suite]
+    targets: [apps/desktop/tests/profile-activity-recomposition-runtime.mjs]
     calls: [profileSelect, activitySelect, projectionResolve]
     input: canonical matrix vectors
     output: expected contribution IDs and renderer bindings
-    check: Desktop profile/activity acceptance command
+    check: node apps/desktop/tests/profile-activity-recomposition-runtime.mjs
     done: Every matrix vector renders only expected eligible semantic contributions.
 
   - id: ACCEPT-003
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ACCEPT-003.json
     parent: MC-240
     title: Verify same-session Canvas and Agent TUI continuity
     status: blocked
     depends_on: [PTY-015, LIVE-004]
     read: [/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md]
-    targets: [Desktop native integration suite]
+    targets: [apps/desktop/tests/native-integration-acceptance.mjs]
     calls: [Pi.input, Canvas.switch, AgentTui.switch, Desktop.restart, Pi.output]
     input: one exact Pi Attachment
     output: same process generation, stream, draft, Workpoint, and surface identity
-    check: bounded native Desktop integration test
+    check: node apps/desktop/tests/native-integration-acceptance.mjs
     done: Hide, switch, detach, and restart preserve exact Pi session as specified.
 
   - id: ACCEPT-004
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ACCEPT-004.json
     parent: MC-240
     title: Verify generated and browser Work Surfaces
     status: blocked
     depends_on: [GEN-003, BROWSER-001, LIVE-002]
     read: [docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md]
-    targets: [Desktop generated/browser integration suite]
+    targets: [apps/desktop/tests/generated-browser-acceptance.mjs]
     calls: [GeneratedSurface.action, UIAIArtifact.refresh]
     input: one canonical generated stage and one isolated UIAI artifact
     output: governed action result and scoped refresh
-    check: UIAI Engine functional evaluation after local integration passes
+    check: node apps/desktop/tests/generated-browser-acceptance.mjs --uiai-required
     done: Generated action emits Receipt and UIAI refresh changes only targeted Work Surface.
 
   - id: ACCEPT-005
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ACCEPT-005.json
     parent: MC-240
     title: Verify narrow stacked and desktop projection modes
     status: blocked
     depends_on: [UI-012, PROFILE-008, CUT-003]
     read: [tests/fixtures/spec135-responsive-evaluations.json]
-    targets: [Desktop responsive functional suite]
+    targets: [apps/desktop/tests/responsive-recomposition-acceptance.mjs]
     calls: [projectionResolve.withViewport, MissionCanvasFrame.render]
     input: canonical viewport vectors
     output: one-column narrow/stacked and two-column desktop projection
-    check: UIAI Engine responsive evaluation after functional assertions pass
+    check: node apps/desktop/tests/responsive-recomposition-acceptance.mjs --uiai-required
     done: Viewport changes geometry through projection input and preserve semantic focus.
 
   - id: POLISH-001
     translation_contract_ref: CARDINAL-135-SVELTE-001
+    execution_packet_ref: docs/contracts/spec135-svelte-task-packets/POLISH-001.json
     parent: MC-250
     title: Apply finishing visual handoff after functional acceptance
     status: blocked
     depends_on: [ACCEPT-001, ACCEPT-002, ACCEPT-003, ACCEPT-004, ACCEPT-005]
     read: [/Volumes/Macintosh HD/Users/vsmith/focusa-desktop-design-handoff.md]
-    targets: [already-functional Desktop Mission Canvas components]
+    targets: [apps/desktop/src/lib/mission-canvas/]
     calls: [visual_tokens.apply, motion.refine, typography.refine]
     input: accepted functional Canvas
     output: finishing visual quality without semantic changes
-    check: visual acceptance only after all core acceptance tasks remain passing
+    check: node apps/desktop/tests/visual-acceptance-gate.mjs --uiai-required
     done: Visual changes do not alter projection, authority, operation, or lifecycle behavior.
 
 execution_order:
