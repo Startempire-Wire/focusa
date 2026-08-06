@@ -1,0 +1,200 @@
+{
+  "schema": "focusa.spec152e.deployed_surface_inventory.v1",
+  "inventory_id": "focusa-vbcqu.20.13.2",
+  "observed_at": "2026-08-06T10:25:07Z",
+  "authority": {
+    "canonical": "WPUIAI.com EDD",
+    "rule": "customer commerce human-license refund and entitlement truth are singular",
+    "install_site_target_role": "registered branded facade and bounded proxy",
+    "spec158": "excluded"
+  },
+  "privacy": {
+    "customer_rows_read": false,
+    "raw_email_recorded": false,
+    "raw_license_key_recorded": false,
+    "secret_value_recorded": false,
+    "card_data_touched": false,
+    "database_evidence": "table counts, grouped non-identity counts, presence flags, and schema digests only"
+  },
+  "deployments": [
+    {
+      "id": "wpuiai_com",
+      "owner": "WPUIAI/wpuiai",
+      "role_now": "EDD commerce plus transitional custom Focusa issuance",
+      "target_role": "sole canonical authority kernel",
+      "wordpress_version": "7.0.2",
+      "source_control": {
+        "repository_present": true,
+        "commit": "f34a07eff57240de464cc278d36d015b94d2f9ab",
+        "deployment_is_worktree": true,
+        "dirty_paths": [
+          "includes/class-settings.php",
+          "wpuiai-ai-cloud-admin.php",
+          "includes/class-focusa-license-production.php"
+        ],
+        "parity": "dirty_deployment_not_reconstructable_from_commit_alone"
+      },
+      "plugin_versions": {
+        "easy-digital-downloads": "3.6.9",
+        "edd-software-licensing": "3.8.14",
+        "edd-recurring-payments": "2.13.8",
+        "wpuiai-ai-cloud-admin": "1.0.25"
+      },
+      "tree_digests": {
+        "easy-digital-downloads": "564aca49c832f07300a89f5c9a61f323867f6b680757c9fb3ceaf6ebb096aa12",
+        "edd-software-licensing": "1cbf683e4b8c08a8ff57e1c32af79f1b5fb2dfb55295ca180828feeade5e957b",
+        "edd-recurring-payments": "e2a6e429ad1b391c01b9999f451452568009053ec25e063f5d699becb4e5450d",
+        "wpuiai-ai-cloud-admin": "f148c4bd244fbf2835bae63038152d14b8fd8abf1b01ce6461e87877b5b9306f"
+      },
+      "php_lint": {"checked": 7, "passed": 7},
+      "cron_hooks": [
+        "edd_recurring_daily_scheduled_events",
+        "wpuiai_agentic_loop_backup_watchdog",
+        "wpuiai_aic_credit_refresh",
+        "wpuiai_aic_health_monitor",
+        "wpuiai_aic_sync_posthog_events",
+        "wpuiai_cleanup_temp_screenshots"
+      ]
+    },
+    {
+      "id": "install_focusa_dev",
+      "owner": "focusadev/install.focusa.dev",
+      "role_now": "independent custom registry direct Stripe issuer and installer host",
+      "target_role": "registered branded facade installer host and bounded WPUIAI proxy",
+      "wordpress_version": "7.0.2",
+      "source_control": {
+        "repository_present": false,
+        "commit": null,
+        "deployment_is_worktree": false,
+        "dirty_paths": [],
+        "parity": "deployed_only_no_durable_source_commit"
+      },
+      "plugin_versions": {"wpuiai-license-registry": "0.1.0-phase-1.3"},
+      "tree_digests": {
+        "wpuiai-license-registry": "37e783a46e6640a4916b0eca31515c18b6b1e7c8284093b252bb5b98bf24ac32",
+        "installer_entrypoints": "9fb7b8c470ffcf4aea247cb5519e2073f093a90db90f035a983823c227df4bf0"
+      },
+      "php_lint": {"checked": 5, "passed": 5},
+      "cron_hooks": [],
+      "access_log_aggregates": {"status": "unavailable_to_account", "customer_data_read": false}
+    }
+  ],
+  "files": [
+    {"id":"wpuiai.plugin","deployment":"wpuiai_com","owner":"WPUIAI/wpuiai","path":"wp-content/plugins/wpuiai-ai-cloud-admin/wpuiai-ai-cloud-admin.php","sha256":"09675e87d85382a55f7a7f52fd1fc8f03eea45ba97264cb09109836708f34199","classification":"authority_bootstrap","migration":"preserve_and_source_dirty_delta"},
+    {"id":"wpuiai.schema","deployment":"wpuiai_com","owner":"WPUIAI/wpuiai","path":"wp-content/plugins/wpuiai-ai-cloud-admin/database/schema.php","sha256":"ba20a9344078616fe608b7cdcb218e5196206003f02fbd267a3c0d93e1aafa88","classification":"authority_schema_partial","migration":"extend_with_spec152e_tables"},
+    {"id":"wpuiai.edd_integration","deployment":"wpuiai_com","owner":"WPUIAI/wpuiai","path":"wp-content/plugins/wpuiai-ai-cloud-admin/includes/class-edd-integration.php","sha256":"6d3f749cd739767f35fcb15450642974be6034b17a6f0608aa1f5f40eee4687c","classification":"canonical_edd_adapter","migration":"preserve_and_bind_explicit_product_registry"},
+    {"id":"wpuiai.focusa_issuer","deployment":"wpuiai_com","owner":"WPUIAI/wpuiai","path":"wp-content/plugins/wpuiai-ai-cloud-admin/includes/class-focusa-license-production.php","sha256":"fb1c263dcc7d88caf1aadadb857ccae4615bbe2dafd3f7bb6abeb9a512c836bb","classification":"transitional_custom_issuer","migration":"replace_with_verified_registration_edd_sl_and_signed_lease"},
+    {"id":"wpuiai.licenses","deployment":"wpuiai_com","owner":"WPUIAI/wpuiai","path":"wp-content/plugins/wpuiai-ai-cloud-admin/includes/class-licenses.php","sha256":"c617ff72b3ae31d11674cebff8c66f83b85d387e7a42e68e6dae3cc077a01cae","classification":"edd_license_admin","migration":"preserve_customer_history_and_converge"},
+    {"id":"wpuiai.settings","deployment":"wpuiai_com","owner":"WPUIAI/wpuiai","path":"wp-content/plugins/wpuiai-ai-cloud-admin/includes/class-settings.php","sha256":"27e4c79ff21a4c8b8a8ed0bb0f83e2d3d6c0e114a5188e7a44369a77f5a5a000","classification":"public_validation_presenter","migration":"delegate_to_canonical_activation_contract"},
+    {"id":"wpuiai.keys_api","deployment":"wpuiai_com","owner":"WPUIAI/wpuiai","path":"wp-content/plugins/wpuiai-ai-cloud-admin/includes/class-keys-api.php","sha256":"7eea123716242d6ae4b3a48520ddb186407181ff9cc6d77c1fe7cd9b2ee15c7f","classification":"non_customer_api_keys","migration":"keep_separate_from_human_license_authority"},
+    {"id":"install.plugin","deployment":"install_focusa_dev","owner":"focusadev/install.focusa.dev","path":"wp-content/plugins/wpuiai-license-registry/wpuiai-license-registry.php","sha256":"a9778a28b2882c0087365576c31cc05d15699152d5de5bdb736564e0f5fe9845","classification":"noncanonical_split_registry_bootstrap","migration":"preserve_read_only_then_retire"},
+    {"id":"install.registry","deployment":"install_focusa_dev","owner":"focusadev/install.focusa.dev","path":"wp-content/plugins/wpuiai-license-registry/includes/class-wpuiai-license-registry.php","sha256":"ba3b13d21a7bee987f7599a3b95ba9897a0eec3bdcd0e7c39a782f8fbf5624d2","classification":"noncanonical_split_registry","migration":"inventory_migrate_quarantine_then_read_only"},
+    {"id":"install.rest","deployment":"install_focusa_dev","owner":"focusadev/install.focusa.dev","path":"wp-content/plugins/wpuiai-license-registry/includes/class-wpuiai-license-rest.php","sha256":"2fc642b796eeab367f1b1605d1504815389636245e07e6cb6e2b782f136f2f72","classification":"independent_issuance_and_validation_api","migration":"disable_issuance_proxy_registered_authority"},
+    {"id":"install.stripe_pi","deployment":"install_focusa_dev","owner":"focusadev/install.focusa.dev","path":"wp-content/plugins/wpuiai-license-registry/includes/class-wpuiai-license-stripe-payment-intent.php","sha256":"ab3c9926ff58d2a207beffd1f9689e64249b6ed11107b6a2787e8476b70cf6d3","classification":"direct_stripe_payment_authority","migration":"replace_with_edd_checkout"},
+    {"id":"install.stripe_webhook","deployment":"install_focusa_dev","owner":"focusadev/install.focusa.dev","path":"wp-content/plugins/wpuiai-license-registry/includes/class-wpuiai-license-stripe-webhook.php","sha256":"5996936087bb7a57f7317a5ced7bba2e325457b3fec760c0ce3e0a140b42dc5f","classification":"direct_stripe_license_refund_issuer","migration":"subordinate_to_edd_then_disable"},
+    {"id":"installer.unix","deployment":"install_focusa_dev","owner":"Startempire-Wire/focusa","path":"installers/install-focusa.sh","sha256":"14ec99e099796395ba3efddc21564dc7fa41edf839e563db9ff8f352d40891d7","classification":"focusa_presenter_with_local_evaluation","migration":"converge_to_universal_activation","repository_path":"scripts/install-focusa.sh","repository_sha256":"54a0968bf6c111f9346843fb496ee243cfa76b1449cc52e4bc04301dba9c23e0","parity":"diverged"},
+    {"id":"installer.windows","deployment":"install_focusa_dev","owner":"Startempire-Wire/focusa","path":"installers/install-focusa.ps1","sha256":"99c136d7d5bff75c6ceb9051b23491c8292807cd9ba2a9d27816630226ac04df","classification":"focusa_presenter_with_local_evaluation","migration":"converge_to_universal_activation","repository_path":"scripts/install-focusa.ps1","repository_sha256":"8a6e5ce4796dbf1279b3f0e6331c04b741d132c176c986e57c4425aeb71b61ae","parity":"diverged"},
+    {"id":"installer.engine","deployment":"install_focusa_dev","owner":"focusadev/install.focusa.dev","path":"installers/install-engine.sh","sha256":"d4419dcb01c61e2143f231e3f0b550387d4d42ec0b91747811b3aee1a1233fba","classification":"uiai_presenter_split_flow","migration":"converge_to_universal_activation","repository_path":null,"repository_sha256":null,"parity":"deployed_only"},
+    {"id":"installer.bundle","deployment":"install_focusa_dev","owner":"focusadev/install.focusa.dev","path":"installers/install-bundle.sh","sha256":"16cb3944c969d5c3bd7c9cb73b3a30161ada1c2a1ab7282811f038c114904912","classification":"bundle_presenter_split_flow","migration":"converge_to_universal_activation","repository_path":null,"repository_sha256":null,"parity":"deployed_only"}
+  ],
+  "database": {
+    "wpuiai_com": [
+      {"table":"edd_customers","owner":"EDD","present":true,"rows":5,"schema_sha256":"126623e836be6b76c780cf601eca86669219e5d75fee88063c8b3da2a8589f76","classification":"canonical_customer","migration":"preserve"},
+      {"table":"edd_customer_email_addresses","owner":"EDD","present":true,"rows":1,"schema_sha256":"b33b6dfdfe4ee0fef8d7dd9e04c4ad6e9a43116f831dd8d823fb9b2bb60b8001","classification":"canonical_customer_email_legacy_unverified","migration":"link_only_after_verification"},
+      {"table":"edd_orders","owner":"EDD","present":true,"rows":4,"schema_sha256":"afa99e65b370f8cc9fd019d1a1ababa9c38c6b6714283293e5272d20325d3048","classification":"canonical_order","migration":"preserve"},
+      {"table":"edd_order_items","owner":"EDD","present":true,"rows":4,"schema_sha256":"4dd0eb4cf42e566e672ed91ede5e60e06c92a5b37c6c4e3cf5b220e52dc34ecd","classification":"canonical_order_item","migration":"preserve"},
+      {"table":"edd_order_transactions","owner":"EDD","present":true,"rows":0,"schema_sha256":"f2beb301cb2b8f78feb5b9fed2dfafd66acc807616af02fd5a48343551333fcd","classification":"canonical_transaction","migration":"preserve"},
+      {"table":"edd_licenses","owner":"EDD Software Licensing","present":true,"rows":11,"schema_sha256":"0c25d47eb24ae3edde9c69d35f1294d18e3239942e963267c2cecc6b27f7d397","classification":"canonical_human_key_table_with_synthetic_rows","migration":"preserve_and_reconcile"},
+      {"table":"edd_license_activations","owner":"EDD Software Licensing","present":true,"rows":0,"schema_sha256":"78037d1df82093488015d3f92de72516d71c398e0fc2ea4295f676c8df2a7a58","classification":"canonical_human_key_activation","migration":"preserve"},
+      {"table":"edd_subscriptions","owner":"EDD Recurring","present":true,"rows":0,"schema_sha256":"4b4e263e1d36e57ed8bba5f23c89eb8438e09e06c089f0c0ee22c12847ae5d2a","classification":"canonical_subscription","migration":"preserve"},
+      {"table":"wpuiai_authority_accounts","owner":"WPUIAI authority kernel","present":false,"rows":0,"schema_sha256":null,"classification":"required_missing","migration":"create_before_issuance"},
+      {"table":"wpuiai_email_identities","owner":"WPUIAI authority kernel","present":false,"rows":0,"schema_sha256":null,"classification":"required_missing","migration":"create_before_verified_promotion"},
+      {"table":"wpuiai_activation_registrations","owner":"WPUIAI authority kernel","present":false,"rows":0,"schema_sha256":null,"classification":"required_missing","migration":"create_before_universal_activation"},
+      {"table":"wpuiai_authority_nodes","owner":"WPUIAI authority kernel","present":false,"rows":0,"schema_sha256":null,"classification":"required_missing","migration":"create_before_device_lease"},
+      {"table":"wpuiai_authority_leases","owner":"WPUIAI authority kernel","present":false,"rows":0,"schema_sha256":null,"classification":"required_missing","migration":"create_before_runtime_grant"},
+      {"table":"wpuiai_authority_outbox","owner":"WPUIAI authority kernel","present":false,"rows":0,"schema_sha256":null,"classification":"required_missing","migration":"create_before_lifecycle_cutover"}
+    ],
+    "install_focusa_dev": [
+      {"table":"wpuiai_licenses","owner":"install-site custom registry","present":true,"rows":83,"schema_sha256":"e31772376c50069cab42075a803bc9ba193e7d44806c19abeb1b5675f58c33f2","classification":"noncanonical_license_registry","migration":"evidence_inventory_migrate_or_quarantine_then_read_only"},
+      {"table":"wpuiai_license_audit","owner":"install-site custom registry","present":true,"rows":393,"schema_sha256":"20f797ae7b6c9ebe4dac2791e48c6e48bb069a2b68b050db25389c920efbf228","classification":"noncanonical_audit_evidence","migration":"preserve_for_reconciliation"}
+    ]
+  },
+  "bounded_aggregates": {
+    "wpuiai_edd_licenses": {"total":11,"focusa_live_prefix":4,"focusa_live_zero_payment_id":0,"by_download_id":{"16":1,"21":1,"66":4,"103":1,"453":4}},
+    "download_453": {"post_type":"download","status":"publish","title":"WPUIAI Pro Lifetime","disposition":"not_accepted_as_implicit_focusa_mapping"},
+    "install_registry": [
+      {"product":"focusa","status":"active","source":"api","count":2},
+      {"product":"focusa","status":"active","source":"stripe","count":29},
+      {"product":"focusa","status":"refunded","source":"api","count":12},
+      {"product":"focusa","status":"refunded","source":"stripe","count":2},
+      {"product":"focusa","status":"revoked","source":"api","count":13},
+      {"product":"founders-forge","status":"active","source":"api","count":12},
+      {"product":"founders-forge","status":"active","source":"stripe","count":9},
+      {"product":"uiai-engine","status":"active","source":"stripe","count":4}
+    ]
+  },
+  "routes": {
+    "wpuiai_com": [
+      {"route":"/wpuiai-ai-cloud/v1/license/validate","owner":"WPUIAI/wpuiai","classification":"canonical_edd_validation_presenter","migration":"retain_and_project_signed_authority"},
+      {"route":"/wpuiai-ai-cloud/v1/license/limits","owner":"WPUIAI/wpuiai","classification":"canonical_edd_limit_presenter","migration":"retain_and_project_signed_authority"},
+      {"route":"/wpuiai-ai-cloud/v1/focusa/production/check","owner":"WPUIAI/wpuiai","classification":"transitional_custom_issuer_admin","migration":"replace"},
+      {"route":"/wpuiai-ai-cloud/v1/focusa/production/promote","owner":"WPUIAI/wpuiai","classification":"transitional_custom_issuer_admin","migration":"replace"},
+      {"route":"/wpuiai-ai-cloud/v1/focusa/license/issue","owner":"WPUIAI/wpuiai","classification":"caller_parameter_custom_issuance","migration":"disable_after_server_owned_registry_cutover"},
+      {"route":"/wpuiai-ai-cloud/v1/focusa/license/revoke-machine","owner":"WPUIAI/wpuiai","classification":"transitional_machine_revoke","migration":"replace_with_authority_node_deactivation"}
+    ],
+    "install_focusa_dev": [
+      {"route":"/wpuiai-ai-cloud/v1/license/validate","owner":"install-site custom registry","classification":"independent_validation","migration":"proxy_or_legacy_read_only"},
+      {"route":"/wpuiai-ai-cloud/v1/keys/validate","owner":"install-site custom registry","classification":"independent_validation_alias","migration":"proxy_or_legacy_read_only"},
+      {"route":"/wpuiai-ai-cloud/v1/credits/balance","owner":"install-site custom registry","classification":"split_credit_registry","migration":"separate_from_entitlement_and_reconcile"},
+      {"route":"/wpuiai-ai-cloud/v1/credits/deduct","owner":"install-site custom registry","classification":"split_credit_mutation","migration":"separate_from_entitlement_and_reconcile"},
+      {"route":"/wpuiai-ai-cloud/v1/license/create","owner":"install-site custom registry","classification":"independent_license_issuance","migration":"disable"},
+      {"route":"/wpuiai-ai-cloud/v1/license/activate","owner":"install-site custom registry","classification":"independent_activation","migration":"proxy_to_authority"},
+      {"route":"/wpuiai-ai-cloud/v1/license/deactivate","owner":"install-site custom registry","classification":"independent_deactivation","migration":"proxy_to_authority"},
+      {"route":"/wpuiai-ai-cloud/v1/license/status","owner":"install-site custom registry","classification":"independent_status","migration":"proxy_or_legacy_read_only"},
+      {"route":"/wpuiai-ai-cloud/v1/license/check-feature","owner":"install-site custom registry","classification":"independent_feature_truth","migration":"disable_and_project_signed_lease"},
+      {"route":"/wpuiai-ai-cloud/v1/stripe-webhook","owner":"install-site custom registry","classification":"direct_stripe_issuance_refund_authority","migration":"disable_after_edd_cutover"},
+      {"route":"/wpuiai-ai-cloud/v1/payment-intent","owner":"install-site custom registry","classification":"direct_stripe_checkout","migration":"replace_with_edd_checkout"}
+    ]
+  },
+  "configured_presence_only": {
+    "wpuiai_com": {"edd_settings":true},
+    "install_focusa_dev": {
+      "wpuiai_license_registry_db_version":true,
+      "wpuiai_stripe_prices":true,
+      "wpuiai_stripe_publishable_key":true,
+      "wpuiai_stripe_secret_key":true,
+      "wpuiai_stripe_webhook_secret":true
+    }
+  },
+  "facade_urls": [
+    {"url":"https://install.focusa.dev/focusa","status":404,"uiai_evidence_ref":"uiai-diagnostics:session=HQvaOnWw:seq=17","migration":"repair_to_verified_installer_asset"},
+    {"url":"https://install.focusa.dev/bundle","status":404,"uiai_evidence_ref":"uiai-diagnostics:session=HQvaOnWw:seq=32","migration":"repair_to_verified_installer_asset"},
+    {"url":"https://install.focusa.dev/installers/install-focusa.sh","status":200,"mime":"application/x-sh","uiai_evidence_ref":"uiai-diagnostics:session=HQvaOnWw:seq=34","navigation_note":"download_abort_after_successful_200","migration":"retain_then_converge"}
+  ],
+  "bridge_assessment": {
+    "shared_database": false,
+    "trigger_or_view_bridge": false,
+    "scheduled_reconciliation_bridge": false,
+    "durable_edd_sync": false,
+    "one_way_installer_validation_to_wpuiai": true,
+    "result": "split_authority_no_durable_unifying_bridge"
+  },
+  "known_nonconformities": [
+    "verified mailbox registration and atomic EDD customer promotion are absent",
+    "six required authority tables are absent",
+    "install site independently creates and refunds licenses from direct Stripe events",
+    "WPUIAI custom Focusa issuance accepts download and payment identifiers outside an explicit frozen product registry",
+    "human EDD Software Licensing keys and custom Focusa keys may diverge",
+    "deployed Focusa Unix and Windows installers diverge from repository copies and retain local Evaluation paths",
+    "Engine and Bundle installers use separate licensing flows and have no pinned source repository paths",
+    "convenience /focusa and /bundle URLs return 404",
+    "install-site source writes email and license-key-derived values into application/audit paths and requires privacy remediation",
+    "install-site access-log aggregate was unavailable to the account during this read-only inventory"
+  ],
+  "replay": {
+    "mode": "read_only_as_account_owner",
+    "php_lint_entrypoints": 12,
+    "verification": "python3 tests/spec152e_deployed_surface_inventory_test.py",
+    "forbidden": ["option values", "customer rows", "raw email", "raw keys", "secrets", "card data", "production mutation"]
+  }
+}
