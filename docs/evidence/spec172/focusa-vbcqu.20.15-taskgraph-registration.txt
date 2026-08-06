@@ -1,0 +1,56 @@
+Spec 172 task graph registration evidence
+Root: focusa-vbcqu.20.15
+Authority: docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md
+Candidate base before graph commit: a6ac68a4573abff1f62e2f6186e112fc4e47f56d
+
+GRAPH
+- child atoms: 42
+- phases: 6
+- phase counts: 00=5, 01=4, 02=8, 03=7, 04=7, 05=11
+- internal blocks edges: 114
+- external blocks edges: 56
+- existing Spec 152E/152F binding overlays: 14
+- downstream release/correction edges: 6
+- dependency cycles: 0
+
+DOWNSTREAM EDGES
+- focusa-vbcqu.20.13.3 depends on focusa-vbcqu.20.15.8
+- focusa-vbcqu.20.13.20 depends on focusa-vbcqu.20.15.10
+- focusa-vbcqu.20.14.6 depends on focusa-vbcqu.20.15.18
+- focusa-vbcqu.20.14.7 depends on focusa-vbcqu.20.15.18
+- focusa-vbcqu.20.14.49 depends on focusa-vbcqu.20.15.40
+- focusa-vbcqu.20.14.52 depends on focusa-vbcqu.20.15.42
+
+WEAK-MODEL CONTRACT
+Every atom records one objective, one lane/owner, exact surfaces, required steps, required output, literal verification, evidence path, done condition, forbidden actions, rollback, estimates, and complete dependency list. Exact surfaces are binding. Static/admin status and another atom's evidence cannot close a task. Unknown product, License Type, family, operation, side effect, or dynamic manifest fails closed.
+
+CANONICAL BEADS VERIFICATION
+- root_count=1
+- child_count=42
+- overlay_count=14
+- internal_edges=114
+- external_edges=56
+- downstream_edges=6
+- open=43
+- cycles=0
+
+INITIAL READY FRONTIER
+- focusa-vbcqu.20.15.1 — Register Spec 172 authority and release block
+- focusa-vbcqu.20.15.6 — Prove zero approved Focusa/UIAI sales across every rail
+
+VERIFICATION
+- python3 tests/spec172_taskgraph_contract_test.py
+  PASS: tasks=42 phases=6 internal_edges=114 external_edges=56 overlays=14 cycles=0
+- external graph simulation against canonical Beads
+  PASS: missing_external=0 cycles=0
+- bd dep cycles --json
+  PASS: count=0
+- git diff --check
+  PASS
+
+WORKFLOW NOTE
+The registration script reached its final cycle check but interpreted Beads v0.2.16's zero-cycle object envelope as a truthy cycle result. Nodes, overlays, and edges had already been committed to Beads. State was verified directly and synchronized without replay. This parser-shape defect belongs in the orchestration workflow ticket.
+
+RESULT
+TECHNICAL_ACCEPTANCE: PASS
+The Spec 172 graph is registered, acyclic, dependency-ordered, weak-model-safe, and release-blocking. No implementation atom is closed by this registration.

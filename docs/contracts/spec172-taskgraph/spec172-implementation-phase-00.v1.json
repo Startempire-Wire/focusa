@@ -1,0 +1,100 @@
+{
+  "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+  "parent": "focusa-vbcqu.20.15",
+  "phase": "00",
+  "schema": "focusa.spec172_implementation_phase.v1",
+  "task_count": 5,
+  "tasks": [
+    {
+      "code": "00.01",
+      "dependencies": [],
+      "done_condition": "Every active licensing index names Spec 172 and no active authority still requires anonymous/local/timed Evaluation or a $1,097 Bundle.",
+      "estimate_minutes": 90,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.1-acceptance.txt",
+      "exact_surfaces": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md; docs/contracts/spec152-document-set.v1.yaml; docs/contracts/spec152-supersession-and-integration-matrix.v1.yaml; docs/contracts/spec152-final-audit-status.v1.yaml; tests/spec172_document_authority_test.py",
+      "id": "focusa-vbcqu.20.15.1",
+      "lane": "governance",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "00",
+      "required_output": "Updated authority/supersession contracts and one static authority test.",
+      "required_steps": "Register Spec 172 after Specs 152E/152F. Mark only conflicting Evaluation, product-model, bundle-price, and inheritance clauses superseded. Preserve all identity, EDD, key, lease, refund/revoke, node, sequence, recovery, privacy, and Spec 158 exclusion rules.",
+      "title": "Register Spec 172 authority and release block",
+      "verification": "python3 tests/spec172_document_authority_test.py && python3 tests/spec152_documentation_consistency_gate.py"
+    },
+    {
+      "code": "00.02",
+      "dependencies": [
+        "focusa-vbcqu.20.15.1"
+      ],
+      "done_condition": "Codes, prices, formula, grant union, limits, refund, sale status, and future defaults each have one server-owned value.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.2-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec172-license-types.v1.yaml; docs/contracts/spec152e-edd-product-registry.v1.yaml; tests/spec172_license_type_contract_test.py",
+      "id": "focusa-vbcqu.20.15.2",
+      "lane": "governance",
+      "owner": "Startempire-Wire/focusa + WPUIAI/wpuiai",
+      "phase": "00",
+      "required_output": "Machine-readable License Type registry with deterministic semantic digest.",
+      "required_steps": "Encode verified_no_license as a non-license posture; Focusa Operator Lifetime v1 and UIAI Operator Lifetime v1 at $697 each; Bundle at $1,254.60 as the exact union of both grants; 30-day whole-order refund; one operator and three shared nodes; no future product/type inheritance.",
+      "title": "Freeze products, Operator License Types, prices, and Bundle composition",
+      "verification": "python3 tests/spec172_license_type_contract_test.py"
+    },
+    {
+      "code": "00.03",
+      "dependencies": [
+        "focusa-vbcqu.20.15.1",
+        "focusa-vbcqu.20.15.2"
+      ],
+      "done_condition": "Every allowed and blocked family has one explicit decision; unknown/new families deny; no case creates an EDD key or timed Evaluation.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.3-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec172-verified-limited-access.v1.yaml; docs/contracts/spec152f-entitlement-policy.v1.yaml; tests/fixtures/spec172-limited-access-cases.v1.json; tests/spec172_limited_access_contract_test.py",
+      "id": "focusa-vbcqu.20.15.3",
+      "lane": "spec152f",
+      "owner": "Startempire-Wire/focusa + WPUIAI/uiai-engine",
+      "phase": "00",
+      "required_output": "Versioned limited-access registry and complete positive/negative cases.",
+      "required_steps": "Encode unverified registration-only posture; verified no-license Focusa one-mutable-project/manual families; UIAI one foreground ephemeral public-observation session; blocked automation/team/release/premium-update/browser-action/persistence families; permanent read/export/recovery allowances; no expiry.",
+      "title": "Freeze verified no-license limited-access matrix",
+      "verification": "python3 tests/spec172_limited_access_contract_test.py"
+    },
+    {
+      "code": "00.04",
+      "dependencies": [
+        "focusa-vbcqu.20.15.2",
+        "focusa-vbcqu.20.15.3"
+      ],
+      "done_condition": "A weak model can locate every handler/service/store/chokepoint and unknown product/type/family/side effect fails before execution.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.4-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec172-entitlement-call-stack.v1.yaml; docs/contracts/spec172-entitlement-errors.v1.json; docs/contracts/spec152f-entitlement-call-stack.v1.yaml; tests/spec172_call_stack_contract_test.py",
+      "id": "focusa-vbcqu.20.15.4",
+      "lane": "governance",
+      "owner": "Startempire-Wire/focusa + WPUIAI/wpuiai",
+      "phase": "00",
+      "required_output": "Typed call-stack and error contracts with zero presenter authority.",
+      "required_steps": "Specify verified identity -> limited assertion OR EDD paid key -> node -> signed lease -> product -> License Type -> family -> resource -> execution. Keep auth, role, scope, confirmation, trust, privacy, and entitlement independent. Assign one owner per stage and stable recovery action per error.",
+      "title": "Freeze Spec 172 call stack, stable errors, and authority ownership",
+      "verification": "python3 tests/spec172_call_stack_contract_test.py"
+    },
+    {
+      "code": "00.05",
+      "dependencies": [
+        "focusa-vbcqu.20.15.1",
+        "focusa-vbcqu.20.15.4"
+      ],
+      "done_condition": "Every Section 22 reconciliation item and Section 23 acceptance criterion has an owner, dependencies, exact surfaces, verification, and evidence path.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.5-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec172-spec152-reconciliation-map.v1.json; docs/contracts/spec172-implementation-taskgraph.v1.json; tests/spec172_taskgraph_contract_test.py",
+      "id": "focusa-vbcqu.20.15.5",
+      "lane": "governance",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "00",
+      "required_output": "Machine-readable requirement-to-task overlay with zero uncovered requirements.",
+      "required_steps": "Map every Spec 172 requirement to an existing Spec 152E task, existing Spec 152F task, or one new Spec 172 atom. Mark Evaluation wording and optional-premium sale assumptions as superseded overlays. Record exact cross-root edges and forbid duplicate implementation.",
+      "title": "Freeze cross-spec reconciliation overlay and dependency map",
+      "verification": "python3 tests/spec172_taskgraph_contract_test.py"
+    }
+  ]
+}

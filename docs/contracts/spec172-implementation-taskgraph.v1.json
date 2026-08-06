@@ -1,0 +1,136 @@
+{
+  "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+  "downstream_edges": [
+    {
+      "blocked": "focusa-vbcqu.20.13.3",
+      "blocker": "focusa-vbcqu.20.15.8"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.13.20",
+      "blocker": "focusa-vbcqu.20.15.10"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.6",
+      "blocker": "focusa-vbcqu.20.15.18"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.7",
+      "blocker": "focusa-vbcqu.20.15.18"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.49",
+      "blocker": "focusa-vbcqu.20.15.40"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.52",
+      "blocker": "focusa-vbcqu.20.15.42"
+    }
+  ],
+  "execution_rule": "one atomic task per worker; obey all blocks edges; exact surfaces are binding; close only after exact verification and evidence",
+  "existing_task_overlays": [
+    {
+      "binding_overlay": "Binding Spec172 overlay: replace expiring EDD-backed Evaluation issuance with verified_no_license limited-access assertion issuance after mailbox verification. Create no EDD order/key. Paid existing customers never downgrade through this path.",
+      "task_id": "focusa-vbcqu.20.13.20"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: this atom now reconciles the paid registry to Focusa Operator Lifetime v1, UIAI Operator Lifetime v1, and the $1,254.60 composite Bundle; verified_no_license is not an EDD product/key; Download 453 remains quarantined. Do not execute the superseded Evaluation/$1,097/implicit product model.",
+      "task_id": "focusa-vbcqu.20.13.3"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: Bundle is one EDD SKU/key that grants the exact union of Focusa Operator v1 and UIAI Operator v1 at $1,254.60 with three shared node identities and no third feature list.",
+      "task_id": "focusa-vbcqu.20.13.47"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: inventory must prove zero genuine sales across EDD, Gravity, Stripe, install-site, and manual rails; synthetic/test records are separate; any genuine sale blocks clean cutover.",
+      "task_id": "focusa-vbcqu.20.13.49"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: prove verified no-license permanent limited access, existing paid key, and source-build activation. Do not create or test timed/local Evaluation.",
+      "task_id": "focusa-vbcqu.20.13.58"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: the four families are blocked in verified no-license and included in Focusa Operator v1 where declared; they are not four independent initial SKUs. UIAI remains product-isolated.",
+      "task_id": "focusa-vbcqu.20.14.10"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: materially new family, future Navigator, future product, and hosted/metered resource default excluded. Safe new operations inside an included frozen family may inherit.",
+      "task_id": "focusa-vbcqu.20.14.11"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: verified no-license gets only one ephemeral public-observe UIAI session; UIAI Operator/Bundle gets paid UIAI families subject to security/resource gates; Focusa-only never grants UIAI.",
+      "task_id": "focusa-vbcqu.20.14.35"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: acceptance grid must use verified_no_license and Operator License Types, not Evaluation or separately purchased premium families.",
+      "task_id": "focusa-vbcqu.20.14.43"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: prove verified no-license reaches first useful limited value with no license key or expiry; block second-project mutation and paid tool families with upgrade guidance.",
+      "task_id": "focusa-vbcqu.20.14.45"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: prove upgrade from verified limited posture to Focusa/UIAI Operator and Bundle while preserving data; adverse lifecycle returns verified users to limited mode.",
+      "task_id": "focusa-vbcqu.20.14.46"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: loader consumes Spec172 product/License Type/limited-access registries and accepted Spec152F family metadata. Production accepts no user registry path. Evaluation is not an active state.",
+      "task_id": "focusa-vbcqu.20.14.6"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: grid states are unverified, verified_no_license, active paid Operator, bounded Offline Grace, refunded/revoked, credential expired/recovery, and missing/corrupt. No timed Evaluation state.",
+      "task_id": "focusa-vbcqu.20.14.7"
+    },
+    {
+      "binding_overlay": "Binding Spec172 overlay: verified_no_license permits only the explicit manual one-project Focusa subset; Focusa Operator/Bundle permits the frozen Operator v1 Focusa families. Do not treat all base mutations as free.",
+      "task_id": "focusa-vbcqu.20.14.8"
+    }
+  ],
+  "external_dependency_edge_count": 56,
+  "final_task": "focusa-vbcqu.20.15.42",
+  "first_task": "focusa-vbcqu.20.15.1",
+  "internal_dependency_edge_count": 114,
+  "parent": "focusa-vbcqu.20.15",
+  "phase_counts": {
+    "00": 5,
+    "01": 4,
+    "02": 8,
+    "03": 7,
+    "04": 7,
+    "05": 11
+  },
+  "phase_file_sha256": {
+    "00": "e4a5c391720cb68ab33ceaa7fdd97bd42cd0263a9579c2a8f24ec2bf40f9dea7",
+    "01": "50e1398c6f7fb924be5131da3c84b5b001d550f304d191a6ffe1c9fac2c8102e",
+    "02": "2d35aa34503c3d71404fdce5f59dd04f6b69ffacf5a39b21f6911a11a300ee8c",
+    "03": "b8f59b848f8e513f437250e7072d5651fb2101d835a3dc4e82f7694b4755b6e7",
+    "04": "c0f11ffdc076eeb295406936483c4737fb4211b393d8b8ff636129b3d1eef463",
+    "05": "2db703e1c169a0a527a327b737167848764325eefb94c45d00487d4f8c9f4e5d"
+  },
+  "phase_files": {
+    "00": "docs/contracts/spec172-taskgraph/spec172-implementation-phase-00.v1.json",
+    "01": "docs/contracts/spec172-taskgraph/spec172-implementation-phase-01.v1.json",
+    "02": "docs/contracts/spec172-taskgraph/spec172-implementation-phase-02.v1.json",
+    "03": "docs/contracts/spec172-taskgraph/spec172-implementation-phase-03.v1.json",
+    "04": "docs/contracts/spec172-taskgraph/spec172-implementation-phase-04.v1.json",
+    "05": "docs/contracts/spec172-taskgraph/spec172-implementation-phase-05.v1.json"
+  },
+  "schema": "focusa.spec172_implementation_taskgraph_index.v1",
+  "task_count": 42,
+  "weaker_model_contract": {
+    "before_close": [
+      "Run the literal exact verification from canonical root.",
+      "Write the evidence path with commit, commands, exit codes, bounded output, rollback, and unresolved blockers.",
+      "Close only after technical acceptance; static/admin status, partial tests, or another task evidence is insufficient."
+    ],
+    "before_start": [
+      "Read the task, Spec 172 sections it names, all blockers, and exact surfaces.",
+      "Confirm every blocker is technically closed; parent status alone is not readiness.",
+      "Use a dedicated clean worktree at the coordinator-provided SHA; claim only this task."
+    ],
+    "during_work": [
+      "Touch only exact surfaces; stop on missing source, secret, authority, deployment, or product decision.",
+      "Do not implement adjacent tasks, deploy production, create live charges, or reinterpret policy.",
+      "Unknown product, License Type, family, operation, side effect, or dynamic manifest fails closed."
+    ]
+  }
+}

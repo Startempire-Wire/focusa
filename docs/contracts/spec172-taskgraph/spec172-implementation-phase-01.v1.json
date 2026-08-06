@@ -1,0 +1,85 @@
+{
+  "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+  "parent": "focusa-vbcqu.20.15",
+  "phase": "01",
+  "schema": "focusa.spec172_implementation_phase.v1",
+  "task_count": 4,
+  "tasks": [
+    {
+      "code": "01.01",
+      "dependencies": [
+        "focusa-vbcqu.20.13.2"
+      ],
+      "done_condition": "Zero genuine approved sales is proven across all rails, or the task remains blocked with preserved ambiguous evidence and no clean-cutover claim.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.6-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec152e-deployed-surface-inventory.v1.json; docs/contracts/spec172-no-sales-inventory.v1.json; tests/spec172_no_sales_inventory_test.py",
+      "id": "focusa-vbcqu.20.15.6",
+      "lane": "spec152e",
+      "owner": "WPUIAI/wpuiai + focusadev/install.focusa.dev",
+      "phase": "01",
+      "required_output": "Redacted no-sales decision inventory with typed genuine/synthetic/ambiguous classes.",
+      "required_steps": "Read-only inventory EDD orders/items/licenses/refunds/subscriptions, Gravity entries/feeds, Stripe customers/sessions/intents/charges/refunds/disputes, install-site custom licenses/webhooks, and manual grants. Separate synthetic/test records. Store counts/digests only; no customer rows or PII.",
+      "title": "Prove zero approved Focusa/UIAI sales across every rail",
+      "verification": "python3 tests/spec172_no_sales_inventory_test.py"
+    },
+    {
+      "code": "01.02",
+      "dependencies": [
+        "focusa-vbcqu.20.15.1",
+        "focusa-vbcqu.20.15.6"
+      ],
+      "done_condition": "Every Section 18 contradiction has source-backed current evidence and one canonical target without treating public copy as entitlement authority.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.7-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec172-public-commerce-baseline.v1.json; tests/spec172_public_commerce_baseline_test.py",
+      "id": "focusa-vbcqu.20.15.7",
+      "lane": "governance",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Redacted deterministic public-claim baseline and required replacement text.",
+      "required_steps": "Using UIAI Engine only, capture bounded URL/title/claim/evidence refs for Focusa, Engine, install, and WPUIAI pricing/commerce pages. Record $697 standalones, conflicting $1,097 Bundle, anonymous/local eval, Gravity/Stripe, no-phone-home, broken routes/links, and legacy WPUIAI catalog.",
+      "title": "Freeze UIAI public-claim contradiction baseline",
+      "verification": "python3 tests/spec172_public_commerce_baseline_test.py"
+    },
+    {
+      "code": "01.03",
+      "dependencies": [
+        "focusa-vbcqu.20.15.2",
+        "focusa-vbcqu.20.15.6",
+        "focusa-vbcqu.20.13.2"
+      ],
+      "done_condition": "The registry has three paid offers, one non-license posture, zero implicit mappings, exact $1,254.60 Bundle math, and no caller-controlled fields.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.8-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec152e-edd-product-registry.v1.yaml; scripts/generate-spec152e-product-registry.py; generated JSON/PHP outputs; tests/spec152e_product_registry_contract_test.py; tests/spec152e_product_registry_test.php",
+      "id": "focusa-vbcqu.20.15.8",
+      "lane": "spec152e",
+      "owner": "WPUIAI/wpuiai",
+      "phase": "01",
+      "required_output": "Generated fail-closed registry with exact prices, grants, limits, refund, upgrade, sale, and legacy policy.",
+      "required_steps": "Replace Evaluation with verified_no_license non-product posture. Register dedicated Focusa/UIAI Operator v1 and composite Bundle codes/prices/grants. Keep checkout disabled until dedicated EDD IDs exist. Preserve legacy dispositions and quarantine Download 453.",
+      "title": "Reconcile the EDD product registry to Spec 172",
+      "verification": "python3 tests/spec152e_product_registry_contract_test.py && php tests/spec152e_product_registry_test.php"
+    },
+    {
+      "code": "01.04",
+      "dependencies": [
+        "focusa-vbcqu.20.15.2",
+        "focusa-vbcqu.20.15.6"
+      ],
+      "done_condition": "Operator rights cannot be silently renamed, expanded to future products, narrowed after sale, or converted into Navigator without explicit grant.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.9-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec172-license-type-lifecycle.v1.yaml; tests/spec172_license_type_lifecycle_test.py",
+      "id": "focusa-vbcqu.20.15.9",
+      "lane": "governance",
+      "owner": "Startempire-Wire/focusa + WPUIAI/wpuiai",
+      "phase": "01",
+      "required_output": "Versioned License Type lifecycle state machine and fixtures.",
+      "required_steps": "Define mutable-before-first-sale and immutable-after-first-sale boundaries; discontinued_no_new_sales without revocation; future Navigator as separate type; existing-family implementation inheritance; materially new family exclusion; new-product and hosted/metered-resource exclusion.",
+      "title": "Freeze first-sale, discontinuation, Navigator, and future-product rules",
+      "verification": "python3 tests/spec172_license_type_lifecycle_test.py"
+    }
+  ]
+}

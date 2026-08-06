@@ -1,0 +1,156 @@
+{
+  "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+  "parent": "focusa-vbcqu.20.15",
+  "phase": "04",
+  "schema": "focusa.spec172_implementation_phase.v1",
+  "task_count": 7,
+  "tasks": [
+    {
+      "code": "04.01",
+      "dependencies": [
+        "focusa-vbcqu.20.15.24",
+        "focusa-vbcqu.20.14.20",
+        "focusa-vbcqu.20.14.24"
+      ],
+      "done_condition": "Every protected mutation crosses canonical guard; recovery/read remains reachable; all bypass attempts fail before effects.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.25-acceptance.txt",
+      "exact_surfaces": "focusa-core execution guard; focusa-api entitlement middleware; worker dispatch; direct storage/reducer adapters; tests/spec172_core_api_bypass_test.py",
+      "id": "focusa-vbcqu.20.15.25",
+      "lane": "surfaces",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Shared chokepoint implementation and zero-side-effect counters.",
+      "required_steps": "Apply product/type/family decisions before all HTTP and non-HTTP side effects. Revalidate workers. Attempt direct core, reducer, DB, stale client, wrong method, and queued-before-refund bypasses.",
+      "title": "Prove core/API chokepoints and direct-call bypass resistance",
+      "verification": "python3 tests/spec172_core_api_bypass_test.py && cargo test --workspace spec172_core_api_bypass"
+    },
+    {
+      "code": "04.02",
+      "dependencies": [
+        "focusa-vbcqu.20.15.25",
+        "focusa-vbcqu.20.14.37",
+        "focusa-vbcqu.20.14.39"
+      ],
+      "done_condition": "CLI, Pi, and agent tools match canonical vectors and cannot bypass or invent entitlement.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.26-acceptance.txt",
+      "exact_surfaces": "focusa-cli license/command preflight; apps/pi-extension entitlement adapter/tool descriptors; JSON fixtures; tests/spec172_cli_agent_presenter_test.py",
+      "id": "focusa-vbcqu.20.15.26",
+      "lane": "surfaces",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "CLI/Pi/agent presenter parity fixtures.",
+      "required_steps": "Render canonical posture, product, License Type, family, denial, retained access, and upgrade/recovery action. Never infer grants from installed client, pairing, tool discovery, or email. Keep JSON stable/redacted and execute through core guard.",
+      "title": "Project Spec 172 through CLI, Pi, and agent tools",
+      "verification": "python3 tests/spec172_cli_agent_presenter_test.py && node apps/pi-extension/tests/pi-entitlement-gate.test.mjs"
+    },
+    {
+      "code": "04.03",
+      "dependencies": [
+        "focusa-vbcqu.20.15.25",
+        "focusa-vbcqu.20.14.38"
+      ],
+      "done_condition": "Every action maps to canonical operation and menubar/TUI decisions equal API/core output.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.27-acceptance.txt",
+      "exact_surfaces": "apps/menubar action map/components/API; focusa-tui API/views; accessibility fixtures; tests/spec172_menubar_tui_presenter_test.mjs",
+      "id": "focusa-vbcqu.20.15.27",
+      "lane": "surfaces",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Action-map parity and accessible locked-state fixtures.",
+      "required_steps": "Menubar/TUI are presenters, not products. Show all retained read/export/recovery controls; disable only denied operations; display Operator/Bundle upgrade accurately; do not count each app as a node or cache local commercial policy.",
+      "title": "Project Spec 172 through menubar and TUI",
+      "verification": "node tests/spec172_menubar_tui_presenter_test.mjs && node apps/menubar/tests/entitlement-posture.mjs"
+    },
+    {
+      "code": "04.04",
+      "dependencies": [
+        "focusa-vbcqu.20.15.25",
+        "focusa-vbcqu.20.15.27"
+      ],
+      "done_condition": "Desktop has zero local entitlement authority, zero direct-storage mutation bypass, and identical decisions to CLI/API.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.28-acceptance.txt",
+      "exact_surfaces": "Focusa Desktop/Tauri command bridge and action registry; desktop first-run/locked-state fixtures; release artifact workflow; tests/spec172_focusa_desktop_entitlement_test.py",
+      "id": "focusa-vbcqu.20.15.28",
+      "lane": "surfaces",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Desktop operation map and native bypass/accessibility tests.",
+      "required_steps": "Treat Desktop as a Focusa presenter. Route native/Tauri/local commands through the core guard; use same-node identity so Desktop/CLI/menubar do not multiply activations; preserve limited read/export/recovery and block paid families consistently.",
+      "title": "Bind Focusa Desktop to operation-level entitlement",
+      "verification": "python3 tests/spec172_focusa_desktop_entitlement_test.py"
+    },
+    {
+      "code": "04.05",
+      "dependencies": [
+        "focusa-vbcqu.20.15.21",
+        "focusa-vbcqu.20.15.25",
+        "focusa-vbcqu.20.14.35",
+        "focusa-vbcqu.20.14.44",
+        "focusa-vbcqu.20.13.59"
+      ],
+      "done_condition": "Focusa-only, UIAI-only, Bundle, and limited accounts receive exact per-operation behavior with no window-wide blanket grant.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.29-acceptance.txt",
+      "exact_surfaces": "UIAI Cockpit action registry/adapters; Focusa/UIAI operation maps; mixed-product fixtures; tests/spec172_cockpit_mixed_product_test.py",
+      "id": "focusa-vbcqu.20.15.29",
+      "lane": "surfaces",
+      "owner": "Startempire-Wire/focusa + WPUIAI/uiai-engine",
+      "phase": "04",
+      "required_output": "Cockpit product-isolation map and mixed-grant tests.",
+      "required_steps": "Evaluate each Cockpit action by owning product. Focusa display does not grant mutation; UIAI observation/action follows limited/paid boundary; combined workflows require both grants or Bundle. Pairing/auth proves identity only.",
+      "title": "Bind UIAI Cockpit as a mixed-product presenter",
+      "verification": "python3 tests/spec172_cockpit_mixed_product_test.py"
+    },
+    {
+      "code": "04.06",
+      "dependencies": [
+        "focusa-vbcqu.20.15.11",
+        "focusa-vbcqu.20.15.17",
+        "focusa-vbcqu.20.15.19",
+        "focusa-vbcqu.20.15.25",
+        "focusa-vbcqu.20.13.40",
+        "focusa-vbcqu.20.13.41",
+        "focusa-vbcqu.20.13.42",
+        "focusa-vbcqu.20.13.45",
+        "focusa-vbcqu.20.14.40"
+      ],
+      "done_condition": "Official/source/raw installs cannot self-issue; all channels reach the same verified-limited or paid authority flow.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.30-acceptance.txt",
+      "exact_surfaces": "Unix/PowerShell/Rust installers; install lifecycle models/orchestrator/receipts; first-run presenters; tests/spec172_installer_limited_access_test.py",
+      "id": "focusa-vbcqu.20.15.30",
+      "lane": "surfaces",
+      "owner": "Startempire-Wire/focusa + focusadev/install.focusa.dev",
+      "phase": "04",
+      "required_output": "Cross-platform installer/lifecycle transcripts and static gates.",
+      "required_steps": "Replace --eval grant creation with verified-email limited activation. Preserve inspect/install/repair/rollback/export/uninstall. Record posture, product/type/family/policy digest/sequence without raw identity or key. Paid key flow remains EDD-backed.",
+      "title": "Remove local Evaluation from installers and lifecycle receipts",
+      "verification": "python3 tests/spec172_installer_limited_access_test.py && python3 tests/170_focusa_installer_entitlement_activation_gate_test.py"
+    },
+    {
+      "code": "04.07",
+      "dependencies": [
+        "focusa-vbcqu.20.15.7",
+        "focusa-vbcqu.20.15.17",
+        "focusa-vbcqu.20.13.31",
+        "focusa-vbcqu.20.14.41"
+      ],
+      "done_condition": "All registered facades and machine endpoints project identical current policy; no payment/purchase link uses contradictory authority or price.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.31-acceptance.txt",
+      "exact_surfaces": "Focusa/Engine/install/WPUIAI public pages and machine commerce; facade registry/proxy; EDD checkout links; route/link fixtures; tests/spec172_public_facade_convergence_test.py",
+      "id": "focusa-vbcqu.20.15.31",
+      "lane": "surfaces",
+      "owner": "WPUIAI/wpuiai + website/install facade owners",
+      "phase": "04",
+      "required_output": "Shared public copy/commerce contract and UIAI browser proof plan.",
+      "required_steps": "Publish Operator names, $697 standalones, $1,254.60 Bundle, verified limited mode, no telemetry/bounded authority copy, EDD-backed checkout, product isolation, and valid license/install routes. Remove anonymous eval, direct-entitlement Gravity copy, implicit UIAI, $1,097, and broken links.",
+      "title": "Converge facades and public commerce on Spec 172",
+      "verification": "python3 tests/spec172_public_facade_convergence_test.py"
+    }
+  ]
+}
