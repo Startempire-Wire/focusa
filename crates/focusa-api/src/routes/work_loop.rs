@@ -37,7 +37,8 @@ use uuid::Uuid;
 
 const WRITER_HEADER: &str = "x-focusa-writer-id";
 const FENCING_HEADER: &str = "x-focusa-fencing-token";
-const WRITER_LEASE_TTL_MS: i64 = 30_000;
+// Leave enough bounded time for provider discovery and one atomic CLI mutation.
+const WRITER_LEASE_TTL_MS: i64 = 120_000;
 const APPROVAL_HEADER: &str = "x-focusa-approval";
 const WORK_LOOP_STATUS_SCHEMA: &str = "focusa.work_loop_status.v3";
 const WORK_LOOP_REPLAY_SCHEMA: &str = "focusa.work_loop_replay.v2";
@@ -59,8 +60,10 @@ fn stale_scope_rebind_allowed(
     enabled: bool,
     status: WorkLoopStatus,
     has_current_task: bool,
+    active_scope_orphaned: bool,
 ) -> bool {
-    !enabled
+    active_scope_orphaned
+        || !enabled
         || matches!(
             status,
             WorkLoopStatus::Idle | WorkLoopStatus::Completed | WorkLoopStatus::Aborted
@@ -173,12 +176,18 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
                 .get("x-focusa-approval")
                 .and_then(|value| value.to_str().ok())
                 .is_some_and(|value| value == "approved");
+            let active_scope_orphaned = focusa
+                .work_loop
+                .execution_scope
+                .as_ref()
+                .is_some_and(|active| !canonical_workpoint_exists_for_scope(&focusa, active));
             let stale_enable_rebind = parts.uri.path() == "/v1/work-loop/enable"
                 && approved
                 && stale_scope_rebind_allowed(
                     focusa.work_loop.enabled,
                     focusa.work_loop.status,
                     focusa.work_loop.current_task.is_some(),
+                    active_scope_orphaned,
                 );
             if stale_enable_rebind {
                 return Ok(Self(key));
@@ -3130,6 +3139,16 @@ async fn enable(
         work_item_id: parent_work_item_id.clone(),
         workpoint_id,
     };
+    let orphaned_scope_recovered = {
+        let focusa = state.focusa.read().await;
+        focusa
+            .work_loop
+            .execution_scope
+            .as_ref()
+            .is_some_and(|active| {
+                active != &scope.0 && !canonical_workpoint_exists_for_scope(&focusa, active)
+            })
+    };
     let writer_lease =
         ensure_writer_claim_for_work_item(&scope, &state, &headers, &parent_work_item_id).await?;
     send_work_loop_action(&state, "work_loop_dispatch", action).await?;
@@ -3151,7 +3170,7 @@ async fn enable(
     }
 
     Ok(Json(
-        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at, "temporal_context":temporal_context_for_scope(&scope) }),
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at, "orphaned_scope_recovered": orphaned_scope_recovered, "temporal_context":temporal_context_for_scope(&scope) }),
     ))
 }
 
@@ -4875,46 +4894,60 @@ mod tests {
     }
 
     #[test]
-    fn stale_inert_scope_can_rebind_only_at_safe_terminal_boundaries() {
+    fn stale_inert_or_orphaned_scope_rebinds_only_at_safe_boundaries() {
         assert!(stale_scope_rebind_allowed(
             false,
             WorkLoopStatus::Blocked,
-            false
+            false,
+            false,
         ));
         assert!(stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Idle,
-            false
+            false,
+            false,
         ));
         assert!(stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Completed,
-            false
+            false,
+            false,
         ));
         assert!(stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Aborted,
-            false
+            false,
+            false,
         ));
         assert!(stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Blocked,
-            false
+            false,
+            false,
         ));
         assert!(!stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Blocked,
-            true
+            true,
+            false,
         ));
         assert!(!stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Paused,
-            false
+            false,
+            false,
         ));
         assert!(!stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::AwaitingHarnessTurn,
-            false
+            false,
+            false,
+        ));
+        assert!(stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::AwaitingHarnessTurn,
+            true,
+            true,
         ));
     }
 

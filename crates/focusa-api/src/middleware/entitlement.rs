@@ -226,9 +226,19 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
         || path == "/v1/update/check"
         || path == "/v1/update/plan"
         || path == "/v1/update/rollback"
+        || is_read_only_preflight(path)
         || is_recovery_export(path)
         || path.starts_with("/v1/license/");
     !recovery_path
+}
+
+fn is_read_only_preflight(path: &str) -> bool {
+    let segments: Vec<_> = path.trim_matches('/').split('/').collect();
+    path == "/v1/silent-sessions/preflight"
+        || path == "/v1/silent-sessions/config/resolve"
+        || matches!(segments.as_slice(), ["v1", "harnesses", harness, "preflight"] if !harness.is_empty())
+        || matches!(segments.as_slice(), ["v1", "providers", provider, "models", "preflight"] if !provider.is_empty())
+        || matches!(segments.as_slice(), ["v1", "silent-sessions", session_id, "config", "preview"] if !session_id.is_empty())
 }
 
 fn is_recovery_export(path: &str) -> bool {
@@ -291,6 +301,15 @@ mod tests {
             &Method::POST,
             "/v1/silent-sessions/session-1/export"
         ));
+        for path in [
+            "/v1/silent-sessions/preflight",
+            "/v1/silent-sessions/config/resolve",
+            "/v1/harnesses/pi/preflight",
+            "/v1/providers/pi-runtime/models/preflight",
+            "/v1/silent-sessions/session-1/config/preview",
+        ] {
+            assert!(!route_requires_entitlement(&Method::POST, path), "{path}");
+        }
     }
 
     #[test]

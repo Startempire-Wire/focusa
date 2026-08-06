@@ -2316,7 +2316,7 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
         None
     };
     let pending_migration =
-        begin_legacy_license_migration(config_dir, &legacy_path, legacy_status.as_ref())?;
+        begin_legacy_license_migration(&config_dir, &legacy_path, legacy_status.as_ref())?;
     if legacy_status
         .as_ref()
         .is_some_and(|legacy| legacy.commercial_use && legacy.status == "active")

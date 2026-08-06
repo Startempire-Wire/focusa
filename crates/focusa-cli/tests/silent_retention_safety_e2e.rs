@@ -218,7 +218,7 @@ fn hold_preview_and_apply_require_admin_approval_without_lifecycle_side_effects(
     let run_id = Uuid::now_v7().to_string();
     let context_path = temp_context_authority();
     let target = format!(
-        "/silent-sessions/{session_id}/evidence-hold?run_id={run_id}&expected_generation=7"
+        "/v1/silent-sessions/{session_id}/evidence-hold?run_id={run_id}&expected_generation=7"
     );
 
     for json_mode in [false, true] {
@@ -305,7 +305,7 @@ fn ordinary_delete_is_preview_bound_and_uses_delete_without_terminating_or_compl
     let run_id = Uuid::now_v7().to_string();
     let context_path = temp_context_authority();
     let preview_ref = "retention-preview:delete:stable";
-    let target = format!("/silent-sessions/{session_id}?run_id={run_id}&expected_generation=7");
+    let target = format!("/v1/silent-sessions/{session_id}?run_id={run_id}&expected_generation=7");
 
     for json_mode in [false, true] {
         for dry_run in [true, false] {
@@ -380,7 +380,7 @@ fn purge_requires_forensics_scope_preview_binding_hold_check_and_irreversible_ac
     let context_path = temp_context_authority();
     let preview_ref = "retention-preview:purge:stable";
     let target =
-        format!("/silent-sessions/{session_id}/purge?run_id={run_id}&expected_generation=7");
+        format!("/v1/silent-sessions/{session_id}/purge?run_id={run_id}&expected_generation=7");
 
     for json_mode in [false, true] {
         for dry_run in [true, false] {
@@ -539,7 +539,7 @@ fn daemon_responses_fail_closed_on_termination_dry_run_effects_or_held_purge() {
     ))
     .unwrap();
     conflated["data"]["process_termination_performed"] = json!(true);
-    let target = format!("/silent-sessions/{session_id}?run_id={run_id}&expected_generation=7");
+    let target = format!("/v1/silent-sessions/{session_id}?run_id={run_id}&expected_generation=7");
     let cli_args = retention_args("delete", &session_id, &run_id, &context_path, true, true);
     let (output, server) = run_mocked(
         &cli_args,
@@ -571,7 +571,7 @@ fn daemon_responses_fail_closed_on_termination_dry_run_effects_or_held_purge() {
     .unwrap();
     effectful_preview["side_effects"] = json!([{"kind": "evidence_hold_placed"}]);
     let target = format!(
-        "/silent-sessions/{session_id}/evidence-hold?run_id={run_id}&expected_generation=7"
+        "/v1/silent-sessions/{session_id}/evidence-hold?run_id={run_id}&expected_generation=7"
     );
     let cli_args = retention_args("hold", &session_id, &run_id, &context_path, true, true);
     let (output, server) = run_mocked(
@@ -606,7 +606,7 @@ fn daemon_responses_fail_closed_on_termination_dry_run_effects_or_held_purge() {
     held_purge["data"]["evidence_hold_active"] = json!(true);
     held_purge["data"]["purge_eligible"] = json!(false);
     let target =
-        format!("/silent-sessions/{session_id}/purge?run_id={run_id}&expected_generation=7");
+        format!("/v1/silent-sessions/{session_id}/purge?run_id={run_id}&expected_generation=7");
     let mut cli_args = retention_args("purge", &session_id, &run_id, &context_path, true, false);
     cli_args.extend([
         "--impact-preview-ref".into(),

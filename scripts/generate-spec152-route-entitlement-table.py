@@ -29,6 +29,21 @@ EXPLICIT_ROUTE_FEATURES = {
     "/v1/update/notifications": "focusa.update.unattended",
     "/v1/update/policy": "focusa.update.unattended",
     "/v1/update/scheduler": "focusa.update.unattended",
+    "/v1/work-loop/checkpoint": "focusa.core.workpoint",
+    "/v1/work-loop/context": "focusa.core.workpoint",
+    "/v1/work-loop/degraded": "focusa.core.workpoint",
+    "/v1/work-loop/delegation/clear": "focusa.core.workpoint",
+    "/v1/work-loop/delegation/enable": "focusa.core.workpoint",
+    "/v1/work-loop/enable": "focusa.core.workpoint",
+    "/v1/work-loop/events": "focusa.core.workpoint",
+    "/v1/work-loop/heartbeat": "focusa.core.workpoint",
+    "/v1/work-loop/pause": "focusa.core.workpoint",
+    "/v1/work-loop/pause-flags": "focusa.core.workpoint",
+    "/v1/work-loop/resume": "focusa.core.workpoint",
+    "/v1/work-loop/select-next": "focusa.core.workpoint",
+    "/v1/work-loop/session/abort": "focusa.core.workpoint",
+    "/v1/work-loop/session/attach": "focusa.core.workpoint",
+    "/v1/work-loop/stop": "focusa.core.workpoint",
 }
 
 spec = importlib.util.spec_from_file_location("coverage", ROOT / "scripts/generate-spec152-entitlement-coverage.py")

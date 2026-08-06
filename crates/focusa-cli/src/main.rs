@@ -222,6 +222,10 @@ enum Commands {
     /// Resume governed continuous work and refresh state.
     Continue(commands::continue_work::ContinueArgs),
 
+    /// Governed Work Loop status, frontier, writer lease, and control operations.
+    #[command(subcommand, name = "work-loop")]
+    WorkLoop(commands::work_loop::WorkLoopCmd),
+
     /// Launch the focusa-tui dashboard or run a headless self-test snapshot.
     Tui(commands::tui::TuiArgs),
 
@@ -1056,6 +1060,7 @@ async fn async_main() -> anyhow::Result<()> {
         }
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
+        Commands::WorkLoop(cmd) => commands::work_loop::run(cmd, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
         Commands::Init(args) => commands::init::run(args, cli.json).await,
         Commands::Walkthrough(args) => {

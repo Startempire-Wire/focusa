@@ -25,6 +25,9 @@ use crate::intuition::engine::IntuitionEngine;
 use anyhow::Context;
 
 const ACTIVE_TURN_TTL_SECS: i64 = 1800;
+// `bd ready` is a subprocess-backed graph query; keep selection bounded while
+// allowing normal loaded-host latency instead of false-degrading at 750 ms.
+const WORK_ITEM_PROVIDER_SELECTION_TIMEOUT_MS: u64 = 3_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum SecondaryClosureAuditVerdict {
@@ -3764,13 +3767,14 @@ Return:
                 }
 
                 let packet = tokio::time::timeout(
-                    std::time::Duration::from_millis(750),
+                    std::time::Duration::from_millis(WORK_ITEM_PROVIDER_SELECTION_TIMEOUT_MS),
                     self.next_ready_packet_for_parent(&parent_work_item_id),
                 )
                 .await
                 .map_err(|_| {
                     anyhow::anyhow!(
-                        "work-item provider selection exceeded 750ms; defer selection and keep the daemon command loop responsive"
+                        "work-item provider selection exceeded {}ms; defer selection and keep the daemon command loop responsive",
+                        WORK_ITEM_PROVIDER_SELECTION_TIMEOUT_MS
                     )
                 })??
                     .ok_or_else(|| {

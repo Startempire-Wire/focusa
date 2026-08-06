@@ -494,6 +494,31 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("unattended_update_runs"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/work-loop/checkpoint",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/context",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/degraded",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/delegation/clear",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/delegation/enable",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/work-loop/driver/abort",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
@@ -514,7 +539,57 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/work-loop/enable",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/events",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/heartbeat",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/pause",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/pause-flags",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/resume",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/select-next",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/session/abort",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/session/attach",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/work-loop/status",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/stop",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
     },

@@ -125,7 +125,7 @@ fn list_show_status_and_output_use_bounded_exact_daemon_routes() {
     }));
     let (output, server) = run_mocked(
         &["--json", "silent", "list", "--limit", "7"],
-        "/silent-sessions?limit=7",
+        "/v1/silent-sessions?limit=7",
         None,
         "200 OK",
         "application/json",
@@ -149,7 +149,7 @@ fn list_show_status_and_output_use_bounded_exact_daemon_routes() {
             "exit_status": null
         }
     }));
-    let show_target = format!("/silent-sessions/{session_id}?run_id={run_id}");
+    let show_target = format!("/v1/silent-sessions/{session_id}?run_id={run_id}");
     let (output, server) = run_mocked(
         &["--json", "silent", "show", &session_id, "--run", &run_id],
         &show_target,
@@ -176,7 +176,7 @@ fn list_show_status_and_output_use_bounded_exact_daemon_routes() {
         "ended_at": null,
         "exit_status": null
     }));
-    let status_target = format!("/silent-sessions/{session_id}/status?run_id={run_id}");
+    let status_target = format!("/v1/silent-sessions/{session_id}/status?run_id={run_id}");
     let (output, server) = run_mocked(
         &["silent", "status", &session_id, "--run-id", &run_id],
         &status_target,
@@ -210,7 +210,7 @@ fn list_show_status_and_output_use_bounded_exact_daemon_routes() {
         }]
     }));
     let output_target = format!(
-        "/silent-sessions/{session_id}/output?run_id={run_id}&limit=5&after=opaque%2Fcursor%3Fx"
+        "/v1/silent-sessions/{session_id}/output?run_id={run_id}&limit=5&after=opaque%2Fcursor%3Fx"
     );
     let (output, server) = run_mocked(
         &[
@@ -270,7 +270,7 @@ fn watch_preserves_cursor_and_advances_across_tool_filters() {
         "has_more": false
     }));
     let target = format!(
-        "/silent-sessions/{session_id}/events?run_id={run_id}&generation=3&cursor=opaque-before&limit=2&follow=false"
+        "/v1/silent-sessions/{session_id}/events?run_id={run_id}&generation=3&cursor=opaque-before&limit=2&follow=false"
     );
     let (output, server) = run_mocked(
         &[
@@ -309,6 +309,30 @@ fn watch_preserves_cursor_and_advances_across_tool_filters() {
 }
 
 #[test]
+fn empty_session_list_is_canonical_success_not_transport_failure() {
+    let body = success(json!({
+        "schema": "focusa.silent_session_list.v1",
+        "count": 0,
+        "limit": 50,
+        "sessions": []
+    }));
+    let (output, server) = run_mocked(
+        &["--json", "silent", "list"],
+        "/v1/silent-sessions?limit=50",
+        None,
+        "200 OK",
+        "application/json",
+        body,
+    );
+    let stdout = assert_success(&output, server);
+    let value: Value = serde_json::from_str(&stdout).expect("empty list emits canonical JSON");
+    assert_eq!(value["status"], "observed");
+    assert_eq!(value["result"]["ok"], true);
+    assert_eq!(value["result"]["data"]["count"], 0);
+    assert_eq!(value["result"]["data"]["sessions"], json!([]));
+}
+
+#[test]
 fn cross_run_daemon_response_fails_closed_without_leaking_payload() {
     let (session_id, run_id) = exact_ids();
     let (_, wrong_run_id) = exact_ids();
@@ -321,7 +345,7 @@ fn cross_run_daemon_response_fails_closed_without_leaking_payload() {
         "completion_status": "not_completed",
         "api_key": "cross-run-secret"
     }));
-    let target = format!("/silent-sessions/{session_id}/status?run_id={run_id}");
+    let target = format!("/v1/silent-sessions/{session_id}/status?run_id={run_id}");
     let (output, server) = run_mocked(
         &["--json", "silent", "status", &session_id, "--run", &run_id],
         &target,
@@ -363,7 +387,7 @@ fn daemon_rejection_keeps_shared_envelope_redacted_and_exits_nonzero() {
         "data": {"access_token": "rejection-secret"}
     })
     .to_string();
-    let target = format!("/silent-sessions/{session_id}/output?run_id={run_id}&limit=3");
+    let target = format!("/v1/silent-sessions/{session_id}/output?run_id={run_id}&limit=3");
     let (output, server) = run_mocked(
         &[
             "--json",

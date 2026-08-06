@@ -317,6 +317,54 @@ async fn api_check(api: &ApiClient, name: &str, path: &str) -> Value {
     }
 }
 
+async fn canonical_orchestration_check(
+    api: &ApiClient,
+    name: &str,
+    path: &str,
+    nonempty_array_pointer: Option<&str>,
+) -> Value {
+    match api.get(path).await {
+        Ok(response) => {
+            let envelope_ready = response.get("ok").and_then(Value::as_bool) == Some(true)
+                && response.get("canonical").and_then(Value::as_bool) == Some(true)
+                && response.get("degraded").and_then(Value::as_bool) == Some(false);
+            let catalog_ready = nonempty_array_pointer.is_none_or(|pointer| {
+                response
+                    .pointer(pointer)
+                    .and_then(Value::as_array)
+                    .is_some_and(|items| !items.is_empty())
+            });
+            if envelope_ready && catalog_ready {
+                json!({"name": name, "status": "completed", "path": path, "details": response})
+            } else {
+                json!({
+                    "name": name,
+                    "status": "blocked",
+                    "path": path,
+                    "what_failed": name,
+                    "likely_why": "route exists but reports degraded, noncanonical, failed, or empty required catalog state",
+                    "safe_recovery": "run focusa silent doctor --json and repair the reported harness/provider/config capability",
+                    "command": "focusa silent doctor --json",
+                    "fallback": Value::Null,
+                    "severity": "blocked",
+                    "details": response,
+                })
+            }
+        }
+        Err(error) => json!({
+            "name": name,
+            "status": "blocked",
+            "path": path,
+            "what_failed": name,
+            "likely_why": error.to_string(),
+            "safe_recovery": "verify CLI/daemon version parity and the canonical /v1 Silent Sessions routes",
+            "command": "focusa silent doctor --json",
+            "fallback": Value::Null,
+            "severity": "blocked",
+        }),
+    }
+}
+
 fn work_loop_not_configured(path: &str, reason: impl ToString) -> Value {
     json!({
         "name": "Work-loop writer state",
@@ -408,6 +456,42 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
     checks.push(api_check(&api, "Spec90 tool contracts", "/v1/ontology/tool-contracts").await);
     checks.push(api_check(&api, "Workpoint canonicality", "/v1/workpoint/current").await);
     checks.push(scoped_work_loop_check(&api, "/v1/work-loop/status?summary_only=true").await);
+    checks.push(
+        canonical_orchestration_check(
+            &api,
+            "Silent Sessions API",
+            "/v1/silent-sessions?limit=1",
+            None,
+        )
+        .await,
+    );
+    checks.push(
+        canonical_orchestration_check(
+            &api,
+            "Silent Sessions profile catalog",
+            "/v1/silent-sessions/profiles",
+            Some("/data/profiles"),
+        )
+        .await,
+    );
+    checks.push(
+        canonical_orchestration_check(
+            &api,
+            "Silent Sessions preset catalog",
+            "/v1/silent-sessions/presets",
+            Some("/data/presets"),
+        )
+        .await,
+    );
+    checks.push(
+        canonical_orchestration_check(
+            &api,
+            "Silent Sessions capability catalog",
+            "/v1/silent-sessions/capabilities",
+            Some("/data/harnesses"),
+        )
+        .await,
+    );
     checks.push(
         api_check(
             &api,

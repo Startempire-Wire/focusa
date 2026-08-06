@@ -86,6 +86,40 @@ impl BdAdapter {
         self.run_command(Some(project_root), args).await
     }
 
+    async fn show_values(
+        &self,
+        project_root: &Path,
+        ids: &[String],
+    ) -> RegistryResult<Vec<serde_json::Value>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut owned_args = Vec::with_capacity(ids.len() + 2);
+        owned_args.push("show".to_string());
+        owned_args.extend(ids.iter().cloned());
+        owned_args.push("--json".to_string());
+        let args: Vec<&str> = owned_args.iter().map(String::as_str).collect();
+        let (code, stdout, stderr) = self
+            .run_bd_at(project_root, &args)
+            .await
+            .ok_or_else(|| RegistryError::ProviderNotInstalled {
+                provider: self.provider(),
+                missing: vec![self.bd_path.clone()],
+            })?;
+        if code != 0 {
+            return Err(RegistryError::ProviderError {
+                provider: self.provider(),
+                stage: "show_batch",
+                why: format!("bd show exit={code} stderr={stderr}"),
+            });
+        }
+        serde_json::from_str(&stdout).map_err(|error| RegistryError::ProviderError {
+            provider: self.provider(),
+            stage: "show_batch",
+            why: format!("bd show returned invalid JSON: {error}"),
+        })
+    }
+
     /// Map bd status strings to the typed enum.
     fn status_from_string(s: &str) -> WorkItemStatus {
         match s.trim() {
@@ -273,32 +307,78 @@ impl ProviderAdapter for BdAdapter {
     }
 
     async fn list(&self, query: &WorkItemQuery) -> RegistryResult<Vec<WorkItem>> {
-        // Read a complete provider snapshot before core readiness filtering.
-        // Applying a global provider limit first can hide every child of the
-        // requested parent and can also omit dependency terminal states.
-        let (code, stdout, stderr) = self
-            .run_bd_at(
-                &query.project_root,
-                &["list", "--all", "--json", "--limit", "0"],
-            )
-            .await
-            .ok_or_else(|| RegistryError::ProviderNotInstalled {
-                provider: self.provider(),
-                missing: vec![self.bd_path.clone()],
-            })?;
-        if code != 0 {
-            return Err(RegistryError::ProviderError {
-                provider: self.provider(),
-                stage: "list",
-                why: format!("bd list exit={code} stderr={stderr}"),
-            });
-        }
-        let values: Vec<serde_json::Value> =
+        let values: Vec<serde_json::Value> = if let Some(parent) = &query.parent {
+            // Parent-scoped scheduling must not deserialize the full multi-year
+            // issue ledger. `bd show` exposes typed parent-child dependents and
+            // dependency edges, so load only the bounded child closure.
+            let parent_values = self
+                .show_values(&query.project_root, std::slice::from_ref(&parent.provider_item_id))
+                .await?;
+            let Some(parent_value) = parent_values.first() else {
+                return Ok(Vec::new());
+            };
+            let mut child_ids: Vec<String> = parent_value
+                .get("dependents")
+                .and_then(serde_json::Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter(|edge| {
+                    edge.get("dependency_type")
+                        .or_else(|| edge.get("type"))
+                        .and_then(serde_json::Value::as_str)
+                        == Some("parent-child")
+                })
+                .filter_map(|edge| edge.get("id").and_then(serde_json::Value::as_str))
+                .map(str::to_string)
+                .collect();
+            child_ids.sort();
+            child_ids.dedup();
+            let mut values = self.show_values(&query.project_root, &child_ids).await?;
+            let child_id_set: std::collections::BTreeSet<_> = child_ids.iter().cloned().collect();
+            let mut dependency_ids: Vec<String> = values
+                .iter()
+                .filter_map(|value| value.get("dependencies").and_then(serde_json::Value::as_array))
+                .flatten()
+                .filter(|edge| {
+                    edge.get("dependency_type")
+                        .or_else(|| edge.get("type"))
+                        .and_then(serde_json::Value::as_str)
+                        != Some("parent-child")
+                })
+                .filter_map(|edge| edge.get("id").and_then(serde_json::Value::as_str))
+                .filter(|id| !child_id_set.contains(*id))
+                .map(str::to_string)
+                .collect();
+            dependency_ids.sort();
+            dependency_ids.dedup();
+            values.extend(self.show_values(&query.project_root, &dependency_ids).await?);
+            values
+        } else {
+            // Global scheduling still requires a complete snapshot before core
+            // readiness filtering; a provider-side limit could hide blockers.
+            let (code, stdout, stderr) = self
+                .run_bd_at(
+                    &query.project_root,
+                    &["list", "--all", "--json", "--limit", "0"],
+                )
+                .await
+                .ok_or_else(|| RegistryError::ProviderNotInstalled {
+                    provider: self.provider(),
+                    missing: vec![self.bd_path.clone()],
+                })?;
+            if code != 0 {
+                return Err(RegistryError::ProviderError {
+                    provider: self.provider(),
+                    stage: "list",
+                    why: format!("bd list exit={code} stderr={stderr}"),
+                });
+            }
             serde_json::from_str(&stdout).map_err(|error| RegistryError::ProviderError {
                 provider: self.provider(),
                 stage: "list",
                 why: format!("bd list returned invalid JSON: {error}"),
-            })?;
+            })?
+        };
         values
             .iter()
             .map(|value| self.parse_work_item(value, &query.project_root))

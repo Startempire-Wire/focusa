@@ -211,7 +211,7 @@ fn preflight_create_and_controls_map_one_to_one_to_daemon_routes() {
     ];
     let (output, server) = run_mocked_post(
         &preflight_args,
-        "/silent-sessions/preflight",
+        "/v1/silent-sessions/preflight",
         "200 OK",
         preflight_response,
         |body| {
@@ -277,7 +277,7 @@ fn preflight_create_and_controls_map_one_to_one_to_daemon_routes() {
     let expected_run = run_id.clone();
     let (output, server) = run_mocked_post(
         &create_args,
-        "/silent-sessions",
+        "/v1/silent-sessions",
         "200 OK",
         create_response,
         move |body| {
@@ -316,7 +316,7 @@ fn preflight_create_and_controls_map_one_to_one_to_daemon_routes() {
             json!([format!("silent-session-lifecycle:{operation}")]),
         );
         let target = format!(
-            "/silent-sessions/{session_id}/{operation}?run_id={run_id}&expected_generation=3"
+            "/v1/silent-sessions/{session_id}/{operation}?run_id={run_id}&expected_generation=3"
         );
         let args = control_args(operation, &session_id, &run_id, &lease_path, true);
         let expected_operation = operation.to_string();
@@ -360,7 +360,7 @@ fn lifecycle_human_and_json_modes_preserve_receipts_side_effects_and_recovery() 
         )
     };
     let target =
-        format!("/silent-sessions/{session_id}/pause?run_id={run_id}&expected_generation=3");
+        format!("/v1/silent-sessions/{session_id}/pause?run_id={run_id}&expected_generation=3");
 
     let human_args = control_args("pause", &session_id, &run_id, &lease_path, false);
     let (output, server) = run_mocked_post(&human_args, &target, "200 OK", response(), |_| {});
@@ -400,7 +400,7 @@ fn stale_scope_and_generation_fail_closed_even_when_http_is_successful() {
     let lease_path = temp_json("stale-lease", &lease(&session_id, "actor-instance:test"));
     let args = control_args("pause", &session_id, &run_id, &lease_path, true);
     let target =
-        format!("/silent-sessions/{session_id}/pause?run_id={run_id}&expected_generation=3");
+        format!("/v1/silent-sessions/{session_id}/pause?run_id={run_id}&expected_generation=3");
     let stale_scope = json!({
         "ok": false,
         "status": "blocked",

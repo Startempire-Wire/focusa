@@ -39,6 +39,7 @@ commands = [
     "Config",
     "Profile",
     "Preset",
+    "Model",
     "Checkpoints",
     "Evidence",
     "Receipt",
@@ -55,10 +56,10 @@ for command in ["Resolve", "Diff", "Apply", "Rollback"]:
     assert f"    {command}" in CLI, f"config {command}"
 
 required_routes = [
-    "/silent-sessions/preflight",
-    "/silent-sessions/config/resolve",
-    "/silent-sessions/profiles",
-    "/silent-sessions/presets",
+    "/v1/silent-sessions/preflight",
+    "/v1/silent-sessions/config/resolve",
+    "/v1/silent-sessions/profiles",
+    "/v1/silent-sessions/presets",
     "/events",
     "/output",
     "/input",
@@ -75,6 +76,8 @@ required_routes = [
     "/evidence-hold",
     "/purge",
     "/capabilities",
+    "/v1/providers/",
+    "/models/preflight",
 ]
 for route in required_routes:
     assert route in CLI, route

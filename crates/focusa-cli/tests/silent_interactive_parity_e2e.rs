@@ -228,7 +228,7 @@ fn interactive_commands_map_exact_authorized_requests_and_redact_json() {
         ("key", "keys"),
     ] {
         let target = format!(
-            "/silent-sessions/{session_id}/{api_operation}?run_id={run_id}&expected_generation=4"
+            "/v1/silent-sessions/{session_id}/{api_operation}?run_id={run_id}&expected_generation=4"
         );
         let args = interaction_args(
             cli_operation,
@@ -310,7 +310,7 @@ fn replay_is_explicit_in_human_output_and_ambiguous_replay_fails_closed() {
         false,
     );
     let target =
-        format!("/silent-sessions/{session_id}/steer?run_id={run_id}&expected_generation=4");
+        format!("/v1/silent-sessions/{session_id}/steer?run_id={run_id}&expected_generation=4");
 
     let (output, server) = run_mocked_post(
         &args,
@@ -366,7 +366,7 @@ fn authorization_rejection_preserves_failure_envelope_without_secret_output() {
         true,
     );
     let target =
-        format!("/silent-sessions/{session_id}/input?run_id={run_id}&expected_generation=4");
+        format!("/v1/silent-sessions/{session_id}/input?run_id={run_id}&expected_generation=4");
     let rejection = json!({
         "ok": false,
         "status": "blocked",

@@ -902,6 +902,10 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 tokio::time::sleep(Duration::from_millis(delay_ms)).await;
                 continue;
             };
+            let driver_idempotency_key = format!(
+                "work-loop-supervisor:{}:{}",
+                claim_key, lease.fencing_token
+            );
 
             let allows_driver = supervisor_allows_pi_driver(enabled, status);
             let should_start_driver =
@@ -991,7 +995,11 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .header("x-focusa-fencing-token", lease.fencing_token)
                     .header("x-focusa-project-root", &project_root)
                     .header("x-focusa-continuity-id", &continuity_id)
-                    .json(&serde_json::json!({"cwd": project_root}))
+                    .header("idempotency-key", &driver_idempotency_key)
+                    .json(&serde_json::json!({
+                        "cwd": project_root,
+                        "idempotency_key": driver_idempotency_key,
+                    }))
                     .send()
                     .await;
             }
@@ -1054,7 +1062,11 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         .header("x-focusa-fencing-token", lease.fencing_token)
                         .header("x-focusa-project-root", &project_root)
                         .header("x-focusa-continuity-id", &continuity_id)
-                        .json(&serde_json::json!({"cwd": project_root}))
+                        .header("idempotency-key", &driver_idempotency_key)
+                        .json(&serde_json::json!({
+                            "cwd": project_root,
+                            "idempotency_key": driver_idempotency_key,
+                        }))
                         .send()
                         .await;
 
