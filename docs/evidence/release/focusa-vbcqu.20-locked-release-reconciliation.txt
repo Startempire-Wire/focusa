@@ -1,0 +1,42 @@
+Focusa Spec 152 / 152E locked-release reconciliation
+Candidate implementation head before evidence commit: 556e6c99
+Canonical provider: /home/wirebot/focusa/.beads/issues.jsonl (digest pinned in reconciliation ledger)
+
+BUILD-INDEPENDENT SPEC 152 GATES
+PASS tests/spec152_authority_client_protocol_test.py
+PASS tests/spec152_authority_contract_test.py
+PASS tests/spec152_cli_entitlement_gate_test.py
+PASS tests/spec152_documentation_consistency_gate.py
+PASS tests/spec152e_document_authority_test.py
+PASS tests/spec152_entitlement_coverage_test.py
+PASS tests/spec152_entitlement_projection_test.py
+PASS tests/spec152_feature_registry_test.py
+PASS tests/spec152_installer_presenter_parity_test.py
+PASS tests/spec152_license_decision_inventory_test.py
+PASS tests/spec152_license_migration_journal_test.py
+PASS tests/spec152_limit_reservation_test.py
+PASS tests/spec152_protected_credential_test.py
+PASS tests/spec152_recovery_only_route_gate_test.py
+PASS tests/spec152_rest_entitlement_gate_test.py
+PASS tests/spec152_single_entitlement_snapshot_test.py
+PASS tests/spec152_tui_entitlement_gate_test.py
+PASS tests/spec152_uiai_adapter_posture_test.py
+PASS tests/spec152_uiai_child_token_broker_test.py
+PASS tests/spec152_installer_shell_static_test.sh
+
+GOVERNANCE GATES
+PASS tests/163_focusa_locked_release_governance_inventory_test.py
+PASS tests/164_focusa_locked_release_governance_reconciliation_test.py (truthfully blocked)
+PASS tests/165_focusa_locked_release_technical_closure_reducer_test.py
+PASS tests/172_focusa_spec152_locked_release_reconciliation_test.py
+
+TRUTHFUL BLOCKERS
+- 395 entitlement surfaces remain explicitly unmatched.
+- Cargo fmt/clippy/test gates deferred by operator no-Cargo-before-50-percent constraint.
+- Pi and menubar dependencies absent; no package installation authorized.
+- pwsh and shellcheck unavailable; no installation authorized.
+- WPUIAI EDD verified identity, commerce, delivery, node, lease, migration, and cutover acceptance remain.
+- UIAI shared-vector acceptance remains external.
+- Final exact-SHA installed acceptance and publication remain forbidden.
+
+No bulk administrative closure was performed.

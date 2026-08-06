@@ -1,0 +1,131 @@
+{
+  "build_independent_gates": {
+    "governance_inventory": "passed",
+    "governance_reconciliation": "passed_truthfully_blocked",
+    "spec152_python": {
+      "evidence": "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt",
+      "passed": 19,
+      "total": 19
+    },
+    "spec152_shell": {
+      "evidence": "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt",
+      "passed": 1,
+      "total": 1
+    },
+    "technical_closure_reducer": "passed_no_invalid_closed"
+  },
+  "candidate_head_before_summary": "556e6c99691810b77c3dad4fdaad6824f2c9dd35",
+  "current_frontier": {
+    "action": "Freeze deployed WPUIAI.com EDD and install.focusa.dev authority/facade parity inventory.",
+    "publication": "forbidden",
+    "work_item": "focusa-vbcqu.20.13.2"
+  },
+  "environment_or_policy_deferred": [
+    "Cargo fmt/clippy/test gates remain deferred by operator no-Cargo-before-50-percent constraint",
+    "apps/menubar and apps/pi-extension node_modules are absent; no package installation was authorized",
+    "pwsh is unavailable; no installation was authorized",
+    "shellcheck is unavailable; no installation was authorized",
+    "WPUIAI/uiai-engine shared-vector acceptance remains external"
+  ],
+  "generated_at": "2026-08-06T03:20:38.844450Z",
+  "governance": {
+    "admitted_mapping_count": 412,
+    "evidence_state_counts": {
+      "aggregate_child_evidence": 1,
+      "evidence_linked": 189,
+      "exact_duplicate_receipt": 19,
+      "pending_technical_acceptance": 203
+    },
+    "invalid_closed_count": 0,
+    "locked_release_detail_tombstones_excluded": 75,
+    "provider_state_counts": {
+      "closed": 209,
+      "in_progress": 52,
+      "open": 151
+    },
+    "repair_overlay_mapping_count": 137,
+    "status": "blocked",
+    "technically_accepted_count": 209,
+    "technically_pending_count": 203,
+    "unresolved_gap_count": 203,
+    "untracked_locked_release_count": 0
+  },
+  "licensing_graph": [
+    {
+      "name": "spec152_granular_legacy",
+      "node_count": 40,
+      "provider_status": {
+        "closed": 1,
+        "open": 39
+      },
+      "reconciliation_classification": {
+        "acceptance_verified_but_dependency_blocked": 1,
+        "closed": 1,
+        "no_current_acceptance_evidence": 7,
+        "partial_with_commit_or_test_evidence": 31
+      }
+    },
+    {
+      "name": "spec152_replay",
+      "node_count": 6,
+      "provider_status": {
+        "closed": 1,
+        "in_progress": 3,
+        "open": 2
+      },
+      "reconciliation_classification": {
+        "closed": 1,
+        "partial_with_commit_or_test_evidence": 5
+      }
+    },
+    {
+      "name": "spec152_protected_distribution",
+      "node_count": 6,
+      "provider_status": {
+        "open": 6
+      },
+      "reconciliation_classification": {
+        "no_current_acceptance_evidence": 6
+      }
+    },
+    {
+      "name": "spec152e_correction_atoms",
+      "node_count": 63,
+      "provider_status": {
+        "closed": 1,
+        "open": 62
+      },
+      "reconciliation_classification": {
+        "closed": 1,
+        "no_current_acceptance_evidence": 62
+      }
+    },
+    {
+      "name": "final_release_milestones",
+      "node_count": 7,
+      "provider_status": {
+        "closed": 3,
+        "open": 4
+      },
+      "reconciliation_classification": {
+        "closed": 3,
+        "no_current_acceptance_evidence": 4
+      }
+    }
+  ],
+  "material_findings": [
+    "Issue 119 and Spec 152E were stale-excluded from governance; now admitted as an operator-authorized release-blocking overlay.",
+    "Six legacy Spec 152 decomposition roots are now admitted explicitly rather than inferred from labels or parentage.",
+    "Seventy-five DETAIL tombstones are excluded from executable scope and completion counts.",
+    "Task-description paths no longer count as evidence; only explicit notes, closure receipts, frozen evidence refs, or evidence-link records do.",
+    "All previously closed admitted nodes now have valid technical evidence; invalid_closed_count is zero.",
+    "No bulk closure was performed: passing static tests do not override unmet Cargo, external, installed, migration, or final-SHA criteria.",
+    "Entitlement coverage remains incomplete: the static ledger reports 395 explicitly unmatched surfaces."
+  ],
+  "provider_snapshot": {
+    "record_count": 2766,
+    "sha256": "sha256:7b1a635fdeb1eb1b7ac269db3945902fd883c0f730e24594df4344f38c42d6ec",
+    "source": "canonical:.beads/issues.jsonl"
+  },
+  "schema": "focusa.spec152_locked_release_implementation_reconciliation_summary.v1"
+}

@@ -19,7 +19,7 @@ EVIDENCE_LINKS = AUDIT / "next-locked-release-governance-evidence-links.json"
 OUTPUT = AUDIT / "next-locked-release-governance-reconciliation.json"
 
 COMMIT_RE = re.compile(
-    r"(?i)(?:git:|commit(?:ted)?(?:\s+at)?\s+|candidate\s+|\bat\s+)([0-9a-f]{8,40})\b"
+    r"(?i)(?:git:|commit(?:ted|s)?(?:\s+at)?[:\s]+|candidate\s+|consolidation\s+|\bat\s+)([0-9a-f]{8,40})\b"
 )
 PATH_RE = re.compile(
     r"\b(?:apps|crates|docs|release-proof|scripts|tests)/[A-Za-z0-9_.@+/-]+"
