@@ -3,7 +3,7 @@ Work item: focusa-vbcqu.20.15.2
 
 Repository state
 - Canonical project root: /tmp/focusa-rel3-candidate
-- Exact source commit tested: c12410f3f12b291040bef39bc99dd42b8a4b2ad7
+- Exact source commit tested: 6c420d8a1b3a843529b1d215c02e3f80f9b3b7e3
 - Unrelated pre-existing working-tree changes were preserved.
 
 Exact verification
