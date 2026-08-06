@@ -1,0 +1,64 @@
+Spec 152E deployed authority and facade parity inventory acceptance
+Work item: focusa-vbcqu.20.13.2
+Implementation commit: 895b02a8fcc3500dafa93ac9deca9665ce98545d
+Observation cutoff: 2026-08-06T10:25:07Z
+Mode: read-only, account-owner bounded, redacted
+
+OUTPUTS
+- docs/contracts/spec152e-deployed-surface-inventory.v1.json
+  SHA256: 084f12748422b67f738afa62d05aa1598455d3d5de2f85390c11b3679b48b1c3
+- tests/spec152e_deployed_surface_inventory_test.py
+  SHA256: cae5e7f547e3b3d9bcbf33e6da1d8caf7fe61a262c275456fe5be769bf3156f6
+
+DEPLOYMENT INVENTORY
+- Two deployments: WPUIAI.com and install.focusa.dev.
+- 16 exact licensing/installer files with owner, deployment path, SHA256, authority classification, and migration disposition.
+- 16 database surfaces with owner, presence, row count, schema digest where present, classification, and migration disposition.
+- 17 exact licensing/payment routes with owner, authority classification, and migration disposition.
+- 12/12 named PHP entrypoints passed php -l.
+- EDD, Software Licensing, Recurring, WPUIAI plugin, install-registry, and installer tree digests recorded.
+- Configuration evidence records presence booleans only; no option values were read or stored.
+
+CURRENT AUTHORITY FACTS
+- WPUIAI EDD commerce tables are present: 5 customers, 4 orders, 4 order items, 11 license rows, bounded supporting counts.
+- Six Spec 152E authority tables are absent: accounts, verified identities, activation registrations, nodes, signed leases, and outbox.
+- Four EDD license rows use the focusa_live prefix. Download 453 has four license rows and is titled WPUIAI Pro Lifetime; it remains explicitly rejected as an implicit Focusa product mapping.
+- install.focusa.dev independently stores 83 license rows and 393 audit rows.
+- Install-site aggregate: Focusa, Founders Forge, and UIAI Engine records from API and direct Stripe sources, including refunded and revoked states.
+- No shared database, trigger/view, scheduled reconciliation, or durable EDD synchronization bridge was found.
+- The deployed WPUIAI plugin is a dirty worktree at f34a07ef; three deployment paths are not reconstructable from that commit alone.
+- The install-site plugin has no durable source repository commit.
+- Deployed Unix and Windows installers diverge from repository copies; Engine and Bundle are deployed-only in this inventory.
+
+UIAI-FIRST URL PROOF
+- https://install.focusa.dev/focusa => HTTP 404; uiai-diagnostics:session=HQvaOnWw:seq=17
+- https://install.focusa.dev/bundle => HTTP 404; uiai-diagnostics:session=HQvaOnWw:seq=32
+- https://install.focusa.dev/installers/install-focusa.sh => HTTP 200 application/x-sh; browser navigation aborted as a download after successful response; uiai-diagnostics:session=HQvaOnWw:seq=34
+- UIAI session closed after bounded diagnostics.
+
+PRIVACY AND SAFETY
+- No customer rows queried.
+- No raw or masked customer email captured.
+- No raw license key or exact key captured.
+- No Stripe/EDD secret, option value, card data, or credential captured.
+- Database evidence was limited to table counts, grouped non-identity counts, presence flags, and schema digests.
+- No production file, database, option, route, cron, or service was mutated.
+- Install-site source contains audit/application paths that can write email or key-derived material; recorded as a migration privacy nonconformity without reading customer records.
+- Access-log aggregate was unavailable to the account and is truthfully marked unavailable, not inferred.
+
+VERIFICATION
+PASS python3 tests/spec152e_deployed_surface_inventory_test.py
+  deployments=2 files=16 database_surfaces=16 routes=17 required_missing_tables=6 install_registry_rows=83
+PASS python3 tests/spec152e_document_authority_test.py
+PASS php -l WPUIAI entrypoints 7/7
+PASS php -l install-site entrypoints 5/5
+PASS python3 -m py_compile tests/spec152e_deployed_surface_inventory_test.py
+PASS git diff --check
+PASS inventory and validator are each below 500 lines
+
+ROLLBACK
+Revert implementation commit 895b02a8 and this evidence commit only. Preserve EDD customers, orders, order items, transactions, refunds, Software Licensing keys, install-site records, audit history, nodes, sequences, credentials, customer data, migration journals, Workpoints, and prior evidence. Rollback cannot treat install-site issuance or implicit Download 453 mapping as canonical.
+
+RESULT
+TECHNICAL_ACCEPTANCE: VERIFIED
+Every inventoried deployed licensing surface has one owner, source/deployment path or explicit missing-source state, digest where present, authority classification, and migration disposition. The inventory proves current split authority and source/deployment drift without exposing customer or credential material. It does not claim the six missing authority tables, verified-mailbox flow, EDD product registry, signed lease flow, or migration are implemented.
