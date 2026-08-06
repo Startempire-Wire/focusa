@@ -11,11 +11,8 @@
     "Execute ordered_steps without skipping dependency, authority, negative-case, validation, or evidence gates.",
     "Never use the broad completion DAG as direct edit instructions; it is requirement and dependency provenance."
   ],
-  "unresolved_packet_count": 5,
+  "unresolved_packet_count": 4,
   "unresolved_packets": {
-    "ID-006": [
-      "Spec 158 migration model and schema owner"
-    ],
     "ID-007": [
       "Spec 158 persistence migration owner"
     ],
@@ -33,7 +30,7 @@
       "and Pi-tool owners"
     ]
   },
-  "digest_sha256": "a2d5f91d9d06e6b38ca1c04558dcbda4ed876b2a0979646d9c12b9768dae3d8e",
+  "digest_sha256": "81a0e3e7d191642d60c390b5e8ee22a7aa44846fbe52ced9ba7fca588c8ffefc",
   "packet_refs": {
     "EX-001": "docs/contracts/spec135-svelte-task-packets/EX-001.json",
     "ID-001": "docs/contracts/spec135-svelte-task-packets/ID-001.json",

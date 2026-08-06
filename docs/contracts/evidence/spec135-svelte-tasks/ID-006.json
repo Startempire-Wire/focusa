@@ -1,0 +1,24 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "ID-006",
+  "result": "Added provenance-preserving focusa.workstream_migration_mapping.v1 resolution. Only one evidence-backed candidate with explicit migration-rule or operator approval can become proven; missing or multiple candidates fail closed.",
+  "targets": [
+    "crates/focusa-core/src/workstream_migration.rs",
+    "crates/focusa-core/src/lib.rs",
+    "tests/spec158_workstream_migration_source_test.py"
+  ],
+  "checks": [
+    "rustfmt --edition 2021 crates/focusa-core/src/workstream_migration.rs",
+    "python3 tests/spec158_workstream_migration_source_test.py"
+  ],
+  "remaining_checks": [
+    "cargo test -p focusa-core workstream_migration_mapping --lib"
+  ],
+  "blockers": [
+    "Cargo validation remains deferred under the operator's pre-50-percent build prohibition"
+  ],
+  "evidence_refs": [
+    "docs/spec158/02-persistence-migration-and-quarantine.md"
+  ],
+  "status": "implemented_partial"
+}

@@ -4,8 +4,8 @@
   "task_class": "atomic",
   "title": "Define Workstream creation and migration mapping",
   "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
-  "current_status": "blocked",
-  "execution_mode": "stop_specification_gap",
+  "current_status": "implemented_partial",
+  "execution_mode": "execute_only_after_dependencies_complete",
   "depends_on": [
     "ID-002"
   ],
@@ -13,7 +13,8 @@
     "parent_callgraph_node": "MC-010",
     "source_refs": [
       "/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md",
-      "/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md"
+      "/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md",
+      "docs/spec158/02-persistence-migration-and-quarantine.md"
     ],
     "pi_overlay_behavior_sources": [],
     "behavior_to_preserve": "unique legacy workspace evidence or operator-confirmed mapping",
@@ -21,9 +22,13 @@
   },
   "destination": {
     "host": "Focusa Desktop Mission Canvas Svelte GUI tab",
-    "exact_target_paths": [],
+    "exact_target_paths": [
+      "crates/focusa-core/src/workstream_migration.rs",
+      "crates/focusa-core/src/lib.rs",
+      "tests/spec158_workstream_migration_source_test.py"
+    ],
     "named_symbols_or_calls": [
-      "MigrationInventory.read",
+      "MigrationInventory.resolve",
       "WorkstreamMigrationMapping.resolve"
     ],
     "generated_operation": null,
@@ -40,12 +45,12 @@
     {
       "step": 2,
       "action": "read_authority",
-      "instruction": "Read these sources completely before editing: ['/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md', '/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
+      "instruction": "Read these sources completely before editing: ['/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md', '/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md', 'docs/spec158/02-persistence-migration-and-quarantine.md']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
     },
     {
       "step": 3,
       "action": "inspect_destination",
-      "instruction": "Inspect only these destination paths and named symbols before changing code: []; symbols/calls: ['MigrationInventory.read', 'WorkstreamMigrationMapping.resolve']. Do not invent a substitute path or API."
+      "instruction": "Inspect only these destination paths and named symbols before changing code: ['crates/focusa-core/src/workstream_migration.rs', 'crates/focusa-core/src/lib.rs', 'tests/spec158_workstream_migration_source_test.py']; symbols/calls: ['MigrationInventory.resolve', 'WorkstreamMigrationMapping.resolve']. Do not invent a substitute path or API."
     },
     {
       "step": 4,
@@ -93,9 +98,7 @@
   ],
   "evidence_artifact": "docs/contracts/evidence/spec135-svelte-tasks/ID-006.json",
   "stop_conditions": {
-    "unresolved_specification_items": [
-      "Spec 158 migration model and schema owner"
-    ],
+    "unresolved_specification_items": [],
     "stop_if": [
       "any dependency lacks completion evidence",
       "exact Workstream/Attachment authority is unavailable for an authority-bearing action",
