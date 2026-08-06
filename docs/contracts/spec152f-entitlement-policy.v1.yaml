@@ -2,6 +2,11 @@ schema: focusa.spec152f.entitlement_policy.v1
 policy_id: focusa-simple-entitlement
 policy_version: 1
 product: focusa
+spec172_limited_access_policy: docs/contracts/spec172-verified-limited-access.v1.yaml
+spec172_supersession:
+  evaluation_state: replaced_by_verified_no_license
+  anonymous_or_local_grant: forbidden
+  limited_access_expiry: none
 authority:
   customer_commerce_human_key_entitlement: WPUIAI.com EDD
   runtime_grant: authority_issued_signed_lease
@@ -135,37 +140,32 @@ feature_compatibility:
 state_grid:
   - state: pending_unverified
     policies:
-      account_recovery: allow
-      read_projection: read_local_only
+      account_recovery: registration_verification_and_safety_only
+      read_projection: deny_product_read
       base_focusa: deny
       automation: deny
       team_remote: deny
       release_proof: deny
       premium_updates: deny
-      customer_data_export: allow_existing_local_only
-      internal_maintenance: inherit
-  - state: verified_no_grant
+      customer_data_export: emergency_local_recovery_only
+      internal_maintenance: deny_unless_required_for_registration_or_safety
+  - state: verified_no_license
+    expiry: none
+    assertion: authority_signed_limited_access
+    edd_software_license_key: false
     policies:
       account_recovery: allow
       read_projection: read
-      base_focusa: deny
+      base_focusa: allow_manual_one_mutable_project
       automation: deny
       team_remote: deny
       release_proof: deny
       premium_updates: deny
-      customer_data_export: allow
-      internal_maintenance: inherit
-  - state: evaluation
-    policies:
-      account_recovery: allow
-      read_projection: read
-      base_focusa: require_base
-      automation: require_feature
-      team_remote: require_feature
-      release_proof: require_feature
-      premium_updates: require_feature
-      customer_data_export: allow
-      internal_maintenance: inherit
+      customer_data_export: allow_basic
+      internal_maintenance: inherit_only_allowed_initiating_operation
+      uiai_public_observation: allow_one_foreground_ephemeral_session
+      uiai_browser_action: deny
+      uiai_persistence: deny
   - state: active_paid
     policies:
       account_recovery: allow

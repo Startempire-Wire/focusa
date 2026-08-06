@@ -1,0 +1,234 @@
+{
+  "schema": "focusa.spec172.limited_access_cases.v1",
+  "cases": [
+    {
+      "id": "unverified_registration_start",
+      "posture": "unverified",
+      "product": "authority",
+      "family": "registration_start",
+      "decision": "allow"
+    },
+    {
+      "id": "unverified_product_mutation",
+      "posture": "unverified",
+      "product": "focusa",
+      "family": "manual_project",
+      "decision": "deny"
+    },
+    {
+      "id": "limited_manual_project",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "manual_project",
+      "decision": "allow",
+      "mutable_project_count": 1
+    },
+    {
+      "id": "limited_manual_mission",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "manual_mission",
+      "decision": "allow"
+    },
+    {
+      "id": "limited_manual_focus_state",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "manual_focus_state",
+      "decision": "allow"
+    },
+    {
+      "id": "limited_manual_workpoint",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "manual_workpoint",
+      "decision": "allow"
+    },
+    {
+      "id": "limited_manual_trajectory",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "manual_trajectory",
+      "decision": "allow"
+    },
+    {
+      "id": "limited_manual_evidence",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "manual_basic_evidence",
+      "decision": "allow"
+    },
+    {
+      "id": "limited_second_project_mutation",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "manual_project",
+      "decision": "deny",
+      "mutable_project_count": 2
+    },
+    {
+      "id": "limited_automation",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "automation",
+      "decision": "deny"
+    },
+    {
+      "id": "limited_team",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "team_remote",
+      "decision": "deny"
+    },
+    {
+      "id": "limited_release",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "release_proof",
+      "decision": "deny"
+    },
+    {
+      "id": "limited_premium_update",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "premium_updates",
+      "decision": "deny"
+    },
+    {
+      "id": "limited_uiai_public_read",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "public_page_read",
+      "decision": "allow",
+      "session_mode": "foreground_ephemeral",
+      "session_count": 1
+    },
+    {
+      "id": "limited_uiai_public_search",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "public_search",
+      "decision": "allow",
+      "session_mode": "foreground_ephemeral",
+      "session_count": 1
+    },
+    {
+      "id": "limited_uiai_second_session",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "public_page_read",
+      "decision": "deny",
+      "session_mode": "foreground_ephemeral",
+      "session_count": 2
+    },
+    {
+      "id": "limited_uiai_browser_action",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "browser_action",
+      "decision": "deny"
+    },
+    {
+      "id": "limited_uiai_persistence",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "browser_persistence",
+      "decision": "deny"
+    },
+    {
+      "id": "permanent_read",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "read_projection",
+      "decision": "allow",
+      "at": "unbounded_future"
+    },
+    {
+      "id": "permanent_export",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "basic_customer_data_export",
+      "decision": "allow",
+      "at": "unbounded_future"
+    },
+    {
+      "id": "permanent_recovery",
+      "posture": "verified_no_license",
+      "product": "authority",
+      "family": "repair",
+      "decision": "allow",
+      "at": "unbounded_future"
+    },
+    {
+      "id": "unknown_family",
+      "posture": "verified_no_license",
+      "product": "focusa",
+      "family": "future_unassigned_family",
+      "decision": "deny"
+    },
+    {
+      "id": "limited_uiai_source_to_markdown",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "source_to_markdown",
+      "decision": "allow",
+      "session_mode": "foreground_ephemeral",
+      "session_count": 1
+    },
+    {
+      "id": "limited_uiai_accessibility_snapshot",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "accessibility_snapshot",
+      "decision": "allow",
+      "session_mode": "foreground_ephemeral",
+      "session_count": 1
+    },
+    {
+      "id": "limited_uiai_screenshot",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "screenshot",
+      "decision": "allow",
+      "session_mode": "foreground_ephemeral",
+      "session_count": 1
+    },
+    {
+      "id": "limited_uiai_basic_diagnostics",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "basic_diagnostics",
+      "decision": "allow",
+      "session_mode": "foreground_ephemeral",
+      "session_count": 1
+    },
+    {
+      "id": "limited_uiai_authenticated_private_targets",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "authenticated_private_targets",
+      "decision": "deny"
+    },
+    {
+      "id": "limited_uiai_unattended_browser_automation",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "unattended_browser_automation",
+      "decision": "deny"
+    },
+    {
+      "id": "limited_uiai_scheduled_batch_qa",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "scheduled_batch_qa",
+      "decision": "deny"
+    },
+    {
+      "id": "limited_uiai_premium_hosted_resources",
+      "posture": "verified_no_license",
+      "product": "uiai_engine",
+      "family": "premium_hosted_resources",
+      "decision": "deny"
+    }
+  ]
+}

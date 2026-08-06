@@ -1,0 +1,93 @@
+schema: focusa.spec172.verified_limited_access.v1
+policy_version: 1
+authority: authority_signed_assertion
+postures:
+  unverified:
+    product_access: registration_only
+    mailbox_verified: false
+    creates_edd_key: false
+    expiry: not_applicable
+    allowed_operations:
+      - registration_start
+      - verification_delivery
+      - verification_resend
+      - verification_poll
+      - verification_complete
+      - verification_expiry
+      - verification_recovery
+    safety_operations:
+      - installer_inspection
+      - local_uninstall
+      - emergency_local_data_recovery
+    default: deny
+  verified_no_license:
+    kind: account_runtime_posture
+    mailbox_verified: true
+    is_license_type: false
+    creates_edd_key: false
+    grant_source: authority_signed_limited_access_assertion
+    expiry: none
+    automatic_expiry: false
+    default: deny
+focusa:
+  mutable_project_limit: 1
+  active_project_selection: explicit_operator_selection
+  retained_non_active_projects: read_export_only
+  allowed_families:
+    - manual_project
+    - manual_mission
+    - manual_focus_state
+    - manual_workpoint
+    - manual_trajectory
+    - manual_basic_evidence
+  blocked_families:
+    - automation
+    - team_remote
+    - release_proof
+    - premium_updates
+uiai_engine:
+  session_limit: 1
+  concurrency_limit: 1
+  execution_mode: foreground
+  persistence: ephemeral
+  target_scope: public_web_only
+  allowed_families:
+    - public_search
+    - source_to_markdown
+    - public_page_read
+    - accessibility_snapshot
+    - screenshot
+    - basic_diagnostics
+  blocked_families:
+    - browser_action
+    - browser_persistence
+    - authenticated_private_targets
+    - unattended_browser_automation
+    - scheduled_batch_qa
+    - premium_hosted_resources
+permanent_allowances:
+  expiry: none
+  families:
+    - read_projection
+    - basic_customer_data_export
+    - account_control
+    - device_control
+    - license_status
+    - diagnostics
+    - repair
+    - rollback
+    - stable_security_update
+    - uninstall
+    - emergency_customer_data_recovery
+defaults:
+  unknown_family: deny
+  new_family: deny_pending_explicit_assignment
+  unknown_product: deny
+  caller_supplied_family_or_policy: forbidden
+invariants:
+  - no_anonymous_product_capability
+  - no_local_or_self_issued_grant
+  - no_timed_evaluation
+  - no_edd_key_for_verified_no_license
+  - read_export_and_recovery_never_expire
+  - blocked_family_denies_before_side_effects

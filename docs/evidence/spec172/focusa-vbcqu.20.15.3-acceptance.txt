@@ -1,0 +1,39 @@
+Spec 172 verified limited-access matrix acceptance
+Work item: focusa-vbcqu.20.15.3
+
+Repository state
+- Canonical project root: /tmp/focusa-rel3-candidate
+- Exact base commit tested with this atom's bounded working-tree changes: bd5e508f4e4c6d0fa2ae8e609899f9bb1d469e93
+- Unrelated pre-existing working-tree changes were preserved.
+
+Exact verification
+- Command: python3 tests/spec172_limited_access_contract_test.py
+- Exit code: 0
+- Bounded result:
+  Spec 172 limited-access contract test passed
+  cases=30
+  postures=unverified,verified_no_license
+
+Additional check
+- Command: git diff --check
+- Exit code: 0
+- Result: no whitespace errors.
+
+Acceptance summary
+- Unverified product access is registration/verification only, default deny, with separately identified uninstall/inspection/emergency-local-recovery safety operations.
+- verified_no_license is a permanent authority-signed non-license posture: no EDD key, no automatic expiry, and no local, self-issued, or anonymous grant.
+- Focusa limited access permits exactly one mutable explicitly selected project and manual Project, Mission, Focus State, Workpoint, Trajectory, and basic Evidence families.
+- UIAI limited access permits one foreground ephemeral public-web observation session and explicitly allows public search, Source-to-Markdown, public read, accessibility snapshot, screenshot, and basic diagnostics.
+- Automation, team/remote, release proof, premium updates, browser action, browser persistence, private targets, unattended/batch use, and premium hosted resources deny.
+- Read projection, basic export, repair, rollback, stable security update, uninstall, and emergency recovery remain permanently available under their independent security controls.
+- Thirty positive/negative vectors cover every explicitly allowed and blocked product family, project/session limits, permanent allowances, and unknown-family denial.
+- Spec 152F now references the canonical Spec 172 registry and replaces active Evaluation/no-grant grid states with verified_no_license.
+
+Remaining blockers
+- This contract atom does not implement runtime enforcement, signed assertion issuance, active-project persistence, UIAI resource allocation, or presenter behavior.
+- Downstream runtime and cross-surface acceptance tasks remain open.
+- No bead was closed and no remote was touched.
+
+Rollback
+- Revert only docs/contracts/spec172-verified-limited-access.v1.yaml, the scoped Spec 152F policy reconciliation, tests/fixtures/spec172-limited-access-cases.v1.json, tests/spec172_limited_access_contract_test.py, and this evidence file.
+- Preserve verified identities, customers, orders, refunds, License Types, keys, nodes, sequences, customer data, migration journals, evidence, and unrelated working-tree changes.
