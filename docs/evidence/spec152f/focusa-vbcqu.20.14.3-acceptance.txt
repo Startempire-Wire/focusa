@@ -1,0 +1,58 @@
+Spec 152F resolver call stack, ownership, and stable-error acceptance
+Work item: focusa-vbcqu.20.14.3
+Implementation commit: b2e60e7b51173d069c67b4e25933a0c9c3bb895a
+
+OUTPUTS
+- Call stack: docs/contracts/spec152f-entitlement-call-stack.v1.yaml
+  file SHA256: 69f6bbfac91530764f2a7e1b2e047d176454de208b3b698e6417d30b92710161
+  canonical semantic SHA256: 2af759e5312240457a075a7b4011f4ff7b6d8623df61ac3eee70973116fef6dc
+- Stable errors: docs/contracts/spec152f-entitlement-errors.v1.json
+  file SHA256: 6bec5814422269fe3b1eae3510a1c05f5e4b023d77c82ff9d331cdd4c219e9d5
+  canonical semantic SHA256: c9f85cefa10aa4c12a53db66841bd7e397d03e194fbc3224724e99cf6d816ad6
+- Validator: tests/spec152f_call_stack_contract_test.py
+  SHA256: d8b1169a5afb63ed8da598029f83924d420c4d63831d4d9586e42666c4e9d208
+
+CALL STACK
+1. Entrypoint binding
+2. Operation classification
+3. Independent identity, permission, device, confirmation, and scope authorization
+4. Recovery/read/customer-control resolution
+5. Signed authority lease verification
+6. Entitlement-state and base-product resolution
+7. Four-family premium feature resolution
+8. Idempotency and atomic limit reservation
+9. Protected execution
+10. Reservation settlement
+11. Redacted canonical decision projection
+
+HTTP, direct non-HTTP, and delayed worker/scheduler paths use the same ordered stages. Delayed dispatch must reverify current authority and cannot extend Offline Grace. Current HTTP middleware and planned core execution guard are named explicitly.
+
+OWNERSHIP
+Each stage has one scalar owner. Security authorization remains independent from licensing. WPUIAI.com EDD remains customer/commerce/human-key/entitlement authority. Seven presenters own request binding/rendering only and are forbidden from commercial decisions. Legacy local JSON/TOML and installer Evaluation remain migration/forbidden authority, not grants.
+
+ERRORS
+- Existing reused codes: 7
+- Spec 152F contract-frozen new codes: 3
+  ENTITLEMENT_FAMILY_UNKNOWN
+  ENTITLEMENT_POLICY_ACTIVATION_FORBIDDEN
+  ENTITLEMENT_POLICY_UNKNOWN
+- Total stable codes: 10
+- New codes are explicitly contract-frozen and not falsely claimed implemented.
+- Every denial occurs before protected side effects and preserves a redacted recovery action.
+
+VERIFICATION
+PASS python3 tests/spec152f_call_stack_contract_test.py
+  stages=11 execution_paths=3 presenters=7 errors=10 existing_errors=7 new_errors=3
+  stack_sha256=2af759e5312240457a075a7b4011f4ff7b6d8623df61ac3eee70973116fef6dc
+  errors_sha256=c9f85cefa10aa4c12a53db66841bd7e397d03e194fbc3224724e99cf6d816ad6
+PASS python3 tests/spec152f_entitlement_policy_contract_test.py
+PASS python3 -m py_compile tests/spec152f_call_stack_contract_test.py
+PASS git diff --check
+PASS call stack, errors, and validator are each below 500 lines
+
+ROLLBACK
+Revert implementation commit b2e60e7b and this evidence commit only. Preserve the Spec 152F policy registry, Spec 152E authority, customers, orders, refunds, keys, nodes, sequences, data, and earlier evidence. Rollback returns call-stack implementation to open; it cannot promote local state or presenter policy into authority.
+
+RESULT
+TECHNICAL_ACCEPTANCE: VERIFIED
+A weaker model can locate every stage, exact owner, current/planned chokepoint, stable error, recovery boundary, and downstream implementation sequence. This receipt freezes contracts only; downstream Rust and presenter implementation remains open.
