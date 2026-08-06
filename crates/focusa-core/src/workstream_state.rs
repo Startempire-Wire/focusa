@@ -296,9 +296,7 @@ impl ActiveWorkstreamCommand {
         self.context
             .validate_for_workstream(&self.workstream)
             .map_err(ActiveWorkstreamError::Context)?;
-        if self.workstream.workstream_id.as_str().trim().is_empty()
-            || self.workstream.legacy_scope().validate().is_err()
-        {
+        if self.workstream.validate().is_err() {
             return Err(ActiveWorkstreamError::InvalidWorkstream);
         }
 

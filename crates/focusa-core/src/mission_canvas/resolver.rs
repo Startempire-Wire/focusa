@@ -234,23 +234,15 @@ mod tests {
             WorkstreamId::parse("ws:mission-canvas").unwrap(),
         );
         let continuity = ContinuityId::parse("continuity:mission-canvas").unwrap();
-        MissionCanvasScope {
-            workstream: workstream.clone(),
-            continuity_id: Some(continuity.clone()),
-            attachment: Some(crate::workstream_identity::AttachmentKey::new(
-                workstream,
-                Some(continuity),
-                InstanceId::parse("instance:pi").unwrap(),
-                SessionId::parse("session:1").unwrap(),
-                AttachmentId::parse("attachment:1").unwrap(),
-                WorkspaceBindingId::parse("workspace:mission-canvas").unwrap(),
-            )),
-            workspace_binding_id: Some(
-                WorkspaceBindingId::parse("workspace:mission-canvas").unwrap(),
-            ),
-            runtime_object: None,
-            work_surface_id: None,
-        }
+        let attachment = crate::workstream_identity::AttachmentKey::new(
+            workstream.clone(),
+            Some(continuity),
+            InstanceId::parse("instance:pi").unwrap(),
+            SessionId::parse("session:1").unwrap(),
+            AttachmentId::parse("attachment:1").unwrap(),
+            WorkspaceBindingId::parse("workspace:mission-canvas").unwrap(),
+        );
+        MissionCanvasScope::new(workstream, Some(attachment)).unwrap()
     }
 
     fn context() -> EligibilityContext {
