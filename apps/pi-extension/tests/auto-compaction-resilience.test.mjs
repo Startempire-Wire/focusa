@@ -53,9 +53,13 @@ test("agent_end never races Pi native compaction with extension compaction", () 
   assert.match(body, /native post-run compaction/);
 });
 
-test("agent_settled acquires the coordinator and starts one supported Pi compaction", () => {
+test("settled and active-loop pressure route through one Focusa coordinator", () => {
   assert.match(handlerBody("agent_settled"), /maybeCompact\(ctx\)/);
-  assert.match(source, /Pi defines[\s\S]*event as fully settled/);
+  assert.match(source, /PI_TOOL_BOUNDARY_COMPACTION_SYMBOL/);
+  assert.match(source, /piSupportsToolBoundaryCompaction\(\)/);
+  assert.match(source, /toolBoundaryRequest/);
+  assert.match(source, /focusa_active_tool_boundary_pressure/);
+  assert.match(source, /Pi executes the one native compaction/);
   const maybeStart = source.indexOf("const maybeCompact =");
   const maybeEnd = source.indexOf("processLease.request = maybeCompact", maybeStart);
   const maybeBody = source.slice(maybeStart, maybeEnd);
@@ -64,6 +68,8 @@ test("agent_settled acquires the coordinator and starts one supported Pi compact
   assert.match(maybeBody, /attemptCompaction\(ctx, usage\)/);
   assert.match(maybeBody, /return "requested"/);
   assert.doesNotMatch(maybeBody, /native_compaction_delegated|deferred_to_native/);
+  assert.match(maybeBody, /ctx\.hasPendingMessages\(\)/);
+  assert.match(maybeBody, /\(!ctx\.isIdle\(\) && !toolBoundaryRequest\)/);
 });
 
 test("provider transport failures retain bounded recovery for unchanged context", () => {
@@ -100,6 +106,8 @@ test("pressure invokes compaction only after preflight and exact live eligibilit
   assert.match(exactGate, /messagesToSummarize/);
   assert.match(exactGate, /turnPrefixMessages/);
   assert.match(exactGate, /activeEpoch\.exactEligibility/);
+  assert.match(exactGate, /native_eligibility_observed/);
+  assert.match(exactGate, /if \(externalNativeInvocation\)[\s\S]*return;/);
   assert.match(exactGate, /return \{ cancel: true \}/);
   assert.match(source, /insufficient_history/);
   assert.match(source, /insufficient_reclaim/);
@@ -141,6 +149,14 @@ test("attempt, primary failure, retry, rejection, and ROI outcomes are durably l
   assert.match(source, /net_positive:/);
 });
 
+test("Focusa threshold upgrades insufficient routes without bypassing its policy epoch", () => {
+  assert.match(source, /selectedPolicy/);
+  assert.match(source, /decision\.trigger/);
+  assert.match(source, /capabilities\.nativeCompaction === "supported"/);
+  assert.match(source, /focusa-threshold-upgrade/);
+  assert.match(source, /reason: "native_pressure"/);
+});
+
 test("Rust lease adapter owns policy resolution with exact local fallback", () => {
   assert.match(source, /selectFrozenCompactionPolicy\(ctx, pressureTelemetry, capabilities\)/);
   assert.match(source, /await prewarmCompactionPolicy\(ctx, getConfig\(\)\)/);
@@ -150,8 +166,11 @@ test("Rust lease adapter owns policy resolution with exact local fallback", () =
   assert.match(source, /\["manual", "provider_overflow"\]\.includes\(activeEpoch\.triggerClass\)/);
 });
 
-test("compaction outcomes settle once from the authoritative ctx.compact callback", () => {
+test("compaction outcomes settle once under the captured attachment runtime", () => {
   const beforeCompact = handlerBody("session_before_compact");
+  assert.match(source, /const attachmentKey = currentAttachmentKey\(\)/);
+  assert.match(source, /runWithAttachmentRuntime\(attachmentKey, operation\)/);
+  assert.match(source, /withinAttachment\(\(\) =>/);
   const compacted = handlerBody("session_compact");
   assert.match(beforeCompact, /outcomeBaseline/);
   assert.match(beforeCompact, /outcome_baseline_recorded/);

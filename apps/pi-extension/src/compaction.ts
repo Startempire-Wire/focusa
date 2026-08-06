@@ -1085,7 +1085,15 @@ export function registerCompaction(pi: ExtensionAPI) {
       // Pi 0.82.1 accepts only cancel or a full replacement compaction from
       // this hook. Persist Focusa state, then return undefined so Pi owns the
       // native summary rather than pretending a customInstructions return is used.
-      await prepareCompactionEpoch(event);
+      const prepared = await prepareCompactionEpoch(event);
+      const focusaInstructions = String(prepared?.native_compactor_instructions || "").trim();
+      if (focusaInstructions) {
+        const existingInstructions = String(event.customInstructions || "").trim();
+        event.customInstructions = [existingInstructions, focusaInstructions]
+          .filter(Boolean)
+          .join("\n\n")
+          .slice(0, 12_000);
+      }
       return undefined;
     } catch (error) {
       activeCompactionEpoch = null;
