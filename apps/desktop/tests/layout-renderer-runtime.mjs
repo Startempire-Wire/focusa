@@ -114,6 +114,8 @@ try {
   assert.match(productionProjection, /aria-label="Mission Canvas context"/);
   assert.match(productionProjection, />Profile</);
   assert.match(productionProjection, />Activity</);
+  assert.match(productionProjection, /aria-label="Work Surfaces"/);
+  assert.match(productionProjection, /data-work-surface-id="surface:pi"/);
   assert.match(productionProjection, /data-work-surface-ref="surface:pi"/);
   assert.doesNotMatch(productionProjection, /Renderer unavailable/);
 

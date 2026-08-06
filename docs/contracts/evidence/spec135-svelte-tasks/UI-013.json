@@ -1,0 +1,18 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-013",
+  "result": "Actual eligible focused_work_surface contributions now render in a projection-backed Work Surface strip. Selection is disabled without canonical layout mutation authority, no possible-type tabs are synthesized, and the entire strip is absent when no actual surface contribution exists.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/ActualWorkSurfaceStrip.svelte",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasFrame.svelte",
+    "apps/desktop/tests/layout-renderer-runtime.mjs"
+  ],
+  "checks": [
+    "npm --prefix apps/desktop test",
+    "svelte-check --tsconfig apps/desktop/tsconfig.json"
+  ],
+  "remaining_blockers": [
+    "CORE-007 must provide the final exact WorkSurface identity chain before UI-013 can close"
+  ],
+  "status": "implemented_partial"
+}
