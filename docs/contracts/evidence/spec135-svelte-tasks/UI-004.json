@@ -1,0 +1,19 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-004",
+  "result": "MissionCanvasFrame now owns a stable projection-backed context bar above the recursive adaptive layout. Project, profile, session, attachment, focus, activity, and projection revision are read directly from the validated projection and collapse responsively without local authority.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasFrame.svelte",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasContextBar.svelte",
+    "apps/desktop/tests/layout-renderer-runtime.mjs"
+  ],
+  "checks": [
+    "npm --prefix apps/desktop test",
+    "svelte-check --tsconfig apps/desktop/tsconfig.json"
+  ],
+  "evidence_refs": [
+    "uiai-diagnostics:session=NDxcZv54:seq=150",
+    "/tmp/uiai-engine-shares/session-screenshots/NDxcZv54-1786009275461310000.png"
+  ],
+  "status": "verified"
+}

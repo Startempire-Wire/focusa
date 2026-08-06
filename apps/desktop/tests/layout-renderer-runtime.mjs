@@ -111,6 +111,9 @@ try {
 
   const { default: MissionCanvasRenderer } = await server.ssrLoadModule('/src/lib/mission-canvas/MissionCanvasRenderer.svelte');
   const { body: productionProjection } = render(MissionCanvasRenderer, { props: { projection: fixture, registry: DEFAULT_CONTRIBUTION_REGISTRY } });
+  assert.match(productionProjection, /aria-label="Mission Canvas context"/);
+  assert.match(productionProjection, />Profile</);
+  assert.match(productionProjection, />Activity</);
   assert.match(productionProjection, /data-work-surface-ref="surface:pi"/);
   assert.doesNotMatch(productionProjection, /Renderer unavailable/);
 

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import MissionCanvasContextBar from './MissionCanvasContextBar.svelte';
   import ProjectionLayoutRenderer from './ProjectionLayoutRenderer.svelte';
   import type { ResolvedContribution, ResolvedWorkspaceProjection } from './types';
 
@@ -26,9 +27,13 @@
   data-projection-revision={projection.projection_revision}
   data-layout-revision={projection.layout_revision}
 >
-  <ProjectionLayoutRenderer node={projection.layout_tree} {contributions} {renderContribution} {onSelectTab}/>
+  <MissionCanvasContextBar {projection}/>
+  <div class="projection-region">
+    <ProjectionLayoutRenderer node={projection.layout_tree} {contributions} {renderContribution} {onSelectTab}/>
+  </div>
 </section>
 
 <style>
-  .mission-canvas-frame{container:mission-canvas / inline-size;min-width:0;min-height:0;height:100%;display:grid;overflow:auto}
+  .mission-canvas-frame{container:mission-canvas / inline-size;min-width:0;min-height:0;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
+  .projection-region{min-width:0;min-height:0;overflow:auto}
 </style>
