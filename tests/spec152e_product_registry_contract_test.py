@@ -35,33 +35,67 @@ assert actual["authority"]["customer_commerce_human_key_refund_entitlement"] == 
 assert actual["authority"]["runtime_grant"] == "authority_issued_signed_lease"
 assert actual["authority"]["spec158"] == "excluded"
 assert set(actual["authority"]["caller_controls_forbidden"]) == {
-    "edd_download_id", "edd_price_id", "price", "tier", "products", "features",
-    "limits", "commercial_rights", "evaluation_duration", "node_limit",
+    "edd_download_id", "edd_price_id", "price", "tier", "product", "product_code",
+    "products", "license_type", "license_type_ref", "capability_family", "families",
+    "features", "limits", "node_limit", "sale_status", "refund_policy",
+    "upgrade_policy", "commercial_rights", "evaluation_duration",
 }
 
 expected_codes = {
-    "focusa_operator",
-    "uiai_engine_operator",
-    "focusa_uiai_bundle",
-    "focusa_evaluation",
+    "focusa_operator_lifetime_v1",
+    "uiai_operator_lifetime_v1",
+    "focusa_uiai_operator_bundle_lifetime_v1",
 }
 offers = actual["protected_offers"]
 assert {row["public_code"] for row in offers} == expected_codes
-assert len(offers) == len(expected_codes)
+assert len(offers) == len(expected_codes) == 3
 for offer in offers:
-    assert offer["mapping_status"] == "blocked_unassigned"
+    assert offer["mapping_status"] == "approved_policy_blocked_edd_mapping"
+    assert offer["sale_status"] == "approved_not_yet_enabled"
     assert offer["checkout_enabled"] is False
     assert offer["edd_download_id"] is None
     assert offer["edd_price_id"] is None
-    assert offer["license_duration"] is None
-    assert offer["node_limit"] is None
-    assert offer["supported_facades"] == []
-    assert offer["features"] == []
-    assert offer["commercial_rights"] == []
+    assert offer["license_duration"] == "lifetime"
+    assert offer["operator_seats"] == 1
+    assert offer["node_limit"] == 3
+    assert offer["node_set"] == "operator_shared_v1"
+    assert offer["price_authority"] == "spec172_server_owned"
+    assert offer["refund_policy"] == "whole_order_30_days"
+    assert offer["upgrade_policy"] == "explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved"
+    assert offer["future_products_included"] is False
+    assert offer["future_license_types_included"] is False
+    assert offer["evaluation"] is False
     assert offer["products"]
-assert next(row for row in offers if row["public_code"] == "focusa_uiai_bundle")["products"] == ["focusa", "uiai-engine"]
-assert next(row for row in offers if row["public_code"] == "focusa_evaluation")["evaluation"] is True
-assert all(row["evaluation"] is False for row in offers if row["public_code"] != "focusa_evaluation")
+
+focusa = next(row for row in offers if row["public_code"] == "focusa_operator_lifetime_v1")
+uiai = next(row for row in offers if row["public_code"] == "uiai_operator_lifetime_v1")
+bundle = next(row for row in offers if row["public_code"] == "focusa_uiai_operator_bundle_lifetime_v1")
+assert focusa["price_usd"] == uiai["price_usd"] == "697.00"
+assert focusa["products"] == ["focusa"]
+assert uiai["products"] == ["uiai_engine"]
+assert bundle["products"] == ["focusa", "uiai_engine"]
+assert bundle["price_usd"] == "1254.60"
+assert int(bundle["price_usd"].replace(".", "")) == (
+    int(focusa["price_usd"].replace(".", "")) + int(uiai["price_usd"].replace(".", ""))
+) * 90 // 100
+assert bundle["grants"] == ["focusa_operator_lifetime_v1", "uiai_operator_lifetime_v1"]
+assert bundle["grant_composition"] == "exact_union"
+assert bundle["component_refunds_allowed"] is False
+
+limited = actual["verified_no_license"]
+assert limited == {
+    "kind": "account_runtime_posture",
+    "is_license_type": False,
+    "edd_download_id": None,
+    "edd_price_id": None,
+    "checkout_enabled": False,
+    "price_usd": "0.00",
+    "duration": "no_automatic_expiry",
+    "edd_software_license_key": False,
+    "grant_source": "authority_signed_limited_access_assertion",
+    "anonymous_access": False,
+}
+assert "focusa_evaluation" not in json.dumps(actual)
 
 catalog = actual["current_edd_catalog"]["entries"]
 assert len(catalog) == 14
@@ -89,7 +123,7 @@ assert refunded["disposition"] == revoked["disposition"] == "retire"
 assert "never_reactivate" in refunded["requirement"] and "never_reactivate" in revoked["requirement"]
 
 assert actual["counts"] == {
-    "protected_offers": 4,
+    "protected_offers": 3,
     "checkout_enabled": 0,
     "assigned_edd_downloads": 0,
     "catalog_entries": 14,
@@ -103,8 +137,11 @@ assert set(actual["invariants"]) >= {
     "download_453_is_not_focusa_authority",
     "credit_packs_never_grant_entitlement",
     "caller_metadata_never_selects_price_product_grant_limit_or_right",
-    "evaluation_requires_verified_identity_and_dedicated_edd_mapping",
-    "paid_records_are_never_downgraded_to_evaluation",
+    "protected_offer_policy_values_are_server_owned_by_spec172",
+    "bundle_is_exact_union_at_1254_60_with_one_operator_and_three_shared_nodes",
+    "future_products_and_license_types_are_excluded",
+    "verified_no_license_is_a_non_license_posture_with_no_edd_key",
+    "paid_records_are_never_downgraded_to_anonymous_or_local_grants",
     "refunded_or_revoked_records_never_reactivate",
     "legacy_email_match_alone_never_transfers_ownership",
     "every_legacy_class_is_migrate_quarantine_or_retire",

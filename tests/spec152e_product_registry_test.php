@@ -43,22 +43,45 @@ function expect(bool $condition, string $message): void {
 
 expect($registry['schema'] === 'focusa.spec152e.edd_product_registry.v1', 'schema');
 expect($registry['authority']['customer_commerce_human_key_refund_entitlement'] === 'WPUIAI.com EDD', 'authority');
-expect(count($registry['protected_offers']) === 4, 'four protected offers');
+expect(count($registry['protected_offers']) === 3, 'three paid offers');
 expect($registry['counts']['checkout_enabled'] === 0, 'no invented checkout mapping');
 expect($registry['counts']['assigned_edd_downloads'] === 0, 'no invented EDD download');
 
 $codes = array_column($registry['protected_offers'], 'public_code');
 sort($codes);
-expect($codes === ['focusa_evaluation', 'focusa_operator', 'focusa_uiai_bundle', 'uiai_engine_operator'], 'exact codes');
+expect($codes === ['focusa_operator_lifetime_v1', 'focusa_uiai_operator_bundle_lifetime_v1', 'uiai_operator_lifetime_v1'], 'exact Spec 172 paid offer codes');
 foreach ($codes as $code) {
     $decision = resolve_offer($registry, ['product_code' => $code]);
-    expect($decision['ok'] === false && $decision['error'] === 'PRODUCT_MAPPING_REQUIRED', "{$code} fails closed while unassigned");
+    expect($decision['ok'] === false && $decision['error'] === 'CLIENT_COMMERCIAL_FIELDS_FORBIDDEN', "caller-controlled {$code} denied");
 }
-expect(resolve_offer($registry, ['product_code' => 'invented'])['error'] === 'PRODUCT_MAPPING_REQUIRED', 'unknown code denied');
+expect(resolve_offer($registry, ['product_code' => 'invented'])['error'] === 'CLIENT_COMMERCIAL_FIELDS_FORBIDDEN', 'caller-controlled unknown code denied');
 
 foreach ($registry['authority']['caller_controls_forbidden'] as $field) {
-    $decision = resolve_offer($registry, ['product_code' => 'focusa_operator', $field => 'attacker-value']);
+    $decision = resolve_offer($registry, ['product_code' => 'focusa_operator_lifetime_v1', $field => 'attacker-value']);
     expect($decision['error'] === 'CLIENT_COMMERCIAL_FIELDS_FORBIDDEN', "caller field {$field} denied");
+}
+
+$limited = $registry['verified_no_license'];
+expect($limited['kind'] === 'account_runtime_posture', 'verified no-license is a posture');
+expect($limited['is_license_type'] === false, 'verified no-license is not a License Type');
+expect($limited['checkout_enabled'] === false && $limited['edd_software_license_key'] === false, 'limited posture has no checkout or EDD key');
+expect($limited['anonymous_access'] === false, 'anonymous product capability forbidden');
+
+$offers = array_column($registry['protected_offers'], null, 'public_code');
+expect($offers['focusa_operator_lifetime_v1']['price_usd'] === '697.00', 'Focusa exact price');
+expect($offers['uiai_operator_lifetime_v1']['price_usd'] === '697.00', 'UIAI exact price');
+$bundle = $offers['focusa_uiai_operator_bundle_lifetime_v1'];
+expect($bundle['price_usd'] === '1254.60', 'Bundle exact price');
+expect($bundle['grants'] === ['focusa_operator_lifetime_v1', 'uiai_operator_lifetime_v1'], 'Bundle exact grant union');
+expect($bundle['grant_composition'] === 'exact_union', 'Bundle composition policy');
+expect($bundle['component_refunds_allowed'] === false, 'Bundle whole-order refunds only');
+foreach ($registry['protected_offers'] as $offer) {
+    expect($offer['mapping_status'] === 'approved_policy_blocked_edd_mapping', 'policy approved but EDD mapping blocked');
+    expect($offer['sale_status'] === 'approved_not_yet_enabled', 'sale approved but not enabled');
+    expect($offer['refund_policy'] === 'whole_order_30_days', 'exact refund policy');
+    expect($offer['upgrade_policy'] === 'explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved', 'exact upgrade policy');
+    expect($offer['operator_seats'] === 1 && $offer['node_limit'] === 3, 'one seat and three nodes');
+    expect($offer['future_products_included'] === false && $offer['future_license_types_included'] === false, 'future rights excluded');
 }
 
 $download453 = array_values(array_filter(
@@ -78,7 +101,7 @@ foreach ($registry['legacy_record_classes'] as $legacy) {
 fwrite(STDOUT, json_encode([
     'schema' => 'focusa.spec152e.product_registry_php_validation.v1',
     'protected_offers' => count($codes),
-    'blocked_unassigned' => 4,
+    'blocked_unassigned' => 3,
     'forbidden_caller_fields' => count($registry['authority']['caller_controls_forbidden']),
     'legacy_classes' => count($registry['legacy_record_classes']),
     'result' => 'passed',

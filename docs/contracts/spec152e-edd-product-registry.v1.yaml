@@ -5,7 +5,7 @@ owner: WPUIAI/wpuiai
 authority:
   customer_commerce_human_key_refund_entitlement: WPUIAI.com EDD
   runtime_grant: authority_issued_signed_lease
-  caller_controls_forbidden: [edd_download_id, edd_price_id, price, tier, products, features, limits, commercial_rights, evaluation_duration, node_limit]
+  caller_controls_forbidden: [edd_download_id, edd_price_id, price, tier, product, product_code, products, license_type, license_type_ref, capability_family, families, features, limits, node_limit, sale_status, refund_policy, upgrade_policy, commercial_rights, evaluation_duration]
   unknown_product_code: PRODUCT_MAPPING_REQUIRED
   unassigned_product_code: PRODUCT_MAPPING_REQUIRED
   spec158: excluded
@@ -14,6 +14,7 @@ protected_offers:
     human_name: Focusa Operator Lifetime v1
     license_type_ref: focusa_operator_lifetime_v1
     mapping_status: approved_policy_blocked_edd_mapping
+    sale_status: approved_not_yet_enabled
     checkout_enabled: false
     edd_download_id: null
     edd_price_id: null
@@ -26,12 +27,14 @@ protected_offers:
     products: [focusa]
     evaluation: false
     refund_policy: whole_order_30_days
+    upgrade_policy: explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved
     future_products_included: false
     future_license_types_included: false
   - public_code: uiai_operator_lifetime_v1
     human_name: UIAI Engine Operator Lifetime v1
     license_type_ref: uiai_operator_lifetime_v1
     mapping_status: approved_policy_blocked_edd_mapping
+    sale_status: approved_not_yet_enabled
     checkout_enabled: false
     edd_download_id: null
     edd_price_id: null
@@ -44,12 +47,14 @@ protected_offers:
     products: [uiai_engine]
     evaluation: false
     refund_policy: whole_order_30_days
+    upgrade_policy: explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved
     future_products_included: false
     future_license_types_included: false
   - public_code: focusa_uiai_operator_bundle_lifetime_v1
     human_name: Focusa and UIAI Engine Operator Lifetime Bundle v1
     composite_sku_ref: focusa_uiai_operator_bundle_lifetime_v1
     mapping_status: approved_policy_blocked_edd_mapping
+    sale_status: approved_not_yet_enabled
     checkout_enabled: false
     edd_download_id: null
     edd_price_id: null
@@ -64,6 +69,7 @@ protected_offers:
     grant_composition: exact_union
     evaluation: false
     refund_policy: whole_order_30_days
+    upgrade_policy: explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved
     component_refunds_allowed: false
     future_products_included: false
     future_license_types_included: false
@@ -73,6 +79,8 @@ verified_no_license:
   edd_download_id: null
   edd_price_id: null
   checkout_enabled: false
+  price_usd: '0.00'
+  duration: no_automatic_expiry
   edd_software_license_key: false
   grant_source: authority_signed_limited_access_assertion
   anonymous_access: false

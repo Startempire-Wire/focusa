@@ -1,13 +1,13 @@
 {
   "activation_requirements": [
     "operator_approved_dedicated_edd_download_and_optional_price_id",
-    "verified_registration_required_before_checkout_or_evaluation",
+    "verified_registration_required_before_checkout_or_limited_access",
     "edd_software_licensing_enabled",
     "exact_product_and_price_relationship",
     "server_owned_products_features_limits_and_commercial_rights",
     "node_limit_and_duration_decision",
     "supported_facade_allowlist",
-    "refund_upgrade_and_evaluation_policy",
+    "refund_upgrade_and_verified_limited_access_policy",
     "migration_and_recovery_analysis",
     "acceptance_evidence"
   ],
@@ -17,12 +17,21 @@
       "edd_price_id",
       "price",
       "tier",
+      "product",
+      "product_code",
       "products",
+      "license_type",
+      "license_type_ref",
+      "capability_family",
+      "families",
       "features",
       "limits",
+      "node_limit",
+      "sale_status",
+      "refund_policy",
+      "upgrade_policy",
       "commercial_rights",
-      "evaluation_duration",
-      "node_limit"
+      "evaluation_duration"
     ],
     "customer_commerce_human_key_refund_entitlement": "WPUIAI.com EDD",
     "runtime_grant": "authority_issued_signed_lease",
@@ -38,7 +47,7 @@
     "legacy_quarantine": 5,
     "legacy_record_classes": 10,
     "legacy_retire": 2,
-    "protected_offers": 4
+    "protected_offers": 3
   },
   "current_edd_catalog": {
     "entries": [
@@ -215,11 +224,14 @@
   },
   "invariants": [
     "no_protected_offer_is_currently_checkout_enabled",
+    "protected_offer_policy_values_are_server_owned_by_spec172",
+    "bundle_is_exact_union_at_1254_60_with_one_operator_and_three_shared_nodes",
+    "future_products_and_license_types_are_excluded",
     "download_453_is_not_focusa_authority",
     "credit_packs_never_grant_entitlement",
     "caller_metadata_never_selects_price_product_grant_limit_or_right",
-    "evaluation_requires_verified_identity_and_dedicated_edd_mapping",
-    "paid_records_are_never_downgraded_to_evaluation",
+    "verified_no_license_is_a_non_license_posture_with_no_edd_key",
+    "paid_records_are_never_downgraded_to_anonymous_or_local_grants",
     "refunded_or_revoked_records_never_reactivate",
     "legacy_email_match_alone_never_transfers_ownership",
     "every_legacy_class_is_migrate_quarantine_or_retire"
@@ -301,90 +313,96 @@
   "protected_offers": [
     {
       "checkout_enabled": false,
-      "commercial_rights": [],
       "edd_download_id": null,
       "edd_price_id": null,
       "evaluation": false,
-      "evaluation_duration_days": null,
-      "features": [],
-      "human_name": "Focusa Operator",
-      "license_duration": null,
-      "mapping_status": "blocked_unassigned",
-      "node_limit": null,
-      "price_authority": "unassigned_operator_decision_required",
+      "future_license_types_included": false,
+      "future_products_included": false,
+      "human_name": "Focusa Operator Lifetime v1",
+      "license_duration": "lifetime",
+      "license_type_ref": "focusa_operator_lifetime_v1",
+      "mapping_status": "approved_policy_blocked_edd_mapping",
+      "node_limit": 3,
+      "node_set": "operator_shared_v1",
+      "operator_seats": 1,
+      "price_authority": "spec172_server_owned",
+      "price_usd": "697.00",
       "products": [
         "focusa"
       ],
-      "public_code": "focusa_operator",
-      "refund_policy": "unassigned_operator_decision_required",
-      "supported_facades": [],
-      "upgrade_policy": "unassigned_operator_decision_required"
+      "public_code": "focusa_operator_lifetime_v1",
+      "refund_policy": "whole_order_30_days",
+      "sale_status": "approved_not_yet_enabled",
+      "upgrade_policy": "explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved"
     },
     {
       "checkout_enabled": false,
-      "commercial_rights": [],
       "edd_download_id": null,
       "edd_price_id": null,
       "evaluation": false,
-      "evaluation_duration_days": null,
-      "features": [],
-      "human_name": "UIAI Engine Operator",
-      "license_duration": null,
-      "mapping_status": "blocked_unassigned",
-      "node_limit": null,
-      "price_authority": "unassigned_operator_decision_required",
+      "future_license_types_included": false,
+      "future_products_included": false,
+      "human_name": "UIAI Engine Operator Lifetime v1",
+      "license_duration": "lifetime",
+      "license_type_ref": "uiai_operator_lifetime_v1",
+      "mapping_status": "approved_policy_blocked_edd_mapping",
+      "node_limit": 3,
+      "node_set": "operator_shared_v1",
+      "operator_seats": 1,
+      "price_authority": "spec172_server_owned",
+      "price_usd": "697.00",
       "products": [
-        "uiai-engine"
+        "uiai_engine"
       ],
-      "public_code": "uiai_engine_operator",
-      "refund_policy": "unassigned_operator_decision_required",
-      "supported_facades": [],
-      "upgrade_policy": "unassigned_operator_decision_required"
+      "public_code": "uiai_operator_lifetime_v1",
+      "refund_policy": "whole_order_30_days",
+      "sale_status": "approved_not_yet_enabled",
+      "upgrade_policy": "explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved"
     },
     {
       "checkout_enabled": false,
-      "commercial_rights": [],
+      "component_refunds_allowed": false,
+      "composite_sku_ref": "focusa_uiai_operator_bundle_lifetime_v1",
       "edd_download_id": null,
       "edd_price_id": null,
       "evaluation": false,
-      "evaluation_duration_days": null,
-      "features": [],
-      "human_name": "Focusa and UIAI Engine Bundle",
-      "license_duration": null,
-      "mapping_status": "blocked_unassigned",
-      "node_limit": null,
-      "price_authority": "unassigned_operator_decision_required",
+      "future_license_types_included": false,
+      "future_products_included": false,
+      "grant_composition": "exact_union",
+      "grants": [
+        "focusa_operator_lifetime_v1",
+        "uiai_operator_lifetime_v1"
+      ],
+      "human_name": "Focusa and UIAI Engine Operator Lifetime Bundle v1",
+      "license_duration": "lifetime",
+      "mapping_status": "approved_policy_blocked_edd_mapping",
+      "node_limit": 3,
+      "node_set": "operator_shared_v1",
+      "operator_seats": 1,
+      "price_authority": "spec172_server_owned",
+      "price_usd": "1254.60",
       "products": [
         "focusa",
-        "uiai-engine"
+        "uiai_engine"
       ],
-      "public_code": "focusa_uiai_bundle",
-      "refund_policy": "unassigned_operator_decision_required",
-      "supported_facades": [],
-      "upgrade_policy": "unassigned_operator_decision_required"
-    },
-    {
-      "checkout_enabled": false,
-      "commercial_rights": [],
-      "edd_download_id": null,
-      "edd_price_id": null,
-      "evaluation": true,
-      "evaluation_duration_days": null,
-      "features": [],
-      "human_name": "Focusa Evaluation",
-      "license_duration": null,
-      "mapping_status": "blocked_unassigned",
-      "node_limit": null,
-      "price_authority": "no_charge_dedicated_edd_mapping_required",
-      "products": [
-        "focusa"
-      ],
-      "public_code": "focusa_evaluation",
-      "refund_policy": "not_applicable",
-      "supported_facades": [],
-      "upgrade_policy": "preserve_paid_posture_and_require_authority_eligibility"
+      "public_code": "focusa_uiai_operator_bundle_lifetime_v1",
+      "refund_policy": "whole_order_30_days",
+      "sale_status": "approved_not_yet_enabled",
+      "upgrade_policy": "explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved"
     }
   ],
   "registry_version": 1,
-  "schema": "focusa.spec152e.edd_product_registry.v1"
+  "schema": "focusa.spec152e.edd_product_registry.v1",
+  "verified_no_license": {
+    "anonymous_access": false,
+    "checkout_enabled": false,
+    "duration": "no_automatic_expiry",
+    "edd_download_id": null,
+    "edd_price_id": null,
+    "edd_software_license_key": false,
+    "grant_source": "authority_signed_limited_access_assertion",
+    "is_license_type": false,
+    "kind": "account_runtime_posture",
+    "price_usd": "0.00"
+  }
 }
