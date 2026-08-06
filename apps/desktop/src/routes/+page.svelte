@@ -70,7 +70,7 @@
 
   function resizeSidebar(event: PointerEvent): void {
     if (!sidebarResizeStart) return;
-    sidebarWidth = Math.min(320, Math.max(208, sidebarResizeStart.width + event.clientX - sidebarResizeStart.x));
+    sidebarWidth = Math.min(320, Math.max(208, sidebarResizeStart.width + sidebarResizeStart.x - event.clientX));
   }
   function endSidebarResize(): void {
     sidebarResizeStart = null;
