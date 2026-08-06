@@ -115,6 +115,7 @@ pub mod workstream_context;
 pub mod workstream_identity;
 pub mod workstream_migration;
 pub mod workstream_quarantine;
+pub mod workstream_shadow;
 pub mod workstream_state;
 pub mod semantic_integrity;
 pub mod semantic_migration;

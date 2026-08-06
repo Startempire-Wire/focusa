@@ -19,6 +19,9 @@ pub enum QuarantineReason {
     InvalidCausalHistory,
     CorruptSnapshot,
     UnsupportedProjectionVersion,
+    UnmappedLegacyRecord,
+    ConflictingWorkstreamMappings,
+    InvalidMigrationMapping,
 }
 
 /// Immutable evidence for one quarantined legacy record. Candidate Workstreams are
