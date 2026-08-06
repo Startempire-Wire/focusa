@@ -1,0 +1,160 @@
+schema: focusa.spec172.entitlement_call_stack.v1
+contract_version: 1
+authority_contracts:
+  limited_access: docs/contracts/spec172-verified-limited-access.v1.yaml
+  license_types: docs/contracts/spec172-license-types.v1.yaml
+  errors: docs/contracts/spec172-entitlement-errors.v1.json
+rules:
+  presenter_commercial_authority: forbidden
+  presenter_execution_authority: forbidden
+  stage_owner_cardinality: exactly_one
+  stable_recovery_per_error: required
+  caller_supplied_commercial_policy: forbidden
+  denied_or_unknown_before_execution: true
+  delayed_execution_revalidates: true
+independent_controls:
+  - auth
+  - role
+  - scope
+  - confirmation
+  - trust
+  - privacy
+  - entitlement
+commercial_chain:
+  - verified_identity
+  - limited_assertion_or_edd_paid_key
+  - node
+  - signed_lease
+  - product
+  - license_type
+  - family
+  - resource
+  - execution
+stages:
+  - order: 1
+    id: scope_binding
+    owner: project_scope_guard
+    chokepoint: crates/focusa-api/src/middleware/route_scope.rs
+    independence: scope
+    failure_codes: [SCOPE_REQUIRED]
+  - order: 2
+    id: operation_classification
+    owner: operation_policy_registry
+    chokepoint: crates/focusa-api/src/middleware/entitlement_routes.rs
+    independence: classification
+    failure_codes: [ENTITLEMENT_POLICY_UNKNOWN, CAPABILITY_FAMILY_NOT_INCLUDED, SIDE_EFFECT_UNCLASSIFIED]
+  - order: 3
+    id: authentication
+    owner: authentication_service
+    chokepoint: crates/focusa-api/src/middleware/auth.rs
+    independence: authentication
+    failure_codes: [AUTHENTICATION_REQUIRED]
+  - order: 4
+    id: role_authorization
+    owner: role_authorization_service
+    chokepoint: crates/focusa-core/src/daemon_auth.rs
+    independence: role
+    failure_codes: [ROLE_AUTHORIZATION_REQUIRED]
+  - order: 5
+    id: confirmation_and_platform_permission
+    owner: confirmation_permission_guard
+    chokepoint: crates/focusa-core/src/confirmation.rs
+    independence: confirmation
+    failure_codes: [CONFIRMATION_REQUIRED]
+  - order: 6
+    id: artifact_trust
+    owner: artifact_trust_verifier
+    chokepoint: crates/focusa-core/src/lifecycle/trust.rs
+    independence: trust
+    failure_codes: [ARTIFACT_TRUST_REQUIRED]
+  - order: 7
+    id: privacy
+    owner: privacy_policy_guard
+    chokepoint: crates/focusa-core/src/privacy.rs
+    independence: privacy
+    failure_codes: [PRIVACY_POLICY_REQUIRED]
+  - order: 8
+    id: verified_identity
+    owner: authority_identity_verifier
+    chokepoint: WPUIAI.com authority identity service
+    independence: entitlement
+    failure_codes: [EMAIL_VERIFICATION_REQUIRED]
+  - order: 9
+    id: limited_assertion_or_edd_paid_key
+    owner: WPUIAI.com_EDD_authority
+    chokepoint: WPUIAI.com authority grant resolver
+    independence: entitlement
+    accepted_inputs: [authority_signed_verified_no_license_assertion, EDD_Software_Licensing_paid_key]
+    failure_codes: [LICENSE_TYPE_REQUIRED, VERIFIED_LIMITED_ACCESS]
+  - order: 10
+    id: node_binding
+    owner: authority_node_registry
+    chokepoint: crates/focusa-license/src/authority_store.rs
+    independence: entitlement
+    failure_codes: [NODE_LIMIT_REACHED]
+  - order: 11
+    id: signed_lease
+    owner: authority_lease_verifier
+    chokepoint: crates/focusa-license/src/authority.rs
+    independence: entitlement
+    failure_codes: [ENTITLEMENT_POLICY_UNKNOWN]
+  - order: 12
+    id: product
+    owner: product_registry
+    chokepoint: crates/focusa-license/src/feature_decision.rs
+    independence: entitlement
+    failure_codes: [PRODUCT_NOT_INCLUDED, ENTITLEMENT_PRODUCT_MISMATCH]
+  - order: 13
+    id: license_type
+    owner: license_type_registry
+    chokepoint: docs/contracts/spec172-license-types.v1.yaml
+    independence: entitlement
+    failure_codes: [LICENSE_TYPE_NOT_INCLUDED, LICENSE_TYPE_REQUIRED, OPERATOR_SEAT_LIMIT_REACHED]
+  - order: 14
+    id: capability_family
+    owner: entitlement_policy_resolver
+    chokepoint: crates/focusa-license/src/feature_decision.rs
+    independence: entitlement
+    failure_codes: [CAPABILITY_FAMILY_NOT_INCLUDED, ENTITLEMENT_POLICY_UNKNOWN]
+  - order: 15
+    id: resource_reservation
+    owner: entitlement_resource_reservation
+    chokepoint: crates/focusa-core/src/runtime/persistence_sqlite.rs
+    independence: resource
+    failure_codes: [HOSTED_RESOURCE_NOT_INCLUDED]
+  - order: 16
+    id: execution
+    owner: canonical_operation_handler
+    chokepoint: crates/focusa-core/src/entitlement_execution_guard.rs
+    independence: execution
+    failure_codes: []
+implementation_locations:
+  handlers:
+    protected_operation: crates/focusa-core/src/entitlement_execution_guard.rs
+    http_projection: crates/focusa-api/src/middleware/entitlement.rs
+  services:
+    operation_policy: crates/focusa-api/src/middleware/entitlement_routes.rs
+    identity_and_lease: crates/focusa-license/src/authority.rs
+    product_family_decision: crates/focusa-license/src/feature_decision.rs
+  stores:
+    authority_state: crates/focusa-license/src/authority_store.rs
+    resource_reservation: crates/focusa-core/src/runtime/persistence_sqlite.rs
+  chokepoints:
+    http: crates/focusa-api/src/middleware/entitlement.rs
+    non_http: crates/focusa-core/src/entitlement_execution_guard.rs
+    delayed_dispatch: crates/focusa-core/src/entitlement_execution_guard.rs
+unknown_metadata:
+  product: {disposition: deny_before_execution, error_code: PRODUCT_NOT_INCLUDED}
+  license_type: {disposition: deny_before_execution, error_code: LICENSE_TYPE_NOT_INCLUDED}
+  capability_family: {disposition: deny_before_execution, error_code: CAPABILITY_FAMILY_NOT_INCLUDED}
+  side_effect: {disposition: deny_before_execution, error_code: SIDE_EFFECT_UNCLASSIFIED}
+presenters:
+  REST: {authority: none, responsibility: bind_and_render}
+  CLI: {authority: none, responsibility: bind_and_render}
+  TUI: {authority: none, responsibility: bind_and_render}
+  Pi: {authority: none, responsibility: bind_and_render}
+  menubar: {authority: none, responsibility: bind_and_render}
+  Desktop: {authority: none, responsibility: bind_and_render}
+  Cockpit: {authority: none, responsibility: bind_and_render}
+  installer: {authority: none, responsibility: activation_handoff_and_recovery_rendering}
+  worker: {authority: none, responsibility: revalidate_initiating_authority_at_dispatch}

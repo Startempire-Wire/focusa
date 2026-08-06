@@ -1,12 +1,20 @@
 schema: focusa.spec152f.entitlement_call_stack.v1
 contract_version: 1
+supersession:
+  canonical_contract: docs/contracts/spec172-entitlement-call-stack.v1.yaml
+  stable_errors: docs/contracts/spec172-entitlement-errors.v1.json
+  status: reconciled_legacy_projection
+  rule: Spec 172 governs identity-to-execution ordering, independent controls, stage ownership, and presenter authority.
 authority:
   policy: docs/contracts/spec152f-entitlement-policy.v1.yaml
   signed_lease: crates/focusa-license/src/authority.rs
   runtime_guard: crates/focusa-license/src/lib.rs
-  stable_errors: docs/contracts/spec152f-entitlement-errors.v1.json
+  stable_errors: docs/contracts/spec172-entitlement-errors.v1.json
   customer_commerce_human_key_entitlement: WPUIAI.com EDD
 rules:
+  - spec172_verified_identity_then_limited_assertion_or_edd_paid_key_then_node_then_signed_lease_then_product_then_license_type_then_family_then_resource_then_execution
+  - auth_role_scope_confirmation_trust_privacy_and_entitlement_remain_independent
+  - presenters_have_zero_entitlement_authority
   - classify_before_entitlement_decision
   - security_authorization_before_commercial_allow
   - recovery_and_safe_read_before_base_or_premium_gate

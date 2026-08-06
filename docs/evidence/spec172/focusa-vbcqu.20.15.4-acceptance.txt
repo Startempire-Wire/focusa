@@ -1,0 +1,38 @@
+Spec 172 call-stack and stable-error contract acceptance
+Work item: focusa-vbcqu.20.15.4
+
+Repository state
+- Canonical project root: /tmp/focusa-rel3-candidate
+- Exact source commit tested: 2bc7199d1c3e9377d708947210cd85b3280ec223
+- Contract and test changes were verified in the working tree above that commit because remote access is prohibited for this delivery boundary.
+- Unrelated pre-existing working-tree changes were preserved.
+
+Exact verification
+- Command: python3 tests/spec172_call_stack_contract_test.py
+- Exit code: 0
+- Bounded result:
+  Spec 172 call-stack contract test passed
+  stages=16 errors=18 presenters=9
+  commercial_chain=verified_identity->limited_assertion_or_edd_paid_key->node->signed_lease->product->license_type->family->resource->execution
+
+Additional check
+- Command: git diff --check
+- Exit code: 0
+- Result: no whitespace errors.
+
+Acceptance summary
+- The commercial chain is frozen as verified identity -> limited assertion OR EDD paid key -> node -> signed lease -> product -> License Type -> family -> resource -> execution.
+- Auth, role, scope, confirmation, trust, privacy, and entitlement remain explicit independent controls.
+- Every stage has exactly one scalar owner, a concrete chokepoint, and contiguous ordering. A typed implementation map locates handlers, services, stores, and HTTP/non-HTTP/delayed-dispatch chokepoints for weak-model discovery.
+- Unknown product, License Type, family, and side-effect metadata each map to a stable error and deny before execution; unclassified side effects use `SIDE_EFFECT_UNCLASSIFIED`.
+- Every referenced denial has one registered stable recovery action, including the fail-closed unknown-error fallback.
+- REST, CLI, TUI, Pi, menubar, Desktop, Cockpit, installer, and worker presenters have zero commercial or execution authority and cannot rewrite error recovery.
+- Spec 152F is reconciled as a legacy projection that defers ordering, ownership, presenter authority, and stable errors to Spec 172.
+
+Remaining blockers
+- This atom freezes contracts and their focused gate only; it does not implement runtime authority issuance, lease verification, reservations, presenter integration, or execution enforcement.
+- No bead was closed and no remote was touched.
+
+Rollback
+- Revert only docs/contracts/spec172-entitlement-call-stack.v1.yaml, docs/contracts/spec172-entitlement-errors.v1.json, the scoped Spec 152F call-stack reconciliation, tests/spec172_call_stack_contract_test.py, and this evidence file.
+- Preserve verified identities, assertions, paid keys, nodes, leases, customers, orders, refunds, License Types, customer data, evidence, and unrelated working-tree changes.
