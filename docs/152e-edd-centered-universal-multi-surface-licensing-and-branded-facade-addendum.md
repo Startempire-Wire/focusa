@@ -1,7 +1,7 @@
 # Spec 152E — EDD-Centered Universal Multi-Surface Licensing and Branded Facade Addendum
-**Status:** Required — release-blocking addendum to Specs 150A and 152/152A–D  
-**Created:** 2026-08-05  
-**Scope:** WPUIAI.com EDD authority, Focusa and UIAI products, branded websites, install gateways, official and source-built clients, CLI/agent activation, customer identity, payment, Evaluation, license delivery, device activation, signed leases, refunds, migration, and legacy retirement  
+**Status:** Required — release-blocking addendum to Specs 150A and 152/152A–D
+**Created:** 2026-08-05
+**Scope:** WPUIAI.com EDD authority, Focusa and UIAI products, branded websites, install gateways, official and source-built clients, CLI/agent activation, customer identity, payment, Evaluation, license delivery, device activation, signed leases, refunds, migration, and legacy retirement
 **Authority boundary:** EDD on WPUIAI.com is the sole customer, commerce, human-license, and entitlement authority. Non-WPUIAI domains are presenters and proxies only.
 ## 1. Purpose
 Focusa licensing is presently divided across EDD on WPUIAI.com, a custom registry on `install.focusa.dev`, direct Stripe webhooks, installer-local state, separate Focusa and UIAI installer paths, website presenters, and runtime clients.
