@@ -7,6 +7,8 @@
 
 use crate::scoped_state::{ProjectRootKey, ScopeKeyError, ScopeKind, ScopeRef as LegacyScopeRef};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::fmt;
 
 /// A validated host scope key used by canonical [`ScopeRef`].
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -39,6 +41,53 @@ impl HostScopeKey {
 pub enum ScopeRef {
     Project(ProjectRootKey),
     Host(HostScopeKey),
+}
+
+/// Durable identity of one cognitive Workstream within a project or host scope.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(transparent)]
+pub struct WorkstreamId(String);
+
+impl WorkstreamId {
+    pub fn parse(value: impl Into<String>) -> Result<Self, ScopeKeyError> {
+        let value = value.into().trim().to_string();
+        if value.is_empty() {
+            return Err(ScopeKeyError::Missing("workstream_id"));
+        }
+        Ok(Self(value))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for WorkstreamId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
+
+/// Canonical Workstream map key. Continuity and session identity are deliberately
+/// subordinate and therefore cannot participate in this key.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct WorkstreamKey {
+    pub scope: ScopeRef,
+    pub workstream_id: WorkstreamId,
+}
+
+impl WorkstreamKey {
+    pub fn new(scope: ScopeRef, workstream_id: WorkstreamId) -> Self {
+        Self {
+            scope,
+            workstream_id,
+        }
+    }
+
+    pub fn storage_key(&self) -> String {
+        let bytes = serde_json::to_vec(self).unwrap_or_default();
+        hex::encode(Sha256::digest(bytes))
+    }
 }
 
 impl ScopeRef {
@@ -97,5 +146,24 @@ mod tests {
             ScopeRef::project(host),
             Err(ScopeKeyError::KindMismatch { .. })
         ));
+    }
+
+    #[test]
+    fn two_workstreams_under_one_project_remain_distinct_keys() {
+        let scope = ScopeRef::project(project("host-a:worktree-main")).unwrap();
+        let first = WorkstreamKey::new(scope.clone(), WorkstreamId::parse("planning").unwrap());
+        let second = WorkstreamKey::new(scope, WorkstreamId::parse("delivery").unwrap());
+        assert_ne!(first, second);
+        assert_ne!(first.storage_key(), second.storage_key());
+    }
+
+    #[test]
+    fn continuity_is_not_part_of_serialized_workstream_identity() {
+        let scope = ScopeRef::project(project("host-a:worktree-main")).unwrap();
+        let key = WorkstreamKey::new(scope, WorkstreamId::parse("delivery").unwrap());
+        let encoded = serde_json::to_value(key).unwrap();
+        assert_eq!(encoded["workstream_id"], "delivery");
+        assert!(encoded.get("continuity_id").is_none());
+        assert!(encoded.get("session_id").is_none());
     }
 }

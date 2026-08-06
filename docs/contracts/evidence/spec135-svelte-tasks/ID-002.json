@@ -1,0 +1,24 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "ID-002",
+  "result": "Added durable WorkstreamId and canonical WorkstreamKey under the Spec 158 identity owner. WorkstreamKey contains only ScopeRef plus WorkstreamId; continuity and session identifiers cannot participate in equality, serialization, or storage-key derivation.",
+  "targets": [
+    "crates/focusa-core/src/workstream_identity.rs",
+    "tests/spec158_workstream_identity_source_test.py"
+  ],
+  "checks": [
+    "rustfmt --edition 2021 crates/focusa-core/src/workstream_identity.rs",
+    "python3 tests/spec158_workstream_identity_source_test.py"
+  ],
+  "remaining_checks": [
+    "cargo test -p focusa-core workstream_key --lib"
+  ],
+  "blockers": [
+    "ID-001 remains implemented_partial until the operator's Cargo milestone allows its Rust test",
+    "Cargo validation remains deferred under the operator's pre-50-percent build prohibition"
+  ],
+  "evidence_refs": [
+    "docs/spec158/01-identity-ownership-and-reducer.md"
+  ],
+  "status": "implemented_partial"
+}

@@ -5,6 +5,7 @@ Cargo execution remains separately milestone-gated; this test prevents the sourc
 shape from regressing before the bounded Rust validation milestone.
 """
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = (ROOT / "crates/focusa-core/src/workstream_identity.rs").read_text()
@@ -15,14 +16,24 @@ assert "pub enum ScopeRef" in SOURCE
 assert "Project(ProjectRootKey)" in SOURCE
 assert "Host(HostScopeKey)" in SOURCE
 assert "pub struct HostScopeKey" in SOURCE
+assert "pub struct WorkstreamId(String)" in SOURCE
+assert "pub struct WorkstreamKey" in SOURCE
+assert "pub scope: ScopeRef" in SOURCE
+assert "pub workstream_id: WorkstreamId" in SOURCE
 assert "pub fn project(scope: LegacyScopeRef)" in SOURCE
 assert "pub fn host(scope: LegacyScopeRef)" in SOURCE
 assert "ProjectRootKey::new(scope)" in SOURCE
 assert "HostScopeKey::new(scope)" in SOURCE
 assert "scope.validate()?" in SOURCE
-assert "continuity_id" not in SOURCE
-assert "current_session" not in SOURCE
-assert "default_workstream" not in SOURCE
+scope_enum = re.search(r"pub enum ScopeRef \{(?P<body>.*?)\n\}", SOURCE, re.S).group("body")
+workstream_key = re.search(r"pub struct WorkstreamKey \{(?P<body>.*?)\n\}", SOURCE, re.S).group("body")
+assert "continuity_id" not in scope_enum
+assert "continuity_id" not in workstream_key
+assert "session_id" not in workstream_key
+assert "current_session" not in scope_enum
+assert "default_workstream" not in scope_enum
 assert "identical_paths_with_different_host_worktree_fingerprints_are_distinct" in SOURCE
+assert "two_workstreams_under_one_project_remain_distinct_keys" in SOURCE
+assert "continuity_is_not_part_of_serialized_workstream_identity" in SOURCE
 
 print("Spec 158 Workstream identity source contract: PASS")

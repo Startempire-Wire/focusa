@@ -118,11 +118,11 @@ atomic_tasks:
     execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-002.json
     parent: MC-010
     title: Add stable WorkstreamId and WorkstreamKey
-    status: blocked
+    status: implemented_partial
     depends_on: [ID-001]
-    read: [/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md]
-    targets: [canonical Spec 158 identity owner in focusa-core]
-    calls: [WorkstreamId.parse, WorkstreamKey.new]
+    read: [docs/spec158/01-identity-ownership-and-reducer.md]
+    targets: [crates/focusa-core/src/workstream_identity.rs, tests/spec158_workstream_identity_source_test.py]
+    calls: [WorkstreamId.parse, WorkstreamKey.new, WorkstreamKey.storage_key]
     input: ScopeRef plus durable WorkstreamId
     output: WorkstreamKey
     check: cargo test -p focusa-core workstream_key --lib
