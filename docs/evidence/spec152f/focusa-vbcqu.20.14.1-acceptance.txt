@@ -1,0 +1,47 @@
+Spec 152F authority registration and implementation-graph acceptance
+Work item: focusa-vbcqu.20.14.1
+Implementation commit: 493257e83dd53d5630abdd28e592e189afa42958
+
+AUTHORITY
+- Spec: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+- Spec SHA256: 3759351b02278e78a96e9f62855a61b03c4178e4695a51fef8b82619ed09e6e6
+- Work root: focusa-vbcqu.20.14
+- Final work item: focusa-vbcqu.20.14.52
+- Stable publication: forbidden until both Spec 152E and 152F acceptance close.
+- Spec 158: excluded.
+
+DECOMPOSITION
+- Atomic tasks: 52
+- Phase counts: 00=4, 01=9, 02=8, 03=8, 04=7, 05=6, 06=10
+- Internal dependency edges: 123
+- External Spec 152E dependency edges: 8
+- Downstream release edge: focusa-vbcqu.20.13.63 depends on focusa-vbcqu.20.14.52
+- Active dependency cycles: 0
+- Canonical Beads JSONL snapshot SHA256: 42dcf98d7423a51c09be056018111b2e5187a99a02abc93652452a252ce4abed
+- Taskgraph contract SHA256: b4506db843fedb0bd38d5d8670500bc4a6c0f6c55284af8fc17c05491934241f
+
+WEAKER-MODEL CONTRACT
+Every atom names an owner, exact surfaces, required steps, output, exact verification command, evidence path, forbidden actions, rollback boundary, estimate, dependencies, and literal done condition. Execution follows dependency edges one atom at a time. Static or administrative status alone cannot close an atom.
+
+VERIFICATION
+PASS python3 tests/spec152_documentation_consistency_gate.py
+  active_files=17
+  documentation_digest=sha256:678f1c29217b914e50b0d36d08301e705c3e892e3a489f386bd39593eb44bbce
+PASS python3 tests/spec152e_document_authority_test.py
+  contracts_checked=7 distribution_status=blocked
+PASS python3 tests/spec152f_document_authority_test.py
+  contracts_checked=7 work_item_root=focusa-vbcqu.20.14 final_work_item=focusa-vbcqu.20.14.52
+PASS python3 tests/spec152f_taskgraph_contract_test.py
+  tasks=52 internal_edges=123 external_edges=8 cycles=0
+PASS YAML/JSON parse for active Spec 152 contracts and Spec 152F taskgraph
+PASS python3 -m py_compile for changed Python gates
+PASS git diff --check
+PASS bd dep cycles --json
+  count=0
+
+ROLLBACK
+Revert the registration/taskgraph commit and this evidence commit only; remove the Spec 152F graph only through Beads dependency-safe operations. Preserve Spec 152E, EDD/customer/order/refund/license/node/sequence truth, existing data, and unrelated work. Do not rewrite v0.9.143 or publish stable v0.9.144.
+
+RESULT
+TECHNICAL_ACCEPTANCE: VERIFIED
+Spec 152F is registered as a release-blocking simplification policy. The graph is sufficiently atomic for a weaker model. Implementation remains open beginning with focusa-vbcqu.20.14.2; this receipt does not claim runtime, EDD, installed, or stable-release acceptance.
