@@ -1,24 +1,32 @@
 {
   "schema": "focusa.spec135.svelte_task_evidence.v1",
   "task_id": "ID-001",
-  "result": "Added the canonical Spec 158 ScopeRef project/host enum seam and validated HostScopeKey wrapper over existing normalized project/host keys. The same filesystem path remains distinct across host/worktree fingerprints, and continuity/session heuristics are absent from scope identity.",
+  "result": "No additional source edit was safe: the bounded ID-001 implementation is already present in the exact target paths. ScopeRef is serializable with project/host variants, ProjectRootKey.new enforces project scope, and the identity chain excludes CWD/display-name heuristics, continuity, and session identity.",
   "targets": [
     "crates/focusa-core/src/workstream_identity.rs",
     "crates/focusa-core/src/lib.rs",
     "tests/spec158_workstream_identity_source_test.py"
   ],
   "checks": [
-    "rustfmt --edition 2021 crates/focusa-core/src/workstream_identity.rs",
-    "python3 tests/spec158_workstream_identity_source_test.py"
+    "rustfmt --edition 2021 --check crates/focusa-core/src/workstream_identity.rs (exit 0)",
+    "python3 tests/spec158_workstream_identity_source_test.py (exit 0; Spec 158 Workstream identity source contract: PASS)"
   ],
   "remaining_checks": [
     "cargo test -p focusa-core scope_ref --lib"
   ],
   "blockers": [
-    "Cargo validation remains deferred under the operator's pre-50-percent build prohibition"
+    "Cargo validation was not run because the operator's pre-50-percent Cargo prohibition is binding.",
+    "The packet's required /tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md and /tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md paths are absent; the checked-in docs/spec158/01-identity-ownership-and-reducer.md and docs/spec158/02-persistence-migration-and-quarantine.md counterparts were read instead."
   ],
   "evidence_refs": [
-    "docs/spec158/01-identity-ownership-and-reducer.md"
+    "docs/spec158/01-identity-ownership-and-reducer.md",
+    "docs/spec158/02-persistence-migration-and-quarantine.md",
+    "tests/spec158_workstream_identity_source_test.py"
+  ],
+  "acceptance": [
+    "ScopeRef cannot be constructed from CWD or display name.",
+    "ScopeRef serializes Project(ProjectRootKey) and Host(HostScopeKey) while preserving the verified scope identity fields.",
+    "ProjectRootKey.new, ScopeRef.project, and ScopeRef.host reject mismatched or unvalidated scope kinds rather than inferring authority."
   ],
   "status": "implemented_partial"
 }
