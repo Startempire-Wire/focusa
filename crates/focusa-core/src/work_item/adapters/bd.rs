@@ -217,6 +217,16 @@ impl BdAdapter {
         spec_refs.sort();
         spec_refs.dedup();
 
+        let mut acceptance_criteria = string_list("acceptance_criteria");
+        if let Some(description) = value
+            .get("description")
+            .and_then(serde_json::Value::as_str)
+            .map(str::trim)
+            .filter(|description| !description.is_empty())
+        {
+            acceptance_criteria.insert(0, description.to_string());
+        }
+
         Ok(WorkItem {
             provider: WorkItemProvider::Bd,
             provider_item_id: id.to_string(),
@@ -239,7 +249,7 @@ impl BdAdapter {
                 .unwrap_or(2),
             parent,
             dependencies,
-            acceptance_criteria: string_list("acceptance_criteria"),
+            acceptance_criteria,
             spec_refs,
             blocked_reason: value
                 .get("blocked_reason")
@@ -488,6 +498,7 @@ mod tests {
             "title": "child",
             "status": "open",
             "priority": 1,
+            "description": "exact surfaces and required steps",
             "acceptance_criteria": "proof passes",
             "external_ref": "spec:docs/133.md",
             "labels": ["work-loop", "spec:docs/79.md"],
@@ -504,7 +515,10 @@ mod tests {
         assert_eq!(item.parent.unwrap().provider_item_id, "focusa-parent");
         assert_eq!(item.dependencies.len(), 1);
         assert_eq!(item.dependencies[0].provider_item_id, "focusa-dep");
-        assert_eq!(item.acceptance_criteria, vec!["proof passes"]);
+        assert_eq!(
+            item.acceptance_criteria,
+            vec!["exact surfaces and required steps", "proof passes"]
+        );
         assert_eq!(item.spec_refs, vec!["docs/133.md", "docs/79.md"]);
     }
 
