@@ -4,8 +4,8 @@ Recorded: 2026-08-06
 
 Repository state
 - Canonical project root: /tmp/focusa-rel3-candidate
-- Base commit tested: c20dc0678c80e6b50800cbff65cd5cd2bb6880c9
-- Scope: working-tree authority-contract and static-test changes for this atom
+- Exact source commit tested: 4ffbf40fd32e5cda17a625d73ae49632a6f5ae51
+- Scope: committed authority-contract and static-test changes for this atom
 - Unrelated pre-existing working-tree changes were preserved and were not included in this atom.
 
 Required verification
