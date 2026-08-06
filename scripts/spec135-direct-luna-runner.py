@@ -46,7 +46,12 @@ def metadata(task_id: str) -> dict[str, Any] | None:
     return json.loads(path.read_text()) if path.is_file() else None
 
 
-def build_prompt(task: dict[str, Any], base_commit: str) -> str:
+def build_prompt(task: dict[str, Any], base_commit: str, source_stage: bool) -> str:
+    staging = """
+This run is an operator-authorized source-staging pass used to reach the Cargo milestone.
+A dependency marked implemented_partial may be used only when its exact required types and source are already present; missing source or authority still fails closed.
+Implement and verify all safe non-Cargo portions, but never mark the task complete or imply its deferred checks passed.
+""" if source_stage else ""
     return f"""You are a bounded Luna Max implementation worker for Focusa Mission Canvas.
 
 Execute exactly {task['task_id']}: {task['title']}.
@@ -54,7 +59,8 @@ Task packet: {task['task_packet_ref']}
 Evidence destination: {task['evidence_ref']}
 Base commit: {base_commit}
 Branch: {task['branch']}
-
+Mode: {'source_staging' if source_stage else 'strict_completion'}
+{staging}
 Read AGENTS.md, the complete task packet, and every required source before editing.
 Follow CARDINAL-135-SVELTE-001: Mission Canvas Pi-overlay behavior translates to the Focusa Desktop Svelte Mission Canvas tab; Agent TUI remains separate.
 Work only on this task and its exact targets. Do not infer missing identity, bindings, operations, paths, or acceptance criteria.
@@ -102,7 +108,7 @@ def create_worktree(task: dict[str, Any], base_commit: str) -> Path:
     return worktree
 
 
-def start(task_id: str) -> None:
+def start(task_id: str, source_stage: bool = False) -> None:
     tasks = plan_tasks()
     if task_id not in tasks:
         raise SystemExit(f"Task is not in the remaining plan: {task_id}")
@@ -117,7 +123,7 @@ def start(task_id: str) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
     session_dir = run_dir / "sessions"
     session_dir.mkdir(exist_ok=True)
-    prompt = build_prompt(task, base_commit)
+    prompt = build_prompt(task, base_commit, source_stage)
     (run_dir / "prompt.txt").write_text(prompt)
     log = (run_dir / "output.log").open("ab", buffering=0)
     exit_path = run_dir / "exit.json"
@@ -166,6 +172,7 @@ def start(task_id: str) -> None:
         "started_at_epoch": time.time(),
         "bypasses_focusa_work_loop": True,
         "bypasses_focusa_silent_sessions": True,
+        "execution_mode": "source_staging" if source_stage else "strict_completion",
     }
     (run_dir / "run.json").write_text(json.dumps(record, indent=2) + "\n")
     print(json.dumps(record, indent=2))
@@ -218,6 +225,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="action", required=True)
     start_parser = sub.add_parser("start")
     start_parser.add_argument("task_id")
+    start_parser.add_argument("--source-stage", action="store_true")
     status_parser = sub.add_parser("status")
     status_parser.add_argument("task_id", nargs="?")
     tail_parser = sub.add_parser("tail")
@@ -227,7 +235,7 @@ def main() -> None:
     stop_parser.add_argument("task_id")
     args = parser.parse_args()
     if args.action == "start":
-        start(args.task_id)
+        start(args.task_id, args.source_stage)
     elif args.action == "status":
         status(args.task_id)
     elif args.action == "tail":
