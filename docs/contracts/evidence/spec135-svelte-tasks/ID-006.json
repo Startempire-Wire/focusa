@@ -1,24 +1,33 @@
 {
   "schema": "focusa.spec135.svelte_task_evidence.v1",
   "task_id": "ID-006",
-  "result": "Added provenance-preserving focusa.workstream_migration_mapping.v1 resolution. Only one evidence-backed candidate with explicit migration-rule or operator approval can become proven; missing or multiple candidates fail closed.",
+  "result": "The exact ID-006 source-staged implementation was already present, so no additional source edit was safe. MigrationInventory.resolve and WorkstreamMigrationMapping.resolve preserve source refs, rationale, evidence refs, and explicit migration-rule or operator approval; missing or multiple candidates fail closed. This is source-only verification and does not claim Cargo completion.",
   "targets": [
     "crates/focusa-core/src/workstream_migration.rs",
     "crates/focusa-core/src/lib.rs",
     "tests/spec158_workstream_migration_source_test.py"
   ],
   "checks": [
-    "rustfmt --edition 2021 crates/focusa-core/src/workstream_migration.rs",
-    "python3 tests/spec158_workstream_migration_source_test.py"
+    "rustfmt --edition 2021 --check crates/focusa-core/src/workstream_migration.rs (exit 0; no output)",
+    "python3 tests/spec158_workstream_migration_source_test.py (exit 0; Spec 158 Workstream migration mapping source contract: PASS)"
   ],
   "remaining_checks": [
-    "cargo test -p focusa-core workstream_migration_mapping --lib"
+    "cargo test -p focusa-core workstream_migration_mapping --lib (not run)"
   ],
   "blockers": [
-    "Cargo validation remains deferred under the operator's pre-50-percent build prohibition"
+    "Cargo validation was not run because the operator's pre-50-percent Cargo prohibition is binding.",
+    "The packet's required /tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md and /tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md paths are absent; the checked-in docs/spec158/01-identity-ownership-and-reducer.md and docs/spec158/02-persistence-migration-and-quarantine.md counterparts were read instead.",
+    "ID-002 remains implemented_partial because its Cargo check is deferred; its exact WorkstreamId, ScopeRef, and WorkstreamKey source is present and was used only for this bounded source-staging verification."
   ],
   "evidence_refs": [
-    "docs/spec158/02-persistence-migration-and-quarantine.md"
+    "docs/spec158/01-identity-ownership-and-reducer.md",
+    "docs/spec158/02-persistence-migration-and-quarantine.md",
+    "tests/spec158_workstream_migration_source_test.py"
+  ],
+  "acceptance": [
+    "Mapping records source refs, rationale, and approval source.",
+    "A unique evidence-backed candidate emits focusa.workstream_migration_mapping.v1 with proven confidence.",
+    "Missing candidates, ambiguous candidates, and missing evidence or approval fail closed rather than inferring ownership."
   ],
   "status": "implemented_partial"
 }
