@@ -1,0 +1,19 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-014",
+  "result": "Canonical ActivityMode entries render as a left Mission Canvas activity rail on productive widths and recompose into compact horizontal tabs at narrow container widths. No local activity composition table is used.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/ActivityNavigation.svelte",
+    "apps/desktop/src/lib/mission-canvas/DesktopMissionCanvasRuntime.svelte",
+    "apps/desktop/tests/layout-renderer-runtime.mjs"
+  ],
+  "checks": [
+    "npm --prefix apps/desktop test",
+    "svelte-check --tsconfig apps/desktop/tsconfig.json"
+  ],
+  "evidence_refs": [
+    "tests/fixtures/spec135-profile-activity-matrix.json",
+    "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png"
+  ],
+  "status": "verified"
+}

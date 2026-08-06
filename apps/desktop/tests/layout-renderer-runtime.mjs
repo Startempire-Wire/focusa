@@ -94,6 +94,21 @@ try {
   for (const contribution of queueFixture.eligible_contributions) {
     assert.ok(DEFAULT_CONTRIBUTION_REGISTRY.resolve(contribution), `default registry missing ${contribution.renderer_binding_id}`);
   }
+  const { default: ActivityNavigation } = await server.ssrLoadModule('/src/lib/mission-canvas/ActivityNavigation.svelte');
+  const { body: activityNavigation } = render(ActivityNavigation, {
+    props: {
+      activities: [
+        { activity_mode_id: 'overview', display_name: 'Overview', revision: 1, candidate_contribution_ids: [], viability_rule_revision: '1' },
+        { activity_mode_id: 'evidence', display_name: 'Evidence', revision: 1, candidate_contribution_ids: [], viability_rule_revision: '1' }
+      ],
+      activeActivityModeId: 'evidence',
+      onSelect: () => undefined
+    }
+  });
+  assert.match(activityNavigation, /aria-label="Activities"/);
+  assert.match(activityNavigation, /data-activity-mode-id="overview"/);
+  assert.match(activityNavigation, /aria-current="page" data-activity-mode-id="evidence"/);
+
   const { default: MissionCanvasRenderer } = await server.ssrLoadModule('/src/lib/mission-canvas/MissionCanvasRenderer.svelte');
   const { body: productionProjection } = render(MissionCanvasRenderer, { props: { projection: fixture, registry: DEFAULT_CONTRIBUTION_REGISTRY } });
   assert.match(productionProjection, /data-work-surface-ref="surface:pi"/);

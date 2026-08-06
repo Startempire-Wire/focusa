@@ -28,8 +28,12 @@
 {/if}
 
 <style>
-  .activity-navigation{display:flex;align-items:center;gap:var(--space-1);min-width:0;overflow:auto;padding:var(--space-1)}
-  button{appearance:none;border:0;border-radius:var(--radius-control);padding:var(--space-2) var(--space-3);background:transparent;color:var(--color-text-tertiary);font:inherit;white-space:nowrap;cursor:pointer}
+  .activity-navigation{display:flex;flex-direction:column;align-items:stretch;gap:var(--space-1);min-width:0;height:100%;overflow:auto;padding:var(--space-2);border-inline-end:1px solid var(--color-border);background:var(--color-panel)}
+  button{appearance:none;border:0;border-radius:var(--radius-control);min-height:34px;padding:var(--space-2) var(--space-3);background:transparent;color:var(--color-text-tertiary);font:inherit;text-align:start;white-space:nowrap;cursor:pointer}
   button:hover{background:var(--color-raised);color:var(--color-text)}
   button[aria-current='page']{background:var(--color-elevated);color:var(--color-accent);font-weight:650}
+  @container mission-canvas (max-width:820px){
+    .activity-navigation{flex-direction:row;height:auto;padding:var(--space-1);border-inline-end:0;border-block-end:1px solid var(--color-border)}
+    button{min-height:30px;text-align:center}
+  }
 </style>

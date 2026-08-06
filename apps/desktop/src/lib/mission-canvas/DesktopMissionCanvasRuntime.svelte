@@ -239,30 +239,38 @@
 
 <div
   class="desktop-canvas-runtime"
-  class:has-controls={(activities.length > 1 && operationEnabled(ACTIVITY_SELECT_OPERATION)) || (profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION))}
+  class:has-controls={profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION)}
   class:mutation-pending={mutationInFlight}
   aria-busy={mutationInFlight}
   data-runtime-state={controller.state.kind}
 >
-  {#if (activities.length > 1 && operationEnabled(ACTIVITY_SELECT_OPERATION)) || (profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION))}
+  {#if profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION)}
     <header class="workspace-controls">
-      <WorkspaceProfileSelector profiles={operationEnabled(PROFILE_SELECT_OPERATION) ? profiles : []} activeProfileId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.workspace_profile_id : ''} onSelect={(profile) => void selectProfile(profile)}/>
-      <ActivityNavigation activities={operationEnabled(ACTIVITY_SELECT_OPERATION) ? activities : []} activeActivityModeId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.activity_mode_id : ''} onSelect={(activity) => void selectActivity(activity)}/>
+      <WorkspaceProfileSelector profiles={profiles} activeProfileId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.workspace_profile_id : ''} onSelect={(profile) => void selectProfile(profile)}/>
     </header>
   {/if}
-  {#if controller.state.kind === 'ready'}
-    <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
-  {:else if controller.state.kind === 'refreshing'}
-    <div class="state-banner" role="status">Refreshing canonical workspace…</div>
-    <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
-  {:else if controller.state.kind === 'stale'}
-    <div class="state-banner" role="status">{controller.state.reason}</div>
-    <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
-  {:else if controller.state.kind === 'loading'}
-    <div class="state-message" role="status">Loading canonical workspace…</div>
-  {:else if controller.state.kind === 'blocked' || controller.state.kind === 'error'}
-    <div class="state-message error" role="alert">{controller.state.reason}</div>
-  {/if}
+  <div class="workspace-body" class:has-activity-rail={activities.length > 1 && operationEnabled(ACTIVITY_SELECT_OPERATION)}>
+    {#if activities.length > 1 && operationEnabled(ACTIVITY_SELECT_OPERATION)}
+      <aside class="activity-rail">
+        <ActivityNavigation activities={activities} activeActivityModeId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.activity_mode_id : ''} onSelect={(activity) => void selectActivity(activity)}/>
+      </aside>
+    {/if}
+    <div class="canvas-stage">
+      {#if controller.state.kind === 'ready'}
+        <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
+      {:else if controller.state.kind === 'refreshing'}
+        <div class="state-banner" role="status">Refreshing canonical workspace…</div>
+        <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
+      {:else if controller.state.kind === 'stale'}
+        <div class="state-banner" role="status">{controller.state.reason}</div>
+        <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
+      {:else if controller.state.kind === 'loading'}
+        <div class="state-message" role="status">Loading canonical workspace…</div>
+      {:else if controller.state.kind === 'blocked' || controller.state.kind === 'error'}
+        <div class="state-message error" role="alert">{controller.state.reason}</div>
+      {/if}
+    </div>
+  </div>
   {#if pendingConfirmation}
     <OperationConfirmationDialog
       binding={pendingConfirmation.binding}
@@ -274,11 +282,15 @@
 </div>
 
 <style>
-  .desktop-canvas-runtime{position:relative;display:grid;grid-template-rows:minmax(0,1fr);min-width:0;min-height:0;height:100%}
+  .desktop-canvas-runtime{container:mission-canvas / inline-size;position:relative;display:grid;grid-template-rows:minmax(0,1fr);min-width:0;min-height:0;height:100%}
   .desktop-canvas-runtime.has-controls{grid-template-rows:auto minmax(0,1fr)}
-  .workspace-controls{display:flex;align-items:center;gap:var(--layout-control-gap);min-width:0;border-bottom:1px solid var(--color-border);background:var(--color-panel)}
-  .workspace-controls :global(nav){flex:1}
+  .workspace-controls{display:flex;align-items:center;justify-content:flex-end;gap:var(--layout-control-gap);min-width:0;border-bottom:1px solid var(--color-border);background:var(--color-panel)}
   .workspace-controls :global(label){padding-inline:var(--space-3)}
+  .workspace-body{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;min-height:0;overflow:hidden}
+  .workspace-body.has-activity-rail{grid-template-columns:minmax(132px,168px) minmax(0,1fr)}
+  .activity-rail,.canvas-stage{position:relative;min-width:0;min-height:0;overflow:hidden}
+  .canvas-stage{display:grid}
+  @container mission-canvas (max-width:820px){.workspace-body.has-activity-rail{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}}
   .mutation-pending .workspace-controls,.mutation-pending :global([role='tablist']){pointer-events:none;opacity:.72}
   .state-banner{position:absolute;z-index:2;inset-block-start:var(--space-2);inset-inline:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--color-warning);border-radius:var(--radius-control);background:var(--color-raised);color:var(--color-warning);font:var(--type-caption)}
   .state-message{align-self:center;justify-self:center;padding:var(--layout-card-padding);color:var(--color-text-secondary)}
