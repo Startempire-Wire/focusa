@@ -61,6 +61,7 @@ def main() -> int:
         expected = {
             "product_code": product,
             "price_usd": "697.00",
+            "sale_status": "approved_not_yet_enabled",
             "term": "lifetime",
             "operator_seats": 1,
             "node_limit": 3,
@@ -83,6 +84,7 @@ def main() -> int:
     if Decimal(bundle.get("standalone_sum_usd", "0")) * Decimal("0.90") != Decimal("1254.6000"):
         failures.append("Bundle formula must be ten percent below 1394.00")
     for key, value in {
+        "sale_status": "approved_not_yet_enabled",
         "operator_seats": 1,
         "node_limit": 3,
         "node_set": "operator_shared_v1",
