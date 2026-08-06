@@ -14,7 +14,7 @@
     "clean_cutover_allowed": false,
     "status": "blocked_ambiguous",
     "confirmed_genuine_sales_redacted_count": 0,
-    "reason": "Live Stripe, install-site, and manual-grant records remain ambiguous. No completed sale is confirmed by the bounded evidence, but absence of a confirmed sale is not zero-sales proof. Preserve every ambiguous record and customer right."
+    "reason": "The redacted read-only aggregates confirm potential customer-right-bearing history across EDD and the install site. They do not establish genuine-versus-synthetic classification. Preserve every record and customer right; zero-sales and clean-cutover claims remain blocked pending immutable Stripe live/test correlation and migration preservation."
   },
   "required_rails": [
     "edd",
@@ -27,11 +27,11 @@
   "rails": [
     {
       "rail": "edd",
-      "classification": "synthetic_test_only",
-      "redacted_aggregate_counts": {"customers": 5, "orders": 4, "order_items": 4, "transactions": 0, "licenses": 11, "activations": 0, "subscriptions": 0, "refunds": 0, "chargebacks": 0},
-      "semantic_digest_sha256": "3ad0031f6b08679fe287bbd022475c1863638f21906b3faf19b2fb9c25445f92",
-      "basis": "Offer-marked order items are recorded as test-mode manual orders; no transaction, activation, subscription, refund, or chargeback proves a genuine approved sale.",
-      "next_read_only_evidence_needed": "None for the bounded EDD snapshot; preserve rows and re-read fully paginated EDD customers, orders, items, transactions, licenses, activations, subscriptions, refund order types, and chargebacks immediately before any future cutover decision."
+      "classification": "ambiguous",
+      "redacted_aggregate_counts": {"complete_test_manual_orders": 4, "complete_test_manual_order_total_minor_units": 8700, "transactions": 0, "licenses": 11, "download_453_licenses": 4, "activations": 0, "subscriptions": 0, "refunds": 0},
+      "semantic_digest_sha256": "fa49fa00ff2a88ea110228c174671021da1ec6a94852e199ee0a164d49b78202",
+      "basis": "The aggregate records four complete test-mode manual orders totaling 87 and eleven licenses, including four for Download 453. It has no transaction, activation, subscription, or refund rows. These facts confirm potential customer-right-bearing history but do not classify records as genuine or synthetic.",
+      "next_read_only_evidence_needed": "Preserve all rows and correlate EDD orders and licenses to immutable Stripe live/test object references and migration records before classification or cutover; re-read the fully paginated source immediately before any future decision."
     },
     {
       "rail": "gravity_forms",
@@ -52,10 +52,10 @@
     {
       "rail": "install_site_custom_license_and_webhooks",
       "classification": "ambiguous",
-      "redacted_aggregate_counts": {"custom_licenses": 83, "audit_events": 393, "machine_activations": 5, "synthetic_offer_records": 7, "ambiguous_offer_records": 55, "unrelated_product_records": 21},
-      "semantic_digest_sha256": "d09ce6c5df3ba235dc6756ea4f89ea0427f371f317062e1aabf01118dc45b744",
-      "basis": "Fifty-five offer records lack sufficient synthetic or customer-purchase semantics; status and webhook counts alone cannot establish safe discard or genuine approval.",
-      "next_read_only_evidence_needed": "For each of the 55 redacted ambiguous records, read source, product, status, creation/refund/revoke audit chain, immutable Stripe object references, webhook event type and livemode, and payment/refund outcome; join those references to the Stripe rail and emit only class counts plus a recomputed digest."
+      "redacted_aggregate_counts": {"focusa_cohort_active_stripe": 4, "focusa_operator_active_api": 2, "focusa_operator_active_stripe": 25, "focusa_operator_active_stripe_payment_intent_refs": 25, "focusa_operator_active_stripe_activations": 25, "focusa_operator_refunded": 14, "focusa_operator_revoked": 13, "audit_stripe_payment_succeeded": 44, "audit_stripe_charge_refunded": 14},
+      "semantic_digest_sha256": "0eaa45b557f8cb00334766fd1b2287f64928918e1e2fb46d058d2e552dc8a9fa",
+      "basis": "The aggregate records active Focusa rows for cohort/Stripe (4), operator/API (2), and operator/Stripe (25); the active operator/Stripe rows have 25 payment-intent references and 25 activations. It also records 14 refunded and 13 revoked operator rows, plus 44 stripe_payment_succeeded and 14 stripe_charge_refunded audit events. This confirms potential customer-right-bearing history without classifying it as genuine or synthetic.",
+      "next_read_only_evidence_needed": "Read and correlate every immutable Stripe object reference, including livemode/testmode and payment/refund lifecycle, to the preserved install-site license, activation, and audit chain; preserve all customer rights and migration mappings and emit only redacted aggregate results."
     },
     {
       "rail": "manual_keys_and_access_grants",
@@ -78,7 +78,9 @@
     "deployed_surface_inventory": "docs/contracts/spec152e-deployed-surface-inventory.v1.json",
     "product_registry": "docs/contracts/spec152e-edd-product-registry.v1.json",
     "dedicated_offer_checkout_enabled_redacted_count": 0,
-    "legacy_records_preserved": true
+    "legacy_records_preserved": true,
+    "immutable_stripe_live_test_correlation_required": true,
+    "migration_preservation_required": true
   },
   "verification": "python3 tests/spec172_no_sales_inventory_test.py"
 }

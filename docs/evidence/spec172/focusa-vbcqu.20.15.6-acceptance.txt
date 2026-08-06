@@ -10,34 +10,36 @@ Truthful decision
 - zero_sales_proven=false
 - clean_cutover_allowed=false
 - status=blocked_ambiguous
-- No genuine sale is confirmed by this bounded package, but that is not proof of zero sales.
-- Stripe live-mode matches, install-site custom license/webhook records, and manual/API grants remain ambiguous.
-- All ambiguous records and potential customer rights must be preserved. The no-migration clean-cutover path remains blocked.
+- The new redacted aggregates confirm potential customer-right-bearing history; they do not classify records as genuine or synthetic.
+- EDD, Stripe live-mode matches, install-site custom license/webhook records, and manual/API grants remain ambiguous.
+- All records and potential customer rights must be preserved. Immutable Stripe live/test correlation and migration preservation are required; the clean-cutover path remains blocked.
 
-Coverage
-- EDD customers/orders/items/transactions/licenses/activations/subscriptions/refunds/chargebacks.
-- Gravity Forms entries/metadata/Stripe feeds/payment records.
-- Stripe Customers/Checkout Sessions/PaymentIntents/Charges/Refunds/Disputes.
-- Install-site custom licenses, audit/webhook history, and activations.
-- Manual keys and access grants.
-- Synthetic/test records as a separate class.
+Aggregate findings
+- EDD: four complete test/manual orders totaling 87; no transaction, activation, subscription, or refund rows; eleven licenses, including four for Download 453.
+- Install site: active Focusa cohort/Stripe 4, operator/API 2, and operator/Stripe 25.
+- The 25 active operator/Stripe rows have 25 payment-intent references and 25 activations.
+- Operator rows include 14 refunded and 13 revoked.
+- Audit includes 44 `stripe_payment_succeeded` and 14 `stripe_charge_refunded` events.
+- EDD aggregate SHA-256: `fa49fa00ff2a88ea110228c174671021da1ec6a94852e199ee0a164d49b78202`.
+- Install aggregate SHA-256: `0eaa45b557f8cb00334766fd1b2287f64928918e1e2fb46d058d2e552dc8a9fa`.
 
 Privacy
-- Contract contains only redacted aggregate counts, semantic SHA-256 digests, and non-identifying classifications.
+- Contract contains only redacted aggregate counts, semantic SHA-256 digests, and bounded non-identifying posture labels.
 - No customer row, identity, email, key, token, credential, card data, or raw webhook payload is stored.
 
 Exact next evidence
-The inventory records an exact read-only evidence request on every rail. Ambiguous rails require immutable-ID correlation of Stripe lifecycle objects, install-site audit/webhook chains, and manual grant provenance/order/payment links, with output limited to class counts and recomputed digests. Missing payment evidence must not be interpreted as synthetic status.
+The inventory records an exact read-only evidence request on every rail. Ambiguous rails require immutable-ID and Stripe live/test correlation across lifecycle objects, EDD orders/licenses, install-site audit/webhook chains, and manual grant provenance/order/payment links. Migration must preserve every potential customer right. Missing payment evidence and test/manual mode labels must not be promoted into genuine or synthetic classification.
 
 Verification record
 - Canonical project root: /tmp/focusa-rel3-candidate
-- Verification source HEAD: 47c9c433567fdae32e3bb6d58abe0bf4fbc6d95f
-- Package state at verification: this atom's three files are uncommitted working-tree additions on that HEAD; the hash is the exact baseline commit, not a claim that the package is contained in it.
+- Verification source HEAD: 926b48a13ad11273ab235c7d729ff3ae71422ad3
+- Package state at verification: the inventory and test have scoped working-tree modifications on that HEAD; the hash is the exact baseline commit, not a claim that those modifications are contained in it.
+- Bounded delta: the EDD and install-site rails record the new read-only aggregate facts and exact supplied digests without inventing genuine/synthetic typing. The test checks those facts and rejects either positive zero-sales or clean-cutover claim while ambiguity remains.
 
 Commands and exit codes
 1. `git rev-parse HEAD`
    - exit: 0
-   - result: `47c9c433567fdae32e3bb6d58abe0bf4fbc6d95f`
+   - result: `926b48a13ad11273ab235c7d729ff3ae71422ad3`
 2. `python3 tests/spec172_no_sales_inventory_test.py`
    - exit: 0
    - bounded result: `Spec 172 no-sales inventory blocker: PASS`
@@ -46,10 +48,9 @@ Commands and exit codes
    - bounded result: no whitespace errors reported
 
 Remaining blockers
-- Nine redacted live-mode Stripe matches require read-only lifecycle and immutable-ID correlation.
-- Fifty-five redacted install-site offer records require read-only audit/webhook/payment correlation.
-- Twenty-six redacted manual/API grants require read-only issuer, order, payment, refund, and revoke provenance correlation.
-- Counts overlap across rails and are not additive. Until those records are classified, zero sales is unproven and clean cutover is forbidden.
+- Immutable Stripe IDs must be correlated across live/test mode, EDD, install-site payment/refund audit history, activations, and manual/API grants.
+- Migration must preserve all potentially customer-right-bearing orders, licenses, activations, refunds, revocations, and audit links.
+- Counts overlap across rails and are not additive. Until correlation is complete, zero sales is unproven and clean cutover is forbidden.
 
 Rollback
 Revert only these atom additions: `docs/contracts/spec172-no-sales-inventory.v1.json`, `tests/spec172_no_sales_inventory_test.py`, and `docs/evidence/spec172/focusa-vbcqu.20.15.6-acceptance.txt`. Preserve verified identities, customers, orders, refunds, License Types, keys, nodes, sequences, customer data, migration journals, all underlying evidence, and accepted unrelated work. Perform no production mutation or deletion.
