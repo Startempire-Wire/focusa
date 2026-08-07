@@ -52,6 +52,8 @@ try {
     await exerciseProjectionGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.rich_host.resolve') {
     await exerciseHostResolution({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.rich_host.launch') {
+    await exerciseHostLaunch({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.domain_pack.install') {
     await exerciseDomainPackInstall({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.events.stream') {
@@ -331,6 +333,205 @@ async function exerciseHostResolution({ MissionCanvasClient, MissionCanvasHttpTr
   );
 
   console.log('Mission Canvas operation consumer: PASS (generated client, GET registry path, Desktop host resolution, exact scope, and hostile response checks)');
+}
+
+async function exerciseHostLaunch({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  const rendererResolution = {
+    ...structuredClone(authority),
+    interaction_mode: 'canvas-guided',
+    selected_renderer: 'focusa_desktop_tauri',
+    platform: 'macOS',
+    availability: 'available',
+    resolution_reason: 'Focusa Desktop Tauri is the primary Mission Canvas host; Pi overlay is compatibility-only',
+    asset_version: null,
+    asset_digest: null,
+    resolver_revision: 'host-resolver:v2',
+    diagnostic_ref: null
+  };
+  const lifecycle = {
+    ...structuredClone(authority),
+    host_instance_id: 'rich-host:desktop:mission-canvas',
+    renderer_resolution: rendererResolution,
+    state: 'visible',
+    focused: true,
+    process_id: null,
+    window_id: 'window:mission-canvas',
+    pi_draft_ref: null,
+    canvas_draft_ref: null,
+    last_error_ref: null,
+    durable_event_cursor: 'event:41',
+    lifecycle_revision: 1,
+    updated_at: '2026-08-07T00:00:00Z'
+  };
+
+  let calls = 0;
+  const requests = [];
+  let response = structuredClone(lifecycle);
+  const transport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787/',
+    async (url, init) => {
+      calls += 1;
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:host'],
+    ['mission_canvas.desktop_tauri'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const client = new MissionCanvasClient(transport);
+  const input = {
+    ...structuredClone(authority),
+    idempotency_key: 'idempotency:rich-host:launch'
+  };
+  const launched = await client.rich_hostLaunch(input);
+  assert.deepEqual(launched, lifecycle);
+  assert.equal(calls, 1);
+
+  const requestUrl = new URL(requests[0].url);
+  assert.equal(`${requestUrl.origin}${requestUrl.pathname}`, 'http://127.0.0.1:8787/v1/mission-canvas/rich-host/launch');
+  assert.equal(requests[0].init.method, 'POST');
+  assert.equal(requests[0].init.headers['X-Focusa-Permissions'], 'mission_canvas:host');
+  assert.equal(requests[0].init.headers['X-Focusa-Capabilities'], 'mission_canvas.desktop_tauri');
+  assert.equal(requests[0].init.headers['X-Focusa-Actor-Id'], 'actor:desktop');
+  assert.equal(requests[0].init.headers['X-Focusa-Authority-Ref'], 'authority:desktop');
+  const body = JSON.parse(requests[0].init.body);
+  assert.deepEqual(body.workstream, authority.workstream);
+  assert.deepEqual(body.attachment, authority.attachment);
+  assert.equal(body.continuity_id, authority.continuity_id);
+  assert.equal(body.workspace_binding_id, authority.workspace_binding_id);
+  assert.deepEqual(body.runtime_object, authority.runtime_object);
+  assert.equal(body.work_surface_id, authority.work_surface_id);
+  assert.equal(body.idempotency_key, input.idempotency_key);
+  assert.equal('document_id' in body, false, 'launch must use the generated command, not a document envelope');
+  assert.equal('payload' in body, false, 'launch must not expose route-local lifecycle payloads');
+  assert.equal('pi_session_id' in body, false, 'launch must not fork or replace the Pi session');
+
+  let missingIdempotencyCalls = calls;
+  await assert.rejects(
+    () => client.rich_hostLaunch(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'idempotency_key_required'
+  );
+  assert.equal(calls, missingIdempotencyCalls, 'missing idempotency must fail before HTTP');
+
+  let missingScopeCalls = 0;
+  const missingScopeTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      missingScopeCalls += 1;
+      return new Response(JSON.stringify(response), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:host'],
+    ['mission_canvas.desktop_tauri'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingScopeTransport).rich_hostLaunch({ idempotency_key: 'idempotency:missing-scope' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_workstream_identity:')
+  );
+  assert.equal(missingScopeCalls, 0, 'missing Workstream authority must fail before HTTP');
+
+  // A foreign lifecycle response is rejected at the generated transport
+  // boundary; it cannot be adopted from another Workstream or attachment.
+  const foreignTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      const foreign = structuredClone(lifecycle);
+      foreign.workstream.workstream_id = 'ws:foreign';
+      foreign.attachment.workstream.workstream_id = 'ws:foreign';
+      foreign.renderer_resolution.workstream.workstream_id = 'ws:foreign';
+      foreign.renderer_resolution.attachment.workstream.workstream_id = 'ws:foreign';
+      return new Response(JSON.stringify(foreign), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:host'],
+    ['mission_canvas.desktop_tauri'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignTransport).rich_hostLaunch(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_lifecycle_scope'
+  );
+
+  const foreignRendererTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      const foreign = structuredClone(lifecycle);
+      foreign.renderer_resolution.workstream.workstream_id = 'ws:foreign';
+      foreign.renderer_resolution.attachment.workstream.workstream_id = 'ws:foreign';
+      return new Response(JSON.stringify(foreign), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:host'],
+    ['mission_canvas.desktop_tauri'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignRendererTransport).rich_hostLaunch(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_lifecycle_scope'
+  );
+
+  const missingRendererScope = structuredClone(lifecycle);
+  delete missingRendererScope.renderer_resolution.workstream;
+  const missingRendererScopeTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => new Response(JSON.stringify(missingRendererScope), { status: 200 }),
+    undefined,
+    30_000,
+    ['mission_canvas:host'],
+    ['mission_canvas.desktop_tauri'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingRendererScopeTransport).rich_hostLaunch(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:missing:renderer_resolution_workstream'
+  );
+
+  const invalidHostId = structuredClone(lifecycle);
+  invalidHostId.host_instance_id = 'host-invented';
+  const invalidHostTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(invalidHostId), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(invalidHostTransport).rich_hostLaunch(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:host_instance_id'
+  );
+
+  // A structurally valid but stale lifecycle response is not adopted.
+  response = structuredClone(lifecycle);
+  response.lifecycle_revision = 0;
+  response.durable_event_cursor = 'event:40';
+  await assert.rejects(
+    () => client.rich_hostLaunch(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_lifecycle_revision'
+  );
+  response.lifecycle_revision = 2;
+  await assert.rejects(
+    () => client.rich_hostLaunch(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_lifecycle_cursor'
+  );
+
+  const invalidState = structuredClone(lifecycle);
+  invalidState.state = 'not-a-lifecycle-state';
+  const invalidStateTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(invalidState), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(invalidStateTransport).rich_hostLaunch(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:')
+  );
+
+  console.log('Mission Canvas operation consumer: PASS (generated rich_hostLaunch, exact Workstream POST, idempotency, Desktop presentation, foreign lifecycle, stale lifecycle, no Pi fork, and hostile response checks)');
 }
 
 async function exerciseEventsStream({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, server }) {

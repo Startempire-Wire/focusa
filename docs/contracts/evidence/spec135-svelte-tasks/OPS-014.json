@@ -1,0 +1,121 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-014",
+  "result": "Implemented focusa.mission_canvas.rich_host.launch through the canonical generated POST operation. Focusa Core now resolves and durably records one Desktop lifecycle projection for the exact Workstream, with idempotent lifecycle persistence and a durable event cursor; the API requires the generated Workstream command, explicit host permission/capability, and actor/authority context; Desktop uses registry-owned transport metadata and rejects foreign or stale lifecycle responses without forking or replacing Pi.",
+  "targets": [
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/host.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-014.json"
+  ],
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.rich_host.launch",
+    "method": "POST",
+    "path": "/v1/mission-canvas/rich-host/launch",
+    "scope_required": ["workstream"],
+    "permissions_required": ["mission_canvas:host"],
+    "confirmation": "none",
+    "requires_idempotency_key": true,
+    "requires_if_match_revision": false,
+    "receipt_required": true,
+    "request_schema_ref": "focusa.mission_canvas.rich_host_command.v1",
+    "response_schema_ref": "HostLifecycleState",
+    "client_method": "rich_hostLaunch",
+    "artifact_status": "Canonical registry, OpenAPI path, generated TypeScript method, generated DTO, and generated validators remain parity-verified; no generated contract artifact was edited."
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "presentation_contract": {
+    "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "surface_kind": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "canonical_runtime": "Focusa Core and the existing Pi session remain canonical; Desktop is the rich projection host.",
+    "eligible_contributions": "Not applicable to host launch. The operation accepts no candidate contributions and never performs client-local eligibility or layout resolution.",
+    "omitted_contribution_reasons": "Not applicable to host launch; composition remains Core-owned by the existing projection resolver."
+  },
+  "implementation": [
+    "HostLifecycleLaunchCommand and HostLifecycleService validate WorkstreamContext, exact MissionCanvas scope, mission_canvas:host permission, host capability, and non-empty bounded idempotency before persistence.",
+    "The Core service resolves the Desktop renderer through the existing HostRendererResolutionService, derives one deterministic host instance for the complete scope, returns visible/focused HostLifecycleState, and records a scoped host_launched event without a Pi process id or Pi/model fork.",
+    "MissionCanvasStore atomically persists the lifecycle envelope and event, returns the original state for same-scope idempotency retries, increments lifecycle revision for a new command, and writes the durable event sequence into durable_event_cursor.",
+    "The API exposes the exact generated launch path separately from the legacy lifecycle adapter, extracts WorkstreamContext from explicit actor/authority headers, passes generated capabilities and permission projection to Core, and returns HostLifecycleState rather than a route-local document envelope.",
+    "MissionCanvasHttpTransport resolves method/path and control requirements from the generated operation registry, validates HostLifecycleState with generated validators, verifies outer and nested exact authority, and rejects foreign, malformed, stale revision, or stale cursor responses.",
+    "Hostile contract and Desktop runtime tests cover missing scope/idempotency, foreign Workstream and renderer authority, invalid host identity/state, stale lifecycle revision/cursor, generated POST/body/header ownership, no Pi fork fields, and preserved existing operation consumers."
+  ],
+  "checks": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; 25 schema files, 25 operation entries, 10 derived artifacts, parity and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.rich_host.launch (exit 0; registry/OpenAPI/client/transport/core/API/persistence/consumer contract: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.rich_host.launch --client rich_hostLaunch (exit 0; generated client, registry POST path, exact scope, idempotency, Desktop presentation, foreign lifecycle, stale lifecycle, no Pi fork, and hostile responses: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.rich_host.resolve --client rich_hostResolve (exit 0; existing host resolution consumer and hostile checks: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.projection.get --client projectionGet (exit 0; existing Core-owned projection and hostile checks: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.domain_pack.install --client domain_packInstall (exit 0; existing generated mutation consumer: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.events.stream --client eventsStream (exit 0; existing exact Workstream replay/tail consumer: PASS)",
+    "python3 tests/spec135_projection_state_contract_test.py (exit 0; HostLifecycleState schema: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_registry_test.py (exit 0; 25 generated operations: PASS)",
+    "python3 tests/spec135_adaptive_composition_authority_test.py (exit 0; existing authority boundary: PASS)",
+    "python3 -m py_compile tests/spec135_mission_canvas_operation_contract_test.py (exit 0)",
+    "node --check apps/desktop/tests/operation-consumer-runtime.mjs (exit 0)",
+    "rustfmt --edition 2024 --check crates/focusa-core/src/mission_canvas/host.rs crates/focusa-core/src/mission_canvas/persistence.rs (exit 0)",
+    "rustfmt --edition 2021 --check crates/focusa-api/src/routes/mission_canvas.rs (exit 0)",
+    "git diff --check (exit 0)"
+  ],
+  "negative_cases": {
+    "foreign_workstream": "Core exact scope validation rejects a foreign Workstream. Desktop validates both the outer HostLifecycleState authority and nested renderer resolution authority, rejecting foreign lifecycle scope before returning a response.",
+    "missing_authority": "The API requires explicit x-focusa-actor-id and x-focusa-authority-ref for WorkstreamContext extraction; Desktop rejects missing generated Workstream authority before HTTP. Foreign Attachment, Continuity, WorkspaceBinding, RuntimeObject, and WorkSurface values do not become alternate owners.",
+    "stale_revision_cursor": "The generated operation has no If-Match revision, but Desktop tracks HostLifecycleState lifecycle_revision and durable event cursor per exact authority and rejects regressions as stale_lifecycle_revision or stale_lifecycle_cursor. Core persistence uses revision-checked atomic updates.",
+    "unavailable_capability": "HostLifecycleService delegates renderer capability selection to Core; absent Desktop and compatibility capabilities fail closed with capability_unavailable. Explicit Desktop capability selects focusa_desktop_tauri; the existing Pi renderer remains only an explicit compatibility fallback.",
+    "permission_denied": "The state-aware API permission boundary and Core HostLifecycleService both require mission_canvas:host; missing permission cannot reach lifecycle persistence.",
+    "missing_idempotency": "Generated transport rejects a missing idempotency_key before HTTP, and Core rejects blank or overlong keys before persistence. Same exact scope/key retries return the existing lifecycle state without a duplicate event.",
+    "empty_or_ineligible_contribution": "Not applicable to launch: no contribution or layout input is accepted. The host operation neither invents content nor resolves composition; Core projection/recomposition remains the sole eligibility owner.",
+    "invalid_response": "Generated HostLifecycleState validation plus bounded runtime checks reject invalid lifecycle enum values, host instance identity, missing durable cursor, missing nested renderer Workstream, and mismatched nested authority.",
+    "pi_continuity": "The command carries the exact Workstream authority chain and no Pi process/session replacement field; Core records process_id as null and the transport/test path contains no child-process or fork behavior."
+  },
+  "acceptance": [
+    "Launches/presents Desktop for exact Workstream without forking Pi.",
+    "Uses POST /v1/mission-canvas/rich-host/launch and generated MissionCanvasClient.rich_hostLaunch with registry-owned method/path metadata.",
+    "Returns a generated HostLifecycleState with exact outer and nested Workstream authority, durable lifecycle revision/cursor, and Desktop renderer resolution.",
+    "Fails closed for missing or foreign authority, missing capability, denied permission, missing idempotency, invalid lifecycle output, stale revision/cursor, and persisted lifecycle mismatches without local composition inference."
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/transitions/FOCUSA-TRANSITION-001-spec135-svelte-translation-matrix.md",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-013.json",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs"
+  ],
+  "deferred_repository_observation": "Cargo validation was intentionally not run because the OPS-014 instruction explicitly prohibits Cargo. The generated registry, OpenAPI, client, validators, task packet/index, executable graph, parallel plan, and orchestration scripts were not edited.",
+  "environment_observations": [
+    "The dependency evidence OPS-013 is present and its generated host-resolution, exact Workstream, hostile Desktop consumer, and permitted rustfmt checks are recorded.",
+    "The repository-level Svelte check was not used as a substitute; the packet-mandated Vite SSR Desktop consumer check passed."
+  ],
+  "remaining_checks": [
+    "cargo test/check for the changed Rust Mission Canvas/API sources (not run; prohibited by the task instruction)"
+  ],
+  "remaining_work": [],
+  "blockers": [
+    "Only deferred Rust Cargo validation remains; all packet-mandated generated parity, operation contract, Desktop consumer, hostile-case, Python, rustfmt, regression consumer, and diff checks pass."
+  ],
+  "status": "implemented_partial"
+}

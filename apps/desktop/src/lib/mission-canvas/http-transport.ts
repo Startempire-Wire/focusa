@@ -39,6 +39,11 @@ interface ProjectionWatermark {
   cursor?: ProjectionCursor;
 }
 
+interface HostLifecycleWatermark {
+  lifecycleRevision: number;
+  cursor?: ProjectionCursor;
+}
+
 export class MissionCanvasTransportError extends Error {
   constructor(
     message: string,
@@ -59,6 +64,7 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
   readonly #baseUrl: string;
   readonly #fetch: typeof fetch;
   readonly #projectionWatermarks = new Map<string, ProjectionWatermark>();
+  readonly #hostLifecycleWatermarks = new Map<string, HostLifecycleWatermark>();
 
   constructor(
     baseUrl: string,
@@ -258,6 +264,38 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
         );
       }
     }
+    if (operation.response_schema_ref === 'HostLifecycleState') {
+      const watermark = validateLifecycleResponse(
+        operationId,
+        response.status,
+        value,
+        authority
+      );
+      const key = workstreamAuthorityStorageKey(authority);
+      const previous = this.#hostLifecycleWatermarks.get(key);
+      if (previous && watermark.lifecycleRevision < previous.lifecycleRevision) {
+        throw new MissionCanvasTransportError(
+          'stale_lifecycle_revision',
+          operationId,
+          response.status,
+          value
+        );
+      }
+      if (
+        previous?.cursor !== undefined
+        && watermark.cursor !== undefined
+        && previous.cursor.kind === watermark.cursor.kind
+        && watermark.cursor.value < previous.cursor.value
+      ) {
+        throw new MissionCanvasTransportError(
+          'stale_lifecycle_cursor',
+          operationId,
+          response.status,
+          value
+        );
+      }
+      this.#hostLifecycleWatermarks.set(key, watermark);
+    }
     return value as T;
   }
 }
@@ -318,6 +356,121 @@ function authorityFromResolution(value: unknown): WorkstreamAuthorityContext | u
   const response = value as Record<string, unknown>;
   if (!('workstream' in response)) return undefined;
   return authorityFromRecord(response);
+}
+
+function authorityFromLifecycleState(value: unknown): WorkstreamAuthorityContext | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const state = value as Record<string, unknown>;
+  if (!('workstream' in state)) return undefined;
+  return authorityFromRecord(state);
+}
+
+function validateLifecycleResponse(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext
+): HostLifecycleWatermark {
+  const lifecycle = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  if (!lifecycle) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:expected_object',
+      operationId,
+      status,
+      value
+    );
+  }
+  const responseAuthority = authorityFromLifecycleState(value);
+  if (!responseAuthority) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:missing:workstream',
+      operationId,
+      status,
+      value
+    );
+  }
+  if (!sameWorkstreamKey(responseAuthority.workstream, expectedAuthority.workstream)) {
+    throw new MissionCanvasTransportError(
+      'foreign_lifecycle_scope',
+      operationId,
+      status,
+      value
+    );
+  }
+  const responseAuthorityValidation = validateMissionCanvasContract(
+    'WorkstreamAuthorityContext',
+    responseAuthority
+  );
+  if (!responseAuthorityValidation.valid || !sameWorkstreamAuthorityContext(responseAuthority, expectedAuthority)) {
+    throw new MissionCanvasTransportError(
+      'foreign_lifecycle_scope',
+      operationId,
+      status,
+      value
+    );
+  }
+
+  const rendererAuthority = authorityFromResolution(lifecycle?.renderer_resolution);
+  if (!rendererAuthority) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:missing:renderer_resolution_workstream',
+      operationId,
+      status,
+      value
+    );
+  }
+  const rendererAuthorityValidation = validateMissionCanvasContract(
+    'WorkstreamAuthorityContext',
+    rendererAuthority
+  );
+  if (!rendererAuthorityValidation.valid || !sameWorkstreamAuthorityContext(rendererAuthority, responseAuthority)) {
+    throw new MissionCanvasTransportError(
+      'foreign_lifecycle_scope',
+      operationId,
+      status,
+      value
+    );
+  }
+  if (typeof lifecycle?.host_instance_id !== 'string' || !/^rich-host:[a-z0-9._:-]+$/.test(lifecycle.host_instance_id)) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:host_instance_id',
+      operationId,
+      status,
+      value
+    );
+  }
+  const lifecycleRevision = lifecycle.lifecycle_revision;
+  if (typeof lifecycleRevision !== 'number' || !Number.isSafeInteger(lifecycleRevision) || lifecycleRevision < 0) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:lifecycle_revision',
+      operationId,
+      status,
+      value
+    );
+  }
+  if (typeof lifecycle.durable_event_cursor !== 'string' || lifecycle.durable_event_cursor.trim().length === 0) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:durable_event_cursor',
+      operationId,
+      status,
+      value
+    );
+  }
+  const cursor = parseProjectionCursor(lifecycle.durable_event_cursor);
+  if (!cursor) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:lifecycle_cursor',
+      operationId,
+      status,
+      value
+    );
+  }
+  return {
+    lifecycleRevision,
+    cursor
+  };
 }
 
 function validateProjectionResponse(

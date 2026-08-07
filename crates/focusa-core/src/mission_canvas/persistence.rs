@@ -3,6 +3,7 @@ use std::{path::Path, sync::Arc};
 use chrono::Utc;
 use parking_lot::Mutex;
 use rusqlite::{Connection, OptionalExtension, Transaction, params};
+use serde_json::{Value, json};
 use thiserror::Error;
 
 use super::model::{
@@ -61,6 +62,8 @@ pub enum MissionCanvasStoreError {
     RevisionConflict { expected: u64, observed: u64 },
     #[error("document already exists at revision {0}")]
     AlreadyExists(u64),
+    #[error("invalid host lifecycle document: {0}")]
+    InvalidHostLifecycleDocument(String),
     #[error("domain pack already installed: {0}")]
     DomainPackAlreadyInstalled(String),
     #[error("domain pack idempotency key conflicts with an existing request")]
@@ -331,6 +334,109 @@ impl MissionCanvasStore {
         append_event_transaction(&transaction, event)?;
         transaction.commit()?;
         Ok(document.revision)
+    }
+
+    /// Persist one exact rich-host lifecycle command and its event atomically.
+    /// A retry with the same Workstream-scoped idempotency key returns the
+    /// original document without appending a second lifecycle event. The
+    /// durable event sequence is written back into the generated state cursor
+    /// before the transaction commits.
+    pub fn put_idempotent_lifecycle_document(
+        &self,
+        document: &StoredDocument,
+        idempotency_key: &str,
+        event: &CompositionEvent,
+    ) -> Result<StoredDocument> {
+        Self::ensure_table("mission_canvas_host_lifecycle")?;
+        if idempotency_key.trim().is_empty() {
+            return Err(MissionCanvasStoreError::InvalidHostLifecycleDocument(
+                "idempotency key is empty".into(),
+            ));
+        }
+        if event.scope != document.scope {
+            return Err(MissionCanvasStoreError::InvalidHostLifecycleDocument(
+                "lifecycle event scope differs from document scope".into(),
+            ));
+        }
+        let payload_key = document
+            .payload
+            .get("idempotency_key")
+            .and_then(Value::as_str);
+        if payload_key != Some(idempotency_key) {
+            return Err(MissionCanvasStoreError::InvalidHostLifecycleDocument(
+                "document idempotency key differs from command".into(),
+            ));
+        }
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction()?;
+        let scope_key = canonical_scope_key(&document.scope)?;
+        let current: Option<(u64, String, String)> = transaction
+            .query_row(
+                "SELECT revision, payload_json, updated_at FROM mission_canvas_host_lifecycle WHERE scope_key = ?1 AND document_id = ?2",
+                params![scope_key, document.document_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .optional()?;
+
+        if let Some((revision, payload_json, updated_at)) = current {
+            let payload: Value = serde_json::from_str(&payload_json)?;
+            let existing_key = payload
+                .get("idempotency_key")
+                .and_then(Value::as_str)
+                .filter(|value| !value.trim().is_empty());
+            if existing_key == Some(idempotency_key) {
+                transaction.rollback()?;
+                return Ok(StoredDocument {
+                    document_id: document.document_id.clone(),
+                    scope: document.scope.clone(),
+                    revision,
+                    payload,
+                    updated_at,
+                });
+            }
+            check_revision(Some(revision), Some(document.revision.saturating_sub(1)))?;
+        } else if document.revision != 1 {
+            check_revision(None, Some(document.revision.saturating_sub(1)))?;
+        }
+
+        let sequence = append_event_transaction(&transaction, event)?;
+        let mut payload = document.payload.clone();
+        let state = payload
+            .get_mut("state")
+            .and_then(Value::as_object_mut)
+            .ok_or_else(|| {
+                MissionCanvasStoreError::InvalidHostLifecycleDocument(
+                    "lifecycle envelope must contain an object state".into(),
+                )
+            })?;
+        state.insert(
+            "durable_event_cursor".into(),
+            json!(format!("event:{sequence}")),
+        );
+        let payload_json = serde_json::to_string(&payload)?;
+        transaction.execute(
+            r#"INSERT INTO mission_canvas_host_lifecycle(
+                    scope_key, document_id, revision, payload_json, updated_at
+                ) VALUES (?1, ?2, ?3, ?4, ?5)
+                ON CONFLICT(scope_key, document_id) DO UPDATE SET
+                    revision=excluded.revision, payload_json=excluded.payload_json,
+                    updated_at=excluded.updated_at"#,
+            params![
+                scope_key,
+                document.document_id,
+                document.revision,
+                payload_json,
+                document.updated_at,
+            ],
+        )?;
+        transaction.commit()?;
+        Ok(StoredDocument {
+            document_id: document.document_id.clone(),
+            scope: document.scope.clone(),
+            revision: document.revision,
+            payload,
+            updated_at: document.updated_at.clone(),
+        })
     }
 
     /// Atomically persist every document and lifecycle event for one domain
