@@ -50,6 +50,8 @@ try {
 
   if (operationId === 'focusa.mission_canvas.projection.get') {
     await exerciseProjectionGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.profile.list') {
+    await exerciseProfileList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.projection.resolve') {
     await exerciseProjectionResolve({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.rich_host.resolve') {
@@ -70,6 +72,147 @@ try {
   await server.ws.close();
   if (server.httpServer) await new Promise((resolve) => server.httpServer.close(resolve));
   if (createdKitTsconfig) await rm(generatedKitTsconfig, { force: true });
+}
+
+async function exerciseProfileList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  const profile = (profileId, displayName, contributionIds) => ({
+    profile_id: profileId,
+    revision: 1,
+    display_name: displayName,
+    candidate_contribution_ids: contributionIds,
+    density: 'standard',
+    terminology_registry_ref: `registry:terminology:${profileId}`,
+    renderer_registry_ref: 'registry:renderer:builtin',
+    domain_semantic_binding_registry_ref: null,
+    viability_rule_revision: 'profile-viability:v1',
+    installed: true
+  });
+  const meaningfulProfiles = [
+    profile('software', 'Software Engineering', ['contribution:pi-session', 'contribution:tasks']),
+    profile('research', 'Research', ['contribution:research'])
+  ];
+  let calls = 0;
+  const requests = [];
+  let response = structuredClone(meaningfulProfiles);
+  const transport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787/',
+    async (url, init) => {
+      calls += 1;
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const client = new MissionCanvasClient(transport);
+  const listed = await client.profileList(structuredClone(authority));
+  assert.deepEqual(listed, meaningfulProfiles);
+  assert.equal(calls, 1);
+
+  const requestUrl = new URL(requests[0].url);
+  assert.equal(`${requestUrl.origin}${requestUrl.pathname}`, 'http://127.0.0.1:8787/v1/mission-canvas/profiles');
+  assert.deepEqual(JSON.parse(requestUrl.searchParams.get('workstream')), authority.workstream);
+  assert.deepEqual(JSON.parse(requestUrl.searchParams.get('attachment')), authority.attachment);
+  assert.equal(requestUrl.searchParams.get('continuity_id'), authority.continuity_id);
+  assert.equal(requestUrl.searchParams.get('workspace_binding_id'), authority.workspace_binding_id);
+  assert.equal(requestUrl.searchParams.get('runtime_object'), JSON.stringify(authority.runtime_object));
+  assert.equal(requestUrl.searchParams.get('work_surface_id'), authority.work_surface_id);
+  assert.equal(requests[0].init.method, 'GET');
+  assert.equal(requests[0].init.body, undefined);
+  assert.equal(requests[0].init.headers['X-Focusa-Permissions'], 'mission_canvas:read');
+  assert.equal(requests[0].init.headers['X-Focusa-Capabilities'], undefined, 'profile.list must not mint an operation capability');
+  assert.equal(requests[0].init.headers['X-Focusa-Actor-Id'], 'actor:desktop');
+  assert.equal(requests[0].init.headers['X-Focusa-Authority-Ref'], 'authority:desktop');
+
+  // The Core response is authoritative. Desktop accepts only the generated
+  // meaningful eligible profile list and never invents an unavailable option.
+  response = [];
+  assert.deepEqual(await client.profileList(structuredClone(authority)), [], 'empty profile list must stay empty');
+
+  const wrappedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ profiles: meaningfulProfiles }), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(wrappedTransport).profileList(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:expected array'
+  );
+
+  const malformedProfile = structuredClone(meaningfulProfiles[0]);
+  delete malformedProfile.candidate_contribution_ids;
+  const malformedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify([malformedProfile]), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(malformedTransport).profileList(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:0:')
+  );
+
+  const foreignProfile = { ...structuredClone(meaningfulProfiles[0]), workstream: { workstream_id: 'ws:foreign' } };
+  const foreignPayloadTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify([foreignProfile]), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignPayloadTransport).profileList(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:0:unknown:workstream')
+  );
+
+  const foreignScopeTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'workstream_identity_mismatch' } }), { status: 409 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignScopeTransport).profileList(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 409
+  );
+
+  let missingScopeCalls = 0;
+  const missingScopeTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      missingScopeCalls += 1;
+      return new Response(JSON.stringify(meaningfulProfiles), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingScopeTransport).profileList({}),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_workstream_identity:')
+  );
+  assert.equal(missingScopeCalls, 0, 'missing Workstream authority must fail before HTTP');
+
+  const deniedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Permissions'], undefined);
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'permission_denied' } }), { status: 403 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(deniedTransport).profileList(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 403
+  );
+
+  const missingAuthorityTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Actor-Id'], undefined);
+    assert.equal(init.headers['X-Focusa-Authority-Ref'], undefined);
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'workstream_context_invalid' } }), { status: 422 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(missingAuthorityTransport).profileList(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 422
+  );
+
+  await assert.rejects(
+    () => transport.request('focusa.mission_canvas.profile.unavailable', structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'operation_unavailable'
+  );
+
+  console.log('Mission Canvas operation consumer: PASS (generated profileList, exact Workstream GET, meaningful eligible profile list, empty profile list, foreign scope, missing authority, permission, unavailable operation, and hostile response checks)');
 }
 
 async function exerciseProjectionGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {

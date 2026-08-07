@@ -339,6 +339,39 @@ impl CompositionRegistry {
     }
 }
 
+/// Select only installed profiles that can compose at least one meaningful
+/// contribution in the exact activity mode and resolved projection supplied
+/// by Core.  The eligible set is already capability/permission/content gated;
+/// this function deliberately does not infer missing content or substitute a
+/// placeholder profile.
+pub fn meaningful_profiles_for_projection(
+    profiles: &[WorkspaceProfileDefinition],
+    activity: &ActivityModeDefinition,
+    eligible_contribution_ids: &BTreeSet<String>,
+) -> Vec<WorkspaceProfileDefinition> {
+    let activity_contribution_ids = activity
+        .candidate_contribution_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let mut viable = profiles
+        .iter()
+        .filter(|profile| {
+            profile
+                .candidate_contribution_ids
+                .iter()
+                .any(|candidate_id| {
+                    activity_contribution_ids.contains(candidate_id)
+                        && eligible_contribution_ids.contains(candidate_id)
+                })
+                && profile.installed
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    viable.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
+    viable
+}
+
 fn profile(id: &str, display_name: &str, candidates: &[&str]) -> WorkspaceProfileDefinition {
     WorkspaceProfileDefinition {
         profile_id: id.into(),
@@ -665,6 +698,36 @@ mod tests {
             }
         }
         assert!(registry.viable_profiles("overview", &available).len() >= 5);
+    }
+
+    #[test]
+    fn meaningful_profile_listing_is_installed_activity_and_projection_bounded() {
+        let activity = activity(
+            "overview",
+            "Overview",
+            &["contribution:live", "contribution:shared"],
+        );
+        let mut unavailable = profile("unavailable", "Unavailable", &["contribution:missing"]);
+        unavailable.installed = false;
+        let profiles = vec![
+            profile("shared", "Shared", &["contribution:shared"]),
+            profile("live", "Live", &["contribution:live"]),
+            profile("missing", "Missing", &["contribution:missing"]),
+            unavailable,
+        ];
+        let eligible = BTreeSet::from(["contribution:live".to_owned()]);
+
+        let viable = meaningful_profiles_for_projection(&profiles, &activity, &eligible);
+        assert_eq!(
+            viable
+                .iter()
+                .map(|profile| profile.profile_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["live"]
+        );
+        assert!(
+            meaningful_profiles_for_projection(&profiles, &activity, &BTreeSet::new()).is_empty()
+        );
     }
 
     #[test]
