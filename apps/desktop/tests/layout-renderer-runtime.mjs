@@ -400,15 +400,139 @@ try {
   await persistFailureClient.poll();
   assert.deepEqual(persistFailureInputs, [undefined, undefined]);
 
-  let reloads = 0;
-  const { MissionCanvasInvalidationController } = await server.ssrLoadModule('/src/lib/mission-canvas/invalidation-controller.ts');
-  const invalidations = new MissionCanvasInvalidationController(() => { reloads += 1; }, 1000);
-  assert.equal(invalidations.enqueue(acceptedEvents, { projectionRevision: fixture.projection_revision, layoutRevision: fixture.layout_revision }), true);
-  invalidations.enqueue(acceptedEvents, { projectionRevision: fixture.projection_revision, layoutRevision: fixture.layout_revision });
-  await invalidations.flush();
-  assert.equal(reloads, 1);
+  const {
+    MissionCanvasInvalidationController,
+    event: projectionEventClassifier
+  } = await server.ssrLoadModule('/src/lib/mission-canvas/invalidation-controller.ts');
+  const projectionRevision = {
+    projectionRevision: fixture.projection_revision,
+    layoutRevision: fixture.layout_revision,
+    durableEventCursor: fixture.durable_event_cursor,
+    authority: fixtureAuthority
+  };
+  const projectionEvent = {
+    ...structuredClone(eventFixture),
+    event_id: 'event:projection-refresh',
+    event_cursor: 'event:42',
+    projection_revision: fixture.projection_revision + 1,
+    layout_revision: fixture.layout_revision + 1
+  };
+  const projectionBatch = { accepted: [projectionEvent], rejected: [], cursor: projectionEvent.event_cursor };
 
-  console.log('Mission Canvas runtime: PASS (layout, renderer, transport, projection, draft and event authority)');
+  const classified = projectionEventClassifier.classify(projectionEvent, projectionRevision, fixtureAuthority);
+  assert.equal(classified.refresh, true);
+  assert.equal(classified.reason, 'projection_revision_advanced');
+  assert.equal(
+    projectionEventClassifier.classify(
+      { ...projectionEvent, event_id: 'event:stale-cursor', event_cursor: fixture.durable_event_cursor },
+      projectionRevision,
+      fixtureAuthority
+    ).reason,
+    'stale_event_cursor'
+  );
+  assert.equal(
+    projectionEventClassifier.classify(
+      { ...projectionEvent, event_id: 'event:wrong-namespace', event_cursor: 'cursor:42' },
+      projectionRevision,
+      fixtureAuthority
+    ).reason,
+    'event_cursor_namespace_mismatch'
+  );
+  assert.equal(
+    projectionEventClassifier.classify(
+      { ...projectionEvent, event_id: 'event:stale-revision', event_cursor: 'event:43', layout_revision: fixture.layout_revision - 1 },
+      projectionRevision,
+      fixtureAuthority
+    ).reason,
+    'layout_revision_stale'
+  );
+  assert.equal(
+    projectionEventClassifier.classify(
+      { ...projectionEvent, event_id: 'event:routine-pi', event_cursor: 'event:44', event_kind: 'pi_message_updated', projection_revision: fixture.projection_revision + 2, layout_revision: fixture.layout_revision + 2 },
+      projectionRevision,
+      fixtureAuthority
+    ).reason,
+    'event_not_projection_relevant'
+  );
+
+  const foreignProjectionEvent = structuredClone(projectionEvent);
+  foreignProjectionEvent.event_id = 'event:foreign-invalidation';
+  foreignProjectionEvent.event_cursor = 'event:45';
+  foreignProjectionEvent.workstream.workstream_id = 'ws:foreign-invalidation';
+  foreignProjectionEvent.attachment.workstream.workstream_id = 'ws:foreign-invalidation';
+  assert.equal(
+    projectionEventClassifier.classify(foreignProjectionEvent, projectionRevision, fixtureAuthority).reason,
+    'foreign_event_scope'
+  );
+
+  const missingAuthorityInvalidation = new MissionCanvasInvalidationController(() => {
+    throw new Error('missing authority must not refresh');
+  }, 1000);
+  assert.equal(
+    missingAuthorityInvalidation.coalesce(projectionBatch, {
+      projectionRevision: fixture.projection_revision,
+      layoutRevision: fixture.layout_revision,
+      durableEventCursor: fixture.durable_event_cursor
+    }),
+    false
+  );
+  await missingAuthorityInvalidation.flush();
+  missingAuthorityInvalidation.dispose();
+
+  // An omitted contribution remains a Core-owned composition decision.  The
+  // event may refresh the canonical projection, but Desktop never creates a
+  // replacement contribution or layout node.
+  const omittedContributionEvent = structuredClone(projectionEvent);
+  omittedContributionEvent.event_id = 'event:empty-omission';
+  omittedContributionEvent.event_cursor = 'event:46';
+  omittedContributionEvent.event_kind = 'contribution_omitted';
+  delete omittedContributionEvent.contribution_id;
+  assert.equal(
+    projectionEventClassifier.classify(omittedContributionEvent, projectionRevision, fixtureAuthority).refresh,
+    true
+  );
+
+  let reloads = 0;
+  const invalidation = new MissionCanvasInvalidationController(() => { reloads += 1; }, 1000);
+  assert.equal(invalidation.coalesce(projectionBatch, projectionRevision, fixtureAuthority), true);
+  const secondProjectionEvent = {
+    ...structuredClone(projectionEvent),
+    event_id: 'event:projection-refresh-2',
+    event_cursor: 'event:43',
+    projection_revision: fixture.projection_revision + 2,
+    layout_revision: fixture.layout_revision + 2
+  };
+  assert.equal(invalidation.coalesce({ accepted: [secondProjectionEvent], rejected: [] }, projectionRevision, fixtureAuthority), true);
+  await invalidation.flush();
+  assert.equal(reloads, 1, 'event bursts must cause one bounded refresh');
+  assert.equal(invalidation.coalesce({ accepted: [{ ...projectionEvent, event_id: 'event:routine-only', event_kind: 'pi_tool_completed', event_cursor: 'event:47' }], rejected: [] }, projectionRevision, fixtureAuthority), false);
+  invalidation.dispose();
+
+  let serializedReloads = 0;
+  let releaseReload;
+  const serialReload = new Promise((resolve) => { releaseReload = resolve; });
+  const serializedInvalidation = new MissionCanvasInvalidationController(async () => {
+    serializedReloads += 1;
+    if (serializedReloads === 1) await serialReload;
+  }, 0);
+  serializedInvalidation.coalesce(projectionBatch, projectionRevision, fixtureAuthority);
+  const firstRefresh = serializedInvalidation.flush();
+  serializedInvalidation.coalesce({ accepted: [secondProjectionEvent] }, projectionRevision, fixtureAuthority);
+  assert.equal(serializedReloads, 1, 'refreshes must not overlap');
+  releaseReload();
+  await firstRefresh;
+  await serializedInvalidation.flush();
+  assert.equal(serializedReloads, 2, 'events received during refresh must be retained');
+  serializedInvalidation.dispose();
+
+  let disposedReloads = 0;
+  const disposedInvalidation = new MissionCanvasInvalidationController(() => { disposedReloads += 1; }, 0);
+  disposedInvalidation.coalesce(projectionBatch, projectionRevision, fixtureAuthority);
+  disposedInvalidation.dispose();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(disposedReloads, 0, 'disposed invalidations must not refresh');
+
+  console.log('Mission Canvas runtime: PASS (layout, renderer, transport, projection, draft, event authority and invalidation coalescing)');
 } finally {
   await server.watcher.close();
   await server.ws.close();

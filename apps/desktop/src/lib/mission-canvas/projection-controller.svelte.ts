@@ -192,6 +192,10 @@ export class MissionCanvasProjectionController {
       : (scope) => source.projectionGet({ ...scope } as MissionCanvasOperationInput);
   }
 
+  async refresh(inputScope: WorkstreamAuthorityContext): Promise<void> {
+    await this.load(inputScope);
+  }
+
   async load(inputScope: WorkstreamAuthorityContext): Promise<void> {
     const generation = ++this.#requestGeneration;
     const scope = cloneAndFreezeScope(inputScope);
