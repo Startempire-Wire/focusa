@@ -32,6 +32,7 @@ pub use memory::{reduce_layout_memory, ProfileLayoutMemory};
 pub use model::*;
 pub use persistence::{MissionCanvasStore, MissionCanvasStoreError};
 pub use profiles::{
+    meaningful_activities_for_projection, meaningful_profiles_for_projection,
     ActivityModeDefinition, CompositionRegistry, DomainPack, RegistryDefinition,
     WorkspaceProfileDefinition,
 };
