@@ -219,20 +219,22 @@
     if (!authority) return;
     const boundAuthority = authority;
     const events = new MissionCanvasEventClient(client, boundAuthority, new LocalEventCursorStore());
-    const invalidations = new MissionCanvasInvalidationController(() => controller.load(boundAuthority));
+    const invalidation = new MissionCanvasInvalidationController(() => controller.refresh(boundAuthority));
     const unsubscribe = events.subscribe((batch) => {
       const state = controller.state;
       if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return;
-      invalidations.enqueue(batch, {
+      invalidation.coalesce(batch, {
         projectionRevision: state.projection.projection_revision,
-        layoutRevision: state.projection.layout_revision
-      });
+        layoutRevision: state.projection.layout_revision,
+        durableEventCursor: state.projection.durable_event_cursor,
+        authority: boundAuthority
+      }, boundAuthority);
     });
     events.start();
     return () => {
       unsubscribe();
       events.stop();
-      invalidations.dispose();
+      invalidation.dispose();
     };
   });
 </script>
