@@ -1814,7 +1814,14 @@ Return ONLY valid JSON:
         let lower = title.to_ascii_lowercase();
         if lower.contains("refactor") {
             TaskClass::Refactor
-        } else if lower.contains("doc") || lower.contains("spec") {
+        } else if lower.contains("doc")
+            || lower.contains("spec")
+            || (lower.contains("freeze")
+                && (lower.contains("schema")
+                    || lower.contains("contract")
+                    || lower.contains("call stack")
+                    || lower.contains("state machine")))
+        {
             TaskClass::DocSpec
         } else if lower.contains("architecture")
             || lower.contains("authority")
@@ -5780,6 +5787,20 @@ mod tests {
             completed_at: None,
             completion_reason: None,
         }
+    }
+
+    #[test]
+    fn contract_freeze_titles_are_docs_while_real_api_integration_stays_integration() {
+        assert_eq!(
+            Daemon::infer_task_class(
+                "152E.00.04 Freeze unified call stack, API schemas, states, and errors"
+            ),
+            TaskClass::DocSpec
+        );
+        assert_eq!(
+            Daemon::infer_task_class("Implement API integration transport"),
+            TaskClass::Integration
+        );
     }
 
     #[test]
