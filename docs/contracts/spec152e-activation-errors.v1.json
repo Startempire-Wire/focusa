@@ -1,0 +1,244 @@
+{
+  "contract_version": 1,
+  "errors": [
+    {
+      "code": "ACCOUNT_EMAIL_MISMATCH",
+      "http_status": 403,
+      "public_message": "The verified account does not match.",
+      "retryable": false,
+      "safe_next_action": "verify_account_email"
+    },
+    {
+      "code": "ACCOUNT_MERGE_REVIEW_REQUIRED",
+      "http_status": 409,
+      "public_message": "Account ownership requires review.",
+      "retryable": false,
+      "safe_next_action": "contact_support"
+    },
+    {
+      "code": "AUTHORITY_UNAVAILABLE",
+      "http_status": 503,
+      "public_message": "The licensing authority is unavailable.",
+      "retryable": true,
+      "safe_next_action": "retry_or_use_recovery"
+    },
+    {
+      "code": "EDD_CHECKOUT_REQUIRED",
+      "http_status": 409,
+      "public_message": "Checkout is required.",
+      "retryable": false,
+      "safe_next_action": "open_checkout"
+    },
+    {
+      "code": "EDD_CUSTOMER_RESOLUTION_FAILED",
+      "http_status": 503,
+      "public_message": "Customer setup is unavailable.",
+      "retryable": true,
+      "safe_next_action": "retry_or_use_recovery"
+    },
+    {
+      "code": "EDD_LICENSE_PENDING",
+      "http_status": 202,
+      "public_message": "License issuance is pending.",
+      "retryable": true,
+      "safe_next_action": "poll_after_retry_after"
+    },
+    {
+      "code": "EDD_LICENSE_UNUSABLE",
+      "http_status": 403,
+      "public_message": "The license cannot authorize this activation.",
+      "retryable": false,
+      "safe_next_action": "recovery_only"
+    },
+    {
+      "code": "EDD_ORDER_PENDING",
+      "http_status": 202,
+      "public_message": "The order is pending.",
+      "retryable": true,
+      "safe_next_action": "poll_after_retry_after"
+    },
+    {
+      "code": "EDD_ORDER_UNVERIFIED",
+      "http_status": 409,
+      "public_message": "The order cannot yet be verified.",
+      "retryable": false,
+      "safe_next_action": "verify_checkout_identity"
+    },
+    {
+      "code": "EMAIL_DELIVERY_FAILED",
+      "http_status": 503,
+      "public_message": "Verification delivery is unavailable.",
+      "retryable": true,
+      "safe_next_action": "retry_or_use_recovery"
+    },
+    {
+      "code": "EMAIL_REQUIRED",
+      "http_status": 400,
+      "public_message": "An email is required to continue.",
+      "retryable": false,
+      "safe_next_action": "provide_email"
+    },
+    {
+      "code": "EMAIL_VERIFICATION_EXPIRED",
+      "http_status": 410,
+      "public_message": "The verification challenge expired.",
+      "retryable": false,
+      "safe_next_action": "restart_verification"
+    },
+    {
+      "code": "EMAIL_VERIFICATION_FAILED",
+      "http_status": 403,
+      "public_message": "Mailbox verification failed.",
+      "retryable": false,
+      "safe_next_action": "retry_verification_within_budget"
+    },
+    {
+      "code": "EMAIL_VERIFICATION_REQUIRED",
+      "http_status": 403,
+      "public_message": "Mailbox verification is required.",
+      "retryable": false,
+      "safe_next_action": "verify_email"
+    },
+    {
+      "code": "ENTITLEMENT_FEATURE_REQUIRED",
+      "http_status": 403,
+      "public_message": "The requested feature is not granted.",
+      "retryable": false,
+      "safe_next_action": "manage_license"
+    },
+    {
+      "code": "ENTITLEMENT_LIMIT_EXHAUSTED",
+      "http_status": 429,
+      "public_message": "The entitlement limit is exhausted.",
+      "retryable": false,
+      "safe_next_action": "manage_limit"
+    },
+    {
+      "code": "ENTITLEMENT_REQUIRED",
+      "http_status": 403,
+      "public_message": "An authority-issued entitlement is required.",
+      "retryable": false,
+      "safe_next_action": "activate_or_manage_license"
+    },
+    {
+      "code": "EVALUATION_NOT_ELIGIBLE",
+      "http_status": 403,
+      "public_message": "The requested legacy Evaluation journey is unavailable.",
+      "retryable": false,
+      "safe_next_action": "select_paid_or_limited_access"
+    },
+    {
+      "code": "FACADE_ORIGIN_DENIED",
+      "http_status": 403,
+      "public_message": "The facade origin is not allowed.",
+      "retryable": false,
+      "safe_next_action": "use_registered_facade"
+    },
+    {
+      "code": "FACADE_PRODUCT_DENIED",
+      "http_status": 403,
+      "public_message": "The product is unavailable on this facade.",
+      "retryable": false,
+      "safe_next_action": "select_supported_product"
+    },
+    {
+      "code": "IDEMPOTENCY_CONFLICT",
+      "http_status": 409,
+      "public_message": "The idempotency key conflicts with another request.",
+      "retryable": false,
+      "safe_next_action": "use_original_request_or_new_key"
+    },
+    {
+      "code": "IDEMPOTENCY_KEY_REQUIRED",
+      "http_status": 400,
+      "public_message": "An idempotency key is required.",
+      "retryable": false,
+      "safe_next_action": "send_idempotency_key"
+    },
+    {
+      "code": "LICENSE_ACCOUNT_MISMATCH",
+      "http_status": 403,
+      "public_message": "The license does not match the verified account.",
+      "retryable": false,
+      "safe_next_action": "verify_license_owner"
+    },
+    {
+      "code": "LICENSE_DELIVERY_FAILED",
+      "http_status": 503,
+      "public_message": "Credential delivery requires recovery.",
+      "retryable": false,
+      "safe_next_action": "authenticated_recovery"
+    },
+    {
+      "code": "LICENSE_DELIVERY_PENDING",
+      "http_status": 202,
+      "public_message": "Credential delivery is pending.",
+      "retryable": true,
+      "safe_next_action": "poll_after_retry_after"
+    },
+    {
+      "code": "NODE_LIMIT_EXHAUSTED",
+      "http_status": 409,
+      "public_message": "The node limit is exhausted.",
+      "retryable": false,
+      "safe_next_action": "manage_nodes"
+    },
+    {
+      "code": "POLL_CREDENTIAL_EXPIRED",
+      "http_status": 401,
+      "public_message": "The poll credential expired.",
+      "retryable": false,
+      "safe_next_action": "restart_or_recover_activation"
+    },
+    {
+      "code": "POLL_CREDENTIAL_REQUIRED",
+      "http_status": 401,
+      "public_message": "A poll credential is required.",
+      "retryable": false,
+      "safe_next_action": "restart_or_recover_activation"
+    },
+    {
+      "code": "PRODUCT_MAPPING_REQUIRED",
+      "http_status": 409,
+      "public_message": "The product is not mapped for issuance.",
+      "retryable": false,
+      "safe_next_action": "wait_for_product_mapping"
+    },
+    {
+      "code": "REFUNDED",
+      "http_status": 403,
+      "public_message": "The order was refunded.",
+      "retryable": false,
+      "safe_next_action": "recovery_only"
+    },
+    {
+      "code": "REQUEST_ID_REQUIRED",
+      "http_status": 400,
+      "public_message": "A request identifier is required.",
+      "retryable": false,
+      "safe_next_action": "send_new_request_id"
+    },
+    {
+      "code": "REQUEST_IN_PROGRESS",
+      "http_status": 409,
+      "public_message": "The original request is still in progress.",
+      "retryable": true,
+      "safe_next_action": "retry_same_idempotency_key"
+    },
+    {
+      "code": "REVOKED",
+      "http_status": 403,
+      "public_message": "The entitlement was revoked.",
+      "retryable": false,
+      "safe_next_action": "recovery_only"
+    }
+  ],
+  "owner": "WPUIAI/wpuiai",
+  "rules": {
+    "codes_are_stable": true,
+    "messages_are_public_safe": true,
+    "presenters_must_not_rewrite": true,
+    "unknown_codes_fail_closed": true
+  },
+  "schema": "focusa.spec152e.activation_errors.v1"
+}

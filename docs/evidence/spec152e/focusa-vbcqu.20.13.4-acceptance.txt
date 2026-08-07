@@ -1,0 +1,35 @@
+Spec 152E atom focusa-vbcqu.20.13.4 acceptance evidence
+Evidence schema: focusa.spec152e.atom_acceptance.v1
+Scope: unified activation call stack, public/internal contracts, stable errors, state machine
+
+Exact verification commands and bounded results
+
+1. Command:
+python3 scripts/generate-spec152e-activation-contracts.py --check
+Exit code: 0
+Bounded result:
+Spec 152E activation contracts are current
+
+2. Command:
+python3 tests/spec152e_api_contract_test.py
+Exit code: 0
+Bounded result:
+{"errors": 33, "operations": 11, "result": "passed", "schema": "focusa.spec152e.api_contract_validation.v1"}
+
+3. Command:
+python3 tests/spec152e_state_machine_contract_test.py
+Exit code: 0
+Bounded result:
+{"result": "passed", "schema": "focusa.spec152e.state_machine_validation.v1", "states": 19, "transitions": 48}
+
+Acceptance boundaries
+- Public OpenAPI, internal call-stack projection, and stable failure registry are generated from docs/contracts/spec152e-activation-call-stack.v1.yaml.
+- Verification covers all 11 declared operations, 33 stable errors, 19 registration states, and 48 transitions.
+- Spec 158 implementation, publication, deployment, merge, release, and push are excluded.
+
+Remaining blockers
+- None within the local source/test acceptance boundary.
+- Administrative closure is intentionally not performed by this atom.
+
+Rollback
+Revert only the local commit containing this evidence and the named Spec 152E contract, generator, and test files. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals. Do not alter unrelated commits or runtime authority data.

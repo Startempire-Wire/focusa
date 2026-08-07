@@ -1,0 +1,734 @@
+{
+  "authority": {
+    "customer_identity_commerce_human_key_refund_entitlement": "WPUIAI.com EDD",
+    "facade": "registered_authenticated_bounded_proxy_only",
+    "product_registry": "docs/contracts/spec152e-edd-product-registry.v1.json",
+    "runtime_grant": "authority_issued_device_bound_signed_lease",
+    "spec158": "excluded",
+    "spec172_overlay": "verified_no_license_replaces_evaluation"
+  },
+  "canonical_output": {
+    "forbidden": [
+      "email",
+      "normalized_email",
+      "raw_email",
+      "full_license_key",
+      "poll_credential_hash",
+      "verification_hash",
+      "server_credential",
+      "signing_key",
+      "card_pan",
+      "card_expiry",
+      "card_cvc",
+      "edd_internal_record"
+    ],
+    "optional": [
+      "masked_email",
+      "safe_url",
+      "verification_delivery_status",
+      "one_time_key_envelope",
+      "node_id",
+      "lease_envelope",
+      "error"
+    ],
+    "required": [
+      "schema",
+      "request_id",
+      "registration_id",
+      "state",
+      "terminal",
+      "retry",
+      "next_action"
+    ]
+  },
+  "contract_version": 1,
+  "error_registry": "docs/contracts/spec152e-activation-errors.v1.json",
+  "invariants": [
+    "mailbox_verification_precedes_account_customer_order_key_node_or_lease",
+    "facade_binding_and_request_correlation_precede_every_handler",
+    "mutations_are_idempotent_before_side_effects",
+    "prices_products_grants_features_limits_and_rights_are_server_owned",
+    "edd_order_license_and_refund_truth_is_never_rolled_back",
+    "poll_secrets_are_registration_scoped_expiring_and_hash_only_at_rest",
+    "presenters_return_only_opaque_ids_masked_email_and_redacted_credentials",
+    "facade_and_client_have_zero_identity_commerce_or_entitlement_authority",
+    "unknown_operation_state_transition_or_error_fails_closed",
+    "paid_accounts_are_never_downgraded_by_limited_access_activation"
+  ],
+  "operations": [
+    {
+      "failures": [
+        "EMAIL_REQUIRED",
+        "EMAIL_DELIVERY_FAILED",
+        "FACADE_ORIGIN_DENIED",
+        "FACADE_PRODUCT_DENIED",
+        "PRODUCT_MAPPING_REQUIRED",
+        "REQUEST_ID_REQUIRED",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "IDEMPOTENCY_CONFLICT",
+        "AUTHORITY_UNAVAILABLE"
+      ],
+      "handler": "ActivationStartHandler",
+      "id": "activation.start",
+      "input": [
+        "email",
+        "public_product_code",
+        "device_public_key",
+        "safe_redirect_handle"
+      ],
+      "method": "POST",
+      "mutation": true,
+      "optional_input": [
+        "device_public_key",
+        "safe_redirect_handle"
+      ],
+      "path": "/v1/activation/start",
+      "services": [
+        "FacadeRegistry",
+        "RegistrationService",
+        "IdentityChallengeService"
+      ],
+      "storage": [
+        "wp_wpuiai_activation_registrations",
+        "authority_idempotency",
+        "authority_outbox"
+      ],
+      "success_states": [
+        "email_verification_pending"
+      ]
+    },
+    {
+      "failures": [
+        "EMAIL_VERIFICATION_REQUIRED",
+        "EMAIL_VERIFICATION_EXPIRED",
+        "EMAIL_VERIFICATION_FAILED",
+        "EMAIL_DELIVERY_FAILED",
+        "ACCOUNT_MERGE_REVIEW_REQUIRED",
+        "EDD_CUSTOMER_RESOLUTION_FAILED",
+        "REQUEST_ID_REQUIRED",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "IDEMPOTENCY_CONFLICT",
+        "AUTHORITY_UNAVAILABLE"
+      ],
+      "handler": "ActivationVerifyHandler",
+      "id": "activation.verify",
+      "input": [
+        "registration_id",
+        "one_time_verifier"
+      ],
+      "method": "POST",
+      "mutation": true,
+      "path": "/v1/activation/verify",
+      "services": [
+        "FacadeRegistry",
+        "IdentityChallengeService",
+        "IdentityPromotionService",
+        "EddCustomerAdapter",
+        "LimitedAccessAssertionService"
+      ],
+      "storage": [
+        "wp_wpuiai_activation_registrations",
+        "wp_wpuiai_authority_accounts",
+        "wp_wpuiai_email_identities",
+        "wp_edd_customers",
+        "authority_idempotency",
+        "authority_outbox"
+      ],
+      "success_states": [
+        "email_verified",
+        "selection_required"
+      ]
+    },
+    {
+      "failures": [
+        "EMAIL_VERIFICATION_REQUIRED",
+        "FACADE_PRODUCT_DENIED",
+        "PRODUCT_MAPPING_REQUIRED",
+        "REQUEST_ID_REQUIRED",
+        "AUTHORITY_UNAVAILABLE"
+      ],
+      "handler": "ActivationOffersHandler",
+      "id": "activation.offers",
+      "input": [
+        "registration_id"
+      ],
+      "method": "GET",
+      "mutation": false,
+      "path": "/v1/activation/offers",
+      "services": [
+        "FacadeRegistry",
+        "RegistrationService",
+        "ProductRegistry"
+      ],
+      "storage": [
+        "wp_wpuiai_activation_registrations"
+      ],
+      "success_states": [
+        "selection_required"
+      ]
+    },
+    {
+      "failures": [
+        "EMAIL_VERIFICATION_REQUIRED",
+        "FACADE_PRODUCT_DENIED",
+        "PRODUCT_MAPPING_REQUIRED",
+        "EVALUATION_NOT_ELIGIBLE",
+        "REQUEST_ID_REQUIRED",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "IDEMPOTENCY_CONFLICT"
+      ],
+      "handler": "ActivationSelectOfferHandler",
+      "id": "activation.select_offer",
+      "input": [
+        "registration_id",
+        "public_product_code",
+        "journey"
+      ],
+      "method": "POST",
+      "mutation": true,
+      "path": "/v1/activation/select-offer",
+      "services": [
+        "FacadeRegistry",
+        "RegistrationService",
+        "ProductRegistry",
+        "IdentityService"
+      ],
+      "storage": [
+        "wp_wpuiai_activation_registrations",
+        "authority_idempotency",
+        "authority_outbox"
+      ],
+      "success_states": [
+        "checkout_required",
+        "selection_required"
+      ]
+    },
+    {
+      "failures": [
+        "EMAIL_VERIFICATION_REQUIRED",
+        "ACCOUNT_EMAIL_MISMATCH",
+        "PRODUCT_MAPPING_REQUIRED",
+        "EDD_CHECKOUT_REQUIRED",
+        "EDD_ORDER_UNVERIFIED",
+        "REQUEST_ID_REQUIRED",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "IDEMPOTENCY_CONFLICT",
+        "AUTHORITY_UNAVAILABLE"
+      ],
+      "handler": "ActivationCheckoutHandler",
+      "id": "activation.checkout",
+      "input": [
+        "registration_id",
+        "safe_redirect_handle"
+      ],
+      "method": "POST",
+      "mutation": true,
+      "path": "/v1/activation/checkout",
+      "services": [
+        "FacadeRegistry",
+        "RegistrationService",
+        "ProductRegistry",
+        "EddCheckoutAdapter"
+      ],
+      "storage": [
+        "wp_wpuiai_activation_registrations",
+        "wp_edd_orders",
+        "wp_edd_order_items",
+        "authority_idempotency",
+        "authority_outbox"
+      ],
+      "success_states": [
+        "checkout_required",
+        "payment_pending"
+      ]
+    },
+    {
+      "failures": [
+        "EMAIL_VERIFICATION_REQUIRED",
+        "LICENSE_ACCOUNT_MISMATCH",
+        "EDD_LICENSE_PENDING",
+        "EDD_LICENSE_UNUSABLE",
+        "NODE_LIMIT_EXHAUSTED",
+        "REQUEST_ID_REQUIRED",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "IDEMPOTENCY_CONFLICT",
+        "AUTHORITY_UNAVAILABLE"
+      ],
+      "handler": "ActivationExistingLicenseHandler",
+      "id": "activation.existing_license",
+      "input": [
+        "registration_id",
+        "human_license_key",
+        "device_public_key"
+      ],
+      "method": "POST",
+      "mutation": true,
+      "path": "/v1/activation/existing-license",
+      "services": [
+        "FacadeRegistry",
+        "IdentityService",
+        "EddLicenseAdapter",
+        "DeviceService",
+        "LeaseService"
+      ],
+      "storage": [
+        "wp_wpuiai_activation_registrations",
+        "wp_edd_licenses",
+        "wp_edd_license_activations",
+        "wp_wpuiai_authority_nodes",
+        "wp_wpuiai_authority_leases",
+        "authority_idempotency",
+        "authority_outbox"
+      ],
+      "success_states": [
+        "license_delivery_ready",
+        "activated"
+      ]
+    },
+    {
+      "failures": [
+        "POLL_CREDENTIAL_REQUIRED",
+        "POLL_CREDENTIAL_EXPIRED",
+        "EDD_ORDER_PENDING",
+        "EDD_ORDER_UNVERIFIED",
+        "EDD_LICENSE_PENDING",
+        "EDD_LICENSE_UNUSABLE",
+        "LICENSE_DELIVERY_PENDING",
+        "LICENSE_DELIVERY_FAILED",
+        "NODE_LIMIT_EXHAUSTED",
+        "REQUEST_ID_REQUIRED",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "IDEMPOTENCY_CONFLICT",
+        "REQUEST_IN_PROGRESS",
+        "AUTHORITY_UNAVAILABLE"
+      ],
+      "handler": "ActivationPollHandler",
+      "id": "activation.poll",
+      "input": [
+        "registration_id",
+        "opaque_poll_credential",
+        "device_public_key"
+      ],
+      "method": "POST",
+      "mutation": true,
+      "path": "/v1/activation/poll",
+      "services": [
+        "FacadeRegistry",
+        "RegistrationService",
+        "EddOrderAdapter",
+        "EddLicenseAdapter",
+        "DeliveryService",
+        "DeviceService",
+        "LeaseService"
+      ],
+      "storage": [
+        "wp_wpuiai_activation_registrations",
+        "wp_edd_orders",
+        "wp_edd_order_items",
+        "wp_edd_licenses",
+        "wp_wpuiai_authority_nodes",
+        "wp_wpuiai_authority_leases",
+        "authority_idempotency",
+        "authority_outbox"
+      ],
+      "success_states": [
+        "email_verification_pending",
+        "payment_pending",
+        "license_delivery_ready",
+        "activated",
+        "denied",
+        "recovery_only"
+      ]
+    },
+    {
+      "failures": [
+        "EDD_LICENSE_UNUSABLE",
+        "LICENSE_ACCOUNT_MISMATCH",
+        "REFUNDED",
+        "REVOKED",
+        "ENTITLEMENT_REQUIRED",
+        "REQUEST_ID_REQUIRED",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "IDEMPOTENCY_CONFLICT",
+        "AUTHORITY_UNAVAILABLE"
+      ],
+      "handler": "LeaseRefreshHandler",
+      "id": "lease.refresh",
+      "input": [
+        "node_id",
+        "refresh_credential",
+        "current_sequence"
+      ],
+      "method": "POST",
+      "mutation": true,
+      "path": "/v1/lease/refresh",
+      "services": [
+        "IdentityService",
+        "EddLicenseAdapter",
+        "RefundRevocationService",
+        "DeviceService",
+        "LeaseService"
+      ],
+      "storage": [
+        "wp_edd_orders",
+        "wp_edd_licenses",
+        "wp_wpuiai_authority_nodes",
+        "wp_wpuiai_authority_leases",
+        "authority_idempotency",
+        "authority_outbox"
+      ],
+      "success_states": [
+        "activated",
+        "recovery_only"
+      ]
+    },
+    {
+      "failures": [
+        "EMAIL_VERIFICATION_REQUIRED",
+        "ENTITLEMENT_REQUIRED",
+        "REQUEST_ID_REQUIRED",
+        "AUTHORITY_UNAVAILABLE"
+      ],
+      "handler": "NodesListHandler",
+      "id": "nodes.list",
+      "input": [
+        "account_session"
+      ],
+      "method": "GET",
+      "mutation": false,
+      "path": "/v1/nodes",
+      "services": [
+        "IdentityService",
+        "DeviceService"
+      ],
+      "storage": [
+        "wp_wpuiai_authority_nodes"
+      ],
+      "success_states": [
+        "activated",
+        "recovery_only"
+      ]
+    },
+    {
+      "failures": [
+        "EMAIL_VERIFICATION_REQUIRED",
+        "LICENSE_ACCOUNT_MISMATCH",
+        "REQUEST_ID_REQUIRED",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "IDEMPOTENCY_CONFLICT",
+        "AUTHORITY_UNAVAILABLE"
+      ],
+      "handler": "NodeDeactivateHandler",
+      "id": "nodes.deactivate",
+      "input": [
+        "account_session",
+        "node_id"
+      ],
+      "method": "POST",
+      "mutation": true,
+      "path": "/v1/nodes/deactivate",
+      "services": [
+        "IdentityService",
+        "DeviceService",
+        "LeaseService"
+      ],
+      "storage": [
+        "wp_wpuiai_authority_nodes",
+        "wp_wpuiai_authority_leases",
+        "authority_idempotency",
+        "authority_outbox"
+      ],
+      "success_states": [
+        "activated",
+        "recovery_only"
+      ]
+    },
+    {
+      "failures": [
+        "EMAIL_VERIFICATION_REQUIRED",
+        "ACCOUNT_EMAIL_MISMATCH",
+        "FACADE_ORIGIN_DENIED",
+        "REQUEST_ID_REQUIRED",
+        "AUTHORITY_UNAVAILABLE"
+      ],
+      "handler": "AccountManageLinkHandler",
+      "id": "account.manage_link",
+      "input": [
+        "account_session",
+        "safe_redirect_handle"
+      ],
+      "method": "GET",
+      "mutation": false,
+      "path": "/v1/account/manage-link",
+      "services": [
+        "FacadeRegistry",
+        "IdentityService",
+        "AccountRecoveryService"
+      ],
+      "storage": [
+        "wp_wpuiai_authority_accounts",
+        "wp_wpuiai_email_identities"
+      ],
+      "success_states": [
+        "activated",
+        "recovery_only"
+      ]
+    }
+  ],
+  "polling": {
+    "binding": [
+      "registration_id",
+      "facade_id",
+      "action",
+      "expiry"
+    ],
+    "credential": "opaque_poll_credential",
+    "default_retry_after_seconds": 3,
+    "maximum_retry_after_seconds": 30,
+    "response": "bounded_state_snapshot",
+    "retry_rules": {
+      "do_not_retry_unchanged": [
+        "ACCOUNT_EMAIL_MISMATCH",
+        "FACADE_ORIGIN_DENIED",
+        "FACADE_PRODUCT_DENIED",
+        "PRODUCT_MAPPING_REQUIRED",
+        "EVALUATION_NOT_ELIGIBLE",
+        "LICENSE_ACCOUNT_MISMATCH",
+        "NODE_LIMIT_EXHAUSTED"
+      ],
+      "recovery_only": [
+        "EDD_LICENSE_UNUSABLE",
+        "REFUNDED",
+        "REVOKED"
+      ],
+      "restart_verification": [
+        "EMAIL_VERIFICATION_EXPIRED"
+      ],
+      "retry_with_same_idempotency_key": [
+        "REQUEST_IN_PROGRESS"
+      ],
+      "safe_retry": [
+        "EDD_ORDER_PENDING",
+        "EDD_LICENSE_PENDING",
+        "LICENSE_DELIVERY_PENDING",
+        "AUTHORITY_UNAVAILABLE"
+      ]
+    },
+    "stored_as": "keyed_hash_only",
+    "terminal_states": [
+      "activated",
+      "denied",
+      "recovery_only"
+    ]
+  },
+  "presenter_states": [
+    "email_required",
+    "email_verification_pending",
+    "email_verified",
+    "selection_required",
+    "checkout_required",
+    "payment_pending",
+    "license_delivery_ready",
+    "activated",
+    "denied",
+    "recovery_only"
+  ],
+  "registration_states": {
+    "initial": "attempt_created",
+    "nonterminal": [
+      "attempt_created",
+      "email_challenge_sent",
+      "email_verified",
+      "account_promoted",
+      "offer_selected",
+      "checkout_pending",
+      "limited_access_review",
+      "existing_key_review",
+      "entitlement_issued",
+      "terminal_delivery_ready",
+      "device_registered",
+      "lease_issued"
+    ],
+    "terminal": [
+      "delivered",
+      "expired",
+      "denied",
+      "refunded",
+      "revoked",
+      "superseded",
+      "recovery_only"
+    ],
+    "transitions": {
+      "account_promoted": [
+        "offer_selected",
+        "limited_access_review",
+        "existing_key_review",
+        "denied"
+      ],
+      "attempt_created": [
+        "email_challenge_sent",
+        "expired",
+        "denied"
+      ],
+      "checkout_pending": [
+        "entitlement_issued",
+        "denied",
+        "expired"
+      ],
+      "delivered": [
+        "superseded",
+        "refunded",
+        "revoked",
+        "recovery_only"
+      ],
+      "denied": [
+        "recovery_only"
+      ],
+      "device_registered": [
+        "lease_issued",
+        "denied",
+        "refunded",
+        "revoked"
+      ],
+      "email_challenge_sent": [
+        "email_verified",
+        "expired",
+        "denied"
+      ],
+      "email_verified": [
+        "account_promoted",
+        "denied"
+      ],
+      "entitlement_issued": [
+        "terminal_delivery_ready",
+        "device_registered",
+        "refunded",
+        "revoked"
+      ],
+      "existing_key_review": [
+        "entitlement_issued",
+        "denied"
+      ],
+      "expired": [
+        "recovery_only"
+      ],
+      "lease_issued": [
+        "delivered",
+        "superseded",
+        "refunded",
+        "revoked",
+        "recovery_only"
+      ],
+      "limited_access_review": [
+        "device_registered",
+        "denied"
+      ],
+      "offer_selected": [
+        "checkout_pending",
+        "limited_access_review",
+        "existing_key_review",
+        "denied"
+      ],
+      "recovery_only": [],
+      "refunded": [
+        "recovery_only"
+      ],
+      "revoked": [
+        "recovery_only"
+      ],
+      "superseded": [
+        "recovery_only"
+      ],
+      "terminal_delivery_ready": [
+        "device_registered",
+        "refunded",
+        "revoked"
+      ]
+    }
+  },
+  "request_context": {
+    "correlation_storage": "wp_wpuiai_activation_registrations",
+    "facade_auth": [
+      "exact_origin",
+      "request_timestamp",
+      "server_credential"
+    ],
+    "forbidden_caller_fields": [
+      "email_verified",
+      "account_id",
+      "edd_customer_id",
+      "edd_download_id",
+      "edd_price_id",
+      "order_id",
+      "license_id",
+      "price",
+      "tier",
+      "products",
+      "grants",
+      "features",
+      "limits",
+      "node_limit",
+      "commercial_rights",
+      "entitlement_sequence",
+      "lease",
+      "refund_status"
+    ],
+    "required_all": [
+      "request_id",
+      "facade_id",
+      "presenter",
+      "install_channel"
+    ],
+    "required_mutation": [
+      "idempotency_key"
+    ]
+  },
+  "schema": "focusa.spec152e.activation_internal.v1",
+  "stages": [
+    {
+      "id": "facade_request_binding",
+      "output": "bound_facade_request",
+      "owner": "facade_gateway"
+    },
+    {
+      "id": "correlation_and_idempotency",
+      "output": "canonical_request_or_replay",
+      "owner": "authority_request_guard"
+    },
+    {
+      "id": "operation_handler",
+      "output": "typed_command",
+      "owner": "authority_activation_handler"
+    },
+    {
+      "id": "identity_service",
+      "output": "verified_identity_decision",
+      "owner": "authority_identity_service"
+    },
+    {
+      "id": "edd_service",
+      "output": "canonical_commerce_decision",
+      "owner": "authority_edd_adapter"
+    },
+    {
+      "id": "device_service",
+      "output": "node_decision",
+      "owner": "authority_device_service"
+    },
+    {
+      "id": "lease_service",
+      "output": "signed_lease_decision",
+      "owner": "authority_lease_service"
+    },
+    {
+      "id": "transactional_storage",
+      "output": "committed_state_and_event",
+      "owner": "authority_repository_and_outbox"
+    },
+    {
+      "id": "presenter_projection",
+      "output": "public_activation_envelope",
+      "owner": "redacted_activation_presenter"
+    }
+  ]
+}
