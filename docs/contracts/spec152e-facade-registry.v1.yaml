@@ -1,0 +1,113 @@
+schema: focusa.spec152e.facade_registry.v1
+registry_version: 1
+owner: WPUIAI/wpuiai
+authority:
+  canonical: WPUIAI.com EDD
+  facade_role: presenter_and_bounded_proxy_only
+  entitlement_issuance: forbidden
+  customer_or_commerce_truth: forbidden
+  wildcard_authority: forbidden
+  spec158: excluded
+request_contract:
+  required: [facade_id, origin, product_code, route, callback_handle, locale, timestamp, request_id, idempotency_key]
+  forbidden: [products, features, grants, limits, edd_download_id, edd_price_id, price, sender_id, sender_email, callback_url, redirect_url, success_url, cancel_url, authority, credential, secret]
+  unknown_facade: FACADE_ORIGIN_DENIED
+  unknown_origin: FACADE_ORIGIN_DENIED
+  unknown_product: FACADE_PRODUCT_DENIED
+  unknown_route: FACADE_ROUTE_DENIED
+  unknown_callback: FACADE_CALLBACK_DENIED
+  unknown_sender: FACADE_SENDER_DENIED
+  unknown_locale: FACADE_LOCALE_DENIED
+proxy_routes:
+  activation_start: /v1/activation/start
+  activation_verify: /v1/activation/verify
+  activation_offers: /v1/activation/offers
+  activation_select_offer: /v1/activation/select-offer
+  activation_checkout: /v1/activation/checkout
+  activation_existing_license: /v1/activation/existing-license
+  activation_poll: /v1/activation/poll
+  lease_refresh: /v1/lease/refresh
+  nodes_list: /v1/nodes
+  nodes_deactivate: /v1/nodes/deactivate
+  account_manage_link: /v1/account/manage-link
+facades:
+  - facade_id: focusa_install_v1
+    status: registered_presenter
+    exact_origins: [https://install.focusa.dev]
+    products: [focusa_operator_lifetime_v1, uiai_operator_lifetime_v1, focusa_uiai_operator_bundle_lifetime_v1]
+    brand: {name: Focusa Install, logo_path: /assets/focusa-mark.svg}
+    sender: {identity: focusa_install_transactional_v1, display_name: Focusa Install}
+    paths: {verification: /activate/verify, checkout: /activate/checkout, success: /activate/success, cancel: /activate/cancel, manage: /account, recovery: /activate/recovery}
+    callbacks: {success: /activate/callback/success, cancel: /activate/callback/cancel, recovery: /activate/callback/recovery}
+    locale: {default: en-US, allowed: [en-US]}
+    presenter_capabilities: [browser_registration, installer_handoff, terminal_continuation, bounded_authority_proxy]
+    rate_policy_ref: facade_standard_v1
+    abuse_policy_ref: authority_facade_abuse_v1
+  - facade_id: focusa_marketing_v1
+    status: registered_presenter
+    exact_origins: [https://focusa.dev]
+    products: [focusa_operator_lifetime_v1, focusa_uiai_operator_bundle_lifetime_v1]
+    brand: {name: Focusa, logo_path: /assets/focusa-mark.svg}
+    sender: {identity: focusa_transactional_v1, display_name: Focusa}
+    paths: {verification: /activate/verify, checkout: /activate/checkout, success: /activate/success, cancel: /activate/cancel, manage: /account, recovery: /activate/recovery}
+    callbacks: {success: /activate/callback/success, cancel: /activate/callback/cancel, recovery: /activate/callback/recovery}
+    locale: {default: en-US, allowed: [en-US]}
+    presenter_capabilities: [browser_registration, marketing_offer_display, bounded_authority_proxy]
+    rate_policy_ref: facade_standard_v1
+    abuse_policy_ref: authority_facade_abuse_v1
+  - facade_id: focusa_forge_v1
+    status: registered_presenter
+    exact_origins: [https://forge.focusa.dev]
+    products: [focusa_operator_lifetime_v1, focusa_uiai_operator_bundle_lifetime_v1]
+    brand: {name: Focusa Forge, logo_path: /assets/forge-mark.svg}
+    sender: {identity: focusa_forge_transactional_v1, display_name: Focusa Forge}
+    paths: {verification: /activate/verify, checkout: /activate/checkout, success: /activate/success, cancel: /activate/cancel, manage: /account, recovery: /activate/recovery}
+    callbacks: {success: /activate/callback/success, cancel: /activate/callback/cancel, recovery: /activate/callback/recovery}
+    locale: {default: en-US, allowed: [en-US]}
+    presenter_capabilities: [browser_registration, bounded_authority_proxy]
+    rate_policy_ref: facade_standard_v1
+    abuse_policy_ref: authority_facade_abuse_v1
+  - facade_id: focusa_arena_v1
+    status: registered_presenter
+    exact_origins: [https://arena.focusa.dev]
+    products: [focusa_operator_lifetime_v1, focusa_uiai_operator_bundle_lifetime_v1]
+    brand: {name: Focusa Arena, logo_path: /assets/arena-mark.svg}
+    sender: {identity: focusa_arena_transactional_v1, display_name: Focusa Arena}
+    paths: {verification: /activate/verify, checkout: /activate/checkout, success: /activate/success, cancel: /activate/cancel, manage: /account, recovery: /activate/recovery}
+    callbacks: {success: /activate/callback/success, cancel: /activate/callback/cancel, recovery: /activate/callback/recovery}
+    locale: {default: en-US, allowed: [en-US]}
+    presenter_capabilities: [browser_registration, bounded_authority_proxy]
+    rate_policy_ref: facade_standard_v1
+    abuse_policy_ref: authority_facade_abuse_v1
+  - facade_id: uiai_engine_v1
+    status: registered_presenter
+    exact_origins: [https://engine.focusa.dev]
+    products: [uiai_operator_lifetime_v1, focusa_uiai_operator_bundle_lifetime_v1]
+    brand: {name: UIAI Engine, logo_path: /assets/uiai-engine-mark.svg}
+    sender: {identity: uiai_engine_transactional_v1, display_name: UIAI Engine}
+    paths: {verification: /activate/verify, checkout: /activate/checkout, success: /activate/success, cancel: /activate/cancel, manage: /account, recovery: /activate/recovery}
+    callbacks: {success: /activate/callback/success, cancel: /activate/callback/cancel, recovery: /activate/callback/recovery}
+    locale: {default: en-US, allowed: [en-US]}
+    presenter_capabilities: [browser_registration, engine_installer_handoff, terminal_continuation, bounded_authority_proxy]
+    rate_policy_ref: facade_standard_v1
+    abuse_policy_ref: authority_facade_abuse_v1
+  - facade_id: wpuiai_public_v1
+    status: registered_presenter
+    exact_origins: [https://wpuiai.com]
+    products: [focusa_operator_lifetime_v1, uiai_operator_lifetime_v1, focusa_uiai_operator_bundle_lifetime_v1]
+    brand: {name: WPUIAI, logo_path: /assets/wpuiai-mark.svg}
+    sender: {identity: wpuiai_transactional_v1, display_name: WPUIAI}
+    paths: {verification: /activate/verify, checkout: /activate/checkout, success: /activate/success, cancel: /activate/cancel, manage: /account, recovery: /activate/recovery}
+    callbacks: {success: /activate/callback/success, cancel: /activate/callback/cancel, recovery: /activate/callback/recovery}
+    locale: {default: en-US, allowed: [en-US]}
+    presenter_capabilities: [browser_registration, account_management_handoff, edd_checkout_handoff, bounded_authority_proxy]
+    rate_policy_ref: facade_standard_v1
+    abuse_policy_ref: authority_facade_abuse_v1
+invariants:
+  - exact_https_origins_only
+  - no_wildcards_or_subdomain_inheritance
+  - products_are_exact_server_owned_allowlists
+  - callbacks_are_named_relative_paths_resolved_against_the_bound_origin
+  - sender_identities_are_resolved_from_the_registry_never_the_request
+  - facades_never_issue_entitlement_or_own_customer_commerce_truth
+  - public_descriptor_contains_no_credentials_secrets_or_email_addresses

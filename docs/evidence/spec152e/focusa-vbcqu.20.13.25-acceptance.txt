@@ -1,0 +1,36 @@
+Spec 152E facade registry acceptance evidence
+Work item: focusa-vbcqu.20.13.25
+Scope: registered facade configuration only
+
+Verification commands and results
+
+1. php tests/spec152e_facade_registry_test.php
+Exit code: 0
+Bounded result:
+{"schema":"focusa.spec152e.facade_registry_php_validation.v1","facades":6,"exact_origins":6,"negative_checks":9,"forbidden_caller_fields":16,"result":"passed"}
+
+2. python3 tests/spec152e_facade_registry_contract_test.py
+Exit code: 0
+Bounded result:
+{"callback_handles": 18, "exact_origins": 6, "facades": 6, "negative_validator_checks": 8, "product_bindings": 14, "proxy_routes": 11, "result": "passed_fail_closed", "schema": "focusa.spec152e.facade_registry_contract_validation.v1", "sender_identities": 6}
+
+Generated-contract freshness
+
+3. python3 scripts/generate-spec152e-facade-registry.py --check
+Exit code: 0
+Bounded result:
+{"callback_handles": 18, "exact_origins": 6, "facades": 6, "product_bindings": 14, "proxy_routes": 11, "result": "passed", "schema": "focusa.spec152e.facade_registry_validation.v1", "sender_identities": 6}
+
+Acceptance summary
+- Six customer-facing HTTPS origins are explicitly registered without wildcard or subdomain inheritance.
+- Product, proxy-route, callback-handle, sender-identity, and locale authority is resolved from exact server-owned allowlists.
+- Positive resolution and negative widening checks pass.
+- The public descriptor contains no credentials, secrets, or email addresses.
+- Facades remain presenters and bounded proxies; entitlement issuance and customer/commerce truth are forbidden.
+
+Remaining issues
+- None within this atom. Administrative Bead evidence linking and closure remain outside this local acceptance commit; this evidence does not perform administrative closure.
+
+Rollback
+- Revert only the commit containing this evidence and the Spec 152E facade registry atom.
+- Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, monotonic sequences, credentials, Workpoints, Evidence, and migration journals.
