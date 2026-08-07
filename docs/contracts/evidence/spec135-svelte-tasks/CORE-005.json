@@ -1,0 +1,143 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CORE-005",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Re-keyed MissionCanvasStore canonical persistence partitions to WorkstreamKey::storage_key rather than the flattened project/continuity/session authority context. Added MissionCanvasStore.load_projection/save_projection as the named core seam, retained get_projection/put_projection compatibility wrappers, validated exact Workstream ownership and projection/event revisions, scoped event cursors to the same partition, and quarantined pre-Workstream rows instead of guessing ownership. Added hostile persistence coverage for projection, layout memory, evidence, receipt, omission diagnostics, foreign scope, orphan surface authority, stale revisions/cursors, and ambiguous legacy rows.",
+  "targets": [
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-005.json"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "headless",
+    "host_renderer": "headless_none",
+    "surface_kind": "canonical_runtime",
+    "rich_gui_required": false,
+    "terminal_fallback_required": false,
+    "eligible_contributions": [],
+    "omitted_contribution_reasons": [
+      "Workstream-keyed persistence is a canonical core slice with no direct rendered contribution"
+    ]
+  },
+  "checks": [
+    "rustfmt --edition 2024 --check crates/focusa-core/src/mission_canvas/persistence.rs (exit 0)",
+    "git diff --check (exit 0; no output)",
+    "python3 tests/spec135_mission_canvas_api_static_test.py (exit 0; API parity: PASS)",
+    "python3 tests/spec135_core001_mission_canvas_scope_source_test.py (exit 0; canonical Workstream scope source contract: PASS)",
+    "python3 tests/spec158_mission_canvas_identity_contract_test.py (exit 0; exact Workstream/Attachment identity and legacy-only rejection: PASS)",
+    "python3 tests/spec135_projection_state_contract_test.py (exit 0; projection revision/state contract: PASS)",
+    "python3 tests/spec135_projection_events_proof_test.py (exit 0; projection event/proof contract: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_registry_test.py (exit 0; 25 operations: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.projection.get (exit 0; generated projection get contract: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.events.stream (exit 0; generated event stream contract: PASS)",
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; generated artifacts, operation registry, and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_completion_dag_test.py (exit 0; central graph unchanged and complete: PASS)",
+    "python3 tests/spec135_resolved_projection_contract_test.py (exit 0; generated contribution schemas and projection contract: PASS)",
+    "python3 tests/spec135_protocol_handshake_test.py (exit 0; exact scope and fail-closed compatibility: PASS)",
+    "python3 tests/spec135_mission_canvas_full_shell_gui_test.py (exit 0; authoritative host/renderer contract: PASS)",
+    "python3 tests/spec135_work_rail_test.py (exit 0; Work Rail static proof: PASS)",
+    "python3 tests/spec135_generated_clients_test.py (exit 0; 108 operations: PASS)",
+    "python3 -m py_compile tests/spec135_mission_canvas_api_static_test.py tests/spec135_core001_mission_canvas_scope_source_test.py tests/spec158_mission_canvas_identity_contract_test.py tests/spec135_projection_state_contract_test.py tests/spec135_projection_events_proof_test.py tests/spec135_mission_canvas_operation_registry_test.py tests/spec135_mission_canvas_generated_parity_test.py (exit 0)"
+  ],
+  "remaining_checks": [
+    "cargo test -p focusa-core mission_canvas_store_workstream_isolation --lib (not run; the operator explicitly prohibited Cargo)",
+    "The bounded Rust source and hostile test module were formatted and statically exercised; runtime execution remains explicitly deferred only because Cargo is prohibited."
+  ],
+  "remaining_work": [
+    "No unresolved CORE-005 source implementation remains. Only the explicitly prohibited Cargo runtime invocation is deferred."
+  ],
+  "dependency_gate": {
+    "CORE-003": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/CORE-003.json",
+      "status": "implemented_partial",
+      "decision": "CORE-003 Workstream projection authority is integrated; its evidence records only the operator-prohibited Cargo runtime check as deferred."
+    },
+    "CORE-004": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/CORE-004.json",
+      "status": "implemented_partial",
+      "decision": "CORE-004 Workstream-aware projection digest is integrated; its evidence records only the operator-prohibited Cargo runtime check as deferred."
+    },
+    "ID-008": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/ID-008.json",
+      "status": "implemented_partial",
+      "decision": "ID-008 typed shadow/quarantine implementation is integrated; its evidence records only the operator-prohibited Cargo runtime check as deferred. CORE-005 uses the checked-in quarantine authority and does not infer legacy ownership."
+    }
+  },
+  "negative_cases": {
+    "foreign_workstream": "Every canonical row uses the validated WorkstreamKey storage hash. save_projection and put_document reject a foreign event/data Workstream, while load_projection/events_after use only the requested Workstream partition.",
+    "missing_authority": "canonical_scope_key requires MissionCanvasScope validation and rejects a WorkSurface without its exact Attachment authority. No project_root plus continuity_id fallback is accepted.",
+    "stale_revision_cursor": "save_projection applies the existing optimistic revision gate before writing or appending its event; a stale writer leaves the projection and event stream unchanged. Event replay and latest_event_sequence are partitioned by Workstream, so another Workstream's cursor cannot be used.",
+    "unavailable_capability": "Persistence preserves omission_diagnostics, including capability_not_present, and never promotes an unavailable contribution or invents a layout/action. Eligibility remains owned by the core resolver.",
+    "ineligible_or_empty_contribution": "Projection, layout-memory, evidence, receipt, and omission diagnostic payloads round-trip without substituting empty content or resolving contribution eligibility in storage.",
+    "ambiguous_legacy_row": "Migration identifies pre-Workstream scope keys as legacy evidence, retains their raw row payload in mission_canvas_legacy_quarantine, and never parses project/continuity/session values to assign a Workstream. Canonical reads cannot see quarantined rows.",
+    "projection_event_mismatch": "save_projection rejects foreign Workstream event scopes and projection/event revision mismatches before opening a write transaction."
+  },
+  "acceptance": [
+    {
+      "statement": "Reading Workstream A cannot return Workstream B data.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "mission_canvas_store_workstream_isolation::reading_workstream_a_cannot_return_workstream_b_data saves distinct alpha and beta projections, reads each exact Workstream partition, verifies evidence/receipt identity, checks a missing Workstream is empty, and checks event isolation."
+    },
+    {
+      "statement": "project_root plus continuity_id cannot bind or focus a Work Surface.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "canonical_scope_key accepts only validated WorkstreamAuthorityContext and rejects an orphan work_surface_id without Attachment authority. Existing CORE-003 and Spec 158 identity gates also pass."
+    },
+    {
+      "statement": "ambiguous legacy rows are quarantined, not guessed.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "mission_canvas_store_workstream_isolation::legacy_scope_rows_are_quarantined_and_never_rekeyed_by_guess inserts a legacy flattened scope row, reruns migration, proves the canonical Workstream read is empty, and proves a bounded quarantine row exists."
+    }
+  ],
+  "hostile_tests": [
+    "reading_workstream_a_cannot_return_workstream_b_data",
+    "layout_memory_evidence_receipt_and_diagnostic_rows_are_workstream_partitioned",
+    "foreign_scope_and_surface_without_attachment_fail_closed",
+    "stale_revision_and_foreign_cursor_never_overwrite_or_leak",
+    "legacy_scope_rows_are_quarantined_and_never_rekeyed_by_guess"
+  ],
+  "source_authority": {
+    "AGENTS.md": "read completely",
+    "docs/agent/01-focusa-agent-docs-index.md": "read completely",
+    "docs/135-series-current-manifest.md": "read completely",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md": "read completely",
+    "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png": "read",
+    "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png": "read",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml": "read completely",
+    "docs/agent/spec135-implementation-acceleration-directive.md": "read completely",
+    "docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md": "read completely",
+    "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md": "read completely",
+    "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md": "read completely",
+    "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md": "read completely",
+    "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md": "read completely",
+    "docs/135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md": "read completely",
+    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md": "read completely",
+    "docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md": "read completely",
+    "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md": "read completely",
+    "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md": "read completely",
+    "docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md": "read completely",
+    "docs/contracts/spec135-complete-feature-ledger.v1.yaml": "read completely",
+    "docs/contracts/spec135-mission-canvas-agent-first-gui-proof.v1.json": "read completely",
+    "docs/contracts/spec135-svelte-task-packets/CORE-005.json": "read completely",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-003.json": "read completely for dependency gate",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-004.json": "read completely for dependency gate",
+    "docs/contracts/evidence/spec135-svelte-tasks/ID-008.json": "read completely for dependency gate",
+    "docs/spec158/01-identity-ownership-and-reducer.md": "read completely for quarantine authority",
+    "docs/spec158/02-persistence-migration-and-quarantine.md": "read completely for persistence/quarantine authority",
+    "crates/focusa-core/src/mission_canvas/model.rs": "read completely as canonical Workstream authority source",
+    "apps/pi-extension/src/mission-canvas-model.ts": "read completely as behavior source",
+    "apps/pi-extension/src/mission-canvas-session-inventory.ts": "read completely as behavior source",
+    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md": "read completely as Workstream/Attachment authority source",
+    "crates/focusa-core/src/mission_canvas/persistence.rs": "read completely and updated",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts": "read completely as generated transport authority"
+  },
+  "evidence_refs": [
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "tests/spec135_mission_canvas_api_static_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_projection_events_proof_test.py",
+    "tests/spec158_mission_canvas_identity_contract_test.py",
+    "docs/spec158/02-persistence-migration-and-quarantine.md"
+  ],
+  "status": "implemented_partial"
+}

@@ -1,14 +1,16 @@
 use std::{path::Path, sync::Arc};
 
+use chrono::Utc;
 use parking_lot::Mutex;
 use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use thiserror::Error;
 
 use super::model::{
     CompositionEvent, DomainPackInstallReceipt, GovernedDomainPackInstallReceipt,
-    MissionCanvasScope, ResolvedWorkspaceProjection, StoredDocument,
+    MissionCanvasScope, OmissionDiagnostic, ResolvedWorkspaceProjection, StoredDocument,
 };
 use super::profiles::DomainPack;
+use crate::workstream_identity::WorkstreamKey;
 
 const DOCUMENT_TABLES: &[&str] = &[
     "mission_canvas_profiles",
@@ -20,6 +22,23 @@ const DOCUMENT_TABLES: &[&str] = &[
     "mission_canvas_host_lifecycle",
 ];
 
+/// Every Mission Canvas row is partitioned by this exact Workstream owner.
+/// Subordinate Attachment/Session/Surface values remain in the typed payload
+/// and are validated at the read/write boundary; they are never used as a
+/// fallback partition key.
+const SCOPED_TABLES: &[&str] = &[
+    "mission_canvas_profiles",
+    "mission_canvas_activity_modes",
+    "mission_canvas_registry_entries",
+    "mission_canvas_layout_trees",
+    "mission_canvas_layout_memory",
+    "mission_canvas_drafts",
+    "mission_canvas_host_lifecycle",
+    "mission_canvas_projections",
+    "mission_canvas_composition_events",
+    "mission_canvas_domain_pack_installations",
+];
+
 #[derive(Debug, Error)]
 pub enum MissionCanvasStoreError {
     #[error("mission canvas I/O error: {0}")]
@@ -28,6 +47,14 @@ pub enum MissionCanvasStoreError {
     Sqlite(#[from] rusqlite::Error),
     #[error("mission canvas serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
+    #[error("mission canvas scope validation failed: {0}")]
+    InvalidScope(&'static str),
+    #[error("mission canvas projection validation failed: {0}")]
+    InvalidProjection(&'static str),
+    #[error("mission canvas data belongs to a different Workstream")]
+    WorkstreamMismatch,
+    #[error("mission canvas projection and event revisions do not match")]
+    ProjectionEventRevisionMismatch,
     #[error("unknown mission canvas document table: {0}")]
     UnknownTable(String),
     #[error("revision conflict: expected {expected}, observed {observed}")]
@@ -176,8 +203,21 @@ impl MissionCanvasStore {
                 PRIMARY KEY(scope_key, pack_id),
                 UNIQUE(scope_key, idempotency_key)
             );
+            CREATE TABLE IF NOT EXISTS mission_canvas_legacy_quarantine (
+                quarantine_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_table TEXT NOT NULL,
+                legacy_scope_key TEXT NOT NULL,
+                row_ref TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                quarantined_at TEXT NOT NULL,
+                UNIQUE(source_table, legacy_scope_key, row_ref)
+            );
+            CREATE INDEX IF NOT EXISTS idx_mission_canvas_legacy_quarantine_source
+                ON mission_canvas_legacy_quarantine(source_table, legacy_scope_key);
             "#,
         )?;
+        quarantine_legacy_rows(&connection)?;
         Ok(())
     }
 
@@ -196,12 +236,13 @@ impl MissionCanvasStore {
         document_id: &str,
     ) -> Result<Option<StoredDocument>> {
         Self::ensure_table(table)?;
+        let scope_key = canonical_scope_key(scope)?;
         let connection = self.connection.lock();
         let sql = format!(
             "SELECT revision, payload_json, updated_at FROM {table} WHERE scope_key = ?1 AND document_id = ?2"
         );
         let row: Option<(u64, String, String)> = connection
-            .query_row(&sql, params![scope.storage_key(), document_id], |row| {
+            .query_row(&sql, params![scope_key, document_id], |row| {
                 Ok((row.get(0)?, row.get(1)?, row.get(2)?))
             })
             .optional()?;
@@ -223,12 +264,13 @@ impl MissionCanvasStore {
         scope: &MissionCanvasScope,
     ) -> Result<Vec<StoredDocument>> {
         Self::ensure_table(table)?;
+        let scope_key = canonical_scope_key(scope)?;
         let connection = self.connection.lock();
         let sql = format!(
             "SELECT document_id, revision, payload_json, updated_at FROM {table} WHERE scope_key = ?1 ORDER BY document_id"
         );
         let mut statement = connection.prepare(&sql)?;
-        let rows = statement.query_map(params![scope.storage_key()], |row| {
+        let rows = statement.query_map(params![scope_key], |row| {
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, u64>(1)?,
@@ -258,12 +300,17 @@ impl MissionCanvasStore {
         event: &CompositionEvent,
     ) -> Result<u64> {
         Self::ensure_table(table)?;
+        let document_scope_key = canonical_scope_key(&document.scope)?;
+        canonical_scope_key(&event.scope)?;
+        if document.scope.workstream != event.scope.workstream {
+            return Err(MissionCanvasStoreError::WorkstreamMismatch);
+        }
         let mut connection = self.connection.lock();
         let transaction = connection.transaction()?;
         let current = current_document_revision(
             &transaction,
             table,
-            &document.scope.storage_key(),
+            &document_scope_key,
             &document.document_id,
         )?;
         check_revision(current, expected_revision)?;
@@ -274,7 +321,7 @@ impl MissionCanvasStore {
         transaction.execute(
             &sql,
             params![
-                document.scope.storage_key(),
+                document_scope_key,
                 document.document_id,
                 document.revision,
                 serde_json::to_string(&document.payload)?,
@@ -299,9 +346,9 @@ impl MissionCanvasStore {
         authority_ref: &str,
         issued_at: &str,
     ) -> Result<DomainPackInstallReceipt> {
+        let scope_key = canonical_scope_key(scope)?;
         let mut connection = self.connection.lock();
         let transaction = connection.transaction()?;
-        let scope_key = scope.storage_key();
 
         let existing_by_key: Option<(String, String, String)> = transaction
             .query_row(
@@ -413,35 +460,82 @@ impl MissionCanvasStore {
         Ok(receipt)
     }
 
-    pub fn get_projection(
+    /// Load the one canonical projection partition owned by this exact
+    /// Workstream. Optional Attachment/Surface authority is checked after the
+    /// Workstream lookup; it is never used to guess another row.
+    pub fn load_projection(
         &self,
         scope: &MissionCanvasScope,
     ) -> Result<Option<ResolvedWorkspaceProjection>> {
+        let scope_key = canonical_scope_key(scope)?;
         let connection = self.connection.lock();
         let payload: Option<String> = connection
             .query_row(
                 "SELECT payload_json FROM mission_canvas_projections WHERE scope_key = ?1",
-                params![scope.storage_key()],
+                params![scope_key],
                 |row| row.get(0),
             )
             .optional()?;
-        payload
+        let projection = payload
             .map(|value| serde_json::from_str(&value).map_err(Into::into))
-            .transpose()
+            .transpose()?;
+        if let Some(projection) = projection {
+            validate_projection_for_store(&projection)?;
+            projection
+                .validate_scope(scope)
+                .map_err(MissionCanvasStoreError::InvalidProjection)?;
+            Ok(Some(projection))
+        } else {
+            Ok(None)
+        }
     }
 
-    pub fn put_projection(
+    /// Workstream-only read for aggregate consumers. A caller that has
+    /// subordinate identity must use [`Self::load_projection`] so the exact
+    /// Attachment/Surface relationship is checked as well.
+    pub fn load_projection_for_workstream(
+        &self,
+        workstream: &WorkstreamKey,
+    ) -> Result<Option<ResolvedWorkspaceProjection>> {
+        let scope = MissionCanvasScope::new(workstream.clone(), None)
+            .map_err(MissionCanvasStoreError::InvalidScope)?;
+        self.load_projection(&scope)
+    }
+
+    /// Compatibility name retained for existing API consumers. The storage
+    /// owner is now the WorkstreamKey, not the flattened authority context.
+    pub fn get_projection(
+        &self,
+        scope: &MissionCanvasScope,
+    ) -> Result<Option<ResolvedWorkspaceProjection>> {
+        self.load_projection(scope)
+    }
+
+    /// Save one Workstream-owned projection and its lifecycle event atomically.
+    /// Evidence, receipt, omission diagnostics, layout memory references, and
+    /// the projection revision remain in the canonical payload/event rows.
+    pub fn save_projection(
         &self,
         projection: &ResolvedWorkspaceProjection,
         expected_revision: Option<u64>,
         event: &CompositionEvent,
     ) -> Result<u64> {
+        let workstream_scope_key = validate_projection_for_store(projection)?;
+        canonical_scope_key(&event.scope)?;
+        if projection.scope.workstream != event.scope.workstream {
+            return Err(MissionCanvasStoreError::WorkstreamMismatch);
+        }
+        if projection.projection_revision != event.projection_revision
+            || projection.layout_revision != event.layout_revision
+        {
+            return Err(MissionCanvasStoreError::ProjectionEventRevisionMismatch);
+        }
         let mut connection = self.connection.lock();
         let transaction = connection.transaction()?;
         let current: Option<u64> = transaction
             .query_row(
                 "SELECT projection_revision FROM mission_canvas_projections WHERE scope_key = ?1",
-                params![projection.scope.storage_key()],
+                params![workstream_scope_key],
                 |row| row.get(0),
             )
             .optional()?;
@@ -457,7 +551,7 @@ impl MissionCanvasStore {
                     payload_json=excluded.payload_json,
                     updated_at=excluded.updated_at"#,
             params![
-                projection.scope.storage_key(),
+                workstream_scope_key,
                 projection.projection_revision,
                 projection.layout_revision,
                 projection.projection_digest,
@@ -468,6 +562,16 @@ impl MissionCanvasStore {
         append_event_transaction(&transaction, event)?;
         transaction.commit()?;
         Ok(projection.projection_revision)
+    }
+
+    /// Compatibility name retained for existing API consumers.
+    pub fn put_projection(
+        &self,
+        projection: &ResolvedWorkspaceProjection,
+        expected_revision: Option<u64>,
+        event: &CompositionEvent,
+    ) -> Result<u64> {
+        self.save_projection(projection, expected_revision, event)
     }
 
     pub fn append_event(&self, event: &CompositionEvent) -> Result<u64> {
@@ -481,6 +585,7 @@ impl MissionCanvasStore {
         sequence: u64,
         limit: usize,
     ) -> Result<Vec<(u64, CompositionEvent)>> {
+        let scope_key = canonical_scope_key(scope)?;
         let connection = self.connection.lock();
         let mut statement = connection.prepare(
             r#"SELECT sequence, event_id, event_kind, projection_revision, layout_revision,
@@ -489,24 +594,21 @@ impl MissionCanvasStore {
                WHERE scope_key = ?1 AND sequence > ?2
                ORDER BY sequence ASC LIMIT ?3"#,
         )?;
-        let rows = statement.query_map(
-            params![scope.storage_key(), sequence, limit as u64],
-            |row| {
-                Ok((
-                    row.get::<_, u64>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                    row.get::<_, u64>(3)?,
-                    row.get::<_, u64>(4)?,
-                    row.get::<_, Option<String>>(5)?,
-                    row.get::<_, Option<String>>(6)?,
-                    row.get::<_, String>(7)?,
-                    row.get::<_, String>(8)?,
-                    row.get::<_, String>(9)?,
-                    row.get::<_, String>(10)?,
-                ))
-            },
-        )?;
+        let rows = statement.query_map(params![scope_key, sequence, limit as u64], |row| {
+            Ok((
+                row.get::<_, u64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, u64>(3)?,
+                row.get::<_, u64>(4)?,
+                row.get::<_, Option<String>>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, String>(8)?,
+                row.get::<_, String>(9)?,
+                row.get::<_, String>(10)?,
+            ))
+        })?;
         let mut events = Vec::new();
         for row in rows {
             let (
@@ -546,14 +648,83 @@ impl MissionCanvasStore {
     /// Workstream.  A cursor is scoped to this stream; callers must not use a
     /// global/latest-record fallback when deciding whether a cursor is valid.
     pub fn latest_event_sequence(&self, scope: &MissionCanvasScope) -> Result<u64> {
+        let scope_key = canonical_scope_key(scope)?;
         let connection = self.connection.lock();
         let sequence: Option<u64> = connection.query_row(
             "SELECT MAX(sequence) FROM mission_canvas_composition_events WHERE scope_key = ?1",
-            params![scope.storage_key()],
+            params![scope_key],
             |row| row.get(0),
         )?;
         Ok(sequence.unwrap_or_default())
     }
+}
+
+/// Return the only storage partition accepted for canonical Mission Canvas
+/// state. WorkstreamKey::storage_key is a stable hash of the generated
+/// Workstream identity; project_root, continuity, session, and selected-surface
+/// values cannot form a substitute key.
+fn canonical_scope_key(scope: &MissionCanvasScope) -> Result<String> {
+    scope
+        .validate()
+        .map_err(MissionCanvasStoreError::InvalidScope)?;
+    if scope.work_surface_id.is_some() && scope.attachment.is_none() {
+        return Err(MissionCanvasStoreError::InvalidScope("attachment_missing"));
+    }
+    Ok(scope.workstream.storage_key())
+}
+
+fn validate_projection_for_store(projection: &ResolvedWorkspaceProjection) -> Result<String> {
+    let scope_key = canonical_scope_key(&projection.scope)?;
+    projection
+        .validate_scope(&projection.scope)
+        .map_err(MissionCanvasStoreError::InvalidProjection)?;
+    Ok(scope_key)
+}
+
+/// Preserve pre-Workstream rows as immutable migration evidence. They are
+/// deliberately not re-keyed by parsing project/continuity/session fields:
+/// ambiguous legacy ownership is quarantined rather than guessed.
+fn quarantine_legacy_rows(connection: &Connection) -> Result<()> {
+    for table in SCOPED_TABLES {
+        let payload_column = if *table == "mission_canvas_domain_pack_installations" {
+            "receipt_json"
+        } else {
+            "payload_json"
+        };
+        let sql = format!(
+            "SELECT rowid, scope_key, {payload_column} FROM {table} \
+             WHERE length(scope_key) <> 64 \
+                OR lower(scope_key) <> scope_key \
+                OR scope_key GLOB '*[^0-9a-f]*'"
+        );
+        let rows = {
+            let mut statement = connection.prepare(&sql)?;
+            let rows = statement.query_map([], |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })?;
+            rows.collect::<std::result::Result<Vec<_>, _>>()?
+        };
+        for (row_id, legacy_scope_key, payload_json) in rows {
+            connection.execute(
+                r#"INSERT OR IGNORE INTO mission_canvas_legacy_quarantine(
+                        source_table, legacy_scope_key, row_ref, payload_json, reason, quarantined_at
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)"#,
+                params![
+                    table,
+                    legacy_scope_key,
+                    format!("rowid:{row_id}"),
+                    payload_json,
+                    "legacy_scope_key_not_workstream_key",
+                    Utc::now().to_rfc3339(),
+                ],
+            )?;
+        }
+    }
+    Ok(())
 }
 
 fn domain_pack_documents(
@@ -634,6 +805,7 @@ fn check_revision(current: Option<u64>, expected: Option<u64>) -> Result<()> {
 }
 
 fn append_event_transaction(connection: &Connection, event: &CompositionEvent) -> Result<u64> {
+    let scope_key = canonical_scope_key(&event.scope)?;
     connection.execute(
         r#"INSERT INTO mission_canvas_composition_events(
                 event_id, scope_key, event_kind, projection_revision, layout_revision,
@@ -641,7 +813,7 @@ fn append_event_transaction(connection: &Connection, event: &CompositionEvent) -
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"#,
         params![
             event.event_id,
-            event.scope.storage_key(),
+            scope_key,
             event.event_kind,
             event.projection_revision,
             event.layout_revision,
@@ -844,5 +1016,289 @@ mod tests {
         assert_ne!(left_result.is_ok(), right_result.is_ok());
         assert_eq!(store.events_after(&scope(), 0, 10).unwrap().len(), 2);
         std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    /// Hostile Workstream isolation and fail-closed persistence coverage for
+    /// CORE-005. This module name is also the bounded runtime-test selector.
+    mod mission_canvas_store_workstream_isolation {
+        use serde_json::json;
+
+        use super::*;
+
+        fn workstream(id: &str) -> WorkstreamKey {
+            let base = scope().workstream;
+            WorkstreamKey::new(
+                base.scope,
+                crate::workstream_identity::WorkstreamId::parse(id).unwrap(),
+            )
+        }
+
+        fn aggregate_scope(id: &str) -> MissionCanvasScope {
+            MissionCanvasScope::new(workstream(id), None).unwrap()
+        }
+
+        fn projection(
+            scope: MissionCanvasScope,
+            revision: u64,
+            marker: &str,
+        ) -> ResolvedWorkspaceProjection {
+            ResolvedWorkspaceProjection {
+                schema: "focusa.resolved_workspace_projection.v1".into(),
+                scope,
+                workspace_profile_id: "software".into(),
+                workspace_profile_revision: 1,
+                activity_mode_id: "overview".into(),
+                activity_mode_revision: 1,
+                focused_work_surface_id: None,
+                canonical_read_model_revision: revision,
+                candidate_contribution_ids: vec![format!("candidate:{marker}")],
+                eligible_contributions: vec![],
+                omission_diagnostics: vec![OmissionDiagnostic {
+                    contribution_id: format!("contribution:{marker}"),
+                    reason: "capability_not_present".into(),
+                    rule_revision: "resolver:v1".into(),
+                    projection_revision: revision,
+                    canonical_input_refs: vec![],
+                    details_ref: Some(format!("diagnostic:{marker}")),
+                    observed_at: "2026-07-30T12:00:00Z".into(),
+                }],
+                layout_tree: json!({
+                    "kind": "single",
+                    "node_id": format!("layout:{marker}"),
+                    "contribution_id": format!("contribution:{marker}")
+                }),
+                operation_bindings: vec![],
+                focused_semantic_target: format!("semantic:{marker}"),
+                projection_revision: revision,
+                layout_revision: revision,
+                durable_event_cursor: format!("event:{marker}:{revision}"),
+                projection_digest: format!("sha256:{marker}"),
+                resolved_at: Some("2026-07-30T12:00:00Z".into()),
+                evidence_refs: vec![format!("evidence:{marker}")],
+                receipt_refs: vec![format!("receipt:{marker}")],
+            }
+        }
+
+        fn event_for(scope: MissionCanvasScope, id: &str, revision: u64) -> CompositionEvent {
+            CompositionEvent {
+                event_id: id.into(),
+                event_kind: "projection_resolved".into(),
+                scope,
+                projection_revision: revision,
+                layout_revision: revision,
+                causation_id: None,
+                correlation_id: None,
+                occurred_at: "2026-07-30T12:00:00Z".into(),
+                payload: json!({"revision": revision}),
+                evidence_refs: vec![format!("evidence:{id}")],
+                receipt_refs: vec![format!("receipt:{id}")],
+            }
+        }
+
+        #[test]
+        fn reading_workstream_a_cannot_return_workstream_b_data() {
+            let store = MissionCanvasStore::open_in_memory().unwrap();
+            let a = aggregate_scope("ws:alpha");
+            let b = aggregate_scope("ws:beta");
+            store
+                .save_projection(
+                    &projection(a.clone(), 1, "alpha"),
+                    None,
+                    &event_for(a.clone(), "event:alpha", 1),
+                )
+                .unwrap();
+            store
+                .save_projection(
+                    &projection(b.clone(), 1, "beta"),
+                    None,
+                    &event_for(b.clone(), "event:beta", 1),
+                )
+                .unwrap();
+
+            let loaded_a = store.load_projection(&a).unwrap().unwrap();
+            let loaded_b = store
+                .load_projection_for_workstream(&b.workstream)
+                .unwrap()
+                .unwrap();
+            assert_eq!(loaded_a.scope.workstream, a.workstream);
+            assert_eq!(loaded_a.evidence_refs, vec!["evidence:alpha"]);
+            assert_eq!(loaded_b.scope.workstream, b.workstream);
+            assert_eq!(loaded_b.receipt_refs, vec!["receipt:beta"]);
+            assert!(
+                store
+                    .load_projection(&aggregate_scope("ws:missing"))
+                    .unwrap()
+                    .is_none()
+            );
+            assert_eq!(store.events_after(&a, 0, 10).unwrap().len(), 1);
+            assert!(
+                store
+                    .events_after(&aggregate_scope("ws:missing"), 0, 10)
+                    .unwrap()
+                    .is_empty()
+            );
+        }
+
+        #[test]
+        fn layout_memory_evidence_receipt_and_diagnostic_rows_are_workstream_partitioned() {
+            let store = MissionCanvasStore::open_in_memory().unwrap();
+            let a = aggregate_scope("ws:alpha");
+            let b = aggregate_scope("ws:beta");
+            for (scope, marker, event_id) in [
+                (a.clone(), "alpha", "event:memory:alpha"),
+                (b.clone(), "beta", "event:memory:beta"),
+            ] {
+                let document = StoredDocument {
+                    document_id: "layout-memory:software:overview".into(),
+                    scope: scope.clone(),
+                    revision: 1,
+                    payload: json!({
+                        "placements": [marker],
+                        "evidence_refs": [format!("evidence:{marker}")],
+                        "receipt_refs": [format!("receipt:{marker}")],
+                        "omission_diagnostics": [{"reason": "capability_not_present"}]
+                    }),
+                    updated_at: "2026-07-30T12:00:00Z".into(),
+                };
+                store
+                    .put_document(
+                        "mission_canvas_layout_memory",
+                        &document,
+                        None,
+                        &event_for(scope, event_id, 1),
+                    )
+                    .unwrap();
+            }
+            let loaded_a = store
+                .get_document(
+                    "mission_canvas_layout_memory",
+                    &a,
+                    "layout-memory:software:overview",
+                )
+                .unwrap()
+                .unwrap();
+            let loaded_b = store
+                .get_document(
+                    "mission_canvas_layout_memory",
+                    &b,
+                    "layout-memory:software:overview",
+                )
+                .unwrap()
+                .unwrap();
+            assert_eq!(loaded_a.payload["placements"][0], "alpha");
+            assert_eq!(loaded_a.payload["evidence_refs"][0], "evidence:alpha");
+            assert_eq!(loaded_b.payload["placements"][0], "beta");
+            assert_eq!(loaded_b.payload["receipt_refs"][0], "receipt:beta");
+        }
+
+        #[test]
+        fn foreign_scope_and_surface_without_attachment_fail_closed() {
+            let store = MissionCanvasStore::open_in_memory().unwrap();
+            let a = aggregate_scope("ws:alpha");
+            let b = aggregate_scope("ws:beta");
+            let projection_a = projection(a.clone(), 1, "alpha");
+            let foreign_event = event_for(b, "event:foreign", 1);
+            assert!(matches!(
+                store.save_projection(&projection_a, None, &foreign_event),
+                Err(MissionCanvasStoreError::WorkstreamMismatch)
+            ));
+            assert!(store.load_projection(&a).unwrap().is_none());
+
+            let invalid_scope = MissionCanvasScope::from_parts(
+                a.workstream.clone(),
+                None,
+                None,
+                None,
+                None,
+                Some(crate::workstream_identity::WorkSurfaceId::parse("surface:orphan").unwrap()),
+            )
+            .unwrap();
+            let invalid_projection = projection(invalid_scope.clone(), 1, "orphan");
+            assert!(matches!(
+                store.save_projection(
+                    &invalid_projection,
+                    None,
+                    &event_for(invalid_scope, "event:orphan", 1),
+                ),
+                Err(MissionCanvasStoreError::InvalidScope("attachment_missing"))
+            ));
+        }
+
+        #[test]
+        fn stale_revision_and_foreign_cursor_never_overwrite_or_leak() {
+            let store = MissionCanvasStore::open_in_memory().unwrap();
+            let a = aggregate_scope("ws:alpha");
+            let b = aggregate_scope("ws:beta");
+            store
+                .save_projection(
+                    &projection(a.clone(), 1, "alpha"),
+                    None,
+                    &event_for(a.clone(), "event:alpha", 1),
+                )
+                .unwrap();
+            let stale = store.save_projection(
+                &projection(a.clone(), 2, "alpha-new"),
+                Some(0),
+                &event_for(a.clone(), "event:stale", 2),
+            );
+            assert!(matches!(
+                stale,
+                Err(MissionCanvasStoreError::RevisionConflict {
+                    expected: 0,
+                    observed: 1
+                })
+            ));
+            assert_eq!(
+                store
+                    .load_projection(&a)
+                    .unwrap()
+                    .unwrap()
+                    .projection_revision,
+                1
+            );
+            assert_eq!(store.events_after(&a, 0, 10).unwrap().len(), 1);
+            assert_eq!(store.latest_event_sequence(&b).unwrap(), 0);
+            assert!(store.events_after(&b, 0, 10).unwrap().is_empty());
+        }
+
+        #[test]
+        fn legacy_scope_rows_are_quarantined_and_never_rekeyed_by_guess() {
+            let store = MissionCanvasStore::open_in_memory().unwrap();
+            let legacy_scope = scope();
+            let legacy_key = legacy_scope.storage_key();
+            let payload =
+                serde_json::to_string(&projection(aggregate_scope("ws:legacy"), 1, "legacy"))
+                    .unwrap();
+            {
+                let connection = store.connection.lock();
+                connection
+                    .execute(
+                        "INSERT INTO mission_canvas_projections(scope_key, projection_revision, layout_revision, projection_digest, payload_json, updated_at) VALUES (?1, 1, 1, ?2, ?3, ?4)",
+                        params![
+                            legacy_key,
+                            "sha256:legacy",
+                            payload,
+                            "2026-07-30T12:00:00Z"
+                        ],
+                    )
+                    .unwrap();
+            }
+            store.migrate().unwrap();
+            assert!(
+                store
+                    .load_projection(&aggregate_scope("ws:legacy"))
+                    .unwrap()
+                    .is_none()
+            );
+            let connection = store.connection.lock();
+            let quarantined: i64 = connection
+                .query_row(
+                    "SELECT COUNT(*) FROM mission_canvas_legacy_quarantine WHERE source_table = 'mission_canvas_projections'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(quarantined, 1);
+        }
     }
 }
