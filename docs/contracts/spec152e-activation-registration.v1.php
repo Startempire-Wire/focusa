@@ -178,7 +178,11 @@ final class FocusaSpec152eActivationRegistrationMigration
             settled_at VARCHAR(32) NULL,
             updated_at VARCHAR(32) NOT NULL,
             CHECK (state NOT IN ('attempt_created', 'email_challenge_sent', 'email_verified')
-                OR (account_uuid IS NULL AND edd_customer_id IS NULL)),
+                OR (account_uuid IS NULL AND edd_customer_id IS NULL
+                    AND edd_cart_reference IS NULL AND edd_order_id IS NULL AND edd_order_item_id IS NULL
+                    AND edd_license_id IS NULL AND node_uuid IS NULL
+                    AND terminal_delivery_status = 'none' AND delivery_attempts = 0
+                    AND delivery_ready_at IS NULL AND delivered_at IS NULL)),
             CHECK (state NOT IN ('account_promoted', 'offer_selected', 'checkout_pending', 'limited_access_review', 'existing_key_review', 'entitlement_issued', 'terminal_delivery_ready', 'device_registered', 'lease_issued', 'delivered')
                 OR (account_uuid IS NOT NULL AND edd_customer_id IS NOT NULL))
         )");
@@ -901,6 +905,10 @@ final class FocusaSpec152eActivationRegistrationRepository
             }
         }
         if ($toState === FocusaSpec152eActivationRegistrationState::ACCOUNT_PROMOTED) {
+            $promotionFields = ['state_reason', 'account_uuid', 'edd_customer_id'];
+            if (array_diff(array_keys($context), $promotionFields) !== []) {
+                throw new DomainException('PENDING_AUTHORITY_FIELD_DENIED');
+            }
             if ($row['verification_state'] !== 'mailbox_verified' || $row['verified_at'] === null
                 || !isset($context['account_uuid'], $context['edd_customer_id'])) {
                 throw new DomainException('EMAIL_VERIFICATION_REQUIRED');
@@ -909,6 +917,14 @@ final class FocusaSpec152eActivationRegistrationRepository
             if ((int) $context['edd_customer_id'] < 1) {
                 throw new InvalidArgumentException('positive EDD customer ID required');
             }
+        }
+        if ($row['account_uuid'] !== null && array_key_exists('account_uuid', $context)
+            && !hash_equals((string) $row['account_uuid'], (string) $context['account_uuid'])) {
+            throw new DomainException('ACCOUNT_BINDING_CONFLICT');
+        }
+        if ($row['edd_customer_id'] !== null && array_key_exists('edd_customer_id', $context)
+            && (int) $row['edd_customer_id'] !== (int) $context['edd_customer_id']) {
+            throw new DomainException('ACCOUNT_BINDING_CONFLICT');
         }
         if (in_array($toState, [
             FocusaSpec152eActivationRegistrationState::OFFER_SELECTED,

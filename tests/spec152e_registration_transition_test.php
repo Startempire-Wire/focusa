@@ -143,6 +143,17 @@ $verified = $repository->verifyEmail($id, $challenge, 'req-verify-good-01', 'ide
 expect_registration_transition($verified['registration']['state'] === FocusaSpec152eActivationRegistrationState::EMAIL_VERIFIED, 'valid verifier enters email_verified');
 expect_registration_transition($verified['registration']['verification_state'] === 'mailbox_verified', 'valid verifier records mailbox verification');
 expect_registration_transition($verified['registration']['verification_challenge_hash'] === null, 'verification hash is single-use');
+expect_registration_transition_throws(
+    static fn() => $repository->transition($id, FocusaSpec152eActivationRegistrationState::EMAIL_VERIFIED,
+        FocusaSpec152eActivationRegistrationState::ACCOUNT_PROMOTED, (int) $verified['registration']['state_version'],
+        'req-promotion-extra-authority-01', 'idem-promotion-extra-authority-01', [
+            'account_uuid' => '018f47c2-6ac0-7b16-8d1a-4e93df5a0101',
+            'edd_customer_id' => 41001,
+            'edd_license_id' => 503,
+        ]),
+    'PENDING_AUTHORITY_FIELD_DENIED',
+    'account promotion cannot attach commerce or entitlement references'
+);
 $verifiedReplay = $repository->verifyEmail($id, $challenge, 'req-verify-good-01', 'idem-verify-good-01');
 expect_registration_transition($verifiedReplay['replayed'] === true, 'verification replay is idempotent');
 expect_registration_transition((int) $verifiedReplay['registration']['state_version'] === (int) $verified['registration']['state_version'], 'verification replay does not advance state');
@@ -176,6 +187,14 @@ expect_registration_transition_throws(
 );
 
 $version = (int) $promoted['registration']['state_version'];
+expect_registration_transition_throws(
+    static fn() => $repository->transition($id, FocusaSpec152eActivationRegistrationState::ACCOUNT_PROMOTED,
+        FocusaSpec152eActivationRegistrationState::OFFER_SELECTED, $version, 'req-account-binding-0001', 'idem-account-binding-0001', [
+            'account_uuid' => '018f47c2-6ac0-7b16-8d1a-4e93df5a0102',
+        ]),
+    'ACCOUNT_BINDING_CONFLICT',
+    'canonical account binding cannot be replaced after promotion'
+);
 expect_registration_transition_throws(
     static fn() => $repository->transition($id, FocusaSpec152eActivationRegistrationState::ACCOUNT_PROMOTED,
         FocusaSpec152eActivationRegistrationState::OFFER_SELECTED, $version - 1, 'req-stale-0001', 'idem-stale-0001'),

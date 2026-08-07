@@ -107,6 +107,10 @@ expect_registration_schema($secretStore->decryptEmail($row['encrypted_normalized
 expect_registration_schema($row['expires_at'] === '2026-08-07T05:32:00Z', 'registration TTL is bounded');
 expect_registration_schema($row['verification_challenge_expires_at'] === '2026-08-07T05:17:00Z', 'verification TTL is bounded separately');
 expect_registration_schema($row['poll_credential_expires_at'] === '2026-08-07T05:32:00Z', 'poll TTL is bounded by registration TTL');
+expect_registration_schema_throws(static function () use ($db, $row): void {
+    $statement = $db->prepare('UPDATE wp_wpuiai_activation_registrations SET edd_order_id = 9001 WHERE registration_uuid = :registration');
+    $statement->execute([':registration' => $row['registration_uuid']]);
+}, 'database constraints reject commerce references on pending records');
 
 $stored = $repository->findByUuid($row['registration_uuid']);
 $public = FocusaSpec152eActivationRegistrationPresenter::snapshot($stored);
