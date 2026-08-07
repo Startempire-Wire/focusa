@@ -18,6 +18,7 @@ use focusa_core::mission_canvas::{
     HostLifecycleFocusCommand, HostLifecycleLaunchCommand, HostLifecycleService,
     HostLifecycleState, HostPlatform, HostRendererResolutionError, HostRendererResolutionService,
     LayoutMemoryUpdateCommand, LayoutMemoryUpdateError, LayoutMemoryUpdateService,
+    LayoutMutationCommand, LayoutMutationError, LayoutMutationExecution, LayoutMutationService,
     MissionCanvasScope, MissionCanvasStore, ProfileLayoutMemory, ProfileSelectionCommand,
     ProfileSelectionError, ProfileSelectionService, ResolveProjectionInput, StoredDocument,
     WorkspaceProfileDefinition, DOMAIN_PACK_INSTALL_CAPABILITY, LAYOUT_MEMORY_UPDATE_PERMISSION,
@@ -214,21 +215,6 @@ struct PiSessionEventRequest {
     layout_revision: u64,
     payload: Value,
     occurred_at: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct LayoutMutationRequest {
-    command_id: String,
-    #[serde(flatten)]
-    scope: MissionCanvasScope,
-    action: String,
-    target_contribution_id: Option<String>,
-    secondary_work_surface_id: Option<String>,
-    target_layout_node_id: Option<String>,
-    split_ratio: Option<f64>,
-    expected_projection_revision: u64,
-    expected_layout_revision: u64,
-    idempotency_key: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2073,295 +2059,133 @@ async fn put_layout_memory(
 async fn mutate_layout(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Json(request): Json<LayoutMutationRequest>,
+    Json(command): Json<LayoutMutationCommand>,
 ) -> ApiResult {
-    require_permission(&headers, "mission_canvas:write")?;
-    if request.idempotency_key.trim().is_empty() || request.command_id.trim().is_empty() {
-        return Err(error(
-            StatusCode::UNPROCESSABLE_ENTITY,
-            "layout_command_invalid",
-            "command_id and idempotency_key are required",
-        ));
-    }
-    request
-        .scope
-        .validate()
-        .map_err(|reason| error(StatusCode::CONFLICT, "attachment_scope_mismatch", reason))?;
-    if request.scope.attachment.is_none() {
+    // The route is only a generated transport adapter. Permission, exact
+    // Workstream extraction, and header/body mutation controls are established
+    // before Core is allowed to inspect a layout or contribution ID.
+    require_permission_with_state(&state, &headers, "mission_canvas:write")?;
+    validate_authority(&command.scope)?;
+    if command.scope.attachment.is_none() {
         return Err(error(
             StatusCode::UNPROCESSABLE_ENTITY,
             "attachment_missing",
             "Layout mutation requires an exact generated AttachmentKey",
         ));
     }
-    let store = store(&state)?;
-    let mut projection = store
-        .get_projection(&request.scope)
-        .map_err(store_error)?
-        .ok_or_else(|| {
-            error(
-                StatusCode::NOT_FOUND,
-                "projection_not_found",
-                "No projection exists for layout mutation",
-            )
-        })?;
-    if projection.projection_revision != request.expected_projection_revision
-        || projection.layout_revision != request.expected_layout_revision
-    {
+    let context =
+        exact_workstream_context(&command.scope, &headers).map_err(host_renderer_context_error)?;
+    let header_idempotency_key = required_header(
+        &headers,
+        "idempotency-key",
+        "idempotency_key_missing",
+        "Idempotency-Key is required for layout mutation",
+    )?;
+    if header_idempotency_key != command.idempotency_key {
         return Err(error(
             StatusCode::CONFLICT,
-            "layout_revision_conflict",
-            "Projection or layout revision is stale",
+            "idempotency_key_mismatch",
+            "The generated LayoutMutationCommand and Idempotency-Key header disagree",
         ));
     }
-    let target = request
-        .target_contribution_id
-        .as_deref()
-        .unwrap_or_default();
-    let secondary = request
-        .secondary_work_surface_id
-        .as_deref()
-        .unwrap_or_default();
-    let changed = if request.action == "focus" {
-        projection.focused_semantic_target = target.to_owned();
-        true
-    } else if matches!(
-        request.action.as_str(),
-        "open" | "pin" | "unpin" | "rehydrate"
-    ) {
-        true
-    } else {
-        mutate_layout_value(
-            &mut projection.layout_tree,
-            &request.action,
-            target,
-            secondary,
-            request.target_layout_node_id.as_deref(),
-            request.split_ratio,
-        )
-    };
-    if !changed {
+    let header_revision = required_if_match_revision(&headers)?;
+    if header_revision != command.expected_projection_revision {
         return Err(error(
+            StatusCode::CONFLICT,
+            "projection_revision_conflict",
+            "The generated command and If-Match revision disagree",
+        ));
+    }
+    let permissions = permission_context(&headers, token_enabled(&state))
+        .list()
+        .into_iter()
+        .collect();
+    let result = LayoutMutationService
+        .mutate(
+            &store(&state)?,
+            LayoutMutationExecution {
+                context,
+                command,
+                permissions,
+            },
+        )
+        .map_err(layout_mutation_error)?;
+    // LayoutMutationResult is the direct generated DTO. The canonical layout
+    // is read through projection.get; Desktop never receives or fabricates a
+    // competing layout wrapper or local projection.
+    Ok(Json(serde_json::to_value(result).map_err(json_error)?))
+}
+
+fn layout_mutation_error(error_value: LayoutMutationError) -> (StatusCode, Json<Value>) {
+    let message = error_value.to_string();
+    match error_value {
+        LayoutMutationError::Context(context_error) => {
+            host_renderer_context_error(context_error)
+        }
+        LayoutMutationError::Scope(reason) => {
+            error(StatusCode::CONFLICT, "workstream_identity_mismatch", reason)
+        }
+        LayoutMutationError::PermissionDenied(permission) => error(
+            StatusCode::FORBIDDEN,
+            "permission_denied",
+            &format!("Missing required permission: {permission}"),
+        ),
+        LayoutMutationError::CommandInvalid(reason) => {
+            error(StatusCode::UNPROCESSABLE_ENTITY, "layout_command_invalid", reason)
+        }
+        LayoutMutationError::ProjectionNotFound => error(
+            StatusCode::NOT_FOUND,
+            "projection_not_found",
+            "No projection exists for this exact Workstream",
+        ),
+        LayoutMutationError::RevisionConflict => error(
+            StatusCode::CONFLICT,
+            "layout_revision_conflict",
+            &message,
+        ),
+        LayoutMutationError::IdempotencyConflict => {
+            error(StatusCode::CONFLICT, "idempotency_conflict", &message)
+        }
+        LayoutMutationError::UnknownContribution(contribution) => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "unknown_contribution_id",
+            &format!("Unknown canonical contribution ID: {contribution}"),
+        ),
+        LayoutMutationError::UnknownWorkSurface(surface) => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "unknown_work_surface_id",
+            &format!("Unknown canonical Work Surface: {surface}"),
+        ),
+        LayoutMutationError::NotApplicable => error(
             StatusCode::UNPROCESSABLE_ENTITY,
             "layout_mutation_not_applicable",
-            "Layout command did not match the current projection",
-        ));
-    }
-    projection.projection_revision += 1;
-    projection.layout_revision += 1;
-    projection.durable_event_cursor = format!("mission-canvas:{}", projection.projection_revision);
-    projection.resolved_at = Some(Utc::now().to_rfc3339());
-    projection.projection_digest =
-        focusa_core::mission_canvas::reducer::projection_digest(&projection).map_err(json_error)?;
-    let event = CompositionEvent {
-        event_id: format!("projection-event:layout:{}", request.idempotency_key),
-        event_kind: "layout_changed".into(),
-        scope: request.scope,
-        projection_revision: projection.projection_revision,
-        layout_revision: projection.layout_revision,
-        causation_id: Some(request.command_id.clone()),
-        correlation_id: Some(request.idempotency_key),
-        occurred_at: Utc::now().to_rfc3339(),
-        payload: json!({"action":request.action,"target_contribution_id":target,"projection_digest":projection.projection_digest}),
-        evidence_refs: vec![format!("evidence:layout:{}", projection.layout_revision)],
-        receipt_refs: vec![format!("receipt:layout:{}", projection.layout_revision)],
-    };
-    store
-        .put_projection(
-            &projection,
-            Some(request.expected_projection_revision),
-            &event,
-        )
-        .map_err(store_error)?;
-    Ok(Json(json!({
-        "workstream": projection.scope.workstream,
-        "continuity_id": projection.scope.continuity_id,
-        "attachment": projection.scope.attachment,
-        "workspace_binding_id": projection.scope.workspace_binding_id,
-        "runtime_object": projection.scope.runtime_object,
-        "work_surface_id": projection.scope.work_surface_id,
-        "command_id": request.command_id,
-        "accepted": true,
-        "projection_revision": projection.projection_revision,
-        "layout_revision": projection.layout_revision,
-        "projection_digest": projection.projection_digest,
-        "event_cursor": projection.durable_event_cursor,
-        "error_ref": null,
-        "evidence_ref": event.evidence_refs[0],
-        "receipt_ref": event.receipt_refs[0],
-    })))
-}
-
-fn mutate_layout_value(
-    node: &mut Value,
-    action: &str,
-    target: &str,
-    secondary: &str,
-    target_node: Option<&str>,
-    split_ratio: Option<f64>,
-) -> bool {
-    if action == "set_active_tab" && node.get("kind").and_then(Value::as_str) == Some("tabs") {
-        let contains = node
-            .get("contribution_ids")
-            .and_then(Value::as_array)
-            .is_some_and(|ids| ids.iter().any(|id| id.as_str() == Some(target)));
-        if contains {
-            node["active_contribution_id"] = json!(target);
-            return true;
+            &message,
+        ),
+        LayoutMutationError::UnsupportedAction(action) => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "layout_action_unsupported",
+            &format!("Canonical layout does not expose action: {action}"),
+        ),
+        LayoutMutationError::InvalidLayout(reason) => error(
+            StatusCode::CONFLICT,
+            "canonical_layout_invalid",
+            &reason,
+        ),
+        LayoutMutationError::RevisionOverflow => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "layout_revision_overflow",
+            &message,
+        ),
+        LayoutMutationError::Serialization(serialization_error) => {
+            json_error(serialization_error)
         }
-    }
-    if action == "resize_split"
-        && node.get("kind").and_then(Value::as_str) == Some("split")
-        && target_node
-            .is_none_or(|expected| node.get("node_id").and_then(Value::as_str) == Some(expected))
-    {
-        let ratio = split_ratio.unwrap_or(0.67);
-        if (0.1..=0.9).contains(&ratio) {
-            node["ratio"] = json!(ratio);
-            return true;
-        }
-    }
-    if action == "ungroup" && node.get("kind").and_then(Value::as_str) == Some("tabs") {
-        if let Some(active) = node
-            .get("active_contribution_id")
-            .and_then(Value::as_str)
-            .map(str::to_owned)
-        {
-            *node = json!({"kind":"single","node_id":target_node.unwrap_or("layout:ungrouped"),"contribution_id":active});
-            return true;
-        }
-    }
-    if action == "reorder" {
-        let mut target_path = None;
-        let mut secondary_path = None;
-        find_contribution_paths(
-            node,
-            &mut vec![],
-            target,
-            secondary,
-            &mut target_path,
-            &mut secondary_path,
-        );
-        if let (Some(left), Some(right)) = (target_path, secondary_path) {
-            let left_value = node.pointer(&left).cloned();
-            let right_value = node.pointer(&right).cloned();
-            if let (Some(left_value), Some(right_value)) = (left_value, right_value) {
-                if let Some(slot) = node.pointer_mut(&left) {
-                    *slot = right_value;
-                }
-                if let Some(slot) = node.pointer_mut(&right) {
-                    *slot = left_value;
-                }
-                return true;
+        LayoutMutationError::Store(store_error) => match store_error {
+            focusa_core::mission_canvas::MissionCanvasStoreError::RevisionConflict { .. }
+            | focusa_core::mission_canvas::MissionCanvasStoreError::LayoutMutationIdempotencyConflict => {
+                error(StatusCode::CONFLICT, "layout_revision_conflict", &message)
             }
-        }
-    }
-    if action == "group"
-        && node.get("kind").and_then(Value::as_str) == Some("single")
-        && node.get("contribution_id").and_then(Value::as_str) == Some(target)
-        && !secondary.is_empty()
-    {
-        *node = json!({
-            "kind":"tabs",
-            "node_id":target_node.unwrap_or("layout:grouped-tabs"),
-            "contribution_ids":[target,secondary],
-            "active_contribution_id":target,
-        });
-        return true;
-    }
-    if matches!(action, "split_horizontal" | "split_vertical" | "compare")
-        && node.get("kind").and_then(Value::as_str) == Some("single")
-        && node.get("contribution_id").and_then(Value::as_str) == Some(target)
-        && !secondary.is_empty()
-    {
-        let original = node.clone();
-        *node = json!({
-            "kind":"split",
-            "node_id":target_node.unwrap_or("layout:mutated-split"),
-            "orientation":if action == "split_vertical" { "vertical" } else { "horizontal" },
-            "ratio":split_ratio.unwrap_or(0.67),
-            "children":[original,{"kind":"single","node_id":format!("layout:{}",secondary),"contribution_id":secondary}],
-        });
-        return true;
-    }
-    if matches!(action, "suspend_projection" | "close_projection") {
-        if let Some(children) = node.get_mut("children").and_then(Value::as_array_mut) {
-            let before = children.len();
-            children.retain(|child| !layout_contains_contribution(child, target));
-            if children.len() != before {
-                if children.len() == 1 {
-                    *node = children.remove(0);
-                }
-                return true;
-            }
-        }
-    }
-    if let Some(children) = node.get_mut("children").and_then(Value::as_array_mut) {
-        for child in children {
-            if mutate_layout_value(child, action, target, secondary, target_node, split_ratio) {
-                return true;
-            }
-        }
-    }
-    if let Some(primary) = node.get_mut("primary") {
-        if mutate_layout_value(primary, action, target, secondary, target_node, split_ratio) {
-            return true;
-        }
-    }
-    false
-}
-
-fn layout_contains_contribution(value: &Value, target: &str) -> bool {
-    match value {
-        Value::String(item) => item == target,
-        Value::Array(items) => items
-            .iter()
-            .any(|item| layout_contains_contribution(item, target)),
-        Value::Object(items) => items
-            .values()
-            .any(|item| layout_contains_contribution(item, target)),
-        _ => false,
-    }
-}
-
-fn find_contribution_paths(
-    value: &Value,
-    path: &mut Vec<String>,
-    target: &str,
-    secondary: &str,
-    target_path: &mut Option<String>,
-    secondary_path: &mut Option<String>,
-) {
-    match value {
-        Value::String(item) if item == target || item == secondary => {
-            let pointer = format!(
-                "/{}",
-                path.iter()
-                    .map(|part| part.replace('~', "~0").replace('/', "~1"))
-                    .collect::<Vec<_>>()
-                    .join("/")
-            );
-            if item == target {
-                *target_path = Some(pointer);
-            } else {
-                *secondary_path = Some(pointer);
-            }
-        }
-        Value::Array(items) => {
-            for (index, item) in items.iter().enumerate() {
-                path.push(index.to_string());
-                find_contribution_paths(item, path, target, secondary, target_path, secondary_path);
-                path.pop();
-            }
-        }
-        Value::Object(items) => {
-            for (key, item) in items {
-                path.push(key.clone());
-                find_contribution_paths(item, path, target, secondary, target_path, secondary_path);
-                path.pop();
-            }
-        }
-        _ => {}
+            other => store_error(other),
+        },
     }
 }
 
@@ -3176,40 +3000,5 @@ mod tests {
         );
         assert!(require_permission(&headers, "mission_canvas:read").is_ok());
         assert!(require_permission(&headers, "mission_canvas:write").is_err());
-    }
-
-    #[test]
-    fn layout_mutations_are_revision_payload_deterministic() {
-        let mut layout = json!({
-            "kind":"split","node_id":"layout:root","orientation":"horizontal","ratio":0.5,
-            "children":[
-                {"kind":"single","node_id":"layout:a","contribution_id":"contribution:a"},
-                {"kind":"single","node_id":"layout:b","contribution_id":"contribution:b"}
-            ]
-        });
-        assert!(mutate_layout_value(
-            &mut layout,
-            "reorder",
-            "contribution:a",
-            "contribution:b",
-            None,
-            None
-        ));
-        assert_eq!(
-            layout
-                .pointer("/children/0/contribution_id")
-                .and_then(Value::as_str),
-            Some("contribution:b")
-        );
-        let mut tab = json!({"kind":"tabs","node_id":"layout:tabs","contribution_ids":["contribution:a","contribution:b"],"active_contribution_id":"contribution:a"});
-        assert!(mutate_layout_value(
-            &mut tab,
-            "set_active_tab",
-            "contribution:b",
-            "",
-            None,
-            None
-        ));
-        assert_eq!(tab["active_contribution_id"], "contribution:b");
     }
 }

@@ -6,6 +6,7 @@
 pub mod domain_pack;
 pub mod host;
 pub mod layout;
+pub mod layout_mutation;
 pub mod memory;
 pub mod model;
 pub mod persistence;
@@ -27,6 +28,10 @@ pub use host::{
 };
 pub use layout::{
     resolve_layout, validate_no_dead_chrome, LayoutConstraints, LayoutError, LayoutNode,
+};
+pub use layout_mutation::{
+    LayoutMutationCommand, LayoutMutationError, LayoutMutationExecution, LayoutMutationResult,
+    LayoutMutationService, LAYOUT_MUTATE_OPERATION, LAYOUT_MUTATE_PERMISSION,
 };
 pub use memory::{
     layout_memory_digest, reduce_layout_memory, validate_profile_layout_memory,

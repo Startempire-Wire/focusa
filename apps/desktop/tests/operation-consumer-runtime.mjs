@@ -62,6 +62,8 @@ try {
     await exerciseLayoutMemoryGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.layout_memory.update') {
     await exerciseLayoutMemoryUpdate({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.layout.mutate') {
+    await exerciseLayoutMutation({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.profile.select') {
     await exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, fixture });
   } else if (operationId === 'focusa.mission_canvas.projection.resolve') {
@@ -84,6 +86,60 @@ try {
   await server.ws.close();
   if (server.httpServer) await new Promise((resolve) => server.httpServer.close(resolve));
   if (createdKitTsconfig) await rm(generatedKitTsconfig, { force: true });
+}
+
+async function exerciseLayoutMutation({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  assert.ok(authority.attachment, 'layout mutation fixture requires exact attachment authority');
+  const input = {
+    ...structuredClone(authority),
+    action: 'focus',
+    attachment: structuredClone(authority.attachment),
+    command_id: 'command:layout:focus',
+    expected_layout_revision: 7,
+    expected_projection_revision: 11,
+    idempotency_key: 'idem:layout:focus',
+    target_contribution_id: 'contribution:primary'
+  };
+  const canonical = {
+    accepted: true,
+    attachment: structuredClone(authority.attachment),
+    command_id: input.command_id,
+    continuity_id: authority.continuity_id,
+    error_ref: null,
+    event_cursor: 'event:layout:12',
+    evidence_ref: 'evidence:layout:12',
+    layout_revision: 8,
+    projection_digest: `sha256:${'a'.repeat(64)}`,
+    projection_revision: 12,
+    receipt_ref: 'receipt:layout:12',
+    runtime_object: structuredClone(authority.runtime_object),
+    work_surface_id: authority.work_surface_id,
+    workspace_binding_id: authority.workspace_binding_id,
+    workstream: structuredClone(authority.workstream)
+  };
+  let responseBody = structuredClone(canonical);
+  const transport = new MissionCanvasHttpTransport('http://focusa.test', async () => new Response(
+    JSON.stringify(responseBody),
+    { status: 200, headers: { 'content-type': 'application/json' } }
+  ));
+  const client = new MissionCanvasClient(transport);
+  const result = await client.layoutMutate(structuredClone(input));
+  assert.equal(result.command_id, input.command_id);
+  assert.equal(result.layout_revision, 8);
+  assert.equal(result.projection_revision, 12);
+
+  responseBody = structuredClone(canonical);
+  responseBody.workstream.workstream_id = 'ws:foreign';
+  await assert.rejects(
+    () => client.layoutMutate({ ...structuredClone(input), command_id: 'command:layout:foreign' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.includes('scope_mismatch')
+  );
+
+  responseBody = { ...structuredClone(canonical), projection_revision: 11, layout_revision: 7 };
+  await assert.rejects(
+    () => client.layoutMutate({ ...structuredClone(input), command_id: 'command:layout:stale' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.includes('stale_layout_mutation')
+  );
 }
 
 async function exerciseProfileSelectCoreDirectHostile({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {

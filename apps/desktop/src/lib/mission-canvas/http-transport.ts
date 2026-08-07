@@ -271,6 +271,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
       }
       this.#layoutMemoryWatermarks.set(memoryKey, receipt);
     }
+    if (operationId === 'focusa.mission_canvas.layout.mutate') {
+      validateLayoutMutationResult(operationId, response.status, value, authority, requestInput);
+    }
     if (operation.response_schema_ref === 'ResolvedWorkspaceProjection') {
       const watermark = validateProjectionResponse(
         operationId,
@@ -499,6 +502,25 @@ function validateOperationRequest(
     if (typeof requestObject.idempotency_key !== 'string'
       || requestObject.idempotency_key.trim().length === 0) {
       return { valid: false, errors: ['missing:idempotency_key'] };
+    }
+    return validation;
+  }
+  if (operationId === 'focusa.mission_canvas.layout.mutate') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return { valid: false, errors: ['expected object'] };
+    }
+    const command = value as Record<string, unknown>;
+    if (typeof command.command_id !== 'string' || command.command_id.trim().length === 0) {
+      return { valid: false, errors: ['missing:command_id'] };
+    }
+    if (typeof command.idempotency_key !== 'string' || command.idempotency_key.trim().length === 0) {
+      return { valid: false, errors: ['missing:idempotency_key'] };
+    }
+    if (!Number.isSafeInteger(command.expected_projection_revision)
+      || (command.expected_projection_revision as number) < 0
+      || !Number.isSafeInteger(command.expected_layout_revision)
+      || (command.expected_layout_revision as number) < 0) {
+      return { valid: false, errors: ['invalid:expected_revision'] };
     }
     return validation;
   }
@@ -774,6 +796,40 @@ function validateProfileLayoutMemoryResponse(
   }
 
   return { memoryRevision };
+}
+
+function validateLayoutMutationResult(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext,
+  requestInput: unknown
+): void {
+  const result = isRecord(value) ? value : undefined;
+  const request = isRecord(requestInput) ? requestInput : undefined;
+  if (!result || !request) {
+    throw new MissionCanvasTransportError('invalid_response:expected_layout_mutation_result', operationId, status, value);
+  }
+  const responseAuthority = authorityFromRecord(result);
+  const authorityValidation = validateMissionCanvasContract('WorkstreamAuthorityContext', responseAuthority);
+  if (!authorityValidation.valid || !sameWorkstreamAuthorityContext(responseAuthority, expectedAuthority)) {
+    throw new MissionCanvasTransportError('invalid_response:scope_mismatch', operationId, status, value);
+  }
+  if (result.command_id !== request.command_id) {
+    throw new MissionCanvasTransportError('invalid_response:command_mismatch', operationId, status, value);
+  }
+  const projectionRevision = result.projection_revision;
+  const layoutRevision = result.layout_revision;
+  const expectedProjectionRevision = request.expected_projection_revision;
+  const expectedLayoutRevision = request.expected_layout_revision;
+  if (!Number.isSafeInteger(projectionRevision)
+    || !Number.isSafeInteger(layoutRevision)
+    || !Number.isSafeInteger(expectedProjectionRevision)
+    || !Number.isSafeInteger(expectedLayoutRevision)
+    || (projectionRevision as number) <= (expectedProjectionRevision as number)
+    || (layoutRevision as number) <= (expectedLayoutRevision as number)) {
+    throw new MissionCanvasTransportError('invalid_response:stale_layout_mutation', operationId, status, value);
+  }
 }
 
 function validateLayoutMemoryUpdateReceipt(
