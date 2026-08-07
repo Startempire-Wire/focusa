@@ -311,6 +311,95 @@ try {
   assert.equal(rejectedEvents.rejected[0].reason, 'foreign_event_scope');
   assert.equal(persistedCursor, 'cursor:1');
 
+  // Hostile Desktop event-client cases stay on the generated transport path:
+  // no local scope repair, cursor inference, or partial authority handoff.
+  const immutableScope = structuredClone(fixtureAuthority);
+  const immutableInputs = [];
+  const immutableClient = new MissionCanvasEventClient(
+    { eventsStream: async (input) => { immutableInputs.push(input); return []; } },
+    immutableScope,
+    { load: () => undefined, persist: () => { throw new Error('empty tail must not persist'); } }
+  );
+  immutableScope.workstream.workstream_id = 'ws:mutated-after-client-creation';
+  await immutableClient.poll();
+  assert.equal(immutableInputs[0].workstream.workstream_id, fixtureAuthority.workstream.workstream_id);
+
+  let invalidScopeCalls = 0;
+  const invalidScopeClient = new MissionCanvasEventClient(
+    { eventsStream: async () => { invalidScopeCalls += 1; return []; } },
+    {},
+    { load: () => undefined, persist: () => undefined }
+  );
+  await assert.rejects(() => invalidScopeClient.poll(), /invalid_workstream_scope/);
+  assert.equal(invalidScopeCalls, 0, 'invalid Workstream authority must fail before eventsStream');
+
+  let invalidCursorCalls = 0;
+  const invalidCursorClient = new MissionCanvasEventClient(
+    { eventsStream: async () => { invalidCursorCalls += 1; return []; } },
+    fixtureAuthority,
+    { load: () => 'event:not-a-number', persist: () => undefined }
+  );
+  await assert.rejects(() => invalidCursorClient.poll(), /invalid_persisted_cursor/);
+  assert.equal(invalidCursorCalls, 0, 'invalid durable cursor must fail before eventsStream');
+
+  const malformedEventPayload = structuredClone(eventFixture);
+  delete malformedEventPayload.event_cursor;
+  const malformedEventClient = new MissionCanvasEventClient(
+    { eventsStream: async () => [malformedEventPayload] },
+    fixtureAuthority,
+    { load: () => undefined, persist: () => { throw new Error('malformed event must not persist'); } }
+  );
+  const malformedEvents = await malformedEventClient.poll();
+  assert.equal(malformedEvents.accepted.length, 0);
+  assert.match(malformedEvents.rejected[0].reason, /invalid_event/);
+
+  const duplicateEventClient = new MissionCanvasEventClient(
+    { eventsStream: async () => [structuredClone(eventFixture), structuredClone(eventFixture)] },
+    fixtureAuthority,
+    { load: () => undefined, persist: (_scope, cursor) => assert.equal(cursor, 'cursor:1') }
+  );
+  const duplicateEvents = await duplicateEventClient.poll();
+  assert.equal(duplicateEvents.accepted.length, 1);
+  assert.equal(duplicateEvents.rejected[0].reason, 'duplicate_event');
+
+  const foreignDirectEvent = structuredClone(eventFixture);
+  foreignDirectEvent.event_id = 'event:foreign-direct-client';
+  foreignDirectEvent.event_cursor = 'cursor:2';
+  foreignDirectEvent.workstream.workstream_id = 'ws:foreign';
+  foreignDirectEvent.attachment.workstream.workstream_id = 'ws:foreign';
+  const foreignEventClient = new MissionCanvasEventClient(
+    { eventsStream: async () => [foreignDirectEvent] },
+    fixtureAuthority,
+    { load: () => undefined, persist: () => { throw new Error('foreign event must not persist'); } }
+  );
+  const foreignEvents = await foreignEventClient.poll();
+  assert.equal(foreignEvents.accepted.length, 0);
+  assert.equal(foreignEvents.rejected[0].reason, 'foreign_event_scope');
+
+  const unavailableEventClient = new MissionCanvasEventClient(
+    {},
+    fixtureAuthority,
+    { load: () => undefined, persist: () => undefined }
+  );
+  await assert.rejects(() => unavailableEventClient.poll(), /operation_unavailable/);
+
+  let persistAttempts = 0;
+  let persistFailureInputs = [];
+  const persistFailureClient = new MissionCanvasEventClient(
+    { eventsStream: async (input) => {
+      persistFailureInputs.push(input.after_cursor);
+      return persistAttempts === 0 ? [structuredClone(eventFixture)] : [];
+    } },
+    fixtureAuthority,
+    { load: () => undefined, persist: () => { persistAttempts += 1; throw new Error('storage offline'); } }
+  );
+  await assert.rejects(() => persistFailureClient.poll(), /event_cursor_persist_failed/);
+  assert.equal(persistAttempts, 1);
+  // A failed cursor write does not advance in-memory state; a retry remains a
+  // replay from the old cursor rather than silently skipping an event.
+  await persistFailureClient.poll();
+  assert.deepEqual(persistFailureInputs, [undefined, undefined]);
+
   let reloads = 0;
   const { MissionCanvasInvalidationController } = await server.ssrLoadModule('/src/lib/mission-canvas/invalidation-controller.ts');
   const invalidations = new MissionCanvasInvalidationController(() => { reloads += 1; }, 1000);
