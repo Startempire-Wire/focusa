@@ -20,5 +20,5 @@
   ],
   "runtime_promotion_required": false,
   "schema": "focusa.mission_canvas.protocol_handshake.v1",
-  "schema_bundle_digest": "sha256:1bfc6780ccaae08ba93d0e913308f3fc3de7733f139310f74e11eba6520b95f0"
+  "schema_bundle_digest": "sha256:54d6d7be7f48d40e3c9988d77573332518d12a4a65d138f3275d79eea400bc83"
 }

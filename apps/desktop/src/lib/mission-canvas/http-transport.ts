@@ -1,5 +1,9 @@
 import type { MissionCanvasOperationInput, MissionCanvasTransport } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
-import { sameWorkstreamKey, validateMissionCanvasContract } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
+import {
+  sameWorkstreamAuthorityContext,
+  sameWorkstreamKey,
+  validateMissionCanvasContract
+} from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
 import type { WorkstreamAuthorityContext } from './types';
 import registry from '../../../../../docs/contracts/spec135/mission-canvas-v1/operation-registry.json';
 
@@ -128,6 +132,45 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
         value
       );
     }
+    if (operation.response_schema_ref === 'HostRendererResolution') {
+      const responseAuthority = authorityFromResolution(value);
+      if (!responseAuthority) {
+        throw new MissionCanvasTransportError(
+          'invalid_response:missing:workstream',
+          operationId,
+          response.status,
+          value
+        );
+      }
+      if (!sameWorkstreamKey(responseAuthority.workstream, authority.workstream)) {
+        throw new MissionCanvasTransportError(
+          'foreign_resolution_scope',
+          operationId,
+          response.status,
+          value
+        );
+      }
+      const responseAuthorityValidation = validateMissionCanvasContract(
+        'WorkstreamAuthorityContext',
+        responseAuthority
+      );
+      if (!responseAuthorityValidation.valid) {
+        throw new MissionCanvasTransportError(
+          `invalid_response:${responseAuthorityValidation.errors.join(',')}`,
+          operationId,
+          response.status,
+          value
+        );
+      }
+      if (!sameWorkstreamAuthorityContext(responseAuthority, authority)) {
+        throw new MissionCanvasTransportError(
+          'foreign_resolution_scope',
+          operationId,
+          response.status,
+          value
+        );
+      }
+    }
     return value as T;
   }
 }
@@ -177,6 +220,20 @@ function authorityFromInput(input: unknown): WorkstreamAuthorityContext {
     workspace_binding_id: (value.workspace_binding_id as WorkstreamAuthorityContext['workspace_binding_id']) ?? null,
     runtime_object: (value.runtime_object as WorkstreamAuthorityContext['runtime_object']) ?? null,
     work_surface_id: (value.work_surface_id as WorkstreamAuthorityContext['work_surface_id']) ?? null
+  };
+}
+
+function authorityFromResolution(value: unknown): WorkstreamAuthorityContext | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const response = value as Record<string, unknown>;
+  if (!('workstream' in response)) return undefined;
+  return {
+    workstream: response.workstream as WorkstreamAuthorityContext['workstream'],
+    continuity_id: (response.continuity_id as WorkstreamAuthorityContext['continuity_id']) ?? null,
+    attachment: (response.attachment as WorkstreamAuthorityContext['attachment']) ?? null,
+    workspace_binding_id: (response.workspace_binding_id as WorkstreamAuthorityContext['workspace_binding_id']) ?? null,
+    runtime_object: (response.runtime_object as WorkstreamAuthorityContext['runtime_object']) ?? null,
+    work_surface_id: (response.work_surface_id as WorkstreamAuthorityContext['work_surface_id']) ?? null
   };
 }
 

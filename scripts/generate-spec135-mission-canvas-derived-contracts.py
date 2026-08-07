@@ -190,6 +190,15 @@ def typescript_client(registry: dict[str, Any]) -> str:
 def typescript_validators(bundle: dict[str, Any]) -> str:
     required = {name: schema.get("required", []) for name, schema in bundle["$defs"].items() if schema.get("required")}
     allowed = {name: sorted(schema.get("properties", {})) for name, schema in bundle["$defs"].items() if schema.get("properties") and schema.get("additionalProperties") is False}
+    enum_values = {
+        name: {
+            field: child["enum"]
+            for field, child in schema.get("properties", {}).items()
+            if isinstance(child, dict) and "enum" in child
+        }
+        for name, schema in bundle["$defs"].items()
+        if any(isinstance(child, dict) and "enum" in child for child in schema.get("properties", {}).values())
+    }
     authority_schemas = sorted(
         name for name, schema in bundle["$defs"].items() if "workstream" in schema.get("required", [])
     )
@@ -198,6 +207,7 @@ def typescript_validators(bundle: dict[str, Any]) -> str:
             "// Generated structural and identity validators; JSON Schema remains canonical. Do not edit.",
             f"const REQUIRED: Record<string, readonly string[]> = {json.dumps(required, sort_keys=True)};",
             f"const ALLOWED: Record<string, readonly string[]> = {json.dumps(allowed, sort_keys=True)};",
+            f"const ENUM_VALUES: Record<string, Record<string, readonly unknown[]>> = {json.dumps(enum_values, sort_keys=True)};",
             f"const AUTHORITY_SCHEMAS = new Set({json.dumps(authority_schemas)});",
             "",
             "export interface ValidationResult { valid: boolean; errors: string[]; }",
@@ -268,6 +278,7 @@ def typescript_validators(bundle: dict[str, Any]) -> str:
             "  for (const field of REQUIRED[schemaName] ?? []) if (!(field in object)) errors.push(`missing:${field}`);",
             "  const allowed = ALLOWED[schemaName];",
             "  if (allowed) for (const field of Object.keys(object)) if (!allowed.includes(field)) errors.push(`unknown:${field}`);",
+            "  for (const [field, values] of Object.entries(ENUM_VALUES[schemaName] ?? {})) if (field in object && !values.some((candidate) => candidate === object[field])) errors.push(`invalid:${field}`);",
             "  if (schemaName === 'WorkstreamKey') validateWorkstreamKey(object, errors, '');",
             "  if (schemaName === 'AttachmentKey') {",
             "    validateWorkstreamKey(object.workstream, errors, 'attachment');",

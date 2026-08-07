@@ -229,13 +229,19 @@ export type HostLifecycleState = {
 export type HostRendererResolution = {
   "asset_digest"?: string | null;
   "asset_version"?: string | null;
+  "attachment"?: AttachmentKey | null;
   "availability": "available" | "fallback" | "unavailable" | "headless";
+  "continuity_id"?: ContinuityId | null;
   "diagnostic_ref"?: string | null;
   "interaction_mode": "canvas-guided" | "terminal-guided" | "headless";
   "platform": "macOS" | "Windows" | "Linux";
   "resolution_reason": string;
   "resolver_revision": string;
-  "selected_renderer": "focusa_pi_rich_window" | "uiai_engine_cockpit" | "mission_deck_web" | "pi_terminal_projection" | "native_tui" | "menubar_peek" | "headless_none";
+  "runtime_object"?: RuntimeObjectRef | null;
+  "selected_renderer": "focusa_desktop_tauri" | "focusa_pi_rich_window" | "uiai_engine_cockpit" | "mission_deck_web" | "pi_terminal_projection" | "native_tui" | "menubar_peek" | "headless_none";
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream"?: WorkstreamKey;
 };
 
 export type HostScopeKey = {

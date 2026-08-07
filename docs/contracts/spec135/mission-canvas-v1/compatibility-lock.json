@@ -5,12 +5,12 @@
     "implementation-proof-matrix.json": "sha256:80c47cc0fc12f61768aff981730d4cf427ff5a51c015c9b478af21e354e9ca83",
     "openapi-3.0.3.json": "sha256:f015fb8358461b2abe10b55939d046a45ee38b28d55d1f2ccc21e95274582c82",
     "typescript/mission-canvas-client.generated.ts": "sha256:2645b95c82804d3342df2366cf1364d6a52d64bfa577d0d3b8e2d4cea8620af3",
-    "typescript/mission-canvas-types.generated.ts": "sha256:db9c4f796193b06d36129684bc52d112db66f65dac4c0c55ca698637d74fb2a6",
-    "typescript/mission-canvas-validators.generated.ts": "sha256:a6e6ec4a6ff4dee0865c693151dd67fef51dc26a1cf38c0ff80c3310b2f2a3b1",
+    "typescript/mission-canvas-types.generated.ts": "sha256:2c7bb2e63576faf24796fbe81b41e46c9d3a766d8c09dce35d9afb69c3573f9b",
+    "typescript/mission-canvas-validators.generated.ts": "sha256:37af1fb0b43c72e3bdac88cf2c625af61607dc7bf7f1eeaf056d9a7fc229fc2e",
     "ui-action-bindings.json": "sha256:daea98c615f5f37e18c6bb9be69c2f805b231c24baa0b07bf69f27ac88e99927"
   },
   "operation_registry_sha256": "b77178a72f2df1e6c71cbd875b89056d478c17cbc75635cc7f00d034f02898ee",
   "protocol_version": "1.0.0",
   "schema": "focusa.mission_canvas.compatibility_lock.v1",
-  "schema_bundle_sha256": "1bfc6780ccaae08ba93d0e913308f3fc3de7733f139310f74e11eba6520b95f0"
+  "schema_bundle_sha256": "54d6d7be7f48d40e3c9988d77573332518d12a4a65d138f3275d79eea400bc83"
 }
