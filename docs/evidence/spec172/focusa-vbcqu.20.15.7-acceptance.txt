@@ -21,12 +21,33 @@ Privacy and freshness
 - It contains no raw browser capture, account identity, customer record, key, token, cookie, or authenticated session material.
 - Current recapture is not a condition of this baseline atom. Later public-convergence atoms own fresh UIAI proof after service availability returns.
 
-Verification
-- `python3 tests/spec172_public_commerce_baseline_test.py`
-- `git diff --check`
+Verification record
+- Canonical project root: `/tmp/focusa-rel3-candidate`.
+- Exact source/test commit: `f94a9b37957492b1417243a6fe24e6531c4a49c6` (`docs/contracts/spec172-public-commerce-baseline.v1.json`, `tests/spec172_public_commerce_baseline_test.py`, and the initial acceptance record).
+- Verification date: 2026-08-07.
+- Working-tree boundary before verification: only the pre-existing unrelated untracked `error_log`; no scoped source/test modification.
+
+Commands, exit codes, and bounded results
+1. `git rev-parse --show-toplevel`
+   - exit: 0
+   - bounded result: `/tmp/focusa-rel3-candidate`
+2. `git rev-parse HEAD`
+   - exit: 0
+   - bounded result: `f94a9b37957492b1417243a6fe24e6531c4a49c6`
+3. `python3 tests/spec172_public_commerce_baseline_test.py`
+   - exit: 0
+   - bounded result: `Spec 172 bounded UIAI public-commerce baseline: PASS`
+4. `git diff --check`
+   - exit: 0
+   - bounded result: no whitespace errors reported.
+
+Remaining blockers
+- None for atom `.7`: every Section 18 contradiction has a bounded Section 18.1 evidence ref and one Section 18.2 replacement target.
+- Fresh post-convergence browser proof remains owned by later public-convergence atoms and is not promoted into this historical baseline or treated as an atom `.7` blocker.
+- UIAI service unavailability after the supplied 2026-08-07 root-title open is recorded, not bypassed with authenticated or non-UIAI captures.
 
 Rollback
-Revert only the contract, test, and this acceptance record. Do not alter Spec 172 authority, customer rights, licensing state, or public services.
+Revert only `docs/contracts/spec172-public-commerce-baseline.v1.json`, `tests/spec172_public_commerce_baseline_test.py`, and `docs/evidence/spec172/focusa-vbcqu.20.15.7-acceptance.txt`. Preserve verified identities, customers, orders, refunds, License Types, keys, nodes, sequences, customer data, migration journals, all underlying evidence, and accepted unrelated work. Perform no public-service mutation or data deletion.
 
 Disposition
-Atom .7 freezes the bounded, redacted public-claim contradiction baseline and canonical replacement text without inventing claims beyond Section 18.1 or requiring authenticated captures.
+Atom `.7` is accepted on stable contract, exact test, and this bounded evidence record. The baseline does not invent claims beyond Section 18.1, require authenticated captures, or treat public copy as entitlement authority.
