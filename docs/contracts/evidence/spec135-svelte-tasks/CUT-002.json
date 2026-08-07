@@ -1,0 +1,44 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CUT-002",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Verified existing complete implementation: Remove local static activity and surface arrays.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "CUT-001",
+      "UI-013",
+      "UI-014"
+    ]
+  },
+  "targets": [
+    "apps/desktop/src/lib/shell/MissionCanvasShell.svelte",
+    "apps/desktop"
+  ],
+  "implementation": [
+    "no local possible-type lists"
+  ],
+  "negative_cases": [],
+  "checks": [
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "acceptance": [
+    "Static surfaceTabs and activityModes arrays are absent.",
+    "No static scaffold is reachable in production Desktop code.",
+    "No capability is lost during deletion."
+  ],
+  "source_authority": [],
+  "evidence_refs": [
+    "apps/desktop/src/lib/shell/MissionCanvasShell.svelte",
+    "apps/desktop"
+  ],
+  "remaining_work": []
+}
