@@ -1,6 +1,7 @@
 Spec 152E atom focusa-vbcqu.20.13.4 acceptance evidence
 Evidence schema: focusa.spec152e.atom_acceptance.v1
 Scope: unified activation call stack, public/internal contracts, stable errors, state machine
+Implementation and exact verified repository commit: c31418707822a5022d893695ed5c29a2b9c21d49
 
 Exact verification commands and bounded results
 
@@ -22,6 +23,15 @@ Exit code: 0
 Bounded result:
 {"result": "passed", "schema": "focusa.spec152e.state_machine_validation.v1", "states": 19, "transitions": 48}
 
+Pinned output digests
+- docs/contracts/spec152e-activation-call-stack.v1.yaml sha256:d861a58ef5e9cd96805d944b80ee885885edb8746d326f0b8a5f9a068beae35a
+- docs/contracts/spec152e-activation-public-openapi.v1.json sha256:8941823bf94b2d99e002635e2d92efe2e9f712b784229ef774b617e727496d9b
+- docs/contracts/spec152e-activation-internal.v1.json sha256:1e8cfba4d4fe8471040bcb1922d71695ee0c35131c14eceb746937f2fbad8f13
+- docs/contracts/spec152e-activation-errors.v1.json sha256:673d842c1fa552b010457b956c5809c3b1b99dc4b82b31cc850de00aeedc25b1
+- scripts/generate-spec152e-activation-contracts.py sha256:e79697b61ac947c1ac5e5e126ceef6a67a88103e8454a315371c0829930a684d
+- tests/spec152e_api_contract_test.py sha256:ccdd3821972f88c87a0f98cbec0354042dc6cf509ca8c5f2c9a6d117b125874a
+- tests/spec152e_state_machine_contract_test.py sha256:bc5d78951bbeb89a6b6bda7f807932d9f6ba4256c46faa7b5802dbc5ed66f6d8
+
 Acceptance boundaries
 - Public OpenAPI, internal call-stack projection, and stable failure registry are generated from docs/contracts/spec152e-activation-call-stack.v1.yaml.
 - Verification covers all 11 declared operations, 33 stable errors, 19 registration states, and 48 transitions.
@@ -29,6 +39,7 @@ Acceptance boundaries
 
 Remaining blockers
 - None within the local source/test acceptance boundary.
+- The Beads store does not expose this externally supplied work-item ID in this checkout; this immutable repository evidence path is the bounded local note handle.
 - Administrative closure is intentionally not performed by this atom.
 
 Rollback
