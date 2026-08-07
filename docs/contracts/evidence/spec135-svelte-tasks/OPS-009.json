@@ -1,0 +1,185 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-009",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Implemented focusa.mission_canvas.layout_memory.get as a bounded generated read operation. The API now requires exact Workstream authority and explicit profile/activity/viewport selectors, reads only the Workstream-partitioned canonical memory document, validates the Core-owned ProfileLayoutMemory identity/content, and returns the direct generated DTO. Desktop resolves the GET path from the generated operation registry, validates the exact authority/profile tuple and placement memory, rejects stale memory revisions, and never receives or composes a projection layout locally.",
+  "targets": [
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/memory.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-009.json"
+  ],
+  "dependency_gate": {
+    "UI-001": {
+      "evidence": "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+      "status": "integrated",
+      "decision": "The generated registry-driven transport adapter is present on the integrated base and was extended without replacing its generated operation lookup, exact Workstream validation, or trusted renderer boundary. No separate checked-in UI-001 evidence artifact is available in this checkout."
+    },
+    "UI-002": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/UI-002.json",
+      "status": "verified",
+      "decision": "The canonical DesktopContext Workstream binding is present and remains the sole source of exact Desktop authority; layout_memoryGet rejects missing or mismatched authority before HTTP."
+    }
+  },
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "surface_kind": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "proof_class": "generated transport/runtime integration with Core DTO validation, exact Workstream/profile binding, stale-memory watermark, and hostile response checks",
+    "eligible_contributions": [],
+    "omitted_contribution_reasons": [
+      "layout_memory.get returns canonical placement memory and has no direct rendered contribution",
+      "absent contribution IDs are retained as memory data and never reserved as geometry or rendered as empty chrome"
+    ],
+    "continuity_invariants": [
+      "ScopeRef → ProjectRootKey → WorkstreamId → ContinuityId → AttachmentKey → SessionId/InstanceId → WorkspaceBindingId → RuntimeObjectRef → WorkSurfaceId remains exact and immutable.",
+      "Core owns Workstream partitioning, memory identity, placement validation, and persistence; Desktop consumes the generated DTO and does not infer profile, eligibility, or layout.",
+      "The generated transport owns operation ID/path/method and response validation; the trusted recursive canonical projection renderer remains untouched and remains the only layout renderer.",
+      "Foreign scope, foreign profile/activity/viewport, malformed memory, missing authority, and regressed memory revision fail closed without fallback data."
+    ]
+  },
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.layout_memory.get",
+    "operation_version": "1.0.0",
+    "method": "GET",
+    "path": "/v1/mission-canvas/layout-memory",
+    "mode": "read",
+    "scope_required": ["workstream"],
+    "scope_optional": [
+      "continuity_id",
+      "attachment",
+      "workspace_binding_id",
+      "runtime_object",
+      "work_surface_id"
+    ],
+    "permissions_required": ["mission_canvas:read"],
+    "confirmation": "none",
+    "requires_idempotency_key": false,
+    "requires_if_match_revision": false,
+    "receipt_required": false,
+    "request_schema_ref": "focusa.mission_canvas.layout_memory_get.request.v1",
+    "response_schema_ref": "ProfileLayoutMemory",
+    "client_method": "layout_memoryGet",
+    "artifact_status": "Generated operation registry, OpenAPI, TypeScript client, validators, capability snapshot, and UI bindings passed parity/determinism; no generated contract, task packet/index, graph, plan, or orchestration artifact was edited."
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "implementation": [
+    "The API read path requires mission_canvas:read, parses and validates the generated Workstream query, extracts the authenticated actor/authority WorkstreamContext, requires profile_id/activity_mode_id/viewport_class selectors, and reads the exact Workstream-partitioned memory document keyed by the canonical profile tuple.",
+    "The reusable Core validator checks exact full authority equality, profile/activity/viewport identity, canonical memory_id, idempotency metadata, placement spans/duplicates, and absent-contribution IDs before the DTO can leave the API. The route returns direct ProfileLayoutMemory rather than StoredDocument or a route-local wrapper.",
+    "The Desktop transport keeps operation metadata generated, validates the selector request before HTTP, sends only exact authority and selectors, validates nested placement memory, checks canonical memory identity, and maintains a per-authority/profile/activity/viewport memory revision watermark.",
+    "The hostile Desktop consumer exercises the generated client method, exact GET/query/header transport, direct DTO shape, missing selectors/authority, foreign Workstream and Attachment, foreign profile, malformed wrapper/placement, stale revision, denied permission/capability, unavailable operation, and no-local-composition behavior. Existing trusted recursive projection rendering is not changed or bypassed."
+  ],
+  "checks": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; 25 contribution schemas, 25 operation entries, 10 derived artifacts, parity and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.layout_memory.get (exit 0; generated registry/OpenAPI/client/API/Core/transport/consumer contract: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.layout_memory.get --client layout_memoryGet (exit 0; generated exact Workstream/profile GET, direct ProfileLayoutMemory, hostile scope/profile/selector/revision/permission/capability checks: PASS)",
+    "rustfmt --edition 2021 --check --config skip_children=true crates/focusa-core/src/mission_canvas/memory.rs crates/focusa-core/src/mission_canvas/mod.rs crates/focusa-api/src/routes/mission_canvas.rs (exit 0)",
+    "node --check apps/desktop/tests/operation-consumer-runtime.mjs (exit 0)",
+    "python3 -m py_compile tests/spec135_mission_canvas_operation_contract_test.py (exit 0)",
+    "git diff --check (exit 0)",
+    "npm --prefix apps/desktop test (exit 1; checkout lacks installed @sveltejs/adapter-static while loading svelte.config.js; this broader gate was not required by OPS-009 and no dependency installation was performed)",
+    "Cargo was not run, per the explicit user constraint."
+  ],
+  "negative_cases": {
+    "foreign_workstream": "The API reads only the exact Workstream partition and Core validation rejects a payload whose Workstream/Attachment differs; Desktop rejects foreign_profile_memory_scope before adoption.",
+    "missing_authority": "Desktop rejects a request without generated Workstream identity before HTTP; the API requires actor and authority headers and Core rejects orphan WorkSurface authority.",
+    "foreign_profile_or_selector": "The response profile_id, activity_mode_id, and viewport_class must equal the generated request selectors; canonical memory_id must match the same tuple.",
+    "stale_revision": "Desktop retains a per-exact-authority memory_revision watermark and rejects a structurally valid regressed memory with stale_profile_memory_revision. This operation has no If-Match/cursor requirement in the generated descriptor.",
+    "unavailable_capability": "The operation has no separate generated capability requirement; Desktop does not mint one. An unavailable-capability ToolResult response is surfaced as a typed transport failure.",
+    "permission_denied": "The generated operation declares mission_canvas:read; a hostile 403 is surfaced without local memory fallback.",
+    "ineligible_or_empty_contribution": "Absent contribution IDs remain canonical memory data only; no optional contribution, panel, heading, border, layout node, or substitute is fabricated.",
+    "invalid_response": "Generated structural validation plus exact authority, memory ID, revision, timestamp, placement, duplicate, and absent-ID validation reject wrappers, malformed placements, foreign data, and malformed memory.",
+    "local_inference": "Desktop sends no layout_tree, eligible_contributions, candidate registry, or renderer data and performs no profile/eligibility/layout resolution. Canonical recursive projection rendering remains owned by the existing trusted renderer registry."
+  },
+  "acceptance": [
+    {
+      "statement": "Returns memory scoped by exact Workstream and profile.",
+      "status": "verified_by_permitted_runtime_consumer_and_source_contract",
+      "proof": "The API/Core path keys and validates the ProfileLayoutMemory against exact full Workstream authority plus profile/activity/viewport selectors, while the generated Desktop consumer verifies the direct DTO and rejects foreign scope/profile responses."
+    },
+    {
+      "statement": "Preserves CARDINAL-135-SVELTE-001 and generated transport/trusted renderer ownership.",
+      "status": "verified",
+      "proof": "Generated parity passed; the transport resolves operation metadata from operation-registry.json; no generated artifact or renderer was edited; the hostile consumer proves no local layout composition."
+    },
+    {
+      "statement": "Fails closed on authority, stale-state, malformed, capability, permission, and empty/ineligible mismatches.",
+      "status": "verified_by_hostile_consumer",
+      "proof": "The required operation consumer command passed all bounded negative cases listed above."
+    }
+  ],
+  "source_authority": [
+    "AGENTS.md",
+    "docs/agent/01-focusa-agent-docs-index.md",
+    "docs/135-series-current-manifest.md",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png",
+    "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/agent/spec135-implementation-acceleration-directive.md",
+    "docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md",
+    "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+    "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md",
+    "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md",
+    "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md",
+    "docs/135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md",
+    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md",
+    "docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md",
+    "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md",
+    "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
+    "docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md",
+    "docs/contracts/spec135-svelte-task-packets/OPS-009.json",
+    "docs/contracts/spec135-svelte-task-packets/UI-001.json",
+    "docs/contracts/spec135-svelte-task-packets/UI-002.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-002.json",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/memory.rs",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/exact-scope.ts",
+    "apps/desktop/src/lib/mission-canvas/profile-memory-controller.svelte.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/contracts/spec135-complete-feature-ledger.v1.yaml",
+    "docs/contracts/spec135-runtime-evidence-matrix.v2.yaml",
+    "docs/contracts/spec135-runtime-conformance-audit.v2.yaml"
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/memory.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py"
+  ],
+  "deferred_repository_observation": "Cargo was not run by explicit instruction. Central executable graph, generated task packets/index, parallel plan, orchestration scripts, generated contract artifacts, and trusted projection renderer sources were not edited.",
+  "remaining_work": [],
+  "status": "verified"
+}

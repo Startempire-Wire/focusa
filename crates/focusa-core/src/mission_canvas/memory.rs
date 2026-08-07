@@ -32,6 +32,97 @@ pub struct ProfileLayoutMemory {
     pub updated_at: String,
 }
 
+/// Validate a persisted layout-memory DTO before an API adapter exposes it to
+/// a generated client.  Layout memory is keyed by the complete authority
+/// context and by the profile/activity/viewport tuple; a Workstream-only
+/// storage partition is not permission to return a subordinate or profile
+/// belonging to another binding.
+pub fn validate_profile_layout_memory(
+    memory: &ProfileLayoutMemory,
+    expected_scope: &MissionCanvasScope,
+    expected_profile_id: &str,
+    expected_activity_mode_id: &str,
+    expected_viewport_class: &str,
+) -> Result<(), &'static str> {
+    validate_memory_scope(&memory.scope)?;
+    validate_memory_scope(expected_scope)?;
+    if memory.scope != *expected_scope {
+        return Err("scope_mismatch");
+    }
+    if expected_profile_id.trim().is_empty() || memory.profile_id != expected_profile_id {
+        return Err("profile_mismatch");
+    }
+    if expected_activity_mode_id.trim().is_empty()
+        || memory.activity_mode_id != expected_activity_mode_id
+    {
+        return Err("activity_mode_mismatch");
+    }
+    if !is_viewport_class(expected_viewport_class)
+        || memory.viewport_class != expected_viewport_class
+    {
+        return Err("viewport_class_mismatch");
+    }
+    if memory.memory_id
+        != format!(
+            "layout-memory:{}:{}:{}",
+            memory.profile_id, memory.activity_mode_id, memory.viewport_class
+        )
+    {
+        return Err("memory_id_mismatch");
+    }
+    if memory.idempotency_key.trim().is_empty() {
+        return Err("idempotency_key_missing");
+    }
+    if memory.placements.iter().any(|placement| {
+        placement.contribution_id.trim().is_empty()
+            || placement.preferred_regions.is_empty()
+            || placement.minimum_span == 0
+            || placement.maximum_span == 0
+            || placement.minimum_span > placement.maximum_span
+            || placement.minimum_span > 12
+            || placement.maximum_span > 12
+    }) {
+        return Err("placement_invalid");
+    }
+    let placement_ids = memory
+        .placements
+        .iter()
+        .map(|placement| placement.contribution_id.as_str())
+        .collect::<BTreeSet<_>>();
+    if placement_ids.len() != memory.placements.len() {
+        return Err("placement_duplicate");
+    }
+    let absent_ids = memory
+        .absent_contribution_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    if absent_ids.len() != memory.absent_contribution_ids.len()
+        || memory
+            .absent_contribution_ids
+            .iter()
+            .any(|contribution_id| contribution_id.trim().is_empty())
+    {
+        return Err("absent_contribution_invalid");
+    }
+    Ok(())
+}
+
+fn validate_memory_scope(scope: &MissionCanvasScope) -> Result<(), &'static str> {
+    scope.validate()?;
+    if scope.work_surface_id.is_some() && scope.attachment.is_none() {
+        return Err("attachment_missing");
+    }
+    Ok(())
+}
+
+fn is_viewport_class(value: &str) -> bool {
+    matches!(
+        value,
+        "minimum" | "compact" | "standard" | "productive" | "wide" | "reference_capture"
+    )
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DraftSnapshot {
     pub draft_id: String,

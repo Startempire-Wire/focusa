@@ -46,6 +46,10 @@ interface HostLifecycleWatermark {
   cursor?: ProjectionCursor;
 }
 
+interface LayoutMemoryWatermark {
+  memoryRevision: number;
+}
+
 export class MissionCanvasTransportError extends Error {
   constructor(
     message: string,
@@ -67,6 +71,7 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
   readonly #fetch: typeof fetch;
   readonly #projectionWatermarks = new Map<string, ProjectionWatermark>();
   readonly #hostLifecycleWatermarks = new Map<string, HostLifecycleWatermark>();
+  readonly #layoutMemoryWatermarks = new Map<string, LayoutMemoryWatermark>();
 
   constructor(
     baseUrl: string,
@@ -184,6 +189,32 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
           value
         );
       }
+    }
+    if (operationId === 'focusa.mission_canvas.layout_memory.get') {
+      const watermark = validateProfileLayoutMemoryResponse(
+        operationId,
+        response.status,
+        value,
+        authority,
+        requestInput
+      );
+      const requestRecord = requestInput as Record<string, unknown>;
+      const memoryKey = [
+        workstreamAuthorityStorageKey(authority),
+        requestRecord.profile_id,
+        requestRecord.activity_mode_id,
+        requestRecord.viewport_class
+      ].join('|');
+      const previous = this.#layoutMemoryWatermarks.get(memoryKey);
+      if (previous && watermark.memoryRevision < previous.memoryRevision) {
+        throw new MissionCanvasTransportError(
+          'stale_profile_memory_revision',
+          operationId,
+          response.status,
+          value
+        );
+      }
+      this.#layoutMemoryWatermarks.set(memoryKey, watermark);
     }
     if (operation.response_schema_ref === 'ResolvedWorkspaceProjection') {
       const watermark = validateProjectionResponse(
@@ -368,6 +399,37 @@ function validateOperationRequest(
     if (unknownFields.length > 0) return { valid: false, errors: unknownFields };
     return validation;
   }
+  if (operationId === 'focusa.mission_canvas.layout_memory.get') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return { valid: false, errors: ['expected object'] };
+    }
+    const requestObject = value as Record<string, unknown>;
+    for (const field of ['profile_id', 'activity_mode_id', 'viewport_class']) {
+      if (typeof requestObject[field] !== 'string' || requestObject[field].trim().length === 0) {
+        return { valid: false, errors: [`missing:${field}`] };
+      }
+    }
+    const allowedFields = new Set([
+      'profile_id',
+      'activity_mode_id',
+      'viewport_class',
+      'workstream',
+      'continuity_id',
+      'attachment',
+      'workspace_binding_id',
+      'runtime_object',
+      'work_surface_id'
+    ]);
+    const unknownFields = Object.keys(requestObject)
+      .filter((field) => !allowedFields.has(field))
+      .map((field) => `unknown:${field}`);
+    if (unknownFields.length > 0) return { valid: false, errors: unknownFields };
+    if (!['minimum', 'compact', 'standard', 'productive', 'wide', 'reference_capture']
+      .includes(requestObject.viewport_class as string)) {
+      return { valid: false, errors: ['invalid:viewport_class'] };
+    }
+    return validation;
+  }
   if (operationId !== 'focusa.mission_canvas.profile.select'
     && operationId !== 'focusa.mission_canvas.activity.select') return validation;
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -405,6 +467,210 @@ function validateOperationRequest(
     .map((field) => `unknown:${field}`);
   if (unknownFields.length > 0) return { valid: false, errors: unknownFields };
   return validation;
+}
+
+function validateProfileLayoutMemoryResponse(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext,
+  requestInput: unknown
+): LayoutMemoryWatermark {
+  const memory = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  if (!memory) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:expected_object',
+      operationId,
+      status,
+      value
+    );
+  }
+
+  const responseAuthority = authorityFromRecord(memory);
+  const authorityValidation = validateMissionCanvasContract(
+    'WorkstreamAuthorityContext',
+    responseAuthority
+  );
+  if (!authorityValidation.valid) {
+    throw new MissionCanvasTransportError(
+      `invalid_response:${authorityValidation.errors.join(',')}`,
+      operationId,
+      status,
+      value
+    );
+  }
+  if (!sameWorkstreamAuthorityContext(responseAuthority, expectedAuthority)) {
+    throw new MissionCanvasTransportError(
+      'foreign_profile_memory_scope',
+      operationId,
+      status,
+      value
+    );
+  }
+
+  const request = requestInput as Record<string, unknown>;
+  for (const field of ['profile_id', 'activity_mode_id', 'viewport_class']) {
+    if (memory[field] !== request[field]) {
+      const mismatchCode = field === 'profile_id'
+        ? 'foreign_profile_memory_profile_id'
+        : field === 'activity_mode_id'
+          ? 'foreign_profile_memory_activity_mode_id'
+          : 'foreign_profile_memory_viewport_class';
+      throw new MissionCanvasTransportError(
+        mismatchCode,
+        operationId,
+        status,
+        value
+      );
+    }
+  }
+  const profileId = memory.profile_id;
+  const activityModeId = memory.activity_mode_id;
+  const viewportClass = memory.viewport_class;
+  if (typeof profileId !== 'string' || typeof activityModeId !== 'string' || typeof viewportClass !== 'string') {
+    throw new MissionCanvasTransportError(
+      'invalid_response:profile_memory_identity',
+      operationId,
+      status,
+      value
+    );
+  }
+  const memoryId = memory.memory_id;
+  const expectedMemoryId = `layout-memory:${profileId}:${activityModeId}:${viewportClass}`;
+  if (typeof memoryId !== 'string' || !/^layout-memory:[a-z0-9._:-]+$/.test(memoryId)) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:memory_id',
+      operationId,
+      status,
+      value
+    );
+  }
+  if (memoryId !== expectedMemoryId) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:memory_id_mismatch',
+      operationId,
+      status,
+      value
+    );
+  }
+
+  const memoryRevision = memory.memory_revision;
+  if (typeof memoryRevision !== 'number'
+    || !Number.isSafeInteger(memoryRevision)
+    || memoryRevision < 0) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:memory_revision',
+      operationId,
+      status,
+      value
+    );
+  }
+  if (typeof memory.idempotency_key !== 'string' || memory.idempotency_key.trim().length === 0) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:idempotency_key',
+      operationId,
+      status,
+      value
+    );
+  }
+  if (typeof memory.updated_at !== 'string' || Number.isNaN(Date.parse(memory.updated_at))) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:updated_at',
+      operationId,
+      status,
+      value
+    );
+  }
+
+  const placements = memory.placements;
+  if (!Array.isArray(placements)) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:placements',
+      operationId,
+      status,
+      value
+    );
+  }
+  const placementIds = new Set<string>();
+  for (const [index, placement] of placements.entries()) {
+    const placementValidation = validateMissionCanvasContract(
+      'ContributionPlacementPreference',
+      placement
+    );
+    if (!placementValidation.valid) {
+      throw new MissionCanvasTransportError(
+        `invalid_response:placements:${index}:${placementValidation.errors.join(',')}`,
+        operationId,
+        status,
+        value
+      );
+    }
+    if (!placement || typeof placement !== 'object' || Array.isArray(placement)) {
+      throw new MissionCanvasTransportError(
+        `invalid_response:placements:${index}:expected_object`,
+        operationId,
+        status,
+        value
+      );
+    }
+    const placementRecord = placement as Record<string, unknown>;
+    const contributionId = placementRecord.contribution_id;
+    const regions = placementRecord.preferred_regions;
+    const minimumSpan = placementRecord.minimum_span;
+    const maximumSpan = placementRecord.maximum_span;
+    const preferredOrder = placementRecord.preferred_order;
+    if (typeof contributionId !== 'string'
+      || contributionId.trim().length === 0
+      || placementIds.has(contributionId)
+      || !Array.isArray(regions)
+      || regions.length === 0
+      || regions.some((region) => typeof region !== 'string' || region.trim().length === 0)
+      || typeof preferredOrder !== 'number'
+      || !Number.isSafeInteger(preferredOrder)
+      || preferredOrder < 0
+      || typeof minimumSpan !== 'number'
+      || !Number.isSafeInteger(minimumSpan)
+      || minimumSpan < 1
+      || minimumSpan > 12
+      || typeof maximumSpan !== 'number'
+      || !Number.isSafeInteger(maximumSpan)
+      || maximumSpan < minimumSpan
+      || maximumSpan > 12) {
+      throw new MissionCanvasTransportError(
+        `invalid_response:placements:${index}:content`,
+        operationId,
+        status,
+        value
+      );
+    }
+    placementIds.add(contributionId);
+  }
+
+  const absent = memory.absent_contribution_ids;
+  if (!Array.isArray(absent)) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:absent_contribution_ids',
+      operationId,
+      status,
+      value
+    );
+  }
+  const absentIds = new Set<string>();
+  for (const contributionId of absent) {
+    if (typeof contributionId !== 'string' || contributionId.trim().length === 0 || absentIds.has(contributionId)) {
+      throw new MissionCanvasTransportError(
+        'invalid_response:absent_contribution_ids:content',
+        operationId,
+        status,
+        value
+      );
+    }
+    absentIds.add(contributionId);
+  }
+
+  return { memoryRevision };
 }
 
 function validateResponse(schemaRef: string, value: unknown): { valid: boolean; errors: string[] } {
