@@ -39,7 +39,7 @@
         || typeof profile.profile_id !== 'string'
         || typeof profile.display_name !== 'string'
         || !Array.isArray(profile.candidate_contribution_ids)
-        || profile.candidate_contribution_ids.some((contributionId) => typeof contributionId !== 'string')) {
+        || profile.candidate_contribution_ids.some((contributionId: unknown) => typeof contributionId !== 'string')) {
         return [];
       }
       if (profile.installed === false) continue;
