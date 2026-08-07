@@ -3,7 +3,7 @@
   import { collectLayoutContributionIds, validateLayoutIntegrity } from './layout-references';
   import MissionCanvasFrame from './MissionCanvasFrame.svelte';
   import type { OperationBinding, ResolvedContribution, ResolvedWorkspaceProjection } from './types';
-  import type { ContributionRendererRegistry } from './contribution-renderers';
+  import { resolveContributionRenderer, type ContributionRendererRegistry } from './contribution-renderers';
 
   let {
     projection,
@@ -19,8 +19,14 @@
     onOperation?: (binding: OperationBinding) => void | Promise<void>;
   } = $props();
 
+  const rendererResolutions = $derived(
+    projection.eligible_contributions.map((contribution) => ({
+      contribution,
+      resolution: registry.resolveWithDiagnostic(contribution)
+    }))
+  );
   const unavailable = $derived(
-    projection.eligible_contributions.filter((contribution) => !registry.resolve(contribution))
+    rendererResolutions.filter(({ resolution }) => resolution.status === 'blocked')
   );
   const layoutIntegrityIssues = $derived(validateLayoutIntegrity(projection.layout_tree));
   const layoutContributionIds = $derived(collectLayoutContributionIds(projection.layout_tree));
@@ -37,7 +43,7 @@
 </script>
 
 {#snippet renderContribution(contribution: ResolvedContribution)}
-  {@const resolved = registry.resolve(contribution)}
+  {@const resolved = resolveContributionRenderer(registry, contribution)}
   {#if resolved}
     {@const Renderer = resolved.component}
     <Renderer {contribution} {projection} {client} {onOperation} {...resolved.componentProps}/>
@@ -49,8 +55,13 @@
     <strong>Renderer unavailable</strong>
     <span>The canonical workspace cannot be rendered by this Desktop build.</span>
     <ul>
-      {#each unavailable as contribution (contribution.contribution_id)}
-        <li data-unavailable-renderer={contribution.renderer_binding_id}>{contribution.accessibility.label}</li>
+      {#each unavailable as entry (entry.contribution.contribution_id)}
+        {#if entry.resolution.status === 'blocked'}
+          <li
+            data-unavailable-renderer={entry.contribution.renderer_binding_id}
+            data-renderer-resolution-reason={entry.resolution.diagnostic.reason}
+          >{entry.contribution.accessibility.label}</li>
+        {/if}
       {/each}
       {#each layoutIntegrityIssues as issue, index (`${issue.nodeId}:${issue.code}:${index}`)}
         <li data-layout-integrity-issue={issue.code}>{issue.nodeId}{issue.contributionId ? ` · ${issue.contributionId}` : ''}</li>

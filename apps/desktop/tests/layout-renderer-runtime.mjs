@@ -141,6 +141,95 @@ try {
   assert.doesNotMatch(completeRegistry, /role="alert"/);
   assert.match(completeRegistry, /data-trusted-renderer="renderer:pi-session@v1"/);
   assert.match(completeRegistry, /data-trusted-renderer="renderer:focusa-inspector@v1"/);
+
+  // UI-005 hostile registry cases: only exact generated binding identities may
+  // select a trusted component. No malformed contribution, semantic/kind
+  // mismatch, or renderer-owned prop can become a fallback renderer.
+  const {
+    ContributionRendererRegistry,
+    resolveContributionRenderer
+  } = await server.ssrLoadModule('/src/lib/mission-canvas/contribution-renderers.ts');
+  const { default: ResolvedContributionRenderer } = await server.ssrLoadModule('/tests/fixtures/ResolvedContributionHarnessRenderer.svelte');
+  const rendererFixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/populated-projection.json', import.meta.url), 'utf8'));
+  const piContribution = rendererFixture.eligible_contributions[0];
+  const hostileRegistry = new ContributionRendererRegistry([{
+    rendererBindingId: 'renderer:pi-session@v1',
+    semanticBindingIds: ['semantic:pi-session'],
+    contributionKinds: ['focused_work_surface'],
+    component: ResolvedContributionRenderer
+  }]);
+  const resolvedPi = resolveContributionRenderer(hostileRegistry, piContribution);
+  assert.equal(resolvedPi.component, ResolvedContributionRenderer);
+  assert.equal(hostileRegistry.resolveContributionRenderer(piContribution).component, ResolvedContributionRenderer);
+  assert.equal(hostileRegistry.has('renderer:missing@v1'), false);
+  assert.equal(hostileRegistry.resolve(null), undefined);
+
+  const unknownBinding = structuredClone(piContribution);
+  unknownBinding.renderer_binding_id = 'renderer:untrusted@9';
+  assert.deepEqual(hostileRegistry.resolveWithDiagnostic(unknownBinding), {
+    status: 'blocked',
+    diagnostic: {
+      reason: 'unknown_renderer_binding',
+      contributionId: piContribution.contribution_id,
+      rendererBindingId: 'renderer:untrusted@9',
+      semanticBindingId: piContribution.semantic_binding_id
+    }
+  });
+
+  const semanticMismatch = structuredClone(piContribution);
+  semanticMismatch.semantic_binding_id = 'semantic:foreign';
+  assert.equal(hostileRegistry.resolve(semanticMismatch), undefined);
+  assert.equal(hostileRegistry.resolveWithDiagnostic(semanticMismatch).diagnostic.reason, 'semantic_binding_mismatch');
+
+  const kindMismatch = structuredClone(piContribution);
+  kindMismatch.kind = 'inspector';
+  assert.equal(hostileRegistry.resolve(kindMismatch), undefined);
+  assert.equal(hostileRegistry.resolveWithDiagnostic(kindMismatch).diagnostic.reason, 'contribution_kind_mismatch');
+
+  const missingAuthority = structuredClone(piContribution);
+  delete missingAuthority.authority;
+  assert.equal(hostileRegistry.resolve(missingAuthority), undefined);
+  assert.equal(hostileRegistry.resolveWithDiagnostic(missingAuthority).diagnostic.reason, 'invalid_contribution');
+
+  const boundButUnknownProjection = structuredClone(rendererFixture);
+  boundButUnknownProjection.eligible_contributions[0].renderer_binding_id = 'renderer:untrusted@9';
+  const { default: MissionCanvasRendererComponent } = await server.ssrLoadModule('/src/lib/mission-canvas/MissionCanvasRenderer.svelte');
+  const { body: blockedUnknownRenderer } = render(MissionCanvasRendererComponent, {
+    props: { projection: boundButUnknownProjection, registry: hostileRegistry }
+  });
+  assert.match(blockedUnknownRenderer, /data-unavailable-renderer="renderer:untrusted@9"/);
+  assert.match(blockedUnknownRenderer, /data-renderer-resolution-reason="unknown_renderer_binding"/);
+  assert.doesNotMatch(blockedUnknownRenderer, /data-trusted-renderer=/);
+
+  const semanticBindings = ['semantic:pi-session'];
+  const rendererProps = { nested: { owner: 'trusted registry' } };
+  const immutableRegistry = new ContributionRendererRegistry([{
+    rendererBindingId: 'renderer:immutable@1',
+    semanticBindingIds: semanticBindings,
+    contributionKinds: ['focused_work_surface'],
+    component: ResolvedContributionRenderer,
+    componentProps: rendererProps
+  }]);
+  semanticBindings[0] = 'semantic:foreign';
+  rendererProps.nested.owner = 'caller mutation';
+  const immutableContribution = structuredClone(piContribution);
+  immutableContribution.renderer_binding_id = 'renderer:immutable@1';
+  const immutableResolved = immutableRegistry.resolve(immutableContribution);
+  assert.equal(immutableResolved.componentProps.nested.owner, 'trusted registry');
+  assert.throws(() => new ContributionRendererRegistry([{
+    rendererBindingId: 'renderer:unsafe-props@1',
+    component: ResolvedContributionRenderer,
+    componentProps: { contribution: 'caller-controlled' }
+  }]), /cannot override contribution/);
+  assert.throws(() => new ContributionRendererRegistry([{
+    rendererBindingId: 'renderer:not-a-component@1',
+    component: {}
+  }]), /Invalid trusted renderer component/);
+  assert.throws(() => new ContributionRendererRegistry([
+    { rendererBindingId: 'renderer:duplicate@1', component: ResolvedContributionRenderer },
+    { rendererBindingId: 'renderer:duplicate@1', component: ResolvedContributionRenderer }
+  ]), /duplicate renderer binding/);
+
   const { body: customElements } = render(CustomElementHarness);
   assert.match(customElements, /<fixture-pi-session[^>]*data-contribution-id="contribution:pi-session"/);
   assert.match(customElements, /<fixture-focusa-inspector[^>]*data-contribution-id="contribution:focusa-inspector"/);
