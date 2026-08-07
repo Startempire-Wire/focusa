@@ -1,0 +1,122 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CORE-003",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Implemented ResolvedWorkspaceProjection.validate_scope in the canonical Mission Canvas core model. The projection retains the generated WorkstreamKey and projection revision, validates exact Workstream authority before accepting subordinate scope, validates eligible contribution authority against the projection Workstream, and leaves eligibility, layout, and omission composition owned by core resolver/layout code.",
+  "targets": [
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-003.json"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "headless",
+    "host_renderer": "headless_none",
+    "surface_kind": "canonical_runtime",
+    "rich_gui_required": false,
+    "terminal_fallback_required": false,
+    "eligible_contributions": [],
+    "omitted_contribution_reasons": [
+      "projection authority validation is a canonical core slice with no presentation contribution"
+    ]
+  },
+  "checks": [
+    "rustfmt --edition 2024 --check crates/focusa-core/src/mission_canvas/model.rs (exit 0)",
+    "git diff --check (exit 0; no output)",
+    "python3 tests/spec135_resolved_projection_contract_test.py (exit 0; generated contribution schemas and projection contract: PASS)",
+    "python3 tests/spec158_mission_canvas_identity_contract_test.py (exit 0; exact Workstream identity, legacy-only rejection, and foreign subordinate checks: PASS)",
+    "python3 tests/spec135_core001_mission_canvas_scope_source_test.py (exit 0; canonical MissionCanvasScope source contract: PASS)",
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; generated artifacts, operation registry, and determinism: PASS)",
+    "python3 tests/spec135_projection_state_contract_test.py (exit 0; projection revision/state contract: PASS)",
+    "python3 tests/spec135_projection_events_proof_test.py (exit 0; projection event/proof contract: PASS)",
+    "python3 tests/spec135_mission_canvas_api_static_test.py (exit 0; API parity: PASS)",
+    "python3 tests/spec135_mission_canvas_completion_dag_test.py (exit 0; central graph remains unchanged and complete: PASS)",
+    "cargo test -p focusa-core resolved_workspace_projection_scope --lib (not run; explicit operator instruction prohibits Cargo)"
+  ],
+  "remaining_checks": [
+    "The required Cargo runtime test remains intentionally unrun because the operator explicitly prohibited Cargo for this pass; Rust source formatting/parsing and all permitted static/contract gates pass."
+  ],
+  "remaining_work": [
+    "No unresolved CORE-003 source implementation remains. The only deferred check is the explicitly prohibited Cargo runtime invocation."
+  ],
+  "dependency_gate": {
+    "CORE-001": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/CORE-001.json",
+      "status": "implemented_partial",
+      "decision": "Dependency source is integrated. Its evidence records only the prohibited Cargo runtime validation as deferred; no source dependency work is unresolved."
+    },
+    "CORE-002": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/CORE-002.json",
+      "status": "implemented_partial",
+      "decision": "Dependency source is integrated. Its evidence records only the prohibited Cargo runtime validation as deferred; no source dependency work is unresolved."
+    }
+  },
+  "negative_cases": {
+    "foreign_workstream": "validate_scope validates the projection WorkstreamKey and rejects a foreign expected Workstream. A focused WorkSurface also requires an exact Attachment-backed WorkSurfaceId, and nested eligible contribution authority cannot carry a foreign Workstream into the projection.",
+    "missing_authority": "The generated flattened projection requires WorkstreamKey during deserialization; missing or legacy-only projection input fails closed. An eligible contribution without a generated workstream authority descriptor is rejected.",
+    "stale_revision_cursor": "Projection revision and durable event cursor remain required generated projection fields and are preserved through serialization; stale revision/cursor mutation remains owned by reducer/persistence optimistic-concurrency gates rather than inferred by client code.",
+    "unavailable_capability": "validate_scope does not resolve or suspend contributions. Capability, permission, operation, meaningful-content, and omission decisions remain in the core resolver and are not recreated in the projection model.",
+    "ineligible_or_empty_contribution": "The projection scope validator does not promote empty or ineligible contributions and does not calculate layout. Core eligibility/layout continue to omit them before geometry; a Workstream aggregate can validate attachment-owned contributions without guessing a single focus.",
+    "ambiguous_legacy_row": "A projection serialized without WorkstreamKey cannot deserialize as ResolvedWorkspaceProjection. No project_root plus continuity_id fallback, current-tab lookup, or nearest-row inference was added; legacy compatibility remains a separate quarantine boundary."
+  },
+  "acceptance": [
+    {
+      "statement": "Projection serialization contains exact Workstream identity.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "ResolvedWorkspaceProjection retains the flattened MissionCanvasScope containing WorkstreamKey and projection_revision; hostile unit coverage round-trips both fields and validates the exact scope. Generated projection and identity contract gates pass."
+    },
+    {
+      "statement": "project_root plus continuity_id cannot bind or focus a Work Surface.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "validate_scope requires a canonical WorkstreamKey-backed MissionCanvasScope, rejects foreign Workstream/subordinate authority, and accepts no legacy flat authority. Existing identity and API source contracts pass."
+    },
+    {
+      "statement": "ambiguous legacy rows are quarantined, not guessed.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "Hostile tests reject a projection missing WorkstreamKey and invalid Workstream identity; no migration or client inference was introduced. Spec 158 compatibility/quarantine ownership remains unchanged."
+    }
+  ],
+  "hostile_tests": [
+    "resolved_workspace_projection_scope_serializes_exact_workstream_and_revision",
+    "resolved_workspace_projection_scope_allows_workstream_aggregate_contributions",
+    "resolved_workspace_projection_scope_rejects_focus_without_exact_surface_authority",
+    "resolved_workspace_projection_scope_rejects_foreign_workstream_and_attachment",
+    "resolved_workspace_projection_scope_rejects_missing_and_foreign_contribution_authority",
+    "resolved_workspace_projection_scope_rejects_legacy_or_invalid_authority"
+  ],
+  "source_authority": {
+    "docs/135-series-current-manifest.md": "read completely",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md": "read completely",
+    "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png": "read",
+    "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png": "read",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml": "read completely",
+    "docs/agent/spec135-implementation-acceleration-directive.md": "read completely",
+    "docs/agent/01-focusa-agent-docs-index.md": "read completely",
+    "docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md": "read completely",
+    "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md": "read completely",
+    "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md": "read completely",
+    "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md": "read completely",
+    "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md": "read completely",
+    "docs/135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md": "read completely",
+    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md": "read completely",
+    "docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md": "read completely",
+    "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md": "read completely",
+    "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md": "read completely",
+    "docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md": "read completely",
+    "docs/contracts/spec135-svelte-task-packets/CORE-003.json": "read completely",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-001.json": "read completely for dependency gate",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-002.json": "read completely for dependency gate",
+    "crates/focusa-core/src/mission_canvas/model.rs": "read completely and updated",
+    "apps/pi-extension/src/mission-canvas-model.ts": "read completely as behavior source",
+    "apps/pi-extension/src/mission-canvas-session-inventory.ts": "read completely as behavior source",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts": "read completely as generated transport authority"
+  },
+  "evidence_refs": [
+    "tests/spec135_resolved_projection_contract_test.py",
+    "tests/spec158_mission_canvas_identity_contract_test.py",
+    "tests/spec135_core001_mission_canvas_scope_source_test.py",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_projection_state_contract_test.py",
+    "tests/spec135_projection_events_proof_test.py",
+    "crates/focusa-core/src/mission_canvas/model.rs"
+  ],
+  "status": "implemented_partial"
+}
