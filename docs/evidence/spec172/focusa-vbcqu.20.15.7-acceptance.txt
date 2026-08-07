@@ -1,0 +1,32 @@
+Spec 172 / focusa-vbcqu.20.15.7 bounded UIAI public-claim baseline acceptance
+
+Scope
+- Added docs/contracts/spec172-public-commerce-baseline.v1.json.
+- Added tests/spec172_public_commerce_baseline_test.py.
+- Froze only the canonical UIAI Engine evidence already recorded in Spec 172 Section 18.1 on 2026-08-06, plus the supplied 2026-08-07 root-page title observation.
+- No external service was accessed, no authenticated capture was required, and no production state was mutated.
+
+Bounded evidence
+- The 2026-08-06 UIAI reads cover Focusa root/pricing/llms.txt/agent-commerce, Engine equivalents, install root/focusa/bundle, and the WPUIAI EDD sitemap and public Download pages.
+- The bounded claims are: two $697 standalone Operator offers; conflicting $1,097 Bundle; anonymous/local Evaluation; Gravity Forms/Stripe positioning; no-phone-home; broken convenience routes/license links; and unrelated legacy WPUIAI $29/$99/$299/$149 prices.
+- A 2026-08-07 UIAI open additionally recorded https://focusa.dev/ with title `Home - Focusa`; it adds no claim. The UIAI service then became unavailable.
+- Titles not retained by Section 18.1 are explicitly marked as not retained rather than reconstructed.
+- Public content remains evidence of public claims and is not entitlement authority.
+
+Required replacement text
+The contract freezes all ten Section 18.2 current-to-required corrections verbatim in substance: verified mailbox capability access; signed limited access without local grants; permanent verified no-license limited mode; $1,254.60 Bundle; product-isolated UIAI grants; WPUIAI EDD/Stripe checkout truth; no telemetry with bounded authority communication; repaired or removed broken routes; valid terms or removed links; and explicit separation of the legacy WPUIAI catalog.
+
+Privacy and freshness
+- The contract contains URLs, bounded claim summaries, dates, public title, and deterministic evidence refs only.
+- It contains no raw browser capture, account identity, customer record, key, token, cookie, or authenticated session material.
+- Current recapture is not a condition of this baseline atom. Later public-convergence atoms own fresh UIAI proof after service availability returns.
+
+Verification
+- `python3 tests/spec172_public_commerce_baseline_test.py`
+- `git diff --check`
+
+Rollback
+Revert only the contract, test, and this acceptance record. Do not alter Spec 172 authority, customer rights, licensing state, or public services.
+
+Disposition
+Atom .7 freezes the bounded, redacted public-claim contradiction baseline and canonical replacement text without inventing claims beyond Section 18.1 or requiring authenticated captures.

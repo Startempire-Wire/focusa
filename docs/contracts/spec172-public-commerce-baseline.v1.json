@@ -1,0 +1,144 @@
+{
+  "schema": "focusa.spec172_public_commerce_baseline.v1",
+  "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md#181-public-evidence-basis",
+  "captured_at": "2026-08-06",
+  "capture_method": "uiai_engine_browser_read",
+  "authentication_required": false,
+  "evidence_posture": {
+    "classification": "bounded_redacted_public_claim_baseline",
+    "public_copy_is_entitlement_authority": false,
+    "raw_capture_embedded": false,
+    "current_recapture_required": false,
+    "service_status_after_supplemental_read": "unavailable"
+  },
+  "sources": [
+    {
+      "surface": "focusa",
+      "urls": [
+        "https://focusa.dev/",
+        "https://focusa.dev/pricing/",
+        "https://focusa.dev/llms.txt",
+        "https://focusa.dev/.well-known/agent-commerce.json"
+      ],
+      "title_basis": "not_retained_in_section_18_1",
+      "evidence_ref": "spec172:18.1:focusa:2026-08-06"
+    },
+    {
+      "surface": "engine",
+      "urls": [
+        "https://engine.focusa.dev/",
+        "https://engine.focusa.dev/pricing/",
+        "https://engine.focusa.dev/llms.txt",
+        "https://engine.focusa.dev/.well-known/agent-commerce.json"
+      ],
+      "title_basis": "not_retained_in_section_18_1",
+      "evidence_ref": "spec172:18.1:engine:2026-08-06"
+    },
+    {
+      "surface": "install",
+      "urls": [
+        "https://install.focusa.dev/",
+        "https://install.focusa.dev/focusa",
+        "https://install.focusa.dev/bundle"
+      ],
+      "title_basis": "not_retained_in_section_18_1",
+      "evidence_ref": "spec172:18.1:install:2026-08-06"
+    },
+    {
+      "surface": "wpuiai_edd",
+      "urls": [
+        "https://wpuiai.com/wp-sitemap-posts-download-1.xml",
+        "public EDD Download pages enumerated by the captured sitemap"
+      ],
+      "title_basis": "not_retained_in_section_18_1",
+      "evidence_ref": "spec172:18.1:wpuiai-edd:2026-08-06"
+    }
+  ],
+  "supplemental_observation": {
+    "captured_at": "2026-08-07",
+    "capture_method": "uiai_engine_browser_open",
+    "url": "https://focusa.dev/",
+    "title": "Home - Focusa",
+    "claims_added": [],
+    "evidence_ref": "spec172:18.1-supplement:focusa-root-title:2026-08-07"
+  },
+  "observed_claims": [
+    {
+      "code": "standalone_prices_697",
+      "bounded_claim": "Two standalone Operator offers were shown at $697 each.",
+      "evidence_ref": "spec172:18.1:2026-08-06"
+    },
+    {
+      "code": "conflicting_bundle_1097",
+      "bounded_claim": "A conflicting Bundle claim was shown at $1,097.",
+      "evidence_ref": "spec172:18.1:2026-08-06"
+    },
+    {
+      "code": "anonymous_local_evaluation",
+      "bounded_claim": "Anonymous and local Evaluation copy was present.",
+      "evidence_ref": "spec172:18.1:2026-08-06"
+    },
+    {
+      "code": "gravity_stripe_positioning",
+      "bounded_claim": "Direct Gravity Forms/Stripe positioning was present.",
+      "evidence_ref": "spec172:18.1:2026-08-06"
+    },
+    {
+      "code": "no_phone_home",
+      "bounded_claim": "A no-phone-home claim was present.",
+      "evidence_ref": "spec172:18.1:2026-08-06"
+    },
+    {
+      "code": "broken_routes_and_license_links",
+      "bounded_claim": "Advertised convenience routes and public license links were broken.",
+      "evidence_ref": "spec172:18.1:2026-08-06"
+    },
+    {
+      "code": "legacy_wpuiai_prices",
+      "bounded_claim": "Unrelated legacy WPUIAI prices of $29, $99, $299, and $149 were present.",
+      "evidence_ref": "spec172:18.1:2026-08-06"
+    }
+  ],
+  "required_replacements": [
+    {
+      "current": "Anonymous/no-account Evaluation",
+      "required": "Verified mailbox required for product capability"
+    },
+    {
+      "current": "Local self-issued --eval",
+      "required": "Verified signed limited-access assertion; no local grant creation"
+    },
+    {
+      "current": "Timed Evaluation requirement",
+      "required": "Permanent verified no-license limited mode"
+    },
+    {
+      "current": "Bundle advertised at $1,097",
+      "required": "Bundle price $1,254.60"
+    },
+    {
+      "current": "Focusa purchase may implicitly grant UIAI",
+      "required": "Only UIAI License Type, Bundle, or explicit authority grant provides UIAI paid capability"
+    },
+    {
+      "current": "Gravity Forms/direct Stripe creates entitlement",
+      "required": "Paid checkout and key truth converge on WPUIAI EDD with configured Stripe gateway"
+    },
+    {
+      "current": "No phone home",
+      "required": "No telemetry; bounded authority communication for identity, activation, refresh, refund/revoke, and recovery"
+    },
+    {
+      "current": "/focusa and /bundle commands advertised while routes return 404",
+      "required": "Repair routes or remove claims before publication"
+    },
+    {
+      "current": "Public LICENSE or COMMERCIAL.md links return 404",
+      "required": "Publish valid terms or remove broken links before publication"
+    },
+    {
+      "current": "Old WPUIAI $29/$99/$299/$149 offers appear commercially related",
+      "required": "Keep legacy WPUIAI catalog explicitly separate from Focusa/UIAI License Types"
+    }
+  ]
+}
