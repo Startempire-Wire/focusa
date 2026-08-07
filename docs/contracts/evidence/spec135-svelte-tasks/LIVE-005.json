@@ -1,0 +1,33 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "LIVE-005",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Implemented exact-Workstream capability-change recomposition with dead-control removal, safe-content preservation, return restoration, and a bounded transient notification.",
+  "dependency_gate": {"status": "passed", "dependencies": ["LIVE-002", "UI-012"]},
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/capability-loss-controller.ts",
+    "apps/desktop/src/lib/mission-canvas/DesktopMissionCanvasRuntime.svelte",
+    "apps/desktop/tests/capability-loss-runtime.mjs",
+    "apps/desktop/package.json"
+  ],
+  "implementation": [
+    "Capability-change events are accepted only under exact Workstream/attachment authority and non-stale projection/layout revisions.",
+    "One canonical projection refresh removes ineligible controls and contributions while preserving remaining eligible content and presentation state.",
+    "Capability return is detected from canonical contribution restoration; no local eligibility is inferred.",
+    "Loss notification is bounded, transient, and never rendered as a permanent unavailable panel."
+  ],
+  "negative_cases": ["foreign capability event", "stale capability event", "foreign recomposed projection", "regressed projection/layout revision", "empty non-capability batch"],
+  "checks": [
+    {"command": "npm --prefix apps/desktop test", "result": "pass, including capability-loss runtime"},
+    {"command": "npm --prefix apps/desktop run check", "result": "pass: 0 errors and 0 warnings"},
+    {"command": "git diff --check", "result": "pass"}
+  ],
+  "acceptance": [
+    "Capability loss creates no permanent unavailable panel and return restores eligible contribution.",
+    "Canvas/TUI switching, hide/show, Desktop restart, daemon reconnect, and contribution recomposition retain required exact-authority and presentation invariants."
+  ],
+  "source_authority": ["docs/contracts/spec135-svelte-task-packets/LIVE-005.json", "docs/contracts/spec135-adaptive-composition.v1.yaml"],
+  "evidence_refs": ["apps/desktop/tests/capability-loss-runtime.mjs", "docs/contracts/evidence/spec135-svelte-tasks/LIVE-002.json", "docs/contracts/evidence/spec135-svelte-tasks/UI-012.json"],
+  "remaining_work": []
+}
