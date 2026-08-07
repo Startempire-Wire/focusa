@@ -1,0 +1,22 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.7
+Implementation commit: a5617ca6ca3b756fc8c1d48d578fa403f6b81faf
+
+Bounded result
+- Added a pure `const` reducer returning typed `allow`, `read`, `base`, `feature`, or `deny` posture plus a deterministic reason.
+- Covered the seven binding states: `pending_unverified`, `verified_no_license`, `active_paid`, `offline_grace`, `expired` (credential expired/recovery), `refunded_or_revoked`, and `missing_or_corrupt`.
+- Covered all nine registered capability families: 63 state/family cells.
+- The grid table contains an explicit positive case and a negative caller-override or missing-initiator case for every cell.
+- No `Evaluation` or `VerifiedNoGrant` policy state remains. The reducer creates no customer, key, lease, grant, role, or authority.
+- Internal maintenance inherits only its initiating posture and denies without one; ordinary cells ignore caller-supplied initiating posture.
+
+Checks run against the implementation commit
+1. `git diff a5617ca6ca3b756fc8c1d48d578fa403f6b81faf^ a5617ca6ca3b756fc8c1d48d578fa403f6b81faf --check` — exit 0.
+2. `rustup which --toolchain nightly rustfmt` followed by `rustfmt --edition 2021 --check crates/focusa-license/tests/entitlement_policy_grid.rs` — exit 0.
+3. Committed-surface Python assertion: changed paths are exactly the four allowed source/test surfaces; all seven states are present; the 63-cell table and positive/negative cases are present; forbidden Evaluation/legacy state and authority-creation markers are absent — exit 0.
+
+Pending verification
+- Exact Cargo gate `cargo test -p focusa-license --test entitlement_policy_grid state_grid` was not rerun at this checkpoint. Per delivery instruction, the Cargo gate remains pending; no Cargo exit code is claimed here.
+
+Rollback
+- Revert only implementation commit `a5617ca6ca3b756fc8c1d48d578fa403f6b81faf` (and this evidence record if required). Preserve customers, orders, refunds, licenses, nodes, sequences, customer data, migration journals, and accepted authority/evidence state. No push, deploy, release, merge, or Beads mutation was performed.
