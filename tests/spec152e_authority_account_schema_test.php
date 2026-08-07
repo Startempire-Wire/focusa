@@ -39,16 +39,13 @@ expect_account(count($migrationRows) === 1, 'repeated migration records one sche
 expect_account($migrationRows[0]['applied_at'] === '2026-08-07T04:40:00Z', 'repeated migration preserves first applied timestamp');
 expect_account(str_contains($migrationRows[0]['migration_provenance'], 'candidate_repository'), 'repeated migration preserves first provenance');
 
-$clockValues = [
-    '2026-08-07T04:42:00Z',
-    '2026-08-07T04:43:00Z',
-    '2026-08-07T04:44:00Z',
-];
-$clock = static function () use (&$clockValues): string {
-    if ($clockValues === []) {
-        throw new RuntimeException('test clock exhausted');
-    }
-    return array_shift($clockValues);
+$clockTick = 0;
+$clock = static function () use (&$clockTick): string {
+    $timestamp = (new DateTimeImmutable('2026-08-07T04:42:00Z'))
+        ->modify('+' . $clockTick . ' minutes')
+        ->format('Y-m-d\TH:i:s\Z');
+    $clockTick++;
+    return $timestamp;
 };
 $repository = new FocusaSpec152eAuthorityAccountRepository($db, $migration, $clock);
 

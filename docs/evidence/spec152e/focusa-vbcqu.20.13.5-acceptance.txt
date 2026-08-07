@@ -20,7 +20,12 @@ PROVED BOUNDARIES
 
 PINNED DIGESTS
 - docs/contracts/spec152e-authority-account.v1.php sha256:37c05955bcc804b89c14dfdc0ae1a610be2030f63f557633f37b8be1985d0636
-- tests/spec152e_authority_account_schema_test.php sha256:d8b27533e0a5a85d6c3fa3342a08e3d7bd2c3ff4961cdbd7759e2bc1d8596d31
+- tests/spec152e_authority_account_schema_test.php sha256:da2097a0f79fc8224a8a5ff6848cfe7baf4eecaa1046d57cfc8f0cb7d93cafd9
+
+CLOCK-FIXTURE REGRESSION ACCEPTANCE
+- The deterministic fixture now derives an unbounded monotonic UTC minute sequence instead of consuming a finite timestamp array.
+- This removes the line-50 `test clock exhausted` fatal path while retaining exact timestamp assertions and without changing the repository contract.
+- The exact verification command above was rerun after this fixture-only repair and exited 0 with the pinned bounded result.
 
 PUBLIC-SAFETY AND DEPLOYMENT BOUNDARY
 The test uses only in-memory SQLite and synthetic identifiers. No deployed WordPress, /home site, customer record, secret, credential, admin URL, or raw proof was read or changed. This atom does not bootstrap or mutate a runtime database. Deployment, release, merge, and push are excluded.
