@@ -1,0 +1,48 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "LIVE-003",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Implemented exact-Workstream presentation-state capture and restoration across projection refresh, invalidation, profile/activity selection, tab mutation, and contribution operations.",
+  "dependency_gate": {"status": "passed", "dependencies": ["LIVE-002", "UI-012"]},
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/presentation-state.ts",
+    "apps/desktop/src/lib/mission-canvas/DesktopMissionCanvasRuntime.svelte",
+    "apps/desktop/tests/presentation-state-runtime.mjs",
+    "apps/desktop/package.json"
+  ],
+  "implementation": [
+    "Captures focus, semantic selection, nonzero scroll positions, and canonical active tab by stable semantic/layout/contribution identifiers.",
+    "Restores only when the exact Workstream remains authoritative and the next projection revision is not stale.",
+    "Missing semantic objects are skipped without focusing or scrolling unrelated content; canonical active tabs may retain focus but are never locally selected.",
+    "Projection refreshes preserve the mounted Desktop shell and restore presentation after Svelte commits the canonical projection."
+  ],
+  "negative_cases": [
+    "foreign Workstream projection",
+    "stale projection revision",
+    "removed semantic object",
+    "missing stable presentation identifier",
+    "authority clear during refresh"
+  ],
+  "checks": [
+    {"command": "npm --prefix apps/desktop test", "result": "pass, including presentation-state runtime"},
+    {"command": "npm --prefix apps/desktop run check", "result": "pass: 0 errors and 0 warnings"},
+    {"command": "git diff --check", "result": "pass"}
+  ],
+  "acceptance": [
+    "Polling or live updates do not reset operator context.",
+    "Refresh preserves focus, scroll, selection, and active tab when the semantic object remains.",
+    "Events or projections from another Workstream cannot restore presentation state into the active Canvas.",
+    "Restoration does not synthesize local eligibility or layout state."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/LIVE-003.json",
+    "docs/contracts/spec135-adaptive-composition.v1.yaml"
+  ],
+  "evidence_refs": [
+    "apps/desktop/tests/presentation-state-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/LIVE-002.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-012.json"
+  ],
+  "remaining_work": []
+}
