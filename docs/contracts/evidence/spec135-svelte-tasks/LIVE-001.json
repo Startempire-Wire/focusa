@@ -1,0 +1,81 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "LIVE-001",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Implemented the bounded Desktop Workstream event client. It accepts only a generated exact Workstream authority context, replays through the generated eventsStream operation, rejects malformed/foreign/duplicate/regressed events, persists the last confirmed durable cursor before committing local state, and leaves empty tails composition-free for core-owned recomposition.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/event-client.ts",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/LIVE-001.json"
+  ],
+  "generated_transport": {
+    "operation_id": "focusa.mission_canvas.events.stream",
+    "method": "GET",
+    "path": "/v1/mission-canvas/events",
+    "client_method": "eventsStream",
+    "request_scope": ["workstream"],
+    "response_schema_ref": "ProjectionLifecycleEvent[]",
+    "ownership": "Generated operation registry, OpenAPI, TypeScript client, validators, and HTTP transport remain the transport/DTO owners; the Desktop client adds only exact-scope and stream-order acceptance checks."
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "implementation": [
+    "Desktop freezes a cloned generated WorkstreamAuthorityContext and validates it through the generated WorkstreamAuthorityContext contract before loading or sending a cursor.",
+    "Each poll calls MissionCanvasClient.eventsStream with the exact frozen authority and only the last confirmed after_cursor; no CWD, tab, latest-record, project-root/continuity shortcut, or local composition resolver is used.",
+    "Returned events are validated through generated ProjectionLifecycleEvent and WorkstreamAuthorityContext validators, compared against the complete authority chain, and checked for durable numeric cursor ordering, revision regression, duplicate IDs, and duplicate cursors.",
+    "Cursor persistence occurs before in-memory cursor, revision, seen-ID, and listener state is committed, so a durable write failure retries safely from the prior cursor without remounting or inventing projection state.",
+    "Empty or ineligible Workstream history produces an empty batch without inventing events, contributions, panels, layout, or a Work Rail; core remains the owner of eligibility and recomposition."
+  ],
+  "checks": [
+    "npm --prefix apps/desktop test (exit 0; shell contract, canonical Desktop context, Mission Canvas renderer/transport/projection/draft/event runtime, and hostile LIVE-001 cases: PASS)"
+  ],
+  "negative_cases": {
+    "foreign_workstream": "Generated transport and the Desktop event client reject an event whose Workstream or subordinate Attachment authority differs from the frozen request; no cursor or listener state advances.",
+    "missing_authority": "Invalid or absent Workstream authority fails before eventsStream and before cursor loading can select a fallback.",
+    "stale_cursor": "Malformed persisted cursors fail before HTTP; equal, regressed, non-numeric, zero event cursors, and cursor regressions are rejected without persistence.",
+    "stale_revision": "Projection or layout revision regressions are rejected while the last confirmed cursor and projection state remain unchanged.",
+    "duplicate_delivery": "Seen event IDs and equal durable cursor sequences are rejected; only newly accepted ordered events can advance cursor.persist.",
+    "out_of_order_delivery": "Events arriving after a higher confirmed sequence are rejected as event_cursor_regressed; the client never sorts or invents missing events.",
+    "unavailable_capability": "A missing generated eventsStream capability fails closed before a request; generated operation availability and server permission remain transport/core-owned.",
+    "empty_or_ineligible_contribution": "An empty exact-Workstream event tail returns no accepted events and does not persist a cursor or create a contribution; eligibility/layout remain core-owned.",
+    "invalid_response": "Generated validators plus Desktop stream checks reject malformed event fields, scope, revisions, cursors, and refs before applying them.",
+    "cursor_persistence_failure": "A cursor-store failure raises event_cursor_persist_failed before local state/listeners advance; the next poll retries from the previous cursor.",
+    "refresh_continuity": "The client emits bounded event batches to the existing invalidation path and does not own shell mounting, layout, draft, focus, or scroll state."
+  },
+  "acceptance": [
+    "Foreign, duplicate, and out-of-order events are rejected.",
+    "reconnect resumes from cursor without duplicating state.",
+    "refresh does not remount the entire shell or lose focus/drafts/scroll.",
+    "events from another Workstream cannot update the active Canvas."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/LIVE-001.json",
+    "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
+    "docs/transitions/FOCUSA-TRANSITION-001-spec135-svelte-translation-matrix.md",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/exact-scope.ts",
+    "apps/desktop/src/lib/mission-canvas/invalidation-controller.ts"
+  ],
+  "evidence_refs": [
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-025.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-002.json"
+  ],
+  "deferred_repository_observation": "Cargo was not run. The central executable graph, generated task packet/index, parallel plan, orchestration scripts, generated contracts, and dependency evidence were not edited.",
+  "remaining_work": [],
+  "status": "verified"
+}
