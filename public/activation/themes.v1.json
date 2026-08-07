@@ -1,0 +1,11 @@
+{
+  "schema": "focusa.spec152e.website_facade_themes.v1",
+  "authority": "WPUIAI.com EDD",
+  "facade_role": "presenter_only",
+  "themes": {
+    "focusa_marketing_v1": {"name":"Focusa","mark":"F","accent":"#6d5efc","product_code":"focusa_operator_lifetime_v1"},
+    "focusa_forge_v1": {"name":"Focusa Forge","mark":"F","accent":"#d4552d","product_code":"focusa_operator_lifetime_v1"},
+    "focusa_arena_v1": {"name":"Focusa Arena","mark":"A","accent":"#087e8b","product_code":"focusa_operator_lifetime_v1"},
+    "wpuiai_public_v1": {"name":"WPUIAI","mark":"W","accent":"#3159a6","product_code":"uiai_operator_lifetime_v1"}
+  }
+}

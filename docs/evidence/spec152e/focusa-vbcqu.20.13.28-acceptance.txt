@@ -1,0 +1,28 @@
+Spec 152E website registration acceptance evidence
+Work item: focusa-vbcqu.20.13.28
+
+Command:
+node tests/spec152e_website_registration_test.mjs
+
+Exit code: 0
+
+Bounded result:
+{"schema":"focusa.spec152e.website_registration_test.v1","facades":4,"pages_per_facade":8,"positive_checks":6,"negative_checks":8,"result":"passed_identical_semantics_brand_only"}
+
+Semantic checks:
+- Focusa, Focusa Forge, Focusa Arena, and WPUIAI traverse the identical ordered start/verify/select/pay/pending/success/manage/recovery flow.
+- Differences are limited to registered brand name, mark, accent, and authority-fixed product mapping.
+- Continuations are opaque and memory-only; email evidence is masked; authority data is rendered as text.
+- Labels, descriptions, live status, input autocomplete, closed shadow root, and no-referrer policy are present.
+
+Negative checks:
+- Unknown facade, unknown page, and invalid transition are denied.
+- Client-controlled product, redirect, success URL, price, and grants are denied.
+- Plaintext email, license/credential/secret material, and malformed continuation envelopes are denied.
+- Fixtures contain neither license-shaped evidence nor unmasked real-email evidence.
+
+Remaining issues:
+- None within this scoped acceptance atom. Administrative closure, publication, deployment, merge, release, and Spec 158 implementation remain excluded.
+
+Rollback:
+Revert only the commit containing this evidence, public/activation/, tests/fixtures/spec152e/website-registration-browser-fixtures.v1.json, and tests/spec152e_website_registration_test.mjs. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals.
