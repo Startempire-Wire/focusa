@@ -1,0 +1,96 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-011",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "implemented_partial",
+  "result": "Implemented focusa.mission_canvas.layout.mutate as a bounded Core-owned mutation with exact Workstream and attachment authority, optimistic projection/layout revisions, idempotency, durable receipt/evidence/event persistence, generated Desktop transport validation, and fail-closed hostile coverage.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": ["OPS-002"]
+  },
+  "targets": [
+    "crates/focusa-core/src/mission_canvas/layout_mutation.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_operation_contract_test.py"
+  ],
+  "implementation": [
+    "Core validates and applies only generated LayoutMutationCommand actions against one exact ResolvedWorkspaceProjection.",
+    "API requires exact request-envelope authority, mission_canvas:write permission, Idempotency-Key, and If-Match revision before Core execution.",
+    "Persistence atomically records the projection, mutation event, evidence, receipt, and idempotency replay result.",
+    "Desktop consumes the generated layoutMutate client method and rejects foreign, command-mismatched, stale, or malformed results."
+  ],
+  "authority_chain": [
+    "ScopeRef/ProjectRootKey",
+    "WorkstreamId",
+    "ContinuityId",
+    "AttachmentKey",
+    "SessionId/InstanceId",
+    "runtime object",
+    "WorkSurfaceId"
+  ],
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.layout.mutate",
+    "request_schema": "LayoutMutationCommand",
+    "response_schema": "LayoutMutationResult",
+    "transport_owner": "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts"
+  },
+  "presentation_contract": "Desktop submits generated commands and renders the returned canonical projection state; it does not locally resolve or repair layout eligibility.",
+  "negative_cases": [
+    "missing or foreign Workstream authority",
+    "attachment ownership mismatch",
+    "stale projection or layout revision",
+    "idempotency command collision",
+    "unknown target node, contribution, or Work Surface",
+    "unsupported or malformed mutation action",
+    "foreign, stale, or command-mismatched Desktop response"
+  ],
+  "checks": [
+    {
+      "command": "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.layout.mutate",
+      "result": "pass"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors and 0 warnings"
+    },
+    {
+      "command": "rustfmt --edition 2021 --check <OPS-011 Rust targets>",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "acceptance": [
+    "Layout mutation authority is exact and fail closed.",
+    "Core owns mutation semantics and canonical projection output.",
+    "Retries are idempotent and revision fenced.",
+    "Generated Desktop transport rejects hostile responses."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/OPS-011.json",
+    "docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md"
+  ],
+  "evidence_refs": [
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "crates/focusa-core/src/mission_canvas/layout_mutation.rs"
+  ],
+  "remaining_work": [
+    "Run the packet-declared Cargo tests after the operator's pre-50% Cargo prohibition is lifted."
+  ],
+  "deferred_repository_observation": "Cargo validation is intentionally deferred by operator directive; no unresolved source implementation remains."
+}

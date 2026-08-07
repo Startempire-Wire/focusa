@@ -7,13 +7,14 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
+use super::layout_mutation::{LayoutMutationResult, LAYOUT_MUTATE_OPERATION};
 use super::memory::{layout_memory_digest, validate_profile_layout_memory, ProfileLayoutMemory};
 use super::model::{
     CompositionEvent, DomainPackInstallReceipt, GovernedDomainPackInstallReceipt,
     MissionCanvasScope, OmissionDiagnostic, ResolvedWorkspaceProjection, StoredDocument,
 };
 use super::profiles::DomainPack;
-use super::reducer::{RecompositionEvidence, RecompositionReceipt};
+use super::reducer::{projection_digest, RecompositionEvidence, RecompositionReceipt};
 use super::LAYOUT_MEMORY_UPDATE_OPERATION;
 use crate::workstream_identity::WorkstreamKey;
 
@@ -66,6 +67,8 @@ pub enum MissionCanvasStoreError {
     RevisionConflict { expected: u64, observed: u64 },
     #[error("layout-memory idempotency key conflicts with an existing request")]
     LayoutMemoryIdempotencyConflict,
+    #[error("layout mutation idempotency key conflicts with an existing request")]
+    LayoutMutationIdempotencyConflict,
     #[error("layout-memory document is invalid: {0}")]
     InvalidLayoutMemory(&'static str),
     #[error("document already exists at revision {0}")]
@@ -551,6 +554,203 @@ impl MissionCanvasStore {
         )?;
         transaction.commit()?;
         Ok(receipt)
+    }
+
+    /// Find a previously committed layout mutation for an exact Workstream.
+    /// This read is used by Core before optimistic-concurrency validation so an
+    /// exact retry replays its original result rather than being mistaken for
+    /// a stale command. The write path repeats the check inside its transaction.
+    pub fn find_layout_mutation_replay(
+        &self,
+        scope: &MissionCanvasScope,
+        idempotency_key: &str,
+        request_digest: &str,
+    ) -> Result<Option<LayoutMutationResult>> {
+        let scope_key = canonical_scope_key(scope)?;
+        let connection = self.connection.lock();
+        let row: Option<(String, String)> = connection
+            .query_row(
+                "SELECT event_kind, payload_json FROM mission_canvas_composition_events WHERE scope_key = ?1 AND causation_id = ?2 ORDER BY sequence DESC LIMIT 1",
+                params![scope_key, idempotency_key],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        let Some((event_kind, payload_json)) = row else {
+            return Ok(None);
+        };
+        let payload: Value = serde_json::from_str(&payload_json)?;
+        if event_kind != "layout_changed"
+            || payload.get("operation_id").and_then(Value::as_str) != Some(LAYOUT_MUTATE_OPERATION)
+            || payload.get("request_digest").and_then(Value::as_str) != Some(request_digest)
+        {
+            return Err(MissionCanvasStoreError::LayoutMutationIdempotencyConflict);
+        }
+        let result: LayoutMutationResult =
+            serde_json::from_value(payload.get("result").cloned().ok_or(
+                MissionCanvasStoreError::InvalidLayoutMemory("layout_mutation_result_missing"),
+            )?)?;
+        if result.scope != *scope
+            || result.accepted != true
+            || result.event_cursor.trim().is_empty()
+        {
+            return Err(MissionCanvasStoreError::InvalidLayoutMemory(
+                "layout_mutation_result_scope_invalid",
+            ));
+        }
+        Ok(Some(result))
+    }
+
+    /// Persist one canonical layout mutation, its direct generated result, and
+    /// the durable event atomically. The event sequence becomes the returned
+    /// cursor and is written back into the projection before commit, so a
+    /// renderer cannot observe a result whose layout cursor is only process
+    /// local. Matching Workstream-scoped retries return the original result.
+    pub fn save_layout_mutation(
+        &self,
+        projection: &ResolvedWorkspaceProjection,
+        expected_projection_revision: u64,
+        command_id: &str,
+        idempotency_key: &str,
+        request_digest: &str,
+        event: &CompositionEvent,
+        evidence_ref: &str,
+        receipt_ref: &str,
+    ) -> Result<LayoutMutationResult> {
+        if command_id.trim().is_empty()
+            || idempotency_key.trim().is_empty()
+            || request_digest.trim().is_empty()
+            || evidence_ref.trim().is_empty()
+            || receipt_ref.trim().is_empty()
+        {
+            return Err(MissionCanvasStoreError::InvalidLayoutMemory(
+                "layout_mutation_metadata_missing",
+            ));
+        }
+        if event.scope != projection.scope
+            || event.causation_id.as_deref() != Some(idempotency_key)
+            || event.projection_revision != projection.projection_revision
+            || event.layout_revision != projection.layout_revision
+        {
+            return Err(MissionCanvasStoreError::ProjectionEventRevisionMismatch);
+        }
+        if event.payload.get("operation_id").and_then(Value::as_str)
+            != Some(LAYOUT_MUTATE_OPERATION)
+        {
+            return Err(MissionCanvasStoreError::InvalidLayoutMemory(
+                "layout_mutation_operation_invalid",
+            ));
+        }
+        let scope_key = canonical_scope_key(&projection.scope)?;
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction()?;
+
+        let existing: Option<(String, String)> = transaction
+            .query_row(
+                "SELECT event_kind, payload_json FROM mission_canvas_composition_events WHERE scope_key = ?1 AND causation_id = ?2 ORDER BY sequence DESC LIMIT 1",
+                params![scope_key, idempotency_key],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        if let Some((event_kind, payload_json)) = existing {
+            let payload: Value = serde_json::from_str(&payload_json)?;
+            if event_kind == "layout_changed"
+                && payload.get("operation_id").and_then(Value::as_str)
+                    == Some(LAYOUT_MUTATE_OPERATION)
+                && payload.get("request_digest").and_then(Value::as_str) == Some(request_digest)
+            {
+                let result: LayoutMutationResult =
+                    serde_json::from_value(payload.get("result").cloned().ok_or(
+                        MissionCanvasStoreError::InvalidLayoutMemory(
+                            "layout_mutation_result_missing",
+                        ),
+                    )?)?;
+                if result.scope != projection.scope || result.command_id != command_id {
+                    return Err(MissionCanvasStoreError::InvalidLayoutMemory(
+                        "layout_mutation_result_scope_invalid",
+                    ));
+                }
+                transaction.rollback()?;
+                return Ok(result);
+            }
+            return Err(MissionCanvasStoreError::LayoutMutationIdempotencyConflict);
+        }
+
+        let current: Option<(u64, u64)> = transaction
+            .query_row(
+                "SELECT projection_revision, layout_revision FROM mission_canvas_projections WHERE scope_key = ?1",
+                params![scope_key],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        match current {
+            Some((observed_projection, observed_layout))
+                if observed_projection == expected_projection_revision =>
+            {
+                if projection.projection_revision != observed_projection + 1
+                    || projection.layout_revision != observed_layout + 1
+                {
+                    return Err(MissionCanvasStoreError::ProjectionEventRevisionMismatch);
+                }
+            }
+            Some((observed_projection, _)) => {
+                return Err(MissionCanvasStoreError::RevisionConflict {
+                    expected: expected_projection_revision,
+                    observed: observed_projection,
+                });
+            }
+            None => {
+                return Err(MissionCanvasStoreError::RevisionConflict {
+                    expected: expected_projection_revision,
+                    observed: 0,
+                });
+            }
+        }
+
+        let mut event = event.clone();
+        let sequence = append_event_transaction(&transaction, &event)?;
+        let mut next_projection = projection.clone();
+        next_projection.durable_event_cursor = format!("event:{sequence}");
+        next_projection.projection_digest = projection_digest(&next_projection)?;
+        let result = LayoutMutationResult {
+            scope: next_projection.scope.clone(),
+            command_id: command_id.to_owned(),
+            accepted: true,
+            projection_revision: next_projection.projection_revision,
+            layout_revision: next_projection.layout_revision,
+            projection_digest: next_projection.projection_digest.clone(),
+            event_cursor: next_projection.durable_event_cursor.clone(),
+            error_ref: None,
+            evidence_ref: Some(evidence_ref.to_owned()),
+            receipt_ref: Some(receipt_ref.to_owned()),
+        };
+        event.payload["projection_digest"] = json!(next_projection.projection_digest);
+        event.payload["result"] = serde_json::to_value(&result)?;
+        transaction.execute(
+            "UPDATE mission_canvas_composition_events SET payload_json = ?1 WHERE event_id = ?2",
+            params![serde_json::to_string(&event.payload)?, event.event_id],
+        )?;
+        validate_projection_for_store(&next_projection)?;
+        transaction.execute(
+            r#"INSERT INTO mission_canvas_projections(
+                    scope_key, projection_revision, layout_revision, projection_digest, payload_json, updated_at
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                ON CONFLICT(scope_key) DO UPDATE SET
+                    projection_revision=excluded.projection_revision,
+                    layout_revision=excluded.layout_revision,
+                    projection_digest=excluded.projection_digest,
+                    payload_json=excluded.payload_json,
+                    updated_at=excluded.updated_at"#,
+            params![
+                scope_key,
+                next_projection.projection_revision,
+                next_projection.layout_revision,
+                next_projection.projection_digest,
+                serde_json::to_string(&next_projection)?,
+                next_projection.resolved_at.as_deref().unwrap_or(&event.occurred_at),
+            ],
+        )?;
+        transaction.commit()?;
+        Ok(result)
     }
 
     /// Persist one exact rich-host lifecycle command and its event atomically.
