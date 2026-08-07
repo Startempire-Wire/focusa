@@ -686,13 +686,14 @@ fn validate_projection_for_store(projection: &ResolvedWorkspaceProjection) -> Re
 /// ambiguous legacy ownership is quarantined rather than guessed.
 fn quarantine_legacy_rows(connection: &Connection) -> Result<()> {
     for table in SCOPED_TABLES {
-        let payload_column = if *table == "mission_canvas_domain_pack_installations" {
+        let table_name = *table;
+        let payload_column = if table_name == "mission_canvas_domain_pack_installations" {
             "receipt_json"
         } else {
             "payload_json"
         };
         let sql = format!(
-            "SELECT rowid, scope_key, {payload_column} FROM {table} \
+            "SELECT rowid, scope_key, {payload_column} FROM {table_name} \
              WHERE length(scope_key) <> 64 \
                 OR lower(scope_key) <> scope_key \
                 OR scope_key GLOB '*[^0-9a-f]*'"
@@ -714,7 +715,7 @@ fn quarantine_legacy_rows(connection: &Connection) -> Result<()> {
                         source_table, legacy_scope_key, row_ref, payload_json, reason, quarantined_at
                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)"#,
                 params![
-                    table,
+                    table_name,
                     legacy_scope_key,
                     format!("rowid:{row_id}"),
                     payload_json,
