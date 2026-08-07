@@ -1,0 +1,117 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-002",
+  "result": "Implemented the bounded focusa.mission_canvas.projection.resolve operation. The generated ContributionEligibilityContext is adapted at the API boundary into Core-owned eligibility, canonical candidate catalog lookup, deterministic layout, evidence, receipt, and revision persistence. Desktop uses generated projectionResolve and registry-owned POST metadata, strips only transport control metadata from the generated request body, sends Idempotency-Key and If-Match, returns the direct ResolvedWorkspaceProjection DTO, and fails closed for authority, permission, capability, response, and watermark mismatches.",
+  "targets": [
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/reducer.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-002.json"
+  ],
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.projection.resolve",
+    "method": "POST",
+    "path": "/v1/mission-canvas/projection/resolve",
+    "mode": "mutation",
+    "scope_required": ["workstream"],
+    "permissions_required": ["mission_canvas:write"],
+    "confirmation": "none",
+    "requires_idempotency_key": true,
+    "requires_if_match_revision": true,
+    "receipt_required": true,
+    "request_schema_ref": "ContributionEligibilityContext",
+    "response_schema_ref": "ResolvedWorkspaceProjection",
+    "client_method": "projectionResolve",
+    "artifact_status": "The generated operation registry, OpenAPI artifact, TypeScript client, validators, capability snapshot, and transport metadata remain the authority; no generated contract or task packet was edited."
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "dependency_gate": {
+    "OPS-001": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/OPS-001.json",
+      "status": "verified",
+      "decision": "The exact Workstream projection GET and generated projection response validation are present and are reused as the resolve response boundary."
+    },
+    "CORE-006": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/CORE-006.json",
+      "status": "verified",
+      "decision": "Core-owned composition and exact Workstream validation are present; OPS-002 adapts the generated eligibility context into that existing reducer rather than moving eligibility or layout into Desktop/API transport."
+    }
+  },
+  "implementation": [
+    "The API accepts the generated ContributionEligibilityContext shape, validates the exact Workstream authority and desktop actor/authority envelope through WorkstreamContext extraction, requires mission_canvas:write, and resolves canonical candidates from the exact Workstream registry/profile/activity state. Legacy ResolveProjectionInput remains a bounded Core compatibility adapter rather than the generated Desktop DTO.",
+    "The API derives concurrency state from the exact stored projection and If-Match revision, rejects stale projection/layout/cursor state before candidate or layout work, honors idempotent projection replay, persists the Core result atomically with scope-qualified evidence/receipt/event identifiers, and returns only the direct ResolvedWorkspaceProjection required by the generated response schema.",
+    "Core validates scope before eligibility, collects only exact-Workstream candidates, applies capability/permission/operation/content omission rules, chooses a deterministic Core focus when the generated context has no semantic focus token, resolves responsive layout, rejects dead chrome, and emits recomposition evidence, receipt, and durable projection event state.",
+    "The generated Desktop transport resolves method/path/schema metadata from the operation registry, validates required idempotency and If-Match controls before HTTP, sends those controls as headers, strips them only for the generated context request body, validates the direct generated projection, and maintains per-authority revision/layout/cursor watermarks without composing locally.",
+    "The hostile Desktop consumer proves generated projectionResolve, exact Workstream POST/header/body transport, direct projection response ownership, omission/no-dead-chrome behavior, missing authority/idempotency/If-Match, foreign top-level and nested contribution authority, stale revision/layout/cursor responses, denied permission, and a wrapped/malformed response."
+  ],
+  "checks": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; generated schemas, operation entries, derived artifacts, parity and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.projection.resolve (exit 0; generated registry/OpenAPI/client/API/Core/transport/consumer contract: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.projection.resolve --client projectionResolve (exit 0; generated client, exact Workstream POST, Core-owned direct projection, If-Match/idempotency, hostile scope/watermark/permission/response checks: PASS)",
+    "node --check apps/desktop/tests/operation-consumer-runtime.mjs (exit 0)",
+    "python3 -m py_compile tests/spec135_mission_canvas_operation_contract_test.py (exit 0)",
+    "rustfmt --edition 2021 --check crates/focusa-api/src/routes/mission_canvas.rs crates/focusa-core/src/mission_canvas/reducer.rs (exit 0)",
+    "git diff --check (exit 0)",
+    "Cargo was not run, per the OPS-002 instruction."
+  ],
+  "negative_cases": {
+    "foreign_workstream": "API WorkstreamContext extraction and Core scope validation reject foreign or mismatched Workstream/Attachment/continuity/workspace binding authority; Desktop rejects foreign top-level and nested contribution response authority.",
+    "missing_authority": "Generated transport rejects missing Workstream identity before HTTP. API requires actor and authority headers and exact Workstream context extraction; generated response validation rejects missing or mismatched authority.",
+    "stale_revision_cursor": "API compares If-Match and exact stored projection/layout/cursor state before resolution; Desktop independently rejects regressed projection revision, layout revision, or same-namespace durable cursor without changing the accepted watermark.",
+    "unavailable_capability": "Eligibility uses the generated capabilities and available operations only through Core; a candidate requiring an unavailable capability/operation is omitted with a diagnostic rather than rendered. The hostile consumer also verifies a denied operation response is surfaced without local fallback.",
+    "permission_denied": "The generated descriptor requires mission_canvas:write; API permission enforcement and the hostile 403 response path prevent mutation adoption when the permission is absent.",
+    "idempotency_and_if_match": "The generated transport fails before HTTP when idempotency or If-Match is absent. API requires both generated mutation controls, returns an exact prior projection for a matching idempotent replay, and rejects a key reused for another projection revision.",
+    "empty_or_ineligible_contribution": "Core omission diagnostics and layout validation prevent an ineligible/empty contribution from becoming a layout node or dead chrome; Desktop only verifies the direct projection and never invents a panel.",
+    "invalid_response": "Generated structural validation plus exact top-level/nested authority and revision/layout/cursor checks reject wrapped resolve results, malformed contributions, foreign scope, missing authority, and stale responses.",
+    "local_inference": "No Desktop candidate search, semantic focus inference, layout resolution, receipt fabrication, CWD fallback, tab fallback, or competing renderer host is introduced. Core selects the deterministic focus fallback only when the generated context intentionally carries no semantic focus token."
+  },
+  "acceptance": [
+    "Resolves the generated profile/activity/viewport eligibility context through Focusa Core and persists a revisioned exact-Workstream projection with evidence, receipt, and durable event state.",
+    "Uses the generated focusa.mission_canvas.projection.resolve operation and MissionCanvasClient.projectionResolve method with registry-owned POST/path/request/response metadata.",
+    "Returns a direct validated ResolvedWorkspaceProjection carrying the exact Workstream and subordinate authority context; no resolve-result wrapper reaches Desktop.",
+    "Fails closed for foreign scope, missing authority, stale revision/cursor, missing idempotency/If-Match, denied permission/capability, invalid response, and ineligible/dead-chrome composition."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/reducer.rs",
+    "crates/focusa-core/src/mission_canvas/resolver.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/contracts/spec135-svelte-task-packets/OPS-002.json"
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs"
+  ],
+  "deferred_repository_observation": "Cargo was not run because the OPS-002 instruction explicitly prohibits Cargo. The central graph, generated task packets/index, parallel plan, orchestration scripts, and generated contract artifacts were not edited.",
+  "remaining_work": [],
+  "status": "implemented_partial"
+}

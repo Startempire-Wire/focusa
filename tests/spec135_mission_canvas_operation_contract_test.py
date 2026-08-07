@@ -92,6 +92,71 @@ if operation_id == "focusa.mission_canvas.projection.get":
     assert "pub fn validate_scope" in model
     assert "validate_resolved_contribution_scope" in model
 
+elif operation_id == "focusa.mission_canvas.projection.resolve":
+    assert operation["method"] == "POST"
+    assert operation["path"] == "/v1/mission-canvas/projection/resolve"
+    assert operation["mode"] == "mutation"
+    assert operation["permissions_required"] == ["mission_canvas:write"]
+    assert operation["request_schema_ref"] == "ContributionEligibilityContext"
+    assert operation["response_schema_ref"] == "ResolvedWorkspaceProjection"
+    assert operation["requires_idempotency_key"] is True
+    assert operation["requires_if_match_revision"] is True
+    assert operation["receipt_required"] is True
+
+    for marker in (
+        "post(resolve)",
+        "Json(request): Json<ProjectionResolveRequest>",
+        "ContributionEligibilityContextRequest",
+        "require_permission",
+        "validate_authority",
+        "host_renderer_workstream_context",
+        "WorkstreamContext::extract",
+        "previous_projection_revision",
+        "previous_layout_revision",
+        "projection_cursor_conflict",
+        "ensure_resolver_catalog",
+        "resolve_projection",
+        "put_projection",
+        "serde_json::to_value(result.projection)",
+    ):
+        assert marker in route_text, marker
+    resolver = (ROOT / "crates/focusa-core/src/mission_canvas/reducer.rs").read_text()
+    for marker in (
+        "ResolveProjectionInput",
+        "validate_scope",
+        "collect_candidates",
+        "resolve_eligibility",
+        "resolve_layout",
+        "validate_no_dead_chrome",
+        "RecompositionEvidence",
+        "RecompositionReceipt",
+        "projection_resolved",
+    ):
+        assert marker in resolver, marker
+    for marker in (
+        "requires_if_match_revision",
+        "readIfMatchRevision",
+        "if_match_revision_required",
+        "If-Match",
+        "Idempotency-Key",
+        "validateProjectionResponse",
+        "foreign_projection_scope",
+        "foreign_contribution_scope",
+        "stale_projection_revision",
+        "stale_projection_layout_revision",
+        "stale_projection_cursor",
+    ):
+        assert marker in transport, marker
+    for marker in (
+        "projectionResolve",
+        "ContributionEligibilityContext",
+        "Core-owned direct projection",
+        "If-Match/idempotency",
+        "foreign authority",
+        "stale revision/layout/cursor",
+    ):
+        assert marker in consumer, marker
+
 elif operation_id == "focusa.mission_canvas.rich_host.resolve":
     assert operation["method"] == "GET"
     assert operation["path"] == "/v1/mission-canvas/rich-host/resolution"

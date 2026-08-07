@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
 
 use axum::{
     extract::{Path, Query, State},
@@ -6,13 +9,14 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use focusa_core::mission_canvas::{
-    resolve_projection, CompositionEvent, DomainPackInstallCommand, DomainPackInstallError,
-    DomainPackInstallService, HostLifecycleError, HostLifecycleFocusCommand,
-    HostLifecycleLaunchCommand, HostLifecycleService, HostLifecycleState, HostPlatform,
-    HostRendererResolutionError, HostRendererResolutionService, MissionCanvasScope,
-    MissionCanvasStore, ResolveProjectionInput, StoredDocument, DOMAIN_PACK_INSTALL_CAPABILITY,
+    resolve_projection, CandidateContribution, CompositionEvent, DomainPackInstallCommand,
+    DomainPackInstallError, DomainPackInstallService, EligibilityContext, HostLifecycleError,
+    HostLifecycleFocusCommand, HostLifecycleLaunchCommand, HostLifecycleService,
+    HostLifecycleState, HostPlatform, HostRendererResolutionError, HostRendererResolutionService,
+    MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput, StoredDocument,
+    DOMAIN_PACK_INSTALL_CAPABILITY,
 };
 use focusa_core::workstream_context::{
     ActorRef, ActorType, AuthorityContext, WorkstreamContext, WorkstreamContextError,
@@ -218,6 +222,62 @@ struct RichHostCommandRequest {
     idempotency_key: String,
 }
 
+/// The generated ContributionEligibilityContext is the public resolve
+/// request.  ResolveProjectionInput remains a compatibility adapter for
+/// existing Core callers; it is not the Desktop transport DTO.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContributionEligibilityContextRequest {
+    #[serde(flatten)]
+    scope: MissionCanvasScope,
+    workspace_profile_id: String,
+    workspace_profile_revision: u64,
+    activity_mode_id: String,
+    activity_mode_revision: u64,
+    focused_work_surface_id: Option<WorkSurfaceId>,
+    #[serde(default)]
+    open_work_surface_ids: Option<Vec<WorkSurfaceId>>,
+    canonical_read_model_revision: u64,
+    available_operations: Vec<String>,
+    capabilities: Vec<String>,
+    permissions: Vec<String>,
+    viewport: ContributionViewportRequest,
+    project_constraint_refs: Vec<String>,
+    user_preference_ref: Option<String>,
+    resolver_rule_revision: String,
+    #[serde(default)]
+    observed_at: Option<String>,
+    #[serde(default)]
+    pinned_work_surface_ids: Option<Vec<WorkSurfaceId>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContributionViewportRequest {
+    class: String,
+    css_height: u32,
+    css_width: u32,
+    device_pixel_ratio: f64,
+    platform: String,
+    #[serde(default)]
+    high_contrast: Option<bool>,
+    #[serde(default)]
+    reduced_motion: Option<bool>,
+    #[serde(default)]
+    reduced_transparency: Option<bool>,
+    #[serde(default)]
+    text_scale_percent: Option<u32>,
+    #[serde(default)]
+    zoom_percent: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum ProjectionResolveRequest {
+    Generated(ContributionEligibilityContextRequest),
+    Core(ResolveProjectionInput),
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/mission-canvas/projection", get(get_projection))
@@ -296,15 +356,76 @@ async fn get_projection(
 async fn resolve(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Json(input): Json<ResolveProjectionInput>,
+    Json(request): Json<ProjectionResolveRequest>,
 ) -> ApiResult {
     require_permission(&headers, "mission_canvas:write")?;
-    validate_authority(&input.eligibility.scope)?;
+    let request_scope = match &request {
+        ProjectionResolveRequest::Generated(request) => &request.scope,
+        ProjectionResolveRequest::Core(input) => &input.eligibility.scope,
+    };
+    validate_authority(request_scope)?;
+    // Resolve and rich-host operations share the same exact Workstream
+    // extraction; the presentation surface is never used as ownership.
+    exact_workstream_context(request_scope, &headers).map_err(host_renderer_context_error)?;
     let store = store(&state)?;
+    let input = match request {
+        ProjectionResolveRequest::Generated(request) => {
+            generated_projection_input(&store, &headers, request)?
+        }
+        ProjectionResolveRequest::Core(input) => input,
+    };
     let previous = store
         .get_projection(&input.eligibility.scope)
         .map_err(store_error)?;
-    if previous.is_none() && input.previous_projection_revision != 0 {
+    if let Some(previous_projection) = previous.as_ref() {
+        let replay = store
+            .events_after(&input.eligibility.scope, 0, 10_000)
+            .map_err(store_error)?
+            .into_iter()
+            .map(|(_, event)| event)
+            .find(|event| {
+                event.event_kind == "projection_resolved"
+                    && (event.causation_id.as_deref() == Some(input.idempotency_key.as_str())
+                        || event.payload["receipt"]["idempotency_key"]
+                            .as_str()
+                            .is_some_and(|key| key == input.idempotency_key))
+            });
+        if let Some(event) = replay {
+            if event.projection_revision == previous_projection.projection_revision {
+                return Ok(Json(
+                    serde_json::to_value(previous_projection).map_err(json_error)?,
+                ));
+            }
+            return Err(error(
+                StatusCode::CONFLICT,
+                "idempotency_conflict",
+                "The idempotency key belongs to a different projection revision",
+            ));
+        }
+    }
+    if let Some(previous_projection) = previous.as_ref() {
+        if previous_projection.projection_revision != input.previous_projection_revision {
+            return Err(error(
+                StatusCode::CONFLICT,
+                "projection_revision_conflict",
+                "The projection revision is stale",
+            ));
+        }
+        if previous_projection.layout_revision != input.previous_layout_revision {
+            return Err(error(
+                StatusCode::CONFLICT,
+                "layout_revision_conflict",
+                "The layout revision is stale",
+            ));
+        }
+        if previous_projection.durable_event_cursor != input.event_cursor {
+            return Err(error(
+                StatusCode::CONFLICT,
+                "projection_cursor_conflict",
+                "The durable event cursor is stale",
+            ));
+        }
+    } else if input.previous_projection_revision != 0 || input.previous_layout_revision != 0 {
         return Err(error(
             StatusCode::CONFLICT,
             "projection_revision_conflict",
@@ -328,12 +449,347 @@ async fn resolve(
     store
         .put_projection(&result.projection, expected_revision, &result.event)
         .map_err(store_error)?;
-    Ok(Json(json!({
-        "schema": "focusa.mission_canvas.resolve_result.v1",
-        "projection": result.projection,
-        "evidence": result.evidence,
-        "receipt": result.receipt,
-    })))
+    Ok(Json(
+        serde_json::to_value(result.projection).map_err(json_error)?,
+    ))
+}
+
+fn generated_projection_input(
+    store: &MissionCanvasStore,
+    headers: &HeaderMap,
+    request: ContributionEligibilityContextRequest,
+) -> Result<ResolveProjectionInput, (StatusCode, Json<Value>)> {
+    if request.workspace_profile_id.trim().is_empty() || request.activity_mode_id.trim().is_empty()
+    {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "projection_context_invalid",
+            "workspace profile and activity mode are required",
+        ));
+    }
+    if request.resolver_rule_revision
+        != focusa_core::mission_canvas::resolver::RESOLVER_RULE_REVISION
+    {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "resolver_rule_revision_mismatch",
+            "The requested resolver rule is not the Core-authorized revision",
+        ));
+    }
+    validate_viewport(&request.viewport)?;
+    let idempotency_key = required_header(
+        headers,
+        "idempotency-key",
+        "idempotency_key_missing",
+        "Idempotency-Key is required for projection resolution",
+    )?;
+    let granted_capabilities = header_values(headers, "x-focusa-capabilities");
+    if request
+        .capabilities
+        .iter()
+        .any(|capability| !granted_capabilities.contains(capability))
+    {
+        return Err(error(
+            StatusCode::FORBIDDEN,
+            "capability_context_mismatch",
+            "The generated capability context exceeds the authenticated capability set",
+        ));
+    }
+    let granted_permissions = header_values(headers, "x-focusa-permissions");
+    if request
+        .permissions
+        .iter()
+        .any(|permission| !granted_permissions.contains(permission))
+    {
+        return Err(error(
+            StatusCode::FORBIDDEN,
+            "permission_context_mismatch",
+            "The generated permission context exceeds the authenticated permission set",
+        ));
+    }
+    let expected_projection_revision = required_if_match_revision(headers)?;
+    let previous = store.get_projection(&request.scope).map_err(store_error)?;
+    let (previous_layout_revision, event_cursor, previously_eligible) =
+        if let Some(projection) = previous.as_ref() {
+            (
+                projection.layout_revision,
+                projection.durable_event_cursor.clone(),
+                projection
+                    .eligible_contributions
+                    .iter()
+                    .map(|contribution| contribution.contribution_id.clone())
+                    .collect::<BTreeSet<_>>(),
+            )
+        } else {
+            (
+                0,
+                format!(
+                    "event:{}",
+                    store
+                        .latest_event_sequence(&request.scope)
+                        .map_err(store_error)?
+                ),
+                BTreeSet::new(),
+            )
+        };
+    let projection_revision = expected_projection_revision.checked_add(1).ok_or_else(|| {
+        error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "projection_revision_overflow",
+            "projection revision exceeds the supported range",
+        )
+    })?;
+    let observed_at = match request.observed_at {
+        Some(value) if DateTime::parse_from_rfc3339(&value).is_ok() => value,
+        Some(_) => {
+            return Err(error(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "observed_at_invalid",
+                "observed_at must be an RFC3339 timestamp",
+            ));
+        }
+        None => Utc::now().to_rfc3339(),
+    };
+    let candidates = resolver_candidates(
+        store,
+        &request.scope,
+        &request.workspace_profile_id,
+        &request.activity_mode_id,
+    )?;
+    let eligibility = EligibilityContext {
+        scope: request.scope.clone(),
+        profile_id: request.workspace_profile_id.clone(),
+        activity_mode_id: request.activity_mode_id.clone(),
+        projection_revision,
+        capabilities: granted_capabilities,
+        permissions: granted_permissions,
+        available_operations: request.available_operations.into_iter().collect(),
+        meaningful_content: BTreeMap::new(),
+        previously_eligible,
+        observed_at,
+    };
+    Ok(ResolveProjectionInput {
+        candidates,
+        eligibility,
+        workspace_profile_revision: request.workspace_profile_revision,
+        activity_mode_revision: request.activity_mode_revision,
+        focused_work_surface_id: request
+            .focused_work_surface_id
+            .map(|value| value.to_string()),
+        canonical_read_model_revision: request.canonical_read_model_revision,
+        viewport_width: request.viewport.css_width,
+        viewport_height: request.viewport.css_height,
+        viewport_class: request.viewport.class,
+        focused_semantic_target: String::new(),
+        previous_projection_revision: expected_projection_revision,
+        previous_layout_revision,
+        event_cursor,
+        causation_id: Some(idempotency_key.clone()),
+        idempotency_key,
+    })
+}
+
+fn validate_viewport(
+    viewport: &ContributionViewportRequest,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    if viewport.css_width < 1024
+        || viewport.css_height < 720
+        || !viewport.device_pixel_ratio.is_finite()
+        || !(1.0..=4.0).contains(&viewport.device_pixel_ratio)
+    {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "viewport_invalid",
+            "viewport dimensions and device pixel ratio are outside the generated bounds",
+        ));
+    }
+    if !matches!(
+        viewport.class.as_str(),
+        "minimum" | "compact" | "standard" | "productive" | "wide" | "reference_capture"
+    ) {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "viewport_class_invalid",
+            "viewport class is not in the generated contract",
+        ));
+    }
+    if !matches!(viewport.platform.as_str(), "macOS" | "Windows" | "Linux") {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "viewport_platform_invalid",
+            "viewport platform is not in the generated contract",
+        ));
+    }
+    if viewport
+        .text_scale_percent
+        .is_some_and(|value| !(100..=200).contains(&value))
+        || viewport
+            .zoom_percent
+            .is_some_and(|value| !matches!(value, 100 | 125 | 150 | 200))
+    {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "viewport_scale_invalid",
+            "viewport text scale or zoom is not in the generated contract",
+        ));
+    }
+    Ok(())
+}
+
+fn resolver_candidates(
+    store: &MissionCanvasStore,
+    scope: &MissionCanvasScope,
+    profile_id: &str,
+    activity_mode_id: &str,
+) -> Result<Vec<CandidateContribution>, (StatusCode, Json<Value>)> {
+    let profile_ids = resolver_profile_candidate_ids(store, scope, profile_id)?;
+    let activity_ids = resolver_activity_candidate_ids(store, scope, activity_mode_id)?;
+    let documents = store
+        .list_documents("mission_canvas_registry_entries", scope)
+        .map_err(store_error)?;
+    let mut candidates = BTreeMap::new();
+    for document in documents {
+        let candidate_value = document
+            .payload
+            .get("candidate")
+            .cloned()
+            .unwrap_or_else(|| document.payload.clone());
+        if candidate_value.get("contribution_id").is_none() {
+            continue;
+        }
+        let candidate: CandidateContribution =
+            serde_json::from_value(candidate_value).map_err(|_| {
+                error(
+                    StatusCode::CONFLICT,
+                    "projection_catalog_invalid",
+                    "A canonical candidate registry entry is malformed",
+                )
+            })?;
+        candidates.insert(candidate.contribution_id.clone(), candidate);
+    }
+    let selected_ids = profile_ids
+        .intersection(&activity_ids)
+        .filter(|id| candidates.contains_key(*id))
+        .cloned()
+        .collect::<Vec<_>>();
+    if selected_ids.is_empty() {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "projection_catalog_missing",
+            "No canonical candidates are available for the requested profile and activity",
+        ));
+    }
+    Ok(selected_ids
+        .into_iter()
+        .filter_map(|id| candidates.remove(&id))
+        .collect())
+}
+
+fn resolver_profile_candidate_ids(
+    store: &MissionCanvasStore,
+    scope: &MissionCanvasScope,
+    profile_id: &str,
+) -> Result<BTreeSet<String>, (StatusCode, Json<Value>)> {
+    let profile = store
+        .get_document(
+            "mission_canvas_profiles",
+            scope,
+            &format!("profile:{profile_id}"),
+        )
+        .map_err(store_error)?
+        .map(|document| document.payload)
+        .or_else(|| {
+            focusa_core::mission_canvas::CompositionRegistry::builtin()
+                .profiles
+                .get(profile_id)
+                .and_then(|profile| serde_json::to_value(profile).ok())
+        })
+        .ok_or_else(|| {
+            error(
+                StatusCode::CONFLICT,
+                "profile_not_found",
+                "The requested workspace profile is not in the canonical registry",
+            )
+        })?;
+    let profile: focusa_core::mission_canvas::WorkspaceProfileDefinition =
+        serde_json::from_value(profile).map_err(|_| {
+            error(
+                StatusCode::CONFLICT,
+                "profile_invalid",
+                "The canonical workspace profile is malformed",
+            )
+        })?;
+    Ok(profile.candidate_contribution_ids.into_iter().collect())
+}
+
+fn resolver_activity_candidate_ids(
+    store: &MissionCanvasStore,
+    scope: &MissionCanvasScope,
+    activity_mode_id: &str,
+) -> Result<BTreeSet<String>, (StatusCode, Json<Value>)> {
+    let activity = store
+        .get_document(
+            "mission_canvas_activity_modes",
+            scope,
+            &format!("activity:{activity_mode_id}"),
+        )
+        .map_err(store_error)?
+        .map(|document| document.payload)
+        .or_else(|| {
+            focusa_core::mission_canvas::CompositionRegistry::builtin()
+                .activities
+                .get(activity_mode_id)
+                .and_then(|activity| serde_json::to_value(activity).ok())
+        })
+        .ok_or_else(|| {
+            error(
+                StatusCode::CONFLICT,
+                "activity_mode_not_found",
+                "The requested activity mode is not in the canonical registry",
+            )
+        })?;
+    let activity: focusa_core::mission_canvas::ActivityModeDefinition =
+        serde_json::from_value(activity).map_err(|_| {
+            error(
+                StatusCode::CONFLICT,
+                "activity_mode_invalid",
+                "The canonical activity mode is malformed",
+            )
+        })?;
+    Ok(activity.candidate_contribution_ids.into_iter().collect())
+}
+
+fn required_header(
+    headers: &HeaderMap,
+    name: &str,
+    code: &'static str,
+    message: &'static str,
+) -> Result<String, (StatusCode, Json<Value>)> {
+    headers
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| error(StatusCode::UNPROCESSABLE_ENTITY, code, message))
+}
+
+fn required_if_match_revision(headers: &HeaderMap) -> Result<u64, (StatusCode, Json<Value>)> {
+    let raw = required_header(
+        headers,
+        "if-match",
+        "if_match_revision_missing",
+        "If-Match is required for projection resolution",
+    )?;
+    let value = raw.trim_matches('"');
+    let value = value.strip_prefix("revision:").unwrap_or(value);
+    value.parse::<u64>().map_err(|_| {
+        error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "if_match_revision_invalid",
+            "If-Match must contain a non-negative projection revision",
+        )
+    })
 }
 
 fn ensure_resolver_catalog(
@@ -394,7 +850,11 @@ fn ensure_resolver_catalog(
             updated_at: now.clone(),
         };
         let event = CompositionEvent {
-            event_id: format!("projection-event:{event_kind}:{}", input.idempotency_key),
+            event_id: format!(
+                "projection-event:{event_kind}:{}:{}",
+                input.eligibility.scope.workstream.storage_key(),
+                input.idempotency_key
+            ),
             event_kind: event_kind.into(),
             scope: input.eligibility.scope.clone(),
             projection_revision: input.previous_projection_revision,
@@ -483,8 +943,10 @@ fn ensure_resolver_catalog(
         };
         let event = CompositionEvent {
             event_id: format!(
-                "projection-event:registry:{}:{}",
-                candidate.contribution_id, input.idempotency_key
+                "projection-event:registry:{}:{}:{}",
+                input.eligibility.scope.workstream.storage_key(),
+                candidate.contribution_id,
+                input.idempotency_key
             ),
             event_kind: "candidate_discovered".into(),
             scope: input.eligibility.scope.clone(),
@@ -542,7 +1004,8 @@ fn ensure_catalog_document(
     };
     let event = CompositionEvent {
         event_id: format!(
-            "projection-event:{event_kind}:{}:{}",
+            "projection-event:{event_kind}:{}:{}:{}",
+            scope.workstream.storage_key(),
             document_id.replace(':', "-"),
             input.idempotency_key
         ),
@@ -1166,6 +1629,13 @@ async fn resolve_host_renderer(
 }
 
 fn host_renderer_workstream_context(
+    scope: &MissionCanvasScope,
+    headers: &HeaderMap,
+) -> Result<WorkstreamContext, WorkstreamContextError> {
+    exact_workstream_context(scope, headers)
+}
+
+fn exact_workstream_context(
     scope: &MissionCanvasScope,
     headers: &HeaderMap,
 ) -> Result<WorkstreamContext, WorkstreamContextError> {

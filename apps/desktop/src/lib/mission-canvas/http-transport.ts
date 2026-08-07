@@ -21,9 +21,11 @@ interface OperationDescriptor {
   operation_id: string;
   method: string;
   path: string;
+  request_schema_ref: string;
   response_schema_ref: string;
   availability: string;
   requires_idempotency_key: boolean;
+  requires_if_match_revision: boolean;
   confirmation: string;
   receipt_required: boolean;
 }
@@ -96,12 +98,24 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (operation.requires_idempotency_key && !hasIdempotencyKey(input)) {
       throw new MissionCanvasTransportError('idempotency_key_required', operationId);
     }
+    const ifMatchRevision = readIfMatchRevision(input);
+    if (operation.requires_if_match_revision && ifMatchRevision === undefined) {
+      throw new MissionCanvasTransportError('if_match_revision_required', operationId);
+    }
     if (operation.confirmation === 'explicit' && !hasConfirmation(input)) {
       throw new MissionCanvasTransportError('explicit_confirmation_required', operationId);
     }
 
     const method = operation.method.toUpperCase();
-    const resolved = resolvePath(operation.path, input, operationId);
+    const requestInput = transportRequestInput(operation, input);
+    const requestValidation = validateMissionCanvasContract(operation.request_schema_ref, requestInput);
+    if (!requestValidation.valid) {
+      throw new MissionCanvasTransportError(
+        `invalid_request:${requestValidation.errors.join(',')}`,
+        operationId
+      );
+    }
+    const resolved = resolvePath(operation.path, requestInput, operationId);
     const url = new URL(`${this.#baseUrl}${resolved.path}`);
     const init: RequestInit = {
       method,
@@ -111,7 +125,11 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
         ...(this.permissionScopes.length > 0 ? { 'X-Focusa-Permissions': this.permissionScopes.join(',') } : {}),
         ...(this.capabilityRefs.length > 0 ? { 'X-Focusa-Capabilities': this.capabilityRefs.join(',') } : {}),
         ...(this.actorId ? { 'X-Focusa-Actor-Id': this.actorId } : {}),
-        ...(this.authorityRef ? { 'X-Focusa-Authority-Ref': this.authorityRef } : {})
+        ...(this.authorityRef ? { 'X-Focusa-Authority-Ref': this.authorityRef } : {}),
+        ...(ifMatchRevision !== undefined ? { 'If-Match': ifMatchRevision } : {}),
+        ...(hasIdempotencyKey(input)
+          ? { 'Idempotency-Key': (input as Record<string, string>).idempotency_key }
+          : {})
       }
     };
 
@@ -311,6 +329,22 @@ function validateResponse(schemaRef: string, value: unknown): { valid: boolean; 
     validateMissionCanvasContract(itemSchema, item).errors.map((error) => `${index}:${error}`)
   );
   return { valid: errors.length === 0, errors };
+}
+
+function transportRequestInput(operation: OperationDescriptor, input: MissionCanvasOperationInput): MissionCanvasOperationInput {
+  if (operation.request_schema_ref !== 'ContributionEligibilityContext') return input;
+  const {
+    idempotency_key: _idempotencyKey,
+    if_match_revision: _ifMatchRevision,
+    expected_revision: _expectedRevision,
+    expected_projection_revision: _expectedProjectionRevision,
+    previous_projection_revision: _previousProjectionRevision,
+    previous_layout_revision: _previousLayoutRevision,
+    event_cursor: _eventCursor,
+    causation_id: _causationId,
+    ...generatedContext
+  } = input as Record<string, unknown>;
+  return generatedContext as MissionCanvasOperationInput;
 }
 
 function resolvePath(path: string, input: unknown, operationId: string): { path: string; input: unknown } {
@@ -641,6 +675,26 @@ function hasIdempotencyKey(input: unknown): boolean {
     && !Array.isArray(input)
     && typeof (input as Record<string, unknown>).idempotency_key === 'string'
     && (input as Record<string, string>).idempotency_key.trim().length > 0;
+}
+
+function readIfMatchRevision(input: unknown): string | undefined {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
+  const record = input as Record<string, unknown>;
+  for (const field of [
+    'if_match_revision',
+    'expected_revision',
+    'expected_projection_revision',
+    'previous_projection_revision'
+  ]) {
+    const value = record[field];
+    if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return String(value);
+    if (typeof value === 'string' && /^(?:0|[1-9][0-9]*)$/.test(value.trim())) {
+      const normalized = value.trim();
+      const numeric = Number(normalized);
+      if (Number.isSafeInteger(numeric)) return normalized;
+    }
+  }
+  return undefined;
 }
 
 function hasConfirmation(input: unknown): boolean {
