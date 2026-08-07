@@ -1,0 +1,38 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "EX-001",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Verified existing complete implementation: Link parent and executable callgraphs from the Desktop graph.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": []
+  },
+  "targets": [
+    "docs/transitions/FOCUSA-TRANSITION-001-desktop-implementation-task-graph.yaml"
+  ],
+  "implementation": [
+    "mission_canvas_executable_callgraph field"
+  ],
+  "negative_cases": [],
+  "checks": [
+    {
+      "command": "python3 -c \"import yaml; d=yaml.safe_load(open('docs/transitions/FOCUSA-TRANSITION-001-desktop-implementation-task-graph.yaml')); assert d['mission_canvas_executable_callgraph'].endswith('executable-callgraph.yaml')\"",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "acceptance": [
+    "Desktop graph resolves both parent and executable Mission Canvas graphs.",
+    "T061 means Pi-independent extraction plus Spec 158 identity correction, not a second resolver.",
+    "No node directs an agent to hard-code the populated reference screenshots."
+  ],
+  "source_authority": [],
+  "evidence_refs": [
+    "docs/transitions/FOCUSA-TRANSITION-001-desktop-implementation-task-graph.yaml"
+  ],
+  "remaining_work": []
+}
