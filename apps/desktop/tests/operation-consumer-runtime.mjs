@@ -48,7 +48,9 @@ try {
     work_surface_id: fixture.work_surface_id ?? fixture.focused_work_surface_id ?? null
   };
 
-  if (operationId === 'focusa.mission_canvas.rich_host.resolve') {
+  if (operationId === 'focusa.mission_canvas.projection.get') {
+    await exerciseProjectionGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.rich_host.resolve') {
     await exerciseHostResolution({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.domain_pack.install') {
     await exerciseDomainPackInstall({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
@@ -62,6 +64,152 @@ try {
   await server.ws.close();
   if (server.httpServer) await new Promise((resolve) => server.httpServer.close(resolve));
   if (createdKitTsconfig) await rm(generatedKitTsconfig, { force: true });
+}
+
+async function exerciseProjectionGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  let calls = 0;
+  const requests = [];
+  let response = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/populated-projection.json', import.meta.url), 'utf8'));
+  const transport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787/',
+    async (url, init) => {
+      calls += 1;
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    ['mission_canvas.projection.get'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const client = new MissionCanvasClient(transport);
+  // projectionGet returns the generated ResolvedWorkspaceProjection DTO;
+  // no Desktop-owned projection shape or composition resolver is introduced.
+  const projection = await client.projectionGet(structuredClone(authority));
+  assert.deepEqual(projection, response);
+  assert.equal(calls, 1);
+
+  const requestUrl = new URL(requests[0].url);
+  assert.equal(`${requestUrl.origin}${requestUrl.pathname}`, 'http://127.0.0.1:8787/v1/mission-canvas/projection');
+  assert.deepEqual(JSON.parse(requestUrl.searchParams.get('workstream')), authority.workstream);
+  assert.deepEqual(JSON.parse(requestUrl.searchParams.get('attachment')), authority.attachment);
+  assert.equal(requestUrl.searchParams.get('continuity_id'), authority.continuity_id);
+  assert.equal(requestUrl.searchParams.get('workspace_binding_id'), authority.workspace_binding_id);
+  assert.equal(requestUrl.searchParams.get('runtime_object'), JSON.stringify(authority.runtime_object));
+  assert.equal(requestUrl.searchParams.get('work_surface_id'), authority.work_surface_id);
+  assert.equal(requests[0].init.method, 'GET');
+  assert.equal(requests[0].init.body, undefined);
+  assert.equal(requests[0].init.headers['X-Focusa-Permissions'], 'mission_canvas:read');
+  assert.equal(requests[0].init.headers['X-Focusa-Capabilities'], 'mission_canvas.projection.get');
+  assert.equal(requests[0].init.headers['X-Focusa-Actor-Id'], 'actor:desktop');
+  assert.equal(requests[0].init.headers['X-Focusa-Authority-Ref'], 'authority:desktop');
+
+  // Eligibility and composition remain Core-owned: the empty exact Workstream
+  // Work Rail is omitted and diagnosed; Desktop never invents a replacement contribution.
+  assert.equal(projection.eligible_contributions.some(({ contribution_id }) => contribution_id === 'contribution:empty-work-rail'), false);
+  assert.equal(projection.omission_diagnostics.some(({ contribution_id, reason }) => contribution_id === 'contribution:empty-work-rail' && reason === 'no_relevant_content'), true);
+  assert.equal(JSON.stringify(projection.layout_tree).includes('contribution:empty-work-rail'), false);
+
+  let missingScopeCalls = 0;
+  const missingScopeTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      missingScopeCalls += 1;
+      return new Response(JSON.stringify(response), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    ['mission_canvas.projection.get'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingScopeTransport).projectionGet({}),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_workstream_identity:')
+  );
+  assert.equal(missingScopeCalls, 0, 'missing Workstream authority must fail before HTTP');
+
+  const foreignTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () => {
+    const foreign = structuredClone(response);
+    foreign.workstream.workstream_id = 'ws:foreign';
+    foreign.attachment.workstream.workstream_id = 'ws:foreign';
+    return new Response(JSON.stringify(foreign), { status: 200 });
+  }, undefined, 30_000, ['mission_canvas:read'], ['mission_canvas.projection.get'], 'actor:desktop', 'authority:desktop');
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignTransport).projectionGet(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_projection_scope'
+  );
+
+  const foreignContributionTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () => {
+    const foreignContribution = structuredClone(response);
+    foreignContribution.eligible_contributions[0].authority.workstream.workstream_id = 'ws:foreign';
+    foreignContribution.eligible_contributions[0].authority.attachment.workstream.workstream_id = 'ws:foreign';
+    return new Response(JSON.stringify(foreignContribution), { status: 200 });
+  }, undefined, 30_000, ['mission_canvas:read'], ['mission_canvas.projection.get'], 'actor:desktop', 'authority:desktop');
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignContributionTransport).projectionGet(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_contribution_scope'
+  );
+
+  const missingResponseScope = structuredClone(response);
+  delete missingResponseScope.workstream;
+  const invalidResponseTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(missingResponseScope), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(invalidResponseTransport).projectionGet(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:')
+  );
+
+  const malformedContributionResponse = structuredClone(response);
+  malformedContributionResponse.eligible_contributions = [null];
+  const malformedContributionTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(malformedContributionResponse), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(malformedContributionTransport).projectionGet(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:0:missing_contribution'
+  );
+
+  // A stale projection is not adopted even when the server response remains
+  // structurally valid. The durable cursor is an independent watermark.
+  response.projection_revision -= 1;
+  response.durable_event_cursor = 'event:40';
+  await assert.rejects(
+    () => client.projectionGet(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_projection_revision'
+  );
+  response.projection_revision += 2;
+  await assert.rejects(
+    () => client.projectionGet(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_projection_cursor'
+  );
+  response.projection_revision += 1;
+  response.layout_revision -= 2;
+  response.durable_event_cursor = 'event:42';
+  await assert.rejects(
+    () => client.projectionGet(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_projection_layout_revision'
+  );
+
+  const deniedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Permissions'], undefined);
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'permission_denied' } }), { status: 403 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(deniedTransport).projectionGet(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 403
+  );
+
+  await assert.rejects(
+    () => transport.request('focusa.mission_canvas.projection.unavailable', structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'operation_unavailable'
+  );
+
+  console.log('Mission Canvas operation consumer: PASS (generated projectionGet, exact Workstream GET, Core-owned omission, foreign authority, stale revision/layout/cursor, permission, unavailable operation, and hostile response checks)');
 }
 
 async function exerciseHostResolution({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {

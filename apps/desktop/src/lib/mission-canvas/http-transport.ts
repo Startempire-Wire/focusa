@@ -4,8 +4,17 @@ import {
   sameWorkstreamKey,
   validateMissionCanvasContract
 } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
-import { authorityFromEvent, sameWorkstreamAuthority } from './exact-scope';
-import type { ProjectionLifecycleEvent, WorkstreamAuthorityContext } from './types';
+import {
+  authorityFromEvent,
+  authorityFromProjection,
+  sameWorkstreamAuthority,
+  workstreamAuthorityStorageKey
+} from './exact-scope';
+import type {
+  ProjectionLifecycleEvent,
+  ResolvedWorkspaceProjection,
+  WorkstreamAuthorityContext
+} from './types';
 import registry from '../../../../../docs/contracts/spec135/mission-canvas-v1/operation-registry.json';
 
 interface OperationDescriptor {
@@ -17,6 +26,17 @@ interface OperationDescriptor {
   requires_idempotency_key: boolean;
   confirmation: string;
   receipt_required: boolean;
+}
+
+interface ProjectionCursor {
+  kind: string;
+  value: number;
+}
+
+interface ProjectionWatermark {
+  projectionRevision: number;
+  layoutRevision: number;
+  cursor?: ProjectionCursor;
 }
 
 export class MissionCanvasTransportError extends Error {
@@ -38,6 +58,7 @@ const operations = new Map(
 export class MissionCanvasHttpTransport implements MissionCanvasTransport {
   readonly #baseUrl: string;
   readonly #fetch: typeof fetch;
+  readonly #projectionWatermarks = new Map<string, ProjectionWatermark>();
 
   constructor(
     baseUrl: string,
@@ -123,6 +144,46 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
         response.status,
         value
       );
+    }
+    if (operation.response_schema_ref === 'ResolvedWorkspaceProjection') {
+      const watermark = validateProjectionResponse(
+        operationId,
+        response.status,
+        value,
+        authority
+      );
+      const key = workstreamAuthorityStorageKey(authority);
+      const previous = this.#projectionWatermarks.get(key);
+      if (previous && watermark.projectionRevision < previous.projectionRevision) {
+        throw new MissionCanvasTransportError(
+          'stale_projection_revision',
+          operationId,
+          response.status,
+          value
+        );
+      }
+      if (previous && watermark.layoutRevision < previous.layoutRevision) {
+        throw new MissionCanvasTransportError(
+          'stale_projection_layout_revision',
+          operationId,
+          response.status,
+          value
+        );
+      }
+      if (
+        previous?.cursor !== undefined
+        && watermark.cursor !== undefined
+        && previous.cursor.kind === watermark.cursor.kind
+        && watermark.cursor.value < previous.cursor.value
+      ) {
+        throw new MissionCanvasTransportError(
+          'stale_projection_cursor',
+          operationId,
+          response.status,
+          value
+        );
+      }
+      this.#projectionWatermarks.set(key, watermark);
     }
     if (operation.response_schema_ref === 'DomainPackInstallReceipt'
       && !sameWorkstreamKey((value as { workstream?: unknown }).workstream, authority.workstream)) {
@@ -238,7 +299,10 @@ function authorityFromInput(input: unknown): WorkstreamAuthorityContext {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return { workstream: undefined as never };
   }
-  const value = input as Record<string, unknown>;
+  return authorityFromRecord(input as Record<string, unknown>);
+}
+
+function authorityFromRecord(value: Record<string, unknown>): WorkstreamAuthorityContext {
   return {
     workstream: value.workstream as WorkstreamAuthorityContext['workstream'],
     continuity_id: (value.continuity_id as WorkstreamAuthorityContext['continuity_id']) ?? null,
@@ -253,14 +317,138 @@ function authorityFromResolution(value: unknown): WorkstreamAuthorityContext | u
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
   const response = value as Record<string, unknown>;
   if (!('workstream' in response)) return undefined;
+  return authorityFromRecord(response);
+}
+
+function validateProjectionResponse(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext
+): ProjectionWatermark {
+  const projection = value as ResolvedWorkspaceProjection;
+  const responseAuthority = authorityFromProjection(projection);
+  const authorityValidation = validateMissionCanvasContract(
+    'WorkstreamAuthorityContext',
+    responseAuthority
+  );
+  if (!authorityValidation.valid) {
+    throw new MissionCanvasTransportError(
+      `invalid_response:${authorityValidation.errors.join(',')}`,
+      operationId,
+      status,
+      value
+    );
+  }
+  if (!sameWorkstreamAuthority(responseAuthority, expectedAuthority)) {
+    throw new MissionCanvasTransportError(
+      'foreign_projection_scope',
+      operationId,
+      status,
+      value
+    );
+  }
+  if (
+    projection.focused_work_surface_id !== null
+    && (!projection.attachment
+      || projection.work_surface_id !== projection.focused_work_surface_id)
+  ) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:focused_work_surface_authority',
+      operationId,
+      status,
+      value
+    );
+  }
+
+  if (!Array.isArray(projection.eligible_contributions)) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:eligible_contributions',
+      operationId,
+      status,
+      value
+    );
+  }
+  for (const [index, contribution] of projection.eligible_contributions.entries()) {
+    if (!contribution || typeof contribution !== 'object' || Array.isArray(contribution)) {
+      throw new MissionCanvasTransportError(
+        `invalid_response:${index}:missing_contribution`,
+        operationId,
+        status,
+        value
+      );
+    }
+    const contributionValue = (contribution as unknown as Record<string, unknown>).authority;
+    if (!contributionValue || typeof contributionValue !== 'object' || Array.isArray(contributionValue)) {
+      throw new MissionCanvasTransportError(
+        `invalid_response:${index}:missing_contribution_authority`,
+        operationId,
+        status,
+        value
+      );
+    }
+    const contributionAuthority = authorityFromRecord(contributionValue as Record<string, unknown>);
+    const contributionValidation = validateMissionCanvasContract(
+      'WorkstreamAuthorityContext',
+      contributionAuthority
+    );
+    if (!contributionValidation.valid) {
+      throw new MissionCanvasTransportError(
+        `invalid_response:${index}:${contributionValidation.errors.join(',')}`,
+        operationId,
+        status,
+        value
+      );
+    }
+    if (!sameWorkstreamAuthority(contributionAuthority, responseAuthority)) {
+      throw new MissionCanvasTransportError(
+        'foreign_contribution_scope',
+        operationId,
+        status,
+        value
+      );
+    }
+  }
+
+  if (
+    !Number.isSafeInteger(projection.projection_revision)
+    || projection.projection_revision < 0
+    || !Number.isSafeInteger(projection.layout_revision)
+    || projection.layout_revision < 0
+    || typeof projection.durable_event_cursor !== 'string'
+    || projection.durable_event_cursor.trim().length === 0
+  ) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:projection_watermark',
+      operationId,
+      status,
+      value
+    );
+  }
+  const cursor = parseProjectionCursor(projection.durable_event_cursor);
+  if (!cursor) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:projection_cursor',
+      operationId,
+      status,
+      value
+    );
+  }
   return {
-    workstream: response.workstream as WorkstreamAuthorityContext['workstream'],
-    continuity_id: (response.continuity_id as WorkstreamAuthorityContext['continuity_id']) ?? null,
-    attachment: (response.attachment as WorkstreamAuthorityContext['attachment']) ?? null,
-    workspace_binding_id: (response.workspace_binding_id as WorkstreamAuthorityContext['workspace_binding_id']) ?? null,
-    runtime_object: (response.runtime_object as WorkstreamAuthorityContext['runtime_object']) ?? null,
-    work_surface_id: (response.work_surface_id as WorkstreamAuthorityContext['work_surface_id']) ?? null
+    projectionRevision: projection.projection_revision,
+    layoutRevision: projection.layout_revision,
+    cursor
   };
+}
+
+function parseProjectionCursor(cursor: string): ProjectionCursor | undefined {
+  const normalized = cursor.trim();
+  const prefixed = /^(event|cursor|mission-canvas):([0-9]+)$/.exec(normalized);
+  const match = prefixed ?? /^([0-9]+)$/.exec(normalized);
+  if (!match) return undefined;
+  const kind = prefixed ? prefixed[1] : 'opaque-numeric';
+  const value = Number(prefixed ? prefixed[2] : match[1]);
+  return Number.isSafeInteger(value) ? { kind, value } : undefined;
 }
 
 function hasIdempotencyKey(input: unknown): boolean {

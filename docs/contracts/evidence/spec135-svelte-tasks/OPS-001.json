@@ -1,0 +1,113 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-001",
+  "result": "Implemented the bounded focusa.mission_canvas.projection.get operation path. The API now validates the stored ResolvedWorkspaceProjection against the exact generated Workstream scope before returning it. Desktop uses the generated projectionGet method and registry-owned GET/path metadata, validates the generated projection, rejects foreign contribution authority, and retains per-authority projection revision/layout/cursor watermarks so stale responses fail closed without changing Core-owned eligibility or layout composition.",
+  "targets": [
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-001.json"
+  ],
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.projection.get",
+    "method": "GET",
+    "path": "/v1/mission-canvas/projection",
+    "scope_required": ["workstream"],
+    "permissions_required": ["mission_canvas:read"],
+    "confirmation": "none",
+    "requires_idempotency_key": false,
+    "requires_if_match_revision": false,
+    "receipt_required": false,
+    "request_schema_ref": "focusa.mission_canvas.projection_get.request.v1",
+    "response_schema_ref": "ResolvedWorkspaceProjection",
+    "client_method": "projectionGet",
+    "artifact_status": "The generated operation registry, OpenAPI artifact, TypeScript client, validators, capability snapshot, and transport metadata remain the authority; no generated contract or task packet was edited."
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "dependency_gate": {
+    "UI-001": {
+      "evidence": null,
+      "status": "missing_in_checked_in_tree",
+      "decision": "No checked-in UI-001 evidence artifact was present during the bounded preflight; no UI-001 file, source, plan, graph, or generated artifact was modified. The requested OPS-001 operation implementation proceeded only against the available generated/API/Core/Desktop sources and its required hostile checks."
+    },
+    "UI-002": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/UI-002.json",
+      "status": "verified",
+      "decision": "UI-002 evidence is present and its canonical Desktop Workstream binding contract is the input boundary consumed by projectionGet."
+    }
+  },
+  "implementation": [
+    "The API requires mission_canvas:read, parses the generated Workstream query and subordinate identity values, reads the latest projection keyed by the exact Workstream authority, and invokes Core's ResolvedWorkspaceProjection::validate_scope before serializing the response. A tampered or mismatched stored projection is blocked rather than adopted.",
+    "The Desktop transport resolves the HTTP method and path from the generated operation registry, sends the exact Workstream authority and supplied permission/capability metadata, validates the generated ResolvedWorkspaceProjection, and compares top-level and eligible-contribution authority without resolving candidates, layout, or semantic content locally.",
+    "Projection responses are watermarked per complete Workstream authority. Regressed projection revision, layout revision, or comparable durable cursor is rejected while cursor namespaces remain distinct; a foreign Workstream, subordinate authority, missing focused-surface authority, malformed response, denied permission, or unavailable operation cannot reach the renderer.",
+    "The hostile generated Desktop consumer proves projectionGet, exact GET/path/query/header transport, Core-owned empty-contribution omission, foreign top-level and nested contribution scope, missing request/response authority, stale projection/layout/cursor responses, denied permission, unavailable operation, and invalid response handling."
+  ],
+  "checks": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; generated schemas, 25 operation entries, 10 derived artifacts, parity and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.projection.get (exit 0; generated registry/OpenAPI/client/API/Core/transport/consumer contract: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.projection.get --client projectionGet (exit 0; generated client, exact Workstream GET, Core-owned omission, foreign authority, stale revision/layout/cursor, permission, unavailable operation, and hostile response checks: PASS)",
+    "node --check apps/desktop/tests/operation-consumer-runtime.mjs (exit 0)",
+    "python3 -m py_compile tests/spec135_mission_canvas_operation_contract_test.py (exit 0)",
+    "rustfmt --edition 2021 --check crates/focusa-api/src/routes/mission_canvas.rs (exit 0)",
+    "git diff --check (exit 0)",
+    "npm --prefix apps/desktop run check (exit 1; checkout lacks installed @sveltejs/adapter-static, so svelte-check could not start; no dependency installation or Cargo invocation was performed)"
+  ],
+  "negative_cases": {
+    "foreign_workstream": "The API validates the stored projection against the exact query scope, while Desktop rejects a response whose top-level Workstream or eligible-contribution Workstream differs from the request.",
+    "missing_authority": "The generated transport rejects a request without Workstream identity before HTTP, and generated response validation rejects a projection without Workstream authority. A focused surface also requires matching Attachment and WorkSurface authority.",
+    "stale_revision_cursor": "Desktop retains independent per-authority projection and layout watermarks and rejects projection_revision, layout_revision, or same-namespace durable cursor regressions without updating the accepted watermark.",
+    "unavailable_capability": "projection.get has no separate required capability in the generated descriptor; therefore no capability is inferred or minted locally. An unavailable/unknown generated operation is rejected before HTTP, and supplied capability metadata remains transport-owned for the API boundary.",
+    "permission_denied": "The generated operation declares mission_canvas:read; the hostile consumer proves a 403 response is surfaced as a typed transport failure when that permission is absent.",
+    "empty_or_ineligible_contribution": "The valid exact-Workstream fixture contains an empty Work Rail candidate only in omission_diagnostics; Desktop verifies that it is absent from eligible contributions and layout and does not invent a replacement panel.",
+    "invalid_response": "Generated structural validation plus projection authority/watermark checks reject missing Workstream, missing contribution authority, foreign nested authority, invalid focused-surface authority, malformed contribution collections, empty cursors, and stale responses.",
+    "local_inference": "No CWD, tab, latest record, project-root/continuity shortcut, client-side candidate search, eligibility resolver, or layout resolver is used. Core remains the sole composition authority and Desktop consumes the canonical projection."
+  },
+  "acceptance": [
+    "Returns the latest validated projection for the exact Workstream only.",
+    "Uses the generated focusa.mission_canvas.projection.get operation and MissionCanvasClient.projectionGet method with registry-owned GET/path metadata.",
+    "Returns a validated ResolvedWorkspaceProjection carrying the exact Workstream and subordinate authority context.",
+    "Fails closed for foreign scope, missing authority, stale revision/cursor, denied permission, unavailable operation, invalid response, and empty/ineligible contribution inference."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "crates/focusa-core/src/mission_canvas/resolver.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/contracts/spec135-svelte-task-packets/OPS-001.json"
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs"
+  ],
+  "deferred_repository_observation": "Cargo was not run because the OPS-001 instruction explicitly prohibits Cargo. The central executable graph, generated task packets/index, parallel plan, orchestration scripts, and generated contract artifacts were not edited.",
+  "remaining_work": [],
+  "status": "implemented_partial"
+}
