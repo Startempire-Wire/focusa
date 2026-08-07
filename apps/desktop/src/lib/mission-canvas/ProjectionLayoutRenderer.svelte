@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { validateMissionCanvasContract } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
   import ProjectionLayoutRenderer from './ProjectionLayoutRenderer.svelte';
   import { DEFAULT_CONTRIBUTION_REGISTRY } from './default-contribution-registry';
   import { resolveContributionRenderer, type ContributionRendererRegistry } from './contribution-renderers';
@@ -37,17 +38,57 @@
    * reflow children locally: Core owns eligibility and recomposition.  Refusing
    * the malformed tree prevents parent split/stack/grid wrappers from leaving
    * reserved gaps around an omitted or untrusted contribution.
+   *
+   * The generated node validators own the DTO shape; this pass adds the
+   * recursive invariants which the union validator cannot express: exactly two
+   * split children, unique node/contribution identities, and one trusted
+   * renderer for every contribution that would receive geometry.
    */
-  function canRenderNode(value: unknown, seen = new WeakSet<object>()): boolean {
+  function canRenderNode(
+    value: unknown,
+    state: {
+      seenNodes: WeakSet<object>;
+      nodeIds: Set<string>;
+      contributionIds: Set<string>;
+    } = {
+      seenNodes: new WeakSet<object>(),
+      nodeIds: new Set<string>(),
+      contributionIds: new Set<string>()
+    }
+  ): boolean {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
     const object = value as Record<string, unknown>;
-    if (seen.has(object)) return false;
-    seen.add(object);
+    if (state.seenNodes.has(object)) return false;
+    state.seenNodes.add(object);
     if (typeof object.node_id !== 'string' || object.node_id.length === 0 || object.node_id.trim() !== object.node_id) return false;
+    if (state.nodeIds.has(object.node_id)) return false;
+    state.nodeIds.add(object.node_id);
+
+    const schema = object.kind === 'single'
+      ? 'SingleLayoutNode'
+      : object.kind === 'split'
+        ? 'SplitLayoutNode'
+        : object.kind === 'stack'
+          ? 'StackLayoutNode'
+          : object.kind === 'grid'
+            ? 'GridLayoutNode'
+            : object.kind === 'tabs'
+              ? 'TabLayoutNode'
+              : object.kind === 'inspector'
+                ? 'InspectorLayoutNode'
+                : undefined;
+    if (!schema || !validateMissionCanvasContract(schema, object).valid) return false;
+
+    const reserveContribution = (id: unknown): boolean => {
+      if (typeof id !== 'string' || id.length === 0 || id.trim() !== id) return false;
+      if (state.contributionIds.has(id) || !contribution(id)) return false;
+      state.contributionIds.add(id);
+      return true;
+    };
 
     switch (object.kind) {
       case 'single':
-        return contribution(object.contribution_id) !== undefined;
+        return reserveContribution(object.contribution_id);
       case 'split': {
         const children = object.children;
         return (object.orientation === 'horizontal' || object.orientation === 'vertical')
@@ -57,13 +98,13 @@
           && object.ratio <= 0.9
           && Array.isArray(children)
           && children.length === 2
-          && children.every((child) => canRenderNode(child, seen));
+          && children.every((child) => canRenderNode(child, state));
       }
       case 'stack': {
         const children = object.children;
         return Array.isArray(children)
           && children.length > 0
-          && children.every((child) => canRenderNode(child, seen));
+          && children.every((child) => canRenderNode(child, state));
       }
       case 'grid': {
         const children = object.children;
@@ -72,14 +113,14 @@
           && Number(object.columns) <= 12
           && Array.isArray(children)
           && children.length > 0
-          && children.every((child) => canRenderNode(child, seen));
+          && children.every((child) => canRenderNode(child, state));
       }
       case 'tabs': {
         const ids = object.contribution_ids;
         return Array.isArray(ids)
           && ids.length > 0
-          && ids.every((id) => contribution(id) !== undefined)
-          && ids.includes(object.active_contribution_id);
+          && ids.includes(object.active_contribution_id)
+          && ids.every((id) => reserveContribution(id));
       }
       case 'inspector': {
         const ids = object.inspector_contribution_ids;
@@ -87,9 +128,9 @@
         return (object.side === 'start' || object.side === 'end')
           && Array.isArray(ids)
           && ids.length > 0
-          && ids.every((id) => contribution(id) !== undefined)
           && (span === undefined || (Number.isSafeInteger(span) && Number(span) >= 1 && Number(span) <= 6))
-          && canRenderNode(object.primary, seen);
+          && canRenderNode(object.primary, state)
+          && ids.every((id) => reserveContribution(id));
       }
       default:
         return false;
@@ -141,7 +182,9 @@
     class:vertical={node.orientation === 'vertical'}
     class="layout-split"
     data-layout-node={node.node_id}
-    style={`--split-ratio:${Math.max(0.1, Math.min(0.9, node.ratio))};--split-tail-count:${Math.max(1, node.children.length - 1)}`}
+    data-layout-orientation={node.orientation}
+    data-split-ratio={node.ratio}
+    style={`--split-ratio:${node.ratio}`}
   >
     {#each node.children as child, index (`${child.node_id}:${index}`)}
       <div class="split-child" class:first={index === 0}>
@@ -218,8 +261,8 @@
 
 <style>
   .layout-single{min-width:0;min-height:0;height:100%}
-  .layout-split{min-width:0;min-height:0;height:100%;display:grid;grid-template-columns:minmax(0,calc(var(--split-ratio) * 100%)) repeat(var(--split-tail-count),minmax(0,1fr));gap:var(--layout-cluster-gap)}
-  .layout-split.vertical{grid-template-columns:1fr;grid-template-rows:minmax(0,calc(var(--split-ratio) * 100%)) repeat(var(--split-tail-count),minmax(0,1fr))}
+  .layout-split{min-width:0;min-height:0;height:100%;display:grid;grid-template-columns:minmax(0,calc(var(--split-ratio) * 100%)) minmax(0,1fr);gap:var(--layout-cluster-gap)}
+  .layout-split.vertical{grid-template-columns:1fr;grid-template-rows:minmax(0,calc(var(--split-ratio) * 100%)) minmax(0,1fr)}
   .split-child{min-width:0;min-height:0}
   .layout-stack{min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;gap:var(--layout-cluster-gap)}
   .stack-child{min-width:0;min-height:0;flex:1 1 auto}.stack-child.rail-region,.stack-child.queue-region{flex:0 0 auto}.stack-child.composer-region{flex:0 1 30%;min-height:140px}
