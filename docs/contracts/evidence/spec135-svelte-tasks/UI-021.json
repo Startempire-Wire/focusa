@@ -1,0 +1,48 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-021",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Verified existing complete implementation: Wire fixture-driven recursive Canvas in development tests.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "UI-004",
+      "UI-012",
+      "UI-013",
+      "UI-015",
+      "UI-018",
+      "FIXTURE-004"
+    ]
+  },
+  "targets": [
+    "apps/desktop test harness only",
+    "apps/desktop/src/lib/shell/MissionCanvasShell.svelte",
+    "apps/desktop"
+  ],
+  "implementation": [
+    "functional recursive core layout for component development"
+  ],
+  "negative_cases": [],
+  "checks": [
+    {
+      "command": "npm --prefix apps/desktop run check && npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "acceptance": [
+    "Production runtime has no fixture import and static dashboard body is no longer required by tests.",
+    "No fixed panel exists without an eligible contribution."
+  ],
+  "source_authority": [],
+  "evidence_refs": [
+    "apps/desktop test harness only",
+    "apps/desktop/src/lib/shell/MissionCanvasShell.svelte",
+    "apps/desktop"
+  ],
+  "remaining_work": []
+}
