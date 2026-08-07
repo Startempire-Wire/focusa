@@ -241,7 +241,7 @@ impl ActiveWorkstreamCommand {
     }
 
     pub fn operation_fingerprint(&self) -> String {
-        let bytes = serde_json::to_vec((
+        let bytes = serde_json::to_vec(&(
             &self.workstream,
             &self.context.actor,
             &self.context.authority.authority_ref,
@@ -902,11 +902,9 @@ mod tests {
         project.register_workstream(workstream.clone(), 7).unwrap();
 
         assert_eq!(*project.workstream(&workstream).unwrap(), 7);
-        assert!(
-            project
-                .workstream(&WorkstreamId::parse("session-a").unwrap())
-                .is_err()
-        );
+        assert!(project
+            .workstream(&WorkstreamId::parse("session-a").unwrap())
+            .is_err());
     }
 
     #[test]

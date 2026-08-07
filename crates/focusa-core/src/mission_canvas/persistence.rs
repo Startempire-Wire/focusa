@@ -999,8 +999,8 @@ impl MissionCanvasStore {
                 |row| row.get(0),
             )
             .optional()?;
-        let projection = payload
-            .map(|value| serde_json::from_str(&value).map_err(Into::into))
+        let projection: Option<ResolvedWorkspaceProjection> = payload
+            .map(|value| serde_json::from_str(&value).map_err(MissionCanvasStoreError::from))
             .transpose()?;
         if let Some(projection) = projection {
             validate_projection_for_store(&projection)?;

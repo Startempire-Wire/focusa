@@ -290,24 +290,24 @@ mod tests {
     #[test]
     fn service_requires_exact_controls_before_persistence() {
         let service = DomainPackInstallService;
-        let mut command = command();
-        command.confirmation = None;
+        let mut request = command();
+        request.confirmation = None;
         assert!(matches!(
-            service.validate(&command),
+            service.validate(&request),
             Err(DomainPackInstallError::ConfirmationRequired)
         ));
 
-        let mut command = command();
-        command.capabilities.clear();
+        let mut request = command();
+        request.capabilities.clear();
         assert!(matches!(
-            service.validate(&command),
+            service.validate(&request),
             Err(DomainPackInstallError::CapabilityUnavailable(_))
         ));
 
-        let mut command = command();
-        command.idempotency_key.clear();
+        let mut request = command();
+        request.idempotency_key.clear();
         assert!(matches!(
-            service.validate(&command),
+            service.validate(&request),
             Err(DomainPackInstallError::IdempotencyKeyRequired)
         ));
     }

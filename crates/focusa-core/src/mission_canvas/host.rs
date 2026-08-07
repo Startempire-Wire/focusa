@@ -434,7 +434,7 @@ impl HostLifecycleService {
                 previous_state.state.clone(),
             ));
         }
-        if previous_idempotency_key.as_deref() == Some(command.idempotency_key.as_str()) {
+        if previous_idempotency_key == command.idempotency_key {
             if previous_state.state == "focused" && previous_state.focused {
                 return Ok(previous_state);
             }
