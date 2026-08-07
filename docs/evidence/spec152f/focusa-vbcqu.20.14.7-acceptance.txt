@@ -15,8 +15,9 @@ Checks run against the implementation commit
 2. `rustup which --toolchain nightly rustfmt` followed by `rustfmt --edition 2021 --check crates/focusa-license/tests/entitlement_policy_grid.rs` — exit 0.
 3. Committed-surface Python assertion: changed paths are exactly the four allowed source/test surfaces; all seven states are present; the 63-cell table and positive/negative cases are present; forbidden Evaluation/legacy state and authority-creation markers are absent — exit 0.
 
-Pending verification
-- Exact Cargo gate `cargo test -p focusa-license --test entitlement_policy_grid state_grid` was not rerun at this checkpoint. Per delivery instruction, the Cargo gate remains pending; no Cargo exit code is claimed here.
+Exact verification
+- `cargo test -p focusa-license --test entitlement_policy_grid state_grid` — exit 0.
+- Bounded result: 2 tests passed, 0 failed (`state_grid` and `state_grid_fails_closed_without_initiating_policy_or_known_state`).
 
 Rollback
 - Revert only implementation commit `a5617ca6ca3b756fc8c1d48d578fa403f6b81faf` (and this evidence record if required). Preserve customers, orders, refunds, licenses, nodes, sequences, customer data, migration journals, and accepted authority/evidence state. No push, deploy, release, merge, or Beads mutation was performed.
