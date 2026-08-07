@@ -11,11 +11,12 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use focusa_core::mission_canvas::{
-    resolve_projection, CandidateContribution, CompositionEvent, DomainPackInstallCommand,
-    DomainPackInstallError, DomainPackInstallService, EligibilityContext, HostLifecycleError,
-    HostLifecycleFocusCommand, HostLifecycleLaunchCommand, HostLifecycleService,
-    HostLifecycleState, HostPlatform, HostRendererResolutionError, HostRendererResolutionService,
-    MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput, StoredDocument,
+    resolve_projection, ActivityModeDefinition, CandidateContribution, CompositionEvent,
+    CompositionRegistry, DomainPackInstallCommand, DomainPackInstallError,
+    DomainPackInstallService, EligibilityContext, HostLifecycleError, HostLifecycleFocusCommand,
+    HostLifecycleLaunchCommand, HostLifecycleService, HostLifecycleState, HostPlatform,
+    HostRendererResolutionError, HostRendererResolutionService, MissionCanvasScope,
+    MissionCanvasStore, ResolveProjectionInput, StoredDocument, WorkspaceProfileDefinition,
     DOMAIN_PACK_INSTALL_CAPABILITY,
 };
 use focusa_core::workstream_context::{
@@ -1239,7 +1240,88 @@ async fn list_profiles(
     headers: HeaderMap,
     Query(query): Query<ScopeQuery>,
 ) -> ApiResult {
-    list_viable_documents(&state, &headers, query, "mission_canvas_profiles")
+    require_permission(&headers, "mission_canvas:read")?;
+    let scope = query.scope()?;
+    // Profile availability is an authority-bearing read: the actor and
+    // authority envelope must be extracted for this exact Workstream before
+    // Core-owned projection eligibility is consulted.
+    exact_workstream_context(&scope, &headers).map_err(host_renderer_context_error)?;
+    let store = store(&state)?;
+    let Some(projection) = store.get_projection(&scope).map_err(store_error)? else {
+        // No canonical projection means no profile can truthfully claim a
+        // meaningful eligible projection. Do not expose a dead selector.
+        return Ok(Json(Value::Array(Vec::new())));
+    };
+    projection
+        .validate_scope(&scope)
+        .map_err(|reason| error(StatusCode::CONFLICT, "projection_scope_invalid", reason))?;
+
+    let activity = profile_list_activity(&store, &scope, &projection.activity_mode_id)?;
+    let mut profiles = CompositionRegistry::builtin()
+        .profiles
+        .into_values()
+        .collect::<Vec<_>>();
+    for document in store
+        .list_documents("mission_canvas_profiles", &scope)
+        .map_err(store_error)?
+    {
+        let profile: WorkspaceProfileDefinition = serde_json::from_value(document.payload)
+            .map_err(|_| {
+                error(
+                    StatusCode::CONFLICT,
+                    "profile_catalog_invalid",
+                    "A canonical workspace profile is malformed",
+                )
+            })?;
+        profiles.retain(|candidate| candidate.profile_id != profile.profile_id);
+        profiles.push(profile);
+    }
+    let eligible_contribution_ids = projection
+        .eligible_contributions
+        .iter()
+        .map(|contribution| contribution.contribution_id.clone())
+        .collect::<BTreeSet<_>>();
+    let viable = focusa_core::mission_canvas::profiles::meaningful_profiles_for_projection(
+        &profiles,
+        &activity,
+        &eligible_contribution_ids,
+    );
+    Ok(Json(serde_json::to_value(viable).map_err(json_error)?))
+}
+
+fn profile_list_activity(
+    store: &MissionCanvasStore,
+    scope: &MissionCanvasScope,
+    activity_mode_id: &str,
+) -> Result<ActivityModeDefinition, (StatusCode, Json<Value>)> {
+    if let Some(document) = store
+        .get_document(
+            "mission_canvas_activity_modes",
+            scope,
+            &format!("activity:{activity_mode_id}"),
+        )
+        .map_err(store_error)?
+    {
+        return serde_json::from_value(document.payload).map_err(|_| {
+            error(
+                StatusCode::CONFLICT,
+                "activity_catalog_invalid",
+                "The canonical activity mode is malformed",
+            )
+        });
+    }
+
+    CompositionRegistry::builtin()
+        .activities
+        .get(activity_mode_id)
+        .cloned()
+        .ok_or_else(|| {
+            error(
+                StatusCode::CONFLICT,
+                "activity_mode_not_found",
+                "The current projection references an unknown activity mode",
+            )
+        })
 }
 
 async fn get_profile(

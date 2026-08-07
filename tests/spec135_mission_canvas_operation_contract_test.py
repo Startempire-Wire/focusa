@@ -157,6 +157,53 @@ elif operation_id == "focusa.mission_canvas.projection.resolve":
     ):
         assert marker in consumer, marker
 
+elif operation_id == "focusa.mission_canvas.profile.list":
+    assert operation["method"] == "GET"
+    assert operation["path"] == "/v1/mission-canvas/profiles"
+    assert operation["mode"] == "read"
+    assert operation["permissions_required"] == ["mission_canvas:read"]
+    assert operation["response_schema_ref"] == "WorkspaceProfile[]"
+    assert operation["requires_idempotency_key"] is False
+    assert operation["requires_if_match_revision"] is False
+    assert operation["receipt_required"] is False
+
+    for marker in (
+        "get(list_profiles)",
+        "require_permission",
+        "query.scope()",
+        "exact_workstream_context",
+        "store.get_projection",
+        "projection.validate_scope",
+        "eligible_contributions",
+        "meaningful_profiles_for_projection",
+        "WorkspaceProfileDefinition",
+        "serde_json::to_value(viable)",
+    ):
+        assert marker in route_text, marker
+    profiles = (ROOT / "crates/focusa-core/src/mission_canvas/profiles.rs").read_text()
+    for marker in (
+        "pub fn meaningful_profiles_for_projection",
+        "profile.installed",
+        "activity_contribution_ids",
+        "eligible_contribution_ids",
+    ):
+        assert marker in profiles, marker
+    for marker in (
+        "validateResponse",
+        "schemaRef.endsWith('[]')",
+        "expected array",
+    ):
+        assert marker in transport, marker
+    for marker in (
+        "profileList",
+        "meaningful eligible profile",
+        "empty profile list",
+        "foreign scope",
+        "missing authority",
+        "permission",
+    ):
+        assert marker in consumer, marker
+
 elif operation_id == "focusa.mission_canvas.rich_host.resolve":
     assert operation["method"] == "GET"
     assert operation["path"] == "/v1/mission-canvas/rich-host/resolution"
