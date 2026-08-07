@@ -1,0 +1,43 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-011",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Verified the Desktop recursive renderer implements canonical inspector LayoutNode composition without local eligibility or layout synthesis.",
+  "dependency_gate": {"status": "passed", "dependencies": ["UI-006"]},
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte",
+    "apps/desktop/tests/layout-renderer-runtime.mjs"
+  ],
+  "implementation": [
+    "Inspector rendering preserves canonical primary layout, side, span, and ordered inspector contribution identifiers.",
+    "Every inspector contribution resolves through the trusted contribution registry.",
+    "Malformed side/span/primary/identifier data and unknown bindings render an explicit fail-closed gap rather than a local fallback."
+  ],
+  "negative_cases": [
+    "invalid inspector side",
+    "invalid inspector span",
+    "empty or duplicate inspector contribution identifiers",
+    "unknown or mismatched trusted renderer binding",
+    "malformed nested primary layout"
+  ],
+  "checks": [
+    {"command": "npm --prefix apps/desktop test", "result": "pass"},
+    {"command": "npm --prefix apps/desktop run check", "result": "pass: 0 errors and 0 warnings"},
+    {"command": "git diff --check", "result": "pass"}
+  ],
+  "acceptance": [
+    "Inspector LayoutNode renders recursively from canonical projection data.",
+    "Inspector placement remains Core-owned.",
+    "Untrusted or malformed inspector content fails closed."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/UI-011.json",
+    "docs/contracts/spec135-adaptive-composition.v1.yaml"
+  ],
+  "evidence_refs": [
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte"
+  ],
+  "remaining_work": []
+}
