@@ -71,6 +71,18 @@ assert "ApiClient::with_timeout_secs(60)" in work_loop
 assert "WRITER_LEASE_TTL_MS: i64 = 120_000" in api_loop
 assert "WORK_ITEM_PROVIDER_SELECTION_TIMEOUT_MS: u64 = 3_000" in core_daemon
 assert "from_millis(WORK_ITEM_PROVIDER_SELECTION_TIMEOUT_MS)" in core_daemon
+for verifier_fallback_contract in (
+    'std::env::var("OPENROUTER_API_KEY")',
+    'std::env::var("FOCUSA_SECONDARY_CLOSURE_FALLBACK_MODEL")',
+    '"https://openrouter.ai/api/v1/chat/completions"',
+    '"google/gemini-2.5-flash-lite"',
+    'request_body["response_format"]',
+    "if !response.status().is_success()",
+    "secondary closure verifier unavailable: no configured provider",
+):
+    assert verifier_fallback_contract in core_daemon, verifier_fallback_contract
+assert "for provider in providers" in core_daemon
+assert "unavailable.join" in core_daemon
 assert 'get("dependents")' in bd_adapter
 assert "show_values(&query.project_root, &child_ids)" in bd_adapter
 assert '"idempotency-key", &driver_idempotency_key' in api_server

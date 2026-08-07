@@ -35,6 +35,14 @@ enum SecondaryClosureAuditVerdict {
     Rejected { reason: String },
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SecondaryClosureProvider {
+    label: &'static str,
+    endpoint: &'static str,
+    api_key: String,
+    model: String,
+}
+
 #[derive(Debug, Clone, Default)]
 struct SecondaryLoopClosureReplayEvidence {
     replay_events_scanned: u64,
@@ -1923,6 +1931,8 @@ Return ONLY valid JSON:
             "changed",
             "refactored",
             "added",
+            "committed",
+            "verification passed",
             "removed",
             "renamed",
             "created",
@@ -2260,7 +2270,7 @@ Return ONLY valid JSON:
         (answers_missing, consistency_regression)
     }
 
-    fn parse_minimax_json_payload(text: &str) -> Option<Value> {
+    fn parse_secondary_closure_json_payload(text: &str) -> Option<Value> {
         let start = text.find('{')?;
         let end = text.rfind('}').map(|idx| idx + 1)?;
         if start >= end {
@@ -2319,19 +2329,77 @@ Return ONLY valid JSON:
         Ok(())
     }
 
+    fn secondary_closure_providers(
+        minimax_api_key: String,
+        openrouter_api_key: String,
+        fallback_model: String,
+    ) -> Vec<SecondaryClosureProvider> {
+        let mut providers = Vec::with_capacity(2);
+        if !minimax_api_key.trim().is_empty() {
+            providers.push(SecondaryClosureProvider {
+                label: "minimax",
+                endpoint: "https://api.minimax.io/v1/chat/completions",
+                api_key: minimax_api_key,
+                model: "MiniMax-M2.7".to_string(),
+            });
+        }
+        if !openrouter_api_key.trim().is_empty() {
+            providers.push(SecondaryClosureProvider {
+                label: "openrouter",
+                endpoint: "https://openrouter.ai/api/v1/chat/completions",
+                api_key: openrouter_api_key,
+                model: fallback_model,
+            });
+        }
+        providers
+    }
+
+    async fn request_secondary_closure_payload(
+        client: &reqwest::Client,
+        provider: &SecondaryClosureProvider,
+        prompt: &str,
+    ) -> Result<Value, String> {
+        let mut request_body = serde_json::json!({
+            "model": &provider.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 700,
+            "temperature": 0.0,
+        });
+        if provider.label == "openrouter" {
+            request_body["response_format"] = serde_json::json!({"type": "json_object"});
+        }
+        let response = tokio::time::timeout(
+            std::time::Duration::from_secs(8),
+            client
+                .post(provider.endpoint)
+                .header("Authorization", format!("Bearer {}", provider.api_key))
+                .json(&request_body)
+                .send(),
+        )
+        .await
+        .map_err(|_| "timeout".to_string())?
+        .map_err(|_| "transport error".to_string())?;
+
+        if !response.status().is_success() {
+            return Err(format!("HTTP {}", response.status().as_u16()));
+        }
+        let data = response
+            .json::<Value>()
+            .await
+            .map_err(|_| "unparseable API response".to_string())?;
+        let text = data
+            .pointer("/choices/0/message/content")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "missing completion payload".to_string())?;
+        Self::parse_secondary_closure_json_payload(text)
+            .ok_or_else(|| "non-JSON verdict".to_string())
+    }
+
     async fn run_secondary_adversarial_closure_audit(
         task: &SpecLinkedTaskPacket,
         summary: &str,
         continue_reason: Option<&str>,
     ) -> SecondaryClosureAuditVerdict {
-        let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
-        if api_key.trim().is_empty() {
-            return SecondaryClosureAuditVerdict::Rejected {
-                reason: "secondary closure verifier unavailable: MINIMAX_API_KEY is missing"
-                    .to_string(),
-            };
-        }
-
         let prompt = format!(
             r#"You are an adversarial closure verifier.
 Attempt to disprove the closure claim.
@@ -2371,55 +2439,39 @@ Return:
                 .unwrap_or(""),
         );
 
+        let fallback_model = std::env::var("FOCUSA_SECONDARY_CLOSURE_FALLBACK_MODEL")
+            .unwrap_or_else(|_| "google/gemini-2.5-flash-lite".to_string());
+        let providers = Self::secondary_closure_providers(
+            std::env::var("MINIMAX_API_KEY").unwrap_or_default(),
+            std::env::var("OPENROUTER_API_KEY").unwrap_or_default(),
+            fallback_model,
+        );
+        if providers.is_empty() {
+            return SecondaryClosureAuditVerdict::Rejected {
+                reason: "secondary closure verifier unavailable: no configured provider"
+                    .to_string(),
+            };
+        }
+
         let client = reqwest::Client::new();
-        let response = tokio::time::timeout(
-            std::time::Duration::from_secs(8),
-            client
-                .post("https://api.minimax.io/v1/chat/completions")
-                .header("Authorization", format!("Bearer {}", api_key))
-                .json(&serde_json::json!({
-                    "model": "MiniMax-M2.7",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 450,
-                    "temperature": 0.0,
-                }))
-                .send(),
-        )
-        .await;
+        let mut unavailable = Vec::new();
+        for provider in providers {
+            match Self::request_secondary_closure_payload(&client, &provider, &prompt).await {
+                Ok(payload) => {
+                    return match Self::evaluate_secondary_closure_audit_payload(&payload) {
+                        Ok(()) => SecondaryClosureAuditVerdict::Approved,
+                        Err(reason) => SecondaryClosureAuditVerdict::Rejected { reason },
+                    };
+                }
+                Err(reason) => unavailable.push(format!("{}: {}", provider.label, reason)),
+            }
+        }
 
-        let Ok(Ok(response)) = response else {
-            return SecondaryClosureAuditVerdict::Rejected {
-                reason: "secondary closure verifier unavailable: timeout or transport error"
-                    .to_string(),
-            };
-        };
-
-        let Ok(data) = response.json::<Value>().await else {
-            return SecondaryClosureAuditVerdict::Rejected {
-                reason: "secondary closure verifier unavailable: unparseable API response"
-                    .to_string(),
-            };
-        };
-
-        let Some(text) = data
-            .pointer("/choices/0/message/content")
-            .and_then(Value::as_str)
-        else {
-            return SecondaryClosureAuditVerdict::Rejected {
-                reason: "secondary closure verifier unavailable: missing completion payload"
-                    .to_string(),
-            };
-        };
-
-        let Some(payload) = Self::parse_minimax_json_payload(text) else {
-            return SecondaryClosureAuditVerdict::Rejected {
-                reason: "secondary closure verifier unavailable: non-JSON verdict".to_string(),
-            };
-        };
-
-        match Self::evaluate_secondary_closure_audit_payload(&payload) {
-            Ok(()) => SecondaryClosureAuditVerdict::Approved,
-            Err(reason) => SecondaryClosureAuditVerdict::Rejected { reason },
+        SecondaryClosureAuditVerdict::Rejected {
+            reason: format!(
+                "secondary closure verifier unavailable: {}",
+                unavailable.join("; ")
+            ),
         }
     }
 
@@ -5746,6 +5798,18 @@ mod tests {
     }
 
     #[test]
+    fn linked_spec_implementation_evidence_accepts_committed_contract_and_passed_verification() {
+        let mut task = sample_spec_task();
+        task.acceptance_criteria =
+            vec!["License Type lifecycle contract and fixtures must be stable".to_string()];
+        let summary = "Versioned License Type lifecycle contract and seven fixtures are committed; exact verification passed with exit code 0.";
+
+        assert!(Daemon::linked_spec_implementation_evidenced(
+            &task, summary, None,
+        ));
+    }
+
+    #[test]
     fn linked_spec_implementation_evidence_rejects_non_implementation_reports() {
         let task = sample_spec_task();
         let summary = "analysis only: next steps for linked spec alignment";
@@ -5854,9 +5918,43 @@ mod tests {
     }
 
     #[test]
-    fn minimax_json_payload_parser_handles_wrapped_json() {
+    fn secondary_closure_provider_order_preserves_primary_and_bounded_fallback() {
+        let providers = Daemon::secondary_closure_providers(
+            "minimax-key".to_string(),
+            "openrouter-key".to_string(),
+            "google/gemini-2.5-flash-lite".to_string(),
+        );
+
+        assert_eq!(providers.len(), 2);
+        assert_eq!(providers[0].label, "minimax");
+        assert_eq!(providers[0].model, "MiniMax-M2.7");
+        assert_eq!(providers[1].label, "openrouter");
+        assert_eq!(providers[1].model, "google/gemini-2.5-flash-lite");
+    }
+
+    #[test]
+    fn secondary_closure_provider_selection_fails_closed_without_credentials() {
+        let providers = Daemon::secondary_closure_providers(
+            String::new(),
+            String::new(),
+            "google/gemini-2.5-flash-lite".to_string(),
+        );
+        assert!(providers.is_empty());
+
+        let fallback_only = Daemon::secondary_closure_providers(
+            String::new(),
+            "openrouter-key".to_string(),
+            "independent/model".to_string(),
+        );
+        assert_eq!(fallback_only.len(), 1);
+        assert_eq!(fallback_only[0].label, "openrouter");
+        assert_eq!(fallback_only[0].model, "independent/model");
+    }
+
+    #[test]
+    fn secondary_closure_json_payload_parser_handles_wrapped_json() {
         let text = "prefix text {\"closure_supported\":true,\"evidence_sufficiency\":\"sufficient\",\"critical_objections\":[]} suffix";
-        let parsed = Daemon::parse_minimax_json_payload(text);
+        let parsed = Daemon::parse_secondary_closure_json_payload(text);
         assert!(parsed.is_some());
         assert_eq!(
             parsed

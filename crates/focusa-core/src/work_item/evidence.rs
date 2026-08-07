@@ -439,6 +439,52 @@ pub struct WorkpointVerifier {
     /// `<HOME>/.focusa`.
     pub data_dir: Option<PathBuf>,
 }
+
+impl WorkpointVerifier {
+    fn verify_persisted_snapshot(data_dir: &Path, wp_id: &str) -> Option<VerifyResult> {
+        let database = data_dir.join("focusa.sqlite");
+        let connection = rusqlite::Connection::open_with_flags(
+            &database,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .ok()?;
+        let state_json: String = connection
+            .query_row(
+                "SELECT state_json FROM snapshots ORDER BY ts DESC LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .ok()?;
+        let state: serde_json::Value = serde_json::from_str(&state_json).ok()?;
+        let record = state
+            .pointer("/workpoint/records")?
+            .as_array()?
+            .iter()
+            .find(|record| {
+                record
+                    .get("workpoint_id")
+                    .and_then(serde_json::Value::as_str)
+                    == Some(wp_id)
+                    && record
+                        .get("canonical")
+                        .and_then(serde_json::Value::as_bool)
+                        .unwrap_or(false)
+            })?;
+        let evidence_count = record
+            .get("evidence_refs")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::len)
+            .unwrap_or(0);
+        Some(VerifyResult {
+            verified: true,
+            result: format!(
+                "workpoint {wp_id}: canonical persisted snapshot evidence_refs={evidence_count}"
+            ),
+            evidence_url: Some(format!("file://{}#snapshot", database.display())),
+        })
+    }
+}
+
 #[async_trait]
 impl EvidenceVerifier for WorkpointVerifier {
     fn kind(&self) -> EvidenceKind {
@@ -462,11 +508,13 @@ impl EvidenceVerifier for WorkpointVerifier {
             });
         let path = data_dir.join("workpoints").join(format!("{wp_id}.json"));
         match std::fs::read_to_string(&path) {
-            Err(e) => VerifyResult {
-                verified: false,
-                result: format!("workpoint not readable at {}: {e}", path.display()),
-                evidence_url: None,
-            },
+            Err(e) => {
+                Self::verify_persisted_snapshot(&data_dir, &wp_id).unwrap_or_else(|| VerifyResult {
+                    verified: false,
+                    result: format!("workpoint not readable at {}: {e}", path.display()),
+                    evidence_url: None,
+                })
+            }
             Ok(contents) => {
                 let parsed: Option<serde_json::Value> = serde_json::from_str(&contents).ok();
                 let evidence_count = parsed
@@ -862,6 +910,54 @@ mod tests {
         assert!(v.verified);
         assert!(v.result.contains("not executed"));
         let _ = std::fs::remove_file(p);
+    }
+
+    #[tokio::test]
+    async fn workpoint_verifier_accepts_canonical_persisted_snapshot() {
+        let dir = std::env::temp_dir().join(format!("focusa-workpoint-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let database = dir.join("focusa.sqlite");
+        let connection = rusqlite::Connection::open(&database).unwrap();
+        connection
+            .execute_batch(
+                "CREATE TABLE snapshots (name TEXT PRIMARY KEY, version INTEGER NOT NULL, ts TEXT NOT NULL, state_json TEXT NOT NULL);",
+            )
+            .unwrap();
+        let workpoint_id = uuid::Uuid::now_v7().to_string();
+        let state = serde_json::json!({
+            "workpoint": {
+                "records": [{
+                    "workpoint_id": workpoint_id,
+                    "canonical": true,
+                    "evidence_refs": ["test:exact"]
+                }]
+            }
+        });
+        connection
+            .execute(
+                "INSERT INTO snapshots(name, version, ts, state_json) VALUES (?1, 1, ?2, ?3)",
+                rusqlite::params!["focusa", "2026-08-07T00:00:00Z", state.to_string()],
+            )
+            .unwrap();
+        drop(connection);
+
+        let citation = EvidenceCitation {
+            kind: EvidenceKind::Workpoint,
+            ref_: workpoint_id,
+            line: None,
+            line_end: None,
+            required: true,
+            result: None,
+            verified: false,
+        };
+        let result = WorkpointVerifier {
+            data_dir: Some(dir.clone()),
+        }
+        .verify(&citation)
+        .await;
+        assert!(result.verified, "{:?}", result);
+        assert!(result.result.contains("canonical persisted snapshot"));
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[tokio::test]

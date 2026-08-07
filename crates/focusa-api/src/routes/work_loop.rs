@@ -1352,11 +1352,12 @@ pub(crate) struct WorkLoopOutcomeReceipt {
 }
 
 pub(crate) fn parse_work_loop_outcome_receipt(output: &str) -> Option<WorkLoopOutcomeReceipt> {
-    let payload = output
-        .lines()
-        .rev()
-        .find_map(|line| line.trim().strip_prefix(WORK_LOOP_OUTCOME_PREFIX))?;
-    let receipt: WorkLoopOutcomeReceipt = serde_json::from_str(payload).ok()?;
+    let marker = output.rfind(WORK_LOOP_OUTCOME_PREFIX)?;
+    let payload = &output[marker + WORK_LOOP_OUTCOME_PREFIX.len()..];
+    let receipt = serde_json::Deserializer::from_str(payload)
+        .into_iter::<WorkLoopOutcomeReceipt>()
+        .next()?
+        .ok()?;
     (receipt.schema == WORK_LOOP_OUTCOME_SCHEMA).then_some(receipt)
 }
 
@@ -3416,9 +3417,9 @@ async fn start_pi_driver(
         return Err(bad_request("idempotency_key must not be empty"));
     }
     let mut guard = state.pi_rpc_session.lock().await;
-    let stale_driver = guard.as_mut().is_some_and(|existing| {
-        !matches!(existing.child.try_wait(), Ok(None))
-    });
+    let stale_driver = guard
+        .as_mut()
+        .is_some_and(|existing| !matches!(existing.child.try_wait(), Ok(None)));
     if stale_driver {
         guard.take();
     }
@@ -5985,6 +5986,23 @@ FOCUSA_WORK_LOOP_OUTCOME {"schema":"focusa.work_loop_outcome.v1","work_item_id":
         assert!(receipt.spec_conformant);
         assert_eq!(receipt.evidence_citations.len(), 1);
         assert_eq!(receipt.evidence_citations[0].ref_, "tests/work_loop.rs");
+    }
+
+    #[test]
+    fn typed_completion_receipt_accepts_multiline_json_and_bounded_suffix() {
+        let output = r#"FOCUSA_WORK_LOOP_OUTCOME {
+  "schema":"focusa.work_loop_outcome.v1",
+  "work_item_id":"focusa-1",
+  "status":"completed",
+  "summary":"verified",
+  "spec_conformant":true,
+  "evidence_citations":[{"kind":"test","ref":"tests/work_loop.rs","required":true}]
+}
+```"#;
+        let receipt = parse_work_loop_outcome_receipt(output).unwrap();
+        assert_eq!(receipt.work_item_id, "focusa-1");
+        assert_eq!(receipt.status, WorkLoopOutcomeStatus::Completed);
+        assert_eq!(receipt.evidence_citations.len(), 1);
     }
 
     #[test]
