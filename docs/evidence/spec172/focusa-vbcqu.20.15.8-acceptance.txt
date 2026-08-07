@@ -4,7 +4,8 @@ Canonical project root: repository root (public-safe; no host-local path recorde
 
 Commits
 - Implementation commit: 7a389cf53d0be54783fdf4abba4aca107e2ed72d
-- Exact verified repository commit: 8484ab97793d025e4df3c34cb94129c27587219c
+- Exact verified repository commit: dbdd4ae90c8b9c4137b14ac10748a8bd4bb60a55
+- Verification was run with unrelated pre-existing dirty paths outside this atom; they were not modified or used by these tests.
 - Evidence file commit: the commit containing this path (resolve with `git log -1 --format=%H -- docs/evidence/spec172/focusa-vbcqu.20.15.8-acceptance.txt`)
 
 Exact verification
