@@ -301,6 +301,103 @@ try {
   });
   assert.doesNotMatch(sharedChildBody, /layout-split|split-child|data-rendered-contribution=/, 'shared child identity must not duplicate geometry');
 
+  // UI-008 exercises the production stack path with more than one ordered
+  // child and a nested stack.  The registry deliberately uses a binding that
+  // is not present in the default registry for the nested inspector so a
+  // recursive call that drops the trusted registry cannot render a false
+  // success.
+  const stackRegistry = new ContributionRendererRegistry([
+    {
+      rendererBindingId: 'renderer:pi-session@v1',
+      semanticBindingIds: ['semantic:pi-session'],
+      contributionKinds: ['focused_work_surface'],
+      component: ResolvedContributionRenderer
+    },
+    {
+      rendererBindingId: 'renderer:ui-008-inspector@v1',
+      semanticBindingIds: ['semantic:focusa-inspector'],
+      contributionKinds: ['inspector'],
+      component: ResolvedContributionRenderer
+    }
+  ]);
+  const stackProjection = structuredClone(rendererFixture);
+  stackProjection.eligible_contributions[1].renderer_binding_id = 'renderer:ui-008-inspector@v1';
+  stackProjection.layout_tree = {
+    node_id: 'layout:ui-008-stack',
+    kind: 'stack',
+    gap_token: 'cluster',
+    children: [
+      { node_id: 'layout:ui-008-first', kind: 'single', contribution_id: 'contribution:pi-session' },
+      { node_id: 'layout:ui-008-second', kind: 'single', contribution_id: 'contribution:focusa-inspector' }
+    ]
+  };
+  const { body: stackBody } = render(SingleLayoutHarness, {
+    props: { projection: stackProjection, registry: stackRegistry }
+  });
+  assert.match(stackBody, /class="layout-stack[^"]*"/);
+  assert.match(stackBody, /data-layout-node="layout:ui-008-stack"/);
+  assert.match(stackBody, /data-gap-token="cluster"/);
+  assert.equal((stackBody.match(/data-stack-index=/g) ?? []).length, 2);
+  assert.equal((stackBody.match(/class="stack-child/g) ?? []).length, 2);
+  const firstStackContribution = stackBody.indexOf('data-rendered-contribution="contribution:pi-session"');
+  const secondStackContribution = stackBody.indexOf('data-rendered-contribution="contribution:focusa-inspector"');
+  assert.ok(firstStackContribution >= 0 && firstStackContribution < secondStackContribution, 'stack child order must remain canonical');
+
+  const nestedStackProjection = structuredClone(stackProjection);
+  nestedStackProjection.layout_tree = {
+    node_id: 'layout:ui-008-outer-stack',
+    kind: 'stack',
+    children: [
+      { node_id: 'layout:ui-008-outer-first', kind: 'single', contribution_id: 'contribution:pi-session' },
+      {
+        node_id: 'layout:ui-008-inner-stack',
+        kind: 'stack',
+        gap_token: 'tight',
+        children: [
+          { node_id: 'layout:ui-008-inner-only', kind: 'single', contribution_id: 'contribution:focusa-inspector' }
+        ]
+      }
+    ]
+  };
+  const { body: nestedStackBody } = render(SingleLayoutHarness, {
+    props: { projection: nestedStackProjection, registry: stackRegistry }
+  });
+  assert.equal((nestedStackBody.match(/class="layout-stack[^"]*"/g) ?? []).length, 2, 'nested stacks must render recursively');
+  assert.equal((nestedStackBody.match(/data-stack-index=/g) ?? []).length, 3);
+  assert.match(nestedStackBody, /data-layout-node="layout:ui-008-inner-stack"[^>]*data-gap-token="tight"/);
+  const outerFirst = nestedStackBody.indexOf('data-rendered-contribution="contribution:pi-session"');
+  const innerOnly = nestedStackBody.indexOf('data-rendered-contribution="contribution:focusa-inspector"');
+  assert.ok(outerFirst >= 0 && outerFirst < innerOnly, 'nested stack order must remain canonical');
+
+  const hostileStack = (mutate) => {
+    const candidate = structuredClone(stackProjection);
+    mutate(candidate.layout_tree, candidate);
+    return render(SingleLayoutHarness, { props: { projection: candidate, registry: stackRegistry } }).body;
+  };
+  const stackMustFailClosed = /layout-stack|stack-child|layout-single|data-rendered-contribution=/;
+  for (const [name, mutate] of [
+    ['empty child list', (node) => { node.children = []; }],
+    ['omitted child contribution', (node) => { node.children[1].contribution_id = 'contribution:omitted'; }],
+    ['foreign keyed contribution', (_node, projection) => { projection.eligible_contributions[0].contribution_id = 'contribution:foreign'; }],
+    ['unknown renderer binding', (_node, projection) => { projection.eligible_contributions[1].renderer_binding_id = 'renderer:untrusted@9'; }],
+    ['semantic binding mismatch', (_node, projection) => { projection.eligible_contributions[1].semantic_binding_id = 'semantic:foreign'; }],
+    ['missing contribution authority', (_node, projection) => { delete projection.eligible_contributions[1].authority; }],
+    ['duplicate contribution', (node) => { node.children[1].contribution_id = node.children[0].contribution_id; }],
+    ['duplicate node identity', (node) => { node.children[1].node_id = node.children[0].node_id; }],
+    ['invalid gap token', (node) => { node.gap_token = { attacker: 'no-css-token' }; }],
+    ['empty gap token', (node) => { node.gap_token = ''; }],
+    ['sparse children', (node) => {
+      const sparse = new Array(2);
+      sparse[0] = node.children[0];
+      node.children = sparse;
+    }],
+    ['non-index array member', (node) => { node.children.extra = 'foreign geometry'; }],
+    ['unknown stack field', (node) => { node.reserved_panel = 'substitute'; }]
+  ]) {
+    const body = hostileStack(mutate);
+    assert.doesNotMatch(body, stackMustFailClosed, `${name} must fail closed before stack geometry`);
+  }
+
   const unknownBinding = structuredClone(piContribution);
   unknownBinding.renderer_binding_id = 'renderer:untrusted@9';
   assert.deepEqual(hostileRegistry.resolveWithDiagnostic(unknownBinding), {
