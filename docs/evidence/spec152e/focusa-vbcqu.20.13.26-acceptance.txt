@@ -1,0 +1,15 @@
+Spec 152E facade protocol acceptance evidence
+Work item: focusa-vbcqu.20.13.26
+Scope: authenticated facade-to-authority protocol and signed synthetic golden vector
+
+Command: php tests/spec152e_facade_protocol_test.php
+Exit code: 0
+Bounded result: {"schema":"focusa.spec152e.facade_protocol_php_validation.v1","positive_round_trips":1,"negative_checks":11,"result":"passed_fail_closed"}
+
+Command: python3 tests/spec152e_facade_golden_vector_test.py
+Exit code: 0
+Bounded result: {"continuation_claims": 5, "result": "passed", "schema": "focusa.spec152e.facade_golden_vector_validation.v1", "signed_fields": 14}
+
+Remaining issues: None within this acceptance atom. No administrative closure, publication, deployment, merge, release, or push was performed.
+
+Rollback: Revert only the commit containing this evidence, docs/contracts/spec152e-facade-protocol.v1.php, docs/contracts/spec152e-facade-golden-vectors.v1.json, tests/spec152e_facade_protocol_test.php, and tests/spec152e_facade_golden_vector_test.py. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals.
