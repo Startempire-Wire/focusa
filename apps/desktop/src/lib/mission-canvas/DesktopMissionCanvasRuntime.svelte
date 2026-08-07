@@ -2,6 +2,7 @@
   import { tick } from 'svelte';
   import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
   import ActivityNavigation from './ActivityNavigation.svelte';
+  import { CapabilityLossController } from './capability-loss-controller';
   import type { ContributionRendererRegistry } from './contribution-renderers';
   import { LocalEventCursorStore, MissionCanvasEventClient } from './event-client';
   import { MissionCanvasInvalidationController } from './invalidation-controller';
@@ -32,6 +33,7 @@
   let profiles = $state<WorkspaceProfile[]>([]);
   let mutationInFlight = $state(false);
   let pendingConfirmation = $state.raw<{ binding: OperationBinding; subjectLabel: string; run: () => Promise<void> }>();
+  let capabilityNotice = $state<string | undefined>();
   let presentationRoot = $state<HTMLElement | undefined>();
   let controlsGeneration = 0;
 
@@ -251,25 +253,47 @@
     if (!authority) return;
     const boundAuthority = authority;
     const events = new MissionCanvasEventClient(client, boundAuthority, new LocalEventCursorStore());
-    const invalidation = new MissionCanvasInvalidationController(async () => {
+    const refreshProjection = async (): Promise<ResolvedWorkspaceProjection> => {
       const snapshot = captureCurrentPresentation();
       await controller.refresh(boundAuthority);
       await restorePresentation(snapshot);
-    });
+      const state = controller.state;
+      if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') {
+        throw new Error('projection_refresh_unavailable');
+      }
+      return state.projection;
+    };
+    const invalidation = new MissionCanvasInvalidationController(async () => { await refreshProjection(); });
+    const capabilityLoss = new CapabilityLossController(refreshProjection);
+    let noticeTimer: ReturnType<typeof setTimeout> | undefined;
     const unsubscribe = events.subscribe((batch) => {
       const state = controller.state;
       if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return;
-      invalidation.coalesce(batch, {
-        projectionRevision: state.projection.projection_revision,
-        layoutRevision: state.projection.layout_revision,
-        durableEventCursor: state.projection.durable_event_cursor,
-        authority: boundAuthority
-      }, boundAuthority);
+      const capabilityEvents = batch.accepted.filter((event) => event.event_kind === 'capability_changed');
+      if (capabilityEvents.length > 0) {
+        void capabilityLoss.handle(capabilityEvents, state.projection, boundAuthority).then((result) => {
+          if (!result) return;
+          capabilityNotice = result.notification?.message;
+          if (noticeTimer) clearTimeout(noticeTimer);
+          if (capabilityNotice) noticeTimer = setTimeout(() => { capabilityNotice = undefined; }, 5000);
+        });
+      }
+      const remaining = batch.accepted.filter((event) => event.event_kind !== 'capability_changed');
+      if (remaining.length > 0) {
+        invalidation.coalesce({ ...batch, accepted: remaining }, {
+          projectionRevision: state.projection.projection_revision,
+          layoutRevision: state.projection.layout_revision,
+          durableEventCursor: state.projection.durable_event_cursor,
+          authority: boundAuthority
+        }, boundAuthority);
+      }
     });
     events.start();
     return () => {
       unsubscribe();
       events.stop();
+      capabilityLoss.cancel();
+      if (noticeTimer) clearTimeout(noticeTimer);
       invalidation.dispose();
     };
   });
@@ -284,6 +308,9 @@
   aria-busy={mutationInFlight}
   data-runtime-state={controller.state.kind}
 >
+  {#if capabilityNotice}
+    <p class="capability-notice" role="status">{capabilityNotice}</p>
+  {/if}
   {#if profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION)}
     <header class="workspace-controls">
       <WorkspaceProfileSelector profiles={profiles} activeProfileId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.workspace_profile_id : ''} onSelect={(profile) => void selectProfile(profile)}/>
@@ -332,7 +359,8 @@
   .canvas-stage{display:grid}
   @container mission-canvas (max-width:820px){.workspace-body.has-activity-rail{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}}
   .mutation-pending .workspace-controls,.mutation-pending :global([role='tablist']){pointer-events:none;opacity:.72}
-  .state-banner{position:absolute;z-index:2;inset-block-start:var(--space-2);inset-inline:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--color-warning);border-radius:var(--radius-control);background:var(--color-raised);color:var(--color-warning);font:var(--type-caption)}
+  .capability-notice,.state-banner{position:absolute;z-index:2;inset-block-start:var(--space-2);inset-inline:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--color-warning);border-radius:var(--radius-control);background:var(--color-raised);color:var(--color-warning);font:var(--type-caption)}
+  .capability-notice{inset-inline-start:auto;max-width:min(30rem,calc(100% - var(--space-4)));margin:0}
   .state-message{align-self:center;justify-self:center;padding:var(--layout-card-padding);color:var(--color-text-secondary)}
   .state-message.error{max-width:34rem;border:1px solid var(--color-error);border-radius:var(--radius-card);background:var(--color-raised);color:var(--color-error)}
 </style>
