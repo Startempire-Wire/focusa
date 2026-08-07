@@ -1,0 +1,155 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-004",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Implemented focusa.mission_canvas.profile.select as a bounded canonical Workstream mutation. The API extracts exact Workstream authority, verifies generated Idempotency-Key and If-Match controls, loads only exact-scope canonical profile/activity/candidate records, delegates eligibility/layout/recomposition/Evidence/Receipt construction to Focusa Core, persists the direct projection atomically with its profile_changed event, and returns the generated ResolvedWorkspaceProjection without a wrapper. Generated Desktop transport remains the registry/client/validator authority and the hostile consumer proves fail-closed scope, authority, revision, cursor, permission, request, response, and no-dead-chrome behavior.",
+  "targets": [
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/reducer.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-004.json"
+  ],
+  "dependency_gate": {
+    "OPS-002": {
+      "status": "verified_integrated",
+      "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-002.json",
+      "decision": "The generated projection.resolve transport, exact Workstream projection response, Core resolver, revision/cursor watermarks, and omission contract are present on the integrated base and are reused by profile selection."
+    },
+    "OPS-003": {
+      "status": "verified",
+      "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-003.json",
+      "decision": "The exact-Workstream meaningful profile list is present on the integrated base; profile.select consumes the same canonical profile registry and selected profile identity rather than inventing a Desktop choice."
+    }
+  },
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.profile.select",
+    "method": "POST",
+    "path": "/v1/mission-canvas/profiles/select",
+    "mode": "mutation",
+    "scope_required": [
+      "workstream"
+    ],
+    "permissions_required": [
+      "mission_canvas:write"
+    ],
+    "confirmation": "none",
+    "requires_idempotency_key": true,
+    "requires_if_match_revision": true,
+    "receipt_required": true,
+    "request_schema_ref": "focusa.mission_canvas.composition_selection.request.v1",
+    "response_schema_ref": "ResolvedWorkspaceProjection",
+    "client_method": "profileSelect",
+    "authority_chain": [
+      "ScopeRef",
+      "ProjectRootKey",
+      "WorkstreamId",
+      "optional ContinuityId",
+      "AttachmentKey",
+      "SessionId",
+      "InstanceId",
+      "WorkspaceBindingId",
+      "RuntimeObjectRef",
+      "WorkSurfaceId"
+    ],
+    "artifact_status": "operation-registry.json, OpenAPI 3.0.3, generated TypeScript client, generated validators, capability snapshot, and transport metadata remain generated authority; no generated contract artifact, task packet, index, graph, parallel plan, or orchestration script was edited."
+  },
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "surface_kind": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "proof_class": "generated transport/runtime integration with hostile response and authority checks",
+    "eligible_contributions": "Only Core-resolved candidates from the selected canonical WorkspaceProfile and current ActivityMode that pass exact Workstream scope, semantic relevance, meaningful content, capability, permission, operation, and viewport rules may enter geometry.",
+    "omitted_contribution_reasons": [
+      "no_relevant_content",
+      "not_applicable",
+      "capability_not_present",
+      "not_authorized",
+      "scope_mismatch",
+      "suspended",
+      "catalog_missing_or_malformed"
+    ],
+    "continuity_invariants": [
+      "Profile selection requires the exact generated Workstream authority and matching actor/authority envelope.",
+      "Profile selection is a Core-owned recomposition, not a route-local or Desktop-local layout resolver.",
+      "The generated operation ID, POST path, request controls, response DTO, and validators remain transport authority.",
+      "Focused Work Surface and subordinate Attachment identity remain exact and cannot be inferred from a profile, tab, CWD, or continuity alone.",
+      "Empty/ineligible contributions are omitted before geometry; no dead chrome or substitute panel is fabricated.",
+      "Receipt and Evidence references in the direct projection retain the exact Workstream scope."
+    ]
+  },
+  "implementation": [
+    "Added the reusable Core ProfileSelectionService and ProfileSelectionCommand. It validates WorkstreamContext, subordinate authority, permission, profile installation, revision/cursor state, canonical candidate intersection, eligibility, deterministic layout, omission diagnostics, recomposition Evidence, and Receipt before producing a direct projection.",
+    "Replaced the profile.select API adapter's route-local switch with exact Workstream context extraction, generated header/body idempotency and If-Match agreement checks, Workstream-scoped idempotent replay/conflict handling, canonical profile/activity/candidate reads, Core service invocation, atomic projection/event persistence, and direct ResolvedWorkspaceProjection serialization.",
+    "Kept activity selection's existing bounded compatibility path separate; profile.select does not reuse its wrapper response or route-local CompositionRegistry composition algorithm.",
+    "Extended generated Desktop transport validation only at the transport boundary for the profile selection input extension, while retaining registry-owned operation lookup, generated response validation, exact nested authority validation, and projection revision/layout/cursor watermarks.",
+    "Added hostile Desktop runtime coverage for exact POST/path/headers/body, direct projection plus receipt references, missing selection/idempotency/If-Match, foreign top-level and nested authority, malformed wrapper, stale projection/layout/cursor, permission denial, unavailable operation, and empty contribution omission/no-dead-chrome behavior.",
+    "Added operation contract assertions for the generated operation, WorkstreamContext extraction, Core service ownership, direct response, receipt, and fail-closed transport markers."
+  ],
+  "checks": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; generated schemas, registry/OpenAPI/client/validators, parity and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.profile.select (exit 0; generated POST/path/authority/permission/Core/transport/consumer contract: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.profile.select --client profileSelect (exit 0; generated client, exact Workstream POST, direct projection/receipt, hostile request/scope/watermark/permission/response/omission checks: PASS)",
+    "Cargo was not run, per the OPS-004 instruction."
+  ],
+  "negative_cases": {
+    "foreign_workstream": "API WorkstreamContext and projection validation reject foreign Workstream or subordinate Attachment authority; Core binds every candidate to the requested Workstream; Desktop rejects foreign top-level and nested contribution authority.",
+    "missing_authority": "API requires actor and canonical authority headers for exact Workstream context extraction. Desktop rejects missing Workstream before HTTP and rejects missing response authority through generated validation.",
+    "stale_revision_cursor": "API requires If-Match to equal the generated expected projection revision and optionally rejects a stale event cursor; Core validates the current revision/cursor before recomposition; Desktop rejects regressed projection revision, layout revision, or durable cursor without updating its watermark.",
+    "unavailable_capability": "No profile-select-specific capability is invented because the generated descriptor declares none. Core applies the authenticated capability set to every selected candidate and omits candidates requiring unavailable capabilities/operations before layout; an unavailable generated operation fails before HTTP.",
+    "permission_denied": "The generated descriptor and API require mission_canvas:write; Core also requires the permission projection and the hostile Desktop consumer rejects a denied response without a local profile fallback.",
+    "idempotency_mismatch": "API requires Idempotency-Key and If-Match, rejects body/header disagreement, replays the exact prior profile_changed projection for the same key, and fails closed when a key belongs to another mutation or revision.",
+    "empty_or_ineligible_contribution": "Core returns no eligible layout node for empty, irrelevant, unauthorized, unavailable, or malformed candidates and records omission diagnostics; Desktop verifies the omission is not rendered as a panel or dead geometry.",
+    "invalid_response": "Generated response validation rejects wrappers, missing required fields, foreign scope, foreign nested contribution authority, invalid contribution structures, and stale watermarks; only a direct ResolvedWorkspaceProjection is adopted.",
+    "local_inference": "Desktop sends the selected profile identity through generated profileSelect and consumes Core output. It does not resolve candidates, infer authority, compose layout, fabricate a Receipt, choose a fallback profile, or use CWD/tab state."
+  },
+  "acceptance": [
+    "Selects the requested installed profile from the canonical exact-Workstream registry, recomposes eligibility/layout in Focusa Core, persists the profile_changed event, and returns a direct validated ResolvedWorkspaceProjection carrying Core Evidence/Receipt references.",
+    "Uses focusa.mission_canvas.profile.select and MissionCanvasClient.profileSelect with registry-owned POST/path/request/response metadata and generated Desktop runtime validation.",
+    "Preserves CARDINAL-135-SVELTE-001: exact Workstream authority is required, generated transport owns DTO/metadata validation, Core owns composition/eligibility/layout, and Svelte/Desktop does not infer or replace canonical state.",
+    "Fails closed for foreign or missing authority, body/header control mismatches, stale revision/cursor, unavailable capability/operation, denied permission, unknown/uninstalled/ineligible profile, empty contribution, malformed response, wrapper response, and foreign/stale projection watermarks."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/OPS-004.json",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "crates/focusa-core/src/mission_canvas/profiles.rs",
+    "crates/focusa-core/src/mission_canvas/resolver.rs",
+    "crates/focusa-core/src/mission_canvas/reducer.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/135-series-current-manifest.md",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/agent/spec135-implementation-acceleration-directive.md",
+    "docs/contracts/spec135-complete-feature-ledger.v1.yaml",
+    "docs/contracts/spec135/mission-canvas-v1/implementation-proof-matrix.json"
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-002.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-003.json"
+  ],
+  "deferred_repository_observation": "Cargo was not run because OPS-004 prohibits Cargo. The central executable graph, generated task packets/index, parallel plan, orchestration scripts, and generated contract artifacts were not edited. No screenshot or terminal output was used as functional proof.",
+  "remaining_work": [],
+  "status": "verified"
+}

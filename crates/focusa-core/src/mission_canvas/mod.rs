@@ -14,9 +14,8 @@ pub mod reducer;
 pub mod resolver;
 
 pub use domain_pack::{
-    DOMAIN_PACK_INSTALL_CAPABILITY, DOMAIN_PACK_INSTALL_OPERATION,
-    DOMAIN_PACK_INSTALL_PERMISSION, DomainPackInstallCommand, DomainPackInstallError,
-    DomainPackInstallService,
+    DomainPackInstallCommand, DomainPackInstallError, DomainPackInstallService,
+    DOMAIN_PACK_INSTALL_CAPABILITY, DOMAIN_PACK_INSTALL_OPERATION, DOMAIN_PACK_INSTALL_PERMISSION,
 };
 pub use host::{
     HostLifecycleError, HostLifecycleFocusCommand, HostLifecycleLaunchCommand,
@@ -36,7 +35,11 @@ pub use profiles::{
     ActivityModeDefinition, CompositionRegistry, DomainPack, RegistryDefinition,
     WorkspaceProfileDefinition,
 };
-pub use reducer::{resolve_projection, RecompositionResult, ResolveProjectionInput};
+pub use reducer::{
+    resolve_projection, ProfileSelectionCommand, ProfileSelectionError, ProfileSelectionService,
+    RecompositionResult, ResolveProjectionInput, PROFILE_SELECT_OPERATION,
+    PROFILE_SELECT_PERMISSION,
+};
 pub use resolver::{
     collect_candidates, resolve_eligibility, EligibilityContext, EligibilityResolution,
 };
