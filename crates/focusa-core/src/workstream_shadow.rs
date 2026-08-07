@@ -10,7 +10,7 @@
 use crate::types::FocusaState;
 use crate::workstream_identity::{ScopeRef, WorkstreamKey};
 use crate::workstream_migration::{
-    MigrationConfidence, WORKSTREAM_MIGRATION_MAPPING_SCHEMA_V1, WorkstreamMigrationMapping,
+    MigrationConfidence, WorkstreamMigrationMapping, WORKSTREAM_MIGRATION_MAPPING_SCHEMA_V1,
 };
 use crate::workstream_quarantine::{
     LegacyQuarantine, LegacyQuarantineError, LegacyQuarantineRow, QuarantineReason,
@@ -241,7 +241,7 @@ impl LegacyStateRecord {
         }
         if self.candidate_workstreams.iter().any(|candidate| {
             candidate.workstream_id.as_str().trim().is_empty()
-                || candidate.legacy_scope().validate().is_err()
+                || candidate.scope.legacy_scope().validate().is_err()
         }) {
             return Some(QuarantineReason::MissingWorkstreamIdentity);
         }
@@ -1134,18 +1134,14 @@ mod workstream_shadow_materialization {
             shadow.quarantine().rows()[0].reason,
             QuarantineReason::MultipleCandidateWorkstreams
         );
-        assert!(
-            shadow.quarantine().rows()[0]
-                .candidate_workstreams
-                .iter()
-                .any(|key| key.workstream_id.as_str() == "planning")
-        );
-        assert!(
-            shadow.quarantine().rows()[0]
-                .candidate_workstreams
-                .iter()
-                .any(|key| key.workstream_id.as_str() == "delivery")
-        );
+        assert!(shadow.quarantine().rows()[0]
+            .candidate_workstreams
+            .iter()
+            .any(|key| key.workstream_id.as_str() == "planning"));
+        assert!(shadow.quarantine().rows()[0]
+            .candidate_workstreams
+            .iter()
+            .any(|key| key.workstream_id.as_str() == "delivery"));
         let report = ParityComparator::default().compare(&legacy, &shadow);
         assert!(!report.passes());
         assert_eq!(
@@ -1173,32 +1169,28 @@ mod workstream_shadow_materialization {
             )
             .expect("distinct mappings");
         assert_eq!(shadow.rows().len(), 2);
-        assert!(
-            shadow
-                .rows()
-                .iter()
-                .any(|row| row.key().workstream_id.as_str() == "planning")
-        );
-        assert!(
-            shadow
-                .rows()
-                .iter()
-                .any(|row| row.key().workstream_id.as_str() == "delivery")
-        );
-        assert!(
-            shadow
-                .rows()
-                .iter()
-                .all(|row| { row.key().scope == scope("host-a:worktree-main") })
-        );
+        assert!(shadow
+            .rows()
+            .iter()
+            .any(|row| row.key().workstream_id.as_str() == "planning"));
+        assert!(shadow
+            .rows()
+            .iter()
+            .any(|row| row.key().workstream_id.as_str() == "delivery"));
+        assert!(shadow
+            .rows()
+            .iter()
+            .all(|row| { row.key().scope == scope("host-a:worktree-main") }));
     }
 
     #[test]
     fn unmapped_record_is_quarantined_without_owner() {
         let state = FocusaState::default();
-        let legacy = LegacyState::from_records(vec![
-            LegacyStateRecord::canonical("legacy-unmapped", &state).expect("legacy record"),
-        ])
+        let legacy = LegacyState::from_records(vec![LegacyStateRecord::canonical(
+            "legacy-unmapped",
+            &state,
+        )
+        .expect("legacy record")])
         .expect("legacy records");
         let mut shadow = ShadowWorkstreamStore::new();
         shadow.write(&legacy, &[]).expect("quarantine unmapped");
@@ -1212,12 +1204,11 @@ mod workstream_shadow_materialization {
     #[test]
     fn foreign_declared_scope_is_quarantined_without_repair() {
         let state = FocusaState::default();
-        let legacy = LegacyState::from_records(vec![
-            LegacyStateRecord::canonical("legacy-foreign", &state)
+        let legacy =
+            LegacyState::from_records(vec![LegacyStateRecord::canonical("legacy-foreign", &state)
                 .expect("legacy record")
-                .with_declared_scope(scope("host-b:worktree-main")),
-        ])
-        .expect("legacy records");
+                .with_declared_scope(scope("host-b:worktree-main"))])
+            .expect("legacy records");
         let mut shadow = ShadowWorkstreamStore::new();
         shadow
             .write(&legacy, &[mapping("legacy-foreign", "delivery")])
@@ -1233,10 +1224,12 @@ mod workstream_shadow_materialization {
     fn serialization_only_difference_is_not_a_migration_mismatch() {
         let state = FocusaState::default();
         let payload = serde_json::to_vec_pretty(&state).expect("pretty state");
-        let legacy = LegacyState::from_records(vec![
-            LegacyStateRecord::from_payload("legacy-pretty", &payload, LegacyRecordKind::Canonical)
-                .expect("typed payload"),
-        ])
+        let legacy = LegacyState::from_records(vec![LegacyStateRecord::from_payload(
+            "legacy-pretty",
+            &payload,
+            LegacyRecordKind::Canonical,
+        )
+        .expect("typed payload")])
         .expect("legacy records");
         let mut shadow = ShadowWorkstreamStore::new();
         shadow

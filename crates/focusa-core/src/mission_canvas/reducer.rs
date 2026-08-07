@@ -651,7 +651,12 @@ impl ResolveProjectionInput {
                     "work_surface_authority_missing",
                 ));
             }
-            if scope.work_surface_id.as_deref() != Some(focused_work_surface_id) {
+            if scope
+                .work_surface_id
+                .as_ref()
+                .map(crate::workstream_identity::WorkSurfaceId::as_str)
+                != Some(focused_work_surface_id)
+            {
                 return Err(RecompositionError::ScopeMismatch("work_surface_mismatch"));
             }
         }
@@ -961,8 +966,8 @@ mod tests {
     use crate::mission_canvas::model::{ContributionKind, MissionCanvasScope, OmissionDiagnostic};
     use crate::scoped_state::ScopeRef as LegacyScopeRef;
     use crate::workstream_identity::{
-        AttachmentId, ContinuityId, InstanceId, ScopeRef, SessionId, WorkspaceBindingId,
-        WorkstreamId, WorkstreamKey,
+        AttachmentId, AttachmentKey, ContinuityId, InstanceId, ScopeRef, SessionId, WorkSurfaceId,
+        WorkspaceBindingId, WorkstreamId, WorkstreamKey,
     };
     use serde_json::json;
 
@@ -995,7 +1000,8 @@ mod tests {
         let owner = workstream(workstream_id);
         let mut scope =
             MissionCanvasScope::new(owner.clone(), Some(attachment(owner, surface_id))).unwrap();
-        scope.work_surface_id = Some(format!("surface:{surface_id}"));
+        scope.work_surface_id =
+            Some(WorkSurfaceId::parse(format!("surface:{surface_id}")).unwrap());
         scope
     }
 
@@ -1029,7 +1035,10 @@ mod tests {
             .map(|candidate| candidate.semantic_binding_id.clone())
             .unwrap_or_else(|| "semantic:none".into());
         ResolveProjectionInput {
-            focused_work_surface_id: scope.work_surface_id.clone(),
+            focused_work_surface_id: scope
+                .work_surface_id
+                .as_ref()
+                .map(|id| id.as_str().to_owned()),
             candidates,
             eligibility: EligibilityContext {
                 scope,

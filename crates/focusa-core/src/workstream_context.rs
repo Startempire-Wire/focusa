@@ -365,7 +365,8 @@ fn validate_workstream_key(key: &WorkstreamKey) -> Result<(), WorkstreamContextE
     if key.workstream_id.as_str().trim().is_empty() {
         return Err(WorkstreamContextError::InvalidWorkstream);
     }
-    key.legacy_scope()
+    key.scope
+        .legacy_scope()
         .validate()
         .map_err(|_| WorkstreamContextError::InvalidWorkstream)
 }

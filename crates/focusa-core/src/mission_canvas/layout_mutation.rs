@@ -1024,14 +1024,14 @@ fn resize_split(
     target_contribution_id: Option<&str>,
     ratio: f64,
 ) -> bool {
+    let contribution_matches =
+        target_contribution_id.is_none_or(|target| contains_contribution(node, target));
     let Some(object) = node.as_object_mut() else {
         return false;
     };
     if object.get("kind").and_then(Value::as_str) == Some("split") {
         let node_matches = target_node_id
             .is_none_or(|target| object.get("node_id").and_then(Value::as_str) == Some(target));
-        let contribution_matches =
-            target_contribution_id.is_none_or(|target| contains_contribution(node, target));
         if node_matches && contribution_matches {
             object.insert("ratio".into(), json!(ratio));
             return true;
@@ -1207,13 +1207,13 @@ fn split_layout(
     ratio: f64,
     orientation: &str,
 ) -> bool {
+    let original = node.clone();
     let Some(object) = node.as_object_mut() else {
         return false;
     };
     if object.get("kind").and_then(Value::as_str) == Some("single")
         && object.get("contribution_id").and_then(Value::as_str) == Some(target)
     {
-        let original = node.clone();
         let original_node_id = object
             .get("node_id")
             .and_then(Value::as_str)
@@ -1301,19 +1301,24 @@ fn remove_contribution(node: &mut Value, target: &str) -> bool {
     };
     match object.get("kind").and_then(Value::as_str) {
         Some("tabs") => {
-            let Some(ids) = object
-                .get_mut("contribution_ids")
-                .and_then(Value::as_array_mut)
-            else {
-                return false;
+            let (remaining_len, first_remaining) = {
+                let Some(ids) = object
+                    .get_mut("contribution_ids")
+                    .and_then(Value::as_array_mut)
+                else {
+                    return false;
+                };
+                let before = ids.len();
+                ids.retain(|id| id.as_str() != Some(target));
+                if ids.len() == before {
+                    return false;
+                }
+                (ids.len(), ids.first().cloned())
             };
-            let before = ids.len();
-            ids.retain(|id| id.as_str() != Some(target));
-            if ids.len() == before {
-                return false;
-            }
-            if ids.len() == 1 {
-                let id = ids[0].clone();
+            if remaining_len == 1 {
+                let Some(id) = first_remaining else {
+                    return false;
+                };
                 let node_id = object
                     .get("node_id")
                     .cloned()
@@ -1322,7 +1327,9 @@ fn remove_contribution(node: &mut Value, target: &str) -> bool {
             } else {
                 let active = object.get("active_contribution_id").and_then(Value::as_str);
                 if active == Some(target) {
-                    object.insert("active_contribution_id".into(), ids[0].clone());
+                    if let Some(first_remaining) = first_remaining {
+                        object.insert("active_contribution_id".into(), first_remaining);
+                    }
                 }
             }
             true
@@ -1448,7 +1455,7 @@ mod tests {
 
     #[test]
     fn malformed_or_foreign_layout_never_gets_reflowed() {
-        let mut value = json!({
+        let value = json!({
             "kind":"split","node_id":"layout:root","orientation":"horizontal","ratio":0.5,
             "children":[
                 {"kind":"single","node_id":"layout:one","contribution_id":"contribution:one"},

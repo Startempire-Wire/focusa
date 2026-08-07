@@ -520,6 +520,7 @@ pub fn reduce_workstream(
         .map_err(|error| ReducerError::WorkstreamPartition(error.to_string()))?;
     event
         .workstream
+        .scope
         .legacy_scope()
         .validate()
         .map_err(|error| ReducerError::WorkstreamPartition(error.to_string()))?;

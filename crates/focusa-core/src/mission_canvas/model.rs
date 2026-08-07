@@ -310,7 +310,13 @@ impl ResolvedWorkspaceProjection {
             if self.scope.attachment.is_none() || self.scope.work_surface_id.is_none() {
                 return Err("work_surface_authority_missing");
             }
-            if self.scope.work_surface_id.as_deref() != Some(focused_work_surface_id) {
+            if self
+                .scope
+                .work_surface_id
+                .as_ref()
+                .map(WorkSurfaceId::as_str)
+                != Some(focused_work_surface_id)
+            {
                 return Err("work_surface_mismatch");
             }
         }
@@ -441,7 +447,7 @@ mod tests {
     use super::*;
     use crate::scoped_state::ScopeRef as LegacyScopeRef;
     use crate::workstream_identity::{
-        AttachmentId, AttachmentKey, ContinuityId, InstanceId, ScopeRef, SessionId,
+        AttachmentId, AttachmentKey, ContinuityId, InstanceId, ScopeRef, SessionId, WorkSurfaceId,
         WorkspaceBindingId, WorkstreamId, WorkstreamKey,
     };
 
@@ -558,7 +564,7 @@ mod tests {
             Some(attachment(owner, "attachment:projection")),
         )
         .expect("projection scope should be canonical");
-        scope.work_surface_id = Some("surface:pi".into());
+        scope.work_surface_id = Some(WorkSurfaceId::parse("surface:pi").unwrap());
         let mut projection = projection(scope.clone());
         projection
             .eligible_contributions
@@ -577,10 +583,10 @@ mod tests {
     #[test]
     fn resolved_workspace_projection_scope_rejects_focus_without_exact_surface_authority() {
         let scope = MissionCanvasScope::new(workstream("ws:focus"), None).unwrap();
-        let mut projection = projection(scope.clone());
-        projection.focused_work_surface_id = Some("surface:legacy".into());
+        let mut unbound_projection = projection(scope.clone());
+        unbound_projection.focused_work_surface_id = Some("surface:legacy".into());
         assert_eq!(
-            projection.validate_scope(&scope),
+            unbound_projection.validate_scope(&scope),
             Err("work_surface_authority_missing")
         );
 
@@ -588,7 +594,7 @@ mod tests {
         let mut bound_scope =
             MissionCanvasScope::new(owner.clone(), Some(attachment(owner, "attachment:focus")))
                 .unwrap();
-        bound_scope.work_surface_id = Some("surface:actual".into());
+        bound_scope.work_surface_id = Some(WorkSurfaceId::parse("surface:actual").unwrap());
         let mut mismatched = projection(bound_scope.clone());
         mismatched.focused_work_surface_id = Some("surface:other".into());
         assert_eq!(
