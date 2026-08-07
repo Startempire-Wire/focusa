@@ -19,10 +19,117 @@ const server = await createServer({
 try {
   const { MissionCanvasProjectionController, rejectStaleRevision, validateProjection } =
     await server.ssrLoadModule('/src/lib/mission-canvas/projection-controller.svelte.ts');
+  const {
+    isExactWorkSurfaceIdentity,
+    projectWorkSurfaces,
+    projectWorkSurfacesWithDiagnostics
+  } = await server.ssrLoadModule('/src/lib/mission-canvas/types.ts');
+  const { exactScopeKey } = await server.ssrLoadModule('/src/lib/mission-canvas/exact-scope.ts');
   const fixture = JSON.parse(
     await readFile(new URL('./fixtures/mission-canvas/populated-projection.json', import.meta.url), 'utf8')
   );
   const authority = authorityOf(fixture);
+
+  const generatedSurfacePayload = {
+    schema: 'focusa.mission_canvas_surface_list.v1',
+    surfaces: [{
+      work_surface_id: fixture.work_surface_id,
+      display_name: 'Pi session',
+      surface_kind: 'pi_session',
+      identity: {
+        workstream: structuredClone(fixture.workstream),
+        continuity_id: fixture.continuity_id,
+        attachment: structuredClone(fixture.attachment),
+        runtime_object: structuredClone(fixture.runtime_object),
+        work_surface_id: fixture.work_surface_id
+      },
+      scope: {
+        project_root: fixture.workstream.scope.scope_key.root_path,
+        continuity_id: fixture.continuity_id,
+        workpoint_id: 'workpoint:pi'
+      },
+      primary_attachment: {
+        ...structuredClone(fixture.attachment),
+        role: 'active'
+      },
+      presentation: {
+        title: 'Pi session',
+        renderer_id: 'renderer:pi-session@v1',
+        pinned: true,
+        group_id: fixture.continuity_id
+      },
+      activity: {
+        lifecycle_state: 'open',
+        semantic_activity: 'coding',
+        health: 'healthy',
+        unread_event_count: 2,
+        pending_approval_count: 1
+      },
+      isolation: {
+        writer_lease_ref: 'lease:pi',
+        worktree_ref: 'worktree:pi',
+        browser_isolation_class: 'not-applicable'
+      }
+    }]
+  };
+  const projectedSurfaces = projectWorkSurfaces(generatedSurfacePayload);
+  assert.equal(projectedSurfaces.length, 1);
+  assert.equal(projectedSurfaces[0].identity.workstream.workstream_id, 'ws:mission-canvas');
+  assert.equal(projectedSurfaces[0].identity.attachment.attachment_id, 'attachment:pi');
+  assert.equal(projectedSurfaces[0].identity.attachment.session_id, 'session:pi');
+  assert.equal(projectedSurfaces[0].identity.attachment.instance_id, 'instance:pi');
+  assert.equal(projectedSurfaces[0].identity.work_surface_id, 'surface:pi');
+  assert.equal(projectedSurfaces[0].sessionId, 'session:pi');
+  assert.equal(projectedSurfaces[0].instanceId, 'instance:pi');
+  assert.equal(isExactWorkSurfaceIdentity(projectedSurfaces[0].identity), true);
+
+  const splitIdentityPayload = structuredClone(generatedSurfacePayload);
+  delete splitIdentityPayload.surfaces[0].identity;
+  splitIdentityPayload.surfaces[0].workstream = structuredClone(fixture.workstream);
+  delete splitIdentityPayload.surfaces[0].primary_attachment.workstream;
+  assert.equal(projectWorkSurfaces(splitIdentityPayload).length, 1);
+  assert.equal(exactScopeKey(projectedSurfaces[0]), exactScopeKey(projectedSurfaces[0].identity));
+  assert.ok(exactScopeKey(projectedSurfaces[0]));
+
+  const legacySurface = {
+    work_surface_id: 'surface:legacy',
+    project_root: '/example/focusa',
+    continuity_id: 'continuity:mission-canvas',
+    attachment_id: 'attachment:legacy',
+    instance_id: 'instance:legacy',
+    session_id: 'session:legacy'
+  };
+  const legacyResult = projectWorkSurfacesWithDiagnostics({ surfaces: [legacySurface] });
+  assert.deepEqual(legacyResult.surfaces, []);
+  assert.equal(legacyResult.quarantined[0].reason, 'missing_exact_identity');
+  assert.equal(exactScopeKey(legacySurface), undefined);
+
+  const foreignSurface = structuredClone(generatedSurfacePayload);
+  foreignSurface.surfaces[0].identity.workstream.workstream_id = 'ws:foreign';
+  foreignSurface.surfaces[0].identity.attachment.workstream.workstream_id = 'ws:foreign';
+  assert.equal(projectWorkSurfaces(foreignSurface, authority).length, 0);
+  assert.equal(projectWorkSurfacesWithDiagnostics(foreignSurface, authority).quarantined[0].reason, 'foreign_scope');
+
+  const missingAttachment = structuredClone(generatedSurfacePayload);
+  delete missingAttachment.surfaces[0].identity.attachment;
+  assert.equal(projectWorkSurfaces(missingAttachment).length, 0);
+
+  const foreignAttachment = structuredClone(generatedSurfacePayload);
+  foreignAttachment.surfaces[0].identity.attachment.workstream.workstream_id = 'ws:foreign';
+  assert.equal(projectWorkSurfaces(foreignAttachment).length, 0);
+  assert.equal(projectWorkSurfacesWithDiagnostics(foreignAttachment).quarantined[0].reason, 'foreign_attachment_workstream');
+
+  const mismatchedSession = structuredClone(generatedSurfacePayload);
+  mismatchedSession.surfaces[0].session_id = 'session:foreign';
+  assert.equal(projectWorkSurfaces(mismatchedSession).length, 0);
+  assert.equal(projectWorkSurfacesWithDiagnostics(mismatchedSession).quarantined[0].reason, 'identity_mismatch');
+
+  const duplicateSurfaces = structuredClone(generatedSurfacePayload);
+  duplicateSurfaces.surfaces.push(structuredClone(duplicateSurfaces.surfaces[0]));
+  const duplicateResult = projectWorkSurfacesWithDiagnostics(duplicateSurfaces);
+  assert.deepEqual(duplicateResult.surfaces, []);
+  assert.equal(duplicateResult.quarantined.length, 2);
+  assert.ok(duplicateResult.quarantined.every(({ reason }) => reason === 'duplicate_identity'));
 
   assert.equal(validateProjection(fixture, authority).valid, true);
 
@@ -198,7 +305,7 @@ try {
   assert.equal(controller.accept(authorityOf(fixture), malformed), false);
   assert.equal(controller.state.kind, 'stale');
 
-  console.log('Mission Canvas projection controller: PASS (generated projectionGet, exact authority, fail-closed mismatch, stale watermarks, race, clear, omission, and hostile response checks)');
+  console.log('Mission Canvas projection controller: PASS (generated projectionGet, exact WorkSurface identity, quarantine, fail-closed mismatch, stale watermarks, race, clear, omission, and hostile response checks)');
 } finally {
   await server.watcher.close();
   await server.ws.close();

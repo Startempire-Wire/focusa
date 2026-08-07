@@ -1,5 +1,12 @@
 import { sameWorkstreamAuthorityContext } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
-import type { ProjectionLifecycleEvent, ResolvedWorkspaceProjection, WorkstreamAuthorityContext } from './types';
+import { exactWorkSurfaceIdentityKey, isExactWorkSurfaceIdentity } from './types';
+import type {
+  ExactWorkSurfaceIdentity,
+  ProjectionLifecycleEvent,
+  ResolvedWorkspaceProjection,
+  WorkSurfaceProjection,
+  WorkstreamAuthorityContext
+} from './types';
 
 /**
  * Compare the generated canonical identity context, not a tab, CWD, or latest
@@ -40,4 +47,23 @@ export function workstreamAuthorityStorageKey(authority: WorkstreamAuthorityCont
     authority.runtime_object ?? null,
     authority.work_surface_id ?? null
   ]));
+}
+
+/**
+ * Return a stable storage key only for a complete generated Work Surface
+ * identity.  A legacy row, project/continuity pair, or aggregate identity has
+ * no key because it cannot be an authority-bearing Desktop target.
+ */
+export function exactScopeKey(
+  value: WorkSurfaceProjection | ExactWorkSurfaceIdentity
+): string | undefined {
+  const identity = isProjection(value) ? value.identity : value;
+  if (!isExactWorkSurfaceIdentity(identity)) return undefined;
+  return exactWorkSurfaceIdentityKey(identity);
+}
+
+function isProjection(value: WorkSurfaceProjection | ExactWorkSurfaceIdentity): value is WorkSurfaceProjection {
+  return typeof value === 'object'
+    && value !== null
+    && 'identity' in value;
 }
