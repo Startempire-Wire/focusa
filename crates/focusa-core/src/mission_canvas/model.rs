@@ -290,6 +290,124 @@ pub struct ResolvedWorkspaceProjection {
     pub receipt_refs: Vec<String>,
 }
 
+impl ResolvedWorkspaceProjection {
+    /// Validate that this projection belongs to the exact Workstream authority
+    /// supplied by the caller. A project path, continuity id, focused tab, or
+    /// registry row is never sufficient to select a projection.
+    ///
+    /// A Workstream-only expected scope may validate an aggregate projection.
+    /// When the expected scope carries subordinate identity, every supplied
+    /// subordinate value must match as well. This preserves the authority
+    /// chain without making an aggregate read guess an Attachment or surface.
+    pub fn validate_scope(&self, expected_scope: &MissionCanvasScope) -> Result<(), &'static str> {
+        validate_projection_scope(&self.scope)?;
+        validate_projection_scope(expected_scope)?;
+
+        if let Some(focused_work_surface_id) = self.focused_work_surface_id.as_deref() {
+            if focused_work_surface_id.trim().is_empty() {
+                return Err("invalid_work_surface");
+            }
+            if self.scope.attachment.is_none() || self.scope.work_surface_id.is_none() {
+                return Err("work_surface_authority_missing");
+            }
+            if self.scope.work_surface_id.as_deref() != Some(focused_work_surface_id) {
+                return Err("work_surface_mismatch");
+            }
+        }
+
+        if self.scope.workstream != expected_scope.workstream {
+            return Err("workstream_mismatch");
+        }
+        if expected_scope.continuity_id.is_some()
+            && self.scope.continuity_id != expected_scope.continuity_id
+        {
+            return Err("continuity_mismatch");
+        }
+        if expected_scope.attachment.is_some() && self.scope.attachment != expected_scope.attachment
+        {
+            return Err("attachment_mismatch");
+        }
+        if expected_scope.workspace_binding_id.is_some()
+            && self.scope.workspace_binding_id != expected_scope.workspace_binding_id
+        {
+            return Err("workspace_binding_mismatch");
+        }
+        if expected_scope.runtime_object.is_some()
+            && self.scope.runtime_object != expected_scope.runtime_object
+        {
+            return Err("runtime_object_mismatch");
+        }
+        if expected_scope.work_surface_id.is_some()
+            && self.scope.work_surface_id != expected_scope.work_surface_id
+        {
+            return Err("work_surface_mismatch");
+        }
+
+        for contribution in &self.eligible_contributions {
+            validate_resolved_contribution_scope(contribution, &self.scope)?;
+        }
+        Ok(())
+    }
+}
+
+/// Mission Canvas projections carry the same exact scope in each eligible
+/// contribution's generated authority descriptor. Keep this check in core so
+/// a deserialized or tampered projection cannot smuggle a foreign contribution
+/// into an otherwise valid Workstream projection.
+fn validate_resolved_contribution_scope(
+    contribution: &ResolvedContribution,
+    projection_scope: &MissionCanvasScope,
+) -> Result<(), &'static str> {
+    let authority = contribution
+        .authority
+        .as_object()
+        .ok_or("missing_contribution_authority")?;
+    if !authority.contains_key("workstream") {
+        return Err("missing_contribution_workstream");
+    }
+    let authority_scope: MissionCanvasScope =
+        serde_json::from_value(Value::Object(authority.clone()))
+            .map_err(|_| "invalid_contribution_authority")?;
+    validate_projection_scope(&authority_scope)?;
+    if authority_scope.workstream != projection_scope.workstream {
+        return Err("contribution_workstream_mismatch");
+    }
+    if projection_scope.continuity_id.is_some()
+        && authority_scope.continuity_id != projection_scope.continuity_id
+    {
+        return Err("contribution_continuity_mismatch");
+    }
+    if projection_scope.attachment.is_some()
+        && authority_scope.attachment != projection_scope.attachment
+    {
+        return Err("contribution_attachment_mismatch");
+    }
+    if projection_scope.workspace_binding_id.is_some()
+        && authority_scope.workspace_binding_id != projection_scope.workspace_binding_id
+    {
+        return Err("contribution_workspace_binding_mismatch");
+    }
+    if projection_scope.runtime_object.is_some()
+        && authority_scope.runtime_object != projection_scope.runtime_object
+    {
+        return Err("contribution_runtime_object_mismatch");
+    }
+    if projection_scope.work_surface_id.is_some()
+        && authority_scope.work_surface_id != projection_scope.work_surface_id
+    {
+        return Err("contribution_work_surface_mismatch");
+    }
+    Ok(())
+}
+
+fn validate_projection_scope(scope: &MissionCanvasScope) -> Result<(), &'static str> {
+    scope.validate()?;
+    if scope.work_surface_id.is_some() && scope.attachment.is_none() {
+        return Err("attachment_missing");
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CompositionEvent {
     pub event_id: String,
@@ -379,5 +497,199 @@ mod tests {
             .expect("a Workstream-only aggregate scope is canonical");
         assert!(scope.attachment.is_none());
         assert!(scope.validate().is_ok());
+    }
+
+    fn projection(scope: MissionCanvasScope) -> ResolvedWorkspaceProjection {
+        ResolvedWorkspaceProjection {
+            schema: "focusa.resolved_workspace_projection.v1".into(),
+            scope,
+            workspace_profile_id: "software".into(),
+            workspace_profile_revision: 2,
+            activity_mode_id: "overview".into(),
+            activity_mode_revision: 1,
+            focused_work_surface_id: None,
+            canonical_read_model_revision: 41,
+            candidate_contribution_ids: vec!["contribution:pi".into()],
+            eligible_contributions: vec![],
+            omission_diagnostics: vec![],
+            layout_tree: serde_json::json!({
+                "kind": "single",
+                "node_id": "layout:pi",
+                "contribution_id": "contribution:pi"
+            }),
+            operation_bindings: vec![],
+            focused_semantic_target: "semantic:pi".into(),
+            projection_revision: 7,
+            layout_revision: 5,
+            durable_event_cursor: "event:41".into(),
+            projection_digest: "sha256:projection".into(),
+            resolved_at: None,
+            evidence_refs: vec![],
+            receipt_refs: vec![],
+        }
+    }
+
+    fn resolved_contribution(authority: Value) -> ResolvedContribution {
+        ResolvedContribution {
+            contribution_id: "contribution:pi".into(),
+            kind: ContributionKind::FocusedWorkSurface,
+            semantic_binding_id: "semantic:pi".into(),
+            renderer_binding_id: "renderer:pi".into(),
+            data_ref: serde_json::json!({
+                "kind": "work_surface",
+                "ref": "surface:pi",
+                "revision": 7
+            }),
+            operation_ids: vec![],
+            authority,
+            freshness: serde_json::json!({"status": "current"}),
+            resolved_geometry: serde_json::json!({"preferred_regions": ["primary"]}),
+            accessibility: serde_json::json!({"label": "Pi"}),
+            contribution_revision: 1,
+            evidence_refs: vec![],
+        }
+    }
+
+    #[test]
+    fn resolved_workspace_projection_scope_serializes_exact_workstream_and_revision() {
+        let owner = workstream("ws:projection");
+        let mut scope = MissionCanvasScope::new(
+            owner.clone(),
+            Some(attachment(owner, "attachment:projection")),
+        )
+        .expect("projection scope should be canonical");
+        scope.work_surface_id = Some("surface:pi".into());
+        let mut projection = projection(scope.clone());
+        projection
+            .eligible_contributions
+            .push(resolved_contribution(
+                serde_json::to_value(scope.clone()).expect("authority serializes"),
+            ));
+        let encoded = serde_json::to_value(&projection).expect("projection serializes");
+
+        assert_eq!(encoded["workstream"], serde_json::json!(scope.workstream));
+        assert_eq!(encoded["projection_revision"], serde_json::json!(7));
+        let round_trip: ResolvedWorkspaceProjection =
+            serde_json::from_value(encoded).expect("generated projection shape round-trips");
+        assert_eq!(round_trip.validate_scope(&scope), Ok(()));
+    }
+
+    #[test]
+    fn resolved_workspace_projection_scope_rejects_focus_without_exact_surface_authority() {
+        let scope = MissionCanvasScope::new(workstream("ws:focus"), None).unwrap();
+        let mut projection = projection(scope.clone());
+        projection.focused_work_surface_id = Some("surface:legacy".into());
+        assert_eq!(
+            projection.validate_scope(&scope),
+            Err("work_surface_authority_missing")
+        );
+
+        let owner = workstream("ws:focus");
+        let mut bound_scope =
+            MissionCanvasScope::new(owner.clone(), Some(attachment(owner, "attachment:focus")))
+                .unwrap();
+        bound_scope.work_surface_id = Some("surface:actual".into());
+        let mut mismatched = projection(bound_scope.clone());
+        mismatched.focused_work_surface_id = Some("surface:other".into());
+        assert_eq!(
+            mismatched.validate_scope(&bound_scope),
+            Err("work_surface_mismatch")
+        );
+    }
+
+    #[test]
+    fn resolved_workspace_projection_scope_allows_workstream_aggregate_contributions() {
+        let owner = workstream("ws:aggregate");
+        let aggregate = MissionCanvasScope::new(owner.clone(), None).unwrap();
+        let attachment_scope = MissionCanvasScope::new(
+            owner.clone(),
+            Some(attachment(owner, "attachment:aggregate")),
+        )
+        .unwrap();
+        let mut projection = projection(aggregate.clone());
+        projection
+            .eligible_contributions
+            .push(resolved_contribution(
+                serde_json::to_value(attachment_scope).expect("authority serializes"),
+            ));
+
+        assert_eq!(projection.validate_scope(&aggregate), Ok(()));
+    }
+
+    #[test]
+    fn resolved_workspace_projection_scope_rejects_foreign_workstream_and_attachment() {
+        let owner = workstream("ws:projection");
+        let scope = MissionCanvasScope::new(
+            owner.clone(),
+            Some(attachment(owner.clone(), "attachment:projection")),
+        )
+        .unwrap();
+        let projection = projection(scope);
+
+        let foreign_owner = workstream("ws:foreign");
+        let foreign = MissionCanvasScope::new(
+            foreign_owner.clone(),
+            Some(attachment(foreign_owner, "attachment:foreign")),
+        )
+        .unwrap();
+        assert_eq!(
+            projection.validate_scope(&foreign),
+            Err("workstream_mismatch")
+        );
+
+        let different_attachment =
+            MissionCanvasScope::new(owner.clone(), Some(attachment(owner, "attachment:other")))
+                .unwrap();
+        assert_eq!(
+            projection.validate_scope(&different_attachment),
+            Err("attachment_mismatch")
+        );
+    }
+
+    #[test]
+    fn resolved_workspace_projection_scope_rejects_missing_and_foreign_contribution_authority() {
+        let owner = workstream("ws:projection");
+        let scope = MissionCanvasScope::new(
+            owner.clone(),
+            Some(attachment(owner.clone(), "attachment:projection")),
+        )
+        .unwrap();
+        let mut missing = projection(scope.clone());
+        missing
+            .eligible_contributions
+            .push(resolved_contribution(serde_json::json!({})));
+        assert_eq!(
+            missing.validate_scope(&scope),
+            Err("missing_contribution_workstream")
+        );
+
+        let foreign_owner = workstream("ws:foreign");
+        let foreign_scope = MissionCanvasScope::new(
+            foreign_owner.clone(),
+            Some(attachment(foreign_owner, "attachment:foreign")),
+        )
+        .unwrap();
+        let mut foreign = projection(scope.clone());
+        foreign.eligible_contributions.push(resolved_contribution(
+            serde_json::to_value(foreign_scope).expect("authority serializes"),
+        ));
+        assert_eq!(
+            foreign.validate_scope(&scope),
+            Err("contribution_workstream_mismatch")
+        );
+    }
+
+    #[test]
+    fn resolved_workspace_projection_scope_rejects_legacy_or_invalid_authority() {
+        let scope = MissionCanvasScope::new(workstream("ws:projection"), None).unwrap();
+        let projection = projection(scope.clone());
+        let mut legacy = serde_json::to_value(&projection).unwrap();
+        legacy.as_object_mut().unwrap().remove("workstream");
+        assert!(serde_json::from_value::<ResolvedWorkspaceProjection>(legacy).is_err());
+
+        let mut invalid = serde_json::to_value(&projection).unwrap();
+        invalid["workstream"]["workstream_id"] = serde_json::json!("");
+        let invalid: ResolvedWorkspaceProjection = serde_json::from_value(invalid).unwrap();
+        assert_eq!(invalid.validate_scope(&scope), Err("missing_workstream"));
     }
 }
