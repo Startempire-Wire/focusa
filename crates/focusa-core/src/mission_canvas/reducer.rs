@@ -78,6 +78,268 @@ pub struct RecompositionResult {
 
 pub const PROFILE_SELECT_OPERATION: &str = "focusa.mission_canvas.profile.select";
 pub const PROFILE_SELECT_PERMISSION: &str = "mission_canvas:write";
+pub const ACTIVITY_SELECT_OPERATION: &str = "focusa.mission_canvas.activity.select";
+pub const ACTIVITY_SELECT_PERMISSION: &str = "mission_canvas:write";
+
+/// Core-owned command for selecting a canonical Activity Mode. The API
+/// adapter supplies the exact Workstream context, current profile, selected
+/// activity, scoped candidate registry, and capability/permission projection;
+/// this service owns eligibility, layout recomposition, Evidence, Receipt, and
+/// the direct projection returned to the generated client.
+#[derive(Clone, Debug)]
+pub struct ActivitySelectionCommand {
+    pub context: WorkstreamContext,
+    pub scope: super::model::MissionCanvasScope,
+    pub current_projection: ResolvedWorkspaceProjection,
+    pub profile: WorkspaceProfileDefinition,
+    pub activity: ActivityModeDefinition,
+    pub candidates: Vec<CandidateContribution>,
+    pub capabilities: BTreeSet<String>,
+    pub permissions: BTreeSet<String>,
+    pub available_operations: BTreeSet<String>,
+    pub expected_projection_revision: u64,
+    pub expected_event_cursor: Option<String>,
+    pub idempotency_key: String,
+}
+
+#[derive(Debug, Error)]
+pub enum ActivitySelectionError {
+    #[error("activity selection Workstream context is invalid: {0}")]
+    Context(#[from] WorkstreamContextError),
+    #[error("activity selection scope is invalid: {0}")]
+    Scope(&'static str),
+    #[error("activity selection requires permission: {0}")]
+    PermissionDenied(String),
+    #[error("activity selection requires a non-empty idempotency key")]
+    IdempotencyKeyRequired,
+    #[error("activity selection projection revision is stale")]
+    RevisionConflict,
+    #[error("activity selection event cursor is stale")]
+    CursorConflict,
+    #[error("current workspace profile is unavailable: {0}")]
+    ProfileUnavailable(String),
+    #[error("selected activity mode is unavailable: {0}")]
+    ActivityUnavailable(String),
+    #[error("selected activity has no meaningful eligible contribution")]
+    NoMeaningfulContribution,
+    #[error(transparent)]
+    Recomposition(#[from] RecompositionError),
+}
+
+/// The reusable Core operation behind `activity.select`. It changes only the
+/// canonical activity selection and recomposes the projection. Workstream and
+/// subordinate Attachment authority are copied from the validated command and
+/// are never inferred or replaced by the selected activity.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ActivitySelectionService;
+
+impl ActivitySelectionService {
+    pub fn select(
+        &self,
+        command: ActivitySelectionCommand,
+    ) -> Result<RecompositionResult, ActivitySelectionError> {
+        validate_activity_selection_context(&command)?;
+
+        if !has_activity_selection_permission(&command.permissions) {
+            return Err(ActivitySelectionError::PermissionDenied(
+                ACTIVITY_SELECT_PERMISSION.into(),
+            ));
+        }
+        if command.idempotency_key.trim().is_empty() {
+            return Err(ActivitySelectionError::IdempotencyKeyRequired);
+        }
+        if command.profile.profile_id.trim().is_empty()
+            || !command.profile.installed
+            || command.profile.profile_id != command.current_projection.workspace_profile_id
+        {
+            return Err(ActivitySelectionError::ProfileUnavailable(
+                command.profile.profile_id,
+            ));
+        }
+        if command.activity.activity_mode_id.trim().is_empty()
+            || command.activity.display_name.trim().is_empty()
+            || command.activity.viability_rule_revision.trim().is_empty()
+        {
+            return Err(ActivitySelectionError::ActivityUnavailable(
+                command.activity.activity_mode_id,
+            ));
+        }
+
+        let profile_contribution_ids = command
+            .profile
+            .candidate_contribution_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        let activity_contribution_ids = command
+            .activity
+            .candidate_contribution_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        let scoped_candidates = command
+            .candidates
+            .into_iter()
+            .map(|candidate| {
+                ScopedCandidateContribution::new(candidate, command.scope.clone())
+                    .map_err(ActivitySelectionError::Scope)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let candidate_ids = scoped_candidates
+            .iter()
+            .map(|candidate| candidate.candidate.contribution_id.clone())
+            .collect::<BTreeSet<_>>();
+        let candidates = collect_candidates(
+            scoped_candidates,
+            &profile_contribution_ids,
+            &activity_contribution_ids,
+            &command.scope,
+        );
+        if candidates.is_empty()
+            || !candidates
+                .iter()
+                .any(|candidate| candidate_ids.contains(&candidate.contribution_id))
+        {
+            return Err(ActivitySelectionError::NoMeaningfulContribution);
+        }
+
+        let current_eligible = command
+            .current_projection
+            .eligible_contributions
+            .iter()
+            .map(|contribution| contribution.contribution_id.clone())
+            .collect::<BTreeSet<_>>();
+        let meaningful_content = candidates
+            .iter()
+            .filter(|candidate| current_eligible.contains(&candidate.contribution_id))
+            .map(|candidate| (candidate.contribution_id.clone(), true))
+            .collect::<BTreeMap<_, _>>();
+        let focused_semantic_target = if candidates.iter().any(|candidate| {
+            candidate.semantic_binding_id == command.current_projection.focused_semantic_target
+        }) {
+            command.current_projection.focused_semantic_target.clone()
+        } else {
+            String::new()
+        };
+        let next_projection_revision = command
+            .expected_projection_revision
+            .checked_add(1)
+            .ok_or(RecompositionError::RevisionOverflow)?;
+        let input = ResolveProjectionInput {
+            candidates,
+            eligibility: EligibilityContext {
+                scope: command.scope.clone(),
+                profile_id: command.profile.profile_id.clone(),
+                activity_mode_id: command.activity.activity_mode_id.clone(),
+                projection_revision: next_projection_revision,
+                capabilities: command.capabilities,
+                permissions: command.permissions,
+                available_operations: command.available_operations,
+                meaningful_content,
+                previously_eligible: current_eligible,
+                observed_at: Utc::now().to_rfc3339(),
+            },
+            workspace_profile_revision: command.profile.revision,
+            activity_mode_revision: command.activity.revision,
+            focused_work_surface_id: command.current_projection.focused_work_surface_id.clone(),
+            canonical_read_model_revision: command.current_projection.canonical_read_model_revision,
+            viewport_width: 1440,
+            viewport_height: 900,
+            viewport_class: "standard".into(),
+            focused_semantic_target,
+            previous_projection_revision: command.expected_projection_revision,
+            previous_layout_revision: command.current_projection.layout_revision,
+            event_cursor: command.current_projection.durable_event_cursor.clone(),
+            causation_id: Some(command.idempotency_key.clone()),
+            idempotency_key: command.idempotency_key.clone(),
+        };
+        let previous_activity_mode_id = command.current_projection.activity_mode_id.clone();
+        let mut result = resolve_projection(
+            input,
+            Some(command.current_projection.projection_digest.clone()),
+        )?;
+        result.evidence.trigger = "activity_mode_change".into();
+        result.event.event_kind = "activity_mode_changed".into();
+        if let Some(payload) = result.event.payload.as_object_mut() {
+            payload.insert(
+                "activity_selection".into(),
+                json!({
+                    "operation_id": ACTIVITY_SELECT_OPERATION,
+                    "activity_mode_id": command.activity.activity_mode_id.clone(),
+                    "previous_activity_mode_id": previous_activity_mode_id,
+                    "workstream": command.scope.workstream.clone(),
+                }),
+            );
+            if let Some(evidence) = payload.get_mut("evidence") {
+                evidence["trigger"] = json!("activity_mode_change");
+            }
+        }
+        Ok(result)
+    }
+}
+
+fn validate_activity_selection_context(
+    command: &ActivitySelectionCommand,
+) -> Result<(), ActivitySelectionError> {
+    command
+        .scope
+        .validate()
+        .map_err(ActivitySelectionError::Scope)?;
+    command
+        .context
+        .validate_for_workstream(&command.scope.workstream)?;
+    if command.context.attachment != command.scope.attachment {
+        return Err(ActivitySelectionError::Context(
+            WorkstreamContextError::WorkstreamMismatch,
+        ));
+    }
+    let expected_continuity = command.scope.continuity_id.clone().or_else(|| {
+        command
+            .scope
+            .attachment
+            .as_ref()
+            .and_then(|attachment| attachment.continuity_id.clone())
+    });
+    if command.context.continuity_id != expected_continuity {
+        return Err(ActivitySelectionError::Context(
+            WorkstreamContextError::ContinuityMismatch,
+        ));
+    }
+    let expected_binding = command.scope.workspace_binding_id.clone().or_else(|| {
+        command
+            .scope
+            .attachment
+            .as_ref()
+            .map(|attachment| attachment.workspace_binding_id.clone())
+    });
+    if command.context.workspace_binding_id != expected_binding {
+        return Err(ActivitySelectionError::Context(
+            WorkstreamContextError::WorkspaceBindingMismatch,
+        ));
+    }
+    command
+        .current_projection
+        .validate_scope(&command.scope)
+        .map_err(ActivitySelectionError::Scope)?;
+    if command.current_projection.projection_revision != command.expected_projection_revision {
+        return Err(ActivitySelectionError::RevisionConflict);
+    }
+    if command
+        .expected_event_cursor
+        .as_deref()
+        .is_some_and(|cursor| cursor != command.current_projection.durable_event_cursor)
+    {
+        return Err(ActivitySelectionError::CursorConflict);
+    }
+    Ok(())
+}
+
+fn has_activity_selection_permission(permissions: &BTreeSet<String>) -> bool {
+    permissions.contains(ACTIVITY_SELECT_PERMISSION)
+        || permissions.contains("mission_canvas:*")
+        || permissions.contains("admin:*")
+        || permissions.contains("*")
+}
 
 /// Core-owned command for selecting a canonical Workspace Profile.  The API
 /// adapter supplies the exact Workstream context, canonical profile/activity

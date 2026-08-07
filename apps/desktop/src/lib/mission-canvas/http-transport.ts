@@ -368,14 +368,42 @@ function validateOperationRequest(
     if (unknownFields.length > 0) return { valid: false, errors: unknownFields };
     return validation;
   }
-  if (operationId !== 'focusa.mission_canvas.profile.select') return validation;
+  if (operationId !== 'focusa.mission_canvas.profile.select'
+    && operationId !== 'focusa.mission_canvas.activity.select') return validation;
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return { valid: false, errors: ['expected object'] };
   }
-  const selectionId = (value as Record<string, unknown>).selection_id;
+  const requestObject = value as Record<string, unknown>;
+  const selectionId = requestObject.selection_id;
   if (typeof selectionId !== 'string' || selectionId.trim().length === 0) {
     return { valid: false, errors: ['missing:selection_id'] };
   }
+  const expectedRevision = requestObject.expected_projection_revision;
+  if (typeof expectedRevision !== 'number'
+    || !Number.isSafeInteger(expectedRevision)
+    || expectedRevision < 0) {
+    return { valid: false, errors: ['missing:expected_projection_revision'] };
+  }
+  if (requestObject.event_cursor !== undefined
+    && (typeof requestObject.event_cursor !== 'string' || requestObject.event_cursor.trim().length === 0)) {
+    return { valid: false, errors: ['invalid:event_cursor'] };
+  }
+  const allowedFields = new Set([
+    'selection_id',
+    'expected_projection_revision',
+    'idempotency_key',
+    'event_cursor',
+    'workstream',
+    'continuity_id',
+    'attachment',
+    'workspace_binding_id',
+    'runtime_object',
+    'work_surface_id'
+  ]);
+  const unknownFields = Object.keys(requestObject)
+    .filter((field) => !allowedFields.has(field))
+    .map((field) => `unknown:${field}`);
+  if (unknownFields.length > 0) return { valid: false, errors: unknownFields };
   return validation;
 }
 

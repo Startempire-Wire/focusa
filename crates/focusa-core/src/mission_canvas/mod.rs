@@ -37,9 +37,10 @@ pub use profiles::{
     WorkspaceProfileDefinition,
 };
 pub use reducer::{
-    resolve_projection, ProfileSelectionCommand, ProfileSelectionError, ProfileSelectionService,
-    RecompositionResult, ResolveProjectionInput, PROFILE_SELECT_OPERATION,
-    PROFILE_SELECT_PERMISSION,
+    resolve_projection, ActivitySelectionCommand, ActivitySelectionError, ActivitySelectionService,
+    ProfileSelectionCommand, ProfileSelectionError, ProfileSelectionService, RecompositionResult,
+    ResolveProjectionInput, ACTIVITY_SELECT_OPERATION, ACTIVITY_SELECT_PERMISSION,
+    PROFILE_SELECT_OPERATION, PROFILE_SELECT_PERMISSION,
 };
 pub use resolver::{
     collect_candidates, resolve_eligibility, EligibilityContext, EligibilityResolution,
