@@ -1,0 +1,124 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PROFILE-001",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "The Desktop Mission Canvas now renders only canonical eligible workspace profile choices supplied by generated profileList data. General, Software Engineering, Legal, Markets, Research, and Custom are rendered from generated WorkspaceProfile DTOs when Core says they are eligible; no static profile inventory, unavailable card, fallback label, or client-side composition resolver was added. Profile selection remains the generated profileSelect mutation through the exact Workstream transport boundary.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/WorkspaceProfileSelector.svelte",
+    "apps/desktop/src/lib/mission-canvas/DesktopMissionCanvasRuntime.svelte",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-001.json"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "surface_kind": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "canonical_shell_regions": [
+      "workspace_profile_selector",
+      "resolved_contribution_grid"
+    ],
+    "continuity_invariants": [
+      "the selector is rendered only for a canonical profile list bound to the current projection",
+      "the exact Workstream authority remains owned by the parent runtime and generated transport",
+      "Core remains the eligibility, meaningful-content, layout, and recomposition owner",
+      "profileSelect carries the current projection revision and generated idempotency contract",
+      "malformed, duplicate, explicitly uninstalled, empty, stale, or foreign values fail closed"
+    ]
+  },
+  "dependency_gate": {
+    "OPS-003": {
+      "status": "verified",
+      "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-003.json",
+      "decision": "The generated profileList read is integrated and returns direct Core-filtered WorkspaceProfile[] values for the exact Workstream."
+    },
+    "UI-004": {
+      "status": "verified",
+      "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/UI-004.json",
+      "decision": "The projection-backed Desktop frame and context bar are integrated; the selector remains above the canonical adaptive projection."
+    }
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "implementation": [
+    "WorkspaceProfileSelector consumes the generated WorkspaceProfile DTO type and generated validator. It preserves Core ordering and display names, refuses malformed or duplicate payloads, omits explicit uninstalled/content-free entries at the renderer boundary, and renders no selector when the active profile is absent or the canonical list has no meaningful choice.",
+    "DesktopMissionCanvasRuntime passes the generated profileList result through unchanged instead of filtering or synthesizing profiles in the runtime. Selection continues through the existing operation binding and generated MissionCanvasClient.profileSelect call with exact authority, projection revision, and idempotency key.",
+    "Hostile Svelte runtime coverage proves all six eligible vertical choices render from canonical DTOs, empty/uninstalled entries do not become options, malformed and duplicate lists render no selector, and a stale active profile cannot cause the selector to choose a different profile.",
+    "Hostile generated-transport coverage proves profileSelect uses the registry-owned POST route, exact Workstream body, write permission/capability headers, If-Match revision, and Idempotency-Key, while foreign scope, stale projection revision/cursor, missing authority, denied permission, and unavailable operation cases fail closed."
+  ],
+  "checks": [
+    "npm --prefix apps/desktop test (exit 0; shell, Workstream context, Mission Canvas selector/layout/renderer/transport/invalidation, and projection-controller hostile checks: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.profile.list --client profileList (exit 0; generated profileList exact Workstream GET, eligible/empty response, foreign/missing authority, permission, unavailable operation, and hostile response checks: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.profile.select --client profileSelect (exit 0; generated profileSelect exact Workstream POST, idempotency/concurrency, foreign scope, stale revision/cursor, missing authority, permission, and unavailable operation checks: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.profile.list (exit 0: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.profile.select (exit 0: PASS)",
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; 25 operation entries and 10 derived artifacts: PASS)",
+    "node --check apps/desktop/tests/layout-renderer-runtime.mjs (exit 0)",
+    "node --check apps/desktop/tests/operation-consumer-runtime.mjs (exit 0)",
+    "git diff --check (exit 0)"
+  ],
+  "negative_cases": {
+    "foreign_workstream": "Generated profileSelect response validation rejects a foreign Workstream before the projection can be accepted; profileList request and response coverage remains exact-scope.",
+    "missing_authority": "Both generated profileList and profileSelect reject missing Workstream authority before making an HTTP call; profileSelect also requires the generated mutation concurrency fields.",
+    "stale_revision_cursor": "profileSelect responses with a regressed projection revision or same-namespace durable cursor are rejected by the generated transport watermark guard. profileList is a read without revision/cursor requirements; no stale read authority is invented.",
+    "unavailable_capability": "Unknown operation IDs fail with operation_unavailable and no selector fallback. Core's eligible list remains the capability/content decision; Desktop does not add an unavailable profile choice.",
+    "permission_denied": "Generated profileList and profileSelect permission-denial responses are surfaced as typed transport failures without retaining or inventing a profile option.",
+    "ineligible_or_empty_profile": "An empty canonical profile list renders no selector; explicit uninstalled/content-free entries are omitted, and no unavailable/degraded/no-profiles card is introduced.",
+    "malformed_or_ambiguous_profile": "Generated DTO validation, malformed payload coverage, duplicate profile IDs, and a stale active profile all fail closed without selecting the first option or repairing identity.",
+    "local_inference": "The Desktop runtime does not hard-code General/Software/Legal/Markets/Research/Custom, resolve activity/profile viability, calculate contribution eligibility, or persist layout memory. Those remain generated/Core-owned behavior."
+  },
+  "acceptance": [
+    "Unsupported or empty profiles do not appear in the daily selector.",
+    "Eligible General, Software Engineering, Legal, Markets, Research, and Custom choices render from Core-provided generated DTOs rather than a static inventory.",
+    "A vertical selection routes through generated profileSelect with exact Workstream authority and fail-closed concurrency checks.",
+    "The selector does not create a fixed dashboard, alternate page, placeholder panel, or semantic substitute; profile layout memory remains a Core-owned persistence/recomposition concern."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/PROFILE-001.json",
+    "docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md",
+    "docs/135-series-current-manifest.md",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/agent/spec135-implementation-acceleration-directive.md",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "crates/focusa-core/src/mission_canvas/profiles.rs",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "crates/focusa-core/src/mission_canvas/resolver.rs",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/DesktopMissionCanvasRuntime.svelte",
+    "apps/desktop/src/lib/mission-canvas/WorkspaceProfileSelector.svelte",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-003.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-004.json"
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-003.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-004.json"
+  ],
+  "deferred_repository_observation": "The central executable graph, generated task packets/index, parallel plan, orchestration scripts, and generated contract artifacts were not edited. Cargo was not run.",
+  "remaining_work": [],
+  "status": "verified"
+}
