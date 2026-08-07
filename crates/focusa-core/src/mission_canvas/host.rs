@@ -7,14 +7,22 @@
 
 use std::collections::BTreeSet;
 
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 use crate::workstream_context::{WorkstreamContext, WorkstreamContextError};
 
-use super::model::MissionCanvasScope;
+use super::{
+    CompositionEvent, MissionCanvasScope, MissionCanvasStore, MissionCanvasStoreError,
+    StoredDocument,
+};
 
 pub const RICH_HOST_RESOLVE_OPERATION: &str = "focusa.mission_canvas.rich_host.resolve";
+pub const RICH_HOST_LAUNCH_OPERATION: &str = "focusa.mission_canvas.rich_host.launch";
+pub const RICH_HOST_PERMISSION: &str = "mission_canvas:host";
 /// Capability advertised by the generated Desktop host client.  The short
 /// alias is retained because existing capability projections use
 /// `mission_canvas` for the complete host surface.
@@ -75,6 +83,73 @@ pub struct HostRendererResolution {
     pub diagnostic_ref: Option<String>,
 }
 
+/// Generated-contract-shaped lifecycle state returned by a rich-host mutation.
+/// The state is still a projection: Desktop owns presentation, while the
+/// Workstream, renderer resolution, and durable cursor remain Core-owned.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HostLifecycleState {
+    #[serde(flatten)]
+    pub scope: MissionCanvasScope,
+    pub host_instance_id: String,
+    pub renderer_resolution: HostRendererResolution,
+    pub state: String,
+    pub focused: bool,
+    pub process_id: Option<u32>,
+    pub window_id: Option<String>,
+    pub pi_draft_ref: Option<String>,
+    pub canvas_draft_ref: Option<String>,
+    pub last_error_ref: Option<String>,
+    pub durable_event_cursor: String,
+    pub lifecycle_revision: u64,
+    pub updated_at: String,
+}
+
+impl HostLifecycleState {
+    /// Validate the complete authority packet, including the nested renderer
+    /// resolution. A Workstream match alone is not enough when the request
+    /// carries Attachment, runtime, or Work Surface identity.
+    pub fn validate_scope(&self, expected: &MissionCanvasScope) -> Result<(), &'static str> {
+        self.scope.validate()?;
+        expected.validate()?;
+        if self.scope != *expected {
+            return Err("host_lifecycle_scope_mismatch");
+        }
+        if self.renderer_resolution.scope != self.scope {
+            return Err("host_renderer_scope_mismatch");
+        }
+        if !self.host_instance_id.starts_with("rich-host:")
+            || self.host_instance_id.len() <= "rich-host:".len()
+            || !self.host_instance_id["rich-host:".len()..]
+                .chars()
+                .all(|value| {
+                    value.is_ascii_lowercase() || value.is_ascii_digit() || "._:-".contains(value)
+                })
+        {
+            return Err("host_instance_invalid");
+        }
+        if !matches!(
+            self.state.as_str(),
+            "absent"
+                | "launching"
+                | "visible"
+                | "focused"
+                | "hidden"
+                | "closing"
+                | "reconnecting"
+                | "failed"
+        ) {
+            return Err("host_state_invalid");
+        }
+        if self.durable_event_cursor.trim().is_empty() {
+            return Err("host_event_cursor_missing");
+        }
+        if self.updated_at.trim().is_empty() {
+            return Err("host_updated_at_missing");
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum HostRendererResolutionError {
     #[error("rich-host Workstream context is invalid: {0}")]
@@ -83,6 +158,185 @@ pub enum HostRendererResolutionError {
     Scope(&'static str),
     #[error("rich-host resolution is unavailable without capability: {0}")]
     CapabilityUnavailable(String),
+}
+
+/// Exact generated input for the launch mutation.  The API adapter supplies
+/// the Workstream context and capability/permission projections; it does not
+/// manufacture a host owner from a path, tab, or current process.
+#[derive(Clone, Debug)]
+pub struct HostLifecycleLaunchCommand {
+    pub context: WorkstreamContext,
+    pub scope: MissionCanvasScope,
+    pub idempotency_key: String,
+    pub capabilities: BTreeSet<String>,
+    pub permissions: BTreeSet<String>,
+}
+
+#[derive(Debug, Error)]
+pub enum HostLifecycleError {
+    #[error("rich-host Workstream context is invalid: {0}")]
+    Context(#[from] WorkstreamContextError),
+    #[error("rich-host scope is invalid: {0}")]
+    Scope(&'static str),
+    #[error("rich-host capability is unavailable: {0}")]
+    CapabilityUnavailable(String),
+    #[error("rich-host permission is unavailable: {0}")]
+    PermissionDenied(String),
+    #[error("rich-host launch requires a non-empty idempotency_key")]
+    IdempotencyKeyRequired,
+    #[error("rich-host resolution failed: {0}")]
+    Resolution(#[from] HostRendererResolutionError),
+    #[error("rich-host lifecycle document is invalid: {0}")]
+    InvalidDocument(String),
+    #[error("rich-host serialization failed: {0}")]
+    Serialization(#[from] serde_json::Error),
+    #[error("rich-host persistence failed: {0}")]
+    Store(#[from] MissionCanvasStoreError),
+}
+
+/// Core-owned launch service.  It records one attachment/workstream-scoped
+/// lifecycle projection and returns the generated HostLifecycleState.  It does
+/// not spawn Pi, fork a model stream, choose layout, or infer contributions.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct HostLifecycleService;
+
+impl HostLifecycleService {
+    pub fn validate(
+        &self,
+        command: &HostLifecycleLaunchCommand,
+        platform: HostPlatform,
+    ) -> Result<HostRendererResolution, HostLifecycleError> {
+        command.context.validate()?;
+        command
+            .scope
+            .validate()
+            .map_err(HostLifecycleError::Scope)?;
+        validate_context_scope(&command.context, &command.scope)
+            .map_err(HostLifecycleError::Resolution)?;
+        if !has_permission(&command.permissions, RICH_HOST_PERMISSION) {
+            return Err(HostLifecycleError::PermissionDenied(
+                RICH_HOST_PERMISSION.to_owned(),
+            ));
+        }
+        if command.idempotency_key.trim().is_empty() {
+            return Err(HostLifecycleError::IdempotencyKeyRequired);
+        }
+        if command.idempotency_key.len() > 200 {
+            return Err(HostLifecycleError::IdempotencyKeyRequired);
+        }
+        HostRendererResolutionService
+            .resolve(
+                &command.context,
+                &command.scope,
+                &command.capabilities,
+                platform,
+            )
+            .map_err(Into::into)
+    }
+
+    pub fn launch(
+        &self,
+        store: &MissionCanvasStore,
+        command: &HostLifecycleLaunchCommand,
+        platform: HostPlatform,
+    ) -> Result<HostLifecycleState, HostLifecycleError> {
+        let resolution = self.validate(command, platform)?;
+        let host_instance_id = stable_host_instance_id(&command.scope)?;
+        let document_id = format!("host:{host_instance_id}");
+        let existing = store.get_document(
+            "mission_canvas_host_lifecycle",
+            &command.scope,
+            &document_id,
+        )?;
+        let (previous_state, previous_idempotency_key) = match existing {
+            Some(document) => {
+                let (state, key) = lifecycle_document(&document, &command.scope)?;
+                if state.lifecycle_revision != document.revision {
+                    return Err(HostLifecycleError::InvalidDocument(
+                        "document revision does not match lifecycle revision".into(),
+                    ));
+                }
+                if state.host_instance_id != host_instance_id {
+                    return Err(HostLifecycleError::InvalidDocument(
+                        "host instance is not derived from the exact Workstream scope".into(),
+                    ));
+                }
+                (Some(state), Some(key))
+            }
+            None => (None, None),
+        };
+
+        if previous_idempotency_key.as_deref() == Some(command.idempotency_key.as_str()) {
+            return Ok(previous_state.expect("idempotent lifecycle document has state"));
+        }
+
+        let lifecycle_revision = previous_state
+            .as_ref()
+            .map(|state| {
+                state.lifecycle_revision.checked_add(1).ok_or_else(|| {
+                    HostLifecycleError::InvalidDocument("lifecycle revision overflow".into())
+                })
+            })
+            .transpose()?
+            .unwrap_or(1);
+        let now = Utc::now().to_rfc3339();
+        let state = HostLifecycleState {
+            scope: command.scope.clone(),
+            host_instance_id: host_instance_id.clone(),
+            renderer_resolution: resolution,
+            state: "visible".into(),
+            focused: true,
+            // The Desktop host owns its own process/window lifecycle.  The
+            // launch operation presents Desktop without forking Pi or claiming a Pi process id.
+            process_id: None,
+            window_id: Some(format!("window:{host_instance_id}")),
+            pi_draft_ref: None,
+            canvas_draft_ref: None,
+            last_error_ref: None,
+            durable_event_cursor: "event:pending".into(),
+            lifecycle_revision,
+            updated_at: now.clone(),
+        };
+        state
+            .validate_scope(&command.scope)
+            .map_err(HostLifecycleError::Scope)?;
+        let event = CompositionEvent {
+            event_id: format!(
+                "projection-event:rich-host-launch:{}:{}",
+                host_instance_id.replace(':', "-"),
+                digest_fragment(&command.idempotency_key),
+            ),
+            event_kind: "host_launched".into(),
+            scope: command.scope.clone(),
+            projection_revision: 0,
+            layout_revision: 0,
+            causation_id: Some(command.idempotency_key.clone()),
+            correlation_id: Some(command.context.authority.authority_ref.clone()),
+            occurred_at: now.clone(),
+            payload: json!({
+                "operation_id": RICH_HOST_LAUNCH_OPERATION,
+                "host_instance_id": host_instance_id,
+                "renderer": state.renderer_resolution.selected_renderer.clone(),
+                "lifecycle_revision": lifecycle_revision,
+            }),
+            evidence_refs: vec![],
+            receipt_refs: vec![format!("receipt:rich-host-launch:{lifecycle_revision}")],
+        };
+        let document = StoredDocument {
+            document_id,
+            scope: command.scope.clone(),
+            revision: lifecycle_revision,
+            payload: json!({
+                "idempotency_key": command.idempotency_key,
+                "state": state,
+            }),
+            updated_at: now,
+        };
+        let persisted =
+            store.put_idempotent_lifecycle_document(&document, &command.idempotency_key, &event)?;
+        let (persisted_state, _) = lifecycle_document(&persisted, &command.scope)?;
+        Ok(persisted_state)
+    }
 }
 
 /// Stateless core service for `focusa.mission_canvas.rich_host.resolve`.
@@ -137,6 +391,50 @@ impl HostRendererResolutionService {
             diagnostic_ref: None,
         })
     }
+}
+
+fn lifecycle_document(
+    document: &StoredDocument,
+    expected_scope: &MissionCanvasScope,
+) -> Result<(HostLifecycleState, String), HostLifecycleError> {
+    let object = document.payload.as_object().ok_or_else(|| {
+        HostLifecycleError::InvalidDocument("lifecycle envelope is not an object".into())
+    })?;
+    let idempotency_key = object
+        .get("idempotency_key")
+        .and_then(|value| value.as_str())
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| {
+            HostLifecycleError::InvalidDocument("lifecycle idempotency key is missing".into())
+        })?
+        .to_owned();
+    let state_value = object
+        .get("state")
+        .cloned()
+        .ok_or_else(|| HostLifecycleError::InvalidDocument("lifecycle state is missing".into()))?;
+    let state: HostLifecycleState = serde_json::from_value(state_value)?;
+    state
+        .validate_scope(expected_scope)
+        .map_err(HostLifecycleError::Scope)?;
+    Ok((state, idempotency_key))
+}
+
+fn stable_host_instance_id(scope: &MissionCanvasScope) -> Result<String, HostLifecycleError> {
+    let bytes = serde_json::to_vec(scope)?;
+    let digest = Sha256::digest(bytes);
+    Ok(format!("rich-host:desktop:{}", hex::encode(&digest[..16])))
+}
+
+fn digest_fragment(value: &str) -> String {
+    let digest = Sha256::digest(value.as_bytes());
+    hex::encode(&digest[..16])
+}
+
+fn has_permission(permissions: &BTreeSet<String>, required: &str) -> bool {
+    permissions.contains(required)
+        || permissions.contains("mission_canvas:*")
+        || permissions.contains("admin:*")
+        || permissions.contains("*")
 }
 
 fn has_desktop_capability(capabilities: &BTreeSet<String>) -> bool {
@@ -272,5 +570,51 @@ mod tests {
                 WorkstreamContextError::WorkstreamMismatch
             ))
         ));
+    }
+
+    #[test]
+    fn launch_validation_requires_permission_capability_and_idempotency() {
+        let owner = workstream("ws:launch");
+        let context = request(owner.clone());
+        let scope = MissionCanvasScope::new(owner.clone(), None).unwrap();
+        let service = HostLifecycleService;
+        let mut command = HostLifecycleLaunchCommand {
+            context: context.clone(),
+            scope: scope.clone(),
+            idempotency_key: "launch:1".into(),
+            capabilities: [RICH_HOST_RESOLVE_CAPABILITY.into()].into_iter().collect(),
+            permissions: BTreeSet::new(),
+        };
+
+        assert!(matches!(
+            service.validate(&command, HostPlatform::Linux),
+            Err(HostLifecycleError::PermissionDenied(_))
+        ));
+        command.permissions.insert(RICH_HOST_PERMISSION.into());
+        command.capabilities.clear();
+        assert!(matches!(
+            service.validate(&command, HostPlatform::Linux),
+            Err(HostLifecycleError::Resolution(
+                HostRendererResolutionError::CapabilityUnavailable(_)
+            ))
+        ));
+        command
+            .capabilities
+            .insert(RICH_HOST_RESOLVE_CAPABILITY.into());
+        command.idempotency_key.clear();
+        assert!(matches!(
+            service.validate(&command, HostPlatform::Linux),
+            Err(HostLifecycleError::IdempotencyKeyRequired)
+        ));
+
+        command.idempotency_key = "launch:foreign".into();
+        command.scope = MissionCanvasScope::new(workstream("ws:foreign"), None).unwrap();
+        assert!(matches!(
+            service.validate(&command, HostPlatform::Linux),
+            Err(HostLifecycleError::Resolution(
+                HostRendererResolutionError::Context(WorkstreamContextError::WorkstreamMismatch)
+            ))
+        ));
+        assert_eq!(context.workstream, owner);
     }
 }

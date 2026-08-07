@@ -9,9 +9,10 @@ use axum::{
 use chrono::Utc;
 use focusa_core::mission_canvas::{
     resolve_projection, CompositionEvent, DomainPackInstallCommand, DomainPackInstallError,
-    DomainPackInstallService, HostPlatform, HostRendererResolutionError,
-    HostRendererResolutionService, MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput,
-    StoredDocument, DOMAIN_PACK_INSTALL_CAPABILITY,
+    DomainPackInstallService, HostLifecycleError, HostLifecycleLaunchCommand, HostLifecycleService,
+    HostLifecycleState, HostPlatform, HostRendererResolutionError, HostRendererResolutionService,
+    MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput, StoredDocument,
+    DOMAIN_PACK_INSTALL_CAPABILITY,
 };
 use focusa_core::workstream_context::{
     ActorRef, ActorType, AuthorityContext, WorkstreamContext, WorkstreamContextError,
@@ -210,6 +211,13 @@ struct LayoutMutationRequest {
     idempotency_key: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct RichHostCommandRequest {
+    #[serde(flatten)]
+    scope: MissionCanvasScope,
+    idempotency_key: String,
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/mission-canvas/projection", get(get_projection))
@@ -239,6 +247,7 @@ pub fn router() -> Router<Arc<AppState>> {
             "/v1/mission-canvas/rich-host/resolution",
             get(resolve_host_renderer),
         )
+        .route("/v1/mission-canvas/rich-host/launch", post(launch_host))
         .route(
             "/v1/mission-canvas/rich-host/{action}",
             post(update_host_lifecycle),
@@ -1214,6 +1223,68 @@ fn host_renderer_resolution_error(
             error(StatusCode::UNPROCESSABLE_ENTITY, "scope_incomplete", reason)
         }
     }
+}
+
+fn host_lifecycle_error(error_value: HostLifecycleError) -> (StatusCode, Json<Value>) {
+    match error_value {
+        HostLifecycleError::Context(context_error)
+        | HostLifecycleError::Resolution(HostRendererResolutionError::Context(context_error)) => {
+            host_renderer_context_error(context_error)
+        }
+        HostLifecycleError::Scope(reason)
+        | HostLifecycleError::Resolution(HostRendererResolutionError::Scope(reason)) => {
+            error(StatusCode::UNPROCESSABLE_ENTITY, "scope_incomplete", reason)
+        }
+        HostLifecycleError::CapabilityUnavailable(capability)
+        | HostLifecycleError::Resolution(HostRendererResolutionError::CapabilityUnavailable(
+            capability,
+        )) => error(
+            StatusCode::FORBIDDEN,
+            "capability_unavailable",
+            &format!("Missing required host capability: {capability}"),
+        ),
+        HostLifecycleError::PermissionDenied(permission) => error(
+            StatusCode::FORBIDDEN,
+            "permission_denied",
+            &format!("Missing required permission: {permission}"),
+        ),
+        HostLifecycleError::IdempotencyKeyRequired => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "idempotency_key_missing",
+            "idempotency_key is required for rich-host launch",
+        ),
+        HostLifecycleError::InvalidDocument(reason) => {
+            error(StatusCode::CONFLICT, "host_lifecycle_invalid", &reason)
+        }
+        HostLifecycleError::Store(store) => store_error(store),
+        HostLifecycleError::Serialization(serialization_error) => json_error(serialization_error),
+    }
+}
+
+async fn launch_host(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(request): Json<RichHostCommandRequest>,
+) -> ApiResult {
+    require_permission_with_state(&state, &headers, "mission_canvas:host")?;
+    validate_authority(&request.scope)?;
+    let context = host_renderer_workstream_context(&request.scope, &headers)
+        .map_err(host_renderer_context_error)?;
+    let permissions = permission_context(&headers, token_enabled(&state))
+        .list()
+        .into_iter()
+        .collect();
+    let command = HostLifecycleLaunchCommand {
+        context,
+        scope: request.scope,
+        idempotency_key: request.idempotency_key,
+        capabilities: header_values(&headers, "x-focusa-capabilities"),
+        permissions,
+    };
+    let lifecycle: HostLifecycleState = HostLifecycleService
+        .launch(&store(&state)?, &command, HostPlatform::current())
+        .map_err(host_lifecycle_error)?;
+    Ok(Json(serde_json::to_value(lifecycle).map_err(json_error)?))
 }
 
 async fn update_host_lifecycle(
