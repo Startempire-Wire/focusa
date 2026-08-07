@@ -532,7 +532,206 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(disposedReloads, 0, 'disposed invalidations must not refresh');
 
-  console.log('Mission Canvas runtime: PASS (layout, renderer, transport, projection, draft, event authority and invalidation coalescing)');
+  const { default: SessionInventoryContribution } = await server.ssrLoadModule('/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte');
+  const inventorySource = structuredClone(fixture.eligible_contributions.find(({ kind }) => kind === 'focused_work_surface'));
+  inventorySource.operation_ids = ['focusa.mission_canvas.rich_host.focus'];
+  const inventoryContribution = {
+    ...structuredClone(inventorySource),
+    contribution_id: 'contribution:silent-sessions',
+    kind: 'inspector',
+    semantic_binding_id: 'semantic:silent-sessions',
+    renderer_binding_id: 'renderer:silent-sessions@v1',
+    data_ref: { kind: 'session_inventory', ref: 'session-inventory:canonical', revision: fixture.projection_revision },
+    accessibility: {
+      label: 'Multiplexed Runtime Inventory',
+      description: 'Canonical sessions and attachments',
+      landmark_role: 'region',
+      focus_semantic_id: 'semantic:silent-sessions'
+    }
+  };
+  const inventoryProjection = {
+    ...structuredClone(fixture),
+    eligible_contributions: [inventoryContribution, inventorySource],
+    operation_bindings: [{
+      operation_id: 'focusa.mission_canvas.rich_host.focus',
+      target_contribution_id: inventorySource.contribution_id,
+      enabled: true,
+      authority_ref: 'authority:pi-session',
+      confirmation: 'none',
+      disabled_reason_ref: null
+    }]
+  };
+  const exactInventorySurface = {
+    identity: {
+      workstream: structuredClone(fixture.workstream),
+      continuity_id: fixture.continuity_id,
+      attachment: structuredClone(fixture.attachment),
+      runtime_object: structuredClone(fixture.runtime_object),
+      work_surface_id: fixture.work_surface_id
+    },
+    workSurfaceId: fixture.work_surface_id,
+    displayName: 'Active Pi session',
+    kind: 'pi_session',
+    projectRoot: '/example/focusa',
+    continuityId: fixture.continuity_id,
+    workpointId: 'workpoint:fixture',
+    workItemRef: 'work:fixture',
+    instanceId: fixture.attachment.instance_id,
+    sessionId: fixture.attachment.session_id,
+    attachmentId: fixture.attachment.attachment_id,
+    role: 'active',
+    rendererId: 'renderer:pi-session@v1',
+    pinned: true,
+    groupId: 'group:fixture',
+    splitGroupId: '',
+    lifecycleState: 'open',
+    semanticActivity: 'coding',
+    health: 'healthy',
+    unreadEventCount: 2,
+    pendingApprovalCount: 1,
+    conflictCount: 0,
+    blockerCount: 0,
+    writerLeaseRef: 'lease:fixture',
+    worktreeRef: 'worktree:fixture',
+    browserIsolationClass: 'not-applicable'
+  };
+  const resolvedInventoryRenderer = DEFAULT_CONTRIBUTION_REGISTRY.resolve(inventoryContribution);
+  assert.ok(resolvedInventoryRenderer, 'session inventory renderer must be registry-owned');
+  const { body: inventoryBody } = render(SessionInventoryContribution, {
+    props: {
+      contribution: inventoryContribution,
+      projection: inventoryProjection,
+      workSurfaces: [exactInventorySurface],
+      onOperation: () => undefined
+    }
+  });
+  assert.match(inventoryBody, /data-session-inventory="session-inventory:canonical"/);
+  assert.match(inventoryBody, /data-workstream-id="ws:mission-canvas"/);
+  assert.match(inventoryBody, /data-attachment-id="attachment:pi"/);
+  assert.match(inventoryBody, /data-session-id="session:pi"/);
+  assert.match(inventoryBody, /data-instance-id="instance:pi"/);
+  assert.match(inventoryBody, /data-work-surface-id="surface:pi"/);
+  assert.match(inventoryBody, /data-bindable="true"/);
+  assert.match(inventoryBody, /<button[^>]*>focus<\/button>/);
+
+  const legacyInventorySurface = {
+    ...structuredClone(exactInventorySurface),
+    identity: undefined,
+    workSurfaceId: 'surface:legacy',
+    projectRoot: '/example/focusa',
+    continuityId: fixture.continuity_id,
+    instanceId: 'instance:legacy',
+    sessionId: 'session:legacy',
+    attachmentId: 'attachment:legacy'
+  };
+  const { body: legacyInventoryBody } = render(SessionInventoryContribution, {
+    props: {
+      contribution: inventoryContribution,
+      projection: inventoryProjection,
+      workSurfaces: [legacyInventorySurface]
+    }
+  });
+  assert.match(legacyInventoryBody, /data-row-state="compatibility"/);
+  assert.match(legacyInventoryBody, /data-bindable="false"/);
+  assert.match(legacyInventoryBody, /Compatibility data only/);
+  assert.doesNotMatch(legacyInventoryBody, /data-workstream-id=/);
+  assert.doesNotMatch(legacyInventoryBody, /data-attachment-id=/);
+  assert.doesNotMatch(legacyInventoryBody, /<button/);
+
+  const foreignInventorySurface = structuredClone(exactInventorySurface);
+  foreignInventorySurface.identity.workstream.workstream_id = 'ws:foreign';
+  foreignInventorySurface.identity.attachment.workstream.workstream_id = 'ws:foreign';
+  const { body: foreignInventoryBody } = render(SessionInventoryContribution, {
+    props: {
+      contribution: inventoryContribution,
+      projection: inventoryProjection,
+      workSurfaces: [foreignInventorySurface]
+    }
+  });
+  assert.doesNotMatch(foreignInventoryBody, /data-session-inventory-row|ws:foreign|session:pi/);
+
+  const duplicateInventorySurface = structuredClone(exactInventorySurface);
+  const { body: duplicateInventoryBody } = render(SessionInventoryContribution, {
+    props: {
+      contribution: inventoryContribution,
+      projection: inventoryProjection,
+      workSurfaces: [exactInventorySurface, duplicateInventorySurface],
+      onOperation: () => undefined
+    }
+  });
+  assert.match(duplicateInventoryBody, /data-row-state="quarantined"/);
+  assert.match(duplicateInventoryBody, /data-quarantine-reason="duplicate_identity"/);
+  assert.match(duplicateInventoryBody, /data-bindable="false"/);
+  assert.doesNotMatch(duplicateInventoryBody, /<button/);
+
+  const staleProjection = structuredClone(inventoryProjection);
+  staleProjection.eligible_contributions[1].freshness.status = 'stale';
+  const { body: staleInventoryBody } = render(SessionInventoryContribution, {
+    props: {
+      contribution: staleProjection.eligible_contributions[0],
+      projection: staleProjection,
+      workSurfaces: [exactInventorySurface],
+      onOperation: () => undefined
+    }
+  });
+  assert.match(staleInventoryBody, /data-bindable="false"/);
+  assert.doesNotMatch(staleInventoryBody, /<button/);
+
+  const staleWatermarkProjection = structuredClone(inventoryProjection);
+  staleWatermarkProjection.projection_revision = -1;
+  const { body: staleWatermarkBody } = render(SessionInventoryContribution, {
+    props: {
+      contribution: staleWatermarkProjection.eligible_contributions[0],
+      projection: staleWatermarkProjection,
+      workSurfaces: [exactInventorySurface],
+      onOperation: () => undefined
+    }
+  });
+  assert.match(staleWatermarkBody, /data-row-state="quarantined"/);
+  assert.match(staleWatermarkBody, /data-quarantine-reason="stale_revision_or_cursor"/);
+  assert.doesNotMatch(staleWatermarkBody, /<button/);
+
+  const aggregateInventoryContribution = {
+    ...structuredClone(inventoryContribution),
+    authority: {
+      ...structuredClone(inventoryContribution.authority),
+      attachment: null,
+      work_surface_id: null
+    }
+  };
+  const aggregateInventoryProjection = {
+    ...structuredClone(inventoryProjection),
+    attachment: null,
+    work_surface_id: null,
+    focused_work_surface_id: null,
+    eligible_contributions: [aggregateInventoryContribution],
+    operation_bindings: []
+  };
+  const { body: aggregateInventoryBody } = render(SessionInventoryContribution, {
+    props: {
+      contribution: aggregateInventoryContribution,
+      projection: aggregateInventoryProjection
+    }
+  });
+  assert.match(aggregateInventoryBody, /data-row-state="compatibility"/);
+  assert.match(aggregateInventoryBody, /data-bindable="false"/);
+  assert.doesNotMatch(aggregateInventoryBody, /data-attachment-id=/);
+  assert.doesNotMatch(aggregateInventoryBody, /<button/);
+
+  const emptyContribution = {
+    ...structuredClone(aggregateInventoryContribution),
+    contribution_id: 'contribution:empty-session-inventory',
+    semantic_binding_id: 'semantic:empty-session-inventory',
+    renderer_binding_id: 'renderer:other@v1',
+    data_ref: { kind: 'empty', ref: 'empty:session-inventory', revision: 1 }
+  };
+  const emptyProjection = { ...structuredClone(aggregateInventoryProjection), eligible_contributions: [emptyContribution] };
+  const { body: emptyInventoryBody } = render(SessionInventoryContribution, {
+    props: { contribution: emptyContribution, projection: emptyProjection }
+  });
+  assert.doesNotMatch(emptyInventoryBody, /data-session-inventory|data-session-inventory-row/);
+
+  console.log('Mission Canvas runtime: PASS (layout, renderer, transport, projection, draft, event authority, invalidation coalescing, and hostile session inventory identity cases)');
 } finally {
   await server.watcher.close();
   await server.ws.close();
