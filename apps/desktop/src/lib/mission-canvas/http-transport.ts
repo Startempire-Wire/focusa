@@ -805,8 +805,12 @@ function validateLayoutMutationResult(
   expectedAuthority: WorkstreamAuthorityContext,
   requestInput: unknown
 ): void {
-  const result = isRecord(value) ? value : undefined;
-  const request = isRecord(requestInput) ? requestInput : undefined;
+  const result = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  const request = requestInput && typeof requestInput === 'object' && !Array.isArray(requestInput)
+    ? requestInput as Record<string, unknown>
+    : undefined;
   if (!result || !request) {
     throw new MissionCanvasTransportError('invalid_response:expected_layout_mutation_result', operationId, status, value);
   }
