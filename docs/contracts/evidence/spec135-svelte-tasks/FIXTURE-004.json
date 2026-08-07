@@ -1,0 +1,40 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "FIXTURE-004",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Verified existing complete implementation: Generate all LayoutNode variant fixtures.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "FIXTURE-001"
+    ]
+  },
+  "targets": [
+    "apps/desktop/tests/fixtures/mission-canvas/layout-variants.json",
+    "apps/desktop/tests/generate-mission-canvas-fixtures.py"
+  ],
+  "implementation": [
+    "single, split, stack, grid, tabs, and inspector fixture projections"
+  ],
+  "negative_cases": [],
+  "checks": [
+    {
+      "command": "python3 apps/desktop/tests/generate-mission-canvas-fixtures.py --check",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "acceptance": [
+    "Every canonical LayoutNode variant has one valid renderer fixture."
+  ],
+  "source_authority": [],
+  "evidence_refs": [
+    "apps/desktop/tests/fixtures/mission-canvas/layout-variants.json",
+    "apps/desktop/tests/generate-mission-canvas-fixtures.py"
+  ],
+  "remaining_work": []
+}
