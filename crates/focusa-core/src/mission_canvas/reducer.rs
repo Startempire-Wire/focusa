@@ -7,11 +7,14 @@ use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 use super::{
-    layout::{InspectorSide, LayoutConstraints, LayoutError, resolve_layout},
+    layout::{
+        InspectorSide, LayoutConstraints, LayoutError, resolve_layout, validate_no_dead_chrome,
+    },
     model::{
         CandidateContribution, CompositionEvent, ResolvedContribution, ResolvedWorkspaceProjection,
+        ScopedCandidateContribution,
     },
-    resolver::{EligibilityContext, EligibilityDecision, resolve_eligibility},
+    resolver::{EligibilityContext, EligibilityDecision, collect_candidates, resolve_eligibility},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -78,24 +81,113 @@ pub enum RecompositionError {
     Serialization(#[from] serde_json::Error),
     #[error("invalid Workstream authority: {0}")]
     Identity(&'static str),
+    #[error("projection scope mismatch: {0}")]
+    ScopeMismatch(&'static str),
+    #[error("invalid recomposition input: {0}")]
+    InvalidInput(&'static str),
+    #[error("projection revision overflow")]
+    RevisionOverflow,
+}
+
+fn scope_validation_error(reason: &'static str) -> RecompositionError {
+    match reason {
+        "foreign_attachment_workstream"
+        | "continuity_mismatch"
+        | "workspace_binding_mismatch"
+        | "invalid_attachment_workstream"
+        | "workstream_mismatch"
+        | "attachment_mismatch"
+        | "runtime_object_mismatch"
+        | "work_surface_mismatch"
+        | "work_surface_authority_missing"
+        | "candidate_workstream_mismatch"
+        | "candidate_scope_mismatch"
+        | "scope_mismatch" => RecompositionError::ScopeMismatch(reason),
+        _ => RecompositionError::Identity(reason),
+    }
+}
+
+impl ResolveProjectionInput {
+    /// Validate all authority-bearing input before candidate eligibility or
+    /// layout can run. The generated candidate DTO is scope-neutral; this
+    /// request's already-validated Workstream scope is the only core binding
+    /// allowed at this boundary.
+    pub fn validate_scope(&self) -> Result<(), RecompositionError> {
+        let scope = &self.eligibility.scope;
+        scope.validate().map_err(scope_validation_error)?;
+        if scope.work_surface_id.is_some() && scope.attachment.is_none() {
+            return Err(RecompositionError::ScopeMismatch("attachment_missing"));
+        }
+
+        if let Some(focused_work_surface_id) = self.focused_work_surface_id.as_deref() {
+            if focused_work_surface_id.trim().is_empty() {
+                return Err(RecompositionError::ScopeMismatch("invalid_work_surface"));
+            }
+            if scope.attachment.is_none() || scope.work_surface_id.is_none() {
+                return Err(RecompositionError::ScopeMismatch(
+                    "work_surface_authority_missing",
+                ));
+            }
+            if scope.work_surface_id.as_deref() != Some(focused_work_surface_id) {
+                return Err(RecompositionError::ScopeMismatch("work_surface_mismatch"));
+            }
+        }
+
+        if self.event_cursor.trim().is_empty() {
+            return Err(RecompositionError::InvalidInput("event_cursor_missing"));
+        }
+        if self.idempotency_key.trim().is_empty() {
+            return Err(RecompositionError::InvalidInput("idempotency_key_missing"));
+        }
+        self.previous_projection_revision
+            .checked_add(1)
+            .ok_or(RecompositionError::RevisionOverflow)?;
+        self.previous_layout_revision
+            .checked_add(1)
+            .ok_or(RecompositionError::RevisionOverflow)?;
+        Ok(())
+    }
 }
 
 pub fn resolve_projection(
     input: ResolveProjectionInput,
     previous_projection_digest: Option<String>,
 ) -> Result<RecompositionResult, RecompositionError> {
-    input
-        .eligibility
-        .scope
-        .validate()
-        .map_err(RecompositionError::Identity)?;
+    // This is deliberately the first operation: foreign focus, orphan
+    // WorkSurface authority, malformed Workstream identity, and invalid input
+    // must not be turned into eligibility or layout diagnostics.
+    input.validate_scope()?;
+    let scope = input.eligibility.scope.clone();
     let now = Utc::now().to_rfc3339();
-    let candidate_ids = input
-        .candidates
+    let raw_candidates = input.candidates;
+    let candidate_ids = raw_candidates
         .iter()
         .map(|candidate| candidate.contribution_id.clone())
         .collect::<Vec<_>>();
-    let eligibility = resolve_eligibility(input.candidates, &input.eligibility);
+    let candidate_id_filter = candidate_ids.iter().cloned().collect::<BTreeSet<_>>();
+
+    // CandidateContribution remains the generated, scope-neutral transport
+    // DTO. Bind it only to the exact request Workstream in core, then use the
+    // existing registry collector before eligibility/layout. No project path,
+    // continuity id, current tab, or registry position is used as authority.
+    let scoped_candidates = raw_candidates
+        .into_iter()
+        .map(|candidate| {
+            ScopedCandidateContribution::new(candidate, scope.clone())
+                .map_err(scope_validation_error)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let candidates = collect_candidates(
+        scoped_candidates,
+        &candidate_id_filter,
+        &candidate_id_filter,
+        &scope,
+    );
+    let candidate_ids = candidates
+        .iter()
+        .map(|candidate| candidate.contribution_id.clone())
+        .collect::<Vec<_>>();
+    let eligibility = resolve_eligibility(candidates, &input.eligibility);
     let layout = resolve_layout(
         &eligibility.eligible,
         &LayoutConstraints {
@@ -109,6 +201,12 @@ pub fn resolve_projection(
             ),
         },
     )?;
+    let eligible_ids = eligibility
+        .eligible
+        .iter()
+        .map(|candidate| candidate.contribution_id.clone())
+        .collect::<BTreeSet<_>>();
+    validate_no_dead_chrome(&layout, &eligible_ids)?;
     let projection_revision = input.previous_projection_revision + 1;
     let layout_revision = input.previous_layout_revision + 1;
     let resolved_contributions = eligibility
@@ -155,6 +253,9 @@ pub fn resolve_projection(
         receipt_refs: vec![],
     };
     projection.projection_digest = projection_digest(&projection)?;
+    projection
+        .validate_scope(&scope)
+        .map_err(scope_validation_error)?;
     let evidence_id = format!("recomposition-evidence:{projection_revision}");
     let receipt_id = format!("recomposition-receipt:{projection_revision}");
     projection.evidence_refs.push(evidence_id.clone());
@@ -318,10 +419,15 @@ pub fn candidate_partition_is_complete(projection: &ResolvedWorkspaceProjection)
 
 #[cfg(test)]
 mod tests {
+    use std::collections::{BTreeMap, BTreeSet};
+
     use super::*;
-    use crate::mission_canvas::model::{MissionCanvasScope, OmissionDiagnostic};
+    use crate::mission_canvas::model::{ContributionKind, MissionCanvasScope, OmissionDiagnostic};
     use crate::scoped_state::ScopeRef as LegacyScopeRef;
-    use crate::workstream_identity::{ScopeRef, WorkstreamId, WorkstreamKey};
+    use crate::workstream_identity::{
+        AttachmentId, ContinuityId, InstanceId, ScopeRef, SessionId, WorkspaceBindingId,
+        WorkstreamId, WorkstreamKey,
+    };
     use serde_json::json;
 
     fn workstream(id: &str) -> WorkstreamKey {
@@ -336,6 +442,84 @@ mod tests {
             ScopeRef::project(legacy).unwrap(),
             WorkstreamId::parse(id).unwrap(),
         )
+    }
+
+    fn attachment(owner: WorkstreamKey, id: &str) -> AttachmentKey {
+        AttachmentKey::new(
+            owner,
+            Some(ContinuityId::parse("continuity:mission-canvas").unwrap()),
+            InstanceId::parse("instance:pi").unwrap(),
+            SessionId::parse("session:pi").unwrap(),
+            AttachmentId::parse(format!("attachment:{id}")).unwrap(),
+            WorkspaceBindingId::parse("workspace:mission-canvas").unwrap(),
+        )
+    }
+
+    fn focused_scope(workstream_id: &str, surface_id: &str) -> MissionCanvasScope {
+        let owner = workstream(workstream_id);
+        let mut scope =
+            MissionCanvasScope::new(owner.clone(), Some(attachment(owner, surface_id))).unwrap();
+        scope.work_surface_id = Some(format!("surface:{surface_id}"));
+        scope
+    }
+
+    fn candidate(id: &str) -> CandidateContribution {
+        CandidateContribution {
+            contribution_id: format!("contribution:{id}"),
+            kind: ContributionKind::FocusedWorkSurface,
+            semantic_binding_id: format!("semantic:{id}"),
+            renderer_binding_id: format!("renderer:{id}"),
+            priority: 10,
+            applicable_profile_ids: vec!["software".into()],
+            applicable_activity_mode_ids: vec!["overview".into()],
+            canonical_content_refs: vec![json!({
+                "kind": "work_surface",
+                "ref": format!("surface:{id}"),
+                "revision": 1
+            })],
+            required_capabilities: vec![],
+            required_permissions: vec![],
+            required_operations: vec![],
+            geometry: json!({"minimum_span": 1, "maximum_span": 12}),
+        }
+    }
+
+    fn resolve_input(
+        scope: MissionCanvasScope,
+        candidates: Vec<CandidateContribution>,
+    ) -> ResolveProjectionInput {
+        let focused_semantic_target = candidates
+            .first()
+            .map(|candidate| candidate.semantic_binding_id.clone())
+            .unwrap_or_else(|| "semantic:none".into());
+        ResolveProjectionInput {
+            focused_work_surface_id: scope.work_surface_id.clone(),
+            candidates,
+            eligibility: EligibilityContext {
+                scope,
+                profile_id: "software".into(),
+                activity_mode_id: "overview".into(),
+                projection_revision: 1,
+                capabilities: BTreeSet::new(),
+                permissions: BTreeSet::new(),
+                available_operations: BTreeSet::new(),
+                meaningful_content: BTreeMap::new(),
+                previously_eligible: BTreeSet::new(),
+                observed_at: "2026-08-07T00:00:00Z".into(),
+            },
+            workspace_profile_revision: 2,
+            activity_mode_revision: 3,
+            canonical_read_model_revision: 41,
+            viewport_width: 1440,
+            viewport_height: 900,
+            viewport_class: "standard".into(),
+            focused_semantic_target,
+            previous_projection_revision: 0,
+            previous_layout_revision: 0,
+            event_cursor: "event:40".into(),
+            causation_id: Some("cause:resolve".into()),
+            idempotency_key: "idempotency:resolve".into(),
+        }
     }
 
     fn projection(workstream_id: &str) -> ResolvedWorkspaceProjection {
@@ -371,6 +555,122 @@ mod tests {
             evidence_refs: vec![],
             receipt_refs: vec![],
         }
+    }
+
+    #[test]
+    fn resolve_projection_workstream_returns_one_exact_scoped_result() {
+        let scope = focused_scope("local", "pi");
+        let input = resolve_input(scope.clone(), vec![candidate("pi")]);
+        let result = resolve_projection(input, None).expect("exact Workstream input resolves");
+
+        assert_eq!(result.projection.scope, scope);
+        assert_eq!(result.evidence.scope, result.projection.scope);
+        assert_eq!(result.receipt.scope, result.projection.scope);
+        assert_eq!(result.event.scope, result.projection.scope);
+        assert_eq!(result.projection.projection_revision, 1);
+        assert_eq!(result.projection.layout_revision, 1);
+        assert!(candidate_partition_is_complete(&result.projection));
+        assert_eq!(
+            result.projection.validate_scope(&scope),
+            Ok(()),
+            "the reducer must not emit a projection that cannot be read back for its scope"
+        );
+    }
+
+    #[test]
+    fn resolve_projection_workstream_rejects_foreign_focus_before_eligibility_or_layout() {
+        let scope = focused_scope("local", "pi");
+        let mut input = resolve_input(scope, vec![candidate("pi")]);
+        input.focused_work_surface_id = Some("surface:foreign".into());
+        input.candidates[0]
+            .required_capabilities
+            .push("capability:missing".into());
+
+        let error = resolve_projection(input, None).expect_err(
+            "a foreign focused Work Surface must fail before an unavailable candidate reaches layout",
+        );
+        assert!(matches!(
+            error,
+            RecompositionError::ScopeMismatch("work_surface_mismatch")
+        ));
+    }
+
+    #[test]
+    fn resolve_projection_workstream_rejects_orphan_surface_authority() {
+        let mut scope = focused_scope("local", "pi");
+        scope.attachment = None;
+        let input = resolve_input(scope, vec![candidate("pi")]);
+
+        let error = resolve_projection(input, None).expect_err(
+            "project/continuity data without Attachment authority cannot focus a Work Surface",
+        );
+        assert!(matches!(
+            error,
+            RecompositionError::ScopeMismatch("attachment_missing")
+        ));
+    }
+
+    #[test]
+    fn resolve_projection_workstream_rejects_foreign_attachment_authority() {
+        let local = workstream("local");
+        let foreign = workstream("foreign");
+        let foreign_attachment = attachment(foreign, "foreign");
+        let scope = MissionCanvasScope {
+            workstream: local,
+            continuity_id: foreign_attachment.continuity_id.clone(),
+            attachment: Some(foreign_attachment.clone()),
+            workspace_binding_id: Some(foreign_attachment.workspace_binding_id.clone()),
+            runtime_object: None,
+            work_surface_id: None,
+        };
+        let input = resolve_input(scope, vec![candidate("pi")]);
+
+        let error = resolve_projection(input, None)
+            .expect_err("a subordinate Attachment owned by another Workstream must fail closed");
+        assert!(matches!(
+            error,
+            RecompositionError::ScopeMismatch("foreign_attachment_workstream")
+        ));
+    }
+
+    #[test]
+    fn resolve_projection_workstream_omits_unavailable_contribution_without_dead_chrome() {
+        let scope = MissionCanvasScope::new(workstream("local"), None).unwrap();
+        let mut unavailable = candidate("browser");
+        unavailable.required_capabilities.push("browser".into());
+        let available = candidate("pi");
+        let result = resolve_projection(resolve_input(scope, vec![unavailable, available]), None)
+            .expect("one eligible contribution still composes a complete layout");
+
+        assert_eq!(result.projection.eligible_contributions.len(), 1);
+        assert_eq!(
+            result.projection.omission_diagnostics[0].reason,
+            "capability_not_present"
+        );
+        assert!(!result.projection.layout_tree.is_null());
+        assert!(candidate_partition_is_complete(&result.projection));
+        assert!(result.evidence.eligibility_decisions.iter().any(
+            |decision| decision.contribution_id == "contribution:browser"
+                && decision.outcome == super::super::resolver::EligibilityOutcome::Omitted
+        ));
+    }
+
+    #[test]
+    fn resolve_projection_workstream_rejects_empty_cursor_and_revision_overflow() {
+        let scope = MissionCanvasScope::new(workstream("local"), None).unwrap();
+        let mut empty_cursor = resolve_input(scope.clone(), vec![candidate("pi")]);
+        empty_cursor.event_cursor = "  ".into();
+        assert!(matches!(
+            resolve_projection(empty_cursor, None),
+            Err(RecompositionError::InvalidInput("event_cursor_missing"))
+        ));
+
+        let mut overflow = resolve_input(scope, vec![candidate("pi")]);
+        overflow.previous_projection_revision = u64::MAX;
+        assert!(matches!(
+            resolve_projection(overflow, None),
+            Err(RecompositionError::RevisionOverflow)
+        ));
     }
 
     #[test]
