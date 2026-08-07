@@ -1,0 +1,169 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PROFILE-002",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Implemented the bounded Desktop Mission Canvas profile-memory runtime at the packet's exact target path. Generated layout_memoryGet reads and layout_memoryUpdate mutations are consumed through the generated Mission Canvas client; semantic placement preferences, absent contribution IDs, focused semantic target, and exact Workstream authority remain durable memory data. The controller rejects foreign scope/profile/activity/viewport data, stale revisions/cursors, malformed memory, unavailable operations, missing authority, and ambiguous receipts without adopting a fallback, inferring a profile, resolving eligibility, composing a layout, or reserving geometry for an absent contribution.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/profile-memory-controller.ts",
+    "apps/desktop/src/lib/mission-canvas/profile-memory-controller.svelte.ts",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-002.json"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "surface_kind": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "canonical_shell_regions": [
+      "resolved_contribution_grid"
+    ],
+    "eligible_contributions": [],
+    "omitted_contribution_reasons": [
+      "layout memory is semantic preference data and does not render a contribution",
+      "absent contribution IDs remain durable memory data and never reserve geometry or render empty chrome"
+    ],
+    "continuity_invariants": [
+      "CARDINAL-135-SVELTE-001 remains intact: Desktop consumes generated operation results and canonical ResolvedWorkspaceProjection data; it does not become an eligibility, layout, recomposition, or authority owner.",
+      "The exact ScopeRef/ProjectRootKey -> WorkstreamId -> ContinuityId -> AttachmentKey -> SessionId/InstanceId -> runtime object -> WorkSurfaceId chain is validated and compared without project-root, tab, or local fallback inference.",
+      "Generated transport owns operation metadata, HTTP route/method, DTO validation, permission/concurrency headers, and transport watermarks; the trusted recursive canonical projection renderer remains untouched.",
+      "Per-profile memory is keyed by exact Workstream authority plus profile/activity/viewport identity and survives contribution disappearance and return through retained placement and absent-contribution preferences."
+    ]
+  },
+  "dependency_gate": {
+    "PROFILE-001": {
+      "status": "verified",
+      "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-001.json",
+      "decision": "Generated Core-owned profile selection and exact Workstream transport are integrated; profile memory remains separate semantic persistence and no selector fallback was added."
+    },
+    "OPS-009": {
+      "status": "verified",
+      "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-009.json",
+      "decision": "The exact Workstream/profile/activity/viewport layout-memory read, generated transport, DTO validation, and stale memory watermark are integrated."
+    },
+    "OPS-010": {
+      "status": "verified",
+      "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-010.json",
+      "decision": "The exact Workstream layout-memory mutation, Idempotency-Key/If-Match boundary, Core Receipt/Evidence persistence, and generated transport are integrated."
+    }
+  },
+  "generated_contract": {
+    "read_operation_id": "focusa.mission_canvas.layout_memory.get",
+    "read_client_method": "layout_memoryGet",
+    "read_method": "GET",
+    "read_path": "/v1/mission-canvas/layout-memory",
+    "mutation_operation_id": "focusa.mission_canvas.layout_memory.update",
+    "mutation_client_method": "layout_memoryUpdate",
+    "mutation_method": "POST",
+    "mutation_path": "/v1/mission-canvas/layout-memory",
+    "request_schema_ref": "ProfileLayoutMemory",
+    "read_response_schema_ref": "ProfileLayoutMemory",
+    "mutation_response_schema_ref": "RecompositionReceipt",
+    "operation_metadata_owner": "docs/contracts/spec135/mission-canvas-v1/operation-registry.json"
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "implementation": [
+    "The exact profile-memory-controller.ts source exports layoutMemoryGet/layoutMemoryUpdate adapters over generated MissionCanvasClient.layout_memoryGet/layout_memoryUpdate and GeneratedProfileMemoryTransport; no handwritten route or operation registry was introduced.",
+    "The controller validates generated ProfileLayoutMemory structure, exact full authority, canonical memory identity, profile/activity/viewport selectors, contribution placement identities/spans/regions, duplicate and placement/absent partitions, timestamps, and revision watermarks before state adoption.",
+    "The generated update adapter validates the direct Core RecompositionReceipt, derives only the accepted next semantic memory revision/timestamp, and retains placements and absent contribution IDs. It never receives or constructs layout_tree, eligible_contributions, renderer bindings, or candidate eligibility data.",
+    "The controller uses generation cancellation, exact binding keys, immutable state snapshots, optional durable receipt cursor tracking, and conflict/error states. Failed or stale requests retain the last canonical memory and expose the pending input separately instead of falling back or adopting foreign data.",
+    "The legacy .svelte.ts import path re-exports the exact .ts runtime source without retaining the partial local controller implementation. The trusted recursive ProjectionLayoutRenderer and generated contract artifacts were not edited."
+  ],
+  "checks": [
+    "npm --prefix apps/desktop test (exit 0; shell contract, Workstream context, Mission Canvas recursive layout/renderer/transport, PROFILE-002 generated layout-memory controller/runtime hostile cases, projection controller, draft, event, invalidation, and session identity checks: PASS)",
+    "node --check apps/desktop/tests/layout-renderer-runtime.mjs (exit 0)",
+    "git diff --check (exit 0)",
+    "npm --prefix apps/desktop run check (exit 1 on pre-existing unrelated GeneratedSurfaceContribution.svelte import: @focusa/a2ui-renderer/rich-host is absent from the installed package; PROFILE-002 source diagnostics were clear; no Cargo command was run)"
+  ],
+  "negative_cases": {
+    "foreign_workstream_or_attachment": "A structurally valid memory from another Workstream or Attachment is rejected before state adoption; update does not call transport for a foreign input and preserves the prior memory.",
+    "missing_authority": "An absent or malformed Workstream authority is blocked before any generated operation or HTTP call; project_root plus continuity_id is never treated as sufficient scope.",
+    "foreign_profile_activity_or_viewport": "Memory identity and the exact profile/activity/viewport binding must match; a valid memory for another profile is not selected, repaired, or used as fallback.",
+    "stale_revision": "The controller maintains per-exact-binding memory watermarks, rejects regressed reads, requires an update to advance exactly one revision from the last canonical memory, and retains the prior memory on stale results.",
+    "stale_cursor": "Generated transport and the controller reject a regressed or namespace-mismatched Receipt event cursor; no stale Receipt is adopted.",
+    "unavailable_capability_or_permission": "Generated operation_unavailable and permission-denied transport failures become truthful error/conflict state with no local memory fallback and no invented capability.",
+    "malformed_memory_or_receipt": "Generated validators plus bounded semantic identity/partition checks reject wrappers, layout trees, malformed placements, duplicate IDs, invalid spans/regions, overlap between placements and absent IDs, invalid timestamps, and malformed/unaccepted Receipts.",
+    "ineligible_or_empty_contribution": "Absent contribution IDs are retained only as semantic memory. No panel, heading, border, placeholder, reserved geometry, candidate list, eligibility result, or substitute renderer is fabricated.",
+    "stale_in_flight_response": "A response from an older binding generation cannot overwrite the newer exact profile/activity binding."
+  },
+  "acceptance": [
+    {
+      "statement": "Contribution disappearance and return restore preferred order without reserved geometry.",
+      "status": "verified_by_hostile_desktop_runtime",
+      "proof": "The runtime test loads memory containing a placement and absent contribution, updates it through generated GET/POST operations, verifies the absent ID and preferred placement remain durable, and asserts no layout_tree or eligible contribution data is created. Core remains the resolver of any returning geometry."
+    },
+    {
+      "statement": "A vertical is not a color swap or a hard-coded alternate page.",
+      "status": "verified",
+      "proof": "The implementation stores only generated ProfileLayoutMemory semantic preferences scoped by profile/activity/viewport; it contains no profile screen inventory, local eligibility, alternate page, palette, or layout resolver."
+    },
+    {
+      "statement": "Per-profile layout memory survives contribution disappearance and return.",
+      "status": "verified_by_hostile_desktop_runtime",
+      "proof": "Exact profile/activity/viewport memory is retained across load/update, with absent contribution IDs and preferred placement order preserved. Foreign, stale, malformed, unavailable, and missing-authority cases fail closed."
+    },
+    {
+      "statement": "Preserves CARDINAL-135-SVELTE-001, exact Workstream authority, generated transport, trusted renderer ownership, recursive canonical projection rendering, and fail-closed mismatches.",
+      "status": "verified",
+      "proof": "The required npm test passes the real Vite-loaded controller and generated HTTP client adapter; transport paths/headers and direct DTO/Receipt shapes are asserted, while the existing recursive renderer and generated contracts remain unchanged."
+    }
+  ],
+  "source_authority": [
+    "AGENTS.md",
+    "docs/agent/01-focusa-agent-docs-index.md",
+    "docs/135-series-current-manifest.md",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png",
+    "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/agent/spec135-implementation-acceleration-directive.md",
+    "docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md",
+    "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+    "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md",
+    "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md",
+    "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md",
+    "docs/135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md",
+    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md",
+    "docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md",
+    "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md",
+    "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
+    "docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md",
+    "docs/contracts/spec135-adaptive-composition.v1.yaml",
+    "docs/contracts/spec135-svelte-task-packets/PROFILE-002.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-001.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-009.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-010.json",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "apps/desktop/src/lib/mission-canvas/exact-scope.ts",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte",
+    "apps/desktop/src/lib/mission-canvas/types.ts",
+    "apps/desktop/src/lib/mission-canvas/profile-memory-controller.ts",
+    "apps/desktop/tests/layout-renderer-runtime.mjs"
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/profile-memory-controller.ts",
+    "apps/desktop/tests/layout-renderer-runtime.mjs"
+  ],
+  "deferred_repository_observation": "The central executable graph, generated task packets/index, parallel plan, orchestration scripts, operation registry, OpenAPI, generated client, generated validators, and trusted recursive projection renderer were not edited. Cargo was not run.",
+  "remaining_work": [],
+  "status": "verified"
+}

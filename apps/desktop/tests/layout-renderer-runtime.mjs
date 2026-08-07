@@ -848,6 +848,255 @@ try {
   await refreshing;
   assert.equal(preservingController.state.kind, 'ready');
 
+  // PROFILE-002 exercises the bounded profile-memory runtime source. The
+  // controller receives exact generated DTOs and persists semantic placement
+  // preferences through the generated operation client; it never constructs a
+  // layout tree or reserves geometry for an absent contribution.
+  const {
+    GeneratedProfileMemoryTransport,
+    MissionCanvasProfileMemoryController
+  } = await server.ssrLoadModule('/src/lib/mission-canvas/profile-memory-controller.ts');
+  const memoryBinding = {
+    scope: structuredClone(fixtureAuthority),
+    profileId: 'software',
+    activityModeId: 'overview',
+    viewportClass: 'standard'
+  };
+  const profileMemory = (revision = 4, overrides = {}) => ({
+    ...structuredClone(fixtureAuthority),
+    memory_id: 'layout-memory:software:overview:standard',
+    profile_id: 'software',
+    activity_mode_id: 'overview',
+    viewport_class: 'standard',
+    placements: [{
+      contribution_id: 'contribution:pi-session',
+      preferred_regions: ['primary'],
+      preferred_order: 0,
+      minimum_span: 3,
+      maximum_span: 8,
+      preferred_adjacency: [],
+      last_compatible_layout_node_id: 'layout:primary'
+    }],
+    absent_contribution_ids: ['contribution:empty-work-rail'],
+    focused_semantic_target: 'focus:pi-session',
+    memory_revision: revision,
+    idempotency_key: `memory:profile:${revision}`,
+    updated_at: '2026-08-07T00:00:00Z',
+    ...structuredClone(overrides)
+  });
+  const profileMemoryReceipt = (revision = 5, overrides = {}) => ({
+    ...structuredClone(fixtureAuthority),
+    receipt_id: `recomposition-receipt:layout-memory:${revision}`,
+    accepted: true,
+    projection_revision: revision,
+    layout_revision: revision,
+    projection_digest: `sha256:${'a'.repeat(64)}`,
+    event_cursor: `event:${revision + 40}`,
+    evidence_id: `recomposition-evidence:layout-memory:${revision}`,
+    idempotency_key: 'idempotency:profile-memory',
+    issued_at: '2026-08-07T00:00:01Z',
+    ...structuredClone(overrides)
+  });
+  const canonicalMemory = profileMemory();
+  const profileMemoryRequests = [];
+  const profileMemoryHttpTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async (url, init) => {
+      profileMemoryRequests.push({ url: String(url), init });
+      return init.method === 'GET'
+        ? new Response(JSON.stringify(canonicalMemory), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        : new Response(JSON.stringify(profileMemoryReceipt(5)), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read', 'mission_canvas:write'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const profileMemoryClient = new MissionCanvasClient(profileMemoryHttpTransport);
+  const generatedMemoryTransport = new GeneratedProfileMemoryTransport(profileMemoryClient);
+  const profileMemoryController = new MissionCanvasProfileMemoryController(generatedMemoryTransport);
+  await profileMemoryController.load(memoryBinding);
+  assert.equal(profileMemoryController.state.kind, 'ready');
+  assert.equal(profileMemoryController.state.memory.memory_revision, 4);
+  assert.deepEqual(profileMemoryController.state.memory.absent_contribution_ids, ['contribution:empty-work-rail']);
+  assert.equal('layout_tree' in profileMemoryController.state.memory, false);
+
+  await profileMemoryController.update({
+    ...structuredClone(profileMemoryController.state.memory),
+    idempotency_key: 'idempotency:profile-memory'
+  });
+  assert.equal(profileMemoryController.state.kind, 'ready');
+  assert.equal(profileMemoryController.state.memory.memory_revision, 5);
+  assert.deepEqual(
+    profileMemoryController.state.memory.absent_contribution_ids,
+    ['contribution:empty-work-rail'],
+    'disappearing optional contributions retain semantic return memory'
+  );
+  assert.equal('layout_tree' in profileMemoryController.state.memory, false);
+  assert.equal(new URL(profileMemoryRequests[0].url).pathname, '/v1/mission-canvas/layout-memory');
+  assert.equal(profileMemoryRequests[0].init.method, 'GET');
+  assert.equal(new URL(profileMemoryRequests[1].url).pathname, '/v1/mission-canvas/layout-memory');
+  assert.equal(profileMemoryRequests[1].init.method, 'POST');
+  const profileMemoryBody = JSON.parse(profileMemoryRequests[1].init.body);
+  assert.deepEqual(profileMemoryBody.workstream, fixtureAuthority.workstream);
+  assert.deepEqual(profileMemoryBody.attachment, fixtureAuthority.attachment);
+  assert.equal(profileMemoryBody.memory_revision, 4);
+  assert.deepEqual(profileMemoryBody.absent_contribution_ids, ['contribution:empty-work-rail']);
+  assert.equal('layout_tree' in profileMemoryBody, false);
+  assert.equal('eligible_contributions' in profileMemoryBody, false);
+
+  // Foreign authority, profile identity, and missing authority never fall
+  // back to the last local profile or to a project/continuity approximation.
+  const foreignMemory = profileMemory(4, {
+    workstream: { ...structuredClone(fixtureAuthority.workstream), workstream_id: 'ws:foreign' },
+    attachment: {
+      ...structuredClone(fixtureAuthority.attachment),
+      workstream: { ...structuredClone(fixtureAuthority.workstream), workstream_id: 'ws:foreign' }
+    }
+  });
+  const foreignController = new MissionCanvasProfileMemoryController({
+    get: async () => foreignMemory,
+    update: async (value) => value
+  });
+  await foreignController.load(memoryBinding);
+  assert.equal(foreignController.state.kind, 'error');
+  assert.equal(foreignController.state.reason, 'foreign_profile_memory');
+
+  const foreignProfileController = new MissionCanvasProfileMemoryController({
+    get: async () => profileMemory(4, {
+      profile_id: 'research',
+      memory_id: 'layout-memory:research:overview:standard'
+    }),
+    update: async (value) => value
+  });
+  await foreignProfileController.load(memoryBinding);
+  assert.equal(foreignProfileController.state.kind, 'error');
+  assert.equal(foreignProfileController.state.reason, 'foreign_profile_memory');
+
+  let missingAuthorityCalls = 0;
+  const missingAuthorityController = new MissionCanvasProfileMemoryController({
+    get: async () => {
+      missingAuthorityCalls += 1;
+      return profileMemory();
+    },
+    update: async (value) => value
+  });
+  await missingAuthorityController.load({
+    ...memoryBinding,
+    scope: undefined
+  });
+  assert.equal(missingAuthorityController.state.kind, 'blocked');
+  assert.equal(missingAuthorityController.state.reason, 'invalid_workstream_authority');
+  assert.equal(missingAuthorityCalls, 0);
+
+  // A stale read is retained as a conflict only when a canonical prior memory
+  // exists. The regressed response is never adopted.
+  let staleRead = false;
+  const staleController = new MissionCanvasProfileMemoryController({
+    get: async () => staleRead ? profileMemory(3) : profileMemory(4),
+    update: async (value) => value
+  });
+  await staleController.load(memoryBinding);
+  staleRead = true;
+  await staleController.load(memoryBinding);
+  assert.equal(staleController.state.kind, 'conflict');
+  assert.equal(staleController.state.reason, 'stale_profile_memory_revision');
+  assert.equal(staleController.state.memory.memory_revision, 4);
+
+  // Invalid update scope and stale update results fail closed before any
+  // semantic preference can replace the last canonical memory.
+  let foreignUpdateCalls = 0;
+  const updateController = new MissionCanvasProfileMemoryController({
+    get: async () => profileMemory(4),
+    update: async (value) => {
+      foreignUpdateCalls += 1;
+      return value;
+    }
+  });
+  await updateController.load(memoryBinding);
+  await updateController.update({
+    ...profileMemory(4),
+    workstream: { ...structuredClone(fixtureAuthority.workstream), workstream_id: 'ws:foreign' },
+    attachment: {
+      ...structuredClone(fixtureAuthority.attachment),
+      workstream: { ...structuredClone(fixtureAuthority.workstream), workstream_id: 'ws:foreign' }
+    }
+  });
+  assert.equal(updateController.state.kind, 'conflict');
+  assert.equal(updateController.state.reason, 'foreign_profile_memory');
+  assert.equal(updateController.state.memory.memory_revision, 4);
+  assert.equal(foreignUpdateCalls, 0);
+
+  const staleUpdateController = new MissionCanvasProfileMemoryController({
+    get: async () => profileMemory(4),
+    update: async () => profileMemory(3)
+  });
+  await staleUpdateController.load(memoryBinding);
+  await staleUpdateController.update({ ...profileMemory(4), idempotency_key: 'idempotency:stale-update' });
+  assert.equal(staleUpdateController.state.kind, 'conflict');
+  assert.equal(staleUpdateController.state.reason, 'stale_profile_memory_revision');
+  assert.equal(staleUpdateController.state.memory.memory_revision, 4);
+
+  let cursorUpdateCount = 0;
+  const cursorController = new MissionCanvasProfileMemoryController({
+    get: async () => profileMemory(4),
+    update: async (value) => ({ ...structuredClone(value), memory_revision: value.memory_revision + 1 }),
+    updateWithReceipt: async (value) => {
+      const nextRevision = value.memory_revision + 1;
+      const nextMemory = {
+        ...structuredClone(value),
+        memory_revision: nextRevision,
+        updated_at: '2026-08-07T00:00:02Z'
+      };
+      const receipt = profileMemoryReceipt(nextRevision, {
+        idempotency_key: value.idempotency_key,
+        event_cursor: cursorUpdateCount++ === 0 ? 'event:45' : 'event:44'
+      });
+      return { memory: nextMemory, receipt };
+    }
+  });
+  await cursorController.load(memoryBinding);
+  await cursorController.update({ ...profileMemory(4), idempotency_key: 'idempotency:cursor-first' });
+  assert.equal(cursorController.state.kind, 'ready');
+  await cursorController.update({
+    ...structuredClone(cursorController.state.memory),
+    idempotency_key: 'idempotency:cursor-stale'
+  });
+  assert.equal(cursorController.state.kind, 'conflict');
+  assert.equal(cursorController.state.reason, 'stale_profile_memory_cursor');
+  assert.equal(cursorController.state.memory.memory_revision, 5);
+
+  const unavailableController = new MissionCanvasProfileMemoryController({
+    get: async () => { throw new Error('operation_unavailable'); },
+    update: async (value) => value
+  });
+  await unavailableController.load(memoryBinding);
+  assert.equal(unavailableController.state.kind, 'error');
+  assert.equal(unavailableController.state.reason, 'operation_unavailable');
+  assert.equal(unavailableController.state.memory, undefined);
+
+  // Older in-flight responses cannot overwrite a newer exact binding.
+  let releaseOldLoad;
+  const raceController = new MissionCanvasProfileMemoryController({
+    get: async (binding) => binding.profileId === 'software'
+      ? new Promise((resolve) => { releaseOldLoad = resolve; })
+      : profileMemory(7, {
+        profile_id: 'research',
+        memory_id: 'layout-memory:research:overview:standard'
+      }),
+    update: async (value) => value
+  });
+  const oldLoad = raceController.load(memoryBinding);
+  await raceController.load({ ...memoryBinding, profileId: 'research' });
+  assert.equal(raceController.state.kind, 'ready');
+  assert.equal(raceController.state.binding.profileId, 'research');
+  releaseOldLoad(profileMemory(8));
+  await oldLoad;
+  assert.equal(raceController.state.kind, 'ready');
+  assert.equal(raceController.state.binding.profileId, 'research');
+
   const draftFixture = {
     ...structuredClone(fixtureAuthority),
     content: 'canonical draft',
@@ -1355,7 +1604,7 @@ try {
   });
   assert.doesNotMatch(emptyInventoryBody, /data-session-inventory|data-session-inventory-row/);
 
-  console.log('Mission Canvas runtime: PASS (layout, renderer, transport, projection, draft, event authority, invalidation coalescing, and hostile session inventory identity cases)');
+  console.log('Mission Canvas runtime: PASS (layout, renderer, generated profile-memory controller, transport, projection, draft, event authority, invalidation coalescing, and hostile session inventory identity cases)');
 } finally {
   await server.watcher.close();
   await server.ws.close();
