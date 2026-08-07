@@ -1538,6 +1538,58 @@ async fn list_profiles(
     Ok(Json(serde_json::to_value(viable).map_err(json_error)?))
 }
 
+fn registered_profile(
+    store: &MissionCanvasStore,
+    scope: &MissionCanvasScope,
+    profile_id: &str,
+) -> Result<WorkspaceProfileDefinition, (StatusCode, Json<Value>)> {
+    if profile_id.trim().is_empty() {
+        return Err(error(
+            StatusCode::NOT_FOUND,
+            "profile_not_found",
+            "The requested workspace profile is not in the canonical registry",
+        ));
+    }
+
+    let payload = store
+        .get_document(
+            "mission_canvas_profiles",
+            scope,
+            &format!("profile:{profile_id}"),
+        )
+        .map_err(store_error)?
+        .map(|document| document.payload)
+        .or_else(|| {
+            CompositionRegistry::builtin()
+                .profiles
+                .get(profile_id)
+                .and_then(|profile| serde_json::to_value(profile).ok())
+        })
+        .ok_or_else(|| {
+            error(
+                StatusCode::NOT_FOUND,
+                "profile_not_found",
+                "The requested workspace profile is not in the canonical registry",
+            )
+        })?;
+
+    let profile: WorkspaceProfileDefinition = serde_json::from_value(payload).map_err(|_| {
+        error(
+            StatusCode::CONFLICT,
+            "profile_catalog_invalid",
+            "The canonical workspace profile is malformed",
+        )
+    })?;
+    if profile.profile_id != profile_id {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "profile_catalog_identity_mismatch",
+            "The canonical profile document does not match the requested profile",
+        ));
+    }
+    Ok(profile)
+}
+
 fn profile_list_activity(
     store: &MissionCanvasStore,
     scope: &MissionCanvasScope,
@@ -1588,13 +1640,17 @@ async fn get_profile(
     Path(profile_id): Path<String>,
     Query(query): Query<ScopeQuery>,
 ) -> ApiResult {
-    get_document(
-        &state,
-        &headers,
-        query,
-        "mission_canvas_profiles",
-        &format!("profile:{profile_id}"),
-    )
+    require_permission(&headers, "mission_canvas:read")?;
+    let scope = query.scope()?;
+    // Profile metadata is an authority-bearing read just like profile.list:
+    // establish the actor and canonical authority for this exact Workstream
+    // before consulting the profile registry or returning any DTO.
+    exact_workstream_context(&scope, &headers).map_err(host_renderer_context_error)?;
+    let profile = registered_profile(&store(&state)?, &scope, &profile_id)?;
+    // The generated response is the exact WorkspaceProfile DTO.  Do not leak
+    // the StoredDocument envelope or allow a client to infer registry state
+    // from persistence metadata.
+    Ok(Json(serde_json::to_value(profile).map_err(json_error)?))
 }
 
 async fn list_activities(

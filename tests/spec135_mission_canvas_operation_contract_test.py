@@ -157,6 +157,51 @@ elif operation_id == "focusa.mission_canvas.projection.resolve":
     ):
         assert marker in consumer, marker
 
+elif operation_id == "focusa.mission_canvas.profile.get":
+    assert operation["method"] == "GET"
+    assert operation["path"] == "/v1/mission-canvas/profiles/{profile_id}"
+    assert operation["mode"] == "read"
+    assert operation["permissions_required"] == ["mission_canvas:read"]
+    assert operation["request_schema_ref"] == "focusa.mission_canvas.profile_get.request.v1"
+    assert operation["response_schema_ref"] == "WorkspaceProfile"
+    assert operation["requires_idempotency_key"] is False
+    assert operation["requires_if_match_revision"] is False
+    assert operation["receipt_required"] is False
+
+    for marker in (
+        "get(get_profile)",
+        "require_permission(&headers, \"mission_canvas:read\")",
+        "let scope = query.scope()?",
+        "exact_workstream_context(&scope, &headers)",
+        "registered_profile",
+        "WorkspaceProfileDefinition",
+        "profile_not_found",
+        "serde_json::to_value(profile)",
+    ):
+        assert marker in route_text, marker
+    for marker in (
+        "focusa.mission_canvas.profile.get",
+        "validateOperationRequest",
+        "profile_id",
+        "resolvePath",
+        "path_parameter_required",
+        "validateResponse",
+        "profile_id_mismatch",
+        "invalid_response",
+    ):
+        assert marker in transport, marker
+    for marker in (
+        "profileGet",
+        "exact Workstream GET",
+        "direct WorkspaceProfile",
+        "profile_not_found",
+        "profile_id_mismatch",
+        "missing:profile_id",
+        "invalid_response",
+        "permission",
+    ):
+        assert marker in consumer, marker
+
 elif operation_id == "focusa.mission_canvas.profile.select":
     assert operation["method"] == "POST"
     assert operation["path"] == "/v1/mission-canvas/profiles/select"
