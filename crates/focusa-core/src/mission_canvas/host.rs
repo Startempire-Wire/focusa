@@ -1,9 +1,10 @@
-//! Core-owned rich-host resolution for the Focusa Desktop Mission Canvas.
+//! Core-owned rich-host resolution and lifecycle for the Focusa Desktop Mission
+//! Canvas.
 //!
-//! Host selection is a read operation over an already-resolved Workstream
-//! context.  The API adapter supplies the generated capability projection and
-//! exact authority; this module does not inspect CWD, tabs, recent records, or
-//! any other presentation-local fallback.
+//! Host selection and lifecycle actions operate over an already-resolved
+//! Workstream context. The API adapter supplies the generated capability
+//! projection and exact authority; this module does not inspect CWD, tabs,
+//! recent records, or any other presentation-local fallback.
 
 use std::collections::BTreeSet;
 
@@ -22,6 +23,7 @@ use super::{
 
 pub const RICH_HOST_RESOLVE_OPERATION: &str = "focusa.mission_canvas.rich_host.resolve";
 pub const RICH_HOST_LAUNCH_OPERATION: &str = "focusa.mission_canvas.rich_host.launch";
+pub const RICH_HOST_FOCUS_OPERATION: &str = "focusa.mission_canvas.rich_host.focus";
 pub const RICH_HOST_PERMISSION: &str = "mission_canvas:host";
 /// Capability advertised by the generated Desktop host client.  The short
 /// alias is retained because existing capability projections use
@@ -172,6 +174,18 @@ pub struct HostLifecycleLaunchCommand {
     pub permissions: BTreeSet<String>,
 }
 
+/// Exact generated input for the focus mutation.  Focus is deliberately a
+/// separate command from launch: it may only transition an already persisted
+/// Desktop presentation and must never create one as a fallback.
+#[derive(Clone, Debug)]
+pub struct HostLifecycleFocusCommand {
+    pub context: WorkstreamContext,
+    pub scope: MissionCanvasScope,
+    pub idempotency_key: String,
+    pub capabilities: BTreeSet<String>,
+    pub permissions: BTreeSet<String>,
+}
+
 #[derive(Debug, Error)]
 pub enum HostLifecycleError {
     #[error("rich-host Workstream context is invalid: {0}")]
@@ -182,8 +196,16 @@ pub enum HostLifecycleError {
     CapabilityUnavailable(String),
     #[error("rich-host permission is unavailable: {0}")]
     PermissionDenied(String),
-    #[error("rich-host launch requires a non-empty idempotency_key")]
+    #[error("rich-host lifecycle mutation requires a non-empty idempotency_key")]
     IdempotencyKeyRequired,
+    #[error("rich-host presentation does not exist for the exact Workstream")]
+    PresentationNotFound,
+    #[error("rich-host presentation cannot be focused: {0}")]
+    PresentationUnavailable(String),
+    #[error("rich-host focus requires the existing Desktop renderer: {0}")]
+    RendererUnavailable(String),
+    #[error("rich-host idempotency key conflicts with an existing lifecycle action")]
+    IdempotencyConflict,
     #[error("rich-host resolution failed: {0}")]
     Resolution(#[from] HostRendererResolutionError),
     #[error("rich-host lifecycle document is invalid: {0}")]
@@ -206,31 +228,59 @@ impl HostLifecycleService {
         command: &HostLifecycleLaunchCommand,
         platform: HostPlatform,
     ) -> Result<HostRendererResolution, HostLifecycleError> {
-        command.context.validate()?;
-        command
-            .scope
-            .validate()
-            .map_err(HostLifecycleError::Scope)?;
-        validate_context_scope(&command.context, &command.scope)
-            .map_err(HostLifecycleError::Resolution)?;
-        if !has_permission(&command.permissions, RICH_HOST_PERMISSION) {
+        self.validate_command(
+            &command.context,
+            &command.scope,
+            &command.idempotency_key,
+            &command.capabilities,
+            &command.permissions,
+            platform,
+        )
+    }
+
+    pub fn validate_focus(
+        &self,
+        command: &HostLifecycleFocusCommand,
+        platform: HostPlatform,
+    ) -> Result<HostRendererResolution, HostLifecycleError> {
+        let resolution = self.validate_command(
+            &command.context,
+            &command.scope,
+            &command.idempotency_key,
+            &command.capabilities,
+            &command.permissions,
+            platform,
+        )?;
+        if resolution.selected_renderer != DESKTOP_TAURI_RENDERER {
+            return Err(HostLifecycleError::RendererUnavailable(
+                "the existing presentation is not Focusa Desktop Tauri".into(),
+            ));
+        }
+        Ok(resolution)
+    }
+
+    fn validate_command(
+        &self,
+        context: &WorkstreamContext,
+        scope: &MissionCanvasScope,
+        idempotency_key: &str,
+        capabilities: &BTreeSet<String>,
+        permissions: &BTreeSet<String>,
+        platform: HostPlatform,
+    ) -> Result<HostRendererResolution, HostLifecycleError> {
+        context.validate()?;
+        scope.validate().map_err(HostLifecycleError::Scope)?;
+        validate_context_scope(context, scope).map_err(HostLifecycleError::Resolution)?;
+        if !has_permission(permissions, RICH_HOST_PERMISSION) {
             return Err(HostLifecycleError::PermissionDenied(
                 RICH_HOST_PERMISSION.to_owned(),
             ));
         }
-        if command.idempotency_key.trim().is_empty() {
-            return Err(HostLifecycleError::IdempotencyKeyRequired);
-        }
-        if command.idempotency_key.len() > 200 {
+        if idempotency_key.trim().is_empty() || idempotency_key.len() > 200 {
             return Err(HostLifecycleError::IdempotencyKeyRequired);
         }
         HostRendererResolutionService
-            .resolve(
-                &command.context,
-                &command.scope,
-                &command.capabilities,
-                platform,
-            )
+            .resolve(context, scope, capabilities, platform)
             .map_err(Into::into)
     }
 
@@ -321,6 +371,125 @@ impl HostLifecycleService {
             }),
             evidence_refs: vec![],
             receipt_refs: vec![format!("receipt:rich-host-launch:{lifecycle_revision}")],
+        };
+        let document = StoredDocument {
+            document_id,
+            scope: command.scope.clone(),
+            revision: lifecycle_revision,
+            payload: json!({
+                "idempotency_key": command.idempotency_key,
+                "state": state,
+            }),
+            updated_at: now,
+        };
+        let persisted =
+            store.put_idempotent_lifecycle_document(&document, &command.idempotency_key, &event)?;
+        let (persisted_state, _) = lifecycle_document(&persisted, &command.scope)?;
+        Ok(persisted_state)
+    }
+
+    /// Focus an already persisted Desktop presentation.  This operation only
+    /// mutates the host lifecycle projection without changing canonical activity;
+    /// it never resolves composition, creates a Work Surface, or launches a replacement.
+    pub fn focus(
+        &self,
+        store: &MissionCanvasStore,
+        command: &HostLifecycleFocusCommand,
+        platform: HostPlatform,
+    ) -> Result<HostLifecycleState, HostLifecycleError> {
+        let _resolution = self.validate_focus(command, platform)?;
+        let host_instance_id = stable_host_instance_id(&command.scope)?;
+        let document_id = format!("host:{host_instance_id}");
+        let existing = store.get_document(
+            "mission_canvas_host_lifecycle",
+            &command.scope,
+            &document_id,
+        )?;
+        let Some(document) = existing else {
+            return Err(HostLifecycleError::PresentationNotFound);
+        };
+        let (previous_state, previous_idempotency_key) =
+            lifecycle_document(&document, &command.scope)?;
+        if previous_state.lifecycle_revision != document.revision {
+            return Err(HostLifecycleError::InvalidDocument(
+                "document revision does not match lifecycle revision".into(),
+            ));
+        }
+        if previous_state.host_instance_id != host_instance_id {
+            return Err(HostLifecycleError::InvalidDocument(
+                "host instance is not derived from the exact Workstream scope".into(),
+            ));
+        }
+        if previous_state.renderer_resolution.selected_renderer != DESKTOP_TAURI_RENDERER {
+            return Err(HostLifecycleError::RendererUnavailable(format!(
+                "persisted renderer is {}",
+                previous_state.renderer_resolution.selected_renderer
+            )));
+        }
+        if matches!(
+            previous_state.state.as_str(),
+            "absent" | "closing" | "failed"
+        ) {
+            return Err(HostLifecycleError::PresentationUnavailable(
+                previous_state.state.clone(),
+            ));
+        }
+        if previous_idempotency_key.as_deref() == Some(command.idempotency_key.as_str()) {
+            if previous_state.state == "focused" && previous_state.focused {
+                return Ok(previous_state);
+            }
+            return Err(HostLifecycleError::IdempotencyConflict);
+        }
+
+        let lifecycle_revision = previous_state
+            .lifecycle_revision
+            .checked_add(1)
+            .ok_or_else(|| {
+                HostLifecycleError::InvalidDocument("lifecycle revision overflow".into())
+            })?;
+        let now = Utc::now().to_rfc3339();
+        let state = HostLifecycleState {
+            scope: command.scope.clone(),
+            host_instance_id: host_instance_id.clone(),
+            renderer_resolution: previous_state.renderer_resolution.clone(),
+            state: "focused".into(),
+            focused: true,
+            process_id: previous_state.process_id,
+            window_id: previous_state.window_id.clone(),
+            pi_draft_ref: previous_state.pi_draft_ref.clone(),
+            canvas_draft_ref: previous_state.canvas_draft_ref.clone(),
+            last_error_ref: previous_state.last_error_ref.clone(),
+            durable_event_cursor: "event:pending".into(),
+            lifecycle_revision,
+            updated_at: now.clone(),
+        };
+        state
+            .validate_scope(&command.scope)
+            .map_err(HostLifecycleError::Scope)?;
+        let event = CompositionEvent {
+            event_id: format!(
+                "projection-event:rich-host-focus:{}:{}",
+                host_instance_id.replace(':', "-"),
+                digest_fragment(&command.idempotency_key),
+            ),
+            event_kind: "host_focused".into(),
+            scope: command.scope.clone(),
+            // Focusing a presentation must not advance canonical composition
+            // or activity revisions.
+            projection_revision: 0,
+            layout_revision: 0,
+            causation_id: Some(command.idempotency_key.clone()),
+            correlation_id: Some(command.context.authority.authority_ref.clone()),
+            occurred_at: now.clone(),
+            payload: json!({
+                "operation_id": RICH_HOST_FOCUS_OPERATION,
+                "host_instance_id": host_instance_id,
+                "renderer": state.renderer_resolution.selected_renderer.clone(),
+                "lifecycle_revision": lifecycle_revision,
+                "canonical_activity_changed": false,
+            }),
+            evidence_refs: vec![],
+            receipt_refs: vec![format!("receipt:rich-host-focus:{lifecycle_revision}")],
         };
         let document = StoredDocument {
             document_id,
@@ -616,5 +785,101 @@ mod tests {
             ))
         ));
         assert_eq!(context.workstream, owner);
+    }
+
+    #[test]
+    fn focus_requires_existing_desktop_and_preserves_canonical_activity() {
+        let owner = workstream("ws:focus");
+        let scope = MissionCanvasScope::new(owner.clone(), None).unwrap();
+        let context = request(owner);
+        let service = HostLifecycleService;
+        let store = MissionCanvasStore::open_in_memory().unwrap();
+        let focus_command = HostLifecycleFocusCommand {
+            context: context.clone(),
+            scope: scope.clone(),
+            idempotency_key: "focus:1".into(),
+            capabilities: [DESKTOP_TAURI_CAPABILITY.into()].into_iter().collect(),
+            permissions: [RICH_HOST_PERMISSION.into()].into_iter().collect(),
+        };
+
+        assert!(matches!(
+            service.focus(&store, &focus_command, HostPlatform::MacOS),
+            Err(HostLifecycleError::PresentationNotFound)
+        ));
+
+        let launched = service
+            .launch(
+                &store,
+                &HostLifecycleLaunchCommand {
+                    context: context.clone(),
+                    scope: scope.clone(),
+                    idempotency_key: "launch:focus".into(),
+                    capabilities: [DESKTOP_TAURI_CAPABILITY.into()].into_iter().collect(),
+                    permissions: [RICH_HOST_PERMISSION.into()].into_iter().collect(),
+                },
+                HostPlatform::MacOS,
+            )
+            .unwrap();
+        let focused = service
+            .focus(&store, &focus_command, HostPlatform::MacOS)
+            .unwrap();
+
+        assert_eq!(focused.state, "focused");
+        assert!(focused.focused);
+        assert_eq!(focused.lifecycle_revision, 2);
+        assert_eq!(focused.host_instance_id, launched.host_instance_id);
+        assert_eq!(focused.window_id, launched.window_id);
+        assert_eq!(focused.renderer_resolution, launched.renderer_resolution);
+        assert!(store.load_projection(&scope).unwrap().is_none());
+
+        let events = store.events_after(&scope, 0, 10).unwrap();
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[1].1.event_kind, "host_focused");
+        assert_eq!(events[1].1.projection_revision, 0);
+        assert_eq!(events[1].1.layout_revision, 0);
+        assert_eq!(events[1].1.payload["canonical_activity_changed"], false);
+
+        let retry = service
+            .focus(&store, &focus_command, HostPlatform::MacOS)
+            .unwrap();
+        assert_eq!(retry, focused);
+        assert_eq!(store.events_after(&scope, 0, 10).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn focus_rejects_fallback_renderer_missing_capability_and_foreign_scope() {
+        let owner = workstream("ws:focus-validation");
+        let scope = MissionCanvasScope::new(owner.clone(), None).unwrap();
+        let context = request(owner.clone());
+        let service = HostLifecycleService;
+        let mut command = HostLifecycleFocusCommand {
+            context: context.clone(),
+            scope: scope.clone(),
+            idempotency_key: "focus:validation".into(),
+            capabilities: BTreeSet::new(),
+            permissions: [RICH_HOST_PERMISSION.into()].into_iter().collect(),
+        };
+
+        assert!(matches!(
+            service.validate_focus(&command, HostPlatform::Linux),
+            Err(HostLifecycleError::Resolution(
+                HostRendererResolutionError::CapabilityUnavailable(_)
+            ))
+        ));
+        command.capabilities = [PI_OVERLAY_COMPATIBILITY_CAPABILITY.into()]
+            .into_iter()
+            .collect();
+        assert!(matches!(
+            service.validate_focus(&command, HostPlatform::Linux),
+            Err(HostLifecycleError::RendererUnavailable(_))
+        ));
+        command.capabilities = [DESKTOP_TAURI_CAPABILITY.into()].into_iter().collect();
+        command.scope = MissionCanvasScope::new(workstream("ws:foreign-focus"), None).unwrap();
+        assert!(matches!(
+            service.validate_focus(&command, HostPlatform::Linux),
+            Err(HostLifecycleError::Resolution(
+                HostRendererResolutionError::Context(WorkstreamContextError::WorkstreamMismatch)
+            ))
+        ));
     }
 }

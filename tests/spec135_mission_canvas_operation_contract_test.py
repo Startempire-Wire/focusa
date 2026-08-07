@@ -205,6 +205,71 @@ elif operation_id == "focusa.mission_canvas.rich_host.launch":
     assert "fork(" not in transport
     assert "child_process" not in transport
 
+elif operation_id == "focusa.mission_canvas.rich_host.focus":
+    assert operation["method"] == "POST"
+    assert operation["path"] == "/v1/mission-canvas/rich-host/focus"
+    assert operation["mode"] == "mutation"
+    assert operation["permissions_required"] == ["mission_canvas:host"]
+    assert operation["response_schema_ref"] == "HostLifecycleState"
+    assert operation["request_schema_ref"] == "focusa.mission_canvas.rich_host_command.v1"
+    assert operation["requires_idempotency_key"] is True
+    assert operation["requires_if_match_revision"] is False
+    assert operation["receipt_required"] is True
+
+    lifecycle_schema = json.loads(BUNDLE.read_text())["$defs"]["HostLifecycleState"]
+    assert "workstream" in lifecycle_schema["properties"]
+    assert "renderer_resolution" in lifecycle_schema["properties"]
+    for marker in (
+        "post(focus_host)",
+        "RichHostCommandRequest",
+        "require_permission_with_state",
+        "host_renderer_workstream_context",
+        "HostLifecycleFocusCommand",
+        "HostLifecycleService",
+        "HostPlatform::current()",
+        "x-focusa-capabilities",
+        "idempotency_key",
+        "HostLifecycleState",
+    ):
+        assert marker in route_text, marker
+    host_text = (ROOT / "crates/focusa-core/src/mission_canvas/host.rs").read_text()
+    for marker in (
+        "RICH_HOST_FOCUS_OPERATION",
+        "HostLifecycleFocusCommand",
+        "pub fn focus(",
+        "put_idempotent_lifecycle_document",
+        "host_focused",
+        "PresentationNotFound",
+        "canonical_activity_changed",
+        "projection_revision: 0",
+        "without changing canonical activity",
+    ):
+        assert marker in host_text, marker
+    for marker in (
+        "authorityFromLifecycleState",
+        "sameWorkstreamAuthorityContext",
+        "foreign_lifecycle_scope",
+        "stale_lifecycle_revision",
+        "stale_lifecycle_cursor",
+        "invalid_response:focus_state",
+        "invalid_response:focus_renderer",
+        "HostLifecycleState",
+    ):
+        assert marker in transport, marker
+    assert "mission_canvas_host_lifecycle" in (ROOT / "crates/focusa-core/src/mission_canvas/persistence.rs").read_text()
+    for marker in (
+        "rich_hostFocus",
+        "POST",
+        "idempotency_key",
+        "foreign focus",
+        "stale focus",
+        "canonical activity",
+    ):
+        assert marker in consumer, marker
+    assert "focusa.mission_canvas.rich_host.focus" in client
+    assert "fork(" not in transport
+    assert "child_process" not in transport
+
 elif operation_id == "focusa.mission_canvas.domain_pack.install":
     assert operation["method"] == "POST"
     assert operation["path"] == "/v1/mission-canvas/domain-packs/install"
