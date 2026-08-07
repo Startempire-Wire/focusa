@@ -1,6 +1,8 @@
 Spec 152F / Spec 172 overlay acceptance record
 Work item: focusa-vbcqu.20.14.7
-Implementation commit: a5617ca6ca3b756fc8c1d48d578fa403f6b81faf
+Implementation commits:
+- Reducer: `a5617ca6ca3b756fc8c1d48d578fa403f6b81faf`
+- Spec 172 registry binding and fail-closed registry validation: `d203e08c48f52a0e44a8eb9a286b5c07188fa6c5`
 
 Bounded result
 - Added a pure `const` reducer returning typed `allow`, `read`, `base`, `feature`, or `deny` posture plus a deterministic reason.
@@ -9,15 +11,16 @@ Bounded result
 - The grid table contains an explicit positive case and a negative caller-override or missing-initiator case for every cell.
 - No `Evaluation` or `VerifiedNoGrant` policy state remains. The reducer creates no customer, key, lease, grant, role, or authority.
 - Internal maintenance inherits only its initiating posture and denies without one; ordinary cells ignore caller-supplied initiating posture.
+- The build-embedded Spec 172/152F registry is canonicalized, digest-bound, validated at build time and runtime, and rejects substituted Evaluation or dormant-denial policy.
 
-Checks run against the implementation commit
-1. `git diff a5617ca6ca3b756fc8c1d48d578fa403f6b81faf^ a5617ca6ca3b756fc8c1d48d578fa403f6b81faf --check` — exit 0.
-2. `rustup which --toolchain nightly rustfmt` followed by `rustfmt --edition 2021 --check crates/focusa-license/tests/entitlement_policy_grid.rs` — exit 0.
-3. Committed-surface Python assertion: changed paths are exactly the four allowed source/test surfaces; all seven states are present; the 63-cell table and positive/negative cases are present; forbidden Evaluation/legacy state and authority-creation markers are absent — exit 0.
+Checks run against `d203e08c48f52a0e44a8eb9a286b5c07188fa6c5`
+1. `git diff d203e08c48f52a0e44a8eb9a286b5c07188fa6c5^ d203e08c48f52a0e44a8eb9a286b5c07188fa6c5 --check` — exit 0.
+2. `rustup which --toolchain nightly rustfmt` followed by `rustup run nightly rustfmt --edition 2021 --check crates/focusa-license/tests/entitlement_policy_grid.rs` — exit 0.
+3. `cargo test -p focusa-license` — exit 0; 29 unit tests, 11 authority-lease tests, 2 entitlement-grid tests, and 0 doc tests failed.
 
 Exact verification
 - `cargo test -p focusa-license --test entitlement_policy_grid state_grid` — exit 0.
 - Bounded result: 2 tests passed, 0 failed (`state_grid` and `state_grid_fails_closed_without_initiating_policy_or_known_state`).
 
 Rollback
-- Revert only implementation commit `a5617ca6ca3b756fc8c1d48d578fa403f6b81faf` (and this evidence record if required). Preserve customers, orders, refunds, licenses, nodes, sequences, customer data, migration journals, and accepted authority/evidence state. No push, deploy, release, merge, or Beads mutation was performed.
+- Revert only implementation commits `a5617ca6ca3b756fc8c1d48d578fa403f6b81faf` and `d203e08c48f52a0e44a8eb9a286b5c07188fa6c5` (and this evidence record if required). Preserve customers, orders, refunds, licenses, nodes, sequences, customer data, migration journals, and accepted authority/evidence state. No push, deploy, release, merge, or Beads mutation was performed.
