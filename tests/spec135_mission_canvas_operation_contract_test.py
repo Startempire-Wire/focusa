@@ -673,6 +673,82 @@ elif operation_id == "focusa.mission_canvas.layout_memory.get":
     ):
         assert marker in consumer, marker
 
+elif operation_id == "focusa.mission_canvas.layout_memory.update":
+    assert operation["method"] == "POST"
+    assert operation["path"] == "/v1/mission-canvas/layout-memory"
+    assert operation["mode"] == "mutation"
+    assert operation["permissions_required"] == ["mission_canvas:write"]
+    assert operation["request_schema_ref"] == "ProfileLayoutMemory"
+    assert operation["response_schema_ref"] == "RecompositionReceipt"
+    assert operation["requires_idempotency_key"] is True
+    assert operation["requires_if_match_revision"] is True
+    assert operation["receipt_required"] is True
+
+    for marker in (
+        "post(put_layout_memory)",
+        "Json(memory): Json<ProfileLayoutMemory>",
+        "require_permission_with_state",
+        "validate_authority",
+        "exact_workstream_context",
+        "required_header",
+        "required_if_match_revision",
+        "LayoutMemoryUpdateCommand",
+        "LayoutMemoryUpdateService",
+        "idempotency_key_mismatch",
+        "serde_json::to_value(receipt)",
+    ):
+        assert marker in route_text, marker
+    memory = (ROOT / "crates/focusa-core/src/mission_canvas/memory.rs").read_text()
+    for marker in (
+        "LAYOUT_MEMORY_UPDATE_OPERATION",
+        "LAYOUT_MEMORY_UPDATE_PERMISSION",
+        "LayoutMemoryUpdateCommand",
+        "LayoutMemoryUpdateService",
+        "validate_layout_memory_update_command",
+        "validate_profile_layout_memory",
+        "expected_memory_revision",
+        "update_layout_memory",
+        "RecompositionReceipt",
+    ):
+        assert marker in memory, marker
+    persistence = (ROOT / "crates/focusa-core/src/mission_canvas/persistence.rs").read_text()
+    for marker in (
+        "pub fn update_layout_memory",
+        "LayoutMemoryIdempotencyConflict",
+        "request_digest",
+        "causation_id",
+        "preference_change",
+        "transaction.commit()",
+        "receipt",
+        "mission_canvas_layout_memory",
+    ):
+        assert marker in persistence, marker
+    assert "layout_memoryUpdate" in client
+    for marker in (
+        "focusa.mission_canvas.layout_memory.update",
+        "readIfMatchRevision",
+        "validateLayoutMemoryUpdateReceipt",
+        "memory_revision",
+        "stale_layout_memory_revision",
+        "stale_layout_memory_cursor",
+        "foreign_layout_memory_receipt_scope",
+        "invalid_response:idempotency_key_mismatch",
+        "invalid_response:layout_memory_revision_mismatch",
+    ):
+        assert marker in transport, marker
+    for marker in (
+        "layout_memoryUpdate",
+        "exact Workstream POST",
+        "direct RecompositionReceipt",
+        "Idempotency-Key",
+        "If-Match",
+        "foreign receipt authority",
+        "stale memory revision/cursor",
+        "empty/ineligible memory",
+        "no local composition",
+    ):
+        assert marker in consumer, marker
+
 elif operation_id == "focusa.mission_canvas.domain_pack.install":
     assert operation["method"] == "POST"
     assert operation["path"] == "/v1/mission-canvas/domain-packs/install"

@@ -1,0 +1,158 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-010",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Implemented focusa.mission_canvas.layout_memory.update as a bounded generated mutation. Core validates exact Workstream authority and semantic placement memory, persists the update with Evidence and a direct RecompositionReceipt atomically, and makes retries idempotent. The API adapter enforces generated permission, actor/authority, Idempotency-Key, and If-Match boundaries. Desktop uses the generated operation registry/client and rejects foreign, stale, malformed, or locally composed results.",
+  "targets": [
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/memory.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-010.json"
+  ],
+  "dependency_gate": {
+    "OPS-009": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/OPS-009.json",
+      "status": "verified",
+      "decision": "The exact Workstream-scoped layout-memory read, generated registry transport, reusable Core validator, and fail-closed memory watermark from OPS-009 are integrated and preserved."
+    }
+  },
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "pi_native_mission_canvas",
+    "surface_kind": "bounded Focusa Desktop Mission Canvas Svelte generated-operation consumer; the trusted recursive canonical projection renderer remains unchanged",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "proof_class": "generated transport/runtime integration with Core atomic persistence, exact Workstream authority, Receipt/Evidence proof, and hostile response checks",
+    "eligible_contributions": [],
+    "omitted_contribution_reasons": [
+      "layout_memory.update persists semantic preference and does not render contributions",
+      "absent contribution IDs remain memory data and never reserve geometry, placeholders, borders, or empty chrome"
+    ],
+    "continuity_invariants": [
+      "ScopeRef -> ProjectRootKey -> WorkstreamId -> ContinuityId -> AttachmentKey -> SessionId/InstanceId -> WorkspaceBindingId -> RuntimeObjectRef -> WorkSurfaceId remains exact and immutable.",
+      "Core owns identity, validation, revision, persistence, Evidence, Receipt, and idempotency; Desktop does not infer eligibility or compose a layout.",
+      "Generated registry/OpenAPI/client/validator artifacts remain authoritative for operation metadata and DTOs; no generated artifact was edited.",
+      "The trusted recursive canonical projection renderer and CARDINAL-135-SVELTE-001 boundary remain untouched."
+    ]
+  },
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.layout_memory.update",
+    "operation_version": "1.0.0",
+    "method": "POST",
+    "path": "/v1/mission-canvas/layout-memory",
+    "mode": "mutation",
+    "scope_required": ["workstream"],
+    "scope_optional": [
+      "continuity_id",
+      "attachment",
+      "workspace_binding_id",
+      "runtime_object",
+      "work_surface_id"
+    ],
+    "permissions_required": ["mission_canvas:write"],
+    "confirmation": "none",
+    "requires_idempotency_key": true,
+    "requires_if_match_revision": true,
+    "receipt_required": true,
+    "request_schema_ref": "ProfileLayoutMemory",
+    "response_schema_ref": "RecompositionReceipt",
+    "client_method": "layout_memoryUpdate",
+    "artifact_status": "Generated operation registry, OpenAPI, TypeScript client, validators, and parity artifacts were consumed without modification."
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "implementation": [
+    "ProfileLayoutMemory and PlacementMemory reject unknown fields; Core validates exact full scope equality, canonical memory identity, RFC3339 timestamp, idempotency metadata, ContributionId/RegionKind values, spans, duplicates, placement/absent overlap, and revision advancement.",
+    "LayoutMemoryUpdateService checks WorkstreamContext, permission, If-Match-derived expected revision, and payload revision without resolving eligibility or composing a layout.",
+    "MissionCanvasStore::update_layout_memory performs the memory row, layout_changed event, Evidence, Receipt cursor update, request digest, authority reference, and idempotency record in one SQLite transaction. A matching Workstream-scoped causation key and request digest returns the original Receipt; conflicting retries and stale revisions fail closed.",
+    "The API route accepts the generated ProfileLayoutMemory rather than DocumentWriteRequest, requires exact actor/authority context, mission_canvas:write, matching Idempotency-Key, and If-Match, then returns the direct Core RecompositionReceipt.",
+    "Desktop resolves the generated operation ID/method/path, sends exact authority plus Idempotency-Key and If-Match, validates request memory and direct Receipt proof, and maintains per-authority/profile/activity/viewport revision and event-cursor watermarks."
+  ],
+  "checks": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; 25 contribution schemas, 25 operation entries, 10 derived artifacts, parity and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.layout_memory.update (exit 0; generated registry/OpenAPI/client/API/Core/transport/consumer contract: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.layout_memory.update --client layout_memoryUpdate (exit 0; exact Workstream POST, direct RecompositionReceipt, semantic preference transport, hostile scope/revision/cursor/permission/capability checks: PASS)",
+    "rustfmt --edition 2021 --check --config skip_children=true crates/focusa-core/src/mission_canvas/memory.rs crates/focusa-core/src/mission_canvas/persistence.rs crates/focusa-core/src/mission_canvas/mod.rs crates/focusa-api/src/routes/mission_canvas.rs (exit 0)",
+    "node --check apps/desktop/tests/operation-consumer-runtime.mjs (exit 0)",
+    "python3 -m py_compile tests/spec135_mission_canvas_operation_contract_test.py tests/spec135_mission_canvas_generated_parity_test.py (exit 0)",
+    "git diff --check (exit 0)",
+    "Cargo was not run, per the explicit user constraint."
+  ],
+  "negative_cases": {
+    "foreign_workstream": "Desktop rejects a Receipt whose Workstream differs; Core/API scope and Attachment ownership checks reject foreign authority and storage remains Workstream-partitioned.",
+    "foreign_attachment_or_subordinate_scope": "Desktop compares the complete authority context, including Attachment, continuity, binding, runtime object, and Work Surface; the API extracts the same exact context and does not infer missing ownership.",
+    "missing_authority": "Generated Desktop input, actor/authority headers, and Core WorkstreamContext validation all fail before mutation when exact authority is absent.",
+    "stale_revision": "If-Match is required and bound to the memory revision; Core compares the stored row and expected advancement, while Desktop rejects a structurally valid regressed Receipt watermark.",
+    "stale_cursor": "Desktop parses the direct Receipt event cursor and rejects a lower same-kind event cursor for the same exact memory binding.",
+    "wrong_receipt_revision": "Desktop rejects an accepted Receipt whose projection/layout revision is not exactly the If-Match revision plus one or whose projection and layout revisions disagree.",
+    "idempotency": "Blank/mismatched keys fail before persistence; Core binds causation to the Workstream and request digest, returns the original Receipt on an exact retry, and rejects conflicting reuse.",
+    "malformed_or_wrapped_response": "Generated structural validation plus nested memory/Receipt proof validation rejects malformed placements, partition overlap, invalid proof, wrappers, and non-accepted receipts.",
+    "permission_or_capability": "The operation requires mission_canvas:write; Desktop sends no invented capability and surfaces denied/unavailable ToolResult responses without fallback mutation.",
+    "empty_or_ineligible_contribution": "Absent contribution IDs are persisted as semantic memory only; no eligibility, panel, renderer, placeholder, or geometry is fabricated.",
+    "local_inference": "The hostile consumer asserts that request/response data contains no layout_tree, eligible contribution projection, persistence envelope, or local composition path."
+  },
+  "acceptance": [
+    {
+      "statement": "Persists semantic placement preference with idempotency and Receipt.",
+      "status": "verified_by_permitted_runtime_and_source_contract",
+      "proof": "Core owns the bounded mutation and atomic SQLite event/Receipt/Evidence write; the generated operation contract and hostile consumer verify POST transport, Idempotency-Key, If-Match, direct RecompositionReceipt, retry/conflict boundaries, and no local composition."
+    },
+    {
+      "statement": "Preserves CARDINAL-135-SVELTE-001, exact Workstream authority, generated transport, trusted renderer ownership, and recursive canonical projection rendering.",
+      "status": "verified",
+      "proof": "Generated parity and the operation contract pass; generated contract artifacts and the canonical projection renderer were not edited or bypassed, and the consumer rejects foreign authority rather than falling back."
+    }
+  ],
+  "source_authority": [
+    "AGENTS.md",
+    "docs/135-series-current-manifest.md",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/agent/spec135-implementation-acceleration-directive.md",
+    "docs/contracts/spec135-svelte-task-packets/OPS-009.json",
+    "docs/contracts/spec135-svelte-task-packets/OPS-010.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-009.json",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/memory.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py"
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/memory.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py"
+  ],
+  "deferred_repository_observation": "Cargo validation was intentionally not run. Generated contract artifacts, graph/packet/plan/orchestration files, and the trusted recursive projection renderer were not edited.",
+  "remaining_work": [],
+  "status": "verified"
+}

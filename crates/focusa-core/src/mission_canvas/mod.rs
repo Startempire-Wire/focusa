@@ -28,7 +28,11 @@ pub use host::{
 pub use layout::{
     resolve_layout, validate_no_dead_chrome, LayoutConstraints, LayoutError, LayoutNode,
 };
-pub use memory::{reduce_layout_memory, validate_profile_layout_memory, ProfileLayoutMemory};
+pub use memory::{
+    layout_memory_digest, reduce_layout_memory, validate_profile_layout_memory,
+    LayoutMemoryUpdateCommand, LayoutMemoryUpdateError, LayoutMemoryUpdateService,
+    ProfileLayoutMemory, LAYOUT_MEMORY_UPDATE_OPERATION, LAYOUT_MEMORY_UPDATE_PERMISSION,
+};
 pub use model::*;
 pub use persistence::{MissionCanvasStore, MissionCanvasStoreError};
 pub use profiles::{
