@@ -315,6 +315,55 @@ elif operation_id == "focusa.mission_canvas.profile.list":
     ):
         assert marker in consumer, marker
 
+elif operation_id == "focusa.mission_canvas.activity.list":
+    assert operation["method"] == "GET"
+    assert operation["path"] == "/v1/mission-canvas/activities"
+    assert operation["mode"] == "read"
+    assert operation["permissions_required"] == ["mission_canvas:read"]
+    assert operation["request_schema_ref"] == "focusa.mission_canvas.activity_list.request.v1"
+    assert operation["response_schema_ref"] == "ActivityMode[]"
+    assert operation["requires_idempotency_key"] is False
+    assert operation["requires_if_match_revision"] is False
+    assert operation["receipt_required"] is False
+
+    for marker in (
+        "get(list_activities)",
+        "require_permission",
+        "exact_workstream_context",
+        "store.get_projection",
+        "projection.validate_scope",
+        "registered_activity_modes",
+        "meaningful_activities_for_projection",
+        "ActivityModeDefinition",
+        "serde_json::to_value(viable)",
+    ):
+        assert marker in route_text, marker
+    profiles = (ROOT / "crates/focusa-core/src/mission_canvas/profiles.rs").read_text()
+    for marker in (
+        "pub fn meaningful_activities_for_projection",
+        "activity.activity_mode_id",
+        "profile_contribution_ids",
+        "eligible_contribution_ids",
+        "deny_unknown_fields",
+    ):
+        assert marker in profiles, marker
+    for marker in (
+        "validateResponse",
+        "schemaRef.endsWith('[]')",
+        "expected array",
+    ):
+        assert marker in transport, marker
+    for marker in (
+        "activityList",
+        "exact Workstream GET",
+        "registered ActivityMode",
+        "empty activity list",
+        "foreign scope",
+        "missing authority",
+        "permission",
+    ):
+        assert marker in consumer, marker
+
 elif operation_id == "focusa.mission_canvas.rich_host.resolve":
     assert operation["method"] == "GET"
     assert operation["path"] == "/v1/mission-canvas/rich-host/resolution"

@@ -19,6 +19,7 @@ pub struct WorkspaceProfileDefinition {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ActivityModeDefinition {
     pub activity_mode_id: String,
     pub revision: u64,
@@ -369,6 +370,41 @@ pub fn meaningful_profiles_for_projection(
         .cloned()
         .collect::<Vec<_>>();
     viable.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
+    viable
+}
+
+/// Return only registered activity modes that can produce meaningful content
+/// for the exact Core-resolved profile and projection.  Activity navigation is
+/// a projection over canonical eligibility, not a second activity resolver:
+/// an activity with no profile-compatible eligible contribution is omitted
+/// rather than exposed as dead chrome or a placeholder choice.
+pub fn meaningful_activities_for_projection(
+    activities: &[ActivityModeDefinition],
+    profile: &WorkspaceProfileDefinition,
+    eligible_contribution_ids: &BTreeSet<String>,
+) -> Vec<ActivityModeDefinition> {
+    let profile_contribution_ids = profile
+        .candidate_contribution_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let mut viable = activities
+        .iter()
+        .filter(|activity| {
+            !activity.activity_mode_id.trim().is_empty()
+                && !activity.display_name.trim().is_empty()
+                && !activity.viability_rule_revision.trim().is_empty()
+                && activity
+                    .candidate_contribution_ids
+                    .iter()
+                    .any(|candidate_id| {
+                        profile_contribution_ids.contains(candidate_id)
+                            && eligible_contribution_ids.contains(candidate_id)
+                    })
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    viable.sort_by(|left, right| left.activity_mode_id.cmp(&right.activity_mode_id));
     viable
 }
 
@@ -728,6 +764,69 @@ mod tests {
         assert!(
             meaningful_profiles_for_projection(&profiles, &activity, &BTreeSet::new()).is_empty()
         );
+    }
+
+    #[test]
+    fn meaningful_activity_listing_is_registered_profile_and_projection_bounded() {
+        let profile = profile(
+            "software",
+            "Software Engineering",
+            &["contribution:live", "contribution:shared"],
+        );
+        let activities = vec![
+            activity(
+                "tasks",
+                "Tasks / Work",
+                &["contribution:live", "contribution:missing"],
+            ),
+            activity("empty", "Empty", &["contribution:missing"]),
+            activity("unbound", "Unbound", &["contribution:other"]),
+            activity("shared", "Shared", &["contribution:shared"]),
+        ];
+        let eligible = BTreeSet::from(["contribution:live".to_owned()]);
+
+        let viable = meaningful_activities_for_projection(&activities, &profile, &eligible);
+        assert_eq!(
+            viable
+                .iter()
+                .map(|activity| activity.activity_mode_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["tasks"]
+        );
+        assert!(
+            meaningful_activities_for_projection(&activities, &profile, &BTreeSet::new())
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn meaningful_activity_listing_omits_malformed_unregistered_shape() {
+        let profile = profile("software", "Software Engineering", &["contribution:live"]);
+        let activities = vec![
+            ActivityModeDefinition {
+                activity_mode_id: String::new(),
+                revision: 1,
+                display_name: "Unnamed".into(),
+                candidate_contribution_ids: vec!["contribution:live".into()],
+                terminology_overrides_ref: None,
+                viability_rule_revision: "activity-viability:v1".into(),
+            },
+            ActivityModeDefinition {
+                activity_mode_id: "missing-rule".into(),
+                revision: 1,
+                display_name: "Missing rule".into(),
+                candidate_contribution_ids: vec!["contribution:live".into()],
+                terminology_overrides_ref: None,
+                viability_rule_revision: String::new(),
+            },
+        ];
+
+        assert!(meaningful_activities_for_projection(
+            &activities,
+            &profile,
+            &BTreeSet::from(["contribution:live".to_owned()]),
+        )
+        .is_empty());
     }
 
     #[test]

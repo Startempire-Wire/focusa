@@ -1653,12 +1653,82 @@ async fn get_profile(
     Ok(Json(serde_json::to_value(profile).map_err(json_error)?))
 }
 
+fn registered_activity_modes(
+    store: &MissionCanvasStore,
+    scope: &MissionCanvasScope,
+) -> Result<Vec<ActivityModeDefinition>, (StatusCode, Json<Value>)> {
+    let mut activities = CompositionRegistry::builtin().activities;
+    for document in store
+        .list_documents("mission_canvas_activity_modes", scope)
+        .map_err(store_error)?
+    {
+        let activity: ActivityModeDefinition =
+            serde_json::from_value(document.payload).map_err(|_| {
+                error(
+                    StatusCode::CONFLICT,
+                    "activity_catalog_invalid",
+                    "A canonical activity mode is malformed",
+                )
+            })?;
+        if activity.activity_mode_id.trim().is_empty()
+            || activity.display_name.trim().is_empty()
+            || activity.viability_rule_revision.trim().is_empty()
+        {
+            return Err(error(
+                StatusCode::CONFLICT,
+                "activity_catalog_invalid",
+                "A canonical activity mode is missing required registry identity or viability metadata",
+            ));
+        }
+        if document.document_id != format!("activity:{}", activity.activity_mode_id) {
+            return Err(error(
+                StatusCode::CONFLICT,
+                "activity_catalog_identity_mismatch",
+                "The canonical activity document does not match its registered activity identity",
+            ));
+        }
+        activities.insert(activity.activity_mode_id.clone(), activity);
+    }
+    Ok(activities.into_values().collect())
+}
+
 async fn list_activities(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Query(query): Query<ScopeQuery>,
 ) -> ApiResult {
-    list_viable_documents(&state, &headers, query, "mission_canvas_activity_modes")
+    require_permission(&headers, "mission_canvas:read")?;
+    let scope = query.scope()?;
+    // Activity availability is an authority-bearing read.  Establish the
+    // authenticated actor and canonical authority for this exact Workstream
+    // before reading either the projection or the activity registry.
+    exact_workstream_context(&scope, &headers).map_err(host_renderer_context_error)?;
+    let store = store(&state)?;
+    let Some(projection) = store.get_projection(&scope).map_err(store_error)? else {
+        // Without a canonical projection there is no Core-owned evidence that
+        // any activity can produce meaningful content.  An empty array is the
+        // truthful generated ActivityMode[] result; no activity is inferred.
+        return Ok(Json(Value::Array(Vec::new())));
+    };
+    projection
+        .validate_scope(&scope)
+        .map_err(|reason| error(StatusCode::CONFLICT, "projection_scope_invalid", reason))?;
+    let profile = registered_profile(&store, &scope, &projection.workspace_profile_id)?;
+    let activities = registered_activity_modes(&store, &scope)?;
+    let eligible_contribution_ids = projection
+        .eligible_contributions
+        .iter()
+        .map(|contribution| contribution.contribution_id.clone())
+        .collect::<BTreeSet<_>>();
+    // Core owns registered applicability, meaningful-content eligibility, and
+    // adaptive composition.  Desktop receives direct generated ActivityMode
+    // DTOs, never persistence envelopes or a client-local activity resolver.
+    let viable = focusa_core::mission_canvas::profiles::meaningful_activities_for_projection(
+        &activities,
+        &profile,
+        &eligible_contribution_ids,
+    );
+    Ok(Json(serde_json::to_value(viable).map_err(json_error)?))
 }
 
 async fn list_registry(
@@ -2485,43 +2555,6 @@ fn generated_projection_event_id(value: &str) -> bool {
         && suffix.chars().all(|value| {
             value.is_ascii_lowercase() || value.is_ascii_digit() || "._:-".contains(value)
         })
-}
-
-fn list_viable_documents(
-    state: &Arc<AppState>,
-    headers: &HeaderMap,
-    query: ScopeQuery,
-    table: &str,
-) -> ApiResult {
-    require_permission(headers, "mission_canvas:read")?;
-    let scope = query.scope()?;
-    let store = store(state)?;
-    let candidates = store
-        .get_projection(&scope)
-        .map_err(store_error)?
-        .map(|projection| {
-            projection
-                .candidate_contribution_ids
-                .into_iter()
-                .collect::<std::collections::BTreeSet<_>>()
-        })
-        .unwrap_or_default();
-    let documents = store.list_documents(table, &scope).map_err(store_error)?;
-    let viable = documents
-        .into_iter()
-        .filter(|document| {
-            document
-                .payload
-                .get("candidate_contribution_ids")
-                .and_then(Value::as_array)
-                .is_some_and(|ids| {
-                    ids.iter()
-                        .filter_map(Value::as_str)
-                        .any(|id| candidates.contains(id))
-                })
-        })
-        .collect::<Vec<_>>();
-    Ok(Json(serde_json::to_value(viable).map_err(json_error)?))
 }
 
 fn list_documents(
