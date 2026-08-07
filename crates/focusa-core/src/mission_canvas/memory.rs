@@ -1,11 +1,25 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
+use thiserror::Error;
 
-use super::{layout::LayoutNode, model::MissionCanvasScope};
+use crate::workstream_context::{WorkstreamContext, WorkstreamContextError};
+
+use super::{
+    layout::LayoutNode,
+    model::MissionCanvasScope,
+    persistence::{MissionCanvasStore, MissionCanvasStoreError},
+    reducer::RecompositionReceipt,
+};
+
+pub const LAYOUT_MEMORY_UPDATE_OPERATION: &str = "focusa.mission_canvas.layout_memory.update";
+pub const LAYOUT_MEMORY_UPDATE_PERMISSION: &str = "mission_canvas:write";
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlacementMemory {
     pub contribution_id: String,
     pub preferred_regions: Vec<String>,
@@ -17,6 +31,7 @@ pub struct PlacementMemory {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ProfileLayoutMemory {
     pub memory_id: String,
     #[serde(flatten)]
@@ -73,6 +88,9 @@ pub fn validate_profile_layout_memory(
     if memory.idempotency_key.trim().is_empty() {
         return Err("idempotency_key_missing");
     }
+    if DateTime::parse_from_rfc3339(&memory.updated_at).is_err() {
+        return Err("updated_at_invalid");
+    }
     if memory.placements.iter().any(|placement| {
         !is_contribution_id(&placement.contribution_id)
             || placement.preferred_regions.is_empty()
@@ -125,7 +143,183 @@ pub fn validate_profile_layout_memory(
     {
         return Err("absent_contribution_invalid");
     }
+    if memory
+        .placements
+        .iter()
+        .any(|placement| absent_ids.contains(placement.contribution_id.as_str()))
+    {
+        return Err("placement_absent_overlap");
+    }
     Ok(())
+}
+
+/// A bounded mutation command for the generated layout-memory operation. The
+/// request carries a complete ProfileLayoutMemory representation, while
+/// `expected_memory_revision` comes only from the transport If-Match header.
+/// Core decides the persisted revision and Receipt; neither is inferred by
+/// Desktop or by a selected Work Surface.
+#[derive(Clone, Debug)]
+pub struct LayoutMemoryUpdateCommand {
+    pub context: WorkstreamContext,
+    pub scope: MissionCanvasScope,
+    pub memory: ProfileLayoutMemory,
+    pub expected_memory_revision: u64,
+    pub permissions: BTreeSet<String>,
+}
+
+#[derive(Debug, Error)]
+pub enum LayoutMemoryUpdateError {
+    #[error("layout-memory Workstream context is invalid: {0}")]
+    Context(#[from] WorkstreamContextError),
+    #[error("layout-memory scope is invalid: {0}")]
+    Scope(&'static str),
+    #[error("layout-memory operation requires permission: {0}")]
+    PermissionDenied(String),
+    #[error("layout-memory operation requires a non-empty idempotency key")]
+    IdempotencyKeyRequired,
+    #[error("layout-memory payload is invalid: {0}")]
+    MemoryInvalid(&'static str),
+    #[error("layout-memory revision is stale: expected {expected}, submitted {submitted}")]
+    RevisionConflict { expected: u64, submitted: u64 },
+    #[error("layout-memory revision overflow")]
+    RevisionOverflow,
+    #[error("layout-memory serialization failed: {0}")]
+    Serialization(#[from] serde_json::Error),
+    #[error("layout-memory persistence failed: {0}")]
+    Store(#[from] MissionCanvasStoreError),
+}
+
+/// Core-owned implementation of `layout_memory.update`. It validates the
+/// exact WorkstreamContext, semantic placement payload, permission, and
+/// optimistic revision before delegating one atomic idempotent write to the
+/// MissionCanvas store. It never resolves eligibility or composes a layout.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct LayoutMemoryUpdateService;
+
+impl LayoutMemoryUpdateService {
+    pub fn update(
+        &self,
+        store: &MissionCanvasStore,
+        command: &LayoutMemoryUpdateCommand,
+    ) -> Result<RecompositionReceipt, LayoutMemoryUpdateError> {
+        validate_layout_memory_update_command(command)?;
+
+        let submitted_revision = command.memory.memory_revision;
+        if submitted_revision == 0 {
+            return Err(LayoutMemoryUpdateError::MemoryInvalid(
+                "memory_revision_invalid",
+            ));
+        }
+        let next_revision = command
+            .expected_memory_revision
+            .checked_add(1)
+            .ok_or(LayoutMemoryUpdateError::RevisionOverflow)?;
+        // Accept both generated representations used by existing reducers:
+        // the body may describe the current version (the server advances it),
+        // or the next version already produced by reduce_layout_memory. In
+        // both cases If-Match remains the sole expected stored revision.
+        let persisted_revision = if submitted_revision == command.expected_memory_revision {
+            next_revision
+        } else if submitted_revision == next_revision {
+            submitted_revision
+        } else {
+            return Err(LayoutMemoryUpdateError::RevisionConflict {
+                expected: command.expected_memory_revision,
+                submitted: submitted_revision,
+            });
+        };
+
+        let request_digest = layout_memory_digest(&command.memory)?;
+        let mut memory = command.memory.clone();
+        memory.memory_revision = persisted_revision;
+        memory.updated_at = Utc::now().to_rfc3339();
+        store
+            .update_layout_memory(
+                &memory,
+                command.expected_memory_revision,
+                &request_digest,
+                &command.context.authority.authority_ref,
+            )
+            .map_err(Into::into)
+    }
+}
+
+fn validate_layout_memory_update_command(
+    command: &LayoutMemoryUpdateCommand,
+) -> Result<(), LayoutMemoryUpdateError> {
+    command.context.validate()?;
+    command
+        .scope
+        .validate()
+        .map_err(LayoutMemoryUpdateError::Scope)?;
+    validate_layout_memory_context(&command.context, &command.scope)?;
+    if !has_layout_memory_permission(&command.permissions) {
+        return Err(LayoutMemoryUpdateError::PermissionDenied(
+            LAYOUT_MEMORY_UPDATE_PERMISSION.into(),
+        ));
+    }
+    if command.memory.idempotency_key.trim().is_empty()
+        || command.memory.idempotency_key.len() > 200
+    {
+        return Err(LayoutMemoryUpdateError::IdempotencyKeyRequired);
+    }
+    validate_profile_layout_memory(
+        &command.memory,
+        &command.scope,
+        &command.memory.profile_id,
+        &command.memory.activity_mode_id,
+        &command.memory.viewport_class,
+    )
+    .map_err(LayoutMemoryUpdateError::MemoryInvalid)?;
+    Ok(())
+}
+
+fn validate_layout_memory_context(
+    context: &WorkstreamContext,
+    scope: &MissionCanvasScope,
+) -> Result<(), LayoutMemoryUpdateError> {
+    if context.workstream != scope.workstream {
+        return Err(WorkstreamContextError::WorkstreamMismatch.into());
+    }
+    let expected_continuity = scope.continuity_id.clone().or_else(|| {
+        scope
+            .attachment
+            .as_ref()
+            .and_then(|attachment| attachment.continuity_id.clone())
+    });
+    if context.continuity_id != expected_continuity {
+        return Err(WorkstreamContextError::ContinuityMismatch.into());
+    }
+    if context.attachment != scope.attachment {
+        return Err(WorkstreamContextError::WorkstreamMismatch.into());
+    }
+    let expected_binding = scope.workspace_binding_id.clone().or_else(|| {
+        scope
+            .attachment
+            .as_ref()
+            .map(|attachment| attachment.workspace_binding_id.clone())
+    });
+    if context.workspace_binding_id != expected_binding {
+        return Err(WorkstreamContextError::WorkspaceBindingMismatch.into());
+    }
+    Ok(())
+}
+
+fn has_layout_memory_permission(permissions: &BTreeSet<String>) -> bool {
+    permissions.contains(LAYOUT_MEMORY_UPDATE_PERMISSION)
+        || permissions.contains("mission_canvas:*")
+        || permissions.contains("admin:*")
+        || permissions.contains("*")
+}
+
+/// Stable digest used by the Receipt and Evidence for one canonical memory
+/// representation. It includes exact authority and semantic placement data;
+/// it is not a client-side layout or renderer digest.
+pub fn layout_memory_digest(memory: &ProfileLayoutMemory) -> Result<String, serde_json::Error> {
+    Ok(format!(
+        "sha256:{}",
+        hex::encode(Sha256::digest(serde_json::to_vec(memory)?))
+    ))
 }
 
 fn validate_memory_scope(scope: &MissionCanvasScope) -> Result<(), &'static str> {

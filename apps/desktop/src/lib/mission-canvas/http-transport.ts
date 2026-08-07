@@ -48,6 +48,7 @@ interface HostLifecycleWatermark {
 
 interface LayoutMemoryWatermark {
   memoryRevision: number;
+  cursor?: ProjectionCursor;
 }
 
 export class MissionCanvasTransportError extends Error {
@@ -103,7 +104,7 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (operation.requires_idempotency_key && !hasIdempotencyKey(input)) {
       throw new MissionCanvasTransportError('idempotency_key_required', operationId);
     }
-    const ifMatchRevision = readIfMatchRevision(input);
+    const ifMatchRevision = readIfMatchRevision(input, operationId);
     if (operation.requires_if_match_revision && ifMatchRevision === undefined) {
       throw new MissionCanvasTransportError('if_match_revision_required', operationId);
     }
@@ -123,6 +124,21 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
         `invalid_request:${requestValidation.errors.join(',')}`,
         operationId
       );
+    }
+    if (operationId === 'focusa.mission_canvas.layout_memory.update') {
+      const watermark = validateProfileLayoutMemoryResponse(
+        operationId,
+        0,
+        requestInput,
+        authority,
+        requestInput
+      );
+      if (watermark.memoryRevision === 0) {
+        throw new MissionCanvasTransportError(
+          'invalid_request:memory_revision',
+          operationId
+        );
+      }
     }
     const resolved = resolvePath(operation.path, requestInput, operationId);
     const url = new URL(`${this.#baseUrl}${resolved.path}`);
@@ -215,6 +231,45 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
         );
       }
       this.#layoutMemoryWatermarks.set(memoryKey, watermark);
+    }
+    if (operationId === 'focusa.mission_canvas.layout_memory.update') {
+      const receipt = validateLayoutMemoryUpdateReceipt(
+        operationId,
+        response.status,
+        value,
+        authority,
+        requestInput
+      );
+      const requestRecord = requestInput as Record<string, unknown>;
+      const memoryKey = [
+        workstreamAuthorityStorageKey(authority),
+        requestRecord.profile_id,
+        requestRecord.activity_mode_id,
+        requestRecord.viewport_class
+      ].join('|');
+      const previous = this.#layoutMemoryWatermarks.get(memoryKey);
+      if (previous && receipt.memoryRevision < previous.memoryRevision) {
+        throw new MissionCanvasTransportError(
+          'stale_layout_memory_revision',
+          operationId,
+          response.status,
+          value
+        );
+      }
+      if (
+        previous?.cursor !== undefined
+        && receipt.cursor !== undefined
+        && previous.cursor.kind === receipt.cursor.kind
+        && receipt.cursor.value < previous.cursor.value
+      ) {
+        throw new MissionCanvasTransportError(
+          'stale_layout_memory_cursor',
+          operationId,
+          response.status,
+          value
+        );
+      }
+      this.#layoutMemoryWatermarks.set(memoryKey, receipt);
     }
     if (operation.response_schema_ref === 'ResolvedWorkspaceProjection') {
       const watermark = validateProjectionResponse(
@@ -427,6 +482,23 @@ function validateOperationRequest(
     if (!['minimum', 'compact', 'standard', 'productive', 'wide', 'reference_capture']
       .includes(requestObject.viewport_class as string)) {
       return { valid: false, errors: ['invalid:viewport_class'] };
+    }
+    return validation;
+  }
+  if (operationId === 'focusa.mission_canvas.layout_memory.update') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return { valid: false, errors: ['expected object'] };
+    }
+    const requestObject = value as Record<string, unknown>;
+    const memoryRevision = requestObject.memory_revision;
+    if (typeof memoryRevision !== 'number'
+      || !Number.isSafeInteger(memoryRevision)
+      || memoryRevision < 1) {
+      return { valid: false, errors: ['missing:memory_revision'] };
+    }
+    if (typeof requestObject.idempotency_key !== 'string'
+      || requestObject.idempotency_key.trim().length === 0) {
+      return { valid: false, errors: ['missing:idempotency_key'] };
     }
     return validation;
   }
@@ -692,8 +764,124 @@ function validateProfileLayoutMemoryResponse(
     }
     absentIds.add(contributionId);
   }
+  if ([...placementIds].some((contributionId) => absentIds.has(contributionId))) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:memory_partition_overlap',
+      operationId,
+      status,
+      value
+    );
+  }
 
   return { memoryRevision };
+}
+
+function validateLayoutMemoryUpdateReceipt(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext,
+  requestInput: unknown
+): LayoutMemoryWatermark {
+  const receipt = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  if (!receipt) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:expected_receipt',
+      operationId,
+      status,
+      value
+    );
+  }
+  const responseAuthority = authorityFromRecord(receipt);
+  const authorityValidation = validateMissionCanvasContract(
+    'WorkstreamAuthorityContext',
+    responseAuthority
+  );
+  if (!authorityValidation.valid || !sameWorkstreamAuthorityContext(responseAuthority, expectedAuthority)) {
+    throw new MissionCanvasTransportError(
+      'foreign_layout_memory_receipt_scope',
+      operationId,
+      status,
+      value
+    );
+  }
+  const request = requestInput as Record<string, unknown>;
+  if (receipt.idempotency_key !== request.idempotency_key) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:idempotency_key_mismatch',
+      operationId,
+      status,
+      value
+    );
+  }
+  if (receipt.accepted !== true) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:receipt_not_accepted',
+      operationId,
+      status,
+      value
+    );
+  }
+  const projectionRevision = receipt.projection_revision;
+  const layoutRevision = receipt.layout_revision;
+  if (typeof projectionRevision !== 'number'
+    || !Number.isSafeInteger(projectionRevision)
+    || projectionRevision < 1
+    || typeof layoutRevision !== 'number'
+    || !Number.isSafeInteger(layoutRevision)
+    || layoutRevision < 1) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:layout_memory_revision',
+      operationId,
+      status,
+      value
+    );
+  }
+  const expectedRevision = request.memory_revision;
+  if (typeof expectedRevision !== 'number'
+    || !Number.isSafeInteger(expectedRevision)
+    || expectedRevision < 0
+    || layoutRevision !== expectedRevision + 1
+    || projectionRevision !== layoutRevision) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:layout_memory_revision_mismatch',
+      operationId,
+      status,
+      value
+    );
+  }
+  if (typeof receipt.receipt_id !== 'string' || receipt.receipt_id.trim().length === 0
+    || typeof receipt.evidence_id !== 'string' || receipt.evidence_id.trim().length === 0
+    || typeof receipt.projection_digest !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(receipt.projection_digest)
+    || typeof receipt.issued_at !== 'string' || Number.isNaN(Date.parse(receipt.issued_at))) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:receipt_proof',
+      operationId,
+      status,
+      value
+    );
+  }
+  const eventCursor = receipt.event_cursor;
+  if (typeof eventCursor !== 'string' || !eventCursor.trim()) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:layout_memory_cursor',
+      operationId,
+      status,
+      value
+    );
+  }
+  const cursor = parseProjectionCursor(eventCursor);
+  if (!cursor) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:layout_memory_cursor',
+      operationId,
+      status,
+      value
+    );
+  }
+  return { memoryRevision: layoutRevision, cursor };
 }
 
 function validateResponse(schemaRef: string, value: unknown): { valid: boolean; errors: string[] } {
@@ -1052,9 +1240,20 @@ function hasIdempotencyKey(input: unknown): boolean {
     && (input as Record<string, string>).idempotency_key.trim().length > 0;
 }
 
-function readIfMatchRevision(input: unknown): string | undefined {
+function readIfMatchRevision(input: unknown, operationId?: string): string | undefined {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
   const record = input as Record<string, unknown>;
+  if (operationId === 'focusa.mission_canvas.layout_memory.update') {
+    const memoryRevision = record.memory_revision;
+    if (typeof memoryRevision === 'number'
+      && Number.isSafeInteger(memoryRevision)
+      && memoryRevision >= 0) {
+      // ProfileLayoutMemory carries the current representation revision; the
+      // generated mutation uses it as the optimistic If-Match watermark and
+      // Core advances the persisted preference atomically.
+      return String(memoryRevision);
+    }
+  }
   for (const field of [
     'if_match_revision',
     'expected_revision',

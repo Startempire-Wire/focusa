@@ -60,6 +60,8 @@ try {
     await exerciseActivitySelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, fixture });
   } else if (operationId === 'focusa.mission_canvas.layout_memory.get') {
     await exerciseLayoutMemoryGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.layout_memory.update') {
+    await exerciseLayoutMemoryUpdate({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.profile.select') {
     await exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, fixture });
   } else if (operationId === 'focusa.mission_canvas.projection.resolve') {
@@ -1201,6 +1203,249 @@ async function exerciseLayoutMemoryGet({ MissionCanvasClient, MissionCanvasHttpT
   );
 
   console.log('Mission Canvas operation consumer: PASS (generated layout_memoryGet, exact Workstream/profile GET, direct ProfileLayoutMemory, no local composition, foreign authority/profile, stale memory revision, missing selectors/authority, capability/permission denial, and hostile response checks)');
+}
+
+async function exerciseLayoutMemoryUpdate({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  // The mutation consumes the generated ProfileLayoutMemory representation,
+  // persists only semantic placement preference, and returns the direct Core
+  // RecompositionReceipt. Desktop never receives or reconstructs a layout tree.
+  const memory = {
+    ...structuredClone(authority),
+    memory_id: 'layout-memory:software:overview:standard',
+    profile_id: 'software',
+    activity_mode_id: 'overview',
+    viewport_class: 'standard',
+    placements: [{
+      contribution_id: 'contribution:pi-session',
+      preferred_regions: ['primary'],
+      preferred_order: 0,
+      minimum_span: 3,
+      maximum_span: 8,
+      preferred_adjacency: [],
+      last_compatible_layout_node_id: 'layout:primary'
+    }],
+    // An omitted contribution remains durable memory only. It is not a
+    // request to render a placeholder or reserve a geometry slot.
+    absent_contribution_ids: ['contribution:empty-work-rail'],
+    focused_semantic_target: 'focus:pi-session',
+    memory_revision: 4,
+    idempotency_key: 'idempotency:layout-memory:update',
+    updated_at: '2026-08-07T00:00:00Z'
+  };
+  const input = structuredClone(memory);
+  const digest = `sha256:${'a'.repeat(64)}`;
+  let response = {
+    ...structuredClone(authority),
+    receipt_id: 'recomposition-receipt:layout-memory:5',
+    accepted: true,
+    projection_revision: 5,
+    layout_revision: 5,
+    projection_digest: digest,
+    event_cursor: 'event:42',
+    evidence_id: 'recomposition-evidence:layout-memory:5',
+    idempotency_key: input.idempotency_key,
+    issued_at: '2026-08-07T00:00:01Z'
+  };
+  let calls = 0;
+  const requests = [];
+  const transport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787/',
+    async (url, init) => {
+      calls += 1;
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:write'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const client = new MissionCanvasClient(transport);
+  const receipt = await client.layout_memoryUpdate(structuredClone(input));
+  assert.deepEqual(receipt, response);
+  assert.equal(receipt.accepted, true);
+  assert.deepEqual(receipt.workstream, authority.workstream);
+  assert.deepEqual(receipt.attachment, authority.attachment);
+  assert.equal('receipt' in receipt, false, 'layout_memoryUpdate must not adopt a route wrapper');
+  assert.equal('memory' in receipt, false, 'layout_memoryUpdate returns Receipt, not a memory wrapper');
+  assert.equal(calls, 1);
+
+  const requestUrl = new URL(requests[0].url);
+  assert.equal(`${requestUrl.origin}${requestUrl.pathname}`, 'http://127.0.0.1:8787/v1/mission-canvas/layout-memory');
+  assert.equal(requests[0].init.method, 'POST');
+  assert.equal(requests[0].init.headers['X-Focusa-Permissions'], 'mission_canvas:write');
+  assert.equal(requests[0].init.headers['X-Focusa-Capabilities'], undefined, 'update has no invented operation capability');
+  assert.equal(requests[0].init.headers['X-Focusa-Actor-Id'], 'actor:desktop');
+  assert.equal(requests[0].init.headers['X-Focusa-Authority-Ref'], 'authority:desktop');
+  assert.equal(requests[0].init.headers['If-Match'], String(input.memory_revision));
+  assert.equal(requests[0].init.headers['Idempotency-Key'], input.idempotency_key);
+  const body = JSON.parse(requests[0].init.body);
+  assert.deepEqual(body.workstream, authority.workstream);
+  assert.deepEqual(body.attachment, authority.attachment);
+  assert.deepEqual(body.absent_contribution_ids, ['contribution:empty-work-rail']);
+  assert.equal(body.memory_revision, input.memory_revision);
+  assert.equal(body.idempotency_key, input.idempotency_key);
+  assert.equal('layout_tree' in body, false, 'Desktop must not compose layout locally');
+  assert.equal('eligible_contributions' in body, false, 'Desktop must not own eligibility');
+  assert.equal('document_id' in body, false, 'generated input is not a persistence envelope');
+  assert.equal('payload' in body, false, 'generated input is not a route-local document wrapper');
+
+  const missingIdempotency = structuredClone(input);
+  delete missingIdempotency.idempotency_key;
+  await assert.rejects(
+    () => client.layout_memoryUpdate(missingIdempotency),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'idempotency_key_required'
+  );
+  assert.equal(calls, 1, 'missing idempotency must fail before HTTP');
+
+  const missingRevision = structuredClone(input);
+  delete missingRevision.memory_revision;
+  await assert.rejects(
+    () => client.layout_memoryUpdate(missingRevision),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'if_match_revision_required'
+  );
+  assert.equal(calls, 1, 'missing If-Match revision must fail before HTTP');
+
+  const localComposition = { ...structuredClone(input), layout_tree: { kind: 'single', contribution_id: 'invented' } };
+  await assert.rejects(
+    () => client.layout_memoryUpdate(localComposition),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_request:unknown:layout_tree'
+  );
+  const malformedPlacement = structuredClone(input);
+  malformedPlacement.placements[0].minimum_span = 0;
+  await assert.rejects(
+    () => client.layout_memoryUpdate(malformedPlacement),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:')
+  );
+
+  let missingScopeCalls = 0;
+  const missingScopeTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      missingScopeCalls += 1;
+      return new Response(JSON.stringify(response), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:write'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingScopeTransport).layout_memoryUpdate({
+      memory_id: input.memory_id,
+      profile_id: input.profile_id,
+      activity_mode_id: input.activity_mode_id,
+      viewport_class: input.viewport_class,
+      memory_revision: input.memory_revision,
+      idempotency_key: 'idempotency:missing-scope'
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_workstream_identity:')
+  );
+  assert.equal(missingScopeCalls, 0, 'missing Workstream authority must fail before HTTP');
+
+  const foreignReceiptTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () => {
+    const foreign = structuredClone(response);
+    foreign.workstream.workstream_id = 'ws:foreign';
+    foreign.attachment.workstream.workstream_id = 'ws:foreign';
+    return new Response(JSON.stringify(foreign), { status: 200 });
+  }, undefined, 30_000, ['mission_canvas:write'], [], 'actor:desktop', 'authority:desktop');
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignReceiptTransport).layout_memoryUpdate(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_layout_memory_receipt_scope'
+  );
+
+  const foreignAttachmentTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () => {
+    const foreign = structuredClone(response);
+    foreign.attachment.attachment_id = 'attachment:foreign';
+    return new Response(JSON.stringify(foreign), { status: 200 });
+  }, undefined, 30_000, ['mission_canvas:write'], [], 'actor:desktop', 'authority:desktop');
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignAttachmentTransport).layout_memoryUpdate(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_layout_memory_receipt_scope'
+  );
+
+  const mismatchedIdempotencyTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () => {
+    return new Response(JSON.stringify({ ...structuredClone(response), idempotency_key: 'idempotency:other' }), { status: 200 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(mismatchedIdempotencyTransport).layout_memoryUpdate(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:idempotency_key_mismatch'
+  );
+
+  const wrappedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ receipt: response }), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(wrappedTransport).layout_memoryUpdate(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:')
+  );
+
+  const notAcceptedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ ...structuredClone(response), accepted: false }), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(notAcceptedTransport).layout_memoryUpdate(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:receipt_not_accepted'
+  );
+
+  const wrongRevisionTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ ...structuredClone(response), accepted: true, projection_revision: 9, layout_revision: 9, event_cursor: 'event:49' }), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(wrongRevisionTransport).layout_memoryUpdate(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:layout_memory_revision_mismatch'
+  );
+
+  response = { ...structuredClone(response), projection_revision: 4, layout_revision: 4, event_cursor: 'event:41' };
+  await assert.rejects(
+    () => client.layout_memoryUpdate({ ...structuredClone(input), memory_revision: 3 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_layout_memory_revision'
+  );
+  response = { ...structuredClone(response), projection_revision: 6, layout_revision: 6, event_cursor: 'event:41' };
+  await assert.rejects(
+    () => client.layout_memoryUpdate({ ...structuredClone(input), memory_revision: 5 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_layout_memory_cursor'
+  );
+
+  const deniedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Permissions'], undefined);
+    assert.equal(init.headers['X-Focusa-Capabilities'], undefined);
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'permission_denied' } }), { status: 403 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(deniedTransport).layout_memoryUpdate(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 403
+  );
+
+  const unavailableCapabilityTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Capabilities'], undefined, 'Desktop must not mint an update capability');
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'capability_unavailable' } }), { status: 403 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(unavailableCapabilityTransport).layout_memoryUpdate(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 403
+  );
+
+  const missingAuthorityTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Actor-Id'], undefined);
+    assert.equal(init.headers['X-Focusa-Authority-Ref'], undefined);
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'workstream_context_invalid' } }), { status: 422 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(missingAuthorityTransport).layout_memoryUpdate(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 422
+  );
+
+  await assert.rejects(
+    () => transport.request('focusa.mission_canvas.layout_memory.unavailable', structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'operation_unavailable'
+  );
+
+  console.log('Mission Canvas operation consumer: PASS (generated layout_memoryUpdate, exact Workstream POST, direct RecompositionReceipt, semantic placement persistence, Idempotency-Key/If-Match, foreign receipt authority, stale memory revision/cursor, empty/ineligible memory, no local composition, permission/capability, and hostile response checks)');
 }
 
 async function exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, fixture }) {

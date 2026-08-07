@@ -17,9 +17,10 @@ use focusa_core::mission_canvas::{
     DomainPackInstallError, DomainPackInstallService, EligibilityContext, HostLifecycleError,
     HostLifecycleFocusCommand, HostLifecycleLaunchCommand, HostLifecycleService,
     HostLifecycleState, HostPlatform, HostRendererResolutionError, HostRendererResolutionService,
+    LayoutMemoryUpdateCommand, LayoutMemoryUpdateError, LayoutMemoryUpdateService,
     MissionCanvasScope, MissionCanvasStore, ProfileLayoutMemory, ProfileSelectionCommand,
     ProfileSelectionError, ProfileSelectionService, ResolveProjectionInput, StoredDocument,
-    WorkspaceProfileDefinition, DOMAIN_PACK_INSTALL_CAPABILITY,
+    WorkspaceProfileDefinition, DOMAIN_PACK_INSTALL_CAPABILITY, LAYOUT_MEMORY_UPDATE_PERMISSION,
 };
 use focusa_core::workstream_context::{
     ActorRef, ActorType, AuthorityContext, WorkstreamContext, WorkstreamContextError,
@@ -1952,9 +1953,11 @@ fn layout_memory_validation_error(reason: &'static str) -> (StatusCode, Json<Val
         "viewport_class_mismatch" => "layout_memory_viewport_mismatch",
         "memory_id_mismatch" => "layout_memory_id_mismatch",
         "idempotency_key_missing" => "layout_memory_idempotency_missing",
-        "placement_invalid" | "placement_duplicate" | "absent_contribution_invalid" => {
-            "layout_memory_content_invalid"
-        }
+        "placement_invalid"
+        | "placement_duplicate"
+        | "absent_contribution_invalid"
+        | "placement_absent_overlap"
+        | "updated_at_invalid" => "layout_memory_content_invalid",
         "attachment_missing" => "layout_memory_attachment_missing",
         _ => "layout_memory_invalid",
     };
@@ -1970,19 +1973,101 @@ fn layout_memory_validation_error(reason: &'static str) -> (StatusCode, Json<Val
     )
 }
 
+fn layout_memory_update_error(error_value: LayoutMemoryUpdateError) -> (StatusCode, Json<Value>) {
+    let message = error_value.to_string();
+    match error_value {
+        LayoutMemoryUpdateError::Context(context_error) => {
+            host_renderer_context_error(context_error)
+        }
+        LayoutMemoryUpdateError::Scope(reason) | LayoutMemoryUpdateError::MemoryInvalid(reason) => {
+            layout_memory_validation_error(reason)
+        }
+        LayoutMemoryUpdateError::PermissionDenied(permission) => error(
+            StatusCode::FORBIDDEN,
+            "permission_denied",
+            &format!("Missing required permission: {permission}"),
+        ),
+        LayoutMemoryUpdateError::IdempotencyKeyRequired => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "idempotency_key_missing",
+            &message,
+        ),
+        LayoutMemoryUpdateError::RevisionConflict { .. } => error(
+            StatusCode::CONFLICT,
+            "layout_memory_revision_conflict",
+            &message,
+        ),
+        LayoutMemoryUpdateError::RevisionOverflow => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "layout_memory_revision_overflow",
+            &message,
+        ),
+        LayoutMemoryUpdateError::Serialization(serialization_error) => {
+            json_error(serialization_error)
+        }
+        LayoutMemoryUpdateError::Store(store_error) => {
+            let (status, code) = match &store_error {
+                focusa_core::mission_canvas::MissionCanvasStoreError::RevisionConflict { .. } => {
+                    (StatusCode::CONFLICT, "layout_memory_revision_conflict")
+                }
+                focusa_core::mission_canvas::MissionCanvasStoreError::LayoutMemoryIdempotencyConflict => {
+                    (StatusCode::CONFLICT, "idempotency_conflict")
+                }
+                focusa_core::mission_canvas::MissionCanvasStoreError::InvalidLayoutMemory(_) => {
+                    (StatusCode::CONFLICT, "layout_memory_invalid")
+                }
+                _ => (StatusCode::INTERNAL_SERVER_ERROR, "mission_canvas_store_error"),
+            };
+            error(status, code, &store_error.to_string())
+        }
+    }
+}
+
 async fn put_layout_memory(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Json(request): Json<DocumentWriteRequest>,
+    Json(memory): Json<ProfileLayoutMemory>,
 ) -> ApiResult {
-    write_document(
-        &state,
+    // This is the generated layout_memory.update adapter. It intentionally
+    // does not accept DocumentWriteRequest: ProfileLayoutMemory is the
+    // published request DTO and Core owns its semantic identity/revision.
+    require_permission_with_state(&state, &headers, LAYOUT_MEMORY_UPDATE_PERMISSION)?;
+    validate_authority(&memory.scope)?;
+    let context =
+        exact_workstream_context(&memory.scope, &headers).map_err(host_renderer_context_error)?;
+    let header_idempotency_key = required_header(
         &headers,
-        "mission_canvas_layout_memory",
-        request,
-        "layout_changed",
-        "mission_canvas:write",
-    )
+        "idempotency-key",
+        "idempotency_key_missing",
+        "Idempotency-Key is required for layout-memory update",
+    )?;
+    if header_idempotency_key != memory.idempotency_key {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "idempotency_key_mismatch",
+            "The generated ProfileLayoutMemory and Idempotency-Key header disagree",
+        ));
+    }
+    let expected_memory_revision = required_if_match_revision(&headers)?;
+    let permissions = permission_context(&headers, token_enabled(&state))
+        .list()
+        .into_iter()
+        .collect();
+    let receipt = LayoutMemoryUpdateService
+        .update(
+            &store(&state)?,
+            &LayoutMemoryUpdateCommand {
+                context,
+                scope: memory.scope.clone(),
+                memory,
+                expected_memory_revision,
+                permissions,
+            },
+        )
+        .map_err(layout_memory_update_error)?;
+    // Return the direct generated RecompositionReceipt. StoredDocument and
+    // route-local receipt wrappers are not transport contracts.
+    Ok(Json(serde_json::to_value(receipt).map_err(json_error)?))
 }
 
 async fn mutate_layout(

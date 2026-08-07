@@ -2,15 +2,19 @@ use std::{path::Path, sync::Arc};
 
 use chrono::Utc;
 use parking_lot::Mutex;
-use rusqlite::{Connection, OptionalExtension, Transaction, params};
-use serde_json::{Value, json};
+use rusqlite::{params, Connection, OptionalExtension, Transaction};
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use thiserror::Error;
 
+use super::memory::{layout_memory_digest, validate_profile_layout_memory, ProfileLayoutMemory};
 use super::model::{
     CompositionEvent, DomainPackInstallReceipt, GovernedDomainPackInstallReceipt,
     MissionCanvasScope, OmissionDiagnostic, ResolvedWorkspaceProjection, StoredDocument,
 };
 use super::profiles::DomainPack;
+use super::reducer::{RecompositionEvidence, RecompositionReceipt};
+use super::LAYOUT_MEMORY_UPDATE_OPERATION;
 use crate::workstream_identity::WorkstreamKey;
 
 const DOCUMENT_TABLES: &[&str] = &[
@@ -60,6 +64,10 @@ pub enum MissionCanvasStoreError {
     UnknownTable(String),
     #[error("revision conflict: expected {expected}, observed {observed}")]
     RevisionConflict { expected: u64, observed: u64 },
+    #[error("layout-memory idempotency key conflicts with an existing request")]
+    LayoutMemoryIdempotencyConflict,
+    #[error("layout-memory document is invalid: {0}")]
+    InvalidLayoutMemory(&'static str),
     #[error("document already exists at revision {0}")]
     AlreadyExists(u64),
     #[error("invalid host lifecycle document: {0}")]
@@ -334,6 +342,215 @@ impl MissionCanvasStore {
         append_event_transaction(&transaction, event)?;
         transaction.commit()?;
         Ok(document.revision)
+    }
+
+    /// Persist one generated ProfileLayoutMemory update with its exact
+    /// Workstream, Evidence, Receipt, and durable event in one transaction.
+    /// The operation is idempotent across restarts: a matching causation key
+    /// and request digest returns the original Receipt without appending a
+    /// second event or overwriting a newer memory revision.
+    pub fn update_layout_memory(
+        &self,
+        memory: &ProfileLayoutMemory,
+        expected_revision: u64,
+        request_digest: &str,
+        authority_ref: &str,
+    ) -> Result<RecompositionReceipt> {
+        Self::ensure_table("mission_canvas_layout_memory")?;
+        let scope_key = canonical_scope_key(&memory.scope)?;
+        if request_digest.trim().is_empty() || authority_ref.trim().is_empty() {
+            return Err(MissionCanvasStoreError::InvalidLayoutMemory(
+                "request_digest_or_authority_missing",
+            ));
+        }
+        validate_profile_layout_memory(
+            memory,
+            &memory.scope,
+            &memory.profile_id,
+            &memory.activity_mode_id,
+            &memory.viewport_class,
+        )
+        .map_err(MissionCanvasStoreError::InvalidLayoutMemory)?;
+        let next_revision =
+            expected_revision
+                .checked_add(1)
+                .ok_or(MissionCanvasStoreError::RevisionConflict {
+                    expected: expected_revision,
+                    observed: u64::MAX,
+                })?;
+        if memory.memory_revision != next_revision {
+            return Err(MissionCanvasStoreError::RevisionConflict {
+                expected: next_revision,
+                observed: memory.memory_revision,
+            });
+        }
+
+        let digest = layout_memory_digest(memory)?;
+        let document_id = memory.memory_id.clone();
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction()?;
+
+        let existing_event: Option<(String, String)> = transaction
+            .query_row(
+                "SELECT event_kind, payload_json FROM mission_canvas_composition_events WHERE scope_key = ?1 AND causation_id = ?2 ORDER BY sequence DESC LIMIT 1",
+                params![scope_key, memory.idempotency_key],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        if let Some((event_kind, payload_json)) = existing_event {
+            let payload: Value = serde_json::from_str(&payload_json)?;
+            let same_operation = event_kind == "layout_changed"
+                && payload.get("operation_id").and_then(Value::as_str)
+                    == Some(LAYOUT_MEMORY_UPDATE_OPERATION);
+            if same_operation
+                && payload.get("request_digest").and_then(Value::as_str) == Some(request_digest)
+            {
+                let receipt: RecompositionReceipt =
+                    serde_json::from_value(payload.get("receipt").cloned().ok_or(
+                        MissionCanvasStoreError::InvalidLayoutMemory("idempotent_receipt_missing"),
+                    )?)?;
+                if receipt.scope != memory.scope
+                    || receipt.idempotency_key != memory.idempotency_key
+                {
+                    return Err(MissionCanvasStoreError::InvalidLayoutMemory(
+                        "idempotent_receipt_scope_mismatch",
+                    ));
+                }
+                transaction.rollback()?;
+                return Ok(receipt);
+            }
+            return Err(MissionCanvasStoreError::LayoutMemoryIdempotencyConflict);
+        }
+
+        let current: Option<(u64, String)> = transaction
+            .query_row(
+                "SELECT revision, payload_json FROM mission_canvas_layout_memory WHERE scope_key = ?1 AND document_id = ?2",
+                params![scope_key, document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        match current {
+            Some((observed_revision, payload_json)) => {
+                if observed_revision != expected_revision {
+                    return Err(MissionCanvasStoreError::RevisionConflict {
+                        expected: expected_revision,
+                        observed: observed_revision,
+                    });
+                }
+                let stored: ProfileLayoutMemory = serde_json::from_str(&payload_json)?;
+                validate_profile_layout_memory(
+                    &stored,
+                    &memory.scope,
+                    &memory.profile_id,
+                    &memory.activity_mode_id,
+                    &memory.viewport_class,
+                )
+                .map_err(MissionCanvasStoreError::InvalidLayoutMemory)?;
+                if stored.memory_revision != observed_revision {
+                    return Err(MissionCanvasStoreError::InvalidLayoutMemory(
+                        "stored_revision_mismatch",
+                    ));
+                }
+            }
+            None if expected_revision != 0 => {
+                return Err(MissionCanvasStoreError::RevisionConflict {
+                    expected: expected_revision,
+                    observed: 0,
+                });
+            }
+            None => {}
+        }
+
+        let scope_fragment = hex::encode(Sha256::digest(scope_key.as_bytes()));
+        let memory_fragment = hex::encode(Sha256::digest(memory.memory_id.as_bytes()));
+        let evidence_id = format!(
+            "recomposition-evidence:layout-memory:{scope_fragment}:{memory_fragment}:{}",
+            memory.memory_revision
+        );
+        let receipt_id = format!(
+            "recomposition-receipt:layout-memory:{scope_fragment}:{memory_fragment}:{}",
+            memory.memory_revision
+        );
+        let candidate_contribution_ids = memory
+            .placements
+            .iter()
+            .map(|placement| placement.contribution_id.clone())
+            .chain(memory.absent_contribution_ids.iter().cloned())
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let issued_at = memory.updated_at.clone();
+        let evidence = RecompositionEvidence {
+            evidence_id: evidence_id.clone(),
+            scope: memory.scope.clone(),
+            trigger: "preference_change".into(),
+            input_projection_digest: None,
+            output_projection_digest: digest.clone(),
+            rule_revision: "layout-memory:v1".into(),
+            candidate_contribution_ids,
+            eligibility_decisions: vec![],
+            observed_at: issued_at.clone(),
+        };
+        let mut receipt = RecompositionReceipt {
+            receipt_id: receipt_id.clone(),
+            scope: memory.scope.clone(),
+            accepted: true,
+            projection_revision: memory.memory_revision,
+            layout_revision: memory.memory_revision,
+            projection_digest: digest,
+            event_cursor: "event:pending".into(),
+            evidence_id: evidence_id.clone(),
+            idempotency_key: memory.idempotency_key.clone(),
+            issued_at: issued_at.clone(),
+        };
+        let idempotency_fragment = hex::encode(Sha256::digest(memory.idempotency_key.as_bytes()));
+        let event_id =
+            format!("projection-event:layout-memory:{scope_fragment}:{idempotency_fragment}");
+        let mut event = CompositionEvent {
+            event_id: event_id.clone(),
+            event_kind: "layout_changed".into(),
+            scope: memory.scope.clone(),
+            projection_revision: memory.memory_revision,
+            layout_revision: memory.memory_revision,
+            causation_id: Some(memory.idempotency_key.clone()),
+            correlation_id: Some(authority_ref.to_owned()),
+            occurred_at: issued_at,
+            payload: json!({
+                "operation_id": LAYOUT_MEMORY_UPDATE_OPERATION,
+                "memory_id": memory.memory_id,
+                "memory_revision": memory.memory_revision,
+                "request_digest": request_digest,
+                "authority_ref": authority_ref,
+                "evidence": evidence,
+                "receipt": receipt,
+            }),
+            evidence_refs: vec![evidence_id],
+            receipt_refs: vec![receipt_id],
+        };
+        let sequence = append_event_transaction(&transaction, &event)?;
+        receipt.event_cursor = format!("event:{sequence}");
+        event.payload["receipt"] = serde_json::to_value(&receipt)?;
+        transaction.execute(
+            "UPDATE mission_canvas_composition_events SET payload_json = ?1 WHERE event_id = ?2",
+            params![serde_json::to_string(&event.payload)?, event_id],
+        )?;
+        transaction.execute(
+            r#"INSERT INTO mission_canvas_layout_memory(
+                    scope_key, document_id, revision, payload_json, updated_at
+                ) VALUES (?1, ?2, ?3, ?4, ?5)
+                ON CONFLICT(scope_key, document_id) DO UPDATE SET
+                    revision=excluded.revision, payload_json=excluded.payload_json,
+                    updated_at=excluded.updated_at"#,
+            params![
+                scope_key,
+                document_id,
+                memory.memory_revision,
+                serde_json::to_string(memory)?,
+                memory.updated_at,
+            ],
+        )?;
+        transaction.commit()?;
+        Ok(receipt)
     }
 
     /// Persist one exact rich-host lifecycle command and its event atomically.
@@ -1231,19 +1448,15 @@ mod tests {
             assert_eq!(loaded_a.evidence_refs, vec!["evidence:alpha"]);
             assert_eq!(loaded_b.scope.workstream, b.workstream);
             assert_eq!(loaded_b.receipt_refs, vec!["receipt:beta"]);
-            assert!(
-                store
-                    .load_projection(&aggregate_scope("ws:missing"))
-                    .unwrap()
-                    .is_none()
-            );
+            assert!(store
+                .load_projection(&aggregate_scope("ws:missing"))
+                .unwrap()
+                .is_none());
             assert_eq!(store.events_after(&a, 0, 10).unwrap().len(), 1);
-            assert!(
-                store
-                    .events_after(&aggregate_scope("ws:missing"), 0, 10)
-                    .unwrap()
-                    .is_empty()
-            );
+            assert!(store
+                .events_after(&aggregate_scope("ws:missing"), 0, 10)
+                .unwrap()
+                .is_empty());
         }
 
         #[test]
@@ -1391,12 +1604,10 @@ mod tests {
                     .unwrap();
             }
             store.migrate().unwrap();
-            assert!(
-                store
-                    .load_projection(&aggregate_scope("ws:legacy"))
-                    .unwrap()
-                    .is_none()
-            );
+            assert!(store
+                .load_projection(&aggregate_scope("ws:legacy"))
+                .unwrap()
+                .is_none());
             let connection = store.connection.lock();
             let quarantined: i64 = connection
                 .query_row(
