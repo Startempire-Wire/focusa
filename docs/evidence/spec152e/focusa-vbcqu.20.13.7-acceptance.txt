@@ -42,7 +42,7 @@ PUBLIC-SAFETY AND DELIVERY BOUNDARY
 The tests use only in-memory SQLite and synthetic identifiers. No deployed WordPress database, customer record, administrative URL, secret, raw credential, or unmasked real-email evidence was read or changed. Cargo/release builds, publication, deploy, merge, push, and Beads mutation are excluded.
 
 ROLLBACK
-Revert implementation commits 60fe89ecf0238a2c680a263b91b2002382dc82ec and d0541d9057bfc221eadc70dea86041f304b0ff0f, plus the local evidence commits containing this file. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals.
+Revert only this registration atom: implementation commits 60fe89ecf0238a2c680a263b91b2002382dc82ec, d0541d9057bfc221eadc70dea86041f304b0ff0f, and 4a1f79c23f2e2a009e67cf20d097d3ae7b6e766f, plus its test/evidence commits. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals.
 
 RESULT
 TECHNICAL_ACCEPTANCE: PASSED
