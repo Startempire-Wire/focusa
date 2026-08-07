@@ -2,19 +2,19 @@ use std::collections::BTreeSet;
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 use super::{
     layout::{
-        InspectorSide, LayoutConstraints, LayoutError, resolve_layout, validate_no_dead_chrome,
+        resolve_layout, validate_no_dead_chrome, InspectorSide, LayoutConstraints, LayoutError,
     },
     model::{
         CandidateContribution, CompositionEvent, ResolvedContribution, ResolvedWorkspaceProjection,
         ScopedCandidateContribution,
     },
-    resolver::{EligibilityContext, EligibilityDecision, collect_candidates, resolve_eligibility},
+    resolver::{collect_candidates, resolve_eligibility, EligibilityContext, EligibilityDecision},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -188,6 +188,18 @@ pub fn resolve_projection(
         .map(|candidate| candidate.contribution_id.clone())
         .collect::<Vec<_>>();
     let eligibility = resolve_eligibility(candidates, &input.eligibility);
+    // Generated ContributionEligibilityContext does not carry a semantic
+    // focus token. Core therefore selects the deterministic highest-priority
+    // eligible contribution rather than accepting a client-invented target.
+    let focused_semantic_target = if input.focused_semantic_target.trim().is_empty() {
+        eligibility
+            .eligible
+            .first()
+            .map(|candidate| candidate.semantic_binding_id.clone())
+            .ok_or(LayoutError::NoEligibleContributions)?
+    } else {
+        input.focused_semantic_target.clone()
+    };
     let layout = resolve_layout(
         &eligibility.eligible,
         &LayoutConstraints {
@@ -197,7 +209,7 @@ pub fn resolve_projection(
             inspector_side: InspectorSide::End,
             focused_contribution_id: focused_contribution_id(
                 &eligibility.eligible,
-                &input.focused_semantic_target,
+                &focused_semantic_target,
             ),
         },
     )?;
@@ -243,7 +255,7 @@ pub fn resolve_projection(
         omission_diagnostics: eligibility.omissions,
         layout_tree: serde_json::to_value(layout)?,
         operation_bindings,
-        focused_semantic_target: input.focused_semantic_target,
+        focused_semantic_target,
         projection_revision,
         layout_revision,
         durable_event_cursor: input.event_cursor.clone(),
@@ -256,8 +268,9 @@ pub fn resolve_projection(
     projection
         .validate_scope(&scope)
         .map_err(scope_validation_error)?;
-    let evidence_id = format!("recomposition-evidence:{projection_revision}");
-    let receipt_id = format!("recomposition-receipt:{projection_revision}");
+    let scope_key = scope.workstream.storage_key();
+    let evidence_id = format!("recomposition-evidence:{scope_key}:{projection_revision}");
+    let receipt_id = format!("recomposition-receipt:{scope_key}:{projection_revision}");
     projection.evidence_refs.push(evidence_id.clone());
     projection.receipt_refs.push(receipt_id.clone());
     let evidence = RecompositionEvidence {
@@ -284,13 +297,13 @@ pub fn resolve_projection(
         issued_at: now.clone(),
     };
     let event = CompositionEvent {
-        event_id: format!("projection-event:{projection_revision}"),
+        event_id: format!("projection-event:{scope_key}:{projection_revision}"),
         event_kind: "projection_resolved".into(),
         scope: projection.scope.clone(),
         projection_revision,
         layout_revision,
         causation_id: input.causation_id,
-        correlation_id: Some(format!("resolve:{projection_revision}")),
+        correlation_id: Some(format!("resolve:{scope_key}:{projection_revision}")),
         occurred_at: now,
         payload: json!({
             "projection_digest": projection.projection_digest,
@@ -649,10 +662,14 @@ mod tests {
         );
         assert!(!result.projection.layout_tree.is_null());
         assert!(candidate_partition_is_complete(&result.projection));
-        assert!(result.evidence.eligibility_decisions.iter().any(
-            |decision| decision.contribution_id == "contribution:browser"
-                && decision.outcome == super::super::resolver::EligibilityOutcome::Omitted
-        ));
+        assert!(result
+            .evidence
+            .eligibility_decisions
+            .iter()
+            .any(
+                |decision| decision.contribution_id == "contribution:browser"
+                    && decision.outcome == super::super::resolver::EligibilityOutcome::Omitted
+            ));
     }
 
     #[test]
