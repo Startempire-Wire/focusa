@@ -16,8 +16,9 @@ pub mod feature_decision;
 pub mod license_migration;
 
 pub use entitlement_policy::{
-    AccessPosture, CapabilityFamily, CommercialTreatment, CompositeGrant, DecisionReason,
-    EntitlementPolicyTypeError, LicenseTypeCode, LicenseTypeGrant, LicenseTypeVersion, LimitBucket,
+    reduce_entitlement_state, AccessPosture, CapabilityFamily, CommercialTreatment, CompositeGrant,
+    DecisionReason, EntitlementPolicyPosture, EntitlementPolicyTypeError, EntitlementStateDecision,
+    LicenseTypeCode, LicenseTypeGrant, LicenseTypeVersion, LimitBucket,
     OperationClass, OperatorSeats, PolicyActivation, PolicyEntitlementState, ProductCode,
     RecoveryAllowance, RequiredFeature, ResolvedEntitlementPolicy, ResourceRight, SaleStatus,
     SharedNodeLimit,

@@ -200,8 +200,7 @@ impl CompositeGrant {
 #[serde(rename_all = "snake_case")]
 pub enum PolicyEntitlementState {
     PendingUnverified,
-    VerifiedNoGrant,
-    Evaluation,
+    VerifiedNoLicense,
     ActivePaid,
     OfflineGrace,
     Expired,
@@ -291,6 +290,7 @@ pub enum RecoveryAllowance {
 #[serde(rename_all = "snake_case")]
 pub enum DecisionReason {
     Allow,
+    AllowVerifiedLimited,
     Read,
     ReadLocalOnly,
     AllowExistingLocalOnly,
@@ -300,7 +300,138 @@ pub enum DecisionReason {
     RequireCachedFeature,
     RequireCachedFeatureWhenSafe,
     Inherit,
+    MissingInitiatingPolicy,
     Deny,
+}
+
+/// Commercial posture produced by the state-grid reducer. Security, identity,
+/// role, scope, node, sequence, and confirmation gates remain independent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EntitlementPolicyPosture {
+    Allow,
+    Read,
+    Base,
+    Feature,
+    Deny,
+}
+
+/// Pure, bounded result for one Spec 172-overlaid Spec 152F grid cell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EntitlementStateDecision {
+    posture: EntitlementPolicyPosture,
+    reason: DecisionReason,
+}
+
+impl EntitlementStateDecision {
+    const fn new(posture: EntitlementPolicyPosture, reason: DecisionReason) -> Self {
+        Self { posture, reason }
+    }
+
+    pub const fn posture(self) -> EntitlementPolicyPosture {
+        self.posture
+    }
+
+    pub const fn reason(self) -> DecisionReason {
+        self.reason
+    }
+}
+
+/// Reduce authority state and canonical capability family to commercial
+/// posture. `initiating_posture` is considered only for internal maintenance,
+/// which may never broaden the operation that caused it.
+///
+/// This reducer intentionally accepts no product, price, lease, key, grant, or
+/// role input. Those values are authority/security concerns resolved before or
+/// after this bounded policy step.
+pub const fn reduce_entitlement_state(
+    state: PolicyEntitlementState,
+    family: CapabilityFamily,
+    initiating_posture: Option<EntitlementPolicyPosture>,
+) -> EntitlementStateDecision {
+    use CapabilityFamily as Family;
+    use DecisionReason as Reason;
+    use EntitlementPolicyPosture as Posture;
+    use PolicyEntitlementState as State;
+
+    if matches!(family, Family::InternalMaintenance) {
+        return match initiating_posture {
+            Some(posture) => EntitlementStateDecision::new(posture, Reason::Inherit),
+            None => EntitlementStateDecision::new(Posture::Deny, Reason::MissingInitiatingPolicy),
+        };
+    }
+
+    match (state, family) {
+        (State::PendingUnverified, Family::AccountRecovery) => {
+            EntitlementStateDecision::new(Posture::Allow, Reason::Allow)
+        }
+        (State::PendingUnverified, Family::CustomerDataExport) => {
+            EntitlementStateDecision::new(Posture::Allow, Reason::AllowExistingLocalOnly)
+        }
+        (State::PendingUnverified, _) => {
+            EntitlementStateDecision::new(Posture::Deny, Reason::Deny)
+        }
+
+        (State::VerifiedNoLicense, Family::AccountRecovery | Family::CustomerDataExport) => {
+            EntitlementStateDecision::new(Posture::Allow, Reason::Allow)
+        }
+        (State::VerifiedNoLicense, Family::ReadProjection) => {
+            EntitlementStateDecision::new(Posture::Read, Reason::Read)
+        }
+        (State::VerifiedNoLicense, Family::BaseFocusa) => {
+            EntitlementStateDecision::new(Posture::Allow, Reason::AllowVerifiedLimited)
+        }
+        (State::VerifiedNoLicense, _) => {
+            EntitlementStateDecision::new(Posture::Deny, Reason::Deny)
+        }
+
+        (State::ActivePaid, Family::AccountRecovery | Family::CustomerDataExport) => {
+            EntitlementStateDecision::new(Posture::Allow, Reason::Allow)
+        }
+        (State::ActivePaid, Family::ReadProjection) => {
+            EntitlementStateDecision::new(Posture::Read, Reason::Read)
+        }
+        (State::ActivePaid, Family::BaseFocusa) => {
+            EntitlementStateDecision::new(Posture::Base, Reason::RequireBase)
+        }
+        (State::ActivePaid, _) => {
+            EntitlementStateDecision::new(Posture::Feature, Reason::RequireFeature)
+        }
+
+        (State::OfflineGrace, Family::AccountRecovery) => {
+            EntitlementStateDecision::new(Posture::Allow, Reason::AllowOfflineOnly)
+        }
+        (State::OfflineGrace, Family::CustomerDataExport) => {
+            EntitlementStateDecision::new(Posture::Allow, Reason::Allow)
+        }
+        (State::OfflineGrace, Family::ReadProjection) => {
+            EntitlementStateDecision::new(Posture::Read, Reason::Read)
+        }
+        (State::OfflineGrace, Family::BaseFocusa) => {
+            EntitlementStateDecision::new(Posture::Base, Reason::RequireBase)
+        }
+        (State::OfflineGrace, Family::PremiumUpdates) => EntitlementStateDecision::new(
+            Posture::Feature,
+            Reason::RequireCachedFeatureWhenSafe,
+        ),
+        (State::OfflineGrace, _) => {
+            EntitlementStateDecision::new(Posture::Feature, Reason::RequireCachedFeature)
+        }
+
+        (
+            State::Expired | State::RefundedOrRevoked | State::MissingOrCorrupt,
+            Family::AccountRecovery | Family::CustomerDataExport,
+        ) => EntitlementStateDecision::new(Posture::Allow, Reason::Allow),
+        (State::MissingOrCorrupt, Family::ReadProjection) => {
+            EntitlementStateDecision::new(Posture::Read, Reason::ReadLocalOnly)
+        }
+        (State::Expired | State::RefundedOrRevoked, Family::ReadProjection) => {
+            EntitlementStateDecision::new(Posture::Read, Reason::Read)
+        }
+        (State::Expired | State::RefundedOrRevoked | State::MissingOrCorrupt, _) => {
+            EntitlementStateDecision::new(Posture::Deny, Reason::Deny)
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

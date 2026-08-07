@@ -33,8 +33,10 @@ fn entitlement_policy_types_round_trip_registry_names() {
             PolicyEntitlementState::PendingUnverified,
             "pending_unverified",
         ),
-        (PolicyEntitlementState::VerifiedNoGrant, "verified_no_grant"),
-        (PolicyEntitlementState::Evaluation, "evaluation"),
+        (
+            PolicyEntitlementState::VerifiedNoLicense,
+            "verified_no_license",
+        ),
         (PolicyEntitlementState::ActivePaid, "active_paid"),
         (PolicyEntitlementState::OfflineGrace, "offline_grace"),
         (PolicyEntitlementState::Expired, "expired"),
@@ -108,6 +110,10 @@ fn entitlement_policy_types_round_trip_registry_names() {
     }
     for (value, name) in [
         (DecisionReason::Allow, "allow"),
+        (
+            DecisionReason::AllowVerifiedLimited,
+            "allow_verified_limited",
+        ),
         (DecisionReason::Read, "read"),
         (DecisionReason::ReadLocalOnly, "read_local_only"),
         (
@@ -144,6 +150,7 @@ fn entitlement_policy_types_round_trip_registry_names() {
 fn entitlement_policy_types_reject_unknown_or_malformed_active_values() {
     assert!(serde_json::from_str::<CapabilityFamily>("\"invented_family\"").is_err());
     assert!(serde_json::from_str::<PolicyEntitlementState>("\"licensed\"").is_err());
+    assert!(serde_json::from_str::<PolicyEntitlementState>("\"evaluation\"").is_err());
     assert!(serde_json::from_str::<RequiredFeature>("\"release.proof\"").is_err());
     assert!(serde_json::from_str::<LimitBucket>("\"Release-Proofs\"").is_err());
     assert_eq!(
