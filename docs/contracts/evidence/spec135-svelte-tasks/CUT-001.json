@@ -1,0 +1,27 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CUT-001",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Verified the production MissionCanvasShell mounts the generated-client projection controller and adaptive Desktop runtime without fixture or static dashboard fallback.",
+  "dependency_gate": {"status": "passed", "dependencies": ["UI-003", "UI-021", "LIVE-003"]},
+  "targets": ["apps/desktop/src/lib/shell/MissionCanvasShell.svelte", "apps/desktop"],
+  "implementation": [
+    "Production shell authority flows into DesktopMissionCanvasRuntime and MissionCanvasProjectionController.",
+    "Development fixtures remain test/preview-only and are not reachable from the production shell.",
+    "Canonical recursive projection, operation, live refresh, profile memory, presentation-state, and contribution renderer seams remain mounted."
+  ],
+  "negative_cases": ["missing authority", "projection loading/error/empty state", "development fixture import in production shell", "static dashboard fallback"],
+  "checks": [
+    {"command": "npm --prefix apps/desktop run check && npm --prefix apps/desktop test", "result": "pass: zero Svelte errors and complete Desktop runtime suite"},
+    {"command": "git diff --check", "result": "pass"}
+  ],
+  "acceptance": [
+    "Production shell consumes no fixture and no static dashboard body.",
+    "No static scaffold is reachable in production Desktop code.",
+    "No capability is lost during deletion."
+  ],
+  "source_authority": ["docs/contracts/spec135-svelte-task-packets/CUT-001.json"],
+  "evidence_refs": ["apps/desktop/tests/shell-contract.mjs", "apps/desktop/tests/projection-controller-runtime.mjs", "apps/desktop/tests/presentation-state-runtime.mjs"],
+  "remaining_work": []
+}
