@@ -389,4 +389,41 @@ except ValidationError:
 else:
     raise AssertionError("projection accepted client-invented panel")
 
-print("Spec 135 resolved projection contract foundation: PASS")
+# CORE-009 identity migration fixtures are consumed by the same generated
+# projection contract gate. Migration is core-owned; this check only validates
+# that its deterministic Workstream/Attachment expectations remain transport-safe.
+identity_fixture_dir = ROOT / "tests/fixtures/spec158-mission-canvas-identity"
+identity_fixture_paths = sorted(identity_fixture_dir.glob("*.json"))
+assert {path.stem for path in identity_fixture_paths} == {
+    "legacy_fixture",
+    "ambiguous_fixture",
+    "cross_workstream_fixture",
+}
+for identity_fixture_path in identity_fixture_paths:
+    identity_fixture = json.loads(identity_fixture_path.read_text())
+    assert identity_fixture["schema"] == "focusa.spec158.mission_canvas_identity_migration_fixture.v1"
+    assert identity_fixture["generated_contracts"]["generated_operation"] is None
+    for record in identity_fixture["records"]:
+        validator("LegacyExactScopeCompatibilityInput").validate(record["legacy"])
+        for candidate in record.get("candidate_workstreams", []):
+            validator("WorkstreamKey").validate(candidate)
+        for mapping in record.get("migration_candidates", []):
+            mapping_workstream = {
+                "scope": mapping["scope_ref"],
+                "workstream_id": mapping["workstream_id"],
+            }
+            validator("WorkstreamKey").validate(mapping_workstream)
+    for migrated in identity_fixture["expected"]["migrated"]:
+        validator("WorkstreamAuthorityContext").validate(migrated["authority"])
+        authority = migrated["authority"]
+        assert authority["attachment"]["workstream"] == authority["workstream"]
+        assert authority["continuity_id"] == authority["attachment"]["continuity_id"]
+        # Identity migration cannot invent a focusable Work Surface or runtime.
+        assert authority["work_surface_id"] is None
+        assert authority["runtime_object"] is None
+    if identity_fixture_path.stem == "ambiguous_fixture":
+        assert identity_fixture["expected"]["migrated"] == []
+        assert identity_fixture["expected"]["quarantined"][0]["reason"] == "multiple_candidate_workstreams"
+        assert len(identity_fixture["expected"]["quarantined"][0]["candidate_workstreams"]) == 2
+
+print("Spec 135 resolved projection contract foundation and CORE-009 identity fixtures: PASS")
