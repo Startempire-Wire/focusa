@@ -2179,7 +2179,7 @@ fn layout_mutation_error(error_value: LayoutMutationError) -> (StatusCode, Json<
         LayoutMutationError::Serialization(serialization_error) => {
             json_error(serialization_error)
         }
-        LayoutMutationError::Store(store_error) => match store_error {
+        LayoutMutationError::Store(stored_error) => match stored_error {
             focusa_core::mission_canvas::MissionCanvasStoreError::RevisionConflict { .. }
             | focusa_core::mission_canvas::MissionCanvasStoreError::LayoutMutationIdempotencyConflict => {
                 error(StatusCode::CONFLICT, "layout_revision_conflict", &message)
