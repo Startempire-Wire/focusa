@@ -1,5 +1,12 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::sync::OnceLock;
 use thiserror::Error;
+
+#[path = "entitlement_policy_registry_validation.rs"]
+mod registry_validation;
+
+include!(concat!(env!("OUT_DIR"), "/entitlement_policy_registry.rs"));
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -154,16 +161,24 @@ pub struct LicenseTypeGrant {
 
 impl LicenseTypeGrant {
     pub const fn focusa_operator_v1() -> Self {
-        Self::operator(ProductCode::Focusa, LicenseTypeCode::FocusaOperatorLifetimeV1)
+        Self::operator(
+            ProductCode::Focusa,
+            LicenseTypeCode::FocusaOperatorLifetimeV1,
+        )
     }
 
     pub const fn uiai_operator_v1() -> Self {
-        Self::operator(ProductCode::UiaiEngine, LicenseTypeCode::UiaiOperatorLifetimeV1)
+        Self::operator(
+            ProductCode::UiaiEngine,
+            LicenseTypeCode::UiaiOperatorLifetimeV1,
+        )
     }
 
     const fn operator(product: ProductCode, license_type: LicenseTypeCode) -> Self {
         Self {
-            product, license_type, version: LicenseTypeVersion::V1,
+            product,
+            license_type,
+            version: LicenseTypeVersion::V1,
             sale_status: SaleStatus::ApprovedNotYetEnabled,
             operator_seats: OperatorSeats::One,
             node_limit: SharedNodeLimit::OperatorSharedV1Three,
@@ -177,7 +192,11 @@ impl LicenseTypeGrant {
             LicenseTypeCode::FocusaOperatorLifetimeV1 => Self::focusa_operator_v1(),
             LicenseTypeCode::UiaiOperatorLifetimeV1 => Self::uiai_operator_v1(),
         };
-        if *self == expected { Ok(()) } else { Err(EntitlementPolicyTypeError::InvalidLicenseTypeGrant) }
+        if *self == expected {
+            Ok(())
+        } else {
+            Err(EntitlementPolicyTypeError::InvalidLicenseTypeGrant)
+        }
     }
 }
 
@@ -187,13 +206,22 @@ pub struct CompositeGrant {
 }
 
 impl CompositeGrant {
-    pub fn operator_bundle_v1(grants: [LicenseTypeGrant; 2]) -> Result<Self, EntitlementPolicyTypeError> {
-        let expected = [LicenseTypeGrant::focusa_operator_v1(), LicenseTypeGrant::uiai_operator_v1()];
-        if grants != expected { return Err(EntitlementPolicyTypeError::MalformedBundleUnion); }
+    pub fn operator_bundle_v1(
+        grants: [LicenseTypeGrant; 2],
+    ) -> Result<Self, EntitlementPolicyTypeError> {
+        let expected = [
+            LicenseTypeGrant::focusa_operator_v1(),
+            LicenseTypeGrant::uiai_operator_v1(),
+        ];
+        if grants != expected {
+            return Err(EntitlementPolicyTypeError::MalformedBundleUnion);
+        }
         Ok(Self { grants })
     }
 
-    pub fn grants(&self) -> &[LicenseTypeGrant; 2] { &self.grants }
+    pub fn grants(&self) -> &[LicenseTypeGrant; 2] {
+        &self.grants
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -368,9 +396,7 @@ pub const fn reduce_entitlement_state(
         (State::PendingUnverified, Family::CustomerDataExport) => {
             EntitlementStateDecision::new(Posture::Allow, Reason::AllowExistingLocalOnly)
         }
-        (State::PendingUnverified, _) => {
-            EntitlementStateDecision::new(Posture::Deny, Reason::Deny)
-        }
+        (State::PendingUnverified, _) => EntitlementStateDecision::new(Posture::Deny, Reason::Deny),
 
         (State::VerifiedNoLicense, Family::AccountRecovery | Family::CustomerDataExport) => {
             EntitlementStateDecision::new(Posture::Allow, Reason::Allow)
@@ -381,9 +407,7 @@ pub const fn reduce_entitlement_state(
         (State::VerifiedNoLicense, Family::BaseFocusa) => {
             EntitlementStateDecision::new(Posture::Allow, Reason::AllowVerifiedLimited)
         }
-        (State::VerifiedNoLicense, _) => {
-            EntitlementStateDecision::new(Posture::Deny, Reason::Deny)
-        }
+        (State::VerifiedNoLicense, _) => EntitlementStateDecision::new(Posture::Deny, Reason::Deny),
 
         (State::ActivePaid, Family::AccountRecovery | Family::CustomerDataExport) => {
             EntitlementStateDecision::new(Posture::Allow, Reason::Allow)
@@ -410,10 +434,9 @@ pub const fn reduce_entitlement_state(
         (State::OfflineGrace, Family::BaseFocusa) => {
             EntitlementStateDecision::new(Posture::Base, Reason::RequireBase)
         }
-        (State::OfflineGrace, Family::PremiumUpdates) => EntitlementStateDecision::new(
-            Posture::Feature,
-            Reason::RequireCachedFeatureWhenSafe,
-        ),
+        (State::OfflineGrace, Family::PremiumUpdates) => {
+            EntitlementStateDecision::new(Posture::Feature, Reason::RequireCachedFeatureWhenSafe)
+        }
         (State::OfflineGrace, _) => {
             EntitlementStateDecision::new(Posture::Feature, Reason::RequireCachedFeature)
         }
@@ -480,6 +503,7 @@ impl ResolvedEntitlementPolicy {
             && matches!(
                 decision_reason,
                 DecisionReason::Allow
+                    | DecisionReason::AllowVerifiedLimited
                     | DecisionReason::Read
                     | DecisionReason::ReadLocalOnly
                     | DecisionReason::AllowExistingLocalOnly
@@ -529,6 +553,70 @@ impl ResolvedEntitlementPolicy {
     }
     pub fn decision_reason(&self) -> DecisionReason {
         self.decision_reason
+    }
+}
+
+/// Deterministically compiled operation-policy registry. Its only constructor
+/// consumes build-embedded canonical JSON; production has no path-based loader.
+#[derive(Debug)]
+pub struct EmbeddedEntitlementPolicyRegistry {
+    document: Value,
+}
+
+impl EmbeddedEntitlementPolicyRegistry {
+    pub fn digest(&self) -> &'static str {
+        EMBEDDED_POLICY_REGISTRY_DIGEST
+    }
+
+    pub fn canonical_json(&self) -> &'static str {
+        EMBEDDED_POLICY_REGISTRY_JSON
+    }
+
+    pub fn family_count(&self) -> usize {
+        self.document["entitlement_policy"]["families"]
+            .as_array()
+            .map_or(0, Vec::len)
+    }
+
+    pub fn license_type_count(&self) -> usize {
+        self.document["license_types"]["license_types"]
+            .as_array()
+            .map_or(0, Vec::len)
+    }
+}
+
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[error("embedded entitlement policy registry is invalid: {message}")]
+pub struct EntitlementPolicyRegistryError {
+    message: String,
+}
+
+/// Load the validated, digest-bound production registry. The registry was also
+/// validated by build.rs, and is revalidated once after decoding to guard the
+/// generated/runtime boundary.
+pub fn embedded_entitlement_policy_registry(
+) -> Result<&'static EmbeddedEntitlementPolicyRegistry, EntitlementPolicyRegistryError> {
+    static REGISTRY: OnceLock<
+        Result<EmbeddedEntitlementPolicyRegistry, EntitlementPolicyRegistryError>,
+    > = OnceLock::new();
+    REGISTRY
+        .get_or_init(|| {
+            let document: Value = serde_json::from_str(EMBEDDED_POLICY_REGISTRY_JSON)
+                .map_err(|error| registry_error(error.to_string()))?;
+            registry_validation::validate_registry_bundle(&document).map_err(registry_error)?;
+            let actual = registry_validation::semantic_digest(&document);
+            if actual != EMBEDDED_POLICY_REGISTRY_DIGEST {
+                return Err(registry_error("embedded registry digest mismatch"));
+            }
+            Ok(EmbeddedEntitlementPolicyRegistry { document })
+        })
+        .as_ref()
+        .map_err(Clone::clone)
+}
+
+fn registry_error(message: impl Into<String>) -> EntitlementPolicyRegistryError {
+    EntitlementPolicyRegistryError {
+        message: message.into(),
     }
 }
 

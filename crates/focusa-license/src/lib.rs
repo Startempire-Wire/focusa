@@ -16,12 +16,13 @@ pub mod feature_decision;
 pub mod license_migration;
 
 pub use entitlement_policy::{
-    reduce_entitlement_state, AccessPosture, CapabilityFamily, CommercialTreatment, CompositeGrant,
-    DecisionReason, EntitlementPolicyPosture, EntitlementPolicyTypeError, EntitlementStateDecision,
-    LicenseTypeCode, LicenseTypeGrant, LicenseTypeVersion, LimitBucket,
-    OperationClass, OperatorSeats, PolicyActivation, PolicyEntitlementState, ProductCode,
-    RecoveryAllowance, RequiredFeature, ResolvedEntitlementPolicy, ResourceRight, SaleStatus,
-    SharedNodeLimit,
+    embedded_entitlement_policy_registry, reduce_entitlement_state, AccessPosture,
+    CapabilityFamily, CommercialTreatment, CompositeGrant, DecisionReason,
+    EmbeddedEntitlementPolicyRegistry, EntitlementPolicyPosture, EntitlementPolicyRegistryError,
+    EntitlementPolicyTypeError, EntitlementStateDecision, LicenseTypeCode, LicenseTypeGrant,
+    LicenseTypeVersion, LimitBucket, OperationClass, OperatorSeats, PolicyActivation,
+    PolicyEntitlementState, ProductCode, RecoveryAllowance, RequiredFeature,
+    ResolvedEntitlementPolicy, ResourceRight, SaleStatus, SharedNodeLimit,
 };
 pub mod uiai_child_token;
 

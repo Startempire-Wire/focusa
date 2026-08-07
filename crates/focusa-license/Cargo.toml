@@ -19,5 +19,10 @@ uuid = { workspace = true }
 keyring = { workspace = true }
 reqwest = { workspace = true }
 
+[build-dependencies]
+serde_json = { workspace = true }
+serde_yaml = "0.9"
+sha2 = { workspace = true }
+
 [lints]
 workspace = true

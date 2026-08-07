@@ -184,6 +184,54 @@ fn entitlement_policy_types_reject_unknown_or_malformed_active_values() {
 }
 
 #[test]
+fn entitlement_policy_registry_loads_embedded_digest_bound_overlay() {
+    let registry = embedded_entitlement_policy_registry().expect("embedded registry");
+    assert!(registry.digest().starts_with("sha256:"));
+    assert_eq!(registry.digest().len(), 71);
+    assert_eq!(registry.family_count(), 9);
+    assert_eq!(registry.license_type_count(), 2);
+    assert_eq!(
+        registry_validation::semantic_digest(
+            &serde_json::from_str(registry.canonical_json()).expect("canonical registry JSON")
+        ),
+        registry.digest()
+    );
+    assert!(!registry
+        .canonical_json()
+        .contains("\"state\":\"evaluation\""));
+}
+
+#[test]
+fn entitlement_policy_registry_rejects_malformed_or_substituted_policy() {
+    let registry = embedded_entitlement_policy_registry().unwrap();
+    let mut duplicate_family: serde_json::Value =
+        serde_json::from_str(registry.canonical_json()).unwrap();
+    let duplicate = duplicate_family["entitlement_policy"]["families"][0].clone();
+    duplicate_family["entitlement_policy"]["families"]
+        .as_array_mut()
+        .unwrap()
+        .push(duplicate);
+    assert!(registry_validation::validate_registry_bundle(&duplicate_family).is_err());
+
+    let mut evaluation_state: serde_json::Value =
+        serde_json::from_str(registry.canonical_json()).unwrap();
+    evaluation_state["entitlement_policy"]["state_grid"][0]["state"] =
+        serde_json::Value::String("evaluation".into());
+    assert!(registry_validation::validate_registry_bundle(&evaluation_state).is_err());
+
+    let mut dormant_denial: serde_json::Value =
+        serde_json::from_str(registry.canonical_json()).unwrap();
+    let operation = dormant_denial["entitlement_policy"]["future_dimensions"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|row| row["id"] == "operation")
+        .unwrap();
+    operation["missing_claim_effect"] = serde_json::Value::String("deny".into());
+    assert!(registry_validation::validate_registry_bundle(&dormant_denial).is_err());
+}
+
+#[test]
 fn entitlement_policy_types_reject_illegal_combinations() {
     let feature = RequiredFeature::new("focusa.agent.silent_sessions").unwrap();
     let valid = ResolvedEntitlementPolicy::try_new(
