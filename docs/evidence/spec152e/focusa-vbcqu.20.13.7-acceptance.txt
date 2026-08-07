@@ -2,7 +2,9 @@ Spec 152E pending activation-registration schema/repository acceptance evidence
 Work item: focusa-vbcqu.20.13.7
 Owner boundary: WPUIAI/wpuiai
 Scope: wp_wpuiai_activation_registrations migration/repository, reducer, CAS transitions, TTL, replay/idempotency, encrypted identity, verification/poll hashes, cleanup, and preservation-only rollback
-Implementation commit: 60fe89ecf0238a2c680a263b91b2002382dc82ec
+Implementation commits:
+- 60fe89ecf0238a2c680a263b91b2002382dc82ec
+- d0541d9057bfc221eadc70dea86041f304b0ff0f
 
 EXACT VERIFICATION
 Command (repository root):
@@ -31,7 +33,7 @@ PROVED BOUNDARIES
 - Rollback is preservation-only and journaled; it does not delete registration rows, credential hashes, or migration state.
 
 PINNED SOURCE DIGESTS
-- docs/contracts/spec152e-activation-registration.v1.php sha256:1698360d6a774796f5a995dda854d21069fafd83fa1fe8e503ca07eab1eae795
+- docs/contracts/spec152e-activation-registration.v1.php sha256:c85ddabbf5de37652492e4afa6f8a7876241136d5aabd1581aa9d8cf463b640f
 - tests/spec152e_registration_schema_test.php sha256:d76cf576b7a37f5bd872ec09523cd39f4b88886632994a53d4f35c6573da28d1
 - tests/spec152e_registration_transition_test.php sha256:99f4cc46b5792a955d0a38da0937684a1fc76eab41120aefb08bfd960d2264a7
 
@@ -39,7 +41,7 @@ PUBLIC-SAFETY AND DELIVERY BOUNDARY
 The tests use only in-memory SQLite and synthetic identifiers. No deployed WordPress database, customer record, administrative URL, secret, raw credential, or unmasked real-email evidence was read or changed. Cargo/release builds, publication, deploy, merge, push, and Beads mutation are excluded.
 
 ROLLBACK
-Revert implementation commit 60fe89ecf0238a2c680a263b91b2002382dc82ec and the local evidence commit containing this file. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals.
+Revert implementation commits 60fe89ecf0238a2c680a263b91b2002382dc82ec and d0541d9057bfc221eadc70dea86041f304b0ff0f, plus the local evidence commits containing this file. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals.
 
 RESULT
 TECHNICAL_ACCEPTANCE: PASSED
