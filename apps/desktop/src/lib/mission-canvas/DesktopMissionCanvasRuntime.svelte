@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
   import ActivityNavigation from './ActivityNavigation.svelte';
   import type { ContributionRendererRegistry } from './contribution-renderers';
@@ -6,6 +7,7 @@
   import { MissionCanvasInvalidationController } from './invalidation-controller';
   import MissionCanvasRenderer from './MissionCanvasRenderer.svelte';
   import OperationConfirmationDialog from './OperationConfirmationDialog.svelte';
+  import { capturePresentationState, restoreIfStillPresent, type PresentationStateSnapshot } from './presentation-state';
   import { MissionCanvasProjectionController } from './projection-controller.svelte';
   import type { ActivityMode, OperationBinding, ResolvedWorkspaceProjection, WorkstreamAuthorityContext, WorkspaceProfile } from './types';
   import WorkspaceProfileSelector from './WorkspaceProfileSelector.svelte';
@@ -30,6 +32,7 @@
   let profiles = $state<WorkspaceProfile[]>([]);
   let mutationInFlight = $state(false);
   let pendingConfirmation = $state.raw<{ binding: OperationBinding; subjectLabel: string; run: () => Promise<void> }>();
+  let presentationRoot = $state<HTMLElement | undefined>();
   let controlsGeneration = 0;
 
   $effect(() => {
@@ -42,7 +45,8 @@
     }
     const boundAuthority = authority;
     const generation = ++controlsGeneration;
-    void controller.load(boundAuthority);
+    const snapshot = captureCurrentPresentation();
+    void controller.load(boundAuthority).then(() => restorePresentation(snapshot));
     void Promise.all([
       client.activityList({ ...boundAuthority }),
       client.profileList({ ...boundAuthority })
@@ -92,10 +96,14 @@
       const latestState = controller.state;
       if (!latest || latest.authority_ref !== current.authority_ref) return;
       if (latestState.kind !== 'ready' && latestState.kind !== 'refreshing' && latestState.kind !== 'stale') return;
+      const snapshot = captureCurrentPresentation();
       mutationInFlight = true;
       try {
         await executeContributionOperation(latest, latestState.projection);
-        if (authority) await controller.load(authority);
+        if (authority) {
+          await controller.load(authority);
+          await restorePresentation(snapshot);
+        }
       } catch (error) {
         controller.markStale(error instanceof Error ? error.message : 'contribution_operation_failed');
       } finally {
@@ -131,6 +139,7 @@
     if (!authority || mutationInFlight) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
+    const snapshot = captureCurrentPresentation();
     const idempotencyKey = crypto.randomUUID();
     mutationInFlight = true;
     try {
@@ -141,6 +150,7 @@
         idempotency_key: idempotencyKey
       });
       controller.accept(authority, projection);
+      await restorePresentation(snapshot);
     } catch (error) {
       controller.markStale(error instanceof Error ? error.message : 'activity_selection_failed');
     } finally {
@@ -158,6 +168,7 @@
     if (!authority || mutationInFlight) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
+    const snapshot = captureCurrentPresentation();
     const idempotencyKey = crypto.randomUUID();
     mutationInFlight = true;
     try {
@@ -168,6 +179,7 @@
         idempotency_key: idempotencyKey
       });
       controller.accept(authority, projection);
+      await restorePresentation(snapshot);
     } catch (error) {
       controller.markStale(error instanceof Error ? error.message : 'profile_selection_failed');
     } finally {
@@ -189,6 +201,7 @@
     if (!authority || !authority.attachment || mutationInFlight) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
+    const snapshot = captureCurrentPresentation();
     const commandId = crypto.randomUUID();
     mutationInFlight = true;
     try {
@@ -211,6 +224,7 @@
         return;
       }
       await controller.load(authority);
+      await restorePresentation(snapshot);
     } catch (error) {
       controller.markStale(error instanceof Error ? error.message : 'tab_selection_failed');
     } finally {
@@ -218,11 +232,30 @@
     }
   }
 
+  function captureCurrentPresentation(): PresentationStateSnapshot | undefined {
+    if (!presentationRoot) return undefined;
+    const state = controller.state;
+    if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return undefined;
+    return capturePresentationState(presentationRoot, state.projection);
+  }
+
+  async function restorePresentation(snapshot: PresentationStateSnapshot | undefined): Promise<void> {
+    if (!snapshot || !presentationRoot) return;
+    await tick();
+    const state = controller.state;
+    if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return;
+    restoreIfStillPresent(presentationRoot, snapshot, state.projection);
+  }
+
   $effect(() => {
     if (!authority) return;
     const boundAuthority = authority;
     const events = new MissionCanvasEventClient(client, boundAuthority, new LocalEventCursorStore());
-    const invalidation = new MissionCanvasInvalidationController(() => controller.refresh(boundAuthority));
+    const invalidation = new MissionCanvasInvalidationController(async () => {
+      const snapshot = captureCurrentPresentation();
+      await controller.refresh(boundAuthority);
+      await restorePresentation(snapshot);
+    });
     const unsubscribe = events.subscribe((batch) => {
       const state = controller.state;
       if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return;
@@ -243,7 +276,9 @@
 </script>
 
 <div
+  bind:this={presentationRoot}
   class="desktop-canvas-runtime"
+  data-presentation-root="true"
   class:has-controls={profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION)}
   class:mutation-pending={mutationInFlight}
   aria-busy={mutationInFlight}
