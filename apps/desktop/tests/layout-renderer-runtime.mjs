@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
 const server = await createServer({
@@ -13,6 +14,9 @@ try {
   const { default: Harness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasLayoutHarness.svelte');
   const { default: RegistryControlsHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasRegistryControlsHarness.svelte');
   const { default: TrustedRegistryHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasTrustedRegistryHarness.svelte');
+  const { default: WorkspaceProfileSelector } = await server.ssrLoadModule('/src/lib/mission-canvas/WorkspaceProfileSelector.svelte');
+  const generatedClientPath = fileURLToPath(new URL('../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts', import.meta.url));
+  const { MissionCanvasClient } = await server.ssrLoadModule(generatedClientPath);
   const { default: CustomElementHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasCustomElementHarness.svelte');
 
   const expectations = {
@@ -42,6 +46,92 @@ try {
   assert.match(controls, /<option value="profile:software"[^>]*selected="">/);
   const { body: emptyControls } = render(RegistryControlsHarness, { props: { empty: true } });
   assert.doesNotMatch(emptyControls, /<nav|<select/);
+
+  const profile = (profileId, displayName, candidateContributionIds, installed = true) => ({
+    profile_id: profileId,
+    revision: 1,
+    display_name: displayName,
+    candidate_contribution_ids: candidateContributionIds,
+    density: 'standard',
+    terminology_registry_ref: `registry:terminology:${profileId}`,
+    renderer_registry_ref: 'registry:renderer:builtin',
+    domain_semantic_binding_registry_ref: `registry:semantics:${profileId}`,
+    viability_rule_revision: 'profile-viability:v1',
+    installed
+  });
+  const eligibleProfiles = [
+    profile('general', 'General', ['contribution:pi-session']),
+    profile('software', 'Software Engineering', ['contribution:pi-session', 'contribution:tasks']),
+    profile('legal', 'Legal', ['contribution:document']),
+    profile('markets', 'Markets', ['contribution:market-overview']),
+    profile('research', 'Research', ['contribution:research']),
+    profile('custom', 'Custom', ['contribution:pi-session'])
+  ];
+  const { body: profileSelector } = render(WorkspaceProfileSelector, {
+    props: {
+      profiles: eligibleProfiles,
+      activeProfileId: 'software',
+      onSelect: () => undefined
+    }
+  });
+  assert.match(profileSelector, /data-profile-selector="eligible"/);
+  for (const displayName of ['General', 'Software Engineering', 'Legal', 'Markets', 'Research', 'Custom']) {
+    assert.match(profileSelector, new RegExp(`>${displayName}<`));
+  }
+  assert.doesNotMatch(profileSelector, /Unavailable|Degraded|Unsupported|No profiles/);
+
+  const { body: ineligibleProfiles } = render(WorkspaceProfileSelector, {
+    props: {
+      profiles: [
+        profile('software', 'Software Engineering', ['contribution:pi-session']),
+        profile('research', 'Research', ['contribution:research']),
+        profile('empty', 'Empty', []),
+        profile('disabled', 'Disabled', ['contribution:pi-session'], false)
+      ],
+      activeProfileId: 'software',
+      onSelect: () => undefined
+    }
+  });
+  assert.match(ineligibleProfiles, />Software Engineering</);
+  assert.doesNotMatch(ineligibleProfiles, />Empty</);
+  assert.doesNotMatch(ineligibleProfiles, />Disabled</);
+
+  const { body: invalidProfiles } = render(WorkspaceProfileSelector, {
+    props: {
+      profiles: [
+        profile('software', 'Software Engineering', ['contribution:pi-session']),
+        (() => {
+          const malformed = profile('foreign', 'Foreign', ['contribution:pi-session']);
+          malformed.candidate_contribution_ids = null;
+          return malformed;
+        })()
+      ],
+      activeProfileId: 'software',
+      onSelect: () => undefined
+    }
+  });
+  assert.doesNotMatch(invalidProfiles, /<select/);
+
+  const { body: duplicateProfiles } = render(WorkspaceProfileSelector, {
+    props: {
+      profiles: [
+        profile('software', 'Software Engineering', ['contribution:pi-session']),
+        profile('software', 'Foreign duplicate', ['contribution:tasks'])
+      ],
+      activeProfileId: 'software',
+      onSelect: () => undefined
+    }
+  });
+  assert.doesNotMatch(duplicateProfiles, /<select/);
+
+  const { body: staleActiveProfile } = render(WorkspaceProfileSelector, {
+    props: {
+      profiles: eligibleProfiles,
+      activeProfileId: 'foreign',
+      onSelect: () => undefined
+    }
+  });
+  assert.doesNotMatch(staleActiveProfile, /<select/);
 
   const { body: blockedRegistry } = render(TrustedRegistryHarness);
   assert.match(blockedRegistry, /role="alert"/);
@@ -189,6 +279,99 @@ try {
     new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } })
   );
   assert.deepEqual(await arrayTransport.request('focusa.mission_canvas.activity.list', { ...fixtureAuthority }), []);
+
+  // Profile selection remains a generated, exact-Workstream mutation. The
+  // Desktop selector never calls a route or invents a revision; the transport
+  // owns operation metadata, optimistic concurrency, and fail-closed watermarks.
+  const profileSelectRequests = [];
+  let profileSelectResponse = structuredClone(fixture);
+  profileSelectResponse.projection_revision = fixture.projection_revision + 1;
+  profileSelectResponse.layout_revision = fixture.layout_revision + 1;
+  profileSelectResponse.durable_event_cursor = 'event:42';
+  const profileSelectTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async (url, init) => {
+      profileSelectRequests.push({ url: String(url), init });
+      return new Response(JSON.stringify(profileSelectResponse), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:write'],
+    ['focusa.mission_canvas.profile.select'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const profileSelectInput = {
+    ...structuredClone(fixtureAuthority),
+    selection_id: 'research',
+    expected_projection_revision: fixture.projection_revision,
+    idempotency_key: 'idempotency:profile-select'
+  };
+  const profileSelectClient = new MissionCanvasClient(profileSelectTransport);
+  const selectedProjection = await profileSelectClient.profileSelect(profileSelectInput);
+  assert.equal(selectedProjection.projection_revision, fixture.projection_revision + 1);
+  const profileSelectRequest = profileSelectRequests[0];
+  assert.equal(new URL(profileSelectRequest.url).pathname, '/v1/mission-canvas/profiles/select');
+  assert.equal(profileSelectRequest.init.method, 'POST');
+  assert.equal(profileSelectRequest.init.headers['X-Focusa-Permissions'], 'mission_canvas:write');
+  assert.equal(profileSelectRequest.init.headers['X-Focusa-Capabilities'], 'focusa.mission_canvas.profile.select');
+  assert.equal(profileSelectRequest.init.headers['If-Match'], String(fixture.projection_revision));
+  assert.equal(profileSelectRequest.init.headers['Idempotency-Key'], profileSelectInput.idempotency_key);
+  assert.equal(JSON.parse(profileSelectRequest.init.body).selection_id, 'research');
+  assert.deepEqual(JSON.parse(profileSelectRequest.init.body).workstream, fixtureAuthority.workstream);
+
+  profileSelectResponse = structuredClone(fixture);
+  profileSelectResponse.projection_revision = fixture.projection_revision;
+  profileSelectResponse.layout_revision = fixture.layout_revision + 2;
+  profileSelectResponse.durable_event_cursor = 'event:43';
+  await assert.rejects(
+    () => profileSelectClient.profileSelect(profileSelectInput),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_projection_revision'
+  );
+
+  profileSelectResponse = structuredClone(fixture);
+  profileSelectResponse.projection_revision = fixture.projection_revision + 2;
+  profileSelectResponse.layout_revision = fixture.layout_revision + 2;
+  profileSelectResponse.durable_event_cursor = 'event:41';
+  await assert.rejects(
+    () => profileSelectClient.profileSelect(profileSelectInput),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_projection_cursor'
+  );
+
+  profileSelectResponse = structuredClone(fixture);
+  profileSelectResponse.projection_revision = fixture.projection_revision + 3;
+  profileSelectResponse.layout_revision = fixture.layout_revision + 3;
+  profileSelectResponse.durable_event_cursor = 'event:44';
+  profileSelectResponse.workstream.workstream_id = 'ws:foreign-profile-select';
+  profileSelectResponse.attachment.workstream.workstream_id = 'ws:foreign-profile-select';
+  await assert.rejects(
+    () => profileSelectClient.profileSelect(profileSelectInput),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_projection_scope'
+  );
+
+  let profileSelectCalls = 0;
+  const missingProfileSelectAuthority = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      profileSelectCalls += 1;
+      return new Response(JSON.stringify(fixture), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:write'],
+    ['focusa.mission_canvas.profile.select'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingProfileSelectAuthority).profileSelect({
+      selection_id: 'research',
+      expected_projection_revision: fixture.projection_revision,
+      idempotency_key: 'idempotency:missing-authority'
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_workstream_identity:')
+  );
+  assert.equal(profileSelectCalls, 0, 'profile selection without Workstream authority must fail before HTTP');
 
   const { MissionCanvasProjectionController } = await server.ssrLoadModule('/src/lib/mission-canvas/projection-controller.svelte.ts');
   let response = structuredClone(fixture);

@@ -53,7 +53,7 @@ try {
   } else if (operationId === 'focusa.mission_canvas.profile.list') {
     await exerciseProfileList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.profile.select') {
-    await exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+    await exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, fixture });
   } else if (operationId === 'focusa.mission_canvas.projection.resolve') {
     await exerciseProjectionResolve({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.rich_host.resolve') {
@@ -389,6 +389,117 @@ async function exerciseProfileList({ MissionCanvasClient, MissionCanvasHttpTrans
   );
 
   console.log('Mission Canvas operation consumer: PASS (generated profileList, exact Workstream GET, meaningful eligible profile list, empty profile list, foreign scope, missing authority, permission, unavailable operation, and hostile response checks)');
+}
+
+async function exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, fixture }) {
+  let response = structuredClone(fixture);
+  response.projection_revision = fixture.projection_revision + 1;
+  response.layout_revision = fixture.layout_revision + 1;
+  response.durable_event_cursor = 'event:42';
+  const requests = [];
+  const transport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async (url, init) => {
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:write'],
+    ['focusa.mission_canvas.profile.select'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const client = new MissionCanvasClient(transport);
+  const input = {
+    ...structuredClone(authority),
+    selection_id: 'research',
+    expected_projection_revision: fixture.projection_revision,
+    idempotency_key: 'idempotency:profile-select-consumer'
+  };
+  const selected = await client.profileSelect(input);
+  assert.equal(selected.projection_revision, fixture.projection_revision + 1);
+  const request = requests[0];
+  assert.equal(new URL(request.url).pathname, '/v1/mission-canvas/profiles/select');
+  assert.equal(request.init.method, 'POST');
+  assert.equal(request.init.headers['X-Focusa-Permissions'], 'mission_canvas:write');
+  assert.equal(request.init.headers['X-Focusa-Capabilities'], 'focusa.mission_canvas.profile.select');
+  assert.equal(request.init.headers['If-Match'], String(fixture.projection_revision));
+  assert.equal(request.init.headers['Idempotency-Key'], input.idempotency_key);
+  assert.equal(JSON.parse(request.init.body).selection_id, 'research');
+  assert.deepEqual(JSON.parse(request.init.body).workstream, authority.workstream);
+
+  response = structuredClone(fixture);
+  response.projection_revision = fixture.projection_revision;
+  response.layout_revision = fixture.layout_revision + 2;
+  response.durable_event_cursor = 'event:43';
+  await assert.rejects(
+    () => client.profileSelect(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_projection_revision'
+  );
+
+  response = structuredClone(fixture);
+  response.projection_revision = fixture.projection_revision + 2;
+  response.layout_revision = fixture.layout_revision + 2;
+  response.durable_event_cursor = 'event:41';
+  await assert.rejects(
+    () => client.profileSelect(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_projection_cursor'
+  );
+
+  response = structuredClone(fixture);
+  response.projection_revision = fixture.projection_revision + 3;
+  response.layout_revision = fixture.layout_revision + 3;
+  response.durable_event_cursor = 'event:44';
+  response.workstream.workstream_id = 'ws:foreign-profile-select';
+  response.attachment.workstream.workstream_id = 'ws:foreign-profile-select';
+  await assert.rejects(
+    () => client.profileSelect(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_projection_scope'
+  );
+
+  let calls = 0;
+  const missingScopeTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      calls += 1;
+      return new Response(JSON.stringify(fixture), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:write'],
+    ['focusa.mission_canvas.profile.select'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingScopeTransport).profileSelect({
+      selection_id: 'research',
+      expected_projection_revision: fixture.projection_revision,
+      idempotency_key: 'idempotency:missing-profile-scope'
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_workstream_identity:')
+  );
+  assert.equal(calls, 0, 'missing Workstream authority must fail before profileSelect HTTP');
+
+  const deniedTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async (_url, init) => {
+      assert.equal(init.headers['X-Focusa-Permissions'], undefined);
+      return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked' }), { status: 403 });
+    }
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(deniedTransport).profileSelect(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 403
+  );
+
+  await assert.rejects(
+    () => transport.request('focusa.mission_canvas.profile.select.unavailable', structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'operation_unavailable'
+  );
+
+  console.log('Mission Canvas operation consumer: PASS (generated profileSelect, exact Workstream POST, idempotency/concurrency, foreign scope, stale revision/cursor, missing authority, permission, and unavailable operation checks)');
 }
 
 async function exerciseProjectionGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {

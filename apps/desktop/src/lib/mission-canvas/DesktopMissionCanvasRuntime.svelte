@@ -48,8 +48,11 @@
       client.profileList({ ...boundAuthority })
     ]).then(([nextActivities, nextProfiles]) => {
       if (generation !== controlsGeneration) return;
+      // `profileList` is the generated Core-owned eligibility result. Keep its
+      // ordering and DTOs intact; the selector only applies renderer-boundary
+      // fail-closed checks and never recomputes meaningful composition.
       activities = nextActivities;
-      profiles = nextProfiles.filter((profile) => profile.installed);
+      profiles = nextProfiles;
     }).catch(() => {
       if (generation !== controlsGeneration) return;
       activities = [];
