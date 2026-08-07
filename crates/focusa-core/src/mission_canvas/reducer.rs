@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
@@ -209,6 +209,14 @@ pub fn resolve_projection(
     })
 }
 
+/// Hash the canonical projection material, including the flattened
+/// WorkstreamKey and the semantic, projection, layout, and event-cursor
+/// revisions carried by `ResolvedWorkspaceProjection`.
+///
+/// Evidence/Receipt references and resolution time are produced around the
+/// digest itself, so they are deliberately excluded. Object keys are sorted
+/// recursively for a stable transport-independent digest; array order remains
+/// meaningful because it is part of the resolved composition.
 pub fn projection_digest(
     projection: &ResolvedWorkspaceProjection,
 ) -> Result<String, serde_json::Error> {
@@ -219,8 +227,28 @@ pub fn projection_digest(
         object.remove("evidence_refs");
         object.remove("receipt_refs");
     }
+    let normalized = canonical_json(&normalized);
     let bytes = serde_json::to_vec(&normalized)?;
     Ok(format!("sha256:{}", hex::encode(Sha256::digest(bytes))))
+}
+
+/// Normalize JSON object key order without changing array order or values.
+/// Arrays encode ordered projection decisions/layout children and therefore
+/// must not be treated as sets.
+fn canonical_json(value: &Value) -> Value {
+    match value {
+        Value::Object(object) => {
+            let mut entries: Vec<(&String, &Value)> = object.iter().collect();
+            entries.sort_by(|left, right| left.0.cmp(right.0));
+            let mut normalized = Map::new();
+            for (key, child) in entries {
+                normalized.insert(key.clone(), canonical_json(child));
+            }
+            Value::Object(normalized)
+        }
+        Value::Array(values) => Value::Array(values.iter().map(canonical_json).collect()),
+        other => other.clone(),
+    }
 }
 
 fn focused_contribution_id(
@@ -286,4 +314,196 @@ pub fn candidate_partition_is_complete(projection: &ResolvedWorkspaceProjection)
         .map(|diagnostic| diagnostic.contribution_id.clone())
         .collect::<BTreeSet<_>>();
     eligible.is_disjoint(&omitted) && candidates == eligible.union(&omitted).cloned().collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mission_canvas::model::{MissionCanvasScope, OmissionDiagnostic};
+    use crate::scoped_state::ScopeRef as LegacyScopeRef;
+    use crate::workstream_identity::{ScopeRef, WorkstreamId, WorkstreamKey};
+    use serde_json::json;
+
+    fn workstream(id: &str) -> WorkstreamKey {
+        let legacy = LegacyScopeRef::project(
+            "project:focusa",
+            "/workspace/focusa",
+            "Focusa",
+            "host-a:worktree-main",
+        )
+        .unwrap();
+        WorkstreamKey::new(
+            ScopeRef::project(legacy).unwrap(),
+            WorkstreamId::parse(id).unwrap(),
+        )
+    }
+
+    fn projection(workstream_id: &str) -> ResolvedWorkspaceProjection {
+        ResolvedWorkspaceProjection {
+            schema: "focusa.resolved_workspace_projection.v1".into(),
+            scope: MissionCanvasScope::new(workstream(workstream_id), None).unwrap(),
+            workspace_profile_id: "software".into(),
+            workspace_profile_revision: 2,
+            activity_mode_id: "overview".into(),
+            activity_mode_revision: 1,
+            focused_work_surface_id: None,
+            canonical_read_model_revision: 41,
+            candidate_contribution_ids: vec!["contribution:primary".into()],
+            eligible_contributions: vec![],
+            omission_diagnostics: vec![],
+            layout_tree: json!({
+                "kind": "split",
+                "node_id": "layout:root",
+                "orientation": "horizontal",
+                "ratio": 0.5,
+                "children": [
+                    {"kind": "single", "node_id": "layout:primary", "contribution_id": "contribution:primary"},
+                    {"kind": "single", "node_id": "layout:inspector", "contribution_id": "contribution:inspector"}
+                ]
+            }),
+            operation_bindings: vec![],
+            focused_semantic_target: "semantic:primary".into(),
+            projection_revision: 7,
+            layout_revision: 5,
+            durable_event_cursor: "event:41".into(),
+            projection_digest: "sha256:placeholder".into(),
+            resolved_at: None,
+            evidence_refs: vec![],
+            receipt_refs: vec![],
+        }
+    }
+
+    #[test]
+    fn mission_canvas_projection_digest_distinguishes_equal_layouts_under_different_workstreams() {
+        let local = projection("ws:local");
+        let foreign = projection("ws:foreign");
+
+        assert_eq!(local.layout_tree, foreign.layout_tree);
+        assert_ne!(local.scope.workstream, foreign.scope.workstream);
+        assert_eq!(
+            serde_json::to_value(&local).unwrap()["workstream"]["workstream_id"],
+            json!("ws:local")
+        );
+        assert_ne!(
+            projection_digest(&local).unwrap(),
+            projection_digest(&foreign).unwrap(),
+            "a digest must not collapse equal layouts across WorkstreamKey boundaries"
+        );
+    }
+
+    #[test]
+    fn mission_canvas_projection_digest_includes_semantic_and_layout_revisions() {
+        let base = projection("ws:revisions");
+        let base_digest = projection_digest(&base).unwrap();
+
+        let mut profile_revision = base.clone();
+        profile_revision.workspace_profile_revision += 1;
+        assert_ne!(projection_digest(&profile_revision).unwrap(), base_digest);
+
+        let mut activity_revision = base.clone();
+        activity_revision.activity_mode_revision += 1;
+        assert_ne!(projection_digest(&activity_revision).unwrap(), base_digest);
+
+        let mut semantic_read_model_revision = base.clone();
+        semantic_read_model_revision.canonical_read_model_revision += 1;
+        assert_ne!(
+            projection_digest(&semantic_read_model_revision).unwrap(),
+            base_digest
+        );
+
+        let mut projection_revision = base.clone();
+        projection_revision.projection_revision += 1;
+        assert_ne!(
+            projection_digest(&projection_revision).unwrap(),
+            base_digest
+        );
+
+        let mut layout_revision = base.clone();
+        layout_revision.layout_revision += 1;
+        assert_ne!(projection_digest(&layout_revision).unwrap(), base_digest);
+
+        let mut cursor = base.clone();
+        cursor.durable_event_cursor = "event:42".into();
+        assert_ne!(
+            projection_digest(&cursor).unwrap(),
+            base_digest,
+            "a stale/replayed cursor must not share a digest with current projection state"
+        );
+    }
+
+    #[test]
+    fn mission_canvas_projection_digest_ignores_only_volatile_proof_metadata() {
+        let base = projection("ws:metadata");
+        let base_digest = projection_digest(&base).unwrap();
+        let mut metadata = base.clone();
+        metadata.projection_digest = "sha256:another-value".into();
+        metadata.resolved_at = Some("2026-08-07T00:00:00Z".into());
+        metadata.evidence_refs = vec!["evidence:recomposition".into()];
+        metadata.receipt_refs = vec!["receipt:recomposition".into()];
+
+        assert_eq!(
+            projection_digest(&metadata).unwrap(),
+            base_digest,
+            "proof links and resolution time must not create a recursive digest"
+        );
+    }
+
+    #[test]
+    fn mission_canvas_projection_digest_is_stable_for_object_key_order() {
+        let mut first = projection("ws:canonical-json");
+        first.layout_tree =
+            serde_json::from_str(r#"{"z":{"b":2,"a":1},"a":[{"d":4,"c":3}],"kind":"single"}"#)
+                .unwrap();
+        let mut second = first.clone();
+        second.layout_tree =
+            serde_json::from_str(r#"{"kind":"single","a":[{"c":3,"d":4}],"z":{"a":1,"b":2}}"#)
+                .unwrap();
+
+        assert_eq!(
+            projection_digest(&first).unwrap(),
+            projection_digest(&second).unwrap(),
+            "JSON object ordering is not semantic projection state"
+        );
+    }
+
+    #[test]
+    fn mission_canvas_projection_digest_preserves_fail_closed_omissions() {
+        let base = projection("ws:omissions");
+        let base_digest = projection_digest(&base).unwrap();
+        let mut omitted = base;
+        omitted.candidate_contribution_ids = vec!["contribution:empty".into()];
+        omitted.omission_diagnostics = vec![OmissionDiagnostic {
+            contribution_id: "contribution:empty".into(),
+            reason: "capability_not_present".into(),
+            rule_revision: "adaptive-composition:v1".into(),
+            projection_revision: omitted.projection_revision,
+            canonical_input_refs: vec![],
+            details_ref: Some("diagnostic:capability_not_present".into()),
+            observed_at: "2026-08-07T00:00:00Z".into(),
+        }];
+
+        assert!(omitted.eligible_contributions.is_empty());
+        assert_ne!(
+            projection_digest(&omitted).unwrap(),
+            base_digest,
+            "unavailable contributions remain omitted and observable in canonical digest material"
+        );
+    }
+
+    #[test]
+    fn mission_canvas_projection_digest_never_repairs_missing_or_foreign_authority() {
+        let local = projection("ws:local");
+        let foreign = projection("ws:foreign");
+        assert_ne!(
+            projection_digest(&local).unwrap(),
+            projection_digest(&foreign).unwrap()
+        );
+
+        let mut legacy = serde_json::to_value(&local).unwrap();
+        legacy.as_object_mut().unwrap().remove("workstream");
+        assert!(
+            serde_json::from_value::<ResolvedWorkspaceProjection>(legacy).is_err(),
+            "a legacy project/continuity row cannot be repaired into a canonical projection"
+        );
+    }
 }
