@@ -17,6 +17,7 @@ export class MissionCanvasEventClient {
   #cursor?: string;
   #lastProjectionRevision = -1;
   #lastLayoutRevision = -1;
+  #lastEventSequence?: number;
   #seenEventIds = new Set<string>();
   #running = false;
   #timer?: ReturnType<typeof setTimeout>;
@@ -29,6 +30,7 @@ export class MissionCanvasEventClient {
     private readonly cursorStore: EventCursorStore
   ) {
     this.#cursor = cursorStore.load(scope);
+    this.#lastEventSequence = parseEventCursor(this.#cursor);
   }
 
   subscribe(listener: (batch: EventBatch) => void): () => void {
@@ -50,6 +52,7 @@ export class MissionCanvasEventClient {
       this.#seenEventIds.add(event.event_id);
       this.#lastProjectionRevision = Math.max(this.#lastProjectionRevision, event.projection_revision);
       this.#lastLayoutRevision = Math.max(this.#lastLayoutRevision, event.layout_revision);
+      this.#lastEventSequence = parseEventCursor(event.event_cursor);
       this.#cursor = event.event_cursor;
       accepted.push(event);
     }
@@ -89,11 +92,27 @@ export class MissionCanvasEventClient {
   private rejectionReason(event: ProjectionLifecycleEvent): string | undefined {
     if (!sameScope(authorityFromEvent(event), this.scope)) return 'foreign_event_scope';
     if (this.#seenEventIds.has(event.event_id)) return 'duplicate_event';
-    if (event.event_cursor === this.#cursor) return 'duplicate_cursor';
+    const sequence = parseEventCursor(event.event_cursor);
+    if (sequence === undefined) return 'invalid_event_cursor';
+    if (this.#lastEventSequence !== undefined && sequence === this.#lastEventSequence) return 'duplicate_cursor';
+    if (this.#lastEventSequence !== undefined && sequence < this.#lastEventSequence) return 'event_cursor_regressed';
     if (event.projection_revision < this.#lastProjectionRevision) return 'projection_revision_regressed';
     if (event.layout_revision < this.#lastLayoutRevision) return 'layout_revision_regressed';
     return undefined;
   }
+}
+
+function parseEventCursor(cursor: string | undefined): number | undefined {
+  if (!cursor) return undefined;
+  const raw = cursor.trim();
+  const sequence = raw.startsWith('event:')
+    ? raw.slice('event:'.length)
+    : raw.startsWith('cursor:')
+      ? raw.slice('cursor:'.length)
+      : raw;
+  if (!/^[0-9]+$/.test(sequence)) return undefined;
+  const parsed = Number(sequence);
+  return Number.isSafeInteger(parsed) ? parsed : undefined;
 }
 
 export class LocalEventCursorStore implements EventCursorStore {

@@ -147,6 +147,35 @@ elif operation_id == "focusa.mission_canvas.domain_pack.install":
         "receipt_refs",
     ):
         assert marker in persistence, marker
+elif operation_id == "focusa.mission_canvas.events.stream":
+    assert operation["method"] == "GET"
+    assert operation["path"] == "/v1/mission-canvas/events"
+    assert operation["mode"] == "stream"
+    assert operation["permissions_required"] == ["mission_canvas:read"]
+    assert operation["requires_idempotency_key"] is False
+    assert operation["requires_if_match_revision"] is False
+    assert operation["receipt_required"] is False
+    assert operation["response_schema_ref"] == "ProjectionLifecycleEvent[]"
+    for marker in (
+        "after_cursor",
+        "Last-Event-ID",
+        "events_after",
+        "latest_event_sequence",
+        "projection_lifecycle_event",
+        "event_cursor",
+        "require_permission",
+        "Value::Array",
+    ):
+        assert marker in route_text, marker
+    for marker in (
+        "after_cursor",
+        "ProjectionLifecycleEvent[]",
+        "foreign_event_scope",
+        "event_cursor_regressed",
+        "projection_revision_regressed",
+    ):
+        assert marker in transport or marker in consumer, marker
+
 else:
     # The generated operation is still covered by common registry/transport
     # parity; operation-specific behavior belongs to its own packet branch.
