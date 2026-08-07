@@ -474,6 +474,7 @@ final class FocusaSpec152eActivationRegistrationRepository
             'install_channel' => $input['install_channel'],
             'product_code' => $input['product_code'],
             'safe_redirect_handle' => $input['safe_redirect_handle'] ?? null,
+            'request_id' => $input['request_id'],
         ]);
 
         return $this->transaction(function () use ($input, $normalized, $emailDigest, $registrationUuid, $now, $expires, $challengeExpires, $pollExpires, $challenge, $pollCredential, $digest): array {
