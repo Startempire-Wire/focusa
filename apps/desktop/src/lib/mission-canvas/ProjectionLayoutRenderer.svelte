@@ -190,6 +190,12 @@
     return typeof value === 'string' ? value : 'default';
   }
 
+  function gridGapToken(node: LayoutNode): string {
+    if (node.kind !== 'grid') return 'default';
+    const value = ownValue(node as unknown as Record<string, unknown>, 'gap_token');
+    return typeof value === 'string' ? value : 'default';
+  }
+
   function activeTab(ids: string[], canonicalActive: string): string | undefined {
     return ids.includes(canonicalActive) ? canonicalActive : undefined;
   }
@@ -254,9 +260,17 @@
     {/each}
   </div>
 {:else if node.kind === 'grid'}
-  <div class="layout-grid" data-layout-node={node.node_id} style={`--layout-columns:${Math.max(1, node.columns)}`}>
-    {#each node.children as child (`${child.node_id}`)}
-      <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab} {registry}/>
+  <div
+    class="layout-grid"
+    data-layout-node={node.node_id}
+    data-layout-columns={node.columns}
+    data-gap-token={gridGapToken(node)}
+    style={`--layout-columns:${node.columns}`}
+  >
+    {#each node.children as child, index (`${child.node_id}:${index}`)}
+      <div class="grid-child" data-grid-index={index}>
+        <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab} {registry}/>
+      </div>
     {/each}
   </div>
 {:else if node.kind === 'tabs'}
@@ -319,7 +333,8 @@
   .split-child{min-width:0;min-height:0}
   .layout-stack{min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;gap:var(--layout-cluster-gap)}
   .stack-child{min-width:0;min-height:0;flex:1 1 auto}.stack-child.rail-region,.stack-child.queue-region{flex:0 0 auto}.stack-child.composer-region{flex:0 1 30%;min-height:140px}
-  .layout-grid{min-width:0;min-height:0;display:grid;grid-template-columns:repeat(var(--layout-columns),minmax(0,1fr));gap:var(--layout-cluster-gap)}
+  .layout-grid{min-width:0;min-height:0;height:100%;display:grid;grid-template-columns:repeat(var(--layout-columns),minmax(0,1fr));gap:var(--layout-cluster-gap)}
+  .grid-child{min-width:0;min-height:0}
   .layout-tabs{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr)}
   .layout-tabs.with-strip{grid-template-rows:auto minmax(0,1fr);gap:var(--space-2)}
   .tab-list{display:flex;align-items:center;gap:var(--space-1);overflow-x:auto}
