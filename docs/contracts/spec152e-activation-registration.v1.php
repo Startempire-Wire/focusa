@@ -468,12 +468,14 @@ final class FocusaSpec152eActivationRegistrationRepository
         $emailDigest = $this->secrets->emailLookupDigest($normalized);
         $digest = $this->requestDigest([
             'operation' => 'create_pending',
+            'registration_uuid' => $input['registration_uuid'] ?? null,
             'email_lookup_digest' => $emailDigest,
             'facade_id' => $input['facade_id'],
             'presenter' => $input['presenter'],
             'install_channel' => $input['install_channel'],
             'product_code' => $input['product_code'],
             'safe_redirect_handle' => $input['safe_redirect_handle'] ?? null,
+            'device_public_key' => $input['device_public_key'] ?? null,
             'request_id' => $input['request_id'],
         ]);
 
@@ -550,6 +552,7 @@ final class FocusaSpec152eActivationRegistrationRepository
             'operation' => 'verify_email',
             'registration_uuid' => $registrationUuid,
             'verification_hash' => $this->secrets->verificationHash($verifier),
+            'request_id' => $requestId,
         ]);
         try {
             return $this->transaction(function () use ($registrationUuid, $verifier, $requestId, $idempotencyKey, $digest): array {
@@ -557,6 +560,9 @@ final class FocusaSpec152eActivationRegistrationRepository
             if ($replay !== null) {
                 $row = $this->findByUuid($registrationUuid);
                 $this->assertNotExpired($row, true);
+                if ((string) $replay['result_state'] === FocusaSpec152eActivationRegistrationState::EMAIL_CHALLENGE_SENT) {
+                    throw new DomainException('EMAIL_VERIFICATION_FAILED');
+                }
                 return ['registration' => $row, 'replayed' => true];
             }
             $row = $this->findByUuid($registrationUuid);
@@ -598,7 +604,13 @@ final class FocusaSpec152eActivationRegistrationRepository
             });
         } catch (DomainException $error) {
             if ($error->getMessage() === 'EMAIL_VERIFICATION_FAILED') {
-                $this->incrementVerificationAttempts($this->findByUuid($registrationUuid), $this->now());
+                $this->incrementVerificationAttempts(
+                    $this->findByUuid($registrationUuid),
+                    $this->now(),
+                    $idempotencyKey,
+                    $digest,
+                    $requestId,
+                );
             }
             throw $error;
         }
@@ -619,6 +631,7 @@ final class FocusaSpec152eActivationRegistrationRepository
             'registration_uuid' => $registrationUuid,
             'account_uuid' => $accountUuid,
             'edd_customer_id' => $eddCustomerId,
+            'request_id' => $requestId,
         ]);
         return $this->transaction(function () use ($registrationUuid, $accountUuid, $eddCustomerId, $requestId, $idempotencyKey, $digest): array {
             $replay = $this->replay('promote_verified', $idempotencyKey, $digest);
@@ -664,6 +677,7 @@ final class FocusaSpec152eActivationRegistrationRepository
             'to_state' => $toState,
             'expected_version' => $expectedVersion,
             'context' => $this->safeContext($context),
+            'request_id' => $requestId,
         ]);
         return $this->transaction(function () use ($registrationUuid, $fromState, $toState, $expectedVersion, $requestId, $idempotencyKey, $context, $digest): array {
             $replay = $this->replay('transition', $idempotencyKey, $digest);
@@ -683,7 +697,11 @@ final class FocusaSpec152eActivationRegistrationRepository
         $this->assertUuid($registrationUuid, 'registration');
         $this->assertRequestId($requestId);
         $this->assertIdempotencyKey($idempotencyKey);
-        $digest = $this->requestDigest(['operation' => 'issue_poll_credential', 'registration_uuid' => $registrationUuid]);
+        $digest = $this->requestDigest([
+            'operation' => 'issue_poll_credential',
+            'registration_uuid' => $registrationUuid,
+            'request_id' => $requestId,
+        ]);
         return $this->transaction(function () use ($registrationUuid, $requestId, $idempotencyKey, $digest): array {
             $replay = $this->replay('issue_poll_credential', $idempotencyKey, $digest);
             if ($replay !== null) {
@@ -735,6 +753,7 @@ final class FocusaSpec152eActivationRegistrationRepository
             'registration_uuid' => $registrationUuid,
             'poll_hash' => $credentialHash,
             'device_public_key' => $devicePublicKey,
+            'request_id' => $requestId,
         ]);
         return $this->transaction(function () use ($registrationUuid, $credentialHash, $requestId, $idempotencyKey, $devicePublicKey, $digest): array {
             $row = $this->findByUuid($registrationUuid);
@@ -999,23 +1018,30 @@ final class FocusaSpec152eActivationRegistrationRepository
         return $this->findByUuid((string) $row['registration_uuid']);
     }
 
-    private function incrementVerificationAttempts(array $row, string $now): void
+    private function incrementVerificationAttempts(array $row, string $now, string $idempotencyKey, string $digest, string $requestId): void
     {
-        $table = $this->schema->table('wpuiai_activation_registrations');
-        $statement = $this->db->prepare("UPDATE {$table}
-            SET verification_attempts = verification_attempts + 1, state_version = state_version + 1, updated_at = :updated
-            WHERE registration_uuid = :registration AND state = :state AND state_version = :version
-              AND expires_at > :now");
-        $statement->execute([
-            ':updated' => $now,
-            ':registration' => $row['registration_uuid'],
-            ':state' => $row['state'],
-            ':version' => $row['state_version'],
-            ':now' => $now,
-        ]);
-        if ($statement->rowCount() !== 1) {
-            throw new DomainException('REGISTRATION_STATE_CONFLICT');
-        }
+        $this->transaction(function () use ($row, $now, $idempotencyKey, $digest, $requestId): void {
+            if ($this->replay('verify_email', $idempotencyKey, $digest) !== null) {
+                return;
+            }
+            $table = $this->schema->table('wpuiai_activation_registrations');
+            $statement = $this->db->prepare("UPDATE {$table}
+                SET verification_attempts = verification_attempts + 1, state_version = state_version + 1, updated_at = :updated
+                WHERE registration_uuid = :registration AND state = :state AND state_version = :version
+                  AND expires_at > :now");
+            $statement->execute([
+                ':updated' => $now,
+                ':registration' => $row['registration_uuid'],
+                ':state' => $row['state'],
+                ':version' => $row['state_version'],
+                ':now' => $now,
+            ]);
+            if ($statement->rowCount() !== 1) {
+                throw new DomainException('REGISTRATION_STATE_CONFLICT');
+            }
+            $updated = $this->findByUuid((string) $row['registration_uuid']);
+            $this->recordIdempotency('verify_email', $idempotencyKey, $digest, (string) $row['registration_uuid'], $requestId, $updated, $now);
+        });
     }
 
     private function assertNotExpired(array $row, bool $allowTerminalExpiry): void

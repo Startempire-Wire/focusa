@@ -65,7 +65,8 @@ expect_registration_transition($replayCreate['replayed'] === true, 'identical cr
 expect_registration_transition((int) $db->query('SELECT COUNT(*) FROM wp_wpuiai_activation_registrations')->fetchColumn() === 1, 'create replay does not duplicate a registration');
 expect_registration_transition_throws(
     static fn() => $repository->createPending([
-        'email' => 'synthetic.other@example.invalid',
+        'registration_uuid' => $id,
+        'email' => 'synthetic.transition@example.invalid',
         'facade_id' => 'focusa_install_v1',
         'presenter' => 'agent_json',
         'install_channel' => 'source_build',
@@ -74,7 +75,7 @@ expect_registration_transition_throws(
         'idempotency_key' => 'idem-transition-0001',
     ]),
     'IDEMPOTENCY_CONFLICT',
-    'changed create payload cannot reuse an idempotency key'
+    'changed create request identity cannot reuse an idempotency key'
 );
 
 expect_registration_transition_throws(
@@ -129,6 +130,14 @@ expect_registration_transition_throws(
 $afterBadVerifier = $repository->findByUuid($id);
 expect_registration_transition((int) $afterBadVerifier['verification_attempts'] === 1, 'failed verifier attempt is bounded and counted');
 expect_registration_transition((int) $afterBadVerifier['state_version'] === 2, 'failed verifier update is CAS-guarded');
+expect_registration_transition_throws(
+    static fn() => $repository->verifyEmail($id, 'wrong-verifier', 'req-verify-bad-01', 'idem-verify-bad-01'),
+    'EMAIL_VERIFICATION_FAILED',
+    'replayed failed verifier is rejected without another attempt'
+);
+$afterBadReplay = $repository->findByUuid($id);
+expect_registration_transition((int) $afterBadReplay['verification_attempts'] === 1, 'replayed failed verifier does not increment attempts');
+expect_registration_transition((int) $afterBadReplay['state_version'] === 2, 'replayed failed verifier does not advance state version');
 
 $verified = $repository->verifyEmail($id, $challenge, 'req-verify-good-01', 'idem-verify-good-01');
 expect_registration_transition($verified['registration']['state'] === FocusaSpec152eActivationRegistrationState::EMAIL_VERIFIED, 'valid verifier enters email_verified');
@@ -141,6 +150,11 @@ expect_registration_transition_throws(
     static fn() => $repository->verifyEmail($id, 'different-verifier', 'req-verify-good-01', 'idem-verify-good-01'),
     'IDEMPOTENCY_CONFLICT',
     'changed verification payload fails closed under the same idempotency key'
+);
+expect_registration_transition_throws(
+    static fn() => $repository->verifyEmail($id, $challenge, 'req-verify-good-02', 'idem-verify-good-01'),
+    'IDEMPOTENCY_CONFLICT',
+    'changed verification request identity fails closed under the same idempotency key'
 );
 
 $accountUuid = '018f47c2-6ac0-7b16-8d1a-4e93df5a0101';
@@ -155,6 +169,11 @@ expect_registration_transition_throws(
     'IDEMPOTENCY_CONFLICT',
     'changed account promotion cannot reuse an idempotency key'
 );
+expect_registration_transition_throws(
+    static fn() => $repository->promoteVerified($id, $accountUuid, 41001, 'req-promote-good-02', 'idem-promote-good-01'),
+    'IDEMPOTENCY_CONFLICT',
+    'changed account promotion request identity fails closed under the same idempotency key'
+);
 
 $version = (int) $promoted['registration']['state_version'];
 expect_registration_transition_throws(
@@ -166,6 +185,13 @@ expect_registration_transition_throws(
 $offer = $repository->transition($id, FocusaSpec152eActivationRegistrationState::ACCOUNT_PROMOTED,
     FocusaSpec152eActivationRegistrationState::OFFER_SELECTED, $version, 'req-offer-0001', 'idem-offer-0001',
     ['offer_code' => 'focusa_operator', 'journey' => 'purchase']);
+expect_registration_transition_throws(
+    static fn() => $repository->transition($id, FocusaSpec152eActivationRegistrationState::ACCOUNT_PROMOTED,
+        FocusaSpec152eActivationRegistrationState::OFFER_SELECTED, $version, 'req-offer-0002', 'idem-offer-0001',
+        ['offer_code' => 'focusa_operator', 'journey' => 'purchase']),
+    'IDEMPOTENCY_CONFLICT',
+    'changed transition request identity fails closed under the same idempotency key'
+);
 $checkout = $repository->transition($id, FocusaSpec152eActivationRegistrationState::OFFER_SELECTED,
     FocusaSpec152eActivationRegistrationState::CHECKOUT_PENDING, (int) $offer['registration']['state_version'],
     'req-checkout-0001', 'idem-checkout-0001', ['edd_cart_reference' => 'cart_opaque_0001']);
@@ -198,6 +224,11 @@ expect_registration_transition($poll['snapshot']['state'] === FocusaSpec152eActi
 expect_registration_transition(!isset($poll['snapshot']['poll_credential_hash'], $poll['snapshot']['encrypted_normalized_email']), 'poll never returns credential or email storage fields');
 $pollReplay = $repository->poll($id, $credential, 'req-poll-0001', 'idem-poll-0001');
 expect_registration_transition($pollReplay['replayed'] === true, 'poll replay is idempotent');
+expect_registration_transition_throws(
+    static fn() => $repository->poll($id, $credential, 'req-poll-0002', 'idem-poll-0001'),
+    'IDEMPOTENCY_CONFLICT',
+    'changed poll request identity fails closed under the same idempotency key'
+);
 expect_registration_transition_throws(
     static fn() => $repository->poll($id, 'different-poll-credential', 'req-poll-0001', 'idem-poll-0001'),
     'IDEMPOTENCY_CONFLICT',
