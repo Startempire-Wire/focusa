@@ -1,0 +1,206 @@
+{
+  "schema": "focusa.spec158.mission_canvas_identity_migration_fixture.v1",
+  "fixture_id": "cross-workstream-legacy-records",
+  "fixture_call": "legacy_fixture.migrate",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "generated_contracts": {
+    "legacy_input": "LegacyExactScopeCompatibilityInput",
+    "workstream": "WorkstreamKey",
+    "attachment": "AttachmentKey",
+    "authority": "WorkstreamAuthorityContext",
+    "generated_operation": null
+  },
+  "records": [
+    {
+      "source_ref": "legacy-mission-canvas:cross:alpha",
+      "legacy": {
+        "project_root": "/example/focusa",
+        "continuity_id": "continuity:alpha",
+        "instance_id": "instance:pi-alpha",
+        "session_id": "session:pi-alpha",
+        "attachment_id": "attachment:pi-alpha",
+        "working_subpath_id": "worktree:alpha"
+      },
+      "candidate_workstreams": [],
+      "evidence_refs": [
+        "evidence:legacy:cross-alpha",
+        "evidence:lineage:alpha"
+      ],
+      "payload_ref": "legacy-payload:cross-alpha",
+      "quarantined_at": "2026-08-07T00:00:00Z",
+      "authority_binding": {
+        "workspace_binding_id": "workspace:mission-canvas-alpha",
+        "runtime_object": null,
+        "work_surface_id": null
+      },
+      "migration_candidates": [
+        {
+          "schema": "focusa.workstream_migration_mapping.v1",
+          "source_refs": [
+            "legacy-mission-canvas:cross:alpha"
+          ],
+          "scope_ref": {
+            "scope_kind": "project",
+            "scope_key": {
+              "scope_kind": "project",
+              "scope_id": "project:focusa",
+              "root_path": "/example/focusa",
+              "canonical_name": "Focusa",
+              "fingerprint": "host-a:worktree-main"
+            }
+          },
+          "workstream_id": "ws:alpha",
+          "confidence": "proven",
+          "evidence_refs": [
+            "evidence:legacy:cross-alpha",
+            "evidence:lineage:alpha"
+          ],
+          "rationale": "The alpha legacy record has one exact Workstream lineage.",
+          "approved_by": "migration-rule",
+          "approval_ref": "migration-rule:mission-canvas-identity:v1",
+          "created_at": "2026-08-07T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "source_ref": "legacy-mission-canvas:cross:beta",
+      "legacy": {
+        "project_root": "/example/focusa",
+        "continuity_id": "continuity:beta",
+        "instance_id": "instance:pi-beta",
+        "session_id": "session:pi-beta",
+        "attachment_id": "attachment:pi-beta",
+        "working_subpath_id": "worktree:beta"
+      },
+      "candidate_workstreams": [],
+      "evidence_refs": [
+        "evidence:legacy:cross-beta",
+        "evidence:lineage:beta"
+      ],
+      "payload_ref": "legacy-payload:cross-beta",
+      "quarantined_at": "2026-08-07T00:00:00Z",
+      "authority_binding": {
+        "workspace_binding_id": "workspace:mission-canvas-beta",
+        "runtime_object": null,
+        "work_surface_id": null
+      },
+      "migration_candidates": [
+        {
+          "schema": "focusa.workstream_migration_mapping.v1",
+          "source_refs": [
+            "legacy-mission-canvas:cross:beta"
+          ],
+          "scope_ref": {
+            "scope_kind": "project",
+            "scope_key": {
+              "scope_kind": "project",
+              "scope_id": "project:focusa",
+              "root_path": "/example/focusa",
+              "canonical_name": "Focusa",
+              "fingerprint": "host-a:worktree-main"
+            }
+          },
+          "workstream_id": "ws:beta",
+          "confidence": "proven",
+          "evidence_refs": [
+            "evidence:legacy:cross-beta",
+            "evidence:lineage:beta"
+          ],
+          "rationale": "The beta legacy record has one exact Workstream lineage.",
+          "approved_by": "migration-rule",
+          "approval_ref": "migration-rule:mission-canvas-identity:v1",
+          "created_at": "2026-08-07T00:00:00Z"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "migrated": [
+      {
+        "source_ref": "legacy-mission-canvas:cross:alpha",
+        "authority": {
+          "workstream": {
+            "scope": {
+              "scope_kind": "project",
+              "scope_key": {
+                "scope_kind": "project",
+                "scope_id": "project:focusa",
+                "root_path": "/example/focusa",
+                "canonical_name": "Focusa",
+                "fingerprint": "host-a:worktree-main"
+              }
+            },
+            "workstream_id": "ws:alpha"
+          },
+          "continuity_id": "continuity:alpha",
+          "attachment": {
+            "workstream": {
+              "scope": {
+                "scope_kind": "project",
+                "scope_key": {
+                  "scope_kind": "project",
+                  "scope_id": "project:focusa",
+                  "root_path": "/example/focusa",
+                  "canonical_name": "Focusa",
+                  "fingerprint": "host-a:worktree-main"
+                }
+              },
+              "workstream_id": "ws:alpha"
+            },
+            "continuity_id": "continuity:alpha",
+            "instance_id": "instance:pi-alpha",
+            "session_id": "session:pi-alpha",
+            "attachment_id": "attachment:pi-alpha",
+            "workspace_binding_id": "workspace:mission-canvas-alpha"
+          },
+          "workspace_binding_id": "workspace:mission-canvas-alpha",
+          "runtime_object": null,
+          "work_surface_id": null
+        }
+      },
+      {
+        "source_ref": "legacy-mission-canvas:cross:beta",
+        "authority": {
+          "workstream": {
+            "scope": {
+              "scope_kind": "project",
+              "scope_key": {
+                "scope_kind": "project",
+                "scope_id": "project:focusa",
+                "root_path": "/example/focusa",
+                "canonical_name": "Focusa",
+                "fingerprint": "host-a:worktree-main"
+              }
+            },
+            "workstream_id": "ws:beta"
+          },
+          "continuity_id": "continuity:beta",
+          "attachment": {
+            "workstream": {
+              "scope": {
+                "scope_kind": "project",
+                "scope_key": {
+                  "scope_kind": "project",
+                  "scope_id": "project:focusa",
+                  "root_path": "/example/focusa",
+                  "canonical_name": "Focusa",
+                  "fingerprint": "host-a:worktree-main"
+                }
+              },
+              "workstream_id": "ws:beta"
+            },
+            "continuity_id": "continuity:beta",
+            "instance_id": "instance:pi-beta",
+            "session_id": "session:pi-beta",
+            "attachment_id": "attachment:pi-beta",
+            "workspace_binding_id": "workspace:mission-canvas-beta"
+          },
+          "workspace_binding_id": "workspace:mission-canvas-beta",
+          "runtime_object": null,
+          "work_surface_id": null
+        }
+      }
+    ],
+    "quarantined": []
+  }
+}

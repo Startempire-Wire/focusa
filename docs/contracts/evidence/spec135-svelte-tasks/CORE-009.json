@@ -1,0 +1,161 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CORE-009",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Added deterministic Mission Canvas identity migration fixtures for one uniquely mapped legacy row, one ambiguous row, and two rows owned by distinct Workstreams under the same project. The hostile contract harness exercises legacy_fixture.migrate and ambiguous_fixture.quarantine, validates generated Workstream/Attachment/Authority DTOs, preserves explicit migration provenance, and fails closed for flat identity, foreign scope, missing attachment authority, duplicate candidates, and ambiguous ownership. No fixture creates a Work Surface, runtime object, renderer, layout, route, or generated operation.",
+  "targets": [
+    "tests/fixtures/spec158-mission-canvas-identity/legacy_fixture.json",
+    "tests/fixtures/spec158-mission-canvas-identity/ambiguous_fixture.json",
+    "tests/fixtures/spec158-mission-canvas-identity/cross_workstream_fixture.json",
+    "tests/spec158_mission_canvas_identity_contract_test.py",
+    "tests/spec135_resolved_projection_contract_test.py",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-009.json"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "headless",
+    "host_renderer": "headless_none",
+    "surface_kind": "canonical_runtime_identity_migration_fixture",
+    "rich_gui_required": false,
+    "terminal_fallback_required": false,
+    "eligible_contributions": [],
+    "omitted_contribution_reasons": [
+      "identity migration is a core-owned fixture and contract slice with no rendered contribution"
+    ],
+    "agent_tui_boundary": "The Agent TUI remains the separate authentic PTY-backed Pi terminal and is not the Mission Canvas renderer."
+  },
+  "checks": [
+    "python3 tests/spec135_resolved_projection_contract_test.py (exit 0; generated contribution schemas, projection contract, and CORE-009 identity fixture expectations: PASS)",
+    "python3 tests/spec158_mission_canvas_identity_contract_test.py (exit 0; Workstream identity, generated DTO boundary, unique/ambiguous/cross-Workstream migration, and hostile quarantine checks: PASS)",
+    "git diff --check (exit 0; no output)",
+    "No Cargo command was run; Cargo is explicitly prohibited for this pass."
+  ],
+  "dependency_gate": {
+    "CORE-005": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/CORE-005.json",
+      "status": "implemented_source_verified_runtime_deferred",
+      "decision": "The Workstream-keyed persistence and immutable legacy quarantine source is integrated and supplies the canonical migration/quarantine owner required by CORE-009. Its only recorded remainder is the explicitly prohibited Cargo runtime invocation; no source implementation gap remains."
+    },
+    "CORE-008": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/CORE-008.json",
+      "status": "implemented",
+      "decision": "The exact-identity Desktop contribution is integrated and consumes canonical Workstream/Attachment projections without adding identity inference. CORE-009 consumes its fail-closed identity boundary and does not duplicate Desktop composition or transport logic."
+    }
+  },
+  "negative_cases": {
+    "foreign_workstream": "Cross-Workstream records under one ProjectRootKey remain separate: alpha and beta migrate to their own exact WorkstreamKey and AttachmentKey, and a foreign mapping scope root is quarantined as conflicting_project_roots.",
+    "missing_authority": "A legacy row with only the generated LegacyExactScopeCompatibilityInput shape cannot migrate. Missing a proven Workstream mapping or explicit workspace-binding authority is quarantined as missing_workstream_identity; no Work Surface or runtime identity is manufactured.",
+    "stale_revision_cursor": "Not applicable to this identity-only fixture operation. Fixtures deliberately carry no projection_revision, layout_revision, durable_event_cursor, or mutation operation; the resolved projection contract test continues to own revision/cursor validation and no stale state is fabricated here.",
+    "unavailable_capability": "Not applicable to identity migration. Fixtures contain no contribution eligibility, capability, permission, renderer, or operation fields; Core composition and generated operation metadata remain the owners.",
+    "ineligible_or_empty_contribution": "Not applicable to identity migration. No fixture creates a contribution or layout node, so empty/ineligible content cannot become dead chrome or a substitute panel.",
+    "ambiguous_legacy_row": "Two candidate Workstreams for one legacy source produce zero migrated authorities and one immutable quarantine expectation with both advisory candidate keys. No first, latest, nearest, CWD, selected-tab, or default Workstream is chosen.",
+    "invalid_mapping": "Missing/invalid provenance, duplicate candidates, foreign project scope, and missing Attachment binding all fail closed without canonical output."
+  },
+  "acceptance": [
+    {
+      "statement": "Unique rows migrate and ambiguous/cross-owner rows fail closed.",
+      "status": "implemented_verified",
+      "proof": "legacy_fixture.json produces one exact WorkstreamAuthorityContext from one proven mapping; cross_workstream_fixture.json produces two distinct exact authorities; ambiguous_fixture.json produces no migrated row and a deterministic multiple_candidate_workstreams quarantine row. Both the hostile identity test and the mandated resolved-projection contract test pass."
+    },
+    {
+      "statement": "project_root plus continuity_id cannot bind or focus a Work Surface.",
+      "status": "implemented_verified",
+      "proof": "Generated LegacyExactScopeCompatibilityInput is validated only as compatibility input. Removing the proven mapping from unique and cross-Workstream records yields missing_workstream_identity quarantine. Migrated expectations explicitly contain null runtime_object and work_surface_id, and no fixture can introduce a renderer or operation."
+    },
+    {
+      "statement": "ambiguous legacy rows are quarantined, not guessed.",
+      "status": "implemented_verified",
+      "proof": "ambiguous_fixture.quarantine returns both exact candidate WorkstreamKeys, the stable source hash, evidence refs, and the multiple_candidate_workstreams reason while returning zero migrated rows. Duplicate candidates and foreign scope hostile mutations are likewise rejected."
+    }
+  ],
+  "hostile_tests": [
+    "generated LegacyExactScopeCompatibilityInput, WorkstreamKey, AttachmentKey, and WorkstreamAuthorityContext validation",
+    "unique proven mapping migrates with exact Workstream and Attachment ownership",
+    "two records under one ProjectRootKey migrate to distinct Workstream partitions without cross-owner contamination",
+    "ambiguous_fixture.quarantine retains both candidate WorkstreamKeys and never selects one",
+    "project_root plus continuity_id with no proven mapping is quarantined",
+    "foreign mapping ProjectRootKey is quarantined",
+    "duplicate candidate mappings are quarantined",
+    "missing explicit workspace-binding/Attachment authority is quarantined",
+    "migrated identity expectations contain no runtime or Work Surface focus authority",
+    "fixture metadata carries generated_operation=null and cannot add route, renderer, layout, or contribution semantics"
+  ],
+  "authority_preservation": {
+    "cardinal_translation": "CARDINAL-135-SVELTE-001",
+    "identity_owner": "Focusa Core Workstream/Attachment authority and CORE-005 persistence quarantine",
+    "generated_transport_owner": "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts, mission-canvas-validators.generated.ts, mission-canvas-client.generated.ts, schemas/spec135/mission-canvas/composition-bundle.v1.schema.json, and docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "migration_mapping_owner": "crates/focusa-core/src/workstream_migration.rs",
+    "quarantine_owner": "crates/focusa-core/src/workstream_quarantine.rs and crates/focusa-core/src/mission_canvas/persistence.rs",
+    "composition_owner": "Focusa Core ResolvedWorkspaceProjection eligibility, layout, recomposition, revisions, cursors, and generated operation metadata",
+    "client_boundary": "The fixture harness validates checked-in core expectations and generated DTOs only; it does not add a client-local identity resolver, operation registry, route, renderer, layout resolver, or Work Surface authority."
+  },
+  "evidence_refs": [
+    "tests/fixtures/spec158-mission-canvas-identity/legacy_fixture.json",
+    "tests/fixtures/spec158-mission-canvas-identity/ambiguous_fixture.json",
+    "tests/fixtures/spec158-mission-canvas-identity/cross_workstream_fixture.json",
+    "tests/spec158_mission_canvas_identity_contract_test.py",
+    "tests/spec135_resolved_projection_contract_test.py",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "crates/focusa-core/src/workstream_migration.rs",
+    "crates/focusa-core/src/workstream_quarantine.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs"
+  ],
+  "source_authority": {
+    "AGENTS.md": "read completely",
+    "docs/agent/01-focusa-agent-docs-index.md": "read completely",
+    "docs/135-series-current-manifest.md": "read completely",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md": "read completely",
+    "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png": "read",
+    "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png": "read",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml": "read completely",
+    "docs/agent/spec135-implementation-acceleration-directive.md": "read completely",
+    "docs/current/SPEC135_REALTIME_GENERATED_UI_SPEED_AND_CORE_INTEGRATION_AUDIT_2026-07-18.md": "read completely",
+    "docs/agent/spec135-real-time-generated-ui-directive.md": "read completely",
+    "docs/agent/spec135-uxp-ufi-generated-ui-directive.md": "read completely",
+    "docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md": "read completely",
+    "docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md": "read completely",
+    "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md": "read completely",
+    "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md": "read completely",
+    "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md": "read completely",
+    "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md": "read completely",
+    "docs/135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md": "read completely",
+    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md": "read completely",
+    "docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md": "read completely",
+    "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md": "read completely",
+    "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md": "read completely",
+    "docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md": "read completely",
+    "docs/contracts/spec135-svelte-task-packets/CORE-009.json": "read completely",
+    "docs/contracts/spec135-svelte-task-packets/CORE-005.json": "read completely for dependency gate",
+    "docs/contracts/spec135-svelte-task-packets/CORE-008.json": "read completely for dependency gate",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-005.json": "read completely for dependency gate",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-008.json": "read completely for dependency gate",
+    "crates/focusa-core/src/mission_canvas/model.rs": "read completely as canonical Workstream authority source",
+    "apps/pi-extension/src/mission-canvas-model.ts": "read completely as behavior source",
+    "apps/pi-extension/src/mission-canvas-session-inventory.ts": "read completely as behavior source",
+    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md": "read completely as Workstream/Attachment authority source",
+    "tests/spec135_g1_work_surface_test.py": "read completely",
+    "tests/spec135_resolved_projection_contract_test.py": "read completely before edit",
+    "tests/spec158_mission_canvas_identity_contract_test.py": "read completely before edit",
+    "docs/spec158/01-identity-ownership-and-reducer.md": "read completely",
+    "docs/spec158/02-persistence-migration-and-quarantine.md": "read completely",
+    "docs/spec158/03-client-runtime-and-desktop-contracts.md": "read completely",
+    "crates/focusa-core/src/workstream_migration.rs": "read completely as mapping authority",
+    "crates/focusa-core/src/workstream_quarantine.rs": "read completely as quarantine authority",
+    "crates/focusa-core/src/mission_canvas/persistence.rs": "read completely as CORE-005 persistence/quarantine implementation",
+    "docs/contracts/spec135-complete-feature-ledger.v1.yaml": "read completely",
+    "docs/contracts/spec135-delivery-dag.v1.yaml": "read completely",
+    "docs/contracts/spec135-proof-matrix.v1.yaml": "read completely",
+    "docs/contracts/spec135-runtime-evidence-matrix.v2.yaml": "read completely",
+    "docs/contracts/spec135-runtime-conformance-audit.v2.yaml": "read completely",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts": "read completely as generated transport authority",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts": "read completely as generated validator authority",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts": "read completely as generated client authority",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json": "read completely as generated operation metadata",
+    "docs/contracts/spec135/mission-canvas-v1/protocol-handshake.json": "read completely as protocol scope authority",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json": "read completely as canonical JSON Schema bundle"
+  },
+  "status": "implemented"
+}
