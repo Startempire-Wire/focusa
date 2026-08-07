@@ -85,6 +85,11 @@ assert 'header("x-focusa-project-root", &project_root)' not in api_server
 assert 'header("x-focusa-continuity-id", &continuity_id)' not in api_server
 assert "stale_driver" in api_loop
 assert "existing.child.try_wait()" in api_loop
+assert re.search(
+    r"WorkLoopStatus::SelectingReadyWork\s*\| WorkLoopStatus::Idle\s*"
+    r"\| WorkLoopStatus::PreparingTurn\s*\| WorkLoopStatus::AwaitingHarnessTurn",
+    api_loop,
+), "preparing_turn must remain dispatchable after a productive harness turn"
 for header in (
     "x-scope-project-root",
     "x-scope-continuity-id",

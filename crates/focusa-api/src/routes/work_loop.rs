@@ -1624,6 +1624,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
             status,
             WorkLoopStatus::SelectingReadyWork
                 | WorkLoopStatus::Idle
+                | WorkLoopStatus::PreparingTurn
                 | WorkLoopStatus::AwaitingHarnessTurn
                 | WorkLoopStatus::AdvancingTask
                 | WorkLoopStatus::EvaluatingOutcome
