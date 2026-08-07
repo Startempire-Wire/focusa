@@ -52,7 +52,47 @@ assert "validateMissionCanvasContract('WorkstreamAuthorityContext'" in transport
 assert "generated operation ID" not in transport  # no handwritten route catalog language
 assert operation_id in consumer
 
-if operation_id == "focusa.mission_canvas.rich_host.resolve":
+if operation_id == "focusa.mission_canvas.projection.get":
+    assert operation["method"] == "GET"
+    assert operation["path"] == "/v1/mission-canvas/projection"
+    assert operation["mode"] == "read"
+    assert operation["permissions_required"] == ["mission_canvas:read"]
+    assert operation["response_schema_ref"] == "ResolvedWorkspaceProjection"
+    assert operation["requires_idempotency_key"] is False
+    assert operation["requires_if_match_revision"] is False
+    assert operation["receipt_required"] is False
+
+    for marker in (
+        "get(get_projection)",
+        "require_permission",
+        "query.scope()",
+        "store.get_projection",
+        "projection.validate_scope",
+        "projection_scope_invalid",
+    ):
+        assert marker in route_text, marker
+    for marker in (
+        "authorityFromProjection",
+        "validateProjectionResponse",
+        "foreign_projection_scope",
+        "foreign_contribution_scope",
+        "stale_projection_revision",
+        "stale_projection_layout_revision",
+        "stale_projection_cursor",
+    ):
+        assert marker in transport, marker
+    for marker in (
+        "projectionGet",
+        "ResolvedWorkspaceProjection",
+        "empty exact Workstream",
+        "stale projection",
+    ):
+        assert marker in consumer, marker
+    model = (ROOT / "crates/focusa-core/src/mission_canvas/model.rs").read_text()
+    assert "pub fn validate_scope" in model
+    assert "validate_resolved_contribution_scope" in model
+
+elif operation_id == "focusa.mission_canvas.rich_host.resolve":
     assert operation["method"] == "GET"
     assert operation["path"] == "/v1/mission-canvas/rich-host/resolution"
     assert operation["mode"] == "read"

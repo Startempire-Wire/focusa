@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use axum::{
-    Json, Router,
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     routing::{get, post},
+    Json, Router,
 };
 use chrono::Utc;
 use focusa_core::mission_canvas::{
-    CompositionEvent, DOMAIN_PACK_INSTALL_CAPABILITY, DomainPackInstallCommand,
-    DomainPackInstallError, DomainPackInstallService, HostPlatform, HostRendererResolutionError,
+    resolve_projection, CompositionEvent, DomainPackInstallCommand, DomainPackInstallError,
+    DomainPackInstallService, HostPlatform, HostRendererResolutionError,
     HostRendererResolutionService, MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput,
-    StoredDocument, resolve_projection,
+    StoredDocument, DOMAIN_PACK_INSTALL_CAPABILITY,
 };
 use focusa_core::workstream_context::{
     ActorRef, ActorType, AuthorityContext, WorkstreamContext, WorkstreamContextError,
@@ -20,8 +20,8 @@ use focusa_core::workstream_context::{
 use focusa_core::workstream_identity::{
     AttachmentKey, RuntimeObjectRef, WorkSurfaceId, WorkstreamKey,
 };
-use serde::{Deserialize, de::DeserializeOwned};
-use serde_json::{Value, json};
+use serde::{de::DeserializeOwned, Deserialize};
+use serde_json::{json, Value};
 
 use crate::routes::permissions::permission_context;
 use crate::server::AppState;
@@ -269,7 +269,12 @@ async fn get_projection(
     let scope = query.scope()?;
     let store = store(&state)?;
     match store.get_projection(&scope).map_err(store_error)? {
-        Some(projection) => Ok(Json(serde_json::to_value(projection).map_err(json_error)?)),
+        Some(projection) => {
+            projection.validate_scope(&scope).map_err(|reason| {
+                error(StatusCode::CONFLICT, "projection_scope_invalid", reason)
+            })?;
+            Ok(Json(serde_json::to_value(projection).map_err(json_error)?))
+        }
         None => Err(error(
             StatusCode::NOT_FOUND,
             "projection_not_found",
