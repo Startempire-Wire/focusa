@@ -1,22 +1,99 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import ProjectionLayoutRenderer from './ProjectionLayoutRenderer.svelte';
+  import { DEFAULT_CONTRIBUTION_REGISTRY } from './default-contribution-registry';
+  import { resolveContributionRenderer, type ContributionRendererRegistry } from './contribution-renderers';
   import type { LayoutNode, ResolvedContribution } from './types';
 
   let {
     node,
     contributions,
     renderContribution,
-    onSelectTab
+    onSelectTab,
+    registry = DEFAULT_CONTRIBUTION_REGISTRY
   }: {
     node: LayoutNode;
     contributions: ReadonlyMap<string, ResolvedContribution>;
     renderContribution: Snippet<[ResolvedContribution]>;
     onSelectTab?: (contributionId: string) => void;
+    registry?: ContributionRendererRegistry;
   } = $props();
 
-  function contribution(id: string): ResolvedContribution | undefined {
-    return contributions.get(id);
+  /**
+   * A layout node is only renderable when its exact contribution identity is
+   * present in the canonical eligible map and resolves through the trusted
+   * renderer registry.  The key/DTO identity check is deliberate: a caller
+   * may not place a foreign contribution under a requested layout ID.
+   */
+  function contribution(id: unknown): ResolvedContribution | undefined {
+    if (typeof id !== 'string' || id.length === 0 || id.trim() !== id) return undefined;
+    const resolved = contributions.get(id);
+    if (!resolved || resolved.contribution_id !== id) return undefined;
+    return resolveContributionRenderer(registry, resolved) ? resolved : undefined;
+  }
+
+  /**
+   * Invalid canonical geometry fails closed as one unit.  We do not filter or
+   * reflow children locally: Core owns eligibility and recomposition.  Refusing
+   * the malformed tree prevents parent split/stack/grid wrappers from leaving
+   * reserved gaps around an omitted or untrusted contribution.
+   */
+  function canRenderNode(value: unknown, seen = new WeakSet<object>()): boolean {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const object = value as Record<string, unknown>;
+    if (seen.has(object)) return false;
+    seen.add(object);
+    if (typeof object.node_id !== 'string' || object.node_id.length === 0 || object.node_id.trim() !== object.node_id) return false;
+
+    switch (object.kind) {
+      case 'single':
+        return contribution(object.contribution_id) !== undefined;
+      case 'split': {
+        const children = object.children;
+        return (object.orientation === 'horizontal' || object.orientation === 'vertical')
+          && typeof object.ratio === 'number'
+          && Number.isFinite(object.ratio)
+          && object.ratio >= 0.1
+          && object.ratio <= 0.9
+          && Array.isArray(children)
+          && children.length === 2
+          && children.every((child) => canRenderNode(child, seen));
+      }
+      case 'stack': {
+        const children = object.children;
+        return Array.isArray(children)
+          && children.length > 0
+          && children.every((child) => canRenderNode(child, seen));
+      }
+      case 'grid': {
+        const children = object.children;
+        return Number.isSafeInteger(object.columns)
+          && Number(object.columns) >= 1
+          && Number(object.columns) <= 12
+          && Array.isArray(children)
+          && children.length > 0
+          && children.every((child) => canRenderNode(child, seen));
+      }
+      case 'tabs': {
+        const ids = object.contribution_ids;
+        return Array.isArray(ids)
+          && ids.length > 0
+          && ids.every((id) => contribution(id) !== undefined)
+          && ids.includes(object.active_contribution_id);
+      }
+      case 'inspector': {
+        const ids = object.inspector_contribution_ids;
+        const span = object.span;
+        return (object.side === 'start' || object.side === 'end')
+          && Array.isArray(ids)
+          && ids.length > 0
+          && ids.every((id) => contribution(id) !== undefined)
+          && (span === undefined || (Number.isSafeInteger(span) && Number(span) >= 1 && Number(span) <= 6))
+          && canRenderNode(object.primary, seen);
+      }
+      default:
+        return false;
+    }
   }
 
   function activeTab(ids: string[], canonicalActive: string): string | undefined {
@@ -51,7 +128,8 @@
   }
 </script>
 
-{#if node.kind === 'single'}
+{#if canRenderNode(node)}
+  {#if node.kind === 'single'}
   {@const resolved = contribution(node.contribution_id)}
   {#if resolved}
     <div class="layout-single" data-layout-node={node.node_id} data-contribution-id={resolved.contribution_id}>
@@ -67,7 +145,7 @@
   >
     {#each node.children as child, index (`${child.node_id}:${index}`)}
       <div class="split-child" class:first={index === 0}>
-        <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab}/>
+        <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab} {registry}/>
       </div>
     {/each}
   </div>
@@ -75,18 +153,18 @@
   <div class="layout-stack" data-layout-node={node.node_id} data-gap-token={node.gap_token ?? 'default'}>
     {#each node.children as child (`${child.node_id}`)}
       <div class="stack-child" class:rail-region={stackRole(child) === 'rail'} class:queue-region={stackRole(child) === 'queue'} class:composer-region={stackRole(child) === 'composer'}>
-        <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab}/>
+        <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab} {registry}/>
       </div>
     {/each}
   </div>
 {:else if node.kind === 'grid'}
   <div class="layout-grid" data-layout-node={node.node_id} style={`--layout-columns:${Math.max(1, node.columns)}`}>
     {#each node.children as child (`${child.node_id}`)}
-      <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab}/>
+      <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab} {registry}/>
     {/each}
   </div>
 {:else if node.kind === 'tabs'}
-  {@const availableIds = node.contribution_ids.filter((id) => contributions.has(id))}
+  {@const availableIds = node.contribution_ids.filter((id) => contribution(id))}
   {@const selectedId = activeTab(availableIds, node.active_contribution_id)}
   {#if selectedId}
     {@const selected = contribution(selectedId)}
@@ -126,7 +204,7 @@
     data-layout-node={node.node_id}
     style={`--inspector-span:${Math.max(1, node.span ?? 4)}`}
   >
-    <main><ProjectionLayoutRenderer node={node.primary} {contributions} {renderContribution} {onSelectTab}/></main>
+    <main><ProjectionLayoutRenderer node={node.primary} {contributions} {renderContribution} {onSelectTab} {registry}/></main>
     {#if inspectorItems.length > 0}
       <aside aria-label="Canvas inspector">
         {#each inspectorItems as item (item.contribution_id)}
@@ -135,6 +213,7 @@
       </aside>
     {/if}
   </div>
+  {/if}
 {/if}
 
 <style>

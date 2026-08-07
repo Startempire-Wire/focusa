@@ -12,6 +12,7 @@ const server = await createServer({
 try {
   const { render } = await server.ssrLoadModule('svelte/server');
   const { default: Harness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasLayoutHarness.svelte');
+  const { default: SingleLayoutHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasSingleLayoutHarness.svelte');
   const { default: RegistryControlsHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasRegistryControlsHarness.svelte');
   const { default: TrustedRegistryHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasTrustedRegistryHarness.svelte');
   const { default: WorkspaceProfileSelector } = await server.ssrLoadModule('/src/lib/mission-canvas/WorkspaceProfileSelector.svelte');
@@ -163,6 +164,74 @@ try {
   assert.equal(hostileRegistry.resolveContributionRenderer(piContribution).component, ResolvedContributionRenderer);
   assert.equal(hostileRegistry.has('renderer:missing@v1'), false);
   assert.equal(hostileRegistry.resolve(null), undefined);
+
+  // UI-006 hostile single-node cases exercise the real recursive renderer
+  // boundary, not only MissionCanvasRenderer's aggregate blocked state. A
+  // single node may create one host exactly when its keyed contribution and
+  // trusted binding both match; malformed or omitted inputs create no layout
+  // wrapper, so no parent geometry can reserve a gap.
+  const singleProjection = structuredClone(rendererFixture);
+  singleProjection.layout_tree = {
+    node_id: 'layout:single-hostile-test',
+    kind: 'single',
+    contribution_id: piContribution.contribution_id
+  };
+  const { body: singleHost } = render(SingleLayoutHarness, {
+    props: { projection: singleProjection, registry: hostileRegistry }
+  });
+  assert.equal((singleHost.match(/data-rendered-contribution=/g) ?? []).length, 1);
+  assert.match(singleHost, /class="layout-single[^\"]*"[^>]*data-contribution-id="contribution:pi-session"/);
+
+  const missingSingle = structuredClone(singleProjection);
+  missingSingle.layout_tree.contribution_id = 'contribution:omitted';
+  const { body: omittedSingle } = render(SingleLayoutHarness, {
+    props: { projection: missingSingle, registry: hostileRegistry }
+  });
+  assert.doesNotMatch(omittedSingle, /layout-single|data-rendered-contribution=|contribution:omitted/);
+
+  const foreignKeyedContribution = structuredClone(singleProjection);
+  foreignKeyedContribution.eligible_contributions[0].contribution_id = 'contribution:foreign';
+  const { body: mismatchedSingle } = render(SingleLayoutHarness, {
+    props: { projection: foreignKeyedContribution, registry: hostileRegistry }
+  });
+  assert.doesNotMatch(mismatchedSingle, /layout-single|data-rendered-contribution=/);
+
+  const unknownSingle = structuredClone(singleProjection);
+  unknownSingle.eligible_contributions[0].renderer_binding_id = 'renderer:untrusted@9';
+  const { body: unknownSingleBody } = render(SingleLayoutHarness, {
+    props: { projection: unknownSingle, registry: hostileRegistry }
+  });
+  assert.doesNotMatch(unknownSingleBody, /layout-single|data-rendered-contribution=/);
+
+  const semanticMismatchSingle = structuredClone(singleProjection);
+  semanticMismatchSingle.eligible_contributions[0].semantic_binding_id = 'semantic:foreign';
+  const { body: semanticMismatchSingleBody } = render(SingleLayoutHarness, {
+    props: { projection: semanticMismatchSingle, registry: hostileRegistry }
+  });
+  assert.doesNotMatch(semanticMismatchSingleBody, /layout-single|data-rendered-contribution=/);
+
+  const missingAuthoritySingle = structuredClone(singleProjection);
+  delete missingAuthoritySingle.eligible_contributions[0].authority;
+  const { body: missingAuthoritySingleBody } = render(SingleLayoutHarness, {
+    props: { projection: missingAuthoritySingle, registry: hostileRegistry }
+  });
+  assert.doesNotMatch(missingAuthoritySingleBody, /layout-single|data-rendered-contribution=/);
+
+  const nestedOmission = structuredClone(singleProjection);
+  nestedOmission.layout_tree = {
+    node_id: 'layout:split-with-omission',
+    kind: 'split',
+    orientation: 'horizontal',
+    ratio: 0.5,
+    children: [
+      { node_id: 'layout:present', kind: 'single', contribution_id: piContribution.contribution_id },
+      { node_id: 'layout:omitted', kind: 'single', contribution_id: 'contribution:omitted' }
+    ]
+  };
+  const { body: nestedOmissionBody } = render(SingleLayoutHarness, {
+    props: { projection: nestedOmission, registry: hostileRegistry }
+  });
+  assert.doesNotMatch(nestedOmissionBody, /layout-split|split-child|data-rendered-contribution=/);
 
   const unknownBinding = structuredClone(piContribution);
   unknownBinding.renderer_binding_id = 'renderer:untrusted@9';

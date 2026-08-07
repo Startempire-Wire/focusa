@@ -75,7 +75,7 @@
     </ul>
   </section>
 {:else}
-  <MissionCanvasFrame {projection} {renderContribution} {onSelectTab}/>
+  <MissionCanvasFrame {projection} {renderContribution} {onSelectTab} {registry}/>
 {/if}
 
 <style>

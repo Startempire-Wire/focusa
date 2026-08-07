@@ -3,16 +3,20 @@
   import ActualWorkSurfaceStrip from './ActualWorkSurfaceStrip.svelte';
   import MissionCanvasContextBar from './MissionCanvasContextBar.svelte';
   import ProjectionLayoutRenderer from './ProjectionLayoutRenderer.svelte';
+  import { DEFAULT_CONTRIBUTION_REGISTRY } from './default-contribution-registry';
+  import type { ContributionRendererRegistry } from './contribution-renderers';
   import type { ResolvedContribution, ResolvedWorkspaceProjection } from './types';
 
   let {
     projection,
     renderContribution,
-    onSelectTab
+    onSelectTab,
+    registry = DEFAULT_CONTRIBUTION_REGISTRY
   }: {
     projection: ResolvedWorkspaceProjection;
     renderContribution: Snippet<[ResolvedContribution]>;
     onSelectTab?: (contributionId: string) => void;
+    registry?: ContributionRendererRegistry;
   } = $props();
 
   const contributions = $derived(
@@ -35,7 +39,7 @@
   <MissionCanvasContextBar {projection}/>
   <ActualWorkSurfaceStrip {projection} onSelect={onSelectTab}/>
   <div class="projection-region">
-    <ProjectionLayoutRenderer node={projection.layout_tree} {contributions} {renderContribution} {onSelectTab}/>
+    <ProjectionLayoutRenderer node={projection.layout_tree} {contributions} {renderContribution} {onSelectTab} {registry}/>
   </div>
 </section>
 
