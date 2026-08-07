@@ -9,7 +9,8 @@ use axum::{
 use chrono::Utc;
 use focusa_core::mission_canvas::{
     resolve_projection, CompositionEvent, DomainPackInstallCommand, DomainPackInstallError,
-    DomainPackInstallService, MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput,
+    DomainPackInstallService, HostPlatform, HostRendererResolutionError,
+    HostRendererResolutionService, MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput,
     StoredDocument, DOMAIN_PACK_INSTALL_CAPABILITY,
 };
 use focusa_core::workstream_context::{
@@ -1129,27 +1130,81 @@ fn find_contribution_paths(
     }
 }
 
-async fn resolve_host_renderer(headers: HeaderMap, Query(query): Query<ScopeQuery>) -> ApiResult {
-    require_permission(&headers, "mission_canvas:host")?;
-    query.scope()?;
-    let platform = if cfg!(target_os = "macos") {
-        "macOS"
-    } else if cfg!(target_os = "windows") {
-        "Windows"
-    } else {
-        "Linux"
+async fn resolve_host_renderer(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(query): Query<ScopeQuery>,
+) -> ApiResult {
+    require_permission_with_state(&state, &headers, "mission_canvas:host")?;
+    let scope = query.scope()?;
+    let context =
+        host_renderer_workstream_context(&scope, &headers).map_err(host_renderer_context_error)?;
+    let capabilities = header_values(&headers, "x-focusa-capabilities");
+    let resolution = HostRendererResolutionService
+        .resolve(&context, &scope, &capabilities, HostPlatform::current())
+        .map_err(host_renderer_resolution_error)?;
+    Ok(Json(serde_json::to_value(resolution).map_err(json_error)?))
+}
+
+fn host_renderer_workstream_context(
+    scope: &MissionCanvasScope,
+    headers: &HeaderMap,
+) -> Result<WorkstreamContext, WorkstreamContextError> {
+    let actor_id = headers
+        .get("x-focusa-actor-id")
+        .and_then(|value| value.to_str().ok())
+        .ok_or(WorkstreamContextError::MissingActor)?;
+    let authority_ref = headers
+        .get("x-focusa-authority-ref")
+        .and_then(|value| value.to_str().ok())
+        .ok_or(WorkstreamContextError::MissingAuthority)?;
+    let actor = ActorRef::new(ActorType::Desktop, actor_id.to_owned())?;
+    let authority = AuthorityContext::canonical(
+        authority_ref.to_owned(),
+        "mission_canvas:host permission established for the exact Workstream",
+    );
+    let mut envelope = WorkstreamRequestEnvelope::new(
+        Some(scope.workstream.clone()),
+        scope.attachment.clone(),
+        actor,
+        authority,
+    );
+    envelope.continuity_id = scope.continuity_id.clone();
+    envelope.workspace_binding_id = scope.workspace_binding_id.clone();
+    WorkstreamContext::extract(envelope)
+}
+
+fn host_renderer_context_error(error_value: WorkstreamContextError) -> (StatusCode, Json<Value>) {
+    let status = match &error_value {
+        WorkstreamContextError::WorkstreamMismatch
+        | WorkstreamContextError::ContinuityMismatch
+        | WorkstreamContextError::WorkspaceBindingMismatch
+        | WorkstreamContextError::AuthorityDenied => StatusCode::CONFLICT,
+        _ => StatusCode::UNPROCESSABLE_ENTITY,
     };
-    Ok(Json(json!({
-        "interaction_mode": "canvas-guided",
-        "selected_renderer": "focusa_pi_rich_window",
-        "platform": platform,
-        "availability": "available",
-        "resolution_reason": "portable native rich-host contract is available",
-        "asset_version": env!("CARGO_PKG_VERSION"),
-        "asset_digest": null,
-        "resolver_revision": "host-resolver:v1",
-        "diagnostic_ref": null,
-    })))
+    error(
+        status,
+        "workstream_context_invalid",
+        &error_value.to_string(),
+    )
+}
+
+fn host_renderer_resolution_error(
+    error_value: HostRendererResolutionError,
+) -> (StatusCode, Json<Value>) {
+    match error_value {
+        HostRendererResolutionError::CapabilityUnavailable(capability) => error(
+            StatusCode::FORBIDDEN,
+            "capability_unavailable",
+            &format!("Missing required host capability: {capability}"),
+        ),
+        HostRendererResolutionError::Context(context_error) => {
+            host_renderer_context_error(context_error)
+        }
+        HostRendererResolutionError::Scope(reason) => {
+            error(StatusCode::UNPROCESSABLE_ENTITY, "scope_incomplete", reason)
+        }
+    }
 }
 
 async fn update_host_lifecycle(

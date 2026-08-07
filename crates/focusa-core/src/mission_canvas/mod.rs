@@ -4,6 +4,7 @@
 //! projection reducers, and SQLite persistence. UI and HTTP layers remain adapters.
 
 pub mod domain_pack;
+pub mod host;
 pub mod layout;
 pub mod memory;
 pub mod model;
@@ -16,6 +17,12 @@ pub use domain_pack::{
     DOMAIN_PACK_INSTALL_CAPABILITY, DOMAIN_PACK_INSTALL_OPERATION,
     DOMAIN_PACK_INSTALL_PERMISSION, DomainPackInstallCommand, DomainPackInstallError,
     DomainPackInstallService,
+};
+pub use host::{
+    HostPlatform, HostRendererResolution, HostRendererResolutionError,
+    HostRendererResolutionService, DESKTOP_TAURI_CAPABILITY, DESKTOP_TAURI_RENDERER,
+    HOST_RESOLVER_REVISION, PI_OVERLAY_COMPATIBILITY_CAPABILITY, PI_OVERLAY_RENDERER,
+    RICH_HOST_RESOLVE_CAPABILITY, RICH_HOST_RESOLVE_OPERATION,
 };
 pub use layout::{
     resolve_layout, validate_no_dead_chrome, LayoutConstraints, LayoutError, LayoutNode,

@@ -716,6 +716,7 @@ def definitions() -> dict[str, Any]:
                 "interaction_mode": {"enum": ["canvas-guided", "terminal-guided", "headless"]},
                 "selected_renderer": {
                     "enum": [
+                        "focusa_desktop_tauri",
                         "focusa_pi_rich_window",
                         "uiai_engine_cockpit",
                         "mission_deck_web",
@@ -727,6 +728,12 @@ def definitions() -> dict[str, Any]:
                 },
                 "platform": {"enum": ["macOS", "Windows", "Linux"]},
                 "availability": {"enum": ["available", "fallback", "unavailable", "headless"]},
+                "workstream": {"$ref": "#/$defs/WorkstreamKey"},
+                "continuity_id": {"anyOf": [{"$ref": "#/$defs/ContinuityId"}, {"type": "null"}]},
+                "attachment": {"anyOf": [{"$ref": "#/$defs/AttachmentKey"}, {"type": "null"}]},
+                "workspace_binding_id": {"anyOf": [{"$ref": "#/$defs/WorkspaceBindingId"}, {"type": "null"}]},
+                "runtime_object": {"anyOf": [{"$ref": "#/$defs/RuntimeObjectRef"}, {"type": "null"}]},
+                "work_surface_id": {"anyOf": [{"$ref": "#/$defs/WorkSurfaceId"}, {"type": "null"}]},
                 "resolution_reason": {"type": "string", "minLength": 1},
                 "asset_version": {"type": ["string", "null"]},
                 "asset_digest": {"type": ["string", "null"]},

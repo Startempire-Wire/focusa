@@ -1,0 +1,112 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-013",
+  "result": "Implemented focusa.mission_canvas.rich_host.resolve through the canonical generated GET operation. Core now resolves Focusa Desktop Tauri as the primary rich Mission Canvas host and exposes the existing Pi rich-window overlay only as an explicit compatibility fallback, while API and Desktop enforce exact Workstream authority and generated response validation.",
+  "targets": [
+    "crates/focusa-core/src/mission_canvas/host.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "scripts/generate-spec135-mission-canvas-schemas.py",
+    "scripts/generate-spec135-mission-canvas-derived-contracts.py",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/compatibility-lock.json",
+    "docs/contracts/spec135/mission-canvas-v1/protocol-handshake.json",
+    "tests/spec135_mission_canvas_operation_contract_test.py"
+  ],
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.rich_host.resolve",
+    "method": "GET",
+    "path": "/v1/mission-canvas/rich-host/resolution",
+    "scope_required": ["workstream"],
+    "permissions_required": ["mission_canvas:host"],
+    "confirmation": "none",
+    "requires_idempotency_key": false,
+    "requires_if_match_revision": false,
+    "receipt_required": false,
+    "response_schema_ref": "HostRendererResolution",
+    "client_method": "rich_hostResolve",
+    "artifact_status": "Canonical operation registry, OpenAPI path, generated TypeScript client, generated DTO, enum-aware validator, compatibility lock, and protocol handshake remain parity-verified; the host operation transport requires and validates the Workstream authority echoed by HostRendererResolution."
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "implementation": [
+    "The core HostRendererResolutionService accepts only a validated WorkstreamContext plus the exact MissionCanvas scope; it rejects foreign Workstream, Attachment, Continuity, and WorkspaceBinding authority and never consults CWD, tabs, recency, or local presentation state.",
+    "With the explicit Desktop capability, core selects focusa_desktop_tauri and canvas-guided/available. Without Desktop but with the explicit Pi compatibility capability, it selects focusa_pi_rich_window and canvas-guided/fallback. Missing capability fails closed, and Desktop wins when both capabilities are present.",
+    "The API adapter derives the canonical WorkstreamContext from the generated query scope and explicit actor/authority headers, checks mission_canvas:host through the state-aware permission boundary, passes the generated capability set to core, and returns the generated response-shaped DTO.",
+    "Desktop resolves method and path from the generated operation registry, sends exact Workstream identity and host metadata, validates HostRendererResolution with the generated validator, and rejects a foreign response scope before exposing it to the client.",
+    "The generated schema/DTO now owns the Desktop renderer value, Workstream echo fields, subordinate authority fields, and direct enum validation; the host operation transport makes the Workstream echo mandatory at this operation boundary, and bounded operation/runtime tests cover hostile response and missing-identity paths without adding a local operation catalog or eligibility resolver."
+  ],
+  "checks": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; 25 schema files, 25 operation entries, 10 derived artifacts, parity and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.rich_host.resolve (exit 0; generated registry/OpenAPI/client/route/core/transport/consumer contract: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.rich_host.resolve --client rich_hostResolve (exit 0; generated client, GET registry path, exact scope, Desktop selection, foreign scope, missing scope, and hostile response checks: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.domain_pack.install (exit 0; existing domain-pack contract coverage preserved: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.domain_pack.install --client domain_packInstall (exit 0; existing domain-pack consumer coverage preserved: PASS)",
+    "python3 -m py_compile scripts/generate-spec135-mission-canvas-schemas.py scripts/generate-spec135-mission-canvas-derived-contracts.py tests/spec135_mission_canvas_operation_contract_test.py (exit 0)",
+    "rustfmt --edition 2024 --check crates/focusa-core/src/mission_canvas/host.rs (exit 0)",
+    "rustfmt --edition 2021 --check crates/focusa-api/src/routes/mission_canvas.rs (exit 0)",
+    "git diff --check (exit 0)"
+  ],
+  "negative_cases": {
+    "foreign_workstream": "Core context/scope comparison rejects a foreign Workstream. Desktop response validation rejects a HostRendererResolution whose Workstream differs from the request, including a foreign nested Attachment owner.",
+    "missing_authority": "The API requires explicit actor and authority headers before WorkstreamContext extraction; Desktop rejects a request without generated Workstream identity before issuing HTTP.",
+    "stale_revision_cursor": "Not applicable to this generated read operation: requires_if_match_revision is false and no mutation cursor is accepted. Exact Workstream authority and generated response scope still fail closed.",
+    "unavailable_capability": "Core returns CapabilityUnavailable when neither the explicit Desktop capability nor the explicit Pi compatibility capability is present; an explicit Desktop capability takes precedence over fallback.",
+    "permission_denied": "The state-aware API permission boundary requires mission_canvas:host before host resolution; no route-local bypass is used.",
+    "empty_or_ineligible_contribution": "Not applicable to host selection: this operation receives no contribution candidates and does not infer or resolve layout eligibility. Canonical projection/recomposition remains owned by the existing core resolver.",
+    "invalid_response": "The host operation transport, using generated HostRendererResolution and WorkstreamAuthorityContext validators, rejects missing Workstream, unknown fields, and invalid interaction mode, renderer, platform, or availability values before Desktop returns the response.",
+    "local_inference": "No CWD, tab, recent record, transcript, or subordinate identifier is used as an owner or renderer selector; all authority and capabilities are explicit request inputs."
+  },
+  "acceptance": [
+    "Resolves Focusa Desktop Tauri as the primary host and Pi overlay as compatibility only.",
+    "Uses GET /v1/mission-canvas/rich-host/resolution and generated MissionCanvasClient.rich_hostResolve with registry-owned method/path metadata.",
+    "Returns a generated HostRendererResolution whose host-operation transport boundary requires and validates the exact echoed WorkstreamKey and subordinate authority scope.",
+    "Fails closed for missing or foreign authority, missing capability, denied permission, and hostile generated response values without local inference or a substitute operation path."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135-svelte-task-packets/OPS-013.json"
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs"
+  ],
+  "deferred_repository_observation": "Cargo validation was intentionally not run because the OPS-013 corrective-pass instruction prohibits Cargo. Graph, packet, execution-index, plan, orchestration, and unrelated evidence files were not edited.",
+  "environment_observations": [
+    "npm --prefix apps/desktop run check (exit 1 before svelte-check; the worktree lacks @sveltejs/adapter-static, so the repository-level Svelte check could not load its config. The packet-mandated Vite SSR Desktop consumer check passes.)"
+  ],
+  "remaining_checks": [
+    "cargo test/check for the changed Rust Mission Canvas/API sources (not run; Cargo is prohibited for this corrective pass)"
+  ],
+  "remaining_work": [],
+  "blockers": [
+    "Only deferred Rust Cargo validation remains; all packet-mandated generated parity, operation contract, Desktop consumer, hostile-case, Python, rustfmt, and diff checks pass."
+  ],
+  "status": "implemented_partial"
+}

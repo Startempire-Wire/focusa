@@ -1312,12 +1312,32 @@
             "null"
           ]
         },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "availability": {
           "enum": [
             "available",
             "fallback",
             "unavailable",
             "headless"
+          ]
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "diagnostic_ref": {
@@ -1348,8 +1368,19 @@
           "minLength": 1,
           "type": "string"
         },
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "selected_renderer": {
           "enum": [
+            "focusa_desktop_tauri",
             "focusa_pi_rich_window",
             "uiai_engine_cockpit",
             "mission_deck_web",
@@ -1358,6 +1389,29 @@
             "menubar_peek",
             "headless_none"
           ]
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
