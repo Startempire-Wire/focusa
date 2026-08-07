@@ -1,0 +1,171 @@
+schema: focusa.spec172.license_type_lifecycle.v1
+contract_version: 1
+authority: canonical_paid_entitlement_authority
+policy_source: docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md
+
+state_machine:
+  initial_state: pre_first_sale_mutable
+  states:
+    pre_first_sale_mutable:
+      issued_customer_count: 0
+      mutable_fields:
+        - stable_license_type_code
+        - product_owner
+        - included_capability_families
+        - seat_limit
+        - node_limit
+        - local_runtime_rights
+        - hosted_resource_rights
+        - duration
+        - refund_posture
+        - manifest_digest
+      transitions:
+        first_approved_sale: post_first_sale_immutable
+    post_first_sale_immutable:
+      issued_customer_count: at_least_one
+      immutable_fields:
+        - stable_license_type_code
+        - product_owner
+        - included_capability_families
+        - seat_limit
+        - node_limit
+        - local_runtime_rights
+        - hosted_resource_rights
+        - duration
+        - refund_posture
+        - manifest_digest
+      permitted_changes:
+        - sale_status
+      transitions:
+        discontinue_new_sales: discontinued_no_new_sales
+    discontinued_no_new_sales:
+      accepts_new_sales: false
+      existing_grants:
+        remain_valid: true
+        renamed: false
+        revoked: false
+        downgraded: false
+        expired_by_discontinuation: false
+        converted_to_other_license_type: false
+      transitions: {}
+
+transition_guards:
+  first_approved_sale:
+    authority_only: true
+    requires_frozen_manifest_digest: true
+    caller_controlled_commercial_fields: forbidden
+  discontinue_new_sales:
+    authority_only: true
+    only_mutates: sale_status
+    revokes_existing_grants: false
+
+inheritance_rules:
+  existing_family_implementation:
+    decision: inherit
+    all_conditions:
+      - same_registered_product
+      - same_customer_understandable_outcome
+      - security_side_effect_privacy_and_resource_profile_fits_family
+      - no_separately_named_product
+      - no_materially_new_hosted_cost
+  materially_new_family:
+    decision: excluded_pending_explicit_versioned_assignment
+    defaults:
+      verified_no_license: denied
+      existing_license_types: excluded
+      unknown_or_unclassified_execution: denied
+  future_license_type:
+    decision: separate_type_explicit_grant_required
+    may_mutate_existing_operator: false
+  future_product:
+    decision: excluded_pending_operator_approved_registration
+    namespace_or_marketing_resemblance_grants_access: false
+  hosted_or_metered_resource:
+    decision: excluded_unless_explicitly_listed
+    lifetime_term_implies_inclusion: false
+
+commercial_authority:
+  anonymous_product_capability: forbidden
+  local_or_self_issued_grant: forbidden
+  caller_controlled_fields:
+    - product
+    - price
+    - license_type
+    - capability_family
+    - feature
+    - limit
+    - node
+    - commercial_right
+  presenter_owned_policy: forbidden
+  legacy_download_453_implicit_mapping: forbidden
+
+preservation:
+  always_available:
+    - basic_customer_data_export
+    - repair
+    - rollback
+    - stable_security_update
+    - uninstall
+  discontinuation_deletes_customer_data: false
+  rollback_preserves:
+    - verified_identities
+    - customers
+    - orders
+    - refunds
+    - issued_license_types
+    - keys
+    - nodes
+    - authority_sequences
+    - customer_data
+    - migration_journals
+    - accepted_evidence
+
+fixtures:
+  - id: operator_first_sale_freeze
+    start_state: pre_first_sale_mutable
+    event: first_approved_sale
+    expected_state: post_first_sale_immutable
+    assertions:
+      frozen_fields_equal_state_machine_immutable_fields: true
+      later_narrowing_denied: true
+      later_rename_denied: true
+  - id: operator_discontinued
+    start_state: post_first_sale_immutable
+    event: discontinue_new_sales
+    expected_state: discontinued_no_new_sales
+    assertions:
+      new_sale_denied: true
+      existing_grant_valid: true
+      existing_rights_unchanged: true
+  - id: navigator_is_separate
+    proposed_license_type:
+      code: focusa_navigator_lifetime_v1
+      product_owner: focusa
+    expected:
+      separate_stable_code_required: true
+      operator_manifest_mutation: denied
+      operator_customer_access: denied_without_explicit_upgrade_crossgrade_or_grant
+  - id: safe_existing_family_operation
+    operation:
+      product_owner: focusa
+      capability_family: manual_workpoint
+      customer_outcome: existing
+      resource_profile: existing_local
+    expected: inherit_existing_family
+  - id: materially_new_family
+    operation:
+      product_owner: focusa
+      capability_family: synthetic_new_customer_outcome
+      customer_outcome: materially_new
+    expected: excluded_pending_explicit_versioned_assignment
+  - id: future_product
+    operation:
+      product_owner: synthetic_future_product
+      capability_family: synthetic_family
+    expected: excluded_pending_operator_approved_registration
+  - id: metered_resource
+    operation:
+      product_owner: focusa
+      capability_family: hosted_metered_compute
+      resource_profile: metered_third_party
+    expected: excluded_unless_explicitly_listed
