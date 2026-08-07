@@ -364,6 +364,77 @@ elif operation_id == "focusa.mission_canvas.activity.list":
     ):
         assert marker in consumer, marker
 
+elif operation_id == "focusa.mission_canvas.activity.select":
+    assert operation["method"] == "POST"
+    assert operation["path"] == "/v1/mission-canvas/activities/select"
+    assert operation["mode"] == "mutation"
+    assert operation["permissions_required"] == ["mission_canvas:write"]
+    assert operation["request_schema_ref"] == "focusa.mission_canvas.composition_selection.request.v1"
+    assert operation["response_schema_ref"] == "ResolvedWorkspaceProjection"
+    assert operation["requires_idempotency_key"] is True
+    assert operation["requires_if_match_revision"] is True
+    assert operation["receipt_required"] is True
+
+    for marker in (
+        "post(select_activity)",
+        "require_permission_with_state",
+        "validate_authority",
+        "exact_workstream_context",
+        "required_header",
+        "required_if_match_revision",
+        "activity_for_selection",
+        "ActivitySelectionService",
+        "put_projection",
+        "serde_json::to_value(result.projection)",
+        "idempotency_key_mismatch",
+        "projection_cursor_conflict",
+        "activity_selection_error",
+    ):
+        assert marker in route_text, marker
+    reducer = (ROOT / "crates/focusa-core/src/mission_canvas/reducer.rs").read_text()
+    for marker in (
+        "ACTIVITY_SELECT_OPERATION",
+        "ActivitySelectionCommand",
+        "ActivitySelectionError",
+        "ActivitySelectionService",
+        "validate_activity_selection_context",
+        "collect_candidates",
+        "resolve_eligibility",
+        "resolve_layout",
+        "validate_no_dead_chrome",
+        "activity_mode_change",
+        "activity_mode_changed",
+        "RecompositionReceipt",
+    ):
+        assert marker in reducer, marker
+    for marker in (
+        "focusa.mission_canvas.activity.select",
+        "validateOperationRequest",
+        "selection_id",
+        "If-Match",
+        "Idempotency-Key",
+        "unknown:${field}",
+        "validateProjectionResponse",
+        "foreign_projection_scope",
+        "foreign_contribution_scope",
+        "stale_projection_revision",
+        "stale_projection_layout_revision",
+        "stale_projection_cursor",
+    ):
+        assert marker in transport, marker
+    for marker in (
+        "activitySelect",
+        "exact Workstream POST",
+        "Core-owned direct recomposition",
+        "trusted recursive projection data",
+        "receipt",
+        "foreign authority",
+        "missing If-Match",
+        "stale revision/layout/cursor",
+        "empty omission",
+    ):
+        assert marker in consumer, marker
+
 elif operation_id == "focusa.mission_canvas.rich_host.resolve":
     assert operation["method"] == "GET"
     assert operation["path"] == "/v1/mission-canvas/rich-host/resolution"

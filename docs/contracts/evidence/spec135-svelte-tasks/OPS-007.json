@@ -1,0 +1,170 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-007",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Implemented focusa.mission_canvas.activity.select as a bounded canonical Workstream mutation. The API now extracts and validates the exact Workstream actor/authority envelope, mutation headers, current projection, canonical profile/activity/candidate registry, and idempotency replay before delegating activity eligibility, adaptive layout recomposition, omission diagnostics, Evidence, and Receipt construction to the Core ActivitySelectionService. The route returns the direct generated ResolvedWorkspaceProjection, preserving the exact Workstream and subordinate Attachment authority. Desktop consumes the generated activitySelect method through registry-owned POST/path metadata, validates the selection request and direct response, and leaves trusted recursive canonical projection rendering to the existing renderer registry/layout renderer.",
+  "targets": [
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/reducer.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-007.json"
+  ],
+  "dependency_gate": {
+    "OPS-002": {
+      "status": "verified_integrated",
+      "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-002.json",
+      "decision": "The exact Workstream projection, generated mutation transport controls, Core resolver, direct projection DTO, revision/layout/cursor watermarks, omission diagnostics, and response fail-closed boundary required by activity selection are present on the integrated base and are reused without moving composition into Desktop."
+    },
+    "OPS-006": {
+      "status": "verified",
+      "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-006.json",
+      "decision": "The exact-Workstream activity.list registry read, Core meaningful-activity applicability filter, generated ActivityMode[] client path, and permission/authority boundary are integrated and reused by activity selection."
+    }
+  },
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "surface_kind": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "proof_class": "generated transport/runtime integration with hostile exact-scope, mutation-control, Core recomposition, trusted renderer-boundary, and response watermark checks",
+    "eligible_contributions": "Core considers only canonical candidates shared by the exact current WorkspaceProfile and selected registered ActivityMode, then applies exact Workstream scope, meaningful-content, capability, permission, operation, and active-surface eligibility before geometry. Only the resulting eligible set may appear in the canonical layout tree.",
+    "omitted_contribution_reasons": [
+      "no_relevant_content",
+      "not_applicable",
+      "capability_not_present",
+      "not_authorized",
+      "scope_mismatch",
+      "suspended",
+      "catalog_missing_or_malformed"
+    ],
+    "continuity_invariants": [
+      "The generated WorkstreamKey and exact subordinate authority chain are required for activity selection; project path, continuity alone, tab focus, CWD, or latest-record fallback cannot mint authority.",
+      "Activity selection changes the selected activity mode and recomposes the projection without changing Workstream, Attachment, runtime, or Work Surface ownership.",
+      "Authenticated Idempotency-Key and If-Match values must agree with the generated request control fields; stale revisions/cursors and key reuse conflicts fail closed.",
+      "Focusa Core owns canonical registry lookup, eligibility, layout, omission diagnostics, Evidence, Receipts, and persistence. The API is an adapter and Desktop does not infer candidates or layout.",
+      "activitySelect returns a direct validated ResolvedWorkspaceProjection; no projection/receipt wrapper is adopted by Desktop.",
+      "The existing trusted renderer registry and recursive canonical layout renderer remain the only Svelte rendering owners; malformed, foreign, omitted, or unregistered contribution/layout identity is rejected rather than locally reflowed or replaced."
+    ]
+  },
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.activity.select",
+    "method": "POST",
+    "path": "/v1/mission-canvas/activities/select",
+    "mode": "mutation",
+    "scope_required": [
+      "workstream"
+    ],
+    "scope_optional": [
+      "continuity_id",
+      "attachment",
+      "workspace_binding_id",
+      "runtime_object",
+      "work_surface_id"
+    ],
+    "permissions_required": [
+      "mission_canvas:write"
+    ],
+    "confirmation": "none",
+    "requires_idempotency_key": true,
+    "requires_if_match_revision": true,
+    "receipt_required": true,
+    "request_schema_ref": "focusa.mission_canvas.composition_selection.request.v1",
+    "response_schema_ref": "ResolvedWorkspaceProjection",
+    "client_method": "activitySelect",
+    "authority_chain": [
+      "ScopeRef",
+      "ProjectRootKey",
+      "WorkstreamId",
+      "optional ContinuityId",
+      "AttachmentKey",
+      "SessionId",
+      "InstanceId",
+      "WorkspaceBindingId",
+      "RuntimeObjectRef",
+      "WorkSurfaceId"
+    ],
+    "artifact_status": "The operation registry, OpenAPI 3.0.3 artifact, generated TypeScript client, generated validators, capability snapshot, and transport metadata remain generated authority; no generated contract artifact, task packet/index, executable graph, parallel plan, or orchestration script was edited."
+  },
+  "implementation": [
+    "Added the reusable Core ActivitySelectionService and ActivitySelectionCommand. It validates WorkstreamContext, exact subordinate authority, permission, profile/activity registry identity, idempotency, revision/cursor state, canonical profile/activity candidate intersection, capability/permission/operation/content eligibility, deterministic layout, no-dead-chrome invariants, recomposition Evidence, Receipt, and the activity_mode_changed event.",
+    "Replaced the previous route-local activity switch and wrapped response with exact Workstream context extraction, generated body/header control agreement, exact-scope idempotent replay/conflict handling, canonical selected activity lookup, Core service invocation, atomic projection/event persistence, and direct ResolvedWorkspaceProjection serialization.",
+    "Extended the generated Desktop transport boundary for both composition-selection operations to require a non-empty selection identity, numeric expected revision, bounded optional cursor, exact allowed authority/control fields, registry-owned method/path metadata, and no client-local layout/candidate input.",
+    "Added hostile Desktop runtime coverage for generated activitySelect, exact Workstream POST/query-independent body and headers, direct Core projection and receipt refs, activity recomposition, recursive canonical layout omission, missing selection/idempotency/If-Match/authority, unknown local layout input, foreign top-level and nested contribution authority, missing response authority, malformed contribution, wrapped response, stale revision/layout/cursor, denied permission/capability, and unavailable operation.",
+    "Added operation-contract assertions covering generated descriptor metadata, API WorkstreamContext and Core ownership, direct response semantics, fail-closed transport validation, exact watermarks, and hostile consumer cases. Existing trusted renderer and recursive projection source was not replaced or bypassed."
+  ],
+  "checks": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; generated schemas, 25 operation entries, 10 derived artifacts, parity and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.activity.select (exit 0; generated POST/path/authority/permission/Core/transport/consumer contract: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.activity.select --client activitySelect (exit 0; generated activitySelect, exact Workstream POST, direct recomposed projection, trusted recursive layout data, omission/no-dead-chrome, authority, mutation-control, watermark, permission/capability, and hostile response checks: PASS)",
+    "node --check apps/desktop/tests/operation-consumer-runtime.mjs (exit 0)",
+    "python3 -m py_compile tests/spec135_mission_canvas_operation_contract_test.py tests/spec135_mission_canvas_generated_parity_test.py (exit 0)",
+    "rustfmt --edition 2021 --check --config skip_children=true crates/focusa-core/src/mission_canvas/reducer.rs crates/focusa-core/src/mission_canvas/mod.rs crates/focusa-api/src/routes/mission_canvas.rs (exit 0)",
+    "git diff --check (exit 0)",
+    "Cargo was not run, per the OPS-007 instruction and user constraint."
+  ],
+  "negative_cases": {
+    "foreign_workstream": "API exact WorkstreamContext extraction and stored projection validation reject foreign Workstream/Attachment authority; Desktop rejects foreign top-level and nested contribution authority before adoption.",
+    "missing_authority": "The API requires actor and canonical authority headers for the exact Workstream. Generated Desktop rejects missing Workstream input before HTTP and surfaces missing response/contribution authority as a typed invalid response.",
+    "stale_revision_cursor": "API compares If-Match and optional exact event cursor against the current Workstream projection before Core recomposition; Desktop rejects regressed projection revision, layout revision, and same-namespace durable cursor without updating its watermark.",
+    "unavailable_capability": "Activity selection declares no invented operation capability. Core applies authenticated capabilities and required operations to candidates; the hostile consumer verifies no X-Focusa-Capabilities header is minted and a capability-unavailable response is not adopted.",
+    "permission_denied": "The generated descriptor/API/Core require mission_canvas:write; a hostile 403 is surfaced without local activity or projection fallback.",
+    "idempotency_and_if_match": "API requires both controls, rejects body/header disagreement, replays only the exact prior activity_mode_changed mutation for the same key, and rejects key reuse for another mutation or revision.",
+    "empty_or_ineligible_contribution": "Core omits empty, irrelevant, unauthorized, unavailable, or malformed contributions before layout and records bounded diagnostics; the hostile consumer verifies the empty Work Rail is absent from eligible contributions and the recursive layout tree.",
+    "invalid_response": "Generated structural validation plus nested authority/watermark checks reject missing authority, foreign scope, foreign contribution authority, malformed contributions, wrappers, stale projections, and malformed layout-facing direct DTOs.",
+    "local_inference": "Desktop calls generated activitySelect and consumes the direct Core projection. It does not search candidates, resolve activity applicability, infer authority, compose layout, fabricate Evidence/Receipt, or select a fallback activity."
+  },
+  "acceptance": [
+    "Selects the requested registered ActivityMode from the exact Workstream registry, recomposes eligibility/layout in Focusa Core, persists the activity_mode_changed event, and returns a direct validated ResolvedWorkspaceProjection with Core Evidence/Receipt references.",
+    "Uses focusa.mission_canvas.activity.select and MissionCanvasClient.activitySelect with generated registry-owned POST/path/request/response metadata.",
+    "Preserves CARDINAL-135-SVELTE-001: exact Workstream authority is mandatory, generated transport owns DTO and route metadata validation, Core owns composition/eligibility/layout/persistence, and trusted Svelte rendering consumes canonical output without local policy.",
+    "Returns the recomposed projection without changing Workstream authority and fails closed for foreign/missing authority, stale revision/cursor, mutation-control mismatch, unavailable capability/operation, denied permission, unknown/ineligible activity, empty contribution, malformed/wrapped response, nested authority mismatch, and stale watermarks."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/OPS-007.json",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "crates/focusa-core/src/mission_canvas/profiles.rs",
+    "crates/focusa-core/src/mission_canvas/resolver.rs",
+    "crates/focusa-core/src/mission_canvas/layout.rs",
+    "crates/focusa-core/src/mission_canvas/reducer.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasRenderer.svelte",
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte",
+    "apps/desktop/src/lib/mission-canvas/contribution-renderers.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/135-series-current-manifest.md",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/agent/spec135-implementation-acceleration-directive.md",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-002.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-006.json"
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasRenderer.svelte",
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte",
+    "apps/desktop/src/lib/mission-canvas/contribution-renderers.ts"
+  ],
+  "deferred_repository_observation": "Cargo was not run. Generated contracts, task packets/index, central executable graph, parallel plan, orchestration scripts, and renderer source were not edited. A separately invoked optional layout-renderer harness is not an OPS-007 required command and could not run in this checkout because @sveltejs/adapter-static is not installed; the required activitySelect consumer gate passed and exercised direct canonical layout/renderer-boundary data.",
+  "remaining_work": [],
+  "status": "verified"
+}
