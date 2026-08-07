@@ -217,6 +217,79 @@ try {
   });
   assert.doesNotMatch(missingAuthoritySingleBody, /layout-single|data-rendered-contribution=/);
 
+  // UI-010 renders the canonical Tabs node as an all-or-nothing
+  // presentation.  The button list is the exact Core contribution order and
+  // the active child is the canonical active_contribution_id; the renderer
+  // never keeps a client-local tab index or repairs an omitted child.
+  const tabRegistry = new ContributionRendererRegistry([
+    {
+      rendererBindingId: 'renderer:pi-session@v1',
+      semanticBindingIds: ['semantic:pi-session'],
+      contributionKinds: ['focused_work_surface'],
+      component: ResolvedContributionRenderer
+    },
+    {
+      rendererBindingId: 'renderer:focusa-inspector@v1',
+      semanticBindingIds: ['semantic:focusa-inspector'],
+      contributionKinds: ['inspector'],
+      component: ResolvedContributionRenderer
+    }
+  ]);
+  const tabsProjection = structuredClone(rendererFixture);
+  tabsProjection.layout_tree = {
+    node_id: 'layout:ui-010-tabs',
+    kind: 'tabs',
+    active_contribution_id: 'contribution:pi-session',
+    contribution_ids: [
+      'contribution:pi-session',
+      'contribution:focusa-inspector'
+    ]
+  };
+  const { body: tabsBody } = render(SingleLayoutHarness, {
+    props: { projection: tabsProjection, registry: tabRegistry }
+  });
+  assert.match(tabsBody, /class="layout-tabs[^\"]*with-strip/);
+  assert.match(tabsBody, /data-layout-node="layout:ui-010-tabs"/);
+  assert.equal((tabsBody.match(/role="tab"/g) ?? []).length, 2);
+  assert.equal((tabsBody.match(/disabled/g) ?? []).length, 2, 'tabs without the generated layout mutation callback remain inert');
+  assert.match(tabsBody, /role="tab"[^>]*aria-selected="true"/);
+  assert.match(tabsBody, /role="tab"[^>]*aria-selected="false"/);
+  assert.equal((tabsBody.match(/data-rendered-contribution=/g) ?? []).length, 1);
+  assert.match(tabsBody, /data-rendered-contribution="contribution:pi-session"/);
+  assert.doesNotMatch(tabsBody, /data-rendered-contribution="contribution:focusa-inspector"/);
+  assert.match(tabsBody, /aria-controls="panel-layout:ui-010-tabs-contribution:pi-session"/);
+  assert.match(tabsBody, /id="panel-layout:ui-010-tabs-contribution:pi-session"/);
+
+  // The same node is also exercised through the production renderer/frame
+  // chain, not only the focused recursive harness.
+  const { default: ProductionMissionCanvasRenderer } = await server.ssrLoadModule('/src/lib/mission-canvas/MissionCanvasRenderer.svelte');
+  const { body: productionTabsBody } = render(ProductionMissionCanvasRenderer, {
+    props: { projection: tabsProjection, registry: tabRegistry }
+  });
+  assert.match(productionTabsBody, /data-layout-node="layout:ui-010-tabs"/);
+  assert.match(productionTabsBody, /data-contribution-id="contribution:pi-session"/);
+  assert.doesNotMatch(productionTabsBody, /data-rendered-contribution="contribution:focusa-inspector"/);
+
+  const hostileTabs = (mutate) => {
+    const candidate = structuredClone(tabsProjection);
+    mutate(candidate.layout_tree, candidate);
+    return render(SingleLayoutHarness, { props: { projection: candidate, registry: tabRegistry } }).body;
+  };
+  const tabsMustFailClosed = /layout-tabs|tab-list|role="tab"|tabpanel|data-rendered-contribution=/;
+  for (const [name, mutate] of [
+    ['omitted tab contribution', (node) => { node.contribution_ids[1] = 'contribution:omitted'; }],
+    ['omitted active contribution', (node) => { node.active_contribution_id = 'contribution:omitted'; }],
+    ['foreign keyed contribution', (_node, projection) => { projection.eligible_contributions[1].contribution_id = 'contribution:foreign'; }],
+    ['unknown renderer binding', (_node, projection) => { projection.eligible_contributions[1].renderer_binding_id = 'renderer:untrusted@9'; }],
+    ['semantic binding mismatch', (_node, projection) => { projection.eligible_contributions[1].semantic_binding_id = 'semantic:foreign'; }],
+    ['missing contribution authority', (_node, projection) => { delete projection.eligible_contributions[1].authority; }],
+    ['duplicate tab contribution', (node) => { node.contribution_ids[1] = node.contribution_ids[0]; }],
+    ['duplicate node field', (node) => { node.reserved_panel = 'substitute'; }]
+  ]) {
+    const body = hostileTabs(mutate);
+    assert.doesNotMatch(body, tabsMustFailClosed, `${name} must fail closed before tab geometry`);
+  }
+
   const nestedOmission = structuredClone(singleProjection);
   nestedOmission.layout_tree = {
     node_id: 'layout:split-with-omission',

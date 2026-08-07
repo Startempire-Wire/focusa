@@ -4,7 +4,7 @@
   import ProjectionLayoutRenderer from './ProjectionLayoutRenderer.svelte';
   import { DEFAULT_CONTRIBUTION_REGISTRY } from './default-contribution-registry';
   import { resolveContributionRenderer, type ContributionRendererRegistry } from './contribution-renderers';
-  import type { LayoutNode, ResolvedContribution } from './types';
+  import type { LayoutNode, ResolvedContribution, TabLayoutNode } from './types';
 
   let {
     node,
@@ -196,9 +196,44 @@
     return typeof value === 'string' ? value : 'default';
   }
 
-  function activeTab(ids: string[], canonicalActive: string): string | undefined {
-    return ids.includes(canonicalActive) ? canonicalActive : undefined;
+  /**
+   * Resolve the complete canonical tab contribution list without filtering or
+   * reordering it in the client.  `canRenderNode` has already checked every
+   * ID, but keeping this all-or-nothing guard at the presentation boundary
+   * means a malformed update can never leave a tab strip or panel behind.
+   */
+  function presentationTabs(node: TabLayoutNode): readonly ResolvedContribution[] | undefined {
+    const items: ResolvedContribution[] = [];
+    for (const id of node.contribution_ids) {
+      const item = contribution(id);
+      if (!item) return undefined;
+      items.push(item);
+    }
+    return items;
   }
+
+  /**
+   * The active child is a canonical projection choice.  It is not a local tab
+   * index or a client-side fallback: an invalid active ID renders no tab node.
+   */
+  function renderActiveChild(
+    node: TabLayoutNode,
+    items: readonly ResolvedContribution[]
+  ): ResolvedContribution | undefined {
+    return items.find((item) => item.contribution_id === node.active_contribution_id);
+  }
+
+  /**
+   * Presentation selection is intentionally a one-way callback.  The parent
+   * owns the generated `focusa.mission_canvas.layout.mutate` operation and
+   * canonical active index; this helper never mutates the LayoutNode locally.
+   */
+  const presentationTab = {
+    select(contributionId: string, items: readonly ResolvedContribution[]): void {
+      if (!onSelectTab || !items.some((item) => item.contribution_id === contributionId)) return;
+      onSelectTab(contributionId);
+    }
+  };
 
   function stackRole(child: LayoutNode): 'rail' | 'queue' | 'composer' | 'content' {
     const ids = child.kind === 'single'
@@ -274,36 +309,33 @@
     {/each}
   </div>
 {:else if node.kind === 'tabs'}
-  {@const availableIds = node.contribution_ids.filter((id) => contribution(id))}
-  {@const selectedId = activeTab(availableIds, node.active_contribution_id)}
-  {#if selectedId}
-    {@const selected = contribution(selectedId)}
-    <div class="layout-tabs" class:with-strip={availableIds.length > 1} class:interactive={Boolean(onSelectTab)} data-layout-node={node.node_id}>
-      {#if availableIds.length > 1}
-        <div class="tab-list" role="tablist" aria-label="Work Surfaces">
-          {#each availableIds as id}
-            {@const item = contribution(id)}
-            {#if item}
+  {@const tabItems = presentationTabs(node)}
+  {#if tabItems}
+    {@const selected = renderActiveChild(node, tabItems)}
+    {@const tabIds = tabItems.map((item) => item.contribution_id)}
+    {#if selected}
+      <div class="layout-tabs" class:with-strip={tabItems.length > 1} class:interactive={Boolean(onSelectTab)} data-layout-node={node.node_id}>
+        {#if tabItems.length > 1}
+          <div class="tab-list" role="tablist" aria-label="Work Surfaces">
+            {#each tabItems as item (item.contribution_id)}
               <button
                 type="button"
                 role="tab"
-                aria-selected={id === selectedId}
-                aria-controls={`panel-${node.node_id}-${id}`}
-                tabindex={id === selectedId ? 0 : -1}
+                aria-selected={item.contribution_id === selected.contribution_id}
+                aria-controls={`panel-${node.node_id}-${item.contribution_id}`}
+                tabindex={item.contribution_id === selected.contribution_id ? 0 : -1}
                 disabled={!onSelectTab}
-                onclick={() => onSelectTab?.(id)}
-                onkeydown={(event) => navigateTabs(event, availableIds, selectedId)}
+                onclick={() => presentationTab.select(item.contribution_id, tabItems)}
+                onkeydown={(event) => navigateTabs(event, tabIds, selected.contribution_id)}
               >{item.accessibility.label}</button>
-            {/if}
-          {/each}
-        </div>
-      {/if}
-      {#if selected}
+            {/each}
+          </div>
+        {/if}
         <div id={`panel-${node.node_id}-${selected.contribution_id}`} role="tabpanel" data-contribution-id={selected.contribution_id}>
           {@render renderContribution(selected)}
         </div>
-      {/if}
-    </div>
+      </div>
+    {/if}
   {/if}
 {:else if node.kind === 'inspector'}
   {@const inspectorItems = node.inspector_contribution_ids.map(contribution).filter((item): item is ResolvedContribution => Boolean(item))}
