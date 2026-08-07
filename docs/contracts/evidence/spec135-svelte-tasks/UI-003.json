@@ -1,0 +1,92 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-003",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "MissionCanvasProjectionController now consumes the generated MissionCanvasClient.projectionGet boundary (while retaining the existing narrow loader seam), validates the generated ResolvedWorkspaceProjection and exact Workstream authority, rejects stale projection/layout/cursor watermarks, and exposes only fail-closed projection state to the Desktop renderer.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts",
+    "apps/desktop/tests/projection-controller-runtime.mjs",
+    "apps/desktop/package.json"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "surface_kind": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "canonical_shell_regions": [
+      "actual_work_surface_strip",
+      "resolved_contribution_grid",
+      "prompt_editor_when_core_eligible"
+    ],
+    "continuity_invariants": [
+      "exact Workstream authority remains unchanged",
+      "Desktop cannot mint or repair authority",
+      "stale responses cannot replace an accepted projection",
+      "Core remains the eligibility and layout composition owner"
+    ]
+  },
+  "dependency_gate": {
+    "UI-001": "integrated generated transport adapter present in apps/desktop",
+    "UI-002": "verified Desktop exact Workstream context source present",
+    "CONTRACT-006": "integrated generated validator source consumed without editing generated artifacts"
+  },
+  "implementation": [
+    "The controller accepts a generated MissionCanvasClient-shaped source and invokes projectionGet with a detached exact WorkstreamAuthorityContext; it does not fetch, resolve candidates, infer profiles, or repair scope locally.",
+    "validateProjection delegates DTO validation to the checked-in generated validator, then defensively validates exact top-level and nested contribution authority, projection watermarks, cursor namespace, and layout references before any projection can reach Svelte.",
+    "rejectStaleRevision rejects projection revision, layout revision, durable cursor regressions, invalid watermarks, and cursor namespace changes without replacing the prior canonical projection.",
+    "Scope changes increment the request generation; late responses from a prior Workstream are ignored, foreign current responses become blocked, malformed responses become error/stale, and clear invalidates in-flight work.",
+    "Accepted scope and projection values are detached and deeply frozen so caller or transport mutation cannot change Desktop state. Core-owned empty/ineligible contributions remain omitted and are never synthesized by the controller."
+  ],
+  "checks": [
+    "npm --prefix apps/desktop test (exit 0; shell, context, layout/renderer, transport/event integration, and UI-003 hostile projection-controller checks: PASS)",
+    "npm --prefix apps/desktop run check (exit 0; svelte-check: 0 errors, 0 warnings)",
+    "npm --prefix apps/desktop run build (exit 0)",
+    "git diff --check (exit 0)",
+    "node --check apps/desktop/tests/projection-controller-runtime.mjs (exit 0)"
+  ],
+  "negative_cases": {
+    "missing_workstream": "A malformed Desktop context is blocked before projectionGet and no transport call is made.",
+    "foreign_workstream": "A response for another Workstream becomes blocked and cannot enter ready state.",
+    "foreign_nested_authority": "A contribution with foreign Workstream or subordinate authority becomes blocked.",
+    "stale_projection_revision": "A lower projection revision preserves the accepted projection and enters stale state.",
+    "stale_layout_revision": "A lower layout revision preserves the accepted projection and enters stale state.",
+    "stale_cursor": "A lower same-namespace cursor or a different cursor namespace is rejected fail-closed.",
+    "invalid_response": "Missing schema/arrays, malformed contributions, invalid focus authority, malformed layout, duplicate layout references, and unknown layout contribution IDs cannot reach the renderer.",
+    "late_prior_workstream_response": "A response resolving after a newer Workstream request is ignored by request generation and cannot overwrite the newer loading/ready state.",
+    "clear_during_load": "clear() invalidates the request generation and leaves the controller unbound after a late response.",
+    "empty_or_ineligible_contribution": "The valid fixture retains Core omission diagnostics for the empty Work Rail and does not add a replacement panel or layout node.",
+    "mutable_input_output": "Caller and transport mutations after handoff do not mutate the frozen Desktop scope or projection."
+  },
+  "acceptance": [
+    "A response for another Workstream or older revision cannot enter ready state.",
+    "Desktop selection cannot mint or repair authority.",
+    "Stale responses from a prior Workstream or projection revision are rejected or ignored fail-closed.",
+    "The renderer receives only a generated, exact-scope ResolvedWorkspaceProjection and no mock canonical content.",
+    "Core-owned eligibility and adaptive composition are consumed as canonical output rather than recomputed in Svelte."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/UI-003.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "apps/desktop/src/lib/mission-canvas/exact-scope.ts",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/layout-references.ts",
+    "apps/desktop/src/lib/mission-canvas/context.ts",
+    "docs/135-series-current-manifest.md",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/agent/spec135-implementation-acceleration-directive.md"
+  ],
+  "evidence_refs": [
+    "apps/desktop/tests/projection-controller-runtime.mjs",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-002.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-001.json"
+  ],
+  "deferred_repository_observation": "Cargo was not run. Central executable graphs, generated task packets/index, parallel plans, orchestration scripts, and generated contract artifacts were not edited.",
+  "status": "verified"
+}
