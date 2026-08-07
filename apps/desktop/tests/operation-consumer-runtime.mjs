@@ -52,6 +52,8 @@ try {
     await exerciseProjectionGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.profile.list') {
     await exerciseProfileList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.profile.get') {
+    await exerciseProfileGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.profile.select') {
     await exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, fixture });
   } else if (operationId === 'focusa.mission_canvas.projection.resolve') {
@@ -76,7 +78,7 @@ try {
   if (createdKitTsconfig) await rm(generatedKitTsconfig, { force: true });
 }
 
-async function exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+async function exerciseProfileSelectCoreDirectHostile({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
   // profile.select returns the direct Core-owned ResolvedWorkspaceProjection;
   // the receipt is carried by its exact Workstream-scoped receipt_refs.
   let calls = 0;
@@ -248,6 +250,187 @@ async function exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTra
   );
 
   console.log('Mission Canvas operation consumer: PASS (generated profileSelect, exact Workstream POST, Core-owned direct projection and receipt, omission, foreign authority, missing selection/If-Match/idempotency, stale revision/layout/cursor, permission, and hostile response checks)');
+}
+
+async function exerciseProfileGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  const profile = {
+    profile_id: 'research',
+    revision: 4,
+    display_name: 'Research',
+    candidate_contribution_ids: ['contribution:research', 'contribution:evidence'],
+    density: 'compact',
+    terminology_registry_ref: 'registry:terminology:research',
+    renderer_registry_ref: 'registry:renderer:builtin',
+    domain_semantic_binding_registry_ref: 'registry:semantics:research',
+    viability_rule_revision: 'profile-viability:v2',
+    installed: true
+  };
+  let response = structuredClone(profile);
+  let calls = 0;
+  const requests = [];
+  const transport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787/',
+    async (url, init) => {
+      calls += 1;
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const client = new MissionCanvasClient(transport);
+  const input = { ...structuredClone(authority), profile_id: 'research' };
+  const fetched = await client.profileGet(structuredClone(input));
+  assert.deepEqual(fetched, profile);
+  assert.equal(fetched.profile_id, input.profile_id);
+  assert.equal('profile' in fetched, false, 'profileGet must return the direct generated WorkspaceProfile DTO');
+  assert.equal('workstream' in fetched, false, 'profile DTO must not invent response authority fields');
+  assert.equal(calls, 1);
+
+  const requestUrl = new URL(requests[0].url);
+  assert.equal(`${requestUrl.origin}${requestUrl.pathname}`, 'http://127.0.0.1:8787/v1/mission-canvas/profiles/research');
+  assert.equal(requestUrl.searchParams.has('profile_id'), false, 'path identity must not leak into the query');
+  assert.deepEqual(JSON.parse(requestUrl.searchParams.get('workstream')), authority.workstream);
+  assert.deepEqual(JSON.parse(requestUrl.searchParams.get('attachment')), authority.attachment);
+  assert.equal(requestUrl.searchParams.get('continuity_id'), authority.continuity_id);
+  assert.equal(requestUrl.searchParams.get('workspace_binding_id'), authority.workspace_binding_id);
+  assert.equal(requestUrl.searchParams.get('runtime_object'), JSON.stringify(authority.runtime_object));
+  assert.equal(requestUrl.searchParams.get('work_surface_id'), authority.work_surface_id);
+  assert.equal(requests[0].init.method, 'GET');
+  assert.equal(requests[0].init.body, undefined);
+  assert.equal(requests[0].init.headers['X-Focusa-Permissions'], 'mission_canvas:read');
+  assert.equal(requests[0].init.headers['X-Focusa-Capabilities'], undefined, 'profile.get must not mint an operation capability');
+  assert.equal(requests[0].init.headers['X-Focusa-Actor-Id'], 'actor:desktop');
+  assert.equal(requests[0].init.headers['X-Focusa-Authority-Ref'], 'authority:desktop');
+
+  let missingParameterCalls = 0;
+  const missingParameterTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      missingParameterCalls += 1;
+      return new Response(JSON.stringify(profile), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingParameterTransport).profileGet(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_request:missing:profile_id'
+  );
+  assert.equal(missingParameterCalls, 0, 'missing profile path identity must fail before HTTP');
+  await assert.rejects(
+    () => new MissionCanvasClient(missingParameterTransport).profileGet({ ...structuredClone(authority), profile_id: {} }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_request:missing:profile_id'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingParameterTransport).profileGet({ ...structuredClone(authority), profile_id: '   ' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_request:missing:profile_id'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingParameterTransport).profileGet({ ...structuredClone(input), layout_tree: { kind: 'single' } }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_request:unknown:layout_tree'
+  );
+  assert.equal(missingParameterCalls, 0, 'client-local layout input must fail before profile GET');
+
+  let missingScopeCalls = 0;
+  const missingScopeTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      missingScopeCalls += 1;
+      return new Response(JSON.stringify(profile), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingScopeTransport).profileGet({ profile_id: 'research' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_workstream_identity:')
+  );
+  assert.equal(missingScopeCalls, 0, 'missing Workstream authority must fail before profile GET');
+
+  response = { ...structuredClone(profile), display_name: undefined };
+  delete response.display_name;
+  await assert.rejects(
+    () => client.profileGet(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:missing:display_name'
+  );
+
+  const wrappedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ profile }), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(wrappedTransport).profileGet(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:')
+  );
+
+  const foreignScopeTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ ...profile, workstream: authority.workstream }), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignScopeTransport).profileGet(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message.includes('unknown:workstream')
+  );
+
+  const mismatchedProfileTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ ...profile, profile_id: 'other' }), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(mismatchedProfileTransport).profileGet(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:profile_id_mismatch'
+  );
+
+  const notFoundTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({
+      schema: 'focusa.tool_result.v1',
+      status: 'blocked',
+      error: { code: 'profile_not_found', message: 'The requested workspace profile is not in the canonical registry' }
+    }), { status: 404 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(notFoundTransport).profileGet({ ...structuredClone(authority), profile_id: 'missing' }),
+    (error) => error instanceof MissionCanvasTransportError
+      && error.message === 'transport_response_failed'
+      && error.status === 404
+      && error.response?.error?.code === 'profile_not_found'
+  );
+
+  const deniedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Permissions'], undefined);
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'permission_denied' } }), { status: 403 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(deniedTransport).profileGet(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 403
+  );
+
+  const missingAuthorityTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Actor-Id'], undefined);
+    assert.equal(init.headers['X-Focusa-Authority-Ref'], undefined);
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'workstream_context_invalid' } }), { status: 422 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(missingAuthorityTransport).profileGet(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 422
+  );
+
+  await assert.rejects(
+    () => transport.request('focusa.mission_canvas.profile.unavailable', structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'operation_unavailable'
+  );
+
+  console.log('Mission Canvas operation consumer: PASS (generated profileGet, exact Workstream GET/path metadata, direct WorkspaceProfile, typed not-found, missing path/authority, permission, mismatched profile, malformed/wrapped/foreign response, and unavailable operation checks)');
 }
 
 async function exerciseProfileList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {

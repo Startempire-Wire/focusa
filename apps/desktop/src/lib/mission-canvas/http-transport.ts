@@ -173,6 +173,18 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
         value
       );
     }
+    if (operationId === 'focusa.mission_canvas.profile.get') {
+      const expectedProfileId = (requestInput as Record<string, unknown>).profile_id;
+      const returnedProfileId = (value as Record<string, unknown>).profile_id;
+      if (returnedProfileId !== expectedProfileId) {
+        throw new MissionCanvasTransportError(
+          'invalid_response:profile_id_mismatch',
+          operationId,
+          response.status,
+          value
+        );
+      }
+    }
     if (operation.response_schema_ref === 'ResolvedWorkspaceProjection') {
       const watermark = validateProjectionResponse(
         operationId,
@@ -332,6 +344,30 @@ function validateOperationRequest(
 ): { valid: boolean; errors: string[] } {
   const validation = validateMissionCanvasContract(schemaRef, value);
   if (!validation.valid) return validation;
+  if (operationId === 'focusa.mission_canvas.profile.get') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return { valid: false, errors: ['expected object'] };
+    }
+    const requestObject = value as Record<string, unknown>;
+    const profileId = requestObject.profile_id;
+    if (typeof profileId !== 'string' || profileId.trim().length === 0) {
+      return { valid: false, errors: ['missing:profile_id'] };
+    }
+    const allowedFields = new Set([
+      'profile_id',
+      'workstream',
+      'continuity_id',
+      'attachment',
+      'workspace_binding_id',
+      'runtime_object',
+      'work_surface_id'
+    ]);
+    const unknownFields = Object.keys(requestObject)
+      .filter((field) => !allowedFields.has(field))
+      .map((field) => `unknown:${field}`);
+    if (unknownFields.length > 0) return { valid: false, errors: unknownFields };
+    return validation;
+  }
   if (operationId !== 'focusa.mission_canvas.profile.select') return validation;
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return { valid: false, errors: ['expected object'] };
