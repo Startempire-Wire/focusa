@@ -1,0 +1,48 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-012",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Verified ProjectionLayoutRenderer recursively renders the complete canonical single, split, stack, grid, tabs, and inspector LayoutNode union through trusted contribution resolution.",
+  "dependency_gate": {"status": "passed", "dependencies": ["UI-007", "UI-008", "UI-009", "UI-010", "UI-011"]},
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasRenderer.svelte",
+    "apps/desktop/tests/layout-renderer-runtime.mjs"
+  ],
+  "implementation": [
+    "All six canonical LayoutNode variants recurse through one renderer without fixed-screen composition.",
+    "Canonical node order, sizing, active state, inspector placement, and contribution identifiers remain unchanged.",
+    "Every contribution resolves through the trusted generated binding registry; malformed branches produce explicit gaps rather than local repair."
+  ],
+  "negative_cases": [
+    "unknown layout kind",
+    "malformed nested child",
+    "duplicate or empty contribution identifiers",
+    "unknown or mismatched renderer binding",
+    "invalid split, stack, grid, tabs, or inspector metadata"
+  ],
+  "checks": [
+    {"command": "npm --prefix apps/desktop test", "result": "pass"},
+    {"command": "npm --prefix apps/desktop run check", "result": "pass: 0 errors and 0 warnings"},
+    {"command": "git diff --check", "result": "pass"}
+  ],
+  "acceptance": [
+    "ProjectionLayoutRenderer covers the full canonical LayoutNode union recursively.",
+    "No local eligibility resolver or fixed dashboard path exists.",
+    "Malformed or untrusted nodes fail closed without remounting a substitute shell."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/UI-012.json",
+    "docs/contracts/spec135-adaptive-composition.v1.yaml"
+  ],
+  "evidence_refs": [
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-007.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-008.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-009.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-010.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-011.json"
+  ],
+  "remaining_work": []
+}
