@@ -11,12 +11,13 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use focusa_core::mission_canvas::{
-    resolve_projection, ActivityModeDefinition, ActivitySelectionCommand, ActivitySelectionError,
-    ActivitySelectionService, CandidateContribution, CompositionEvent, CompositionRegistry,
-    DomainPackInstallCommand, DomainPackInstallError, DomainPackInstallService, EligibilityContext,
-    HostLifecycleError, HostLifecycleFocusCommand, HostLifecycleLaunchCommand,
-    HostLifecycleService, HostLifecycleState, HostPlatform, HostRendererResolutionError,
-    HostRendererResolutionService, MissionCanvasScope, MissionCanvasStore, ProfileSelectionCommand,
+    resolve_projection, validate_profile_layout_memory, ActivityModeDefinition,
+    ActivitySelectionCommand, ActivitySelectionError, ActivitySelectionService,
+    CandidateContribution, CompositionEvent, CompositionRegistry, DomainPackInstallCommand,
+    DomainPackInstallError, DomainPackInstallService, EligibilityContext, HostLifecycleError,
+    HostLifecycleFocusCommand, HostLifecycleLaunchCommand, HostLifecycleService,
+    HostLifecycleState, HostPlatform, HostRendererResolutionError, HostRendererResolutionService,
+    MissionCanvasScope, MissionCanvasStore, ProfileLayoutMemory, ProfileSelectionCommand,
     ProfileSelectionError, ProfileSelectionService, ResolveProjectionInput, StoredDocument,
     WorkspaceProfileDefinition, DOMAIN_PACK_INSTALL_CAPABILITY,
 };
@@ -48,6 +49,12 @@ pub struct ScopeQuery {
     /// the Workstream identity and is only used to replay events after the
     /// caller's last confirmed event.
     pub after_cursor: Option<String>,
+    /// Layout-memory selectors are generated operation input. They are kept
+    /// separate from the Workstream authority so a profile, activity, or
+    /// viewport can never replace the canonical owner.
+    pub profile_id: Option<String>,
+    pub activity_mode_id: Option<String>,
+    pub viewport_class: Option<String>,
 }
 
 impl ScopeQuery {
@@ -1840,18 +1847,126 @@ async fn get_layout_memory(
     headers: HeaderMap,
     Query(query): Query<ScopeQuery>,
 ) -> ApiResult {
+    // Layout memory is a generated read operation, not a generic document
+    // read. Establish permission and the exact Workstream actor/authority
+    // before selecting the profile-specific document. The profile/activity/
+    // viewport tuple is a selector, never an alternate ownership key.
+    require_permission(&headers, "mission_canvas:read")?;
     let scope = query.scope()?;
-    let document_id = scope
-        .attachment
-        .as_ref()
-        .map(|attachment| format!("layout-memory:{}", attachment.attachment_id))
-        .unwrap_or_else(|| format!("layout-memory:{}", scope.workstream.workstream_id));
-    get_document(
-        &state,
-        &headers,
-        query,
-        "mission_canvas_layout_memory",
-        &document_id,
+    validate_authority(&scope)?;
+    exact_workstream_context(&scope, &headers).map_err(host_renderer_context_error)?;
+    let (profile_id, activity_mode_id, viewport_class) = layout_memory_selector(&query)?;
+    let document_id = layout_memory_document_id(&profile_id, &activity_mode_id, &viewport_class);
+    let document = store(&state)?
+        .get_document("mission_canvas_layout_memory", &scope, &document_id)
+        .map_err(store_error)?
+        .ok_or_else(|| {
+            error(
+                StatusCode::NOT_FOUND,
+                "layout_memory_not_found",
+                "No layout memory exists for this exact Workstream and profile",
+            )
+        })?;
+    let memory: ProfileLayoutMemory = serde_json::from_value(document.payload).map_err(|_| {
+        error(
+            StatusCode::CONFLICT,
+            "layout_memory_invalid",
+            "The canonical layout memory document is malformed",
+        )
+    })?;
+    validate_profile_layout_memory(
+        &memory,
+        &scope,
+        &profile_id,
+        &activity_mode_id,
+        &viewport_class,
+    )
+    .map_err(layout_memory_validation_error)?;
+    // The generated operation returns the direct ProfileLayoutMemory DTO. Do
+    // not leak StoredDocument revision/table metadata or invent a wrapper.
+    Ok(Json(serde_json::to_value(memory).map_err(json_error)?))
+}
+
+fn layout_memory_selector(
+    query: &ScopeQuery,
+) -> Result<(String, String, String), (StatusCode, Json<Value>)> {
+    let profile_id = required_layout_memory_selector(
+        query.profile_id.as_deref(),
+        "profile_id",
+        "layout_memory_profile_missing",
+    )?;
+    let activity_mode_id = required_layout_memory_selector(
+        query.activity_mode_id.as_deref(),
+        "activity_mode_id",
+        "layout_memory_activity_missing",
+    )?;
+    let viewport_class = required_layout_memory_selector(
+        query.viewport_class.as_deref(),
+        "viewport_class",
+        "layout_memory_viewport_missing",
+    )?;
+    if !matches!(
+        viewport_class.as_str(),
+        "minimum" | "compact" | "standard" | "productive" | "wide" | "reference_capture"
+    ) {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "layout_memory_viewport_invalid",
+            "viewport_class is not in the generated ProfileLayoutMemory contract",
+        ));
+    }
+    Ok((profile_id, activity_mode_id, viewport_class))
+}
+
+fn required_layout_memory_selector(
+    value: Option<&str>,
+    field: &'static str,
+    code: &'static str,
+) -> Result<String, (StatusCode, Json<Value>)> {
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| {
+            error(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                code,
+                &format!("{field} is required"),
+            )
+        })
+}
+
+fn layout_memory_document_id(
+    profile_id: &str,
+    activity_mode_id: &str,
+    viewport_class: &str,
+) -> String {
+    format!("layout-memory:{profile_id}:{activity_mode_id}:{viewport_class}")
+}
+
+fn layout_memory_validation_error(reason: &'static str) -> (StatusCode, Json<Value>) {
+    let code = match reason {
+        "scope_mismatch" => "layout_memory_scope_mismatch",
+        "profile_mismatch" => "layout_memory_profile_mismatch",
+        "activity_mode_mismatch" => "layout_memory_activity_mismatch",
+        "viewport_class_mismatch" => "layout_memory_viewport_mismatch",
+        "memory_id_mismatch" => "layout_memory_id_mismatch",
+        "idempotency_key_missing" => "layout_memory_idempotency_missing",
+        "placement_invalid" | "placement_duplicate" | "absent_contribution_invalid" => {
+            "layout_memory_content_invalid"
+        }
+        "attachment_missing" => "layout_memory_attachment_missing",
+        _ => "layout_memory_invalid",
+    };
+    let status = if reason == "attachment_missing" {
+        StatusCode::UNPROCESSABLE_ENTITY
+    } else {
+        StatusCode::CONFLICT
+    };
+    error(
+        status,
+        code,
+        "The layout memory does not match the exact generated scope and profile",
     )
 }
 
@@ -2951,6 +3066,9 @@ mod tests {
             runtime_object: None,
             work_surface_id: Some("surface:pi".into()),
             after_cursor: None,
+            profile_id: None,
+            activity_mode_id: None,
+            viewport_class: None,
         }
     }
 

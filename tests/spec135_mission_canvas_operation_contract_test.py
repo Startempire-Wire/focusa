@@ -613,6 +613,66 @@ elif operation_id == "focusa.mission_canvas.rich_host.focus":
     assert "fork(" not in transport
     assert "child_process" not in transport
 
+elif operation_id == "focusa.mission_canvas.layout_memory.get":
+    assert operation["method"] == "GET"
+    assert operation["path"] == "/v1/mission-canvas/layout-memory"
+    assert operation["mode"] == "read"
+    assert operation["permissions_required"] == ["mission_canvas:read"]
+    assert operation["request_schema_ref"] == "focusa.mission_canvas.layout_memory_get.request.v1"
+    assert operation["response_schema_ref"] == "ProfileLayoutMemory"
+    assert operation["requires_idempotency_key"] is False
+    assert operation["requires_if_match_revision"] is False
+    assert operation["receipt_required"] is False
+
+    for marker in (
+        "get(get_layout_memory)",
+        "require_permission(&headers, \"mission_canvas:read\")",
+        "let scope = query.scope()?",
+        "validate_authority(&scope)",
+        "exact_workstream_context(&scope, &headers)",
+        "profile_id",
+        "activity_mode_id",
+        "viewport_class",
+        "get_document(\"mission_canvas_layout_memory\"",
+        "validate_profile_layout_memory",
+        "ProfileLayoutMemory",
+        "layout_memory_not_found",
+        "serde_json::to_value(memory)",
+    ):
+        assert marker in route_text, marker
+    memory = (ROOT / "crates/focusa-core/src/mission_canvas/memory.rs").read_text()
+    for marker in (
+        "pub fn validate_profile_layout_memory",
+        "memory.scope",
+        "profile_mismatch",
+        "activity_mode_mismatch",
+        "viewport_class_mismatch",
+        "memory_id_mismatch",
+        "placement_duplicate",
+    ):
+        assert marker in memory, marker
+    for marker in (
+        "focusa.mission_canvas.layout_memory.get",
+        "validateOperationRequest",
+        "ProfileLayoutMemory",
+        "validateProfileLayoutMemoryResponse",
+        "foreign_profile_memory_scope",
+        "foreign_profile_memory_profile_id",
+        "stale_profile_memory_revision",
+        "invalid_response:memory_id_mismatch",
+    ):
+        assert marker in transport, marker
+    for marker in (
+        "layout_memoryGet",
+        "exact Workstream/profile GET",
+        "direct ProfileLayoutMemory",
+        "foreign authority/profile",
+        "stale memory revision",
+        "missing selectors",
+        "no local composition",
+    ):
+        assert marker in consumer, marker
+
 elif operation_id == "focusa.mission_canvas.domain_pack.install":
     assert operation["method"] == "POST"
     assert operation["path"] == "/v1/mission-canvas/domain-packs/install"
