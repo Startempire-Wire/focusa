@@ -200,6 +200,39 @@ pub struct CandidateContribution {
     pub geometry: Value,
 }
 
+impl CandidateContribution {
+    /// Validate the exact authority packet used to evaluate this generated
+    /// candidate definition.
+    ///
+    /// `CandidateContribution` intentionally remains the generated registry
+    /// DTO: it is not given a client-invented project/continuity owner.  The
+    /// Workstream binding is supplied explicitly by the core resolver and is
+    /// validated here before the candidate can participate in a projection.
+    pub fn validate_scope(&self, scope: &MissionCanvasScope) -> Result<(), &'static str> {
+        scope.validate()
+    }
+}
+
+/// Core-only association between a generated candidate definition and the
+/// exact Workstream that supplied it.  The generated CandidateContribution
+/// shape remains transport-owned; this binding is never inferred from a
+/// project path, continuity id, selected tab, or registry position.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScopedCandidateContribution {
+    pub candidate: CandidateContribution,
+    pub scope: MissionCanvasScope,
+}
+
+impl ScopedCandidateContribution {
+    pub fn new(
+        candidate: CandidateContribution,
+        scope: MissionCanvasScope,
+    ) -> Result<Self, &'static str> {
+        candidate.validate_scope(&scope)?;
+        Ok(Self { candidate, scope })
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ResolvedContribution {
     pub contribution_id: String,

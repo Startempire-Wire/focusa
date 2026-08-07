@@ -2,7 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
-use super::model::{CandidateContribution, MissionCanvasScope, OmissionDiagnostic};
+use super::model::{
+    CandidateContribution, MissionCanvasScope, OmissionDiagnostic, ScopedCandidateContribution,
+};
 
 pub const RESOLVER_RULE_REVISION: &str = "adaptive-composition:v1";
 
@@ -46,13 +48,94 @@ pub struct EligibilityResolution {
     pub omissions: Vec<OmissionDiagnostic>,
 }
 
-pub fn collect_candidates(
-    registry_candidates: impl IntoIterator<Item = CandidateContribution>,
+/// A candidate may be supplied as a generated, scope-neutral registry DTO or
+/// as an explicit core binding carrying the Workstream that produced it.
+///
+/// The latter is required for registry projections that contain candidates
+/// from more than one Workstream.  It makes ownership data explicit instead
+/// of trying to recover it from a project path, continuity id, selected tab,
+/// or a "nearest" registry row.
+pub trait CandidateScopeInput {
+    fn into_candidate_scope(self) -> (CandidateContribution, Option<MissionCanvasScope>);
+}
+
+impl CandidateScopeInput for CandidateContribution {
+    fn into_candidate_scope(self) -> (CandidateContribution, Option<MissionCanvasScope>) {
+        (self, None)
+    }
+}
+
+impl CandidateScopeInput for ScopedCandidateContribution {
+    fn into_candidate_scope(self) -> (CandidateContribution, Option<MissionCanvasScope>) {
+        (self.candidate, Some(self.scope))
+    }
+}
+
+impl CandidateScopeInput for (CandidateContribution, MissionCanvasScope) {
+    fn into_candidate_scope(self) -> (CandidateContribution, Option<MissionCanvasScope>) {
+        (self.0, Some(self.1))
+    }
+}
+
+impl CandidateScopeInput for (MissionCanvasScope, CandidateContribution) {
+    fn into_candidate_scope(self) -> (CandidateContribution, Option<MissionCanvasScope>) {
+        (self.1, Some(self.0))
+    }
+}
+
+fn scope_failure(
+    candidate: &CandidateContribution,
+    candidate_scope: Option<&MissionCanvasScope>,
+    expected_scope: &MissionCanvasScope,
+) -> Option<&'static str> {
+    if let Err(error) = candidate.validate_scope(expected_scope) {
+        return Some(match error {
+            "foreign_attachment_workstream"
+            | "continuity_mismatch"
+            | "workspace_binding_mismatch"
+            | "invalid_attachment_workstream" => "scope_mismatch",
+            _ => "not_authorized",
+        });
+    }
+
+    if let Some(candidate_scope) = candidate_scope {
+        if let Err(error) = candidate.validate_scope(candidate_scope) {
+            return Some(match error {
+                "foreign_attachment_workstream"
+                | "continuity_mismatch"
+                | "workspace_binding_mismatch"
+                | "invalid_attachment_workstream" => "scope_mismatch",
+                _ => "not_authorized",
+            });
+        }
+        if candidate_scope != expected_scope {
+            return Some("scope_mismatch");
+        }
+    }
+
+    None
+}
+
+/// Collect only the profile/activity candidates owned by one exact
+/// Workstream.  A scope-neutral generated registry definition is accepted
+/// only in the presence of a valid expected scope; an explicitly foreign
+/// binding is omitted before any layout or eligibility work occurs.
+pub fn collect_candidates<I, C>(
+    registry_candidates: I,
     profile_contribution_ids: &BTreeSet<String>,
     activity_contribution_ids: &BTreeSet<String>,
-) -> Vec<CandidateContribution> {
+    expected_scope: &MissionCanvasScope,
+) -> Vec<CandidateContribution>
+where
+    I: IntoIterator<Item = C>,
+    C: CandidateScopeInput,
+{
     let mut candidates: BTreeMap<String, CandidateContribution> = BTreeMap::new();
-    for candidate in registry_candidates {
+    for input in registry_candidates {
+        let (candidate, candidate_scope) = input.into_candidate_scope();
+        if scope_failure(&candidate, candidate_scope.as_ref(), expected_scope).is_some() {
+            continue;
+        }
         if profile_contribution_ids.contains(&candidate.contribution_id)
             && activity_contribution_ids.contains(&candidate.contribution_id)
         {
@@ -62,22 +145,37 @@ pub fn collect_candidates(
     candidates.into_values().collect()
 }
 
-pub fn resolve_eligibility(
-    mut candidates: Vec<CandidateContribution>,
+pub fn resolve_eligibility<I, C>(
+    candidates: I,
     context: &EligibilityContext,
-) -> EligibilityResolution {
+) -> EligibilityResolution
+where
+    I: IntoIterator<Item = C>,
+    C: CandidateScopeInput,
+{
+    let mut candidates = candidates
+        .into_iter()
+        .map(|candidate| candidate.into_candidate_scope())
+        .collect::<Vec<_>>();
     candidates.sort_by(|left, right| {
         right
+            .0
             .priority
-            .cmp(&left.priority)
-            .then_with(|| left.contribution_id.cmp(&right.contribution_id))
+            .cmp(&left.0.priority)
+            .then_with(|| left.0.contribution_id.cmp(&right.0.contribution_id))
     });
     let mut eligible = Vec::new();
     let mut decisions = Vec::new();
     let mut omissions = Vec::new();
 
-    for candidate in candidates {
-        let reason = omission_reason(&candidate, context);
+    for (candidate, candidate_scope) in candidates {
+        let scope_reason = scope_failure(&candidate, candidate_scope.as_ref(), &context.scope);
+        let scope_violation = scope_reason.is_some();
+        let reason = if let Some(reason) = scope_reason {
+            Some(reason)
+        } else {
+            omission_reason(&candidate, context)
+        };
         match reason {
             None => {
                 decisions.push(decision(
@@ -89,9 +187,13 @@ pub fn resolve_eligibility(
                 eligible.push(candidate);
             }
             Some(reason) => {
-                let suspended = context
-                    .previously_eligible
-                    .contains(&candidate.contribution_id)
+                // Scope violations are never suspended.  A stale or foreign
+                // authority packet must be omitted, not retained as a
+                // resumable presentation state.
+                let suspended = !scope_violation
+                    && context
+                        .previously_eligible
+                        .contains(&candidate.contribution_id)
                     && matches!(reason, "capability_not_present" | "not_authorized");
                 let outcome = if suspended {
                     EligibilityOutcome::Suspended
@@ -221,7 +323,7 @@ mod tests {
         }
     }
 
-    fn scope() -> MissionCanvasScope {
+    fn workstream(id: &str) -> WorkstreamKey {
         let legacy = LegacyScopeRef::project(
             "project:focusa",
             "/workspace/focusa",
@@ -229,20 +331,26 @@ mod tests {
             "host-a:worktree-main",
         )
         .unwrap();
-        let workstream = WorkstreamKey::new(
+        WorkstreamKey::new(
             ScopeRef::project(legacy).unwrap(),
-            WorkstreamId::parse("ws:mission-canvas").unwrap(),
-        );
-        let continuity = ContinuityId::parse("continuity:mission-canvas").unwrap();
-        let attachment = crate::workstream_identity::AttachmentKey::new(
-            workstream.clone(),
-            Some(continuity),
+            WorkstreamId::parse(id).unwrap(),
+        )
+    }
+
+    fn attachment(owner: WorkstreamKey, id: &str) -> crate::workstream_identity::AttachmentKey {
+        crate::workstream_identity::AttachmentKey::new(
+            owner,
+            Some(ContinuityId::parse("continuity:mission-canvas").unwrap()),
             InstanceId::parse("instance:pi").unwrap(),
             SessionId::parse("session:1").unwrap(),
-            AttachmentId::parse("attachment:1").unwrap(),
+            AttachmentId::parse(id).unwrap(),
             WorkspaceBindingId::parse("workspace:mission-canvas").unwrap(),
-        );
-        MissionCanvasScope::new(workstream, Some(attachment)).unwrap()
+        )
+    }
+
+    fn scope() -> MissionCanvasScope {
+        let owner = workstream("ws:mission-canvas");
+        MissionCanvasScope::new(owner.clone(), Some(attachment(owner, "attachment:1"))).unwrap()
     }
 
     fn context() -> EligibilityContext {
@@ -258,6 +366,84 @@ mod tests {
             previously_eligible: BTreeSet::new(),
             observed_at: "2026-07-30T12:00:00Z".into(),
         }
+    }
+
+    fn foreign_scope() -> MissionCanvasScope {
+        let owner = workstream("ws:foreign");
+        MissionCanvasScope::new(owner.clone(), Some(attachment(owner, "attachment:foreign")))
+            .unwrap()
+    }
+
+    #[test]
+    fn mission_canvas_candidate_scope_collects_only_exact_workstream() {
+        let local = candidate("contribution:shared", 20);
+        let foreign = candidate("contribution:shared", 99);
+        let local_scope = scope();
+        let profile_ids = BTreeSet::from(["contribution:shared".to_owned()]);
+        let activity_ids = profile_ids.clone();
+        let candidates = collect_candidates(
+            vec![
+                ScopedCandidateContribution::new(local, local_scope.clone()).unwrap(),
+                ScopedCandidateContribution::new(foreign, foreign_scope()).unwrap(),
+            ],
+            &profile_ids,
+            &activity_ids,
+            &local_scope,
+        );
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].priority, 20);
+    }
+
+    #[test]
+    fn mission_canvas_candidate_scope_reports_foreign_diagnostic_before_capability_checks() {
+        let foreign = ScopedCandidateContribution::new(
+            candidate("contribution:foreign", 20),
+            foreign_scope(),
+        )
+        .unwrap();
+        let resolution = resolve_eligibility(vec![foreign], &context());
+
+        assert!(resolution.eligible.is_empty());
+        assert_eq!(resolution.decisions.len(), 1);
+        assert_eq!(resolution.decisions[0].outcome, EligibilityOutcome::Omitted);
+        assert_eq!(
+            resolution.decisions[0].reason.as_deref(),
+            Some("scope_mismatch")
+        );
+        assert_eq!(resolution.omissions[0].reason, "scope_mismatch");
+        assert_eq!(resolution.omissions[0].projection_revision, 1);
+    }
+
+    #[test]
+    fn mission_canvas_candidate_scope_rejects_invalid_expected_authority() {
+        let mut invalid_scope = scope();
+        invalid_scope.continuity_id = Some(ContinuityId::parse("continuity:wrong").unwrap());
+        let candidate = candidate("contribution:invalid-scope", 20);
+
+        assert_eq!(
+            candidate.validate_scope(&invalid_scope),
+            Err("continuity_mismatch")
+        );
+        let resolution = resolve_eligibility(
+            vec![candidate],
+            &EligibilityContext {
+                scope: invalid_scope,
+                ..context()
+            },
+        );
+        assert!(resolution.eligible.is_empty());
+        assert_eq!(resolution.omissions[0].reason, "scope_mismatch");
+    }
+
+    #[test]
+    fn mission_canvas_candidate_scope_keeps_scope_neutral_generated_candidate_with_exact_context() {
+        let candidate = candidate("contribution:generated", 20);
+        let profile_ids = BTreeSet::from(["contribution:generated".to_owned()]);
+        let candidates = collect_candidates(vec![candidate], &profile_ids, &profile_ids, &scope());
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].contribution_id, "contribution:generated");
     }
 
     #[test]
