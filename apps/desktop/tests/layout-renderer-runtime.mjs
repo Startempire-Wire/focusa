@@ -398,6 +398,114 @@ try {
     assert.doesNotMatch(body, stackMustFailClosed, `${name} must fail closed before stack geometry`);
   }
 
+  // UI-009 exercises the production recursive grid path. The inspector uses
+  // a binding that exists only in this trusted registry, proving every grid
+  // child receives the registry rather than falling back to the default map.
+  const gridRegistry = new ContributionRendererRegistry([
+    {
+      rendererBindingId: 'renderer:pi-session@v1',
+      semanticBindingIds: ['semantic:pi-session'],
+      contributionKinds: ['focused_work_surface'],
+      component: ResolvedContributionRenderer
+    },
+    {
+      rendererBindingId: 'renderer:ui-009-inspector@v1',
+      semanticBindingIds: ['semantic:focusa-inspector'],
+      contributionKinds: ['inspector'],
+      component: ResolvedContributionRenderer
+    }
+  ]);
+  const gridProjection = structuredClone(rendererFixture);
+  gridProjection.eligible_contributions[1].renderer_binding_id = 'renderer:ui-009-inspector@v1';
+  gridProjection.layout_tree = {
+    node_id: 'layout:ui-009-grid',
+    kind: 'grid',
+    columns: 2,
+    gap_token: 'cluster',
+    children: [
+      { node_id: 'layout:ui-009-first', kind: 'single', contribution_id: 'contribution:pi-session' },
+      { node_id: 'layout:ui-009-second', kind: 'single', contribution_id: 'contribution:focusa-inspector' }
+    ]
+  };
+  const { body: gridBody } = render(SingleLayoutHarness, {
+    props: { projection: gridProjection, registry: gridRegistry }
+  });
+  assert.match(gridBody, /class="layout-grid[^"]*"/);
+  assert.match(gridBody, /data-layout-node="layout:ui-009-grid"/);
+  assert.match(gridBody, /data-layout-columns="2"/);
+  assert.match(gridBody, /data-gap-token="cluster"/);
+  assert.match(gridBody, /style="--layout-columns:2"/);
+  assert.equal((gridBody.match(/class="grid-child/g) ?? []).length, 2);
+  assert.equal((gridBody.match(/data-grid-index=/g) ?? []).length, 2);
+  const firstGridContribution = gridBody.indexOf('data-rendered-contribution="contribution:pi-session"');
+  const secondGridContribution = gridBody.indexOf('data-rendered-contribution="contribution:focusa-inspector"');
+  assert.ok(firstGridContribution >= 0 && firstGridContribution < secondGridContribution, 'grid child order must remain canonical');
+
+  const nestedGridProjection = structuredClone(gridProjection);
+  nestedGridProjection.layout_tree = {
+    node_id: 'layout:ui-009-outer-grid',
+    kind: 'grid',
+    columns: 2,
+    children: [
+      { node_id: 'layout:ui-009-outer-first', kind: 'single', contribution_id: 'contribution:pi-session' },
+      {
+        node_id: 'layout:ui-009-inner-grid',
+        kind: 'grid',
+        columns: 1,
+        gap_token: 'tight',
+        children: [
+          { node_id: 'layout:ui-009-inner-only', kind: 'single', contribution_id: 'contribution:focusa-inspector' }
+        ]
+      }
+    ]
+  };
+  const { body: nestedGridBody } = render(SingleLayoutHarness, {
+    props: { projection: nestedGridProjection, registry: gridRegistry }
+  });
+  assert.equal((nestedGridBody.match(/class="layout-grid[^"]*"/g) ?? []).length, 2, 'nested grids must render recursively');
+  assert.equal((nestedGridBody.match(/class="grid-child/g) ?? []).length, 3);
+  assert.match(nestedGridBody, /data-layout-node="layout:ui-009-inner-grid"[^>]*data-layout-columns="1"/);
+  assert.match(nestedGridBody, /data-layout-node="layout:ui-009-inner-grid"[^>]*data-gap-token="tight"/);
+  const nestedGridFirst = nestedGridBody.indexOf('data-rendered-contribution="contribution:pi-session"');
+  const nestedGridSecond = nestedGridBody.indexOf('data-rendered-contribution="contribution:focusa-inspector"');
+  assert.ok(nestedGridFirst >= 0 && nestedGridFirst < nestedGridSecond, 'nested grid order must remain canonical');
+
+  const hostileGrid = (mutate) => {
+    const candidate = structuredClone(gridProjection);
+    mutate(candidate.layout_tree, candidate);
+    return render(SingleLayoutHarness, { props: { projection: candidate, registry: gridRegistry } }).body;
+  };
+  const gridMustFailClosed = /layout-grid|grid-child|layout-single|data-rendered-contribution=/;
+  for (const [name, mutate] of [
+    ['empty child list', (node) => { node.children = []; }],
+    ['omitted child contribution', (node) => { node.children[1].contribution_id = 'contribution:omitted'; }],
+    ['foreign keyed contribution', (_node, projection) => { projection.eligible_contributions[0].contribution_id = 'contribution:foreign'; }],
+    ['unknown renderer binding', (_node, projection) => { projection.eligible_contributions[1].renderer_binding_id = 'renderer:untrusted@9'; }],
+    ['semantic binding mismatch', (_node, projection) => { projection.eligible_contributions[1].semantic_binding_id = 'semantic:foreign'; }],
+    ['missing contribution authority', (_node, projection) => { delete projection.eligible_contributions[1].authority; }],
+    ['duplicate contribution', (node) => { node.children[1].contribution_id = node.children[0].contribution_id; }],
+    ['duplicate node identity', (node) => { node.children[1].node_id = node.children[0].node_id; }],
+    ['zero columns', (node) => { node.columns = 0; }],
+    ['too many columns', (node) => { node.columns = 13; }],
+    ['fractional columns', (node) => { node.columns = 1.5; }],
+    ['string columns', (node) => { node.columns = '2'; }],
+    ['non-finite columns', (node) => { node.columns = Number.POSITIVE_INFINITY; }],
+    ['invalid gap token', (node) => { node.gap_token = { attacker: 'no-css-token' }; }],
+    ['empty gap token', (node) => { node.gap_token = ''; }],
+    ['sparse children', (node) => {
+      const sparse = new Array(2);
+      sparse[0] = node.children[0];
+      node.children = sparse;
+    }],
+    ['non-index array member', (node) => { node.children.extra = 'foreign geometry'; }],
+    ['shared child identity', (node) => { node.children[1] = node.children[0]; }],
+    ['unknown grid field', (node) => { node.reserved_panel = 'substitute'; }],
+    ['unknown node kind', (node) => { node.kind = 'masonry'; }]
+  ]) {
+    const body = hostileGrid(mutate);
+    assert.doesNotMatch(body, gridMustFailClosed, `${name} must fail closed before grid geometry`);
+  }
+
   const unknownBinding = structuredClone(piContribution);
   unknownBinding.renderer_binding_id = 'renderer:untrusted@9';
   assert.deepEqual(hostileRegistry.resolveWithDiagnostic(unknownBinding), {

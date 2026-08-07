@@ -1,0 +1,97 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-009",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "ProjectionLayoutRenderer now renders canonical GridLayoutNode geometry from the generated projection: the exact Core column count is preserved without client-side clamping, ordered children are emitted through recursive trusted renderer calls, and bounded grid metadata/indexes expose the canonical composition. The generated node validator, strict own-field/dense-array checks, exact contribution lookup, shared identity guard, and trusted renderer resolution reject empty, omitted, foreign-keyed, malformed, duplicate, sparse, unknown-binding, semantic-mismatched, or authority-missing grid trees before a grid wrapper or child geometry is emitted. The renderer remains projection-only; Workstream/Attachment authority, eligibility, layout resolution, persistence, revisions/cursors, capabilities, operations, and mutation ownership remain generated/Core-owned.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-009.json"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "surface_kind": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "canonical_shell_regions": [
+      "resolved_contribution_grid",
+      "actual_work_surface_strip",
+      "prompt_editor_when_core_eligible"
+    ],
+    "continuity_invariants": [
+      "CARDINAL-135-SVELTE-001 is preserved: Desktop recursively consumes canonical ResolvedWorkspaceProjection output and does not become a second eligibility, layout, recomposition, or authority owner",
+      "the exact ScopeRef/ProjectRootKey -> WorkstreamId -> ContinuityId -> AttachmentKey -> SessionId/InstanceId -> runtime object -> WorkSurfaceId chain remains generated/Core-owned",
+      "generated DTO, validator, operation, and transport metadata remain outside the component; trusted renderer_binding_id and semantic_binding_id resolution remains registry-owned",
+      "recursive grid rendering remains inside the Focusa Desktop Mission Canvas and separate from the authentic PTY-backed Agent TUI"
+    ]
+  },
+  "dependency_gate": {
+    "UI-006": "docs/contracts/evidence/spec135-svelte-tasks/UI-006.json is verified; the exact contribution lookup, trusted renderer seam, recursive registry propagation, and fail-closed boundary are present."
+  },
+  "implementation": [
+    "GridLayoutNode requires generated-valid fields, a safe integer column count from 1 through 12, a non-empty dense canonical children array, and a valid optional gap_token before layout-grid geometry is emitted.",
+    "The grid preserves the canonical column count without Math.max/clamping, emits bounded data-layout-columns and child indexes, and wraps each ordered child as one actual grid item; no omitted contribution is filtered into a placeholder or inferred locally.",
+    "Children render recursively through ProjectionLayoutRenderer with the supplied trusted registry, including nested grids whose binding is not in the default registry; order and optional gap metadata remain canonical projection data.",
+    "The existing recursive validation guard rejects duplicate node/contribution identities and shared child objects as one tree, so malformed or untrusted input cannot leave a valid prefix, vacant placeholder, border, heading, or reserved child geometry.",
+    "No local eligibility/layout resolver, Workstream authority resolver, stale watermark repair, capability inference, local layout store, resize control, or generated operation replacement was added. Canonical mutations remain owned by focusa.mission_canvas.layout.mutate."
+  ],
+  "checks": [
+    "npm --prefix apps/desktop test (exit 0; shell, context, recursive layout, UI-009 ordered/nested grid, hostile grid/renderer, transport/event integration, and projection-controller checks PASS)",
+    "node --check apps/desktop/tests/layout-renderer-runtime.mjs (exit 0)",
+    "git diff --check (exit 0)"
+  ],
+  "negative_cases": {
+    "ordered_children_and_nested_recursion": "A valid two-column grid preserves the canonical columns, gap token, child indexes, and first/second contribution order. A nested grid renders recursively and its custom trusted binding proves the registry is propagated rather than replaced by the default registry.",
+    "empty_or_omitted_contribution": "An empty child list or an omitted contribution ID rejects the complete grid before layout-grid, grid-child, layout-single, or contribution host output; no vacant cell or valid-prefix geometry remains.",
+    "foreign_keyed_contribution": "A contribution stored under a key whose DTO contribution_id does not match the requested layout ID is rejected; the grid does not repair the map or infer a replacement.",
+    "unknown_renderer_or_semantic_binding": "Unknown renderer bindings and non-allowlisted semantic bindings are rejected by the trusted registry before any grid wrapper is created; no generic or substitute panel is rendered.",
+    "missing_authority": "Deleting a contribution AuthorityDescriptor causes trusted resolution to fail and leaves no grid geometry.",
+    "invalid_grid_shape": "Zero, over-limit, fractional, string, and non-finite column values; empty or malformed gap tokens; sparse/non-index child arrays; unknown fields; unknown node kinds; duplicate node/contribution identities; and shared child objects fail closed as one tree.",
+    "foreign_scope_stale_revision_cursor_unavailable_capability": "Exact Workstream/Attachment scope, stale projection/layout/cursor watermarks, and unavailable operation/capability paths remain enforced by generated transport and MissionCanvasProjectionController/EventClient seams already exercised by the same runtime test. Grid rendering does not infer, repair, or replace those authority checks.",
+    "ineligible_or_empty_contribution": "Core omission diagnostics and canonical layout determine the eligible contribution map. Desktop consumes that map and refuses any grid reference absent from it rather than creating a dead contribution or reserved geometry.",
+    "resize_mutation": "The grid renderer emits no resize control or local mutation. DesktopMissionCanvasRuntime owns the generated layout mutation operation and supplies exact authority, expected projection/layout revisions, command, and idempotency fields to focusa.mission_canvas.layout.mutate."
+  },
+  "acceptance": [
+    "Grid does not create vacant cells for omitted contributions.",
+    "Omitted contribution IDs cannot leave DOM nodes, headings, borders, or gaps.",
+    "Unknown semantic or renderer binding fails closed; no substitute panel is rendered.",
+    "Resize mutations call focusa.mission_canvas.layout.mutate rather than changing canonical layout locally."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/UI-009.json",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-006.json",
+    "crates/focusa-core/src/mission_canvas/layout.rs",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasFrame.svelte",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasRenderer.svelte",
+    "apps/desktop/src/lib/mission-canvas/contribution-renderers.ts",
+    "apps/desktop/src/lib/mission-canvas/DesktopMissionCanvasRuntime.svelte",
+    "apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/fixtures/MissionCanvasSingleLayoutHarness.svelte",
+    "apps/desktop/tests/fixtures/mission-canvas/layout-variants.json",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "docs/135-series-current-manifest.md",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/agent/spec135-implementation-acceleration-directive.md",
+    "docs/transitions/FOCUSA-TRANSITION-001-spec135-svelte-translation-matrix.md"
+  ],
+  "evidence_refs": [
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "apps/desktop/tests/fixtures/MissionCanvasSingleLayoutHarness.svelte",
+    "apps/desktop/src/lib/mission-canvas/contribution-renderers.ts",
+    "apps/desktop/src/lib/mission-canvas/DesktopMissionCanvasRuntime.svelte",
+    "apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-006.json"
+  ],
+  "deferred_repository_observation": "Cargo was not run. Central executable graphs, generated task packets/index, parallel plans, orchestration scripts, generated contracts, and fixture inputs were not edited.",
+  "status": "verified"
+}
