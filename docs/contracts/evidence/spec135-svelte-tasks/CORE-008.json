@@ -1,0 +1,141 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CORE-008",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Implemented the bounded Desktop session inventory contribution. Canonical exact Work Surface projections are translated into Svelte rows that preserve WorkstreamKey, AttachmentKey, SessionId, InstanceId, and WorkSurfaceId. Core remains the source of eligibility, composition, revisions, cursor state, and operation bindings; Desktop renders only the canonical contribution input and fails closed for foreign, missing, duplicate, stale, or malformed identity.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte",
+    "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-008.json"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "surface_kind": "mission_canvas_session_inventory_contribution",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "eligible_contributions": [
+      "canonical exact Work Surface projections carrying WorkstreamKey, AttachmentKey, SessionId, InstanceId, and WorkSurfaceId"
+    ],
+    "omitted_contribution_reasons": [
+      "foreign_scope",
+      "missing_exact_identity",
+      "duplicate_identity",
+      "stale_revision_or_cursor",
+      "invalid_identity",
+      "capability_not_present",
+      "not_authorized",
+      "no_relevant_content"
+    ],
+    "agent_tui_boundary": "The Agent TUI remains the separate authentic PTY-backed Pi terminal and is not used as the Mission Canvas renderer."
+  },
+  "checks": [
+    "npm --prefix apps/desktop test (exit 0; shell, Desktop context, layout/renderer, transport, projection controller, session inventory contribution, exact identity, quarantine, duplicate, stale watermark, foreign scope, and empty contribution hostile checks: PASS)",
+    "git diff --check (exit 0; no output)"
+  ],
+  "additional_checks": [
+    "npm --prefix apps/desktop run check (exit 1; pre-existing unrelated GeneratedSurfaceContribution.svelte import cannot resolve @focusa/a2ui-renderer/rich-host; no diagnostic points to CORE-008 files)"
+  ],
+  "dependency_gate": {
+    "CORE-007": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/CORE-007.json",
+      "status": "implemented",
+      "decision": "CORE-007 evidence records the exact WorkSurfaceProjection identity translation and permitted Desktop test pass. CORE-008 consumes that nested identity and does not reopen or duplicate its authority logic."
+    }
+  },
+  "negative_cases": {
+    "foreign_workstream": "A supplied projection whose WorkstreamKey differs from the canonical projection is omitted before rendering; no foreign Workstream or session identifier is emitted.",
+    "missing_authority": "A legacy/aggregate row without AttachmentKey or WorkSurfaceId is rendered only as compatibility data with data-bindable=false and no action; project_root plus continuity_id never creates authority.",
+    "stale_revision_cursor": "Invalid projection watermarks quarantine exact rows with stale_revision_or_cursor and remove all bindings. The existing generated projection controller remains the authoritative stale revision/layout/cursor boundary.",
+    "unavailable_capability": "Only operation bindings already present on the canonical contribution are rendered; missing or disabled bindings produce no client-created action.",
+    "ineligible_or_empty_contribution": "A contribution with no exact canonical rows and no inventory semantic binding emits no session inventory DOM, reserving no empty geometry.",
+    "duplicate_identity": "Duplicate exact identity keys are retained as quarantined non-actionable rows; the renderer never selects a first, latest, or nearest row.",
+    "stale_content": "A stale canonical contribution emits a visible stale row without action bindings, preserving the last supplied identity while preventing mutation."
+  },
+  "acceptance": [
+    {
+      "statement": "The translated inventory renders in Mission Canvas and ambiguous rows remain visible only as non-actionable compatibility data.",
+      "status": "implemented_verified",
+      "proof": "SessionInventoryContribution renders canonical rows with Workstream/Attachment/Session/Instance/Surface identity data attributes. Legacy and aggregate rows are compatibility-only, have data-bindable=false, and contain no buttons; empty unrelated contributions render no inventory region."
+    },
+    {
+      "statement": "project_root plus continuity_id cannot bind or focus a Work Surface.",
+      "status": "implemented_verified",
+      "proof": "The component obtains authority only from WorkSurfaceProjection.identity or the canonical ResolvedContribution.authority descriptor. It never constructs WorkstreamKey, AttachmentKey, or WorkSurfaceId from flat project/continuity fields; hostile legacy input produces compatibility data without identity attributes or actions."
+    },
+    {
+      "statement": "ambiguous legacy rows are quarantined, not guessed.",
+      "status": "implemented_verified",
+      "proof": "Missing identity is compatibility-only, foreign rows are omitted, duplicate exact keys are quarantined, and malformed/stale watermarks remove bindings. No CWD, selected-tab, latest-row, nearest-identity, or first-row fallback exists."
+    }
+  ],
+  "hostile_tests": [
+    "registry resolves renderer:silent-sessions@v1 only for its canonical semantic binding and supported contribution kinds",
+    "exact canonical Work Surface projection renders WorkstreamKey, AttachmentKey, SessionId, InstanceId, WorkSurfaceId, metadata, and only the supplied operation binding",
+    "legacy flat projection remains compatibility-only without Workstream or Attachment identity attributes",
+    "foreign Workstream projection produces no inventory row or foreign identifier",
+    "duplicate exact identity projections are both quarantined and have no buttons",
+    "stale contribution freshness removes action bindings",
+    "invalid projection revision quarantines rows with stale_revision_or_cursor",
+    "aggregate inventory without AttachmentKey remains visible only as non-actionable compatibility data",
+    "empty/ineligible contribution emits no session inventory geometry"
+  ],
+  "authority_preservation": {
+    "cardinal_translation": "CARDINAL-135-SVELTE-001",
+    "generated_transport_owner": "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts, mission-canvas-validators.generated.ts, and mission-canvas-client.generated.ts",
+    "session_transport_boundary": "CORE-008 has generated_operation=null; the Desktop contribution consumes exact Work Surface projections supplied by the canonical ResolvedWorkspaceProjection/contribution host and adds no route, fetch, handwritten DTO, or substitute MissionCanvasClient method.",
+    "composition_owner": "Focusa Core ResolvedWorkspaceProjection eligibility/layout/recomposition, canonical contribution data, revisions, cursors, and generated operation metadata",
+    "desktop_boundary": "Desktop validates identity at the renderer boundary, preserves exact identity for display, renders approved bindings, and does not infer identity, eligibility, layout, session authority, or operation metadata."
+  },
+  "evidence_refs": [
+    "apps/desktop/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte",
+    "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts",
+    "apps/desktop/src/lib/mission-canvas/types.ts",
+    "apps/desktop/src/lib/mission-canvas/exact-scope.ts",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts"
+  ],
+  "source_authority": {
+    "AGENTS.md": "read completely",
+    "docs/agent/01-focusa-agent-docs-index.md": "read completely",
+    "docs/135-series-current-manifest.md": "read completely",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md": "read completely",
+    "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png": "read",
+    "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png": "read",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml": "read completely",
+    "docs/agent/spec135-implementation-acceleration-directive.md": "read completely",
+    "docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md": "read completely",
+    "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md": "read completely",
+    "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md": "read completely",
+    "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md": "read completely",
+    "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md": "read completely",
+    "docs/135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md": "read completely",
+    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md": "read completely",
+    "docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md": "read completely",
+    "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md": "read completely",
+    "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md": "read completely",
+    "docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md": "read completely",
+    "docs/contracts/spec135-svelte-task-packets/CORE-008.json": "read completely",
+    "docs/contracts/spec135-svelte-task-packets/CORE-007.json": "read completely for dependency gate",
+    "docs/contracts/evidence/spec135-svelte-tasks/CORE-007.json": "read completely for dependency evidence",
+    "docs/contracts/spec135-complete-feature-ledger.v1.yaml": "read completely",
+    "docs/contracts/spec135-runtime-evidence-matrix.v2.yaml": "read completely",
+    "docs/contracts/spec135-runtime-conformance-audit.v2.yaml": "read completely",
+    "docs/transitions/FOCUSA-TRANSITION-001-spec135-svelte-translation-matrix.md": "read completely",
+    "docs/spec158/01-identity-ownership-and-reducer.md": "read completely",
+    "docs/spec158/02-persistence-migration-and-quarantine.md": "read completely",
+    "docs/spec158/03-client-runtime-and-desktop-contracts.md": "read completely",
+    "crates/focusa-core/src/mission_canvas/model.rs": "read completely as canonical authority model",
+    "apps/pi-extension/src/mission-canvas-model.ts": "read completely as behavior source",
+    "apps/pi-extension/src/mission-canvas-session-inventory.ts": "read completely as behavior source",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts": "read completely as generated transport authority",
+    "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts": "read completely before edit",
+    "apps/desktop/src/lib/mission-canvas/contribution-renderers.ts": "read completely before edit",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasRenderer.svelte": "read completely before edit",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasFrame.svelte": "read completely before edit"
+  },
+  "status": "implemented"
+}
