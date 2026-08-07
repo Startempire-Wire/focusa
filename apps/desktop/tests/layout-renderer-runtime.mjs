@@ -233,6 +233,74 @@ try {
   });
   assert.doesNotMatch(nestedOmissionBody, /layout-split|split-child|data-rendered-contribution=/);
 
+  // UI-007 exercises the production recursive split path with the canonical
+  // orientation, ratio, and child order. The renderer consumes the Core tree;
+  // it does not create a local ratio or a substitute child.
+  const splitRegistry = new ContributionRendererRegistry([
+    {
+      rendererBindingId: 'renderer:pi-session@v1',
+      semanticBindingIds: ['semantic:pi-session'],
+      contributionKinds: ['focused_work_surface'],
+      component: ResolvedContributionRenderer
+    },
+    {
+      rendererBindingId: 'renderer:focusa-inspector@v1',
+      semanticBindingIds: ['semantic:focusa-inspector'],
+      contributionKinds: ['inspector'],
+      component: ResolvedContributionRenderer
+    }
+  ]);
+  const splitProjection = structuredClone(rendererFixture);
+  splitProjection.layout_tree = {
+    node_id: 'layout:ui-007-split',
+    kind: 'split',
+    orientation: 'vertical',
+    ratio: 0.68,
+    children: [
+      { node_id: 'layout:ui-007-first', kind: 'single', contribution_id: 'contribution:pi-session' },
+      { node_id: 'layout:ui-007-second', kind: 'single', contribution_id: 'contribution:focusa-inspector' }
+    ]
+  };
+  const { body: splitBody } = render(SingleLayoutHarness, {
+    props: { projection: splitProjection, registry: splitRegistry }
+  });
+  assert.match(splitBody, /class="layout-split[^"]*"/);
+  assert.match(splitBody, /data-layout-orientation="vertical"/);
+  assert.match(splitBody, /data-split-ratio="0.68"/);
+  assert.equal((splitBody.match(/class="split-child/g) ?? []).length, 2);
+  const firstSplitContribution = splitBody.indexOf('data-rendered-contribution="contribution:pi-session"');
+  const secondSplitContribution = splitBody.indexOf('data-rendered-contribution="contribution:focusa-inspector"');
+  assert.ok(firstSplitContribution >= 0 && firstSplitContribution < secondSplitContribution, 'split child order must remain canonical');
+
+  const hostileSplit = (mutate) => {
+    const candidate = structuredClone(splitProjection);
+    mutate(candidate.layout_tree, candidate);
+    return render(SingleLayoutHarness, { props: { projection: candidate, registry: splitRegistry } }).body;
+  };
+  for (const [name, mutate] of [
+    ['unknown orientation', (node) => { node.orientation = 'diagonal'; }],
+    ['ratio below Core minimum', (node) => { node.ratio = 0.09; }],
+    ['ratio above Core maximum', (node) => { node.ratio = 0.91; }],
+    ['three children', (node) => { node.children.push(structuredClone(node.children[0])); }],
+    ['unknown node field', (node) => { node.direction = 'horizontal'; }],
+    ['duplicate contribution', (node) => { node.children[1].contribution_id = node.children[0].contribution_id; }],
+    ['duplicate node identity', (node) => { node.children[1].node_id = node.children[0].node_id; }],
+    ['unknown renderer binding', (_node, projection) => { projection.eligible_contributions[1].renderer_binding_id = 'renderer:untrusted@9'; }],
+    ['semantic binding mismatch', (_node, projection) => { projection.eligible_contributions[1].semantic_binding_id = 'semantic:foreign'; }],
+    ['missing contribution authority', (_node, projection) => { delete projection.eligible_contributions[1].authority; }]
+  ]) {
+    const body = hostileSplit(mutate);
+    assert.doesNotMatch(body, /layout-split|split-child|data-rendered-contribution=/, `${name} must fail closed before geometry`);
+  }
+
+  const sharedChildProjection = structuredClone(splitProjection);
+  const sharedChild = sharedChildProjection.layout_tree.children[0];
+  sharedChildProjection.layout_tree.children[1] = sharedChild;
+  const { body: sharedChildBody } = render(SingleLayoutHarness, {
+    props: { projection: sharedChildProjection, registry: splitRegistry }
+  });
+  assert.doesNotMatch(sharedChildBody, /layout-split|split-child|data-rendered-contribution=/, 'shared child identity must not duplicate geometry');
+
   const unknownBinding = structuredClone(piContribution);
   unknownBinding.renderer_binding_id = 'renderer:untrusted@9';
   assert.deepEqual(hostileRegistry.resolveWithDiagnostic(unknownBinding), {
@@ -374,7 +442,17 @@ try {
   assert.match(productionProjection, /aria-label="Work Surfaces"/);
   assert.match(productionProjection, /data-work-surface-id="surface:pi"/);
   assert.match(productionProjection, /data-work-surface-ref="surface:pi"/);
+  assert.match(productionProjection, /data-layout-node="layout:root"/);
+  assert.match(productionProjection, /data-layout-orientation="horizontal"/);
+  assert.match(productionProjection, /data-split-ratio="0.7"/);
+  assert.equal((productionProjection.match(/class="split-child/g) ?? []).length, 2);
   assert.doesNotMatch(productionProjection, /Renderer unavailable/);
+
+  // The real MissionCanvasRenderer path must preserve the canonical split
+  // without creating a client-local resize control or mutating projection
+  // state during render. Any layout mutation remains an explicit generated
+  // operation owned by DesktopMissionCanvasRuntime.
+  assert.doesNotMatch(productionProjection, /<input[^>]+type="range"|draggable="true"/);
 
   const twoQueueFixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/two-queue-projection.json', import.meta.url), 'utf8'));
   assert.deepEqual(
