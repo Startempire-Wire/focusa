@@ -594,6 +594,17 @@ function validateProfileLayoutMemoryResponse(
     );
   }
   const placementIds = new Set<string>();
+  const contributionIdPattern = /^contribution:[a-z0-9][a-z0-9._:-]{0,159}$/;
+  const regionKinds = new Set([
+    'primary',
+    'secondary',
+    'inspector',
+    'rail',
+    'queue',
+    'composer',
+    'navigation',
+    'overlay'
+  ]);
   for (const [index, placement] of placements.entries()) {
     const placementValidation = validateMissionCanvasContract(
       'ContributionPlacementPreference',
@@ -621,12 +632,22 @@ function validateProfileLayoutMemoryResponse(
     const minimumSpan = placementRecord.minimum_span;
     const maximumSpan = placementRecord.maximum_span;
     const preferredOrder = placementRecord.preferred_order;
+    const adjacency = placementRecord.preferred_adjacency;
+    const lastCompatibleNode = placementRecord.last_compatible_layout_node_id;
     if (typeof contributionId !== 'string'
-      || contributionId.trim().length === 0
+      || !contributionIdPattern.test(contributionId)
       || placementIds.has(contributionId)
       || !Array.isArray(regions)
       || regions.length === 0
-      || regions.some((region) => typeof region !== 'string' || region.trim().length === 0)
+      || new Set(regions).size !== regions.length
+      || regions.some((region) => typeof region !== 'string' || !regionKinds.has(region))
+      || (adjacency !== undefined
+        && (!Array.isArray(adjacency)
+          || new Set(adjacency).size !== adjacency.length
+          || adjacency.some((id) => typeof id !== 'string' || !contributionIdPattern.test(id))))
+      || (lastCompatibleNode !== undefined
+        && lastCompatibleNode !== null
+        && (typeof lastCompatibleNode !== 'string' || lastCompatibleNode.trim().length === 0))
       || typeof preferredOrder !== 'number'
       || !Number.isSafeInteger(preferredOrder)
       || preferredOrder < 0
@@ -659,7 +680,9 @@ function validateProfileLayoutMemoryResponse(
   }
   const absentIds = new Set<string>();
   for (const contributionId of absent) {
-    if (typeof contributionId !== 'string' || contributionId.trim().length === 0 || absentIds.has(contributionId)) {
+    if (typeof contributionId !== 'string'
+      || !contributionIdPattern.test(contributionId)
+      || absentIds.has(contributionId)) {
       throw new MissionCanvasTransportError(
         'invalid_response:absent_contribution_ids:content',
         operationId,

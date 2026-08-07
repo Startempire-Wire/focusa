@@ -81,7 +81,7 @@
   ],
   "implementation": [
     "The API read path requires mission_canvas:read, parses and validates the generated Workstream query, extracts the authenticated actor/authority WorkstreamContext, requires profile_id/activity_mode_id/viewport_class selectors, and reads the exact Workstream-partitioned memory document keyed by the canonical profile tuple.",
-    "The reusable Core validator checks exact full authority equality, profile/activity/viewport identity, canonical memory_id, idempotency metadata, placement spans/duplicates, and absent-contribution IDs before the DTO can leave the API. The route returns direct ProfileLayoutMemory rather than StoredDocument or a route-local wrapper.",
+    "The reusable Core validator checks exact full authority equality, profile/activity/viewport identity, canonical memory_id, idempotency metadata, ContributionId/RegionKind constraints, placement spans/duplicates, and absent-contribution IDs before the DTO can leave the API. The route returns direct ProfileLayoutMemory rather than StoredDocument or a route-local wrapper.",
     "The Desktop transport keeps operation metadata generated, validates the selector request before HTTP, sends only exact authority and selectors, validates nested placement memory, checks canonical memory identity, and maintains a per-authority/profile/activity/viewport memory revision watermark.",
     "The hostile Desktop consumer exercises the generated client method, exact GET/query/header transport, direct DTO shape, missing selectors/authority, foreign Workstream and Attachment, foreign profile, malformed wrapper/placement, stale revision, denied permission/capability, unavailable operation, and no-local-composition behavior. Existing trusted recursive projection rendering is not changed or bypassed."
   ],
@@ -104,7 +104,7 @@
     "unavailable_capability": "The operation has no separate generated capability requirement; Desktop does not mint one. An unavailable-capability ToolResult response is surfaced as a typed transport failure.",
     "permission_denied": "The generated operation declares mission_canvas:read; a hostile 403 is surfaced without local memory fallback.",
     "ineligible_or_empty_contribution": "Absent contribution IDs remain canonical memory data only; no optional contribution, panel, heading, border, layout node, or substitute is fabricated.",
-    "invalid_response": "Generated structural validation plus exact authority, memory ID, revision, timestamp, placement, duplicate, and absent-ID validation reject wrappers, malformed placements, foreign data, and malformed memory.",
+    "invalid_response": "Generated structural validation plus exact authority, memory ID, revision, timestamp, ContributionId/RegionKind, placement, duplicate, and absent-ID validation reject wrappers, malformed placements, foreign data, and malformed memory.",
     "local_inference": "Desktop sends no layout_tree, eligible_contributions, candidate registry, or renderer data and performs no profile/eligibility/layout resolution. Canonical recursive projection rendering remains owned by the existing trusted renderer registry."
   },
   "acceptance": [

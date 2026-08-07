@@ -74,8 +74,28 @@ pub fn validate_profile_layout_memory(
         return Err("idempotency_key_missing");
     }
     if memory.placements.iter().any(|placement| {
-        placement.contribution_id.trim().is_empty()
+        !is_contribution_id(&placement.contribution_id)
             || placement.preferred_regions.is_empty()
+            || placement
+                .preferred_regions
+                .iter()
+                .any(|region| !is_region(region))
+            || placement
+                .preferred_regions
+                .iter()
+                .enumerate()
+                .any(|(index, region)| placement.preferred_regions[..index].contains(region))
+            || placement
+                .preferred_adjacency
+                .iter()
+                .any(|contribution_id| !is_contribution_id(contribution_id))
+            || placement
+                .preferred_adjacency
+                .iter()
+                .enumerate()
+                .any(|(index, contribution_id)| {
+                    placement.preferred_adjacency[..index].contains(contribution_id)
+                })
             || placement.minimum_span == 0
             || placement.maximum_span == 0
             || placement.minimum_span > placement.maximum_span
@@ -101,7 +121,7 @@ pub fn validate_profile_layout_memory(
         || memory
             .absent_contribution_ids
             .iter()
-            .any(|contribution_id| contribution_id.trim().is_empty())
+            .any(|contribution_id| !is_contribution_id(contribution_id))
     {
         return Err("absent_contribution_invalid");
     }
@@ -120,6 +140,35 @@ fn is_viewport_class(value: &str) -> bool {
     matches!(
         value,
         "minimum" | "compact" | "standard" | "productive" | "wide" | "reference_capture"
+    )
+}
+
+fn is_contribution_id(value: &str) -> bool {
+    let Some(suffix) = value.strip_prefix("contribution:") else {
+        return false;
+    };
+    let mut chars = suffix.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    suffix.len() <= 160
+        && (first.is_ascii_lowercase() || first.is_ascii_digit())
+        && chars.all(|value| {
+            value.is_ascii_lowercase() || value.is_ascii_digit() || "._:-".contains(value)
+        })
+}
+
+fn is_region(value: &str) -> bool {
+    matches!(
+        value,
+        "primary"
+            | "secondary"
+            | "inspector"
+            | "rail"
+            | "queue"
+            | "composer"
+            | "navigation"
+            | "overlay"
     )
 }
 
