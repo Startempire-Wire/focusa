@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     routing::{get, post},
-    Json, Router,
 };
 use chrono::Utc;
 use focusa_core::mission_canvas::{
-    resolve_projection, CompositionEvent, DomainPackInstallCommand, DomainPackInstallError,
-    DomainPackInstallService, HostPlatform, HostRendererResolutionError,
+    CompositionEvent, DOMAIN_PACK_INSTALL_CAPABILITY, DomainPackInstallCommand,
+    DomainPackInstallError, DomainPackInstallService, HostPlatform, HostRendererResolutionError,
     HostRendererResolutionService, MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput,
-    StoredDocument, DOMAIN_PACK_INSTALL_CAPABILITY,
+    StoredDocument, resolve_projection,
 };
 use focusa_core::workstream_context::{
     ActorRef, ActorType, AuthorityContext, WorkstreamContext, WorkstreamContextError,
@@ -20,8 +20,8 @@ use focusa_core::workstream_context::{
 use focusa_core::workstream_identity::{
     AttachmentKey, RuntimeObjectRef, WorkSurfaceId, WorkstreamKey,
 };
-use serde::{de::DeserializeOwned, Deserialize};
-use serde_json::{json, Value};
+use serde::{Deserialize, de::DeserializeOwned};
+use serde_json::{Value, json};
 
 use crate::routes::permissions::permission_context;
 use crate::server::AppState;
@@ -37,6 +37,10 @@ pub struct ScopeQuery {
     pub workspace_binding_id: Option<String>,
     pub runtime_object: Option<String>,
     pub work_surface_id: Option<String>,
+    /// Durable composition-event cursor.  It is deliberately separate from
+    /// the Workstream identity and is only used to replay events after the
+    /// caller's last confirmed event.
+    pub after_cursor: Option<String>,
 }
 
 impl ScopeQuery {
@@ -1378,12 +1382,122 @@ async fn list_events(
 ) -> ApiResult {
     require_permission(&headers, "mission_canvas:read")?;
     let scope = query.scope()?;
-    let events = store(&state)?
-        .events_after(&scope, 0, 1_000)
-        .map_err(store_error)?;
-    Ok(Json(
-        json!({"schema":"focusa.mission_canvas.events.v1","events":events}),
-    ))
+    let requested_cursor = requested_event_cursor(&query, &headers)?;
+    let after_sequence = parse_event_cursor(requested_cursor.as_deref())?;
+    let store = store(&state)?;
+    let latest_sequence = store.latest_event_sequence(&scope).map_err(store_error)?;
+    if after_sequence > latest_sequence {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "event_cursor_stale",
+            "The requested composition-event cursor is ahead of this exact Workstream history",
+        ));
+    }
+
+    // The generated `eventsStream` method is a bounded replay/tail read: the
+    // Desktop event client calls this endpoint again with the last confirmed
+    // cursor, so replay and subsequent tail reads use the same exact scope and
+    // durable sequence rather than a tab, CWD, or latest-record fallback.
+    let events = store
+        .events_after(&scope, after_sequence, 1_000)
+        .map_err(store_error)?
+        .into_iter()
+        .map(|(sequence, event)| projection_lifecycle_event(sequence, event))
+        .collect::<Vec<_>>();
+    Ok(Json(Value::Array(events)))
+}
+
+fn requested_event_cursor(
+    query: &ScopeQuery,
+    headers: &HeaderMap,
+) -> Result<Option<String>, (StatusCode, Json<Value>)> {
+    let query_cursor = query
+        .after_cursor
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned);
+    let header_cursor = headers
+        .get("last-event-id")
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned);
+    if let (Some(query_cursor), Some(header_cursor)) = (&query_cursor, &header_cursor) {
+        if query_cursor != header_cursor {
+            return Err(error(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "event_cursor_mismatch",
+                "after_cursor and Last-Event-ID must identify the same durable cursor",
+            ));
+        }
+    }
+    Ok(query_cursor.or(header_cursor))
+}
+
+fn parse_event_cursor(cursor: Option<&str>) -> Result<u64, (StatusCode, Json<Value>)> {
+    let Some(cursor) = cursor else {
+        return Ok(0);
+    };
+    let cursor = cursor.trim();
+    let sequence = cursor
+        .strip_prefix("event:")
+        .or_else(|| cursor.strip_prefix("cursor:"))
+        .unwrap_or(cursor);
+    if sequence.is_empty() || !sequence.chars().all(|value| value.is_ascii_digit()) {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "event_cursor_invalid",
+            "event cursor must be a durable numeric cursor",
+        ));
+    }
+    sequence.parse::<u64>().map_err(|_| {
+        error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "event_cursor_invalid",
+            "event cursor is outside the supported durable sequence range",
+        )
+    })
+}
+
+fn projection_lifecycle_event(sequence: u64, event: CompositionEvent) -> Value {
+    let event_id = if generated_projection_event_id(&event.event_id) {
+        event.event_id
+    } else {
+        // Older appenders used a broader event-id namespace.  Keep those
+        // events replayable while emitting the generated DTO's constrained,
+        // deterministic identifier; the durable sequence remains the cursor.
+        format!("projection-event:sequence:{sequence}")
+    };
+    json!({
+        "event_id": event_id,
+        "event_kind": event.event_kind,
+        "workstream": event.scope.workstream,
+        "continuity_id": event.scope.continuity_id,
+        "attachment": event.scope.attachment,
+        "workspace_binding_id": event.scope.workspace_binding_id,
+        "runtime_object": event.scope.runtime_object,
+        "work_surface_id": event.scope.work_surface_id,
+        "projection_revision": event.projection_revision,
+        "layout_revision": event.layout_revision,
+        "event_cursor": format!("event:{sequence}"),
+        "occurred_at": event.occurred_at,
+        "payload_ref": format!("mission-canvas:composition-event:{sequence}"),
+        "evidence_refs": event.evidence_refs,
+        "receipt_refs": event.receipt_refs,
+        "causation_id": event.causation_id,
+        "correlation_id": event.correlation_id,
+    })
+}
+
+fn generated_projection_event_id(value: &str) -> bool {
+    let Some(suffix) = value.strip_prefix("projection-event:") else {
+        return false;
+    };
+    !suffix.is_empty()
+        && suffix.chars().all(|value| {
+            value.is_ascii_lowercase() || value.is_ascii_digit() || "._:-".contains(value)
+        })
 }
 
 fn list_viable_documents(
@@ -1729,6 +1843,7 @@ mod tests {
             workspace_binding_id: Some("workspace:mission-canvas".into()),
             runtime_object: None,
             work_surface_id: Some("surface:pi".into()),
+            after_cursor: None,
         }
     }
 

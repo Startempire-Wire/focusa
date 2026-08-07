@@ -52,6 +52,8 @@ try {
     await exerciseHostResolution({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.domain_pack.install') {
     await exerciseDomainPackInstall({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.events.stream') {
+    await exerciseEventsStream({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, server });
   } else {
     throw new Error(`No bounded Desktop consumer fixture for ${operationId} (${clientMethod})`);
   }
@@ -181,6 +183,174 @@ async function exerciseHostResolution({ MissionCanvasClient, MissionCanvasHttpTr
   );
 
   console.log('Mission Canvas operation consumer: PASS (generated client, GET registry path, Desktop host resolution, exact scope, and hostile response checks)');
+}
+
+async function exerciseEventsStream({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, server }) {
+  const event = (sequence, overrides = {}) => ({
+    event_id: `projection-event:stream:${sequence}`,
+    event_kind: 'projection_resolved',
+    ...structuredClone(authority),
+    projection_revision: sequence,
+    layout_revision: sequence,
+    event_cursor: `event:${sequence}`,
+    occurred_at: `2026-08-06T00:00:0${sequence}Z`,
+    payload_ref: `mission-canvas:composition-event:${sequence}`,
+    evidence_refs: [],
+    receipt_refs: [],
+    ...overrides
+  });
+
+  let calls = 0;
+  const requests = [];
+  let response = [event(1), event(2)];
+  const transport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787/',
+    async (url, init) => {
+      calls += 1;
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    ['mission_canvas.events.stream'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const client = new MissionCanvasClient(transport);
+  const first = await client.eventsStream(structuredClone(authority));
+  assert.deepEqual(first, [event(1), event(2)]);
+  assert.equal(calls, 1);
+  const firstUrl = new URL(requests[0].url);
+  assert.equal(`${firstUrl.origin}${firstUrl.pathname}`, 'http://127.0.0.1:8787/v1/mission-canvas/events');
+  assert.deepEqual(JSON.parse(firstUrl.searchParams.get('workstream')), authority.workstream);
+  assert.equal(firstUrl.searchParams.get('after_cursor'), null);
+  assert.equal(requests[0].init.method, 'GET');
+  assert.equal(requests[0].init.body, undefined);
+  assert.equal(requests[0].init.headers['X-Focusa-Permissions'], 'mission_canvas:read');
+
+  // The Desktop event client performs the replay-then-tail cursor handshake
+  // over the generated method, while retaining exact Workstream authority.
+  const { MissionCanvasEventClient } = await server.ssrLoadModule('/src/lib/mission-canvas/event-client.ts');
+  const cursorWrites = [];
+  const cursorStore = {
+    load: () => undefined,
+    persist: (_scope, cursor) => cursorWrites.push(cursor)
+  };
+  const replayThenTail = [];
+  let tailResponse = [event(1), event(2)];
+  let tailCalls = 0;
+  const generatedStreamClient = {
+    eventsStream: async (input) => {
+      replayThenTail.push(input.after_cursor);
+      const next = tailResponse;
+      tailResponse = tailCalls === 0
+        ? [event(3)]
+        : [event(4, { projection_revision: 1, layout_revision: 1 })];
+      tailCalls += 1;
+      return structuredClone(next);
+    }
+  };
+  const eventClient = new MissionCanvasEventClient(generatedStreamClient, authority, cursorStore);
+  const replay = await eventClient.poll();
+  assert.equal(replay.accepted.length, 2);
+  assert.deepEqual(replayThenTail, [undefined]);
+  assert.equal(cursorWrites.at(-1), 'event:2');
+  const tail = await eventClient.poll();
+  assert.equal(tail.accepted.length, 1);
+  assert.equal(tail.accepted[0].event_cursor, 'event:3');
+  assert.deepEqual(replayThenTail, [undefined, 'event:2']);
+  assert.equal(cursorWrites.at(-1), 'event:3');
+  const regressed = await eventClient.poll();
+  assert.equal(regressed.accepted.length, 0);
+  assert.equal(regressed.rejected[0].reason, 'projection_revision_regressed');
+  assert.equal(cursorWrites.at(-1), 'event:3');
+
+  // A foreign response is rejected at the generated transport boundary, not
+  // adopted from a tab, latest record, or caller-provided project path.
+  const foreignTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      const foreign = event(4);
+      foreign.workstream.workstream_id = 'ws:foreign';
+      foreign.attachment.workstream.workstream_id = 'ws:foreign';
+      return new Response(JSON.stringify([foreign]), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    ['mission_canvas.events.stream'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignTransport).eventsStream(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_event_scope'
+  );
+
+  let missingScopeCalls = 0;
+  const missingScopeTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      missingScopeCalls += 1;
+      return new Response('[]', { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    ['mission_canvas.events.stream'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingScopeTransport).eventsStream({}),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_workstream_identity:')
+  );
+  assert.equal(missingScopeCalls, 0, 'missing Workstream must fail before HTTP');
+
+  // Empty replay is a valid tail state; the consumer must not invent a panel,
+  // event, or contribution when the exact Workstream has no events.
+  const emptyTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => new Response('[]', { status: 200 }),
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    ['mission_canvas.events.stream'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  assert.deepEqual(await new MissionCanvasClient(emptyTransport).eventsStream(structuredClone(authority)), []);
+
+  const staleStreamClient = {
+    eventsStream: async () => [event(5, { event_cursor: 'event:2', projection_revision: 5, layout_revision: 5 })]
+  };
+  const staleEventClient = new MissionCanvasEventClient(staleStreamClient, authority, {
+    load: () => 'event:3',
+    persist: () => { throw new Error('stale cursor must not be persisted'); }
+  });
+  const stale = await staleEventClient.poll();
+  assert.equal(stale.accepted.length, 0);
+  assert.equal(stale.rejected[0].reason, 'event_cursor_regressed');
+
+  const invalidEvent = event(6);
+  delete invalidEvent.event_cursor;
+  const invalidResponseTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => new Response(JSON.stringify([invalidEvent]), { status: 200 }),
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    ['mission_canvas.events.stream'],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(invalidResponseTransport).eventsStream(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:')
+  );
+
+  console.log('Mission Canvas operation consumer: PASS (generated client, exact Workstream replay/tail cursor, foreign scope, missing authority, stale cursor, and empty-tail hostile checks)');
 }
 
 async function exerciseDomainPackInstall({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {

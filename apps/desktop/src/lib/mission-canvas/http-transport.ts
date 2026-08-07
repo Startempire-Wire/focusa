@@ -4,7 +4,8 @@ import {
   sameWorkstreamKey,
   validateMissionCanvasContract
 } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
-import type { WorkstreamAuthorityContext } from './types';
+import { authorityFromEvent, sameWorkstreamAuthority } from './exact-scope';
+import type { ProjectionLifecycleEvent, WorkstreamAuthorityContext } from './types';
 import registry from '../../../../../docs/contracts/spec135/mission-canvas-v1/operation-registry.json';
 
 interface OperationDescriptor {
@@ -131,6 +132,31 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
         response.status,
         value
       );
+    }
+    if (operation.response_schema_ref === 'ProjectionLifecycleEvent[]') {
+      for (const [index, event] of (value as ProjectionLifecycleEvent[]).entries()) {
+        const eventAuthority = authorityFromEvent(event);
+        const eventAuthorityValidation = validateMissionCanvasContract(
+          'WorkstreamAuthorityContext',
+          eventAuthority
+        );
+        if (!eventAuthorityValidation.valid) {
+          throw new MissionCanvasTransportError(
+            `invalid_response:${index}:${eventAuthorityValidation.errors.join(',')}`,
+            operationId,
+            response.status,
+            value
+          );
+        }
+        if (!sameWorkstreamAuthority(eventAuthority, authority)) {
+          throw new MissionCanvasTransportError(
+            'foreign_event_scope',
+            operationId,
+            response.status,
+            value
+          );
+        }
+      }
     }
     if (operation.response_schema_ref === 'HostRendererResolution') {
       const responseAuthority = authorityFromResolution(value);

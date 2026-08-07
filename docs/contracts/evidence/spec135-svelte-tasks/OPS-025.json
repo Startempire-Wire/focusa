@@ -1,0 +1,105 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-025",
+  "result": "Implemented the bounded source outcome for focusa.mission_canvas.events.stream. The canonical API now replays exact Workstream composition events strictly after the requested durable cursor, returns generated ProjectionLifecycleEvent[] values with deterministic event cursors, and supports repeated Desktop reads as the live tail. Generated registry/client/transport ownership is preserved; Desktop rejects foreign authority, invalid responses, duplicate/regressed cursors, and regressed projection/layout revisions before applying events.",
+  "targets": [
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/event-client.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "docs/contracts/evidence/spec135-svelte-tasks/OPS-025.json"
+  ],
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.events.stream",
+    "method": "GET",
+    "path": "/v1/mission-canvas/events",
+    "scope_required": ["workstream"],
+    "permissions_required": ["mission_canvas:read"],
+    "confirmation": "none",
+    "requires_idempotency_key": false,
+    "requires_if_match_revision": false,
+    "receipt_required": false,
+    "request_schema_ref": "focusa.mission_canvas.events.request.v1",
+    "response_schema_ref": "ProjectionLifecycleEvent[]",
+    "client_method": "eventsStream",
+    "artifact_status": "The generated operation registry, OpenAPI artifact, TypeScript client, validators, and transport lookup remain parity-verified and were not replaced by a local route catalog or DTO."
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "implementation": [
+    "MissionCanvasStore exposes the latest durable event sequence per exact Workstream and continues to provide ordered events_after reads from the canonical SQLite composition history.",
+    "The API requires mission_canvas:read, validates generated Workstream identity, accepts after_cursor or Last-Event-ID only when they agree, rejects malformed/future cursors fail-closed, and returns a bounded JSON array rather than the previous non-generated wrapper.",
+    "Each stored event is projected into the generated lifecycle envelope with exact Workstream/subordinate authority, event:<sequence> cursor, stable payload reference, evidence/receipt refs, and a schema-safe deterministic event ID for legacy appenders.",
+    "The generated Desktop transport validates every event structurally and compares its complete Workstream authority context to the request. MissionCanvasEventClient persists the last confirmed cursor and rejects invalid, duplicate, regressed, foreign, or stale-revision events without advancing state.",
+    "The hostile Desktop consumer proves generated GET/path lookup, replay followed by cursor-based tailing, exact query authority, foreign scope, missing Workstream, empty tail, invalid response, stale cursor, and regressed projection revision behavior."
+  ],
+  "checks": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; 25 schema files, 25 operation entries, 10 derived artifacts, parity and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.events.stream (exit 0; generated registry/OpenAPI/client/route/core/transport/consumer contract: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.events.stream --client eventsStream (exit 0; generated client, exact Workstream replay/tail cursor, foreign scope, missing authority, stale cursor, regressed revision, empty tail, and hostile response checks: PASS)",
+    "python3 tests/spec135_mission_canvas_api_static_test.py (exit 0; Mission Canvas API static parity: PASS)",
+    "python3 tests/spec135_projection_events_proof_test.py (exit 0; projection events and proof contracts: PASS)",
+    "python3 tests/spec135_projection_state_contract_test.py (exit 0; projection state contracts: PASS)",
+    "python3 -m py_compile tests/spec135_mission_canvas_operation_contract_test.py tests/spec135_mission_canvas_generated_parity_test.py (exit 0)",
+    "node --check apps/desktop/tests/operation-consumer-runtime.mjs (exit 0)",
+    "rustfmt --edition 2024 --check crates/focusa-core/src/mission_canvas/persistence.rs crates/focusa-api/src/routes/mission_canvas.rs (exit 0)",
+    "git diff --check (exit 0)"
+  ],
+  "negative_cases": {
+    "foreign_workstream": "SQLite event reads are keyed by the exact Workstream storage key, and generated Desktop transport rejects a response whose Workstream or subordinate Attachment authority differs from the request.",
+    "missing_authority": "The generated Desktop transport rejects a request without Workstream identity before HTTP; the API requires the generated Workstream query and exact scope validation before reading history.",
+    "stale_cursor": "Malformed cursors, conflicting after_cursor/Last-Event-ID values, and a cursor ahead of the exact Workstream history fail closed. Older valid cursors replay events; Desktop rejects a returned cursor that regresses below the last confirmed cursor and does not persist it.",
+    "stale_revision": "Desktop rejects projection_revision or layout_revision regression after cursor/scope validation and retains the last confirmed cursor.",
+    "unavailable_capability": "The generated transport rejects an operation absent or unavailable in the generated operation registry before HTTP; contribution capability eligibility remains owned by the existing core resolver and is not inferred by the stream consumer.",
+    "permission_denied": "The API operation is guarded by mission_canvas:read; no route-local permission bypass or client-invented authority is introduced.",
+    "empty_or_ineligible_contribution": "An empty exact-Workstream event history returns [] without inventing events, contributions, panels, or layout; eligibility and omission remain core-owned and outside the stream client.",
+    "invalid_response": "Generated validators reject missing/unknown event fields, and transport authority validation rejects malformed or foreign event scope before Desktop applies the batch.",
+    "duplicate_delivery": "The Desktop event client deduplicates event IDs and equal cursors while retaining the last durable cursor.",
+    "local_inference": "No CWD, tab, latest record, project-root/continuity shortcut, or client-local eligibility/composition resolver is used as event authority."
+  },
+  "acceptance": [
+    "Replays then tails exact Workstream events by cursor.",
+    "Uses the generated focusa.mission_canvas.events.stream operation and MissionCanvasClient.eventsStream method with registry-owned GET/path metadata.",
+    "Returns validated ProjectionLifecycleEvent[] values carrying the exact WorkstreamKey and subordinate authority context.",
+    "Fails closed for foreign scope, missing identity, malformed/future cursor, stale cursor/revision, denied permission, unavailable generated operation, empty-tail inference, and hostile responses."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/event-client.ts",
+    "docs/contracts/spec135-svelte-task-packets/OPS-025.json"
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs"
+  ],
+  "deferred_repository_observation": "Cargo was not run because the OPS-025 instruction prohibits Cargo. The central executable graph, generated task packets/index, parallel plan, orchestration scripts, and generated transport artifacts were not edited.",
+  "environment_observations": [
+    "npm --prefix apps/desktop run check was attempted but could not load the existing Svelte config because this worktree lacks @sveltejs/adapter-static; the packet-mandated Vite SSR Desktop consumer and all source-focused checks pass."
+  ],
+  "remaining_work": [],
+  "status": "implemented_partial"
+}

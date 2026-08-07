@@ -1,7 +1,7 @@
 use std::{path::Path, sync::Arc};
 
 use parking_lot::Mutex;
-use rusqlite::{params, Connection, OptionalExtension, Transaction};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use thiserror::Error;
 
 use super::model::{
@@ -540,6 +540,19 @@ impl MissionCanvasStore {
             ));
         }
         Ok(events)
+    }
+
+    /// Return the latest durable composition-event sequence for one exact
+    /// Workstream.  A cursor is scoped to this stream; callers must not use a
+    /// global/latest-record fallback when deciding whether a cursor is valid.
+    pub fn latest_event_sequence(&self, scope: &MissionCanvasScope) -> Result<u64> {
+        let connection = self.connection.lock();
+        let sequence: Option<u64> = connection.query_row(
+            "SELECT MAX(sequence) FROM mission_canvas_composition_events WHERE scope_key = ?1",
+            params![scope.storage_key()],
+            |row| row.get(0),
+        )?;
+        Ok(sequence.unwrap_or_default())
     }
 }
 
