@@ -271,6 +271,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
         value,
         authority
       );
+      if (operationId === 'focusa.mission_canvas.rich_host.focus') {
+        validateHostFocusResponse(operationId, response.status, value);
+      }
       const key = workstreamAuthorityStorageKey(authority);
       const previous = this.#hostLifecycleWatermarks.get(key);
       if (previous && watermark.lifecycleRevision < previous.lifecycleRevision) {
@@ -471,6 +474,34 @@ function validateLifecycleResponse(
     lifecycleRevision,
     cursor
   };
+}
+
+function validateHostFocusResponse(
+  operationId: string,
+  status: number,
+  value: unknown
+): void {
+  const lifecycle = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  if (!lifecycle || lifecycle.state !== 'focused' || lifecycle.focused !== true) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:focus_state',
+      operationId,
+      status,
+      value
+    );
+  }
+  const renderer = lifecycle.renderer_resolution;
+  if (!renderer || typeof renderer !== 'object' || Array.isArray(renderer)
+    || (renderer as Record<string, unknown>).selected_renderer !== 'focusa_desktop_tauri') {
+    throw new MissionCanvasTransportError(
+      'invalid_response:focus_renderer',
+      operationId,
+      status,
+      value
+    );
+  }
 }
 
 function validateProjectionResponse(
