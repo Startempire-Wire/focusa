@@ -52,6 +52,8 @@ try {
     await exerciseProjectionGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.profile.list') {
     await exerciseProfileList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.profile.select') {
+    await exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.projection.resolve') {
     await exerciseProjectionResolve({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.rich_host.resolve') {
@@ -72,6 +74,180 @@ try {
   await server.ws.close();
   if (server.httpServer) await new Promise((resolve) => server.httpServer.close(resolve));
   if (createdKitTsconfig) await rm(generatedKitTsconfig, { force: true });
+}
+
+async function exerciseProfileSelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  // profile.select returns the direct Core-owned ResolvedWorkspaceProjection;
+  // the receipt is carried by its exact Workstream-scoped receipt_refs.
+  let calls = 0;
+  const requests = [];
+  let response = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/populated-projection.json', import.meta.url), 'utf8'));
+  response.workspace_profile_id = 'research';
+  response.workspace_profile_revision = 3;
+  response.projection_revision = 13;
+  response.layout_revision = 6;
+  response.durable_event_cursor = 'event:42';
+  response.evidence_refs = ['recomposition-evidence:profile-select'];
+  response.receipt_refs = ['recomposition-receipt:profile-select'];
+
+  const input = {
+    ...structuredClone(authority),
+    selection_id: 'research',
+    expected_projection_revision: 12,
+    idempotency_key: 'idempotency:profile-select'
+  };
+  const transport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787/',
+    async (url, init) => {
+      calls += 1;
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:write'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const client = new MissionCanvasClient(transport);
+  const selected = await client.profileSelect(structuredClone(input));
+  assert.deepEqual(selected, response);
+  assert.deepEqual(selected.workstream, authority.workstream);
+  assert.deepEqual(selected.attachment, authority.attachment);
+  assert.equal('projection' in selected, false, 'profileSelect must not adopt a route wrapper');
+  assert.deepEqual(selected.receipt_refs, ['recomposition-receipt:profile-select']);
+  assert.equal(calls, 1);
+
+  const requestUrl = new URL(requests[0].url);
+  assert.equal(`${requestUrl.origin}${requestUrl.pathname}`, 'http://127.0.0.1:8787/v1/mission-canvas/profiles/select');
+  assert.equal(requests[0].init.method, 'POST');
+  assert.equal(requests[0].init.headers['X-Focusa-Permissions'], 'mission_canvas:write');
+  assert.equal(requests[0].init.headers['X-Focusa-Capabilities'], undefined, 'profile.select has no invented operation capability');
+  assert.equal(requests[0].init.headers['X-Focusa-Actor-Id'], 'actor:desktop');
+  assert.equal(requests[0].init.headers['X-Focusa-Authority-Ref'], 'authority:desktop');
+  assert.equal(requests[0].init.headers['If-Match'], '12');
+  assert.equal(requests[0].init.headers['Idempotency-Key'], input.idempotency_key);
+  const body = JSON.parse(requests[0].init.body);
+  assert.deepEqual(body.workstream, authority.workstream);
+  assert.deepEqual(body.attachment, authority.attachment);
+  assert.equal(body.selection_id, input.selection_id);
+  assert.equal(body.expected_projection_revision, input.expected_projection_revision);
+  assert.equal(body.idempotency_key, input.idempotency_key);
+  assert.equal('layout_tree' in body, false, 'Desktop must not compose the selected profile locally');
+
+  // Core-owned omission remains truthful: an empty contribution has a
+  // diagnostic and never appears in the returned layout.
+  assert.equal(response.eligible_contributions.some(({ contribution_id }) => contribution_id === 'contribution:empty-work-rail'), false);
+  assert.equal(response.omission_diagnostics.some(({ contribution_id, reason }) => contribution_id === 'contribution:empty-work-rail' && reason === 'no_relevant_content'), true);
+  assert.equal(JSON.stringify(response.layout_tree).includes('contribution:empty-work-rail'), false);
+
+  let missingSelectionCalls = 0;
+  const missingSelectionTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      missingSelectionCalls += 1;
+      return new Response(JSON.stringify(response), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:write'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingSelectionTransport).profileSelect({
+      ...structuredClone(authority),
+      expected_projection_revision: 12,
+      idempotency_key: 'idempotency:missing-selection'
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_request:missing:selection_id'
+  );
+  assert.equal(missingSelectionCalls, 0, 'missing selected profile must fail before HTTP');
+
+  let missingIdempotencyCalls = calls;
+  const missingIdempotency = { ...structuredClone(input) };
+  delete missingIdempotency.idempotency_key;
+  await assert.rejects(
+    () => client.profileSelect(missingIdempotency),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'idempotency_key_required'
+  );
+  assert.equal(calls, missingIdempotencyCalls, 'missing idempotency must fail before HTTP');
+
+  const missingRevision = { ...structuredClone(input) };
+  delete missingRevision.expected_projection_revision;
+  await assert.rejects(
+    () => client.profileSelect(missingRevision),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'if_match_revision_required'
+  );
+  assert.equal(calls, missingIdempotencyCalls, 'missing If-Match must fail before HTTP');
+
+  const foreignTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () => {
+    const foreign = structuredClone(response);
+    foreign.workstream.workstream_id = 'ws:foreign';
+    foreign.attachment.workstream.workstream_id = 'ws:foreign';
+    return new Response(JSON.stringify(foreign), { status: 200 });
+  }, undefined, 30_000, ['mission_canvas:write'], [], 'actor:desktop', 'authority:desktop');
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignTransport).profileSelect(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_projection_scope'
+  );
+
+  const foreignContributionTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () => {
+    const foreignContribution = structuredClone(response);
+    foreignContribution.eligible_contributions[0].authority.workstream.workstream_id = 'ws:foreign';
+    foreignContribution.eligible_contributions[0].authority.attachment.workstream.workstream_id = 'ws:foreign';
+    return new Response(JSON.stringify(foreignContribution), { status: 200 });
+  }, undefined, 30_000, ['mission_canvas:write'], [], 'actor:desktop', 'authority:desktop');
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignContributionTransport).profileSelect(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'foreign_contribution_scope'
+  );
+
+  const wrapperTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ projection: response, receipt: { workstream: authority.workstream } }), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(wrapperTransport).profileSelect(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:')
+  );
+
+  response.projection_revision = 12;
+  response.durable_event_cursor = 'event:41';
+  await assert.rejects(
+    () => client.profileSelect(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_projection_revision'
+  );
+  response.projection_revision = 14;
+  response.layout_revision = 5;
+  response.durable_event_cursor = 'event:43';
+  await assert.rejects(
+    () => client.profileSelect(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_projection_layout_revision'
+  );
+  response.layout_revision = 6;
+  response.durable_event_cursor = 'event:41';
+  await assert.rejects(
+    () => client.profileSelect(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'stale_projection_cursor'
+  );
+
+  const deniedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Permissions'], undefined);
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'permission_denied' } }), { status: 403 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(deniedTransport).profileSelect(structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 403
+  );
+
+  await assert.rejects(
+    () => transport.request('focusa.mission_canvas.profile.unavailable', structuredClone(input)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'operation_unavailable'
+  );
+
+  console.log('Mission Canvas operation consumer: PASS (generated profileSelect, exact Workstream POST, Core-owned direct projection and receipt, omission, foreign authority, missing selection/If-Match/idempotency, stale revision/layout/cursor, permission, and hostile response checks)');
 }
 
 async function exerciseProfileList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {

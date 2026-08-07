@@ -157,6 +157,72 @@ elif operation_id == "focusa.mission_canvas.projection.resolve":
     ):
         assert marker in consumer, marker
 
+elif operation_id == "focusa.mission_canvas.profile.select":
+    assert operation["method"] == "POST"
+    assert operation["path"] == "/v1/mission-canvas/profiles/select"
+    assert operation["mode"] == "mutation"
+    assert operation["permissions_required"] == ["mission_canvas:write"]
+    assert operation["request_schema_ref"] == "focusa.mission_canvas.composition_selection.request.v1"
+    assert operation["response_schema_ref"] == "ResolvedWorkspaceProjection"
+    assert operation["requires_idempotency_key"] is True
+    assert operation["requires_if_match_revision"] is True
+    assert operation["receipt_required"] is True
+
+    for marker in (
+        "post(select_profile)",
+        "require_permission_with_state",
+        "validate_authority",
+        "exact_workstream_context",
+        "required_header",
+        "required_if_match_revision",
+        "selection_candidates",
+        "ProfileSelectionService",
+        "put_projection",
+        "serde_json::to_value(result.projection)",
+        "idempotency_key_mismatch",
+        "projection_cursor_conflict",
+    ):
+        assert marker in route_text, marker
+    reducer = (ROOT / "crates/focusa-core/src/mission_canvas/reducer.rs").read_text()
+    for marker in (
+        "PROFILE_SELECT_OPERATION",
+        "ProfileSelectionCommand",
+        "ProfileSelectionService",
+        "validate_profile_selection_context",
+        "collect_candidates",
+        "resolve_eligibility",
+        "resolve_layout",
+        "validate_no_dead_chrome",
+        "profile_change",
+        "RecompositionReceipt",
+        "profile_changed",
+    ):
+        assert marker in reducer, marker
+    for marker in (
+        "validateOperationRequest",
+        "selection_id",
+        "If-Match",
+        "Idempotency-Key",
+        "validateProjectionResponse",
+        "foreign_projection_scope",
+        "foreign_contribution_scope",
+        "stale_projection_revision",
+        "stale_projection_layout_revision",
+        "stale_projection_cursor",
+    ):
+        assert marker in transport, marker
+    for marker in (
+        "profileSelect",
+        "exact Workstream POST",
+        "Core-owned direct projection",
+        "receipt",
+        "foreign authority",
+        "missing If-Match",
+        "stale revision/layout/cursor",
+        "empty contribution",
+    ):
+        assert marker in consumer, marker
+
 elif operation_id == "focusa.mission_canvas.profile.list":
     assert operation["method"] == "GET"
     assert operation["path"] == "/v1/mission-canvas/profiles"

@@ -108,7 +108,11 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
 
     const method = operation.method.toUpperCase();
     const requestInput = transportRequestInput(operation, input);
-    const requestValidation = validateMissionCanvasContract(operation.request_schema_ref, requestInput);
+    const requestValidation = validateOperationRequest(
+      operationId,
+      operation.request_schema_ref,
+      requestInput
+    );
     if (!requestValidation.valid) {
       throw new MissionCanvasTransportError(
         `invalid_request:${requestValidation.errors.join(',')}`,
@@ -319,6 +323,24 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     }
     return value as T;
   }
+}
+
+function validateOperationRequest(
+  operationId: string,
+  schemaRef: string,
+  value: unknown
+): { valid: boolean; errors: string[] } {
+  const validation = validateMissionCanvasContract(schemaRef, value);
+  if (!validation.valid) return validation;
+  if (operationId !== 'focusa.mission_canvas.profile.select') return validation;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { valid: false, errors: ['expected object'] };
+  }
+  const selectionId = (value as Record<string, unknown>).selection_id;
+  if (typeof selectionId !== 'string' || selectionId.trim().length === 0) {
+    return { valid: false, errors: ['missing:selection_id'] };
+  }
+  return validation;
 }
 
 function validateResponse(schemaRef: string, value: unknown): { valid: boolean; errors: string[] } {

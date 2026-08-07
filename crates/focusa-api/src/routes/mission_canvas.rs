@@ -16,7 +16,8 @@ use focusa_core::mission_canvas::{
     DomainPackInstallService, EligibilityContext, HostLifecycleError, HostLifecycleFocusCommand,
     HostLifecycleLaunchCommand, HostLifecycleService, HostLifecycleState, HostPlatform,
     HostRendererResolutionError, HostRendererResolutionService, MissionCanvasScope,
-    MissionCanvasStore, ResolveProjectionInput, StoredDocument, WorkspaceProfileDefinition,
+    MissionCanvasStore, ProfileSelectionCommand, ProfileSelectionError, ProfileSelectionService,
+    ResolveProjectionInput, StoredDocument, WorkspaceProfileDefinition,
     DOMAIN_PACK_INSTALL_CAPABILITY,
 };
 use focusa_core::workstream_context::{
@@ -168,9 +169,14 @@ struct RecipientResolveRequest {
 struct CompositionSelectionRequest {
     #[serde(flatten)]
     scope: MissionCanvasScope,
+    /// The selected profile is an operation input extension carried alongside
+    /// the generated Workstream authority.  The operation/path/response still
+    /// come from the generated registry and the Core service owns its meaning.
     selection_id: String,
     expected_projection_revision: u64,
     idempotency_key: String,
+    #[serde(default)]
+    event_cursor: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1032,7 +1038,269 @@ async fn select_profile(
     headers: HeaderMap,
     Json(request): Json<CompositionSelectionRequest>,
 ) -> ApiResult {
-    switch_composition(&state, &headers, request, true)
+    require_permission_with_state(&state, &headers, "mission_canvas:write")?;
+    validate_authority(&request.scope)?;
+    let context =
+        exact_workstream_context(&request.scope, &headers).map_err(host_renderer_context_error)?;
+    let store = store(&state)?;
+    let current = store
+        .get_projection(&request.scope)
+        .map_err(store_error)?
+        .ok_or_else(|| {
+            error(
+                StatusCode::NOT_FOUND,
+                "projection_not_found",
+                "No projection exists for profile selection in this exact Workstream",
+            )
+        })?;
+    current
+        .validate_scope(&request.scope)
+        .map_err(|reason| error(StatusCode::CONFLICT, "projection_scope_invalid", reason))?;
+
+    // Generated mutation controls are transport-owned.  The body copies them
+    // only because the generated client keeps operation extensions in its
+    // request object; the authenticated headers remain authoritative and must
+    // agree exactly.
+    let header_idempotency_key = required_header(
+        &headers,
+        "idempotency-key",
+        "idempotency_key_missing",
+        "Idempotency-Key is required for profile selection",
+    )?;
+    if header_idempotency_key != request.idempotency_key {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "idempotency_key_mismatch",
+            "The generated request body and Idempotency-Key header disagree",
+        ));
+    }
+    let header_revision = required_if_match_revision(&headers)?;
+    if header_revision != request.expected_projection_revision {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "projection_revision_conflict",
+            "The generated request body and If-Match revision disagree",
+        ));
+    }
+    if request
+        .event_cursor
+        .as_deref()
+        .is_some_and(|cursor| cursor != current.durable_event_cursor)
+    {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "projection_cursor_conflict",
+            "The durable event cursor is stale",
+        ));
+    }
+
+    // A same-key retry is a replay of the already accepted Core event.  A key
+    // reused for another revision or operation is never interpreted as a new
+    // profile choice.
+    if let Some(event) = store
+        .events_after(&request.scope, 0, 10_000)
+        .map_err(store_error)?
+        .into_iter()
+        .map(|(_, event)| event)
+        .find(|event| event.causation_id.as_deref() == Some(request.idempotency_key.as_str()))
+    {
+        if event.event_kind == "profile_changed"
+            && event.projection_revision == current.projection_revision
+            && event
+                .payload
+                .pointer("/profile_selection/profile_id")
+                .and_then(Value::as_str)
+                == Some(request.selection_id.as_str())
+        {
+            return Ok(Json(serde_json::to_value(current).map_err(json_error)?));
+        }
+        return Err(error(
+            StatusCode::CONFLICT,
+            "idempotency_conflict",
+            "The idempotency key belongs to a different Mission Canvas mutation",
+        ));
+    }
+    if current.projection_revision != request.expected_projection_revision {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "projection_revision_conflict",
+            "Projection revision is stale",
+        ));
+    }
+
+    // The following helpers only read canonical documents from this exact
+    // Workstream.  Profile eligibility, composition, layout, Evidence, and
+    // Receipt construction remain inside ProfileSelectionService in Core.
+    let profile = profile_for_selection(&store, &request.scope, &request.selection_id)?;
+    let activity = profile_list_activity(&store, &request.scope, &current.activity_mode_id)?;
+    let candidates = selection_candidates(&store, &request.scope)?;
+    let permissions = permission_context(&headers, token_enabled(&state))
+        .list()
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    let available_operations = current
+        .operation_bindings
+        .iter()
+        .filter_map(|binding| binding.get("operation_id").and_then(Value::as_str))
+        .map(str::to_owned)
+        .chain(
+            current
+                .eligible_contributions
+                .iter()
+                .flat_map(|contribution| contribution.operation_ids.iter().cloned()),
+        )
+        .collect::<BTreeSet<_>>();
+    let result = ProfileSelectionService
+        .select(ProfileSelectionCommand {
+            context,
+            scope: request.scope.clone(),
+            current_projection: current,
+            profile,
+            activity,
+            candidates,
+            capabilities: header_values(&headers, "x-focusa-capabilities"),
+            permissions,
+            available_operations,
+            expected_projection_revision: request.expected_projection_revision,
+            expected_event_cursor: request.event_cursor,
+            idempotency_key: request.idempotency_key,
+        })
+        .map_err(profile_selection_error)?;
+    store
+        .put_projection(
+            &result.projection,
+            Some(request.expected_projection_revision),
+            &result.event,
+        )
+        .map_err(store_error)?;
+    // The generated response is the direct ResolvedWorkspaceProjection.  Its
+    // receipt_refs/evidence_refs point at the Core-owned result carried by the
+    // durable event; no route-local wrapper is allowed to reach Desktop.
+    Ok(Json(
+        serde_json::to_value(result.projection).map_err(json_error)?,
+    ))
+}
+
+fn profile_for_selection(
+    store: &MissionCanvasStore,
+    scope: &MissionCanvasScope,
+    profile_id: &str,
+) -> Result<WorkspaceProfileDefinition, (StatusCode, Json<Value>)> {
+    if profile_id.trim().is_empty() {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "profile_selection_invalid",
+            "selection_id must name a workspace profile",
+        ));
+    }
+    let payload = store
+        .get_document(
+            "mission_canvas_profiles",
+            scope,
+            &format!("profile:{profile_id}"),
+        )
+        .map_err(store_error)?
+        .map(|document| document.payload)
+        .or_else(|| {
+            CompositionRegistry::builtin()
+                .profiles
+                .get(profile_id)
+                .and_then(|profile| serde_json::to_value(profile).ok())
+        })
+        .ok_or_else(|| {
+            error(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "profile_selection_unknown",
+                "The selected workspace profile is not in the canonical registry",
+            )
+        })?;
+    let profile: WorkspaceProfileDefinition = serde_json::from_value(payload).map_err(|_| {
+        error(
+            StatusCode::CONFLICT,
+            "profile_catalog_invalid",
+            "The selected canonical workspace profile is malformed",
+        )
+    })?;
+    if profile.profile_id != profile_id {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "profile_catalog_identity_mismatch",
+            "The canonical profile document does not match the selected profile",
+        ));
+    }
+    Ok(profile)
+}
+
+fn selection_candidates(
+    store: &MissionCanvasStore,
+    scope: &MissionCanvasScope,
+) -> Result<Vec<CandidateContribution>, (StatusCode, Json<Value>)> {
+    let mut candidates = Vec::new();
+    for document in store
+        .list_documents("mission_canvas_registry_entries", scope)
+        .map_err(store_error)?
+    {
+        let candidate_value = document
+            .payload
+            .get("candidate")
+            .cloned()
+            .unwrap_or_else(|| document.payload.clone());
+        if candidate_value.get("contribution_id").is_none() {
+            continue;
+        }
+        let candidate = serde_json::from_value(candidate_value).map_err(|_| {
+            error(
+                StatusCode::CONFLICT,
+                "profile_selection_catalog_invalid",
+                "A canonical candidate contribution is malformed",
+            )
+        })?;
+        candidates.push(candidate);
+    }
+    Ok(candidates)
+}
+
+fn profile_selection_error(error_value: ProfileSelectionError) -> (StatusCode, Json<Value>) {
+    let message = error_value.to_string();
+    match error_value {
+        ProfileSelectionError::Context(context_error) => host_renderer_context_error(context_error),
+        ProfileSelectionError::Scope(reason) => {
+            error(StatusCode::CONFLICT, "workstream_identity_mismatch", reason)
+        }
+        ProfileSelectionError::PermissionDenied(permission) => error(
+            StatusCode::FORBIDDEN,
+            "permission_denied",
+            &format!("Missing required permission: {permission}"),
+        ),
+        ProfileSelectionError::IdempotencyKeyRequired => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "idempotency_key_missing",
+            &message,
+        ),
+        ProfileSelectionError::RevisionConflict | ProfileSelectionError::CursorConflict => error(
+            StatusCode::CONFLICT,
+            "projection_revision_conflict",
+            &message,
+        ),
+        ProfileSelectionError::ProfileUnavailable(_) => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "profile_selection_unavailable",
+            &message,
+        ),
+        ProfileSelectionError::ActivityUnavailable(_) => {
+            error(StatusCode::CONFLICT, "activity_catalog_invalid", &message)
+        }
+        ProfileSelectionError::NoMeaningfulContribution => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "composition_not_viable",
+            &message,
+        ),
+        ProfileSelectionError::Recomposition(_) => error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "profile_recomposition_failed",
+            &message,
+        ),
+    }
 }
 
 async fn select_activity(
@@ -1040,14 +1308,13 @@ async fn select_activity(
     headers: HeaderMap,
     Json(request): Json<CompositionSelectionRequest>,
 ) -> ApiResult {
-    switch_composition(&state, &headers, request, false)
+    switch_activity(&state, &headers, request)
 }
 
-fn switch_composition(
+fn switch_activity(
     state: &Arc<AppState>,
     headers: &HeaderMap,
     request: CompositionSelectionRequest,
-    profile_selection: bool,
 ) -> ApiResult {
     require_permission(headers, "mission_canvas:write")?;
     validate_authority(&request.scope)?;
@@ -1059,7 +1326,7 @@ fn switch_composition(
             error(
                 StatusCode::NOT_FOUND,
                 "projection_not_found",
-                "No projection exists for composition switching",
+                "No projection exists for activity switching",
             )
         })?;
     if projection.projection_revision != request.expected_projection_revision {
@@ -1070,16 +1337,8 @@ fn switch_composition(
         ));
     }
     let registry = focusa_core::mission_canvas::CompositionRegistry::builtin();
-    let profile_id = if profile_selection {
-        request.selection_id.as_str()
-    } else {
-        projection.workspace_profile_id.as_str()
-    };
-    let activity_id = if profile_selection {
-        projection.activity_mode_id.as_str()
-    } else {
-        request.selection_id.as_str()
-    };
+    let profile_id = projection.workspace_profile_id.as_str();
+    let activity_id = request.selection_id.as_str();
     let available = projection
         .candidate_contribution_ids
         .iter()
@@ -1098,7 +1357,7 @@ fn switch_composition(
         return Err(error(
             StatusCode::UNPROCESSABLE_ENTITY,
             "composition_not_viable",
-            "Selected profile/activity has no meaningful contribution in this scope",
+            "Selected activity has no meaningful contribution in this scope",
         ));
     }
     let now = Utc::now().to_rfc3339();
@@ -1141,15 +1400,9 @@ fn switch_composition(
             &memory_event,
         )
         .map_err(store_error)?;
-    if profile_selection {
-        let selected = registry.profiles.get(profile_id).unwrap();
-        projection.workspace_profile_id = selected.profile_id.clone();
-        projection.workspace_profile_revision = selected.revision;
-    } else {
-        let selected = registry.activities.get(activity_id).unwrap();
-        projection.activity_mode_id = selected.activity_mode_id.clone();
-        projection.activity_mode_revision = selected.revision;
-    }
+    let selected = registry.activities.get(activity_id).unwrap();
+    projection.activity_mode_id = selected.activity_mode_id.clone();
+    projection.activity_mode_revision = selected.revision;
     projection.projection_revision += 1;
     projection.layout_revision += 1;
     projection.durable_event_cursor = format!("mission-canvas:{}", projection.projection_revision);
@@ -1161,11 +1414,7 @@ fn switch_composition(
             "projection-event:composition-switch:{}",
             request.idempotency_key
         ),
-        event_kind: if profile_selection {
-            "profile_changed".into()
-        } else {
-            "activity_mode_changed".into()
-        },
+        event_kind: "activity_mode_changed".into(),
         scope: request.scope,
         projection_revision: projection.projection_revision,
         layout_revision: projection.layout_revision,
@@ -1302,13 +1551,22 @@ fn profile_list_activity(
         )
         .map_err(store_error)?
     {
-        return serde_json::from_value(document.payload).map_err(|_| {
-            error(
+        let activity: ActivityModeDefinition =
+            serde_json::from_value(document.payload).map_err(|_| {
+                error(
+                    StatusCode::CONFLICT,
+                    "activity_catalog_invalid",
+                    "The canonical activity mode is malformed",
+                )
+            })?;
+        if activity.activity_mode_id != activity_mode_id {
+            return Err(error(
                 StatusCode::CONFLICT,
-                "activity_catalog_invalid",
-                "The canonical activity mode is malformed",
-            )
-        });
+                "activity_catalog_identity_mismatch",
+                "The canonical activity document does not match the requested activity",
+            ));
+        }
+        return Ok(activity);
     }
 
     CompositionRegistry::builtin()
