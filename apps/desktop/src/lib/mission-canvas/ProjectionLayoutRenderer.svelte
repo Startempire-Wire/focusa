@@ -44,20 +44,27 @@
    * split children, unique node/contribution identities, and one trusted
    * renderer for every contribution that would receive geometry.
    */
-  function canRenderNode(
-    value: unknown,
-    state: {
-      seenNodes: WeakSet<object>;
-      nodeIds: Set<string>;
-      contributionIds: Set<string>;
-    } = {
+  type LayoutValidationState = {
+    seenNodes: WeakSet<object>;
+    nodeIds: Set<string>;
+    contributionIds: Set<string>;
+  };
+
+  function createLayoutValidationState(): LayoutValidationState {
+    return {
       seenNodes: new WeakSet<object>(),
       nodeIds: new Set<string>(),
       contributionIds: new Set<string>()
-    }
+    };
+  }
+
+  function canRenderNode(
+    value: unknown,
+    state: LayoutValidationState = createLayoutValidationState()
   ): boolean {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    if (!isPlainRecord(value)) return false;
     const object = value as Record<string, unknown>;
+    if (!hasOwnProperties(object, ['node_id', 'kind'])) return false;
     if (state.seenNodes.has(object)) return false;
     state.seenNodes.add(object);
     if (typeof object.node_id !== 'string' || object.node_id.length === 0 || object.node_id.trim() !== object.node_id) return false;
@@ -88,36 +95,43 @@
 
     switch (object.kind) {
       case 'single':
-        return reserveContribution(object.contribution_id);
+        return hasOwnProperties(object, ['contribution_id'])
+          && reserveContribution(object.contribution_id);
       case 'split': {
         const children = object.children;
-        return (object.orientation === 'horizontal' || object.orientation === 'vertical')
+        return hasOwnProperties(object, ['orientation', 'ratio', 'children'])
+          && (object.orientation === 'horizontal' || object.orientation === 'vertical')
           && typeof object.ratio === 'number'
           && Number.isFinite(object.ratio)
           && object.ratio >= 0.1
           && object.ratio <= 0.9
-          && Array.isArray(children)
+          && isCanonicalArray(children)
           && children.length === 2
           && children.every((child) => canRenderNode(child, state));
       }
       case 'stack': {
         const children = object.children;
-        return Array.isArray(children)
+        return hasOwnProperties(object, ['children'])
+          && isValidGapToken(ownValue(object, 'gap_token'))
+          && isCanonicalArray(children)
           && children.length > 0
           && children.every((child) => canRenderNode(child, state));
       }
       case 'grid': {
         const children = object.children;
-        return Number.isSafeInteger(object.columns)
+        return hasOwnProperties(object, ['columns', 'children'])
+          && isValidGapToken(ownValue(object, 'gap_token'))
+          && Number.isSafeInteger(object.columns)
           && Number(object.columns) >= 1
           && Number(object.columns) <= 12
-          && Array.isArray(children)
+          && isCanonicalArray(children)
           && children.length > 0
           && children.every((child) => canRenderNode(child, state));
       }
       case 'tabs': {
         const ids = object.contribution_ids;
-        return Array.isArray(ids)
+        return hasOwnProperties(object, ['contribution_ids', 'active_contribution_id'])
+          && isCanonicalArray(ids)
           && ids.length > 0
           && ids.includes(object.active_contribution_id)
           && ids.every((id) => reserveContribution(id));
@@ -125,8 +139,9 @@
       case 'inspector': {
         const ids = object.inspector_contribution_ids;
         const span = object.span;
-        return (object.side === 'start' || object.side === 'end')
-          && Array.isArray(ids)
+        return hasOwnProperties(object, ['side', 'primary', 'inspector_contribution_ids'])
+          && (object.side === 'start' || object.side === 'end')
+          && isCanonicalArray(ids)
           && ids.length > 0
           && (span === undefined || (Number.isSafeInteger(span) && Number(span) >= 1 && Number(span) <= 6))
           && canRenderNode(object.primary, state)
@@ -135,6 +150,44 @@
       default:
         return false;
     }
+  }
+
+  function isPlainRecord(value: unknown): value is Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  }
+
+  function hasOwnProperties(object: Record<string, unknown>, fields: readonly string[]): boolean {
+    return fields.every((field) => Object.prototype.hasOwnProperty.call(object, field));
+  }
+
+  function ownValue(object: Record<string, unknown>, field: string): unknown {
+    return Object.prototype.hasOwnProperty.call(object, field) ? object[field] : undefined;
+  }
+
+  /** JSON transport arrays are dense and have no non-index members. */
+  function isCanonicalArray(value: unknown): value is unknown[] {
+    if (!Array.isArray(value)) return false;
+    for (const key of Reflect.ownKeys(value)) {
+      if (key === 'length') continue;
+      if (typeof key !== 'string' || !/^(0|[1-9]\d*)$/.test(key) || Number(key) >= value.length) return false;
+    }
+    for (let index = 0; index < value.length; index += 1) {
+      if (!Object.prototype.hasOwnProperty.call(value, index)) return false;
+    }
+    return true;
+  }
+
+  function isValidGapToken(value: unknown): boolean {
+    return value === undefined
+      || (typeof value === 'string' && value.length > 0 && value.trim() === value);
+  }
+
+  function stackGapToken(node: LayoutNode): string {
+    if (node.kind !== 'stack') return 'default';
+    const value = ownValue(node as unknown as Record<string, unknown>, 'gap_token');
+    return typeof value === 'string' ? value : 'default';
   }
 
   function activeTab(ids: string[], canonicalActive: string): string | undefined {
@@ -193,9 +246,9 @@
     {/each}
   </div>
 {:else if node.kind === 'stack'}
-  <div class="layout-stack" data-layout-node={node.node_id} data-gap-token={node.gap_token ?? 'default'}>
-    {#each node.children as child (`${child.node_id}`)}
-      <div class="stack-child" class:rail-region={stackRole(child) === 'rail'} class:queue-region={stackRole(child) === 'queue'} class:composer-region={stackRole(child) === 'composer'}>
+  <div class="layout-stack" data-layout-node={node.node_id} data-gap-token={stackGapToken(node)}>
+    {#each node.children as child, index (`${child.node_id}:${index}`)}
+      <div data-stack-index={index} class="stack-child" class:rail-region={stackRole(child) === 'rail'} class:queue-region={stackRole(child) === 'queue'} class:composer-region={stackRole(child) === 'composer'}>
         <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab} {registry}/>
       </div>
     {/each}
