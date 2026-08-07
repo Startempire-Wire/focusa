@@ -5,6 +5,7 @@ Scope: wp_wpuiai_activation_registrations migration/repository, reducer, CAS tra
 Implementation commits:
 - 60fe89ecf0238a2c680a263b91b2002382dc82ec
 - d0541d9057bfc221eadc70dea86041f304b0ff0f
+- 4a1f79c23f2e2a009e67cf20d097d3ae7b6e766f
 
 EXACT VERIFICATION
 Command (repository root):
@@ -27,15 +28,15 @@ PROVED BOUNDARIES
 - The migration creates the pending-registration table, transition journal, idempotency journal, migration journal, and state/expiry, facade/state, email-digest, poll-hash, request, and retention indexes.
 - Pending creation encrypts normalized identity data and stores only keyed verification/poll digests; account, EDD customer/order/license, node, and delivery-authority references remain absent.
 - The reducer matches the Spec 152E state graph and rejects backward, unknown, unverified, stale-version, and pending-authority-field transitions.
-- Every state transition uses expected state plus expected state_version compare-and-set guards and an append transition row; repeated requests replay only with the same request digest, while changed idempotency reuse fails closed.
+- Every state transition uses expected state plus expected state_version compare-and-set guards and an append transition row; every mutation binds its idempotency digest to the request identity, repeated requests replay only with the same request digest, and changed idempotency reuse fails closed. Failed verifier retries are journaled without a second attempt increment.
 - Verification is single-use, mailbox verification precedes account/customer reference attachment, and the presenter/poll snapshot excludes encrypted identity, hashes, and EDD internals.
 - Registration, challenge, and poll TTLs are bounded. Expired pending attempts cannot promote or poll; cleanup records expiry and removes only unpromoted records after the retention horizon.
 - Rollback is preservation-only and journaled; it does not delete registration rows, credential hashes, or migration state.
 
 PINNED SOURCE DIGESTS
-- docs/contracts/spec152e-activation-registration.v1.php sha256:c85ddabbf5de37652492e4afa6f8a7876241136d5aabd1581aa9d8cf463b640f
+- docs/contracts/spec152e-activation-registration.v1.php sha256:1ac55159e63ade99265177d11af1e1fd654c7d2be8a4351c96a2fa3a9dcfc1f0
 - tests/spec152e_registration_schema_test.php sha256:d76cf576b7a37f5bd872ec09523cd39f4b88886632994a53d4f35c6573da28d1
-- tests/spec152e_registration_transition_test.php sha256:99f4cc46b5792a955d0a38da0937684a1fc76eab41120aefb08bfd960d2264a7
+- tests/spec152e_registration_transition_test.php sha256:945594df20eed9007bea49d60c232a5499e0f285bf20adb6d0d8b1614af51fdf
 
 PUBLIC-SAFETY AND DELIVERY BOUNDARY
 The tests use only in-memory SQLite and synthetic identifiers. No deployed WordPress database, customer record, administrative URL, secret, raw credential, or unmasked real-email evidence was read or changed. Cargo/release builds, publication, deploy, merge, push, and Beads mutation are excluded.
