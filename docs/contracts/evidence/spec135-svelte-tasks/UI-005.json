@@ -1,0 +1,91 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-005",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "The Desktop Mission Canvas now resolves canonical renderer_binding_id and semantic_binding_id pairs only through a trusted local registry. Generated ResolvedContribution structure and nested authority/rendering descriptors are validated at the renderer boundary; unknown bindings, semantic or kind mismatches, malformed authority, and unsafe registry configuration fail closed with bounded diagnostics and no generic substitute component. Core remains the owner of eligibility, exact Workstream authority, layout, capability decisions, and recomposition.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/contribution-renderers.ts",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasRenderer.svelte",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-005.json"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "surface_kind": "Focusa Desktop Mission Canvas Svelte GUI tab",
+    "rich_gui_required": true,
+    "terminal_fallback_required": false,
+    "canonical_shell_regions": [
+      "resolved_contribution_grid",
+      "actual_work_surface_strip",
+      "prompt_editor_when_core_eligible"
+    ],
+    "continuity_invariants": [
+      "exact Workstream and subordinate Attachment authority remains canonical and is never inferred by the registry",
+      "renderer selection uses generated contribution identities and trusted local component ownership",
+      "unknown or mismatched contributions render no substitute panel",
+      "Core-owned eligibility and adaptive composition are consumed rather than recomputed in Svelte"
+    ]
+  },
+  "dependency_gate": {
+    "FIXTURE-001": "Integrated canonical fixture generator and generated ResolvedWorkspaceProjection validation passed; no fixture or generated contract was edited."
+  },
+  "implementation": [
+    "Added the named resolveContributionRenderer call seam while retaining the existing registry.resolve compatibility API.",
+    "Normalized trusted entries once, rejecting invalid or duplicate binding IDs, duplicate semantic/kind allowlists, invalid components, and component props that could override canonical contribution, projection, transport, or operation inputs.",
+    "Snapshot and freeze renderer allowlists and component configuration so caller mutation cannot change trusted resolution after registration.",
+    "Validated generated ResolvedContribution and nested CanonicalRef, AuthorityDescriptor, FreshnessDescriptor, GeometryPreference, and AccessibilityDescriptor contracts before a trusted component can be returned.",
+    "Added bounded resolution diagnostics for unknown renderer bindings, semantic binding mismatches, contribution-kind mismatches, and malformed contributions; MissionCanvasRenderer exposes only the bounded reason in its blocked state and never renders a generic card.",
+    "Kept transport, operation bindings, exact Workstream authority, eligibility, capabilities, empty-contribution omission, and layout composition outside the registry; they remain owned by generated transport/Core/controller seams."
+  ],
+  "checks": [
+    "python3 apps/desktop/tests/generate-mission-canvas-fixtures.py (exit 0; canonical schemas and 6 Desktop fixtures PASS)",
+    "npm --prefix apps/desktop test (exit 0; shell, context, hostile renderer, layout, transport/event integration, and projection-controller checks PASS)",
+    "npm --prefix apps/desktop run check (exit 0; svelte-check: 0 errors, 0 warnings)",
+    "npm --prefix apps/desktop run build (exit 0)",
+    "node --check apps/desktop/tests/layout-renderer-runtime.mjs (exit 0)",
+    "git diff --check (exit 0)"
+  ],
+  "negative_cases": {
+    "unknown_renderer_binding": "The registry returns no renderer, emits unknown_renderer_binding, and MissionCanvasRenderer records the binding as unavailable without data-trusted-renderer output.",
+    "semantic_binding_mismatch": "A trusted renderer binding with a non-allowlisted semantic_binding_id is blocked and cannot select the component.",
+    "contribution_kind_mismatch": "A trusted renderer binding presented with an ineligible ContributionKind is blocked rather than reinterpreted.",
+    "missing_or_malformed_authority": "A contribution missing the generated AuthorityDescriptor or nested canonical rendering fields is rejected before component creation.",
+    "foreign_workstream_and_attachment": "Exact Workstream/Attachment matching remains enforced by the generated projection/controller and transport boundary; the renderer registry does not repair or infer scope. Existing hostile projection-controller tests prove foreign responses cannot reach the renderer.",
+    "stale_revision_or_cursor": "Projection revision, layout revision, and durable cursor watermarks remain controller/transport-owned; existing hostile projection-controller tests reject regressions before renderer resolution.",
+    "unavailable_capability": "Capability and permission absence remains Core-owned eligibility/operation metadata; the registry does not synthesize an action or fallback contribution.",
+    "ineligible_or_empty_contribution": "Core omission diagnostics and layout output exclude empty optional contributions; existing fixture/render tests prove omitted contributions leave no renderer, panel, or reserved geometry.",
+    "unsafe_registry_configuration": "Duplicate bindings, invalid components, duplicate allowlist values, cyclic/non-plain component props, and reserved prop overrides are rejected at registry construction."
+  },
+  "acceptance": [
+    "Unknown binding renders nothing and records a bounded error; no generic substitute card exists.",
+    "Renderer selection preserves the exact generated renderer_binding_id and semantic_binding_id contract.",
+    "Trusted renderer and generated transport ownership are not replaced by client-local layout, eligibility, authority, or operation logic.",
+    "Fail-closed mismatches cannot reach a trusted component."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/UI-005.json",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "apps/desktop/src/lib/mission-canvas/contribution-renderers.ts",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasRenderer.svelte",
+    "apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "apps/desktop/tests/projection-controller-runtime.mjs",
+    "docs/135-series-current-manifest.md",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/agent/spec135-implementation-acceleration-directive.md"
+  ],
+  "evidence_refs": [
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "apps/desktop/tests/projection-controller-runtime.mjs",
+    "apps/desktop/src/lib/mission-canvas/contribution-renderers.ts",
+    "apps/desktop/src/lib/mission-canvas/MissionCanvasRenderer.svelte",
+    "docs/contracts/evidence/spec135-svelte-tasks/UI-003.json"
+  ],
+  "deferred_repository_observation": "Cargo was not run. Central executable graphs, generated task packets/index, parallel plans, orchestration scripts, generated contract artifacts, and fixture inputs were not edited.",
+  "status": "verified"
+}
