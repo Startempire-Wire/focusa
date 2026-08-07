@@ -1,0 +1,28 @@
+Work item: focusa-vbcqu.20.15.9
+Objective: Freeze first-sale, discontinuation, Navigator, and future-product rules
+
+Exact source/test commit: d45ffdc2aeac1d938961474991df7ba676c8d2c5
+Canonical project root: /tmp/focusa-rel3-candidate
+
+Command:
+python3 tests/spec172_license_type_lifecycle_test.py
+
+Exit code: 0
+
+Bounded result:
+Spec 172 License Type lifecycle test passed
+states=3 fixtures=7 freeze_fields=10
+
+Acceptance summary:
+- The first approved sale freezes the stable License Type code, product owner, included families, limits, local/hosted rights, duration, refund posture, and manifest digest.
+- Discontinuation rejects new sales without renaming, revoking, downgrading, expiring, or converting existing grants.
+- Navigator is a separate License Type requiring an explicit upgrade, cross-grade, or grant.
+- Safe implementations in existing families inherit only under all registered product, outcome, security, side-effect, privacy, and resource conditions.
+- Materially new families, future products, and hosted or metered resources default excluded pending explicit versioned authority assignment.
+- Caller-controlled commercial policy, anonymous capability, local/self-issued grants, presenter policy, and implicit legacy Download 453 mapping are forbidden.
+- Basic export, repair, rollback, stable security update, uninstall, and customer data remain preserved.
+
+Remaining blockers: none for this atom.
+
+Rollback:
+Revert source/test commit d45ffdc2aeac1d938961474991df7ba676c8d2c5 and the evidence-only commit that records this file. Do not alter or remove verified identities, customers, orders, refunds, issued License Types, keys, nodes, authority sequences, customer data, migration journals, accepted unrelated work, or other evidence.
