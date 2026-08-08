@@ -1,0 +1,156 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.22
+Title: 152E.02.08 Add transactional authority outbox and idempotent dispatcher
+Implementation commit: local (unpushed; see git log for this atom)
+
+Exact surfaces
+- wp_wpuiai_authority_outbox migration; EDD hooks; dispatcher/retry/dead-letter
+  routines; event schemas:
+  docs/contracts/spec152e-authority-outbox.v1.php
+  (FocusaSpec152eAuthorityOutboxMigration — durable transactional outbox
+  wp_wpuiai_authority_outbox with bounded dispatch state (pending/dispatched/failed/
+  dead_letter), attempt budget, backoff/retention timestamps, opaque account/EDD/
+  node/lease references, signed envelope fields, and the exactly-once delivery ledger
+  wp_wpuiai_outbox_deliveries (unique per event and per idempotency key), plus
+  append-audited schema migration journals;
+  FocusaSpec152eAuthorityEventSchema — bounded event schema registry: exactly 23
+  event types across the 7 spec surfaces (customer, order, license, refund,
+  subscription, node, lease) covering EDD order, license, refund, revoke, expiry,
+  customer, node, and lease transitions; validates required references, request/
+  idempotency keys, UUIDs, and rejects raw email and any client-controlled
+  price/amount/grant/feature/limit/tier/download field;
+  FocusaSpec152eAuthorityEventSigner — server-side HMAC-SHA256 envelope signer with
+  explicit key id (wpuiai.spec152e.outbox.v1); verifies digest and signature before
+  dispatch and fails closed with INVALID_SIGNATURE / UNKNOWN_SIGNING_KEY /
+  OUTBOX_ENVELOPE_TAMPERED; the secret never leaves the server-side instance;
+  FocusaSpec152eEddAuthorityHook — EDD hooks that append a signed outbox event in
+  the SAME transaction as the canonical EDD/account change (refuses to run outside a
+  caller-owned transaction), map raw EDD/Stripe order, license, subscription, refund
+  statuses to canonical event types (EDD_STATUS_UNKNOWN on unmapped), verify canonical
+  EDD row truth (EDD_ORDER/LICENSE/SUBSCRIPTION_RESOLUTION_FAILED), snapshot the
+  account's authority sequence without bumping it, and never accept raw email or
+  client commerce fields;
+  FocusaSpec152eAuthorityOutboxDispatcher — idempotent dispatcher with bounded retry
+  and dead-letter routines: delivers exactly once (consumer application, delivery
+  ledger, and dispatched mark commit in one transaction), retries failed deliveries
+  with exponential backoff and bounded error codes, moves rows that exhaust the
+  attempt budget or fail envelope verification to dead-letter, exposes bounded
+  repairState(), re-queues via retryDeadLetter(), and replays idempotently via
+  replay())
+- tests/spec152e_authority_outbox_test.php (exact verification)
+
+Bounded result
+- Transactional append: every committed EDD/account change carries exactly one signed
+  outbox row (order completion, order failure, refund, subscription cancellation,
+  license expiry, customer promotion all journaled as pending events with zero attempt
+  budget); an injected crash (rollback) removes the canonical change AND its outbox
+  row together — no orphan rows, no committed change without its event. The hook
+  snapshots the canonical authority sequence at append time (authority_sequence ==
+  result_sequence) and never bumps it: the outbox records truth, lifecycle projection
+  owns advancement (sequence stayed at 1 after an append at sequence 1).
+- Dispatch is exactly once under injected crashes: a crash mid-delivery (consumer
+  effect applied then process crash) rolls back the consumer effect and the delivery
+  ledger together, leaving the row in bounded failed state (attempts=1,
+  last_error=DISPATCH_DELIVERY_FAILED); the next retry redelivers exactly once
+  (1 ledger + 1 consumer application for the event), so an injected crash/retry loses
+  no event and duplicates no entitlement. Idempotent replay of a dispatched event
+  returns the byte-identical existing delivery with no new ledger and no new consumer
+  application.
+- Durable failure state never blocks canonical EDD commit: a consumer-down saga
+  retries with 60s/120s backoff (attempts 1 and 2 in failed state, bounded
+  DELIVERY_CONSUMER_DOWN, then dead_letter at attempt 3) while the canonical refunded
+  order stays committed and untouched; repairState() exposes exactly the bounded
+  dead-letter record (event_type, attempts, bounded error, retention; never payload
+  internals), retryDeadLetter() re-queues it, and the next cycle dispatches it exactly
+  once. repair state returns clean afterwards.
+- Bounded signed events: tampered payloads and tampered signatures are quarantined to
+  dead-letter with OUTBOX_ENVELOPE_TAMPERED and are never delivered; an unknown
+  signing key dead-letters with UNKNOWN_SIGNING_KEY; 3 tampered fixtures produce zero
+  deliveries and zero consumer applications. All 9 committed events survive every
+  crash/retry/tamper fixture in exactly one bounded dispatch state (6 dispatched, 3
+  dead-lettered, nothing stuck pending, 6 deliveries, 6 consumer applications).
+- Redaction and preservation: all outbox rows, signed payloads, delivery ledger rows,
+  and repair-state JSON contain no raw email, no payment/customer secret, no license
+  key material, no unmasked email evidence, and no signing secret; persisted failure
+  codes are enumerable and bounded; rollback is preservation-only (schema event
+  recorded; outbox rows and delivery journals never deleted); EDD customer/order/
+  license/subscription history row counts are unchanged.
+
+Exact verification (exit codes)
+1. `php tests/spec152e_authority_outbox_test.php` — exit 0 (run three times;
+   deterministic, byte-identical output).
+   {"schema":"focusa.spec152e.authority_outbox_test.v1","positive_checks":112,
+   "negative_checks":26,"event_types":23,"outbox_rows":9,"pending":0,"dispatched":6,
+   "failed":0,"dead_letter":3,"deliveries":6,"consumer_applications":6,
+   "sequence_snapshot":1,"retries_recovered":2,"tampered":3,"fixtures":[
+   "atomic_append_commit","atomic_append_rollback_crash","crash_mid_delivery",
+   "retry_backoff","dead_letter_after_max_attempts","dead_letter_requeue_repair",
+   "idempotent_replay","envelope_tamper_dead_letter","unknown_signing_key",
+   "canonical_commit_unblocked"],"canonical_truth_preserved":["customers","orders",
+   "licenses","subscriptions"],"storage":"opaque_refs_only_no_email_no_secrets_no_keys",
+   "result":"passed_fail_closed"}
+   Bounded immutable result handle (SHA-256 of the exact output above):
+   2e466c017224e8d92b4ceac4497bc47bf46a865002ecae04721a00ba494ac60c
+
+Regression checks (exit codes)
+- All 23 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  authority-outbox test and all prior lifecycle-projection, evaluation-issuance,
+  order-binding, license-issuance, checkout-intent, product-gate, customer-adapter,
+  promotion, verification, registration, and identity tests.
+- `cargo check --workspace` (routed to the remote OVH build, one build at a time) —
+  exit 0, finished cleanly in 2m45s.
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (frozen registry current: 0 assigned downloads, 0 checkout-enabled).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  (activation contracts current; no error-code changes from this atom).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_golden_vector_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0.
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0.
+- `python3 tests/spec172_limited_access_contract_test.py` — exit 0.
+- `git diff --check` — exit 0, no whitespace errors.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom): spec152e
+  document_authority_test.py (exit 1, spec152-final-audit-status.v1.yaml missing a
+  publication-rule token for later atoms) and spec152f_surface_reconciliation_
+  contract_test.py (exit 1, Spec 152F reconciliation index stale at the base commit).
+
+Tests added
+- spec152e_authority_outbox_test.php: 112 positive + 26 negative checks covering the
+  bounded event schema registry (23 event types, 7 surfaces, explicit key id,
+  HMAC algorithm, derived surface/transition, node and lease events, and fail-closed
+  unknown type/missing ref/surface/transition mismatch/raw email/commerce fields/
+  bounded request-id/idempotency/UUID validation); the signer (round-trip verify,
+  tampered payload, digest mismatch, malformed signature, unknown key, weak secret);
+  the atomic transactional append (committed order change carries exactly one pending
+  outbox row with matching envelope digest and bounded signature; rollback removes
+  both together; append outside a transaction fails closed; unmapped EDD status and
+  missing canonical order/license/subscription rows fail closed; sequence snapshotted
+  but never bumped); dispatch and crash fixtures (first batch delivered exactly once,
+  replay of a dispatched event is byte-identical with no duplicate, injected
+  crash-mid-delivery rolls back the consumer effect and ledger then redelivers
+  exactly once, consumer-down retries with 60s/120s backoff and bounded
+  DELIVERY_CONSUMER_DOWN, dead-letter at attempt 3 with canonical EDD commit
+  unblocked, bounded repair state, retryDeadLetter repair, and clean repair state
+  after repair); tamper fixtures (payload tamper, signature tamper, unknown signing
+  key all dead-letter with the bounded code and are never delivered); fail-closed
+  negatives (unknown account, customer mismatch, replay of unknown event,
+  retryDeadLetter of non-dead-letter and unknown events, non-positive retry budget);
+  preservation and monotonicity (all 9 events retained in exactly one bounded state,
+  6 dispatched / 3 dead-lettered, 6 deliveries, 6 consumer applications, history row
+  counts preserved); and redaction (no raw email, no payment/customer secret, no key
+  material, no unmasked email evidence, no signing secret in outbox rows, signed
+  payloads, delivery ledger, or repair state; persisted failure codes enumerable;
+  preservation-only rollback).
+
+Rollback
+- Revert only this atom's implementation commit (authority-outbox contract, its test,
+  and this evidence record if required). Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence,
+  and migration journals; outbox rows, delivery journals, and the bounded
+  dispatch/dead-letter state are preservation-only and never deleted.
+
+No push, deploy, release, merge, or Beads mutation was performed.
