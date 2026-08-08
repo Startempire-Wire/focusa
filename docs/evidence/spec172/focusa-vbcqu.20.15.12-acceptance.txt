@@ -1,0 +1,107 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.15.12
+Title: 172.02.03 Create dedicated EDD Operator v1 Downloads and prices
+Implementation commit: `765fba5a`
+Base commit: `9f92ea0b` (branch atom/focusa-vbcqu.20.15.12, based on local/luna-152f-reducer)
+Recorded at: 2026-08-06 (worktree execution)
+
+Exact surfaces
+- WPUIAI private product registry/migration/admin command:
+  `scripts/edd-operator-v1-provision.php` (idempotent provisioning command)
+  and `scripts/generate-spec172-edd-operator-v1-downloads.py` (deterministic
+  contract generator for the dedicated Downloads contract).
+- EDD Downloads and Software Licensing settings:
+  `docs/contracts/spec172-edd-operator-v1-downloads.v1.yaml` (source) with
+  generated `.v1.json` and `.v1.php` views.
+- `tests/spec172_edd_operator_products_test.php` (exact verification).
+
+Bounded result
+- Created exactly three server-owned dedicated EDD Operator v1 records that
+  match the canonical Spec 152E product registry offer with the same public
+  code: Focusa Operator Lifetime v1 (`edd_download_id` 458, `price_id`
+  `price_focusa_operator_lifetime_v1`), UIAI Engine Operator Lifetime v1
+  (459, `price_uiai_operator_lifetime_v1`), and the exact-union Bundle v1
+  (460, `price_focusa_uiai_operator_bundle_lifetime_v1`). Prices are 69700 /
+  69700 / 125460 USD minor units (697.00 / 697.00 / 1254.60) and
+  `amount_minor` equals `price_usd` in minor units.
+- Every record configures lifetime duration (EDD SL license length 0),
+  whole-order 30-day refund metadata (`whole_order_30_days`, `refund_days`
+  30), exactly one operator seat, three shared nodes
+  (`operator_shared_v1`, activation limit 3), and checkout disabled until
+  validation passes (`checkout_enabled: false`, `sale_status:
+  approved_not_yet_enabled`, EDD download status `draft`, block reason
+  `awaiting_validation_pass`).
+- The provisioning command is idempotent by construction: it derives the
+  plan only from the server-owned contracts in canonical order, emits a
+  stable SHA-256 idempotency key, fails closed on any invariant violation
+  (record/offer mismatch, legacy or 453 reuse, checkout enablement, wrong
+  price, caller-controlled fields), and prints a byte-identical redacted
+  receipt on every run (verified by diffing two consecutive runs).
+- Unrelated legacy WPUIAI downloads (16, 17, 21-25, 66, 452, 454-457) and
+  Download 453 can never grant these License Types: the dedicated records
+  never reference them, Download 453 remains quarantined with the explicit
+  `implicit_focusa_mapping_forbidden` reason in the canonical registry, no
+  protected offer maps 453, and the test's grant resolution fails closed
+  for 453, legacy, credit-pack, unknown, and wrong-price downloads.
+- No anonymous product capability, no local/self-issued grant, and no
+  caller-controlled download, price, License Type, family, feature, limit,
+  node, or commercial right. The receipt is explicitly redacted and carries
+  no raw email, license key, token, credential, customer row, or card data.
+- The canonical Spec 152E registry contract was intentionally left frozen
+  (`assigned_edd_downloads: 0`, `mapping_status:
+  approved_policy_blocked_edd_mapping`): flipping it to active/checkout is
+  the separately approved validation/mapping work of later atoms
+  (20.15.13/20.15.14 issuance). The dedicated Downloads contract binds real
+  EDD Download/price records to the registry offers and keeps checkout
+  disabled until that validation passes.
+
+Exact verification (exit codes)
+Command (run literally from the canonical project root):
+  php tests/spec172_edd_operator_products_test.php
+Exit code: 0
+  result: passed_fail_closed
+  dedicated_records=3 assigned_edd_downloads=3 download_ids=[458,459,460]
+  minor_units=[69700,69700,125460] price_usd=["697.00","697.00","1254.60"]
+  license_duration=lifetime refund_days=30 operator_seats=1 node_limit=3
+  node_set=operator_shared_v1 checkout_enabled=0
+  sale_status=approved_not_yet_enabled
+  download_453=quarantined_never_grants unrelated_downloads_grant=0
+  provision_receipt_idempotent=true provision_receipt_redacted=true
+  checks=163
+No cargo build was required: this atom's exact surfaces are PHP/Python/docs
+contracts only; the exact verification command is the PHP test above.
+
+Regression checks (exit codes)
+- php tests/spec152e_product_registry_test.php — exit 0 (registry unchanged).
+- python3 tests/spec152e_product_registry_contract_test.py — exit 0.
+- php tests/spec152e_edd_product_gate_test.php — exit 0.
+- php tests/spec152e_edd_order_binding_test.php — exit 0.
+- php tests/spec152e_edd_checkout_intent_test.php — exit 0.
+- php tests/spec152e_checkout_email_integrity_test.php — exit 0.
+- php tests/spec152e_edd_license_issuance_test.php — exit 0.
+- Sweep of all tests/spec152e_*.php, tests/spec172_*.php and
+  tests/spec172_*.py + spec152e_product_registry_contract_test.py — all exit 0.
+
+Tests added
+- tests/spec172_edd_operator_products_test.php (163 checks): exactly three
+  dedicated records cross-matched against the canonical registry offers;
+  exact minor-unit prices; lifetime + 30-day refund metadata; one operator
+  seat; three shared nodes; checkout disabled until validation passes;
+  unrelated downloads and 453 never grant; generator `--check` sync;
+  provisioning command idempotency (two byte-identical runs) and receipt
+  redaction (no email, payment key, synthetic license key, or card data).
+
+Remaining blockers
+- None for this atom. Checkout activation and paid issuance remain deferred
+  to later approved atoms (20.15.13/20.15.14/20.15.17) that consume these
+  dedicated records once validation passes.
+
+Rollback
+- Revert only implementation commit `765fba5a` and the evidence-only commit
+  recording this file. Preserve verified identities, customers, orders,
+  refunds, License Types, keys, nodes, sequences, customer data, migration
+  journals, the frozen Spec 152E registry, and accepted unrelated work.
+- Rollback must not invent an implicit mapping for Download 453 or enable
+  checkout.
+
+No push, deploy, release, merge, or Beads mutation was performed.
