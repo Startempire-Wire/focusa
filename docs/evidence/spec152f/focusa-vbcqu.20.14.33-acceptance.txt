@@ -1,0 +1,66 @@
+Spec 152F / Spec 152E / Spec 150A acceptance record
+Work item: focusa-vbcqu.20.14.33
+Title: 152F.04.04 Split stable security maintenance from premium updates
+Implementation commit: 48b2196d18100c9424a73f189dd8a820978bbee4
+
+Exact surfaces
+- crates/focusa-core/src/update.rs
+
+Bounded result
+- Added `UpdatePolicy::premium_update_required()`: returns `None` when the
+  policy uses the stable channel with a manual mode (notify, prompt, manual) —
+  these are always-available stable security updates and repair paths. Returns
+  `Some("focusa.install.channel.preview")` for the Preview channel,
+  `Some("focusa.install.channel.nightly")` for the Nightly channel, and
+  `Some("focusa.update.unattended")` for Automatic or Scheduled modes. Dev
+  mode is a dev-override and does not require premium features.
+- Added `UpdatePolicy::is_stable_security_maintenance()`: returns true when the
+  policy is safe stable security maintenance — stable channel + manual mode —
+  that remains available even when commercial entitlement is blocked, expired,
+  refunded, or revoked.
+- The split ensures that manual stable-channel security updates, trust-metadata
+  refresh, repair, and rollback remain available in blocked states (via
+  RecoveryAllowance::StableSecurityUpdate mapping to AccountRecovery family),
+  while premium channels (preview/nightly) and unattended apply remain
+  authority-controlled via the PremiumUpdates capability family and their
+  registered feature identifiers.
+- Signature/trust verification, confirmation, and the existing recovery-route
+  path in the API middleware are preserved unchanged.
+
+Exact verification (exit codes)
+1. `cargo test --workspace spec152f_update_entitlement` — exit 0.
+   test result: ok. 16 passed; 0 failed.
+2. `python3 tests/spec152f_recovery_matrix_test.py` — exit 0.
+   Spec152F recovery matrix: PASS
+
+Regression checks (exit codes)
+- `cargo check -p focusa-core` — exit 0, finished cleanly.
+- `cargo test -p focusa-core` — 892 passed; 1 pre-existing failure in
+  `work_item::lifecycle::tests::spec79_canary_advances_ordered_bd_graph_without_manual_reprompt`
+  (unrelated to this atom).
+
+Tests added
+- focusa-core: 16 tests in `update::spec152f_update_entitlement` module:
+  stable_notify_is_maintenance_not_premium,
+  stable_prompt_is_maintenance_not_premium,
+  stable_manual_is_maintenance_not_premium,
+  preview_channel_requires_premium_feature,
+  nightly_channel_requires_premium_feature,
+  automatic_mode_requires_premium_feature,
+  scheduled_mode_requires_premium_feature,
+  dev_mode_does_not_require_premium_features,
+  dev_mode_override_relaxes_premium_requirements,
+  default_paid_policy_is_stable_maintenance,
+  default_evaluation_policy_is_stable_maintenance,
+  premium_update_features_match_policy_classification,
+  stable_maintenance_policy_never_requires_entitlement,
+  premium_channel_or_mode_policies_require_entitlement,
+  default_policies_produce_expected_update_policy,
+  channel_and_mode_round_trip.
+
+Rollback
+- Revert only this atom's policy/code changes in `crates/focusa-core/src/update.rs`.
+  Preserve customers, orders, refunds, licenses, nodes, sequences, data,
+  migration journals, evidence, and already accepted authority behavior.
+
+No push, deploy, release, merge, or Beads mutation was performed.
