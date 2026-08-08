@@ -1,0 +1,37 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.13
+Title: 152F.01.09 Freeze canonical entitlement policy vectors across Rust/Python/static
+
+Exact surfaces
+- tests/fixtures/spec152f-entitlement-policy-cases.v1.json
+- crates/focusa-license/tests/entitlement_policy_grid.rs
+- tests/spec152f_entitlement_policy_vectors_test.py
+
+Bounded result
+- Added a deterministic vector parity test (`state_grid_matches_entitlement_vectors`) that
+  validates canonical fixture cardinality and full state/family Cartesian coverage
+  (`state_count=8`, `family_count=9`, `grid_case_count=72`) directly from
+  `spec152f-entitlement-policy-cases.v1.json`.
+- Reused the canonical decision token vocabulary (`allow`, `allow_offline_only`,
+  `read`, `require_feature`, `inherit`, etc.) in the Python vector guard to
+  ensure cross-language parser parity and reject unknown decision strings.
+- Preserved existing Rust state grid reducer tests and added targeted invariant
+  checks for `evaluation` and `internal_maintenance` rows to keep negative/edge
+  semantics aligned with static fixtures.
+
+Exact verification (exit codes)
+1. `cargo test -p focusa-license --test entitlement_policy_grid` — exit 0.
+   Output: 3 tests passed (`state_grid`,
+   `state_grid_fails_closed_without_initiating_policy_or_known_state`,
+   `state_grid_matches_entitlement_vectors`).
+2. `python3 tests/spec152f_entitlement_policy_vectors_test.py` — exit 0.
+   Output: `{"schema": "focusa.spec152f.entitlement_policy_vectors.v1", "state_count": 8, "family_count": 9, "grid_case_count": 72, "feature_compatibility_count": 15, "negative_mutation_count": 6, "result": "passed_with_explicit_grid_parity"}`
+
+Tests added
+- `state_grid_matches_entitlement_vectors` in
+  `crates/focusa-license/tests/entitlement_policy_grid.rs`.
+- `tests/spec152f_entitlement_policy_vectors_test.py`.
+
+Rollback boundary
+- Revert only this worktree's acceptance-bearing commit. No runtime, customer,
+  evidence, or authority data is modified by these fixture/parity test changes.
