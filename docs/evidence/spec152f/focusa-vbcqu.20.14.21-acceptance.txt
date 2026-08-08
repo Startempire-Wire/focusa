@@ -1,0 +1,61 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.21
+Title: 152F.02.08 Prove permanent recovery and customer-control routes
+Implementation commit: `9f912c7ec04e8503673d26ff7002b4c88067e04e`
+
+Exact surfaces
+- crates/focusa-api/src/middleware/entitlement.rs (route recovery allowance, route_requires_entitlement, recovery matrix tests)
+- tests/spec152f_recovery_matrix_test.py
+
+Bounded result
+- Expanded `route_recovery_allowance` to cover all required customer-control
+  routes: diagnostics (/v1/doctor, /v1/doctor/closure), pairing status
+  (/v1/device/pair/status), export reads (/v1/export/status,
+  /v1/export/history, /v1/export/manifest/{export_id}), in addition to
+  the existing stable update, repair, rollback, export run, and node
+  deactivation routes.
+- Added `is_export_manifest_read` helper for template-based export manifest
+  path matching.
+- Updated `route_requires_entitlement` to exempt all new recovery routes
+  (doctor, export status/history, device/pair/status, export manifest,
+  /v1/info) from the entitlement gate.
+- Added `recovery_route_matrix_permanent_customer_control_routes` Rust test
+  proving that every required customer-control route remains available in
+  recovery_only, refunded_or_revoked, unactivated, and missing entitlement
+  states, while protected base/premium mutations are denied with correct
+  error codes (ENTITLEMENT_BASE_REQUIRED, ENTITLEMENT_REQUIRED,
+  ENTITLEMENT_FEATURE_REQUIRED). Active state correctly allows base
+  mutations while preserving recovery routes.
+- Updated `recovery_allowances_skip_entitlement_state_and_feature_checks`
+  test to cover all new recovery routes.
+- Created Python cross-reference test verifying recovery routes are present
+  in the route_recovery_allowance allowlist, exemption paths are in
+  route_requires_entitlement, the recovery matrix test exists, and the
+  entitlement-state grid handles AccountRecovery and CustomerDataExport in
+  all states.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_recovery_matrix_test.py` — exit 0.
+   Spec152F recovery matrix: PASS
+2. `cargo test -p focusa-api recovery_route_matrix` — exit 0.
+   test result: ok. 1 passed; 0 failed.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-api recovery_allowances_skip_entitlement` — exit 0.
+  All existing recovery allowance tests pass (including expanded coverage).
+- `cargo test -p focusa-api only_signed_active_or_grace_snapshot_allows_mutation` — exit 0.
+  Mutation guard test unchanged.
+
+Tests added
+- Rust: recovery_route_matrix_permanent_customer_control_routes (1 test)
+  covering 4 blocked states × 14 recovery routes + 9 protected mutations
+  + 2 active-state allow assertions + 6 exempted route assertions.
+- Python: tests/spec152f_recovery_matrix_test.py
+
+Rollback
+- Revert only this atom's changes to crates/focusa-api/src/middleware/entitlement.rs
+  and tests/spec152f_recovery_matrix_test.py. Preserve customers, orders,
+  refunds, licenses, nodes, sequences, data, migration journals, evidence,
+  and already accepted authority behavior.
+
+No push, deploy, release, merge, or Beads mutation was performed.
