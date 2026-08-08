@@ -3,6 +3,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
+use crate::license::{
+    evaluate_entitlement_execution,
+    EntitlementExecutionContext,
+    EntitlementExecutionPolicy,
+};
+
+const ENTITLEMENT_ROUTE_UNCLASSIFIED: &str = "ENTITLEMENT_ROUTE_UNCLASSIFIED";
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WriterLease {
     pub lease_id: String,
@@ -77,6 +85,67 @@ pub enum DispatchError {
     MissingEffectReceipt,
     #[error("mutation is unknown")]
     UnknownMutation,
+    #[error("operation entitlement denied ({code}): {message}")]
+    EntitlementDenied {
+        code: String,
+        message: String,
+        required_feature: Option<String>,
+        limit_bucket: Option<String>,
+    },
+}
+
+fn entitlement_policy_for_daemon_mutation(operation: &str) -> Result<EntitlementExecutionPolicy, DispatchError> {
+    let operation = operation.trim();
+    let (family, required_feature, limit_bucket) = match operation {
+        "focusa.workpoint.checkpoint" | "focusa.workpoint.resume" | "focusa.trajectory.propose_workpoint" | "focusa.trajectory.checkpoint" | "focusa.trajectory.resume" => {
+            (
+                focusa_license::CapabilityFamily::BaseFocusa,
+                None,
+                None,
+            )
+        }
+        "focusa.silent_session.writer_admission" | "focusa.silent_session.dispatch" => (
+            focusa_license::CapabilityFamily::Automation,
+            Some("focusa.agent.silent_sessions"),
+            Some("silent_session_runs"),
+        ),
+        _ => {
+            return Err(DispatchError::EntitlementDenied {
+                code: ENTITLEMENT_ROUTE_UNCLASSIFIED.to_string(),
+                message: "daemon dispatch operation is not mapped to a canonical entitlement policy".into(),
+                required_feature: None,
+                limit_bucket: None,
+            });
+        }
+    };
+
+    Ok(EntitlementExecutionPolicy::new(
+        operation,
+        focusa_license::OperationClass::ValueMutation,
+        family,
+        required_feature,
+        limit_bucket,
+        focusa_license::RecoveryAllowance::None,
+    ))
+}
+
+fn evaluate_daemon_mutation_entitlement(
+    entitlement_guard: &focusa_license::LicenseGuard,
+    mutation: &MutationEnvelope,
+) -> Result<(), DispatchError> {
+    let policy = entitlement_policy_for_daemon_mutation(&mutation.operation)?;
+    evaluate_entitlement_execution(
+        entitlement_guard,
+        &policy,
+        EntitlementExecutionContext::default(),
+    )
+    .map(|_| ())
+    .map_err(|error| DispatchError::EntitlementDenied {
+        code: error.code,
+        message: error.message,
+        required_feature: error.required_feature,
+        limit_bucket: error.limit_bucket,
+    })
 }
 
 impl WriterLeaseRegistry {
@@ -213,6 +282,21 @@ impl MutationDispatchLedger {
         }
     }
 
+    /// Evaluate a canonical entitlement policy before persisting the mutation envelope.
+    ///
+    /// Existing callers continue to use [`prepare`] for backwards compatibility.
+    pub fn prepare_with_entitlement(
+        &mut self,
+        registry: &DaemonRegistryProjection,
+        leases: &WriterLeaseRegistry,
+        mutation: &MutationEnvelope,
+        observed_at_unix_ms: i64,
+        entitlement_guard: &focusa_license::LicenseGuard,
+    ) -> Result<&DispatchReceipt, DispatchError> {
+        evaluate_daemon_mutation_entitlement(entitlement_guard, mutation)?;
+        self.prepare(registry, leases, mutation, observed_at_unix_ms)
+    }
+
     pub fn settle_acknowledged(
         &mut self,
         mutation_id: &str,
@@ -278,10 +362,12 @@ impl MutationDispatchLedger {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
     use crate::daemon_multiplex::{
         DaemonHealth, DaemonRegistration, DaemonRegistryEvent, reduce_daemon_registry,
     };
     use std::collections::BTreeSet;
+    use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
 
     fn route() -> ProjectRouteKey {
         ProjectRouteKey {
@@ -335,6 +421,39 @@ mod tests {
             payload_digest: digest.into(),
             operation: "workpoint.checkpoint".into(),
         }
+    }
+
+    fn signed_base_snapshot() -> focusa_license::LicenseGuard {
+        let now = Utc::now();
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-daemon");
+        snapshot.state = EntitlementState::Active;
+        snapshot.sequence = Some(7);
+        snapshot.lease_id = Some("lease-1".into());
+        snapshot.lease_digest = Some("sha256:daemon".into());
+        snapshot.expires_at = Some(now + chrono::Duration::hours(1));
+        snapshot.offline_grace_until = Some(now + chrono::Duration::hours(1));
+        focusa_license::LicenseGuard::from_entitlement(snapshot)
+    }
+
+    #[test]
+    fn daemon_dispatch_rejects_unknown_mutation_operations_before_ledger_side_effect() {
+        let mut ledger = MutationDispatchLedger::default();
+        let mut mutation = mutation("sha256:unknown");
+        mutation.operation = "focusa.internal.secret".into();
+        assert!(matches!(
+            ledger.prepare_with_entitlement(&registry(), &leases(), &mutation, 1, &focusa_license::LicenseGuard::eval(7)),
+            Err(DispatchError::EntitlementDenied { code, .. }) if code == "ENTITLEMENT_ROUTE_UNCLASSIFIED"
+        ));
+    }
+
+    #[test]
+    fn daemon_dispatch_with_entitlement_uses_base_focusa_policy_for_known_mutations() {
+        let mut ledger = MutationDispatchLedger::default();
+        let guard = signed_base_snapshot();
+        let receipt = ledger
+            .prepare_with_entitlement(&registry(), &leases(), &mutation("sha256:a"), 1, &guard)
+            .expect("known workpoint mutation should pass base policy");
+        assert_eq!(receipt.status, DispatchStatus::Prepared);
     }
 
     #[test]

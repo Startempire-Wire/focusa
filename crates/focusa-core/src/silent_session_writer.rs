@@ -9,6 +9,14 @@ use serde::{Deserialize, Serialize};
 use std::path::{Component, Path, PathBuf};
 use thiserror::Error;
 
+use crate::license::{
+    evaluate_entitlement_execution,
+    EntitlementExecutionContext,
+    EntitlementExecutionPolicy,
+};
+
+const ENTITLEMENT_ROUTE_UNCLASSIFIED: &str = "ENTITLEMENT_ROUTE_UNCLASSIFIED";
+
 pub const WRITER_ADMISSION_SCHEMA: &str = "focusa.writer_admission_decision.v1";
 pub const WRITER_LEASE_REGISTRY_SCHEMA: &str = "focusa.writer_lease_registry.v1";
 
@@ -81,6 +89,34 @@ pub struct WriterAdmissionDecision {
     pub conflicting_actor_refs: Vec<String>,
     pub conflicting_lease_ids: Vec<SilentSessionLeaseId>,
     pub isolated_worktree_required: bool,
+}
+
+fn writer_entitlement_policy() -> EntitlementExecutionPolicy {
+    EntitlementExecutionPolicy::new(
+        "focusa.silent_session.writer_admission",
+        focusa_license::OperationClass::ValueMutation,
+        focusa_license::CapabilityFamily::Automation,
+        Some("focusa.agent.silent_sessions"),
+        Some("silent_session_admissions"),
+        focusa_license::RecoveryAllowance::None,
+    )
+}
+
+fn evaluate_writer_entitlement(
+    entitlement_guard: &focusa_license::LicenseGuard,
+) -> Result<(), WriterLeaseError> {
+    evaluate_entitlement_execution(
+        entitlement_guard,
+        &writer_entitlement_policy(),
+        EntitlementExecutionContext::default(),
+    )
+    .map(|_| ())
+    .map_err(|error| WriterLeaseError::EntitlementDenied {
+        code: error.code,
+        message: error.message,
+        required_feature: error.required_feature,
+        limit_bucket: error.limit_bucket,
+    })
 }
 
 pub fn analyze_writer_admission(
@@ -259,6 +295,19 @@ impl WriterLeaseRegistry {
             .collect()
     }
 
+    pub fn acquire_with_entitlement(
+        &mut self,
+        session: &SilentSession,
+        candidate: &WriterAdmissionCandidate,
+        external_claims: &[WriterClaim],
+        now: DateTime<Utc>,
+        ttl: Duration,
+        entitlement_guard: &focusa_license::LicenseGuard,
+    ) -> Result<SilentSessionLease, WriterLeaseError> {
+        evaluate_writer_entitlement(entitlement_guard)?;
+        self.acquire(session, candidate, external_claims, now, ttl)
+    }
+
     pub fn acquire(
         &mut self,
         session: &SilentSession,
@@ -391,6 +440,13 @@ pub enum WriterLeaseError {
     StaleFencingToken,
     #[error("writer fencing token source is exhausted")]
     FencingTokenExhausted,
+    #[error("writer entitlement was denied ({code}): {message}")]
+    EntitlementDenied {
+        code: String,
+        message: String,
+        required_feature: Option<String>,
+        limit_bucket: Option<String>,
+    },
 }
 
 #[cfg(test)]
