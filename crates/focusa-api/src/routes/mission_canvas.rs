@@ -322,6 +322,10 @@ pub fn router() -> Router<Arc<AppState>> {
             post(resolve_recipient),
         )
         .route(
+            "/v1/mission-canvas/recompositions/{revision}/evidence",
+            get(get_recomposition_evidence),
+        )
+        .route(
             "/v1/mission-canvas/recompositions/{revision}/{proof_kind}",
             get(get_recomposition_proof),
         )
@@ -2559,6 +2563,62 @@ async fn resolve_recipient(
         "recipient_ref": request.recipient_ref,
         "routable": true
     })))
+}
+
+async fn get_recomposition_evidence(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(revision): Path<u64>,
+    Query(query): Query<ScopeQuery>,
+) -> ApiResult {
+    require_permission(&headers, "mission_canvas:read")?;
+    let scope = query.scope()?;
+    validate_authority(&scope)?;
+    exact_workstream_context(&scope, &headers).map_err(host_renderer_context_error)?;
+    let events = store(&state)?
+        .events_after(&scope, 0, 10_000)
+        .map_err(store_error)?;
+    let event = events
+        .into_iter()
+        .map(|(_, event)| event)
+        .find(|event| {
+            event.projection_revision == revision && event.event_kind == "projection_resolved"
+        })
+        .ok_or_else(|| {
+            error(
+                StatusCode::NOT_FOUND,
+                "recomposition_not_found",
+                "No recomposition evidence exists for this revision",
+            )
+        })?;
+    let evidence = event
+        .payload
+        .get("evidence")
+        .ok_or_else(|| {
+            error(
+                StatusCode::NOT_FOUND,
+                "recomposition_evidence_missing",
+                "The resolved projection event carries no evidence payload",
+            )
+        })?;
+    let parsed: focusa_core::mission_canvas::reducer::RecompositionEvidence =
+        serde_json::from_value(evidence.clone()).map_err(json_error)?;
+    if parsed.scope.workstream != scope.workstream {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "recomposition_scope_mismatch",
+            "Stored recomposition evidence belongs to a different Workstream",
+        ));
+    }
+    let expected_suffix = format!(":{revision}");
+    if !parsed.evidence_id.ends_with(&expected_suffix) {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "recomposition_revision_mismatch",
+            "Stored recomposition evidence does not match the requested projection revision",
+        ));
+    }
+    Ok(Json(evidence.clone()))
 }
 
 async fn get_recomposition_proof(

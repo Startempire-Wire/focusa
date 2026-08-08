@@ -277,6 +277,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (operationId === 'focusa.mission_canvas.draft.get') {
       validateDraftGetResponse(operationId, response.status, value, authority);
     }
+    if (operationId === 'focusa.mission_canvas.recomposition.evidence.get') {
+      validateRecompositionEvidenceResponse(operationId, response.status, value, authority);
+    }
     if (operation.response_schema_ref === 'ResolvedWorkspaceProjection') {
       const watermark = validateProjectionResponse(
         operationId,
@@ -805,6 +808,43 @@ function validateProfileLayoutMemoryResponse(
   }
 
   return { memoryRevision };
+}
+
+function validateRecompositionEvidenceResponse(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext
+): void {
+  const evidence = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  if (!evidence) {
+    throw new MissionCanvasTransportError('invalid_response:expected_evidence', operationId, status, value);
+  }
+  const responseAuthority = authorityFromRecord(evidence);
+  const authorityValidation = validateMissionCanvasContract('WorkstreamAuthorityContext', responseAuthority);
+  if (!authorityValidation.valid || !sameWorkstreamAuthorityContext(responseAuthority, expectedAuthority)) {
+    throw new MissionCanvasTransportError('invalid_response:scope_mismatch', operationId, status, value);
+  }
+  if (typeof evidence.evidence_id !== 'string' || evidence.evidence_id.trim().length === 0) {
+    throw new MissionCanvasTransportError('invalid_response:missing:evidence_id', operationId, status, value);
+  }
+  if (typeof evidence.output_projection_digest !== 'string'
+    || !/^sha256:[0-9a-f]{64}$/.test(evidence.output_projection_digest)) {
+    throw new MissionCanvasTransportError('invalid_response:invalid:output_projection_digest', operationId, status, value);
+  }
+  if (!Array.isArray(evidence.candidate_contribution_ids)) {
+    throw new MissionCanvasTransportError('invalid_response:invalid:candidate_contribution_ids', operationId, status, value);
+  }
+  const trigger = evidence.trigger;
+  if (trigger !== 'canonical_read_change' && trigger !== 'profile_change'
+    && trigger !== 'activity_mode_change' && trigger !== 'focus_change'
+    && trigger !== 'viewport_change' && trigger !== 'capability_change'
+    && trigger !== 'preference_change' && trigger !== 'migration'
+    && trigger !== 'explicit_resolve') {
+    throw new MissionCanvasTransportError('invalid_response:invalid:trigger', operationId, status, value);
+  }
 }
 
 function validateDraftGetResponse(

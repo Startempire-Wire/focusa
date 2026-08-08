@@ -84,6 +84,8 @@ try {
     await exerciseDomainPackInstall({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.draft.get') {
     await exerciseDraftGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.recomposition.evidence.get') {
+    await exerciseRecompositionEvidenceGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.events.stream') {
     await exerciseEventsStream({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, server });
   } else {
@@ -2723,6 +2725,59 @@ async function exerciseHostFocus({ MissionCanvasClient, MissionCanvasHttpTranspo
   );
 
   console.log('Mission Canvas operation consumer: PASS (generated rich_hostFocus, exact Workstream POST, existing Desktop focus, canonical activity preservation, foreign authority/renderer, missing authority, capability/permission denial, stale lifecycle, and hostile response checks)');
+}
+
+async function exerciseRecompositionEvidenceGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  assert.ok(authority.attachment, 'recomposition.evidence.get fixture requires exact attachment authority');
+  const evidence = {
+    ...structuredClone(authority),
+    attachment: structuredClone(authority.attachment),
+    candidate_contribution_ids: ['contribution:primary', 'contribution:queue'],
+    diagnostic_refs: [],
+    eligibility_decisions: [],
+    evidence_id: 'recomposition-evidence:key:11',
+    input_projection_digest: null,
+    layout_decision_refs: [],
+    observed_at: new Date().toISOString(),
+    output_projection_digest: `sha256:${'e'.repeat(64)}`,
+    rule_revision: 'resolver:v2',
+    trigger: 'explicit_resolve'
+  };
+  let responseBody = structuredClone(evidence);
+  const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(responseBody), { status: 200 })
+  );
+  const client = new MissionCanvasClient(transport);
+  const result = await client.recompositionEvidenceGet({ ...structuredClone(authority), revision: 11 });
+  assert.equal(result.evidence_id, evidence.evidence_id);
+  assert.equal(result.trigger, 'explicit_resolve');
+  assert.ok(result.candidate_contribution_ids.length >= 2);
+
+  responseBody = structuredClone(evidence);
+  responseBody.workstream.workstream_id = 'ws:foreign';
+  if (responseBody.attachment) responseBody.attachment.workstream.workstream_id = 'ws:foreign';
+  await assert.rejects(
+    () => client.recompositionEvidenceGet({ ...structuredClone(authority), revision: 11 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:scope_mismatch'
+  );
+
+  responseBody = { ...structuredClone(evidence), evidence_id: '' };
+  await assert.rejects(
+    () => client.recompositionEvidenceGet({ ...structuredClone(authority), revision: 11 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:missing:evidence_id'
+  );
+
+  responseBody = { ...structuredClone(evidence), output_projection_digest: 'not-a-digest' };
+  await assert.rejects(
+    () => client.recompositionEvidenceGet({ ...structuredClone(authority), revision: 11 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:output_projection_digest'
+  );
+
+  responseBody = { ...structuredClone(evidence), trigger: 'invented' };
+  await assert.rejects(
+    () => client.recompositionEvidenceGet({ ...structuredClone(authority), revision: 11 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:trigger'
+  );
 }
 
 async function exerciseDraftGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
