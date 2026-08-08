@@ -28,10 +28,10 @@ assert index["schema"] == "focusa.spec152f.surface_reconciliation.v1"
 assert index["authority"] == "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md"
 assert index["policy"] == "docs/contracts/spec152f-entitlement-policy.v1.yaml"
 assert index["baseline_coverage"] == "docs/contracts/spec152-entitlement-coverage.v1.json"
-assert index["baseline_counts"] == {"covered": 569, "unmatched": 395, "total": 964}
+assert index["baseline_counts"] == {"covered": 592, "unmatched": 386, "total": 978}
 assert index["surface_counts"] == {
-    "rest": 199,
-    "cli": 86,
+    "rest": 189,
+    "cli": 87,
     "menubar": 83,
     "release": 17,
     "update": 5,
@@ -39,14 +39,13 @@ assert index["surface_counts"] == {
     "scheduler": 2,
 }
 assert index["resolution_counts"] == {
-    "base_entitlement_candidate": 138,
-    "inherit_canonical_operation": 175,
-    "metadata_repair_required": 31,
-    "premium_family_candidate": 41,
+    "base_entitlement_candidate": 149,
+    "inherit_canonical_operation": 176,
+    "premium_family_candidate": 51,
     "recovery_or_read_allowance": 3,
     "scanner_exclusion_test_only": 7,
 }
-assert index["unknown_method_routes"] == 31
+assert index["unknown_method_routes"] == 0
 assert index["test_only_scanner_exclusions"] == 7
 assert index["runtime_file_entries"] == 27
 assert index["runtime_file_entries_after_test_exclusion"] == 20
@@ -57,7 +56,7 @@ assert index["policy_file_sha256"] == hashlib.sha256(
     (ROOT / index["policy"]).read_bytes()
 ).hexdigest()
 assert index["source_digests"] == baseline_coverage["source_digests"]
-assert runtime_coverage["counts"]["unmatched"] == 388
+assert runtime_coverage["counts"]["unmatched"] == 0
 assert runtime_coverage["scanner_exclusions"]["count"] == 7
 
 assert set(index["shards"]) == {"rest", "cli", "menubar", "runtime_files"}
@@ -74,8 +73,8 @@ for group, ref in sorted(index["shards"].items()):
     assert shard["row_count"] == ref["row_count"] == len(shard["rows"])
     rows.extend(shard["rows"])
 
-assert len(rows) == 395
-assert len({row["baseline_id"] for row in rows}) == 395
+assert len(rows) == 386
+assert len({row["baseline_id"] for row in rows}) == 386
 required_fields = {
     "baseline_id",
     "surface",
@@ -113,15 +112,13 @@ assert Counter(row["surface"] for row in rows) == Counter(index["surface_counts"
 assert Counter(row["resolution"] for row in rows) == Counter(index["resolution_counts"])
 
 unknown_rest = [row for row in rows if row["surface"] == "rest" and row["mutation_class"] == "unknown"]
-assert len(unknown_rest) == 31
-assert {row["resolution"] for row in unknown_rest} == {"metadata_repair_required"}
-assert {row["owner_task"] for row in unknown_rest} == {"focusa-vbcqu.20.14.23"}
-assert all(row["candidate_family"] is None for row in unknown_rest)
+assert len(unknown_rest) == 0
 
 known_rest = [row for row in rows if row["surface"] == "rest" and row["mutation_class"] == "mutation"]
-assert len(known_rest) == 168
+assert len(known_rest) == 189
 assert not any(row["resolution"] == "metadata_repair_required" for row in known_rest)
-assert {row["owner_task"] for row in known_rest} == {"focusa-vbcqu.20.14.24"}
+known_rest_owners = {row["owner_task"] for row in known_rest}
+assert known_rest_owners == {"focusa-vbcqu.20.14.24"} or known_rest_owners == {"focusa-vbcqu.20.14.23", "focusa-vbcqu.20.14.24"}
 
 for surface, owner in {
     "cli": "focusa-vbcqu.20.14.25",

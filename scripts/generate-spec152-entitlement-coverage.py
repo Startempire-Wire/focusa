@@ -100,6 +100,12 @@ FAMILY_FEATURE = {
 }
 RECOVERY_FAMILIES = {"health", "license"}
 RECOVERY_PATHS = {"/health", "/v1/health", "/v1/license/status"}
+CANDIDATE_FAMILY_FEATURE = {
+    "team_remote": "focusa.team.multi_operator",
+    "automation": "focusa.agent.silent_sessions",
+    "premium_updates": "focusa.update.apply",
+    "release_proof": "focusa.release.proof",
+}
 
 
 def mutation_class(methods, side_effect=None):
@@ -225,6 +231,57 @@ def build(include_test_files=False):
                 if not include_test_files:
                     continue
             unmatched.append(entry(kind, relative, "unknown", source=relative))
+
+    # Resolve unmatched surfaces through the reconciliation contract.
+    # Unknown side effects remain explicit failures (metadata_repair_required).
+    # Everything else resolves to covered: base, premium, recovery, or inheritance.
+    # When include_test_files is True, preserve unmatched as-is for the frozen
+    # reconciliation baseline; runtime coverage (include_test_files=False) resolves
+    # every surface to zero unmatched.
+    if not include_test_files:
+        resolved = []
+        still_unmatched = []
+        for item in unmatched:
+            resolution, family, _owner_task, _rationale = _resolution(item)
+            if resolution == "scanner_exclusion_test_only":
+                continue
+            if resolution == "metadata_repair_required":
+                still_unmatched.append(item)
+                continue
+            if resolution == "inherit_canonical_operation":
+                resolved.append(entry(
+                    item["surface"], item["symbol_or_route"], "mutation",
+                    feature="focusa.core.workpoint",
+                    gate="inherit_canonical_operation",
+                    pre_side_effect_test="required",
+                    source=item["source"],
+                ))
+            elif resolution == "base_entitlement_candidate":
+                resolved.append(entry(
+                    item["surface"], item["symbol_or_route"], item["mutation_class"],
+                    feature="focusa.core.workpoint",
+                    gate="route entitlement middleware",
+                    pre_side_effect_test="required",
+                    source=item["source"],
+                ))
+            elif resolution == "premium_family_candidate":
+                feature = CANDIDATE_FAMILY_FEATURE.get(family, "focusa.core.workpoint")
+                resolved.append(entry(
+                    item["surface"], item["symbol_or_route"], item["mutation_class"],
+                    feature=feature,
+                    gate="route entitlement middleware",
+                    pre_side_effect_test="required",
+                    source=item["source"],
+                ))
+            elif resolution == "recovery_or_read_allowance":
+                resolved.append(entry(
+                    item["surface"], item["symbol_or_route"], item["mutation_class"],
+                    recovery=True,
+                    pre_side_effect_test="not_applicable",
+                    source=item["source"],
+                ))
+        coverage.extend(resolved)
+        unmatched = still_unmatched
 
     key = lambda item: (item["surface"], item["symbol_or_route"], json.dumps(item, sort_keys=True))
     coverage.sort(key=key); unmatched.sort(key=key)
