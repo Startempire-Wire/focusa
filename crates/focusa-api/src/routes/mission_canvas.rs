@@ -14,15 +14,16 @@ use focusa_core::mission_canvas::{
     resolve_projection, validate_profile_layout_memory, ActivityModeDefinition,
     ActivitySelectionCommand, ActivitySelectionError, ActivitySelectionService,
     CandidateContribution, CompositionEvent, CompositionRegistry, DomainPackInstallCommand,
-    DomainPackInstallError, DomainPackInstallService, EligibilityContext, HostLifecycleError,
-    HostLifecycleFocusCommand, HostLifecycleHideCommand, HostLifecycleLaunchCommand,
-    HostLifecycleService, HostLifecycleState, HostPlatform, HostRendererResolutionError,
-    HostRendererResolutionService, LayoutMemoryUpdateCommand, LayoutMemoryUpdateError,
-    LayoutMemoryUpdateService, LayoutMutationCommand, LayoutMutationError, LayoutMutationExecution,
-    LayoutMutationService, MissionCanvasScope, MissionCanvasStore, ProfileLayoutMemory,
-    ProfileSelectionCommand, ProfileSelectionError, ProfileSelectionService, RegistryDefinition,
-    ResolveProjectionInput, StoredDocument, WorkspaceProfileDefinition,
-    DOMAIN_PACK_INSTALL_CAPABILITY, LAYOUT_MEMORY_UPDATE_PERMISSION,
+    DomainPackInstallError, DomainPackInstallService, EligibilityContext,
+    HostLifecycleCloseCommand, HostLifecycleError, HostLifecycleFocusCommand,
+    HostLifecycleHideCommand, HostLifecycleLaunchCommand, HostLifecycleService, HostLifecycleState,
+    HostPlatform, HostRendererResolutionError, HostRendererResolutionService,
+    LayoutMemoryUpdateCommand, LayoutMemoryUpdateError, LayoutMemoryUpdateService,
+    LayoutMutationCommand, LayoutMutationError, LayoutMutationExecution, LayoutMutationService,
+    MissionCanvasScope, MissionCanvasStore, ProfileLayoutMemory, ProfileSelectionCommand,
+    ProfileSelectionError, ProfileSelectionService, RegistryDefinition, ResolveProjectionInput,
+    StoredDocument, WorkspaceProfileDefinition, DOMAIN_PACK_INSTALL_CAPABILITY,
+    LAYOUT_MEMORY_UPDATE_PERMISSION,
 };
 use focusa_core::workstream_context::{
     ActorRef, ActorType, AuthorityContext, WorkstreamContext, WorkstreamContextError,
@@ -313,10 +314,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/mission-canvas/rich-host/launch", post(launch_host))
         .route("/v1/mission-canvas/rich-host/focus", post(focus_host))
         .route("/v1/mission-canvas/rich-host/hide", post(hide_host))
-        .route(
-            "/v1/mission-canvas/rich-host/{action}",
-            post(update_host_lifecycle),
-        )
+        .route("/v1/mission-canvas/rich-host/close", post(close_host))
         .route("/v1/mission-canvas/drafts/{draft_id}", get(get_draft))
         .route("/v1/mission-canvas/drafts/sync", post(sync_draft))
         .route(
@@ -1880,7 +1878,7 @@ fn registered_registry_entries(
         }
         entries.insert(entry.entry_id.clone(), entry);
     }
-    Ok(entries.into_values().collect())
+    Ok(entries.values().cloned().collect())
 }
 
 async fn list_registry(
@@ -2474,28 +2472,30 @@ async fn hide_host(
     Ok(Json(serde_json::to_value(lifecycle).map_err(json_error)?))
 }
 
-async fn update_host_lifecycle(
+async fn close_host(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Path(action): Path<String>,
-    Json(mut request): Json<DocumentWriteRequest>,
+    Json(request): Json<RichHostCommandRequest>,
 ) -> ApiResult {
-    if !matches!(action.as_str(), "close") {
-        return Err(error(
-            StatusCode::NOT_FOUND,
-            "host_action_unknown",
-            "Unknown rich-host lifecycle action",
-        ));
-    }
-    request.payload["state"] = json!("closing");
-    write_document(
-        &state,
-        &headers,
-        "mission_canvas_host_lifecycle",
-        request,
-        &format!("host_{action}"),
-        "mission_canvas:host",
-    )
+    require_permission_with_state(&state, &headers, "mission_canvas:host")?;
+    validate_authority(&request.scope)?;
+    let context = host_renderer_workstream_context(&request.scope, &headers)
+        .map_err(host_renderer_context_error)?;
+    let permissions = permission_context(&headers, token_enabled(&state))
+        .list()
+        .into_iter()
+        .collect();
+    let command = HostLifecycleCloseCommand {
+        context,
+        scope: request.scope,
+        idempotency_key: request.idempotency_key,
+        capabilities: header_values(&headers, "x-focusa-capabilities"),
+        permissions,
+    };
+    let lifecycle: HostLifecycleState = HostLifecycleService
+        .close(&store(&state)?, &command, HostPlatform::current())
+        .map_err(host_lifecycle_error)?;
+    Ok(Json(serde_json::to_value(lifecycle).map_err(json_error)?))
 }
 
 async fn get_draft(
