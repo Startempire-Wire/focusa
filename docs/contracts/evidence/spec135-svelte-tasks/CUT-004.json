@@ -1,0 +1,56 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CUT-004",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Pi Mission Canvas command path now attempts Desktop rich-host resolution and focus/launch before any terminal overlay fallback, while preserving bounded compatibility projection for missing-desktop or failure cases.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "OPS-014",
+      "OPS-015",
+      "CUT-001"
+    ]
+  },
+  "targets": [
+    "apps/pi-extension/src/commands.ts",
+    "apps/pi-extension/src/mission-canvas-tool.ts",
+    "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs"
+  ],
+  "implementation": [
+    "'/mission-canvas' default and explicit open now route through resolve() + /v1/mission-canvas/rich-host/resolve before opening any Pi overlay.",
+    "A Desktop-first call path was added as 'desktopPresent.exactWorkstream', with deterministic scope+idempotency, exact-workstream authority headers, and generated-path operations (/resolve, /focus, /launch).",
+    "Failure to obtain Desktop handoff context, host fallback, or non-successful lifecycle responses now lands in 'compatibilityProjection.open' as bounded terminal overlay projection.",
+    "A compatibility shim is kept in-place for the Pi overlay and explicit terminal projection command routing via 'terminal|overlay|compat' action.",
+    "Tool output metadata was aligned to indicate Desktop/compatibility routing via 'desktop_or_pi_tui'."
+  ],
+  "negative_cases": [
+    "missing authority or continuity for host handoff falls back to Pi compatibility projection",
+    "host path unavailable (resolution unavailable/unavailable/fallback) uses compatibility projection",
+    "non-success focus/launch responses do not claim desktop success and do not throw fatal UI errors"
+  ],
+  "checks": [
+    {
+      "command": "npm --prefix apps/pi-extension run test:mission-canvas",
+      "result": "pass: mission-canvas command/shell/overlay/runtime static coverage remained green after Deskop handoff wiring"
+    },
+    {
+      "command": "npm --prefix apps/pi-extension run lint",
+      "result": "pass"
+    }
+  ],
+  "acceptance": [
+    "Default command path prefers Desktop rich-host when available and never binds the wrong Workstream context.",
+    "Pi command remains interactive and does not become permanent overlay rendering authority.",
+    "Failure paths remain truthful bounded compatibility projection fallback."
+  ],
+  "source_authority": [
+    "docs/contracts/spec135-svelte-task-packets/CUT-004.json",
+    "docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-desktop-callgraph.yaml",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml"
+  ],
+  "evidence_refs": [
+    "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs"
+  ],
+  "remaining_work": []
+}

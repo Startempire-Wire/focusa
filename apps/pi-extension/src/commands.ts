@@ -351,59 +351,160 @@ export function registerCommands(pi: ExtensionAPI) {
     },
   });
 
-  const handleMissionCanvasAction: MissionCanvasActionHandler = async (args, ctx) => {
-      const action = String(args || "").trim().toLowerCase();
-      const currentMode = resolveInteractionMode(getSessionCwd());
-      if (action.startsWith("profile ")) {
-        const profile = action.slice("profile ".length) as MissionCanvasWorkspaceProfile;
-        const profiles = new Set<MissionCanvasWorkspaceProfile>([
-          "general",
-          "software",
-          "legal",
-          "markets",
-          "research",
-          "custom",
-        ]);
-        if (!profiles.has(profile)) {
-          ctx.ui.notify("Usage: /mission-canvas profile general|software|legal|markets|research|custom", "info");
-          return;
+  const DESKTOP_TAURI_RENDERER = "focusa_desktop_tauri";
+  const MISSION_CANVAS_HOST_PERMISSION = "mission_canvas:host";
+  const MISSION_CANVAS_HOST_CAPABILITY = "mission_canvas";
+
+  type MissionCanvasHostRuntimeContext = {
+    baseUrl: string;
+    token: string;
+    actorId: string;
+    authorityRef: string;
+    continuityId: string;
+    workstream: WorkstreamKey;
+    attachmentId: string;
+    instanceId: string;
+    sessionId: string;
+  };
+
+  type MissionCanvasHostRequestScope = {
+    workstream: WorkstreamKey;
+    continuity_id: string;
+    attachment: {
+      attachment_id: string;
+      instance_id: string;
+      session_id: string;
+      workstream: WorkstreamKey;
+    };
+  };
+
+  type MissionCanvasHostResponse<T> = {
+    ok: boolean;
+    status: number;
+    payload?: T;
+  };
+
+  type MissionCanvasHostResolution = {
+    selected_renderer?: string;
+    availability?: "available" | "fallback" | "unavailable" | "headless" | string;
+    resolution_reason?: string;
+    interaction_mode?: "canvas-guided" | "terminal-guided" | "headless" | string;
+  };
+
+  function resolveMissionCanvasHostContext(): MissionCanvasHostRuntimeContext | null {
+    const attachment = currentAttachmentKey();
+    if (!attachment) return null;
+    const continuityId = String(attachment.workstream?.continuity_id || "").trim();
+    if (!continuityId || continuityId === "extension-bootstrap") return null;
+
+    try {
+      const runtime = getAttachmentRuntime(attachment);
+      const baseUrl = String(runtime?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1").replace(/\/+$/, "");
+      const authorityRef = `pi-attachment:${attachment.instance_id || "instance"}:${continuityId}`;
+      const projectRoot = String(
+        attachment.workstream?.root_scope?.root_path || getSessionCwd() || ""
+      ).trim();
+      const actorId = `pi:${process.pid}:${projectRoot || "unknown-project"}:${attachment.session_id || "session"}`;
+
+      return {
+        baseUrl,
+        token: runtime?.cfg?.focusaToken || "",
+        actorId,
+        authorityRef,
+        continuityId,
+        workstream: attachment.workstream,
+        attachmentId: attachment.attachment_id || attachment.session_id || "attachment",
+        instanceId: attachment.instance_id || "instance",
+        sessionId: attachment.session_id || "session",
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function missionCanvasHostRequestScope(context: MissionCanvasHostRuntimeContext): MissionCanvasHostRequestScope {
+    return {
+      workstream: context.workstream,
+      continuity_id: context.continuityId,
+      attachment: {
+        attachment_id: context.attachmentId,
+        instance_id: context.instanceId,
+        session_id: context.sessionId,
+        workstream: context.workstream,
+      },
+    };
+  }
+
+  function missionCanvasHostHeaders(context: MissionCanvasHostRuntimeContext): Record<string, string> {
+    return {
+      Accept: "application/json",
+      "X-Focusa-Client": "pi",
+      "X-Focusa-Actor-Id": context.actorId,
+      "X-Focusa-Authority-Ref": context.authorityRef,
+      "X-Focusa-Permissions": MISSION_CANVAS_HOST_PERMISSION,
+      "X-Focusa-Capabilities": MISSION_CANVAS_HOST_CAPABILITY,
+      ...(context.token ? { Authorization: `Bearer ${context.token}` } : {}),
+    };
+  }
+
+  async function missionCanvasHostRequest<T>(
+    context: MissionCanvasHostRuntimeContext,
+    method: "GET" | "POST",
+    path: string,
+    options: {
+      query?: MissionCanvasHostRequestScope;
+      body?: { workstream: WorkstreamKey; continuity_id?: string; attachment?: unknown; idempotency_key?: string };
+      capabilities?: string[];
+    } = {}
+  ): Promise<MissionCanvasHostResponse<T>> {
+    const init: RequestInit = {
+      method,
+      headers: {
+        ...missionCanvasHostHeaders(context),
+        ...(options.capabilities?.length
+          ? { "X-Focusa-Capabilities": options.capabilities.join(",") }
+          : {}),
+      },
+    };
+    const requestUrl = new URL(`${context.baseUrl}${path}`);
+
+    if (method === "GET" && options.query) {
+      requestUrl.searchParams.set("workstream", JSON.stringify(options.query.workstream));
+      requestUrl.searchParams.set("continuity_id", options.query.continuity_id);
+      requestUrl.searchParams.set("attachment", JSON.stringify(options.query.attachment));
+    }
+
+    if (method === "POST" && options.body) {
+      init.headers = {
+        ...init.headers,
+        "Content-Type": "application/json",
+      };
+      init.body = JSON.stringify(options.body);
+    }
+
+    try {
+      const response = await fetch(requestUrl, init);
+      const payloadText = await response.text();
+      let payload: T | undefined;
+      if (payloadText.trim()) {
+        try {
+          payload = JSON.parse(payloadText) as T;
+        } catch {
+          // Keep response payload undefined when JSON is not available.
         }
-        const saved = saveConfigOverrides(
-          getSessionCwd(),
-          { missionCanvasWorkspaceProfile: profile },
-          "project"
-        );
-        if (saved.errors.length) throw new Error(saved.errors.join("; "));
-        refreshMissionCanvasWidget(ctx);
-        ctx.ui.notify(`Mission Canvas workspace switched to ${profile}; canonical state is unchanged.`, "info");
-        return;
       }
-      if (["on", "off", "toggle", "status"].includes(action)) {
-        if (action === "status") {
-          ctx.ui.notify(
-            `Mission Canvas is ${currentMode.mode === "canvas-guided" ? "on" : "off"} · mode ${currentMode.mode} (${currentMode.source})`,
-            "info"
-          );
-          return;
-        }
-        const mode: FocusaInteractionMode =
-          action === "on" || (action === "toggle" && currentMode.mode !== "canvas-guided")
-            ? "canvas-guided"
-            : "terminal-guided";
-        const saved = saveConfigOverrides(getSessionCwd(), { interactionMode: mode }, "project");
-        if (saved.errors.length) throw new Error(saved.errors.join("; "));
-        refreshMissionCanvasWidget(ctx);
-        ctx.ui.notify(
-          `Mission Canvas switched ${mode === "canvas-guided" ? "on" : "off"}; Focusa canonical runtime remains active.`,
-          "info"
-        );
-        if (mode !== "canvas-guided") closeActiveMissionCanvasShell();
-        return;
-      }
-      if (action) {
-        ctx.ui.notify("Usage: /mission-canvas [on|off|toggle|status|profile <id>]", "info");
-        return;
-      }
+      return {
+        ok: response.ok,
+        status: response.status,
+        payload,
+      };
+    } catch {
+      return { ok: false, status: 0, payload: undefined };
+    }
+  }
+
+  const compatibilityProjection = {
+    async open(ctx: MissionCanvasActionContext): Promise<void> {
       const interactionMode = resolveInteractionMode(getSessionCwd());
       if (hasActiveMissionCanvasShell() || !ctx.hasUI) return;
       const loadModel = async (): Promise<MissionCanvasModel> => {
@@ -591,7 +692,7 @@ export function registerCommands(pi: ExtensionAPI) {
             },
             async () => {
               await openMissionCanvasSurfaceManager(pi, ctx);
-              await handleMissionCanvasAction("", ctx);
+              await compatibilityProjection.open(ctx);
             },
             () => handleMissionCanvasAction("off", ctx)
           ),
@@ -607,6 +708,142 @@ export function registerCommands(pi: ExtensionAPI) {
           }
         )
         .catch((error) => ctx.ui.notify(`Mission Canvas shell failed: ${String(error)}`, "error"));
+    }
+  };
+
+  const desktopPresent = {
+    async exactWorkstream(ctx: MissionCanvasActionContext): Promise<void> {
+      const hostContext = resolveMissionCanvasHostContext();
+      if (!hostContext) {
+        await compatibilityProjection.open(ctx);
+        return;
+      }
+
+      const scope = missionCanvasHostRequestScope(hostContext);
+      const commandId = `${scope.workstream.root_scope.fingerprint}:${hostContext.continuityId}:${Date.now()}:${process.pid}`;
+      const resolution = await missionCanvasHostRequest<MissionCanvasHostResolution>(
+        hostContext,
+        "GET",
+        "/v1/mission-canvas/rich-host/resolution",
+        {
+          query: scope,
+          capabilities: [MISSION_CANVAS_HOST_CAPABILITY],
+        }
+      );
+
+      if (
+        !resolution.ok ||
+        resolution.payload?.selected_renderer !== DESKTOP_TAURI_RENDERER ||
+        resolution.payload?.availability === "unavailable"
+      ) {
+        await compatibilityProjection.open(ctx);
+        return;
+      }
+
+      const focusPayload = {
+        ...scope,
+        idempotency_key: `focus:${commandId}`,
+      };
+      const focusResponse = await missionCanvasHostRequest(
+        hostContext,
+        "POST",
+        "/v1/mission-canvas/rich-host/focus",
+        {
+          body: focusPayload,
+          capabilities: [MISSION_CANVAS_HOST_CAPABILITY],
+        }
+      );
+      if (focusResponse.ok) return;
+
+      if ([404, 409].includes(focusResponse.status)) {
+        const launchPayload = {
+          ...scope,
+          idempotency_key: `launch:${commandId}`,
+        };
+        const launchResponse = await missionCanvasHostRequest(
+          hostContext,
+          "POST",
+          "/v1/mission-canvas/rich-host/launch",
+          {
+            body: launchPayload,
+            capabilities: [MISSION_CANVAS_HOST_CAPABILITY],
+          }
+        );
+        if (launchResponse.ok) return;
+      }
+
+      await compatibilityProjection.open(ctx);
+    },
+  };
+
+  const handleMissionCanvasAction: MissionCanvasActionHandler = async (args, ctx) => {
+    const action = String(args || "").trim().toLowerCase();
+    const currentMode = resolveInteractionMode(getSessionCwd());
+
+    if (action.startsWith("profile ")) {
+      const profile = action.slice("profile ".length) as MissionCanvasWorkspaceProfile;
+      const profiles = new Set<MissionCanvasWorkspaceProfile>([
+        "general",
+        "software",
+        "legal",
+        "markets",
+        "research",
+        "custom",
+      ]);
+      if (!profiles.has(profile)) {
+        ctx.ui.notify("Usage: /mission-canvas profile general|software|legal|markets|research|custom", "info");
+        return;
+      }
+      const saved = saveConfigOverrides(
+        getSessionCwd(),
+        { missionCanvasWorkspaceProfile: profile },
+        "project"
+      );
+      if (saved.errors.length) throw new Error(saved.errors.join("; "));
+      refreshMissionCanvasWidget(ctx);
+      ctx.ui.notify(`Mission Canvas workspace switched to ${profile}; canonical state is unchanged.`, "info");
+      return;
+    }
+
+    if (["on", "off", "toggle", "status"].includes(action)) {
+      if (action === "status") {
+        ctx.ui.notify(
+          `Mission Canvas is ${currentMode.mode === "canvas-guided" ? "on" : "off"} · mode ${currentMode.mode} (${currentMode.source})`,
+          "info"
+        );
+        return;
+      }
+      const mode: FocusaInteractionMode =
+        action === "on" || (action === "toggle" && currentMode.mode !== "canvas-guided")
+          ? "canvas-guided"
+          : "terminal-guided";
+      const saved = saveConfigOverrides(getSessionCwd(), { interactionMode: mode }, "project");
+      if (saved.errors.length) throw new Error(saved.errors.join("; "));
+      refreshMissionCanvasWidget(ctx);
+      ctx.ui.notify(
+        `Mission Canvas switched ${mode === "canvas-guided" ? "on" : "off"}; Focusa canonical runtime remains active.`,
+        "info"
+      );
+      if (mode !== "canvas-guided") closeActiveMissionCanvasShell();
+      return;
+    }
+
+    if (action === "desktop" || action === "open") {
+      await desktopPresent.exactWorkstream(ctx);
+      return;
+    }
+
+    if (action === "terminal" || action === "overlay" || action === "compat") {
+      await compatibilityProjection.open(ctx);
+      return;
+    }
+
+    if (action) {
+      ctx.ui.notify("Usage: /mission-canvas [on|off|toggle|status|desktop|open|terminal|profile <id>]", "info");
+      return;
+    }
+
+    await desktopPresent.exactWorkstream(ctx);
   };
   missionCanvasActionHandler = handleMissionCanvasAction;
   pi.registerCommand("mission-canvas", {

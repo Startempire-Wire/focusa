@@ -111,10 +111,10 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
     name: "focusa_mission_canvas",
     label: "Mission Canvas",
     description:
-      "Programmatically open or control the native Pi Mission Canvas. Actions on/off/toggle/set_profile change only its presentation mode; Focusa canonical runtime remains active.",
+      "Programmatically open or control Mission Canvas. Open routes through the Desktop rich-host handoff and falls back to the Pi compatibility projection when Desktop is unavailable.",
     parameters: Type.Object({
       action: Type.Union(ACTIONS.map((action) => Type.Literal(action)), {
-        description: "Mission Canvas operation. open renders the real native Pi GUI in the current session.",
+        description: "Mission Canvas operation. open requests a Desktop handoff (with legacy Pi fallback when required).",
       }),
       profile: Type.Optional(
         Type.Union(PROFILES.map((profile) => Type.Literal(profile)), {
@@ -138,8 +138,7 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
             ? `profile ${String(params.profile) as MissionCanvasWorkspaceProfile}`
             : params.action;
       const cwd = getSessionCwd();
-      // Mission Canvas is the current Pi TypeScript TUI itself. The tool must
-      // never launch a browser, webview, native sidecar, or remote host.
+      // Mission Canvas delegates to the shared controller for Desktop handoff and compatibility fallback.
       await executeMissionCanvasAction(command, ctx);
       const effectiveInteraction = resolveInteractionMode(cwd);
       const effectivePresentation = loadConfig(cwd).config;
@@ -156,7 +155,7 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
         workspace_profile: effectivePresentation.missionCanvasWorkspaceProfile,
         visual_variant: effectivePresentation.missionCanvasVisualVariant,
         canonical_runtime_active: true,
-        gui: "pi_tui",
+        gui: "desktop_or_pi_tui",
         host_scope: "current_pi_session",
       };
       return {
