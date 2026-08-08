@@ -464,7 +464,20 @@ pub(crate) fn entitlement_allows_mutation(guard: &focusa_license::LicenseGuard) 
 
 pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
     if matches!(method, &Method::GET | &Method::HEAD | &Method::OPTIONS) {
-        return false;
+        if path == "/health"
+            || path == "/v1/health"
+            || path == "/v1/version"
+            || path == "/v1/update/check"
+            || path == "/v1/update/plan"
+            || path == "/v1/update/rollback"
+            || is_read_only_preflight(path)
+            || is_recovery_export(path)
+            || path.starts_with("/v1/license/")
+            || route_is_known_read_without_side_effect(method, path)
+        {
+            return false;
+        }
+        return true;
     }
     let recovery_path = path == "/health"
         || path == "/v1/health"
@@ -476,6 +489,24 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
         || is_recovery_export(path)
         || path.starts_with("/v1/license/");
     !recovery_path
+}
+
+fn route_is_known_read_without_side_effect(method: &Method, path: &str) -> bool {
+    route_has_classified_read(method, path) || route_has_declared_methods(path)
+}
+
+fn route_has_classified_read(method: &Method, path: &str) -> bool {
+    resolve_route_entitlement_policy(method, path)
+        .is_some_and(|policy| policy.operation_class == focusa_license::OperationClass::Read)
+}
+
+fn route_has_declared_methods(path: &str) -> bool {
+    entitlement_metadata().is_some_and(|metadata| {
+        metadata
+            .routes
+            .iter()
+            .any(|route| !route.methods.is_empty() && path_template_matches(&route.path, path))
+    })
 }
 
 fn is_read_only_preflight(path: &str) -> bool {
@@ -526,6 +557,19 @@ mod tests {
             "/v1/device/pair/start"
         ));
         assert!(!route_requires_entitlement(&Method::GET, "/v1/health"));
+        assert!(!route_requires_entitlement(&Method::GET, "/v1/version"));
+        assert!(!route_requires_entitlement(
+            &Method::GET,
+            "/v1/device/pair/status"
+        ));
+        assert!(route_requires_entitlement(
+            &Method::GET,
+            "/v1/device/pair/list"
+        ));
+        assert!(route_requires_entitlement(
+            &Method::GET,
+            "/v1/connect/rooms"
+        ));
         assert!(!route_requires_entitlement(
             &Method::POST,
             "/v1/update/check"
@@ -634,6 +678,12 @@ mod tests {
         assert_eq!(route_entitlement_denial(&guard, &Method::POST, team_path), None);
         assert_eq!(
             route_entitlement_denial(&LicenseGuard::eval(7), &Method::POST, "/v1/unclassified/mutation")
+                .unwrap()
+                .code,
+            "ENTITLEMENT_ROUTE_UNCLASSIFIED"
+        );
+        assert_eq!(
+            route_entitlement_denial(&LicenseGuard::eval(7), &Method::GET, "/v1/connect/rooms")
                 .unwrap()
                 .code,
             "ENTITLEMENT_ROUTE_UNCLASSIFIED"
