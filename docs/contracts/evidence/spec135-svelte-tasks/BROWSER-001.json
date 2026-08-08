@@ -1,0 +1,30 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "BROWSER-001",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Desktop browser Work Surface adapter renders exact UIAI browser artifact descriptors metadata-only; browser execution remains exclusively in UIAI Engine.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": []
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/generated-browser-acceptance.mjs --case uiai-artifact",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}

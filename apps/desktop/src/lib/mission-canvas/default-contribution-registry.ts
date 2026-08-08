@@ -3,6 +3,7 @@ import PromptEditorContribution from './contributions/PromptEditorContribution.s
 import SteeringQueueContribution from './contributions/SteeringQueueContribution.svelte';
 import FollowUpQueueContribution from './contributions/FollowUpQueueContribution.svelte';
 import WorkSurfaceContribution from './contributions/WorkSurfaceContribution.svelte';
+import BrowserArtifactContribution from './contributions/BrowserArtifactContribution.svelte';
 import SessionInventoryContribution from './contributions/SessionInventoryContribution.svelte';
 import WorkRailContribution from './contributions/WorkRailContribution.svelte';
 import CanonicalEventHistoryContribution from './contributions/CanonicalEventHistoryContribution.svelte';
@@ -39,6 +40,11 @@ export const DEFAULT_CONTRIBUTION_RENDERERS = [
     rendererBindingId: 'renderer:artifact:markdown@v1',
     contributionKinds: ['focused_work_surface', 'generated_surface'],
     component: WorkSurfaceContribution
+  },
+  {
+    rendererBindingId: 'renderer:artifact:browser_snapshot@v1',
+    contributionKinds: ['focused_work_surface', 'generated_surface'],
+    component: BrowserArtifactContribution
   },
   {
     rendererBindingId: 'renderer:silent-sessions@v1',
