@@ -1,11 +1,13 @@
 use agent_stateful_cognitive_runtime::{
     ClientToolRequest, ClientToolResult, RuntimeBinding, ToolResultStatus,
 };
+use chrono::{Duration, Utc};
 use focusa_core::license::{
     evaluate_entitlement_execution,
     EntitlementExecutionContext,
     EntitlementExecutionPolicy,
 };
+use focusa_license::LicenseGuard;
 use letta_adapter::{AdapterFuture, LettaAdapterError, PiClientToolGateway};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -179,7 +181,7 @@ fn entitlement_policy_for_manifest(
 
 fn evaluate_tool_entitlement(
     manifest: &ToolManifest,
-    license_guard: &focusa_core::license::LicenseGuard,
+    license_guard: &LicenseGuard,
 ) -> Result<(), GatewayError> {
     evaluate_entitlement_execution(
         license_guard,
@@ -214,7 +216,7 @@ pub struct Gateway<G, E> {
     manifests: BTreeMap<String, ToolManifest>,
     guard: Arc<G>,
     executor: Arc<E>,
-    entitlement_guard: Option<focusa_core::license::LicenseGuard>,
+    entitlement_guard: Option<LicenseGuard>,
 }
 
 impl<G, E> Gateway<G, E>
@@ -240,14 +242,14 @@ where
 
     pub fn with_entitlement_guard(
         mut self,
-        entitlement_guard: focusa_core::license::LicenseGuard,
+        entitlement_guard: LicenseGuard,
     ) -> Self {
         self.entitlement_guard = Some(entitlement_guard);
         self
     }
 
     pub fn with_resolved_entitlement_guard(self) -> Self {
-        self.with_entitlement_guard(focusa_core::license::resolve_license_guard())
+        self.with_entitlement_guard(focusa_license::resolve_license_guard())
     }
 
     pub async fn execute_governed(
@@ -275,7 +277,7 @@ where
         let entitlement_guard = self
             .entitlement_guard
             .as_ref()
-            .unwrap_or(&focusa_core::license::resolve_license_guard());
+            .unwrap_or(&focusa_license::resolve_license_guard());
         evaluate_tool_entitlement(manifest, entitlement_guard)?;
         let decision = self.guard.authorize(binding, request, manifest).await?;
         if !decision.permitted {
