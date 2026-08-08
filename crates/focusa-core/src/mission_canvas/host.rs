@@ -25,6 +25,7 @@ pub const RICH_HOST_RESOLVE_OPERATION: &str = "focusa.mission_canvas.rich_host.r
 pub const RICH_HOST_LAUNCH_OPERATION: &str = "focusa.mission_canvas.rich_host.launch";
 pub const RICH_HOST_FOCUS_OPERATION: &str = "focusa.mission_canvas.rich_host.focus";
 pub const RICH_HOST_HIDE_OPERATION: &str = "focusa.mission_canvas.rich_host.hide";
+pub const RICH_HOST_CLOSE_OPERATION: &str = "focusa.mission_canvas.rich_host.close";
 pub const RICH_HOST_PERMISSION: &str = "mission_canvas:host";
 /// Capability advertised by the generated Desktop host client.  The short
 /// alias is retained because existing capability projections use
@@ -198,6 +199,18 @@ pub struct HostLifecycleHideCommand {
     pub permissions: BTreeSet<String>,
 }
 
+/// Exact generated input for the close mutation.  Closing is a lifecycle end
+/// transition that avoids destruction: the projection document remains owned by
+/// the exact Workstream and only the presentation state changes.
+#[derive(Clone, Debug)]
+pub struct HostLifecycleCloseCommand {
+    pub context: WorkstreamContext,
+    pub scope: MissionCanvasScope,
+    pub idempotency_key: String,
+    pub capabilities: BTreeSet<String>,
+    pub permissions: BTreeSet<String>,
+}
+
 #[derive(Debug, Error)]
 pub enum HostLifecycleError {
     #[error("rich-host Workstream context is invalid: {0}")]
@@ -277,7 +290,14 @@ impl HostLifecycleService {
         command: &HostLifecycleHideCommand,
         platform: HostPlatform,
     ) -> Result<HostLifecycleState, HostLifecycleError> {
-        let _resolution = self.validate(command, platform)?;
+        let _resolution = self.validate_command(
+            &command.context,
+            &command.scope,
+            &command.idempotency_key,
+            &command.capabilities,
+            &command.permissions,
+            platform,
+        )?;
         let host_instance_id = stable_host_instance_id(&command.scope)?;
         let document_id = format!("host:{host_instance_id}");
         let existing = store.get_document(
@@ -363,6 +383,124 @@ impl HostLifecycleService {
             }),
             evidence_refs: vec![],
             receipt_refs: vec![format!("receipt:rich-host-hide:{lifecycle_revision}")],
+        };
+        let document = StoredDocument {
+            document_id,
+            scope: command.scope.clone(),
+            revision: lifecycle_revision,
+            payload: json!({
+                "idempotency_key": command.idempotency_key,
+                "state": state,
+            }),
+            updated_at: now,
+        };
+        let persisted =
+            store.put_idempotent_lifecycle_document(&document, &command.idempotency_key, &event)?;
+        let (persisted_state, _) = lifecycle_document(&persisted, &command.scope)?;
+        Ok(persisted_state)
+    }
+
+    pub fn close(
+        &self,
+        store: &MissionCanvasStore,
+        command: &HostLifecycleCloseCommand,
+        platform: HostPlatform,
+    ) -> Result<HostLifecycleState, HostLifecycleError> {
+        let _resolution = self.validate_command(
+            &command.context,
+            &command.scope,
+            &command.idempotency_key,
+            &command.capabilities,
+            &command.permissions,
+            platform,
+        )?;
+        let host_instance_id = stable_host_instance_id(&command.scope)?;
+        let document_id = format!("host:{host_instance_id}");
+        let existing = store.get_document(
+            "mission_canvas_host_lifecycle",
+            &command.scope,
+            &document_id,
+        )?;
+        let Some(document) = existing else {
+            return Err(HostLifecycleError::PresentationNotFound);
+        };
+        let (previous_state, previous_idempotency_key) =
+            lifecycle_document(&document, &command.scope)?;
+        if previous_state.lifecycle_revision != document.revision {
+            return Err(HostLifecycleError::InvalidDocument(
+                "document revision does not match lifecycle revision".into(),
+            ));
+        }
+        if previous_state.host_instance_id != host_instance_id {
+            return Err(HostLifecycleError::InvalidDocument(
+                "host instance is not derived from the exact Workstream scope".into(),
+            ));
+        }
+        if matches!(previous_state.state.as_str(), "absent" | "failed") {
+            return Err(HostLifecycleError::PresentationUnavailable(
+                previous_state.state.clone(),
+            ));
+        }
+        if previous_state.state == "closing" {
+            if previous_idempotency_key == command.idempotency_key && !previous_state.focused {
+                return Ok(previous_state);
+            }
+            return Err(HostLifecycleError::PresentationUnavailable(
+                previous_state.state.clone(),
+            ));
+        }
+        if previous_idempotency_key == command.idempotency_key {
+            return Err(HostLifecycleError::IdempotencyConflict);
+        }
+
+        let lifecycle_revision = previous_state
+            .lifecycle_revision
+            .checked_add(1)
+            .ok_or_else(|| {
+                HostLifecycleError::InvalidDocument("lifecycle revision overflow".into())
+            })?;
+        let now = Utc::now().to_rfc3339();
+        let state = HostLifecycleState {
+            scope: command.scope.clone(),
+            host_instance_id: host_instance_id.clone(),
+            renderer_resolution: previous_state.renderer_resolution.clone(),
+            state: "closing".into(),
+            focused: false,
+            process_id: previous_state.process_id,
+            window_id: previous_state.window_id.clone(),
+            pi_draft_ref: previous_state.pi_draft_ref.clone(),
+            canvas_draft_ref: previous_state.canvas_draft_ref.clone(),
+            last_error_ref: previous_state.last_error_ref.clone(),
+            durable_event_cursor: "event:pending".into(),
+            lifecycle_revision,
+            updated_at: now.clone(),
+        };
+        state
+            .validate_scope(&command.scope)
+            .map_err(HostLifecycleError::Scope)?;
+        let event = CompositionEvent {
+            event_id: format!(
+                "projection-event:rich-host-close:{}:{}",
+                host_instance_id.replace(':', "-"),
+                digest_fragment(&command.idempotency_key),
+            ),
+            event_kind: "host_closed".into(),
+            scope: command.scope.clone(),
+            // Closing changes lifecycle visibility only; canonical composition
+            // revision is unchanged.
+            projection_revision: 0,
+            layout_revision: 0,
+            causation_id: Some(command.idempotency_key.clone()),
+            correlation_id: Some(command.context.authority.authority_ref.clone()),
+            occurred_at: now.clone(),
+            payload: json!({
+                "operation_id": RICH_HOST_CLOSE_OPERATION,
+                "host_instance_id": host_instance_id,
+                "renderer": state.renderer_resolution.selected_renderer.clone(),
+                "lifecycle_revision": lifecycle_revision,
+            }),
+            evidence_refs: vec![],
+            receipt_refs: vec![format!("receipt:rich-host-close:{lifecycle_revision}")],
         };
         let document = StoredDocument {
             document_id,
@@ -1001,6 +1139,109 @@ mod tests {
             Err(HostLifecycleError::Resolution(
                 HostRendererResolutionError::Context(WorkstreamContextError::WorkstreamMismatch)
             ))
+        ));
+    }
+
+    #[test]
+    fn close_requires_existing_presentation_and_preserves_lifecycle_context() {
+        let owner = workstream("ws:close");
+        let scope = MissionCanvasScope::new(owner.clone(), None).unwrap();
+        let context = request(owner);
+        let service = HostLifecycleService;
+        let store = MissionCanvasStore::open_in_memory().unwrap();
+        let close_command = HostLifecycleCloseCommand {
+            context: context.clone(),
+            scope: scope.clone(),
+            idempotency_key: "close:initial".into(),
+            capabilities: [DESKTOP_TAURI_CAPABILITY.into()].into_iter().collect(),
+            permissions: [RICH_HOST_PERMISSION.into()].into_iter().collect(),
+        };
+
+        assert!(matches!(
+            service.close(&store, &close_command, HostPlatform::MacOS),
+            Err(HostLifecycleError::PresentationNotFound)
+        ));
+
+        let launched = service
+            .launch(
+                &store,
+                &HostLifecycleLaunchCommand {
+                    context: context.clone(),
+                    scope: scope.clone(),
+                    idempotency_key: "launch:close".into(),
+                    capabilities: [DESKTOP_TAURI_CAPABILITY.into()].into_iter().collect(),
+                    permissions: [RICH_HOST_PERMISSION.into()].into_iter().collect(),
+                },
+                HostPlatform::MacOS,
+            )
+            .unwrap();
+        let closed = service
+            .close(&store, &close_command, HostPlatform::MacOS)
+            .unwrap();
+
+        assert_eq!(closed.state, "closing");
+        assert_eq!(closed.focused, false);
+        assert_eq!(closed.lifecycle_revision, 2);
+        assert_eq!(closed.host_instance_id, launched.host_instance_id);
+        assert_eq!(closed.window_id, launched.window_id);
+        assert_eq!(closed.renderer_resolution, launched.renderer_resolution);
+
+        let events = store.events_after(&scope, 0, 10).unwrap();
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[1].1.event_kind, "host_closed");
+        assert_eq!(events[1].1.projection_revision, 0);
+        assert_eq!(events[1].1.layout_revision, 0);
+        assert_eq!(
+            events[1].1.payload["operation_id"],
+            RICH_HOST_CLOSE_OPERATION
+        );
+
+        let retry = service
+            .close(&store, &close_command, HostPlatform::MacOS)
+            .unwrap();
+        assert_eq!(retry, closed);
+        assert_eq!(store.events_after(&scope, 0, 10).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn close_is_unavailable_once_closing_or_failed_state() {
+        let owner = workstream("ws:close-unavailable");
+        let scope = MissionCanvasScope::new(owner.clone(), None).unwrap();
+        let context = request(owner);
+        let service = HostLifecycleService;
+        let store = MissionCanvasStore::open_in_memory().unwrap();
+        service
+            .launch(
+                &store,
+                &HostLifecycleLaunchCommand {
+                    context: context.clone(),
+                    scope: scope.clone(),
+                    idempotency_key: "launch:close-unavailable".into(),
+                    capabilities: [DESKTOP_TAURI_CAPABILITY.into()].into_iter().collect(),
+                    permissions: [RICH_HOST_PERMISSION.into()].into_iter().collect(),
+                },
+                HostPlatform::MacOS,
+            )
+            .unwrap();
+        let command = HostLifecycleCloseCommand {
+            context: context.clone(),
+            scope: scope.clone(),
+            idempotency_key: "close:blocking".into(),
+            capabilities: [DESKTOP_TAURI_CAPABILITY.into()].into_iter().collect(),
+            permissions: [RICH_HOST_PERMISSION.into()].into_iter().collect(),
+        };
+        let first = service
+            .close(&store, &command, HostPlatform::MacOS)
+            .unwrap();
+        assert_eq!(first.state, "closing");
+
+        let blocking = HostLifecycleCloseCommand {
+            idempotency_key: "close:different".into(),
+            ..command
+        };
+        assert!(matches!(
+            service.close(&store, &blocking, HostPlatform::MacOS),
+            Err(HostLifecycleError::PresentationUnavailable(_))
         ));
     }
 }

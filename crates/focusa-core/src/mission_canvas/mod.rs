@@ -20,12 +20,13 @@ pub use domain_pack::{
 };
 pub use host::{
     HostLifecycleError, HostLifecycleFocusCommand, HostLifecycleHideCommand,
-    HostLifecycleLaunchCommand, HostLifecycleService, HostLifecycleState, HostPlatform,
-    HostRendererResolution, HostRendererResolutionError, HostRendererResolutionService,
-    DESKTOP_TAURI_CAPABILITY, DESKTOP_TAURI_RENDERER, HOST_RESOLVER_REVISION,
-    PI_OVERLAY_COMPATIBILITY_CAPABILITY, PI_OVERLAY_RENDERER, RICH_HOST_FOCUS_OPERATION,
-    RICH_HOST_HIDE_OPERATION, RICH_HOST_LAUNCH_OPERATION, RICH_HOST_PERMISSION,
-    RICH_HOST_RESOLVE_CAPABILITY, RICH_HOST_RESOLVE_OPERATION,
+    HostLifecycleCloseCommand, HostLifecycleLaunchCommand, HostLifecycleService,
+    HostLifecycleState, HostPlatform, HostRendererResolution, HostRendererResolutionError,
+    HostRendererResolutionService, DESKTOP_TAURI_CAPABILITY, DESKTOP_TAURI_RENDERER,
+    HOST_RESOLVER_REVISION, PI_OVERLAY_COMPATIBILITY_CAPABILITY, PI_OVERLAY_RENDERER,
+    RICH_HOST_CLOSE_OPERATION, RICH_HOST_FOCUS_OPERATION, RICH_HOST_HIDE_OPERATION,
+    RICH_HOST_LAUNCH_OPERATION, RICH_HOST_PERMISSION, RICH_HOST_RESOLVE_CAPABILITY,
+    RICH_HOST_RESOLVE_OPERATION,
 };
 pub use layout::{
     resolve_layout, validate_no_dead_chrome, LayoutConstraints, LayoutError, LayoutNode,
