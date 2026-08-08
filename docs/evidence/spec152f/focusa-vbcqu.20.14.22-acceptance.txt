@@ -1,0 +1,54 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.22
+Title: 152F.03.01 Add operation-family metadata to canonical registry
+Implementation commit: `722c1a3629b7a2c754869f7d3df17cd4518e1308`
+
+Exact surfaces
+- docs/contracts/spec135/generated-contract-v1/operation-registry.json
+- scripts/generate-spec135-operation-contracts.py
+- apps/pi-extension/src/tool-contracts.ts
+- scripts/generate-agent-capability-descriptors.ts
+- generated Spec 135/OpenAPI and Spec 141 Agent Capability Descriptor V2 projections
+- tests/spec152f_operation_policy_metadata_test.py
+
+Bounded result
+- Added generated, stable-ID-preserving operation policy metadata for all 108
+  canonical operations: operation class, capability family, commercial treatment,
+  policy activation, required feature, limit bucket, recovery allowance, source
+  owner, and the single entitlement-policy owner.
+- Recovery, read, and base classifications are derived from canonical operation
+  semantics. No caller-controlled product, price, grant, key, lease, or presenter
+  decision was introduced; premium dimensions remain explicit and dormant when no
+  operation declares them.
+- Projected the same metadata through generated OpenAPI and Agent Capability
+  Descriptor V2/REST outputs. The Agent Descriptor V2 input contracts now carry
+  the typed policy shape, and generated outputs retain stable operation IDs.
+
+Exact verification (exit codes)
+1. `python3 tests/spec135_operation_registry_test.py && python3 tests/spec152f_operation_policy_metadata_test.py` — exit 0.
+   Result: Spec 135 PASS (108 operations, 108 UI bindings); Spec 152F policy
+   metadata PASS (108 canonical operations, 135 Agent Descriptor V2 capabilities).
+2. `python3 scripts/generate-spec135-operation-contracts.py --check` — exit 0.
+   Result: generated operation registry, OpenAPI projection, and UI bindings
+   reproduce without diff.
+
+Regression and source checks (exit codes)
+- `python3 -m json.tool` on the generated operation registry, Agent Descriptor
+  V2 registry, and REST projection — exit 0.
+- `git diff --check` before commit — exit 0.
+- `bun build apps/pi-extension/src/tool-contracts.ts --outfile=/tmp/focusa-tool-contracts.js --target=node` — exit 0.
+- `npx --yes esbuild scripts/generate-agent-capability-descriptors.ts --bundle --format=esm --platform=node --external:'*' --outfile=/tmp/focusa-generate-agent.js` — exit 0.
+- The direct `npx --yes tsx scripts/generate-agent-capability-descriptors.ts` invocation was attempted and returned exit 1 because the checkout has no installed `@sinclair/typebox` dependency; generated V2 outputs were checked by the focused metadata test and source syntax was checked by esbuild. No dependency installation or source-tree mutation was performed.
+
+Tests added
+- `tests/spec152f_operation_policy_metadata_test.py` validates closed policy
+  values, one policy owner per callable operation, canonical-route parity,
+  generated projection coverage, and generator drift.
+
+Rollback
+- Revert only implementation commit `722c1a3629b7a2c754869f7d3df17cd4518e1308`
+  and this evidence record if required. Preserve customers, orders, refunds,
+  licenses, nodes, sequences, customer data, migration journals, generated
+  authority history, and already accepted entitlement/recovery behavior.
+
+No push, deploy, release, merge, or Beads mutation was performed.
