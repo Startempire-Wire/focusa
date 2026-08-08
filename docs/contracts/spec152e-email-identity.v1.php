@@ -373,6 +373,52 @@ final class FocusaSpec152eEmailIdentityRepository
         return $this->secrets->decrypt($envelope);
     }
 
+    public function findByUuid(string $identityUuid): array
+    {
+        $this->assertUuid($identityUuid, 'identity');
+        return $this->findSafeByUuid($identityUuid);
+    }
+
+    public function settleConsent(string $identityUuid, string $consentField, string $occurredAt): array
+    {
+        $this->assertUuid($identityUuid, 'identity');
+        if (!in_array($consentField, ['transactional_consent_at', 'promotional_consent_at'], true)) {
+            throw new InvalidArgumentException('bounded consent field required');
+        }
+        FocusaSpec152eEmailIdentityMigration::assertTimestamp($occurredAt);
+        $table = $this->schema->table('wpuiai_email_identities');
+        $statement = $this->db->prepare("UPDATE {$table} SET {$consentField} = :occurred, updated_at = :occurred
+            WHERE identity_uuid = :identity AND {$consentField} IS NULL");
+        $statement->execute([
+            ':occurred' => $occurredAt,
+            ':identity' => $identityUuid,
+        ]);
+        if ($statement->rowCount() !== 1) {
+            throw new DomainException('CONSENT_ALREADY_SETTLED');
+        }
+        return $this->findSafeByUuid($identityUuid);
+    }
+
+    public function revokePromotionalConsent(string $identityUuid, string $occurredAt): array
+    {
+        $this->assertUuid($identityUuid, 'identity');
+        FocusaSpec152eEmailIdentityMigration::assertTimestamp($occurredAt);
+        $table = $this->schema->table('wpuiai_email_identities');
+        $statement = $this->db->prepare("UPDATE {$table} SET
+            promotional_consent_revoked_at = :occurred,
+            suppression_state = CASE WHEN suppression_state = 'none' THEN 'promotional' ELSE suppression_state END,
+            updated_at = :occurred
+            WHERE identity_uuid = :identity");
+        $statement->execute([
+            ':occurred' => $occurredAt,
+            ':identity' => $identityUuid,
+        ]);
+        if ($statement->rowCount() !== 1) {
+            throw new OutOfBoundsException('email identity not found');
+        }
+        return $this->findSafeByUuid($identityUuid);
+    }
+
     public function recordDeliveryState(string $identityUuid, string $bounceState, string $suppressionState, string $occurredAt): array
     {
         $this->assertUuid($identityUuid, 'identity');
