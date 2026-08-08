@@ -2539,19 +2539,65 @@ async fn sync_draft(
 }
 
 async fn resolve_recipient(
+    State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(request): Json<RecipientResolveRequest>,
 ) -> ApiResult {
     require_permission(&headers, "mission_canvas:draft")?;
     validate_authority(&request.scope)?;
-    if request.recipient_ref.trim().is_empty() {
+    exact_workstream_context(&request.scope, &headers).map_err(host_renderer_context_error)?;
+    let recipient_ref = request.recipient_ref.trim().to_owned();
+    if recipient_ref.is_empty() {
         return Err(error(
             StatusCode::UNPROCESSABLE_ENTITY,
             "recipient_missing",
             "recipient_ref is required",
         ));
     }
-    let scope = request.scope;
+    let parts: Vec<&str> = recipient_ref.splitn(3, ':').collect();
+    if parts.len() != 3 || parts[0] != "recipient" || parts[1].is_empty() || parts[2].is_empty() {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "recipient_invalid",
+            "recipient_ref must be recipient:{kind}:{id}",
+        ));
+    }
+    let scope = &request.scope;
+    let routable = match parts[1] {
+        // Aggregate Workstream recipients are always routable under the exact scope.
+        "workstream" => true,
+        // Surface-bound session recipients require exact Attachment + Work Surface
+        // authority; the recipient id must match the bound session.
+        "session" => {
+            if scope.attachment.is_none() || scope.work_surface_id.is_none() {
+                return Err(error(
+                    StatusCode::FORBIDDEN,
+                    "recipient_blocked",
+                    "session recipient requires exact Attachment and Work Surface authority",
+                ));
+            }
+            let session_id = scope.attachment.as_ref().and_then(|attachment| {
+                serde_json::to_value(attachment)
+                    .ok()
+                    .and_then(|value| value.get("session_id").and_then(serde_json::Value::as_str).map(str::to_owned))
+            });
+            session_id.as_deref() == Some(parts[2])
+        }
+        _ => {
+            return Err(error(
+                StatusCode::FORBIDDEN,
+                "recipient_blocked",
+                "recipient kind is not authorized under the exact scope",
+            ));
+        }
+    };
+    if !routable {
+        return Err(error(
+            StatusCode::FORBIDDEN,
+            "recipient_blocked",
+            "recipient is not authorized under the exact scope",
+        ));
+    }
     Ok(Json(json!({
         "schema": "focusa.mission_canvas.recipient_resolution.v1",
         "workstream": scope.workstream,
@@ -2560,7 +2606,7 @@ async fn resolve_recipient(
         "workspace_binding_id": scope.workspace_binding_id,
         "runtime_object": scope.runtime_object,
         "work_surface_id": scope.work_surface_id,
-        "recipient_ref": request.recipient_ref,
+        "recipient_ref": recipient_ref,
         "routable": true
     })))
 }

@@ -280,6 +280,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (operationId === 'focusa.mission_canvas.recomposition.evidence.get') {
       validateRecompositionEvidenceResponse(operationId, response.status, value, authority);
     }
+    if (operationId === 'focusa.mission_canvas.recipient.resolve') {
+      validateRecipientResolutionResponse(operationId, response.status, value, authority);
+    }
     if (operation.response_schema_ref === 'ResolvedWorkspaceProjection') {
       const watermark = validateProjectionResponse(
         operationId,
@@ -808,6 +811,34 @@ function validateProfileLayoutMemoryResponse(
   }
 
   return { memoryRevision };
+}
+
+function validateRecipientResolutionResponse(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext
+): void {
+  const resolution = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  if (!resolution) {
+    throw new MissionCanvasTransportError('invalid_response:expected_resolution', operationId, status, value);
+  }
+  if (resolution.schema !== 'focusa.mission_canvas.recipient_resolution.v1') {
+    throw new MissionCanvasTransportError('invalid_response:invalid:schema', operationId, status, value);
+  }
+  const responseAuthority = authorityFromRecord(resolution);
+  const authorityValidation = validateMissionCanvasContract('WorkstreamAuthorityContext', responseAuthority);
+  if (!authorityValidation.valid || !sameWorkstreamAuthorityContext(responseAuthority, expectedAuthority)) {
+    throw new MissionCanvasTransportError('invalid_response:scope_mismatch', operationId, status, value);
+  }
+  if (typeof resolution.recipient_ref !== 'string' || resolution.recipient_ref.trim().length === 0) {
+    throw new MissionCanvasTransportError('invalid_response:missing:recipient_ref', operationId, status, value);
+  }
+  if (resolution.routable !== true) {
+    throw new MissionCanvasTransportError('invalid_response:not_routable', operationId, status, value);
+  }
 }
 
 function validateRecompositionEvidenceResponse(
