@@ -1,7 +1,7 @@
 {
   "family_count": 9,
   "feature_compatibility_count": 15,
-  "grid_case_count": 72,
+  "grid_case_count": 63,
   "grid_cases": [
     {
       "case_id": "pending_unverified::account_recovery",
@@ -11,7 +11,7 @@
     },
     {
       "case_id": "pending_unverified::read_projection",
-      "expected_decision": "read_local_only",
+      "expected_decision": "deny",
       "family": "read_projection",
       "state": "pending_unverified"
     },
@@ -58,112 +58,58 @@
       "state": "pending_unverified"
     },
     {
-      "case_id": "verified_no_grant::account_recovery",
+      "case_id": "verified_no_license::account_recovery",
       "expected_decision": "allow",
       "family": "account_recovery",
-      "state": "verified_no_grant"
+      "state": "verified_no_license"
     },
     {
-      "case_id": "verified_no_grant::read_projection",
+      "case_id": "verified_no_license::read_projection",
       "expected_decision": "read",
       "family": "read_projection",
-      "state": "verified_no_grant"
+      "state": "verified_no_license"
     },
     {
-      "case_id": "verified_no_grant::base_focusa",
-      "expected_decision": "deny",
+      "case_id": "verified_no_license::base_focusa",
+      "expected_decision": "allow_verified_limited",
       "family": "base_focusa",
-      "state": "verified_no_grant"
+      "state": "verified_no_license"
     },
     {
-      "case_id": "verified_no_grant::automation",
+      "case_id": "verified_no_license::automation",
       "expected_decision": "deny",
       "family": "automation",
-      "state": "verified_no_grant"
+      "state": "verified_no_license"
     },
     {
-      "case_id": "verified_no_grant::team_remote",
+      "case_id": "verified_no_license::team_remote",
       "expected_decision": "deny",
       "family": "team_remote",
-      "state": "verified_no_grant"
+      "state": "verified_no_license"
     },
     {
-      "case_id": "verified_no_grant::release_proof",
+      "case_id": "verified_no_license::release_proof",
       "expected_decision": "deny",
       "family": "release_proof",
-      "state": "verified_no_grant"
+      "state": "verified_no_license"
     },
     {
-      "case_id": "verified_no_grant::premium_updates",
+      "case_id": "verified_no_license::premium_updates",
       "expected_decision": "deny",
       "family": "premium_updates",
-      "state": "verified_no_grant"
+      "state": "verified_no_license"
     },
     {
-      "case_id": "verified_no_grant::customer_data_export",
+      "case_id": "verified_no_license::customer_data_export",
       "expected_decision": "allow",
       "family": "customer_data_export",
-      "state": "verified_no_grant"
+      "state": "verified_no_license"
     },
     {
-      "case_id": "verified_no_grant::internal_maintenance",
+      "case_id": "verified_no_license::internal_maintenance",
       "expected_decision": "inherit",
       "family": "internal_maintenance",
-      "state": "verified_no_grant"
-    },
-    {
-      "case_id": "evaluation::account_recovery",
-      "expected_decision": "allow",
-      "family": "account_recovery",
-      "state": "evaluation"
-    },
-    {
-      "case_id": "evaluation::read_projection",
-      "expected_decision": "read",
-      "family": "read_projection",
-      "state": "evaluation"
-    },
-    {
-      "case_id": "evaluation::base_focusa",
-      "expected_decision": "require_base",
-      "family": "base_focusa",
-      "state": "evaluation"
-    },
-    {
-      "case_id": "evaluation::automation",
-      "expected_decision": "require_feature",
-      "family": "automation",
-      "state": "evaluation"
-    },
-    {
-      "case_id": "evaluation::team_remote",
-      "expected_decision": "require_feature",
-      "family": "team_remote",
-      "state": "evaluation"
-    },
-    {
-      "case_id": "evaluation::release_proof",
-      "expected_decision": "require_feature",
-      "family": "release_proof",
-      "state": "evaluation"
-    },
-    {
-      "case_id": "evaluation::premium_updates",
-      "expected_decision": "require_feature",
-      "family": "premium_updates",
-      "state": "evaluation"
-    },
-    {
-      "case_id": "evaluation::customer_data_export",
-      "expected_decision": "allow",
-      "family": "customer_data_export",
-      "state": "evaluation"
-    },
-    {
-      "case_id": "evaluation::internal_maintenance",
-      "expected_decision": "inherit",
-      "family": "internal_maintenance",
-      "state": "evaluation"
+      "state": "verified_no_license"
     },
     {
       "case_id": "active_paid::account_recovery",
@@ -436,6 +382,400 @@
       "state": "missing_or_corrupt"
     }
   ],
+  "base_product_compatibility_cases": [
+    {
+      "case_id": "base_product_focusa_verified_no_license_limited_projection",
+      "state": "verified_no_license",
+      "product": "focusa",
+      "stored_features": {
+        "focusa.core.evidence": false,
+        "focusa.core.mission": false,
+        "focusa.core.workpoint": false,
+        "focusa.agent.parallelism": true
+      },
+      "expected_decision": "limited",
+      "expected_projection": {
+        "focusa.core.evidence": false,
+        "focusa.core.mission": false,
+        "focusa.core.workpoint": false
+      }
+    },
+    {
+      "case_id": "base_product_focusa_active_paid_entitled_projection",
+      "state": "active_paid",
+      "product": "focusa",
+      "stored_features": {
+        "focusa.core.evidence": false,
+        "focusa.core.mission": false,
+        "focusa.core.workpoint": true,
+        "focusa.agent.parallelism": true
+      },
+      "expected_decision": "entitled",
+      "expected_projection": {
+        "focusa.core.evidence": true,
+        "focusa.core.mission": true,
+        "focusa.core.workpoint": true
+      }
+    },
+    {
+      "case_id": "base_product_focusa_offline_grace_entitled_projection",
+      "state": "offline_grace",
+      "product": "focusa",
+      "stored_features": {
+        "focusa.core.evidence": true,
+        "focusa.core.mission": false,
+        "focusa.core.workpoint": false,
+        "focusa.agent.parallelism": false
+      },
+      "expected_decision": "entitled",
+      "expected_projection": {
+        "focusa.core.evidence": true,
+        "focusa.core.mission": true,
+        "focusa.core.workpoint": true
+      }
+    },
+    {
+      "case_id": "base_product_focusa_refunded_or_revoked_denies_projection",
+      "state": "refunded_or_revoked",
+      "product": "focusa",
+      "stored_features": {
+        "focusa.core.evidence": true,
+        "focusa.core.mission": true,
+        "focusa.core.workpoint": true
+      },
+      "expected_decision": "denied",
+      "expected_projection": {
+        "focusa.core.evidence": false,
+        "focusa.core.mission": false,
+        "focusa.core.workpoint": false
+      }
+    },
+    {
+      "case_id": "base_product_focusa_wrong_product_denied_projection",
+      "state": "active_paid",
+      "product": "uiai-engine",
+      "stored_features": {
+        "focusa.core.evidence": true,
+        "focusa.core.mission": true,
+        "focusa.core.workpoint": true
+      },
+      "expected_decision": "denied",
+      "expected_projection": {
+        "focusa.core.evidence": false,
+        "focusa.core.mission": false,
+        "focusa.core.workpoint": false
+      }
+    },
+    {
+      "case_id": "base_product_focusa_verified_no_license_maps_to_verified_no_license_limited",
+      "state": "verified_no_license",
+      "product": "focusa",
+      "stored_features": {
+        "focusa.core.evidence": true,
+        "focusa.core.mission": true,
+        "focusa.core.workpoint": true
+      },
+      "expected_decision": "limited",
+      "expected_projection": {
+        "focusa.core.evidence": false,
+        "focusa.core.mission": false,
+        "focusa.core.workpoint": false
+      }
+    }
+  ],
+  "feature_vector_cases": [
+    {
+      "case_id": "premium_feature_automation_present",
+      "feature": "focusa.agent.parallelism",
+      "feature_product": "focusa",
+      "requested_product": "focusa",
+      "family": "automation",
+      "registered": true,
+      "operation_class": "execute",
+      "recovery_posture": "entitlement_required",
+      "limit_bucket": "parallel_agents",
+      "limit_unit": "concurrent_agent",
+      "discoverability": "visible",
+      "owner": "focusa-runtime",
+      "requested_units": 1,
+      "granted_features": [
+        "focusa.agent.parallelism"
+      ],
+      "limits": {
+        "parallel_agents": 3
+      },
+      "expected_outcome": "granted",
+      "expected_reserved_units": 1
+    },
+    {
+      "case_id": "premium_feature_team_remote_present",
+      "feature": "focusa.team.multi_operator",
+      "feature_product": "focusa",
+      "requested_product": "focusa",
+      "family": "team_remote",
+      "registered": true,
+      "operation_class": "admin",
+      "recovery_posture": "entitlement_required",
+      "limit_bucket": "team_operators",
+      "limit_unit": "operator",
+      "discoverability": "visible",
+      "owner": "focusa-runtime",
+      "requested_units": 2,
+      "granted_features": [
+        "focusa.team.multi_operator"
+      ],
+      "limits": {
+        "team_operators": 4
+      },
+      "expected_outcome": "granted",
+      "expected_reserved_units": 2
+    },
+    {
+      "case_id": "premium_feature_release_proof_present",
+      "feature": "focusa.release.proof",
+      "feature_product": "focusa",
+      "requested_product": "focusa",
+      "family": "release_proof",
+      "registered": true,
+      "operation_class": "execute",
+      "recovery_posture": "entitlement_required",
+      "limit_bucket": "release_proof_runs",
+      "limit_unit": "proof_run",
+      "discoverability": "advanced",
+      "owner": "focusa-release",
+      "requested_units": 1,
+      "granted_features": [
+        "focusa.release.proof"
+      ],
+      "limits": {
+        "release_proof_runs": 1
+      },
+      "expected_outcome": "granted",
+      "expected_reserved_units": 1
+    },
+    {
+      "case_id": "premium_feature_premium_updates_present",
+      "feature": "focusa.update.unattended",
+      "feature_product": "focusa",
+      "requested_product": "focusa",
+      "family": "premium_updates",
+      "registered": true,
+      "operation_class": "update",
+      "recovery_posture": "entitlement_required",
+      "limit_bucket": null,
+      "limit_unit": null,
+      "discoverability": "advanced",
+      "owner": "focusa-release",
+      "requested_units": 1,
+      "granted_features": [
+        "focusa.update.unattended"
+      ],
+      "limits": {},
+      "expected_outcome": "granted",
+      "expected_reserved_units": 0
+    },
+    {
+      "case_id": "premium_feature_missing_from_grant_denied",
+      "feature": "focusa.agent.parallelism",
+      "feature_product": "focusa",
+      "requested_product": "focusa",
+      "family": "automation",
+      "registered": true,
+      "operation_class": "execute",
+      "recovery_posture": "entitlement_required",
+      "limit_bucket": "parallel_agents",
+      "limit_unit": "concurrent_agent",
+      "discoverability": "visible",
+      "owner": "focusa-runtime",
+      "requested_units": 1,
+      "granted_features": [],
+      "limits": {
+        "parallel_agents": 4
+      },
+      "expected_outcome": "denied_feature_not_granted"
+    },
+    {
+      "case_id": "premium_feature_wrong_product_denied",
+      "feature": "focusa.team.multi_operator",
+      "feature_product": "focusa",
+      "requested_product": "uiai-engine",
+      "family": "team_remote",
+      "registered": true,
+      "operation_class": "admin",
+      "recovery_posture": "entitlement_required",
+      "limit_bucket": "team_operators",
+      "limit_unit": "operator",
+      "discoverability": "visible",
+      "owner": "focusa-runtime",
+      "requested_units": 1,
+      "granted_features": [
+        "focusa.team.multi_operator"
+      ],
+      "limits": {
+        "team_operators": 2
+      },
+      "expected_outcome": "denied_wrong_product"
+    },
+    {
+      "case_id": "premium_feature_unknown_feature_denied",
+      "feature": "focusa.ghost.operation",
+      "feature_product": "focusa",
+      "requested_product": "focusa",
+      "family": "automation",
+      "registered": false,
+      "operation_class": "execute",
+      "recovery_posture": "entitlement_required",
+      "limit_bucket": "parallel_agents",
+      "limit_unit": "concurrent_agent",
+      "discoverability": "visible",
+      "owner": "focusa-runtime",
+      "requested_units": 1,
+      "granted_features": [
+        "focusa.ghost.operation"
+      ],
+      "limits": {
+        "parallel_agents": 4
+      },
+      "expected_outcome": "denied_unknown_feature"
+    },
+    {
+      "case_id": "premium_feature_missing_limit_bucket_denied",
+      "feature": "focusa.agent.silent_sessions",
+      "feature_product": "focusa",
+      "requested_product": "focusa",
+      "family": "automation",
+      "registered": true,
+      "operation_class": "execute",
+      "recovery_posture": "entitlement_required",
+      "limit_bucket": "silent_session_runs",
+      "limit_unit": "session_run",
+      "discoverability": "visible",
+      "owner": "focusa-runtime",
+      "requested_units": 1,
+      "granted_features": [
+        "focusa.agent.silent_sessions"
+      ],
+      "limits": {},
+      "expected_outcome": "denied_limit_not_granted"
+    },
+    {
+      "case_id": "premium_feature_limit_exhausted_denied",
+      "feature": "focusa.agent.parallelism",
+      "feature_product": "focusa",
+      "requested_product": "focusa",
+      "family": "automation",
+      "registered": true,
+      "operation_class": "execute",
+      "recovery_posture": "entitlement_required",
+      "limit_bucket": "parallel_agents",
+      "limit_unit": "concurrent_agent",
+      "discoverability": "visible",
+      "owner": "focusa-runtime",
+      "requested_units": 4,
+      "granted_features": [
+        "focusa.agent.parallelism"
+      ],
+      "limits": {
+        "parallel_agents": 2
+      },
+      "expected_outcome": "denied_limit_exhausted"
+    },
+    {
+      "case_id": "premium_feature_no_limit_no_bucket_denied",
+      "feature": "focusa.install.channel.preview",
+      "feature_product": "focusa",
+      "requested_product": "focusa",
+      "family": "premium_updates",
+      "registered": true,
+      "operation_class": "install",
+      "recovery_posture": "entitlement_required",
+      "limit_bucket": null,
+      "limit_unit": null,
+      "discoverability": "advanced",
+      "owner": "focusa-release",
+      "requested_units": 5,
+      "granted_features": [
+        "focusa.install.channel.preview"
+      ],
+      "limits": {},
+      "expected_outcome": "granted",
+      "expected_reserved_units": 0
+    },
+    {
+      "case_id": "premium_feature_recovery_feature_allowed_when_always_available",
+      "feature": "focusa.repair.execute",
+      "feature_product": "focusa",
+      "requested_product": "focusa",
+      "family": "account_recovery",
+      "registered": true,
+      "operation_class": "recovery",
+      "recovery_posture": "always_available",
+      "limit_bucket": null,
+      "limit_unit": null,
+      "discoverability": "advanced",
+      "owner": "focusa-core",
+      "requested_units": 1,
+      "granted_features": [],
+      "limits": {},
+      "expected_outcome": "recovery_allowed"
+    }
+  ],
+  "uiai_child_token_cases": [
+    {
+      "case_id": "uiai_child_token_valid_request",
+      "expected_outcome": "request_accepted"
+    },
+    {
+      "case_id": "uiai_child_token_wrong_focusa_product",
+      "expected_outcome": "parent_entitlement_invalid",
+      "focusa_product": "legacy-focusa"
+    },
+    {
+      "case_id": "uiai_child_token_wrong_focusa_node",
+      "expected_outcome": "parent_entitlement_invalid",
+      "focusa_node": "node-other"
+    },
+    {
+      "case_id": "uiai_child_token_stale_focusa_sequence",
+      "expected_outcome": "parent_entitlement_invalid",
+      "focusa_snapshot_sequence": 6,
+      "request_parent_lease_sequence": 7
+    },
+    {
+      "case_id": "uiai_child_token_wrong_uiai_product",
+      "expected_outcome": "uiai_grant_invalid",
+      "uiai_product": "uiai-other"
+    },
+    {
+      "case_id": "uiai_child_token_wrong_audience",
+      "expected_outcome": "authority_response_mismatch",
+      "envelope_audience": "aud-other"
+    }
+  ],
+  "unknown_family_cases": [
+    {
+      "case_id": "unknown_family_is_rejected",
+      "state": "active_paid",
+      "family": "spectral_projection",
+      "expected_result": "unknown_family"
+    }
+  ],
+  "dormant_dimension_cases": [
+    {
+      "case_id": "dormant_operation_has_no_authority_effect",
+      "dimension": "operation",
+      "activation": "dormant",
+      "missing_claim_effect": "no_effect",
+      "expected_result": "no_authority_effect"
+    },
+    {
+      "case_id": "dormant_role_has_no_commercial_effect",
+      "dimension": "role",
+      "activation": "dormant_for_commerce",
+      "missing_claim_effect": "no_commercial_effect",
+      "expected_result": "no_authority_effect"
+    }
+  ],
   "negative_mutations": [
     {
       "expected_error": "duplicate family id",
@@ -462,9 +802,9 @@
       "id": "duplicate_feature_compatibility"
     }
   ],
-  "policy_canonical_sha256": "99b36a1bf2dd262825b719f6bbbfd7e6a1b87d33ead0b97bfa6c372ed0c4e5a8",
+  "policy_canonical_sha256": "dee9a8af1b79813d4d7a88becbc5c28b9500d3060f08f6711c5d31c27b034aff",
   "policy_id": "focusa-simple-entitlement",
   "policy_version": 1,
   "schema": "focusa.spec152f.entitlement_policy_cases.v1",
-  "state_count": 8
+  "state_count": 7
 }

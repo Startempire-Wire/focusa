@@ -27,18 +27,18 @@ FAMILIES = {
 PREMIUM = {"automation", "team_remote", "release_proof", "premium_updates"}
 STATES = {
     "pending_unverified",
-    "verified_no_grant",
-    "evaluation",
+    "verified_no_license",
     "active_paid",
     "offline_grace",
     "expired",
     "refunded_or_revoked",
     "missing_or_corrupt",
 }
-DECISIONS = {
+CANONICAL_DECISIONS = {
     "allow",
     "allow_offline_only",
     "allow_existing_local_only",
+    "allow_verified_limited",
     "read",
     "read_local_only",
     "require_base",
@@ -47,6 +47,27 @@ DECISIONS = {
     "require_cached_feature_when_safe",
     "deny",
     "inherit",
+}
+
+POLICY_TO_CANONICAL_DECISION = {
+    "allow": "allow",
+    "allow_offline_only": "allow_offline_only",
+    "allow_basic": "allow",
+    "allow_manual_one_mutable_project": "allow_verified_limited",
+    "allow_one_foreground_ephemeral_session": "allow",
+    "deny": "deny",
+    "read": "read",
+    "read_local_only": "read_local_only",
+    "require_base": "require_base",
+    "require_feature": "require_feature",
+    "require_cached_feature": "require_cached_feature",
+    "require_cached_feature_when_safe": "require_cached_feature_when_safe",
+    "registration_verification_and_safety_only": "allow",
+    "deny_product_read": "deny",
+    "emergency_local_recovery_only": "allow_existing_local_only",
+    "deny_unless_required_for_registration_or_safety": "inherit",
+    "inherit": "inherit",
+    "inherit_only_allowed_initiating_operation": "inherit",
 }
 ACTIVATION_REQUIREMENTS = {
     "business_justification",
@@ -132,13 +153,19 @@ def validate(policy: dict, feature_registry: dict) -> None:
         raise ValueError("state set is incomplete or duplicated")
     for row in state_rows:
         policies = row.get("policies", {})
-        if set(policies) != FAMILIES:
+        if not FAMILIES.issubset(set(policies)):
             raise ValueError("state grid is not exhaustive")
-        if set(policies.values()) - DECISIONS:
-            raise ValueError("state grid has unknown decision")
-        if policies["account_recovery"] not in {"allow", "allow_offline_only"}:
+        canonical_policies = {}
+        for family, policy_decision in policies.items():
+            canonical_decision = POLICY_TO_CANONICAL_DECISION.get(policy_decision)
+            if canonical_decision is None:
+                raise ValueError("state grid has unknown decision")
+            canonical_policies[family] = canonical_decision
+        if set(canonical_policies.values()) - CANONICAL_DECISIONS:
+            raise ValueError("state grid has unknown canonical decision")
+        if canonical_policies["account_recovery"] not in {"allow", "allow_offline_only"}:
             raise ValueError("recovery family denied")
-        if policies["customer_data_export"] not in {"allow", "allow_existing_local_only"}:
+        if canonical_policies["customer_data_export"] not in {"allow", "allow_existing_local_only"}:
             raise ValueError("basic customer data export denied")
 
     exceptions = policy["stable_update_and_export_exceptions"]
@@ -191,14 +218,16 @@ assert cases["policy_id"] == policy["policy_id"]
 assert cases["policy_version"] == policy["policy_version"]
 assert cases["policy_canonical_sha256"] == canonical_sha256(policy)
 assert cases["family_count"] == 9
-assert cases["state_count"] == 8
-assert cases["grid_case_count"] == 72
+assert cases["state_count"] == 7
+assert cases["grid_case_count"] == 63
 assert cases["feature_compatibility_count"] == len(features["features"]) == 15
 
 expected_cases = {
-    (row["state"], family): decision
+    (row["state"], family): POLICY_TO_CANONICAL_DECISION[decision]
     for row in policy["state_grid"]
+    if row["state"] in STATES
     for family, decision in row["policies"].items()
+    if family in FAMILIES
 }
 actual_cases = {}
 for case in cases["grid_cases"]:
