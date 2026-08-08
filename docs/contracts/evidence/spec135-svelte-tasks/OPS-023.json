@@ -1,0 +1,48 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-023",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "recomposition.diagnostics.list returns the exact-Workstream OmissionDiagnostic list for the requested projection revision through generated recompositionDiagnosticsList; scope/revision mismatch and malformed rows fail closed.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "OPS-022"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo check -p focusa-core -p focusa-api",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-core mission_canvas",
+      "result": "pass"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.recomposition.diagnostics.list",
+      "result": "pass"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+      "result": "pass"
+    },
+    {
+      "command": "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.recomposition.diagnostics.list --client recompositionDiagnosticsList",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}

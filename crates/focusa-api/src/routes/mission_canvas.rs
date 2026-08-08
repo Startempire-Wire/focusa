@@ -330,6 +330,10 @@ pub fn router() -> Router<Arc<AppState>> {
             get(get_recomposition_receipt),
         )
         .route(
+            "/v1/mission-canvas/recompositions/{revision}/diagnostics",
+            get(get_recomposition_diagnostics),
+        )
+        .route(
             "/v1/mission-canvas/recompositions/{revision}/{proof_kind}",
             get(get_recomposition_proof),
         )
@@ -2613,6 +2617,47 @@ async fn resolve_recipient(
         "recipient_ref": recipient_ref,
         "routable": true
     })))
+}
+
+async fn get_recomposition_diagnostics(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(revision): Path<u64>,
+    Query(query): Query<ScopeQuery>,
+) -> ApiResult {
+    require_permission(&headers, "mission_canvas:read")?;
+    let scope = query.scope()?;
+    validate_authority(&scope)?;
+    exact_workstream_context(&scope, &headers).map_err(host_renderer_context_error)?;
+    let events = store(&state)?
+        .events_after(&scope, 0, 10_000)
+        .map_err(store_error)?;
+    let event = events
+        .into_iter()
+        .map(|(_, event)| event)
+        .find(|event| {
+            event.projection_revision == revision && event.event_kind == "projection_resolved"
+        })
+        .ok_or_else(|| {
+            error(
+                StatusCode::NOT_FOUND,
+                "recomposition_not_found",
+                "No recomposition diagnostics exist for this revision",
+            )
+        })?;
+    let diagnostics = event
+        .payload
+        .get("omission_diagnostics")
+        .cloned()
+        .unwrap_or_else(|| json!([]));
+    if !diagnostics.is_array() {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "recomposition_diagnostics_invalid",
+            "Stored omission diagnostics are not a list",
+        ));
+    }
+    Ok(Json(diagnostics))
 }
 
 async fn get_recomposition_receipt(

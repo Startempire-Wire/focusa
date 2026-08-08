@@ -286,6 +286,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (operationId === 'focusa.mission_canvas.recomposition.receipt.get') {
       validateRecompositionReceiptResponse(operationId, response.status, value, authority);
     }
+    if (operationId === 'focusa.mission_canvas.recomposition.diagnostics.list') {
+      validateRecompositionDiagnosticsResponse(operationId, response.status, value, authority);
+    }
     if (operation.response_schema_ref === 'ResolvedWorkspaceProjection') {
       const watermark = validateProjectionResponse(
         operationId,
@@ -814,6 +817,29 @@ function validateProfileLayoutMemoryResponse(
   }
 
   return { memoryRevision };
+}
+
+function validateRecompositionDiagnosticsResponse(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext
+): void {
+  if (!Array.isArray(value)) {
+    throw new MissionCanvasTransportError('invalid_response:expected_diagnostics', operationId, status, value);
+  }
+  for (const item of value) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new MissionCanvasTransportError('invalid_response:invalid_diagnostic_row', operationId, status, value);
+    }
+    const row = item as Record<string, unknown>;
+    if (typeof row.contribution_id !== 'string' || row.contribution_id.trim().length === 0) {
+      throw new MissionCanvasTransportError('invalid_response:invalid:contribution_id', operationId, status, value);
+    }
+    if (typeof row.reason !== 'string' || row.reason.trim().length === 0) {
+      throw new MissionCanvasTransportError('invalid_response:invalid:reason', operationId, status, value);
+    }
+  }
 }
 
 function validateRecompositionReceiptResponse(
