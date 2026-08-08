@@ -276,9 +276,9 @@ where
         }
         let entitlement_guard = self
             .entitlement_guard
-            .as_ref()
-            .unwrap_or(&focusa_license::resolve_license_guard());
-        evaluate_tool_entitlement(manifest, entitlement_guard)?;
+            .clone()
+            .unwrap_or_else(focusa_license::resolve_license_guard);
+        evaluate_tool_entitlement(manifest, &entitlement_guard)?;
         let decision = self.guard.authorize(binding, request, manifest).await?;
         if !decision.permitted {
             return Err(GatewayError::ConstitutionDenied(decision.reason_code));
@@ -436,16 +436,16 @@ mod tests {
         )
     }
 
-    fn signed_base_snapshot() -> focusa_license::LicenseGuard {
-        let now = chrono::Utc::now();
+    fn signed_base_snapshot() -> LicenseGuard {
+        let now = Utc::now();
         let mut snapshot = EntitlementSnapshot::unactivated("focusa", "tool-gateway");
         snapshot.state = EntitlementState::Active;
         snapshot.sequence = Some(7);
         snapshot.lease_id = Some("lease-tool-gateway".into());
         snapshot.lease_digest = Some("sha256:tool-gateway".into());
-        snapshot.expires_at = Some(now + chrono::Duration::hours(1));
-        snapshot.offline_grace_until = Some(now + chrono::Duration::hours(1));
-        focusa_license::LicenseGuard::from_entitlement(snapshot)
+        snapshot.expires_at = Some(now + Duration::hours(1));
+        snapshot.offline_grace_until = Some(now + Duration::hours(1));
+        LicenseGuard::from_entitlement(snapshot)
     }
 
     #[tokio::test]
@@ -470,7 +470,7 @@ mod tests {
             Arc::new(Guard(true)),
             Arc::new(Executor { evidence: true }),
         )
-        .with_entitlement_guard(focusa_license::LicenseGuard::eval(7));
+        .with_entitlement_guard(LicenseGuard::eval(7));
         assert!(matches!(
             gateway.execute_governed(&binding, &request).await,
             Err(GatewayError::ConstitutionDenied(message)) if message.contains("ENTITLEMENT_BASE_REQUIRED")
