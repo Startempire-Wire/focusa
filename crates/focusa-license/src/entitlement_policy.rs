@@ -88,6 +88,443 @@ impl PolicyActivation {
     }
 }
 
+/// Future-granularity dimensions are carried as observable claims, but only a
+/// registered, authority-backed policy may make one runtime-relevant.  The
+/// existing capability-family resolver remains the capability authority; this
+/// model must never be used as a second paywall or as a source of role grants.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FutureGranularityDimension {
+    Operation,
+    SubCapability,
+    Role,
+    Origin,
+    Channel,
+    Plan,
+    Limit,
+    Time,
+}
+
+impl FutureGranularityDimension {
+    pub const ALL: [Self; 8] = [
+        Self::Operation,
+        Self::SubCapability,
+        Self::Role,
+        Self::Origin,
+        Self::Channel,
+        Self::Plan,
+        Self::Limit,
+        Self::Time,
+    ];
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Operation => "operation",
+            Self::SubCapability => "sub_capability",
+            Self::Role => "role",
+            Self::Origin => "origin",
+            Self::Channel => "channel",
+            Self::Plan => "plan",
+            Self::Limit => "limit",
+            Self::Time => "time",
+        }
+    }
+
+    const fn index(self) -> usize {
+        match self {
+            Self::Operation => 0,
+            Self::SubCapability => 1,
+            Self::Role => 2,
+            Self::Origin => 3,
+            Self::Channel => 4,
+            Self::Plan => 5,
+            Self::Limit => 6,
+            Self::Time => 7,
+        }
+    }
+}
+
+/// One authority-lease dimension claim.  `activation` is deliberately
+/// observable even when `claim` is absent: a dormant claim is data for
+/// projection/audit only, never an implicit denial or grant.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FutureDimensionClaim {
+    activation: PolicyActivation,
+    claim: Option<String>,
+}
+
+impl FutureDimensionClaim {
+    pub const fn dormant() -> Self {
+        Self {
+            activation: PolicyActivation::Dormant,
+            claim: None,
+        }
+    }
+
+    /// Preserve an observed dormant value without making it commercially
+    /// effective.  This is useful for redacted projections and audit records.
+    pub fn observed_dormant(claim: Option<String>) -> Self {
+        Self {
+            activation: PolicyActivation::Dormant,
+            claim,
+        }
+    }
+
+    /// Construct a claim as if it came from an authority projection.  This
+    /// does not activate a dimension by itself; `GranularityActivationGuard`
+    /// still requires the matching embedded registered policy.
+    pub fn active(claim: impl Into<String>) -> Self {
+        Self {
+            activation: PolicyActivation::Active,
+            claim: Some(claim.into()),
+        }
+    }
+
+    pub const fn activation(&self) -> PolicyActivation {
+        self.activation
+    }
+
+    pub fn claim(&self) -> Option<&str> {
+        self.claim.as_deref()
+    }
+
+    fn has_authority_claim(&self) -> bool {
+        self.activation.permits_runtime_commercial_decision()
+            && self.claim.as_deref().is_some_and(|claim| !claim.is_empty())
+    }
+}
+
+/// All future-granularity claims are present in one bounded projection.  The
+/// fields intentionally remain private so callers use the typed projection
+/// rather than manufacturing a different shape for one presenter.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FutureGranularityClaims {
+    operation: FutureDimensionClaim,
+    sub_capability: FutureDimensionClaim,
+    role: FutureDimensionClaim,
+    origin: FutureDimensionClaim,
+    channel: FutureDimensionClaim,
+    plan: FutureDimensionClaim,
+    limit: FutureDimensionClaim,
+    time: FutureDimensionClaim,
+}
+
+impl Default for FutureGranularityClaims {
+    fn default() -> Self {
+        Self {
+            operation: FutureDimensionClaim::dormant(),
+            sub_capability: FutureDimensionClaim::dormant(),
+            role: FutureDimensionClaim::dormant(),
+            origin: FutureDimensionClaim::dormant(),
+            channel: FutureDimensionClaim::dormant(),
+            plan: FutureDimensionClaim::dormant(),
+            limit: FutureDimensionClaim::dormant(),
+            time: FutureDimensionClaim::dormant(),
+        }
+    }
+}
+
+impl FutureGranularityClaims {
+    pub fn with(self, dimension: FutureGranularityDimension, claim: FutureDimensionClaim) -> Self {
+        match dimension {
+            FutureGranularityDimension::Operation => Self {
+                operation: claim,
+                ..self
+            },
+            FutureGranularityDimension::SubCapability => Self {
+                sub_capability: claim,
+                ..self
+            },
+            FutureGranularityDimension::Role => Self { role: claim, ..self },
+            FutureGranularityDimension::Origin => Self {
+                origin: claim,
+                ..self
+            },
+            FutureGranularityDimension::Channel => Self {
+                channel: claim,
+                ..self
+            },
+            FutureGranularityDimension::Plan => Self { plan: claim, ..self },
+            FutureGranularityDimension::Limit => Self {
+                limit: claim,
+                ..self
+            },
+            FutureGranularityDimension::Time => Self { time: claim, ..self },
+        }
+    }
+
+    pub fn claim(&self, dimension: FutureGranularityDimension) -> &FutureDimensionClaim {
+        match dimension {
+            FutureGranularityDimension::Operation => &self.operation,
+            FutureGranularityDimension::SubCapability => &self.sub_capability,
+            FutureGranularityDimension::Role => &self.role,
+            FutureGranularityDimension::Origin => &self.origin,
+            FutureGranularityDimension::Channel => &self.channel,
+            FutureGranularityDimension::Plan => &self.plan,
+            FutureGranularityDimension::Limit => &self.limit,
+            FutureGranularityDimension::Time => &self.time,
+        }
+    }
+
+    pub fn operation(&self) -> &FutureDimensionClaim {
+        self.claim(FutureGranularityDimension::Operation)
+    }
+
+    pub fn sub_capability(&self) -> &FutureDimensionClaim {
+        self.claim(FutureGranularityDimension::SubCapability)
+    }
+
+    pub fn role(&self) -> &FutureDimensionClaim {
+        self.claim(FutureGranularityDimension::Role)
+    }
+
+    pub fn origin(&self) -> &FutureDimensionClaim {
+        self.claim(FutureGranularityDimension::Origin)
+    }
+
+    pub fn channel(&self) -> &FutureDimensionClaim {
+        self.claim(FutureGranularityDimension::Channel)
+    }
+
+    pub fn plan(&self) -> &FutureDimensionClaim {
+        self.claim(FutureGranularityDimension::Plan)
+    }
+
+    pub fn limit(&self) -> &FutureDimensionClaim {
+        self.claim(FutureGranularityDimension::Limit)
+    }
+
+    pub fn time(&self) -> &FutureDimensionClaim {
+        self.claim(FutureGranularityDimension::Time)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FutureDimensionAuthority {
+    AuditOnly,
+    FutureOperatorApprovedPolicy,
+    SecurityAuthorizationOnly,
+    RoutingSecurityPolicyOnly,
+    PolicyRegistryAndSignedLease,
+    EddAndSignedLease,
+    ServerOwnedRegistryAndSignedLease,
+    SignedLease,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RegisteredFutureDimensionPolicy {
+    dimension: FutureGranularityDimension,
+    activation: PolicyActivation,
+    authority: FutureDimensionAuthority,
+}
+
+impl RegisteredFutureDimensionPolicy {
+    pub const fn dimension(self) -> FutureGranularityDimension {
+        self.dimension
+    }
+
+    pub const fn activation(self) -> PolicyActivation {
+        self.activation
+    }
+
+    pub const fn authority(self) -> FutureDimensionAuthority {
+        self.authority
+    }
+}
+
+/// The only runtime activation registry.  It is closed and embedded: callers
+/// cannot register a new policy or turn a dormant dimension on at runtime.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FutureGranularityPolicyRegistry {
+    policies: [RegisteredFutureDimensionPolicy; 8],
+}
+
+impl FutureGranularityPolicyRegistry {
+    pub const fn canonical() -> Self {
+        Self {
+            policies: [
+                RegisteredFutureDimensionPolicy {
+                    dimension: FutureGranularityDimension::Operation,
+                    activation: PolicyActivation::Dormant,
+                    authority: FutureDimensionAuthority::AuditOnly,
+                },
+                RegisteredFutureDimensionPolicy {
+                    dimension: FutureGranularityDimension::SubCapability,
+                    activation: PolicyActivation::Dormant,
+                    authority: FutureDimensionAuthority::FutureOperatorApprovedPolicy,
+                },
+                RegisteredFutureDimensionPolicy {
+                    dimension: FutureGranularityDimension::Role,
+                    activation: PolicyActivation::DormantForCommerce,
+                    authority: FutureDimensionAuthority::SecurityAuthorizationOnly,
+                },
+                RegisteredFutureDimensionPolicy {
+                    dimension: FutureGranularityDimension::Origin,
+                    activation: PolicyActivation::DormantForCommerce,
+                    authority: FutureDimensionAuthority::RoutingSecurityPolicyOnly,
+                },
+                RegisteredFutureDimensionPolicy {
+                    dimension: FutureGranularityDimension::Channel,
+                    activation: PolicyActivation::ActiveForPreviewNightlyAndUnattended,
+                    authority: FutureDimensionAuthority::PolicyRegistryAndSignedLease,
+                },
+                RegisteredFutureDimensionPolicy {
+                    dimension: FutureGranularityDimension::Plan,
+                    activation: PolicyActivation::Active,
+                    authority: FutureDimensionAuthority::EddAndSignedLease,
+                },
+                RegisteredFutureDimensionPolicy {
+                    dimension: FutureGranularityDimension::Limit,
+                    activation: PolicyActivation::ActiveOnlyWhenDeclared,
+                    authority: FutureDimensionAuthority::ServerOwnedRegistryAndSignedLease,
+                },
+                RegisteredFutureDimensionPolicy {
+                    dimension: FutureGranularityDimension::Time,
+                    activation: PolicyActivation::Active,
+                    authority: FutureDimensionAuthority::SignedLease,
+                },
+            ],
+        }
+    }
+
+    pub fn registered_policy(
+        &self,
+        dimension: FutureGranularityDimension,
+    ) -> Option<RegisteredFutureDimensionPolicy> {
+        self.policies
+            .iter()
+            .copied()
+            .find(|policy| policy.dimension == dimension)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FutureGranularityDecision {
+    /// The field remains observable, but has no authorization effect.
+    IgnoredDormant,
+    /// The registered policy and authority claim were both present.  This is
+    /// still only a dimension check; it is not a capability or role grant.
+    AuthorityBacked,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FutureGranularityAuthorization {
+    decisions: [FutureGranularityDecision; 8],
+}
+
+impl FutureGranularityAuthorization {
+    pub fn decision(&self, dimension: FutureGranularityDimension) -> FutureGranularityDecision {
+        self.decisions[dimension.index()]
+    }
+}
+
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+pub enum FutureGranularityError {
+    #[error("future dimension has no registered policy: {0:?}")]
+    UnregisteredPolicy(FutureGranularityDimension),
+    #[error("dormant future dimension cannot be activated at runtime: {0:?}")]
+    UnapprovedRuntimeActivation(FutureGranularityDimension),
+    #[error("active future dimension requires an authority claim: {0:?}")]
+    MissingAuthorityClaim(FutureGranularityDimension),
+    #[error("licensing cannot grant a role or operator authority")]
+    LicensingRoleGrantForbidden,
+}
+
+/// Guard future dimensions before they can participate in runtime policy.
+/// Dormant claims, including observed values, are intentionally ignored.
+/// Active dimensions require the closed registered policy and a non-empty
+/// authority claim; role permission is never a licensing grant.
+pub struct GranularityActivationGuard;
+
+impl GranularityActivationGuard {
+    fn evaluate_one(
+        registry: &FutureGranularityPolicyRegistry,
+        dimension: FutureGranularityDimension,
+        claim: &FutureDimensionClaim,
+    ) -> Result<FutureGranularityDecision, FutureGranularityError> {
+        let policy = registry
+            .registered_policy(dimension)
+            .ok_or(FutureGranularityError::UnregisteredPolicy(dimension))?;
+        if dimension == FutureGranularityDimension::Role
+            && claim.activation().permits_runtime_commercial_decision()
+        {
+            return Err(FutureGranularityError::LicensingRoleGrantForbidden);
+        }
+        if !policy.activation().permits_runtime_commercial_decision() {
+            if claim.activation().permits_runtime_commercial_decision() {
+                return Err(FutureGranularityError::UnapprovedRuntimeActivation(dimension));
+            }
+            return Ok(FutureGranularityDecision::IgnoredDormant);
+        }
+        if !claim.has_authority_claim() {
+            return Err(FutureGranularityError::MissingAuthorityClaim(dimension));
+        }
+        Ok(FutureGranularityDecision::AuthorityBacked)
+    }
+
+    pub fn evaluate(
+        claims: &FutureGranularityClaims,
+    ) -> Result<FutureGranularityAuthorization, FutureGranularityError> {
+        let registry = FutureGranularityPolicyRegistry::canonical();
+        let mut decisions = [FutureGranularityDecision::IgnoredDormant; 8];
+        for dimension in FutureGranularityDimension::ALL {
+            decisions[dimension.index()] = Self::evaluate_one(&registry, dimension, claims.claim(dimension))?;
+        }
+        Ok(FutureGranularityAuthorization { decisions })
+    }
+
+    pub fn evaluate_dimension(
+        dimension: FutureGranularityDimension,
+        claim: &FutureDimensionClaim,
+    ) -> Result<FutureGranularityDecision, FutureGranularityError> {
+        let registry = FutureGranularityPolicyRegistry::canonical();
+        Self::evaluate_one(&registry, dimension, claim)
+    }
+}
+
+/// Validate the contract metadata in the embedded policy as well as the typed
+/// closed registry above.  This keeps the YAML projection from silently losing
+/// explicit active/dormant status while the runtime guard remains fail closed.
+fn validate_future_granularity_contract(document: &Value) -> Result<(), String> {
+    let policy = document
+        .get("entitlement_policy")
+        .and_then(Value::as_object)
+        .ok_or("missing entitlement_policy registry")?;
+    let dimensions = policy
+        .get("future_dimensions")
+        .and_then(Value::as_array)
+        .ok_or("future_dimensions must be an array")?;
+    let expected = [
+        ("capability_family", "active"),
+        ("sub_capability", "dormant"),
+        ("operation", "dormant"),
+        ("limit_bucket", "active"),
+        ("product_tier", "active"),
+        ("role_permission", "dormant"),
+        ("node_device", "active"),
+        ("channel", "active"),
+        ("time_window", "active"),
+        ("origin_facade", "dormant"),
+    ];
+    for (id, status) in expected {
+        let row = dimensions
+            .iter()
+            .find(|row| row.get("id").and_then(Value::as_str) == Some(id))
+            .ok_or_else(|| format!("missing future dimension: {id}"))?;
+        if row.get("status").and_then(Value::as_str) != Some(status) {
+            return Err(format!("future dimension {id} has invalid explicit status"));
+        }
+    }
+    if dimensions.len() != expected.len() {
+        return Err("future dimension registry has an unexpected dimension count".into());
+    }
+    Ok(())
+}
+
 /// Closed Spec 172 product registry. Deserialization is intentionally closed so
 /// callers cannot manufacture commercial products.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -694,6 +1131,7 @@ pub fn embedded_entitlement_policy_registry(
             let document: Value = serde_json::from_str(EMBEDDED_POLICY_REGISTRY_JSON)
                 .map_err(|error| registry_error(error.to_string()))?;
             registry_validation::validate_registry_bundle(&document).map_err(registry_error)?;
+            validate_future_granularity_contract(&document).map_err(registry_error)?;
             let actual = registry_validation::semantic_digest(&document);
             if actual != EMBEDDED_POLICY_REGISTRY_DIGEST {
                 return Err(registry_error("embedded registry digest mismatch"));
@@ -990,6 +1428,147 @@ mod recovery_allowance_tests {
             Some(Family::ReadProjection)
         );
         assert_eq!(RecoveryAllowance::None.implied_family(), None);
+    }
+}
+
+#[cfg(test)]
+mod dormant_granularity_tests {
+    use super::{
+        embedded_entitlement_policy_registry, FutureDimensionClaim, FutureGranularityAuthorization,
+        FutureGranularityClaims, FutureGranularityDecision, FutureGranularityDimension,
+        FutureGranularityError, GranularityActivationGuard,
+    };
+
+    fn active_claims() -> FutureGranularityClaims {
+        FutureGranularityClaims::default()
+            .with(
+                FutureGranularityDimension::Channel,
+                FutureDimensionClaim::active("preview"),
+            )
+            .with(
+                FutureGranularityDimension::Plan,
+                FutureDimensionClaim::active("focusa"),
+            )
+            .with(
+                FutureGranularityDimension::Limit,
+                FutureDimensionClaim::active("concurrent_agents"),
+            )
+            .with(
+                FutureGranularityDimension::Time,
+                FutureDimensionClaim::active("bounded_window"),
+            )
+    }
+
+    #[test]
+    fn dormant_granularity_fields_are_observable_but_ignored() {
+        for dimension in [
+            FutureGranularityDimension::Operation,
+            FutureGranularityDimension::SubCapability,
+            FutureGranularityDimension::Role,
+            FutureGranularityDimension::Origin,
+        ] {
+            let claim = FutureDimensionClaim::observed_dormant(Some("observed-only".into()));
+            assert_eq!(
+                GranularityActivationGuard::evaluate_dimension(dimension, &claim),
+                Ok(FutureGranularityDecision::IgnoredDormant),
+                "dormant dimension must not deny or grant capability: {dimension:?}"
+            );
+            assert_eq!(claim.activation(), super::PolicyActivation::Dormant);
+            assert_eq!(claim.claim(), Some("observed-only"));
+        }
+
+        let claims = FutureGranularityClaims::default();
+        assert_eq!(claims.operation().claim(), None);
+        assert_eq!(claims.sub_capability().activation(), super::PolicyActivation::Dormant);
+        assert_eq!(claims.role().activation(), super::PolicyActivation::Dormant);
+        assert_eq!(claims.origin().activation(), super::PolicyActivation::Dormant);
+    }
+
+    #[test]
+    fn active_granularity_requires_registered_authority_claims() {
+        for dimension in [
+            FutureGranularityDimension::Channel,
+            FutureGranularityDimension::Plan,
+            FutureGranularityDimension::Limit,
+            FutureGranularityDimension::Time,
+        ] {
+            assert_eq!(
+                GranularityActivationGuard::evaluate_dimension(
+                    dimension,
+                    &FutureDimensionClaim::dormant()
+                ),
+                Err(FutureGranularityError::MissingAuthorityClaim(dimension))
+            );
+        }
+    }
+
+    #[test]
+    fn registered_authority_claims_activate_only_active_dimensions() {
+        let authorization: FutureGranularityAuthorization =
+            GranularityActivationGuard::evaluate(&active_claims()).expect("valid claims");
+        assert_eq!(
+            authorization.decision(FutureGranularityDimension::Operation),
+            FutureGranularityDecision::IgnoredDormant
+        );
+        assert_eq!(
+            authorization.decision(FutureGranularityDimension::SubCapability),
+            FutureGranularityDecision::IgnoredDormant
+        );
+        assert_eq!(
+            authorization.decision(FutureGranularityDimension::Role),
+            FutureGranularityDecision::IgnoredDormant
+        );
+        assert_eq!(
+            authorization.decision(FutureGranularityDimension::Origin),
+            FutureGranularityDecision::IgnoredDormant
+        );
+        for dimension in [
+            FutureGranularityDimension::Channel,
+            FutureGranularityDimension::Plan,
+            FutureGranularityDimension::Limit,
+            FutureGranularityDimension::Time,
+        ] {
+            assert_eq!(
+                authorization.decision(dimension),
+                FutureGranularityDecision::AuthorityBacked
+            );
+        }
+    }
+
+    #[test]
+    fn unapproved_runtime_activation_is_rejected() {
+        let claim = FutureDimensionClaim::active("caller-requested-operation");
+        assert_eq!(
+            GranularityActivationGuard::evaluate_dimension(
+                FutureGranularityDimension::Operation,
+                &claim
+            ),
+            Err(FutureGranularityError::UnapprovedRuntimeActivation(
+                FutureGranularityDimension::Operation
+            ))
+        );
+    }
+
+    #[test]
+    fn licensing_cannot_grant_roles_or_operator_authority() {
+        let claim = FutureDimensionClaim::active("operator");
+        assert_eq!(
+            GranularityActivationGuard::evaluate_dimension(
+                FutureGranularityDimension::Role,
+                &claim
+            ),
+            Err(FutureGranularityError::LicensingRoleGrantForbidden)
+        );
+    }
+
+    #[test]
+    fn policy_contract_embeds_explicit_dimension_statuses() {
+        let registry = embedded_entitlement_policy_registry().expect("embedded registry");
+        assert!(registry.canonical_json().contains("\"status\":\"dormant\""));
+        assert!(registry.canonical_json().contains("\"dimension\":\"plan\""));
+        assert!(registry
+            .canonical_json()
+            .contains("\"licensing_role_grant_forbidden\":true"));
     }
 }
 
