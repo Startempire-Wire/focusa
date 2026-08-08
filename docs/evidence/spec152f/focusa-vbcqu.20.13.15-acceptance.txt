@@ -1,0 +1,102 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.15
+Title: 152E.02.01 Enforce protected EDD product allowlist and registration gate
+Implementation commit: `bec9be78`
+
+Exact surfaces
+- docs/contracts/spec152e-edd-gate-hooks.v1.php (EDD add-to-cart hook, EDD
+  checkout hook, and the replacement for the broad edd_complete_purchase
+  hook: gateAddToCart, gateCheckout, handleOrderComplete)
+- docs/contracts/spec152e-verified-registration-token-validator.v1.php
+  (verified registration token validator: issue, validate, consume,
+  revoke; single-use, short-lived, keyed-digest storage)
+- Product registry (read-only, consumed via constructor injection): the
+  frozen docs/contracts/spec152e-edd-product-registry.v1.php remains
+  byte-identical; the gate resolves allowlisted mappings only through it.
+- tests/spec152e_edd_product_gate_test.php (exact verification)
+
+Bounded result
+- Added the Spec 152E EDD gate hooks contract. Protected Focusa/UIAI
+  offers exist only in the server-owned product registry and require an
+  explicitly operator-approved mapping (mapping_status 'active',
+  checkout_enabled, exact download and price). Caller metadata can never
+  select a product, price, grant, limit, or commercial right
+  (CLIENT_COMMERCIAL_FIELDS_FORBIDDEN).
+- Added the verified-registration token validator: a token is minted only
+  from a mailbox-verified, non-terminal registration, is bound to its
+  exact registration, facade, and product, is short-lived (1800s TTL),
+  single-use, stored only as a keyed digest, and bounded to 16 active
+  tokens per registration. Replays are idempotent and never re-issue a
+  raw token.
+- gateAddToCart: raw add-to-cart (no verified token), unknown downloads,
+  credit packs, wrong facades, wrong origins, unsupported facade
+  products, and client product-claim mismatches are denied with
+  public-safe stable codes; unrelated/quarantined products return
+  non_entitlement_allowed with entitlement_allowed=false (purchasable but
+  proven non-entitlement); a protected cart opens only with a valid
+  single-use token bound to the verified registration.
+- gateCheckout: requires an operator-approved active mapping with the
+  exact server-owned price, a verified registration binding, and either a
+  fresh single-use token or the journaled cart-gate binding; blocked
+  mappings return EDD_CHECKOUT_REQUIRED, price mismatches
+  PRODUCT_MAPPING_REQUIRED.
+- handleOrderComplete (replaces the broad edd_complete_purchase hook):
+  requires complete order status (pending/processing -> EDD_ORDER_PENDING;
+  refunded -> REFUNDED; revoked -> REVOKED; failed -> EDD_ORDER_UNVERIFIED),
+  verified registration/account binding with the order email matching the
+  verified registration email lookup digest, allowlisted product mapping
+  with the exact order-item price relationship, idempotent issuance state
+  (journaled, replayable, IDEMPOTENCY_CONFLICT on key reuse with a
+  different request), and no existing equivalent active license
+  (EDD_LICENSE_UNUSABLE). Issuance itself stays deferred to the verified
+  issuance service: the hook records a bounded decision only and creates
+  zero EDD license rows.
+- Credit packs and unrelated/quarantined order items are proven
+  non-entitlement (no_entitlement / excluded_items); an order with no
+  protected items completes with no entitlement and requires no
+  registration. Rollback is preservation-only for token and gate-decision
+  journals. Every decision payload is redacted: no raw email, raw token,
+  license key, or secret, and no grant/feature/limit/price metadata.
+
+Exact verification (exit codes)
+1. `php tests/spec152e_edd_product_gate_test.php` — exit 0 (run twice;
+   deterministic).
+   {"schema":"focusa.spec152e.edd_product_gate_test.v1","positive_checks":110,"negative_checks":43,"tokens_issued":29,"gate_decisions":20,"licenses_created":0,"customers":4,"protected_offer_fixture":"operator_approved_test_mapping_download_1001","entitlement_issuance":"deferred","result":"passed_fail_closed"}
+
+Regression checks (exit codes)
+- All 16 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  gate test and the prior identity acceptance matrix.
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (frozen registry outputs current; 0 assigned downloads, 0 checkout-enabled).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` —
+  exit 0 (no new error codes; activation contracts current).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+
+Tests added
+- spec152e_edd_product_gate_test.php: 110 positive checks + 43 negative
+  checks covering token issuance/validation/consumption/expiry/revocation
+  and the bounded reissue cap; raw, unknown, credit-pack, wrong-facade,
+  wrong-origin, unsupported-product, and caller-controlled-field denials;
+  checkout price/mapping denials; order-completion status, binding,
+  mapping, price, email, product, idempotency, and duplicate-license
+  denials; positive token-bound cart/checkout and journaled-binding
+  checkout; order completion entitlement_ready with zero licenses created
+  (issuance deferred) and idempotent replay; mixed orders with credit
+  packs proven excluded; no_entitlement for credit-pack-only and unrelated
+  orders; a full frozen-registry scan proving no catalog download can
+  reach entitlement; rollback preservation; and redaction/no-default-grant
+  invariants. The positive mapping fixture is explicitly
+  operator-approved test-only (download 1001 -> focusa_operator_lifetime_v1)
+  and never mutates the frozen registry contract.
+
+Rollback
+- Revert only this atom's implementation commits (gate hooks + token
+  validator contracts, the gate test, and this evidence record if
+  required). Preserve EDD customer/order/refund truth, verified
+  identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals; token and gate-decision journals are
+  preservation-only.
+
+No push, deploy, release, merge, or Beads mutation was performed.
