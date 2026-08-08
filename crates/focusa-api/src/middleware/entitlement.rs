@@ -435,13 +435,38 @@ fn synthetic_operation_id(method: &Method, path: &str) -> String {
 }
 
 fn route_recovery_allowance(path: &str) -> Option<RecoveryAllowance> {
+    // Recovery-allowance paths are matched first by exact path, then by
+    // template-based matching for parameterized routes.
     match path {
+        // Account recovery: node deactivation, diagnostics, pairing status
         "/v1/device/pair/revoke" => Some(RecoveryAllowance::AccountRecovery),
+        "/v1/device/pair/status" => Some(RecoveryAllowance::AccountRecovery),
+        "/v1/doctor" => Some(RecoveryAllowance::AccountRecovery),
+        "/v1/doctor/closure" => Some(RecoveryAllowance::AccountRecovery),
+
+        // Customer data export: run, status, history, manifest
         "/v1/export/run" => Some(RecoveryAllowance::CustomerDataExport),
+        "/v1/export/status" => Some(RecoveryAllowance::CustomerDataExport),
+        "/v1/export/history" => Some(RecoveryAllowance::CustomerDataExport),
+
+        // Repair and rollback
         "/v1/project/bootstrap/repair" => Some(RecoveryAllowance::RepairRollback),
-        "/v1/update/apply" => Some(RecoveryAllowance::StableSecurityUpdate),
         "/v1/update/rollback" => Some(RecoveryAllowance::RepairRollback),
-        _ => None,
+
+        // Stable security update
+        "/v1/update/apply" => Some(RecoveryAllowance::StableSecurityUpdate),
+
+        _ => {
+            // Template-based matching for parameterized recovery routes
+            let segments: Vec<_> = path.trim_matches('/').split('/').collect();
+            match segments.as_slice() {
+                // /v1/export/manifest/{export_id}
+                ["v1", "export", "manifest", export_id] if !export_id.is_empty() => {
+                    Some(RecoveryAllowance::CustomerDataExport)
+                }
+                _ => None,
+            }
+        }
     }
 }
 
@@ -487,11 +512,18 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
     let recovery_path = path == "/health"
         || path == "/v1/health"
         || path == "/v1/version"
+        || path == "/v1/info"
         || path == "/v1/update/check"
         || path == "/v1/update/plan"
         || path == "/v1/update/rollback"
+        || path == "/v1/doctor"
+        || path == "/v1/doctor/closure"
+        || path == "/v1/export/status"
+        || path == "/v1/export/history"
+        || path == "/v1/device/pair/status"
         || is_read_only_preflight(path)
         || is_recovery_export(path)
+        || is_export_manifest_read(path)
         || path.starts_with("/v1/license/");
     !recovery_path
 }
@@ -526,6 +558,11 @@ fn is_read_only_preflight(path: &str) -> bool {
 fn is_recovery_export(path: &str) -> bool {
     let segments: Vec<_> = path.trim_matches('/').split('/').collect();
     matches!(segments.as_slice(), ["v1", "silent-sessions", session_id, "export"] if !session_id.is_empty())
+}
+
+fn is_export_manifest_read(path: &str) -> bool {
+    let segments: Vec<_> = path.trim_matches('/').split('/').collect();
+    matches!(segments.as_slice(), ["v1", "export", "manifest", export_id] if !export_id.is_empty())
 }
 
 #[cfg(test)]
@@ -698,36 +735,247 @@ mod tests {
     #[test]
     fn recovery_allowances_skip_entitlement_state_and_feature_checks() {
         let guard = LicenseGuard::eval(7);
+
+        // Stable security update
         assert_eq!(
             route_entitlement_denial(&guard, &Method::POST, "/v1/update/apply"),
             None,
             "apply must remain available during recovery-only paths"
         );
+
+        // Repair
         assert_eq!(
             route_entitlement_denial(&guard, &Method::POST, "/v1/project/bootstrap/repair"),
             None,
             "repair must remain available during recovery-only paths"
         );
+
+        // Customer data export
         assert_eq!(
             route_entitlement_denial(&guard, &Method::POST, "/v1/export/run"),
             None,
             "export must remain available during recovery-only paths"
         );
         assert_eq!(
+            route_entitlement_denial(&guard, &Method::GET, "/v1/export/status"),
+            None,
+            "export status must remain available during recovery-only paths"
+        );
+        assert_eq!(
+            route_entitlement_denial(&guard, &Method::GET, "/v1/export/history"),
+            None,
+            "export history must remain available during recovery-only paths"
+        );
+        assert_eq!(
+            route_entitlement_denial(&guard, &Method::GET, "/v1/export/manifest/manifest-1"),
+            None,
+            "export manifest must remain available during recovery-only paths"
+        );
+
+        // Rollback
+        assert_eq!(
             route_entitlement_denial(&guard, &Method::POST, "/v1/update/rollback"),
             None,
             "rollback must remain available during recovery-only paths"
         );
+
+        // Node deactivation
         assert_eq!(
             route_entitlement_denial(&guard, &Method::POST, "/v1/device/pair/revoke"),
             None,
             "node deactivation must remain available during recovery-only paths"
         );
+
+        // Diagnostics
+        assert_eq!(
+            route_entitlement_denial(&guard, &Method::GET, "/v1/doctor"),
+            None,
+            "diagnostics must remain available during recovery-only paths"
+        );
+        assert_eq!(
+            route_entitlement_denial(&guard, &Method::GET, "/v1/doctor/closure"),
+            None,
+            "diagnostics closure must remain available during recovery-only paths"
+        );
+
+        // License status
+        assert_eq!(
+            route_entitlement_denial(&guard, &Method::GET, "/v1/license/status"),
+            None,
+            "license status must remain available during recovery-only paths"
+        );
+
+        // Base mutation must still be denied
         assert_eq!(
             route_entitlement_denial(&guard, &Method::POST, "/v1/workpoint/checkpoint")
                 .unwrap()
                 .code,
             "ENTITLEMENT_BASE_REQUIRED"
+        );
+    }
+
+    #[test]
+    fn recovery_route_matrix_permanent_customer_control_routes() {
+        // Prove that every required customer-control route remains available
+        // in every blocked entitlement state, while protected mutations and
+        // accidental destructive purge remain denied.
+        use focusa_license::authority::EntitlementSnapshot;
+
+        // All blocked states where base mutations must be denied.
+        // recovery_only / refunded_or_revoked: RecoveryOnly snapshot → RefundedOrRevoked
+        // unactivated: no snapshot → PendingUnverified
+        // missing: LicenseGuard::eval(7) has no snapshot → MissingOrCorrupt
+        let blocked_guards: Vec<(&str, LicenseGuard)> = vec![
+            (
+                "recovery_only",
+                LicenseGuard::from_entitlement(EntitlementSnapshot::recovery_only(
+                    "focusa", "node", "recovery-matrix",
+                )),
+            ),
+            (
+                "refunded_or_revoked",
+                {
+                    let mut snap = EntitlementSnapshot::unactivated("focusa", "node");
+                    snap.state = EntitlementState::RecoveryOnly;
+                    snap.lease_id = Some("lease-refunded".into());
+                    snap.lease_digest = Some("sha256:refunded".into());
+                    snap.sequence = Some(1);
+                    LicenseGuard::from_entitlement(snap)
+                },
+            ),
+            (
+                "unactivated",
+                LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated(
+                    "focusa", "node",
+                )),
+            ),
+            (
+                "missing",
+                LicenseGuard::eval(7),
+            ),
+        ];
+
+        // Recovery/customer-control routes that MUST be available in every blocked state.
+        // These are tested through route_entitlement_denial (routes that pass through
+        // the entitlement middleware's recovery allowance path).
+        let recovery_routes: Vec<(&str, &Method, &str)> = vec![
+            // Stable security update
+            ("stable_update", &Method::POST, "/v1/update/apply"),
+            // Repair
+            ("repair", &Method::POST, "/v1/project/bootstrap/repair"),
+            // Rollback
+            ("rollback", &Method::POST, "/v1/update/rollback"),
+            // Customer data export
+            ("export_run", &Method::POST, "/v1/export/run"),
+            ("export_status", &Method::GET, "/v1/export/status"),
+            ("export_history", &Method::GET, "/v1/export/history"),
+            ("export_manifest", &Method::GET, "/v1/export/manifest/manifest-1"),
+            // Node deactivation
+            ("node_deactivation", &Method::POST, "/v1/device/pair/revoke"),
+            // Pairing status (read)
+            ("pairing_status", &Method::GET, "/v1/device/pair/status"),
+            // Diagnostics
+            ("diagnostics", &Method::GET, "/v1/doctor"),
+            ("diagnostics_closure", &Method::GET, "/v1/doctor/closure"),
+            // License status
+            ("license_status", &Method::GET, "/v1/license/status"),
+        ];
+
+        // Routes that are exempted via route_requires_entitlement and never
+        // reach the entitlement denial check. Tested separately.
+        let exempted_routes: Vec<(&str, &Method, &str)> = vec![
+            ("health", &Method::GET, "/v1/health"),
+            ("version", &Method::GET, "/v1/version"),
+            ("update_check", &Method::POST, "/v1/update/check"),
+            ("update_plan", &Method::POST, "/v1/update/plan"),
+            ("silent_export", &Method::POST, "/v1/silent-sessions/session-1/export"),
+            ("preflight", &Method::POST, "/v1/silent-sessions/preflight"),
+        ];
+
+        // Protected mutation routes that MUST be denied in every blocked state.
+        // These are value-producing mutations that require base entitlement.
+        // device/pair/start is excluded because it is classified as account_recovery
+        // in the operation registry (required for node activation/recovery).
+        let protected_mutations: Vec<(&str, &Method, &str)> = vec![
+            ("workpoint_checkpoint", &Method::POST, "/v1/workpoint/checkpoint"),
+            ("metacog_capture", &Method::POST, "/v1/metacognition/capture"),
+            ("turn_start", &Method::POST, "/v1/turn/start"),
+            ("silent_session_start", &Method::POST, "/v1/silent-sessions/session-1/start"),
+            ("project_new", &Method::POST, "/v1/project/new"),
+            ("connect_room_create", &Method::POST, "/v1/connect/room/create"),
+            ("constitution_propose", &Method::POST, "/v1/constitution/propose"),
+            ("project_bootstrap_apply", &Method::POST, "/v1/project/bootstrap/apply"),
+            ("silent_session_create", &Method::POST, "/v1/silent-sessions"),
+        ];
+
+        for (state_label, guard) in &blocked_guards {
+            // Recovery routes must be available through the entitlement denial check
+            for (route_label, method, path) in &recovery_routes {
+                let denial = route_entitlement_denial(guard, method, path);
+                assert!(
+                    denial.is_none(),
+                    "{route_label} ({path}) must be available in state {state_label}, got: {denial:?}"
+                );
+            }
+
+            // Exempted routes must never require entitlement
+            for (route_label, method, path) in &exempted_routes {
+                assert!(
+                    !route_requires_entitlement(method, path),
+                    "{route_label} ({path}) must be exempted from entitlement in state {state_label}"
+                );
+            }
+
+            // Protected mutations must be denied
+            for (route_label, method, path) in &protected_mutations {
+                let denial = route_entitlement_denial(guard, method, path);
+                assert!(
+                    denial.is_some(),
+                    "{route_label} ({path}) must be denied in state {state_label}"
+                );
+                if let Some(d) = denial {
+                    assert!(
+                        d.code == "ENTITLEMENT_BASE_REQUIRED"
+                            || d.code == "ENTITLEMENT_REQUIRED"
+                            || d.code == "ENTITLEMENT_FEATURE_REQUIRED"
+                            || d.code == "ENTITLEMENT_ROUTE_UNCLASSIFIED",
+                        "{route_label} ({path}) in state {state_label}: unexpected denial code {}",
+                        d.code
+                    );
+                }
+            }
+        }
+
+        // In Active state, base mutations must be allowed
+        let mut active_snap = EntitlementSnapshot::unactivated("focusa", "node");
+        active_snap.state = EntitlementState::Active;
+        active_snap.lease_id = Some("lease-active".into());
+        active_snap.lease_digest = Some("sha256:active".into());
+        active_snap.sequence = Some(7);
+        active_snap.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
+        let active_guard = LicenseGuard::from_entitlement(active_snap);
+
+        assert_eq!(
+            route_entitlement_denial(&active_guard, &Method::POST, "/v1/workpoint/checkpoint"),
+            None,
+            "base mutation must be allowed with active entitlement"
+        );
+        assert_eq!(
+            route_entitlement_denial(&active_guard, &Method::POST, "/v1/metacognition/capture"),
+            None,
+            "metacog capture must be allowed with active entitlement"
+        );
+
+        // Recovery routes must also remain available in active state
+        assert_eq!(
+            route_entitlement_denial(&active_guard, &Method::POST, "/v1/export/run"),
+            None,
+            "export must remain available in active state"
+        );
+        assert_eq!(
+            route_entitlement_denial(&active_guard, &Method::POST, "/v1/update/apply"),
+            None,
+            "update must remain available in active state"
         );
     }
 
