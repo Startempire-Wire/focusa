@@ -70,27 +70,40 @@ pub struct SilentSessionDispatchEntitlementError {
     pub message: String,
     pub required_feature: Option<String>,
     pub limit_bucket: Option<String>,
+    pub initiating_posture: Option<String>,
+    pub initiating_operation_id: Option<String>,
 }
 
 fn silent_session_dispatch_entitlement_policy() -> EntitlementExecutionPolicy {
     EntitlementExecutionPolicy::new(
         "focusa.silent_session.dispatch",
-        focusa_license::OperationClass::ValueMutation,
-        focusa_license::CapabilityFamily::Automation,
-        Some("focusa.agent.silent_sessions"),
-        Some("silent_session_runs"),
+        focusa_license::OperationClass::InternalMaintenance,
+        focusa_license::CapabilityFamily::InternalMaintenance,
+        None,
+        None,
         focusa_license::RecoveryAllowance::None,
     )
+}
+
+fn resolve_internal_maintenance_posture_from_guard(
+    entitlement_guard: &focusa_license::LicenseGuard,
+) -> Option<focusa_license::EntitlementPolicyPosture> {
+    focusa_license::base_product_projection(entitlement_guard.entitlement.as_ref())
+        .ok()
+        .filter(|projection| projection.permits_base_mutations)
+        .map(|_| focusa_license::EntitlementPolicyPosture::Base)
 }
 
 fn evaluate_silent_session_dispatch_entitlement(
     entitlement_guard: &focusa_license::LicenseGuard,
     policy: &EntitlementExecutionPolicy,
+    context: EntitlementExecutionContext,
+    initiating_operation_id: Option<&str>,
 ) -> Result<(), SilentSessionDispatchEntitlementError> {
     evaluate_entitlement_execution(
         entitlement_guard,
         policy,
-        EntitlementExecutionContext::default(),
+        context,
     )
     .map(|_| ())
     .map_err(|error| SilentSessionDispatchEntitlementError {
@@ -98,6 +111,12 @@ fn evaluate_silent_session_dispatch_entitlement(
         message: error.message,
         required_feature: error.required_feature,
         limit_bucket: error.limit_bucket,
+        initiating_posture: context
+            .initiating_posture
+            .map(|posture| posture.status().to_string()),
+        initiating_operation_id: initiating_operation_id
+            .map(ToString::to_string)
+            .or_else(|| Some(policy.operation_id.clone())),
     })
 }
 
@@ -108,7 +127,35 @@ pub fn select_silent_session_dispatch_with_entitlement(
     entitlement_guard: &focusa_license::LicenseGuard,
     entitlement_policy: &EntitlementExecutionPolicy,
 ) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
-    evaluate_silent_session_dispatch_entitlement(entitlement_guard, entitlement_policy)?;
+    select_silent_session_dispatch_with_entitlement_with_initiating_context(
+        work_items,
+        query,
+        candidates,
+        entitlement_guard,
+        entitlement_policy,
+        None,
+        None,
+    )
+}
+
+pub fn select_silent_session_dispatch_with_entitlement_with_initiating_context(
+    work_items: &[WorkItem],
+    query: &WorkItemQuery,
+    candidates: &[SilentSessionDispatchCandidate],
+    entitlement_guard: &focusa_license::LicenseGuard,
+    entitlement_policy: &EntitlementExecutionPolicy,
+    initiating_posture: Option<focusa_license::EntitlementPolicyPosture>,
+    initiating_operation_id: Option<&str>,
+) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
+    evaluate_silent_session_dispatch_entitlement(
+        entitlement_guard,
+        entitlement_policy,
+        EntitlementExecutionContext {
+            now: Utc::now(),
+            initiating_posture,
+        },
+        initiating_operation_id,
+    )?;
     Ok(select_silent_session_dispatch(work_items, query, candidates))
 }
 
@@ -118,8 +165,34 @@ pub fn select_silent_session_dispatch_with_default_entitlement(
     candidates: &[SilentSessionDispatchCandidate],
     entitlement_guard: &focusa_license::LicenseGuard,
 ) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
-    evaluate_silent_session_dispatch_entitlement(entitlement_guard, &silent_session_dispatch_entitlement_policy())?;
-    Ok(select_silent_session_dispatch(work_items, query, candidates))
+    select_silent_session_dispatch_with_default_entitlement_with_initiating_context(
+        work_items,
+        query,
+        candidates,
+        entitlement_guard,
+        resolve_internal_maintenance_posture_from_guard(entitlement_guard),
+        Some("focusa.silent_session.dispatch"),
+    )
+}
+
+pub fn select_silent_session_dispatch_with_default_entitlement_with_initiating_context(
+    work_items: &[WorkItem],
+    query: &WorkItemQuery,
+    candidates: &[SilentSessionDispatchCandidate],
+    entitlement_guard: &focusa_license::LicenseGuard,
+    initiating_posture: Option<focusa_license::EntitlementPolicyPosture>,
+    initiating_operation_id: Option<&str>,
+) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
+    let policy = silent_session_dispatch_entitlement_policy();
+    select_silent_session_dispatch_with_entitlement_with_initiating_context(
+        work_items,
+        query,
+        candidates,
+        entitlement_guard,
+        &policy,
+        initiating_posture,
+        initiating_operation_id,
+    )
 }
 
 /// Dispatch only from canonical Work Loop readiness. This function never
@@ -210,7 +283,7 @@ mod tests {
     use crate::silent_session_writer::{WRITER_ADMISSION_SCHEMA, WriterAdmissionDenial};
     use crate::work_item::{WorkItemProvider, WorkItemStatus};
     use chrono::Duration;
-    use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
+    use focusa_license::{authority::{EntitlementSnapshot, EntitlementState}, EntitlementPolicyPosture};
     use std::path::PathBuf;
 
     fn item(id: &str, status: WorkItemStatus, priority: i32) -> WorkItem {
@@ -292,7 +365,7 @@ mod tests {
     }
 
     #[test]
-    fn delayed_dispatch_rejects_when_entitlement_gate_denies() {
+    fn delayed_dispatch_internal_maintenance_entitlement_rejects_without_posture() {
         let first = item("first", WorkItemStatus::Open, 0);
         let query = WorkItemQuery {
             project_root: PathBuf::from("/projects/focusa"),
@@ -302,11 +375,35 @@ mod tests {
         let decision = select_silent_session_dispatch_with_default_entitlement(
             &[first],
             &query,
-            &[candidate(&item("first", WorkItemStatus::Open, 1), SilentSessionPriority::Normal, Utc::now())],
+            &[candidate(
+                &item("first", WorkItemStatus::Open, 1),
+                SilentSessionPriority::Normal,
+                Utc::now(),
+            )],
             &focusa_license::LicenseGuard::eval(7),
         )
-        .expect_err("dispatch without base entitlement should fail");
-        assert!(decision.code == "ENTITLEMENT_BASE_REQUIRED" || decision.code == "ENTITLEMENT_REQUIRED");
+        .expect_err("dispatch without initiating posture should fail");
+        assert_eq!(decision.code, "ENTITLEMENT_ROUTE_UNCLASSIFIED");
+    }
+
+    #[test]
+    fn delayed_dispatch_internal_maintenance_entitlement_inherits_initiating_posture() {
+        let first = item("first", WorkItemStatus::Open, 0);
+        let query = WorkItemQuery {
+            project_root: PathBuf::from("/projects/focusa"),
+            parent: None,
+            limit: 100,
+        };
+        let (_readiness, dispatch) = select_silent_session_dispatch_with_default_entitlement_with_initiating_context(
+            &[first.clone()],
+            &query,
+            &[candidate(&first, SilentSessionPriority::Normal, Utc::now())],
+            &signed_base_snapshot(),
+            Some(EntitlementPolicyPosture::Base),
+            Some("focusa.scheduler.dispatch"),
+        )
+        .expect("dispatch with inherited posture should pass");
+        assert_eq!(dispatch.selected_work_item, Some(first.reference()));
     }
 
     #[test]

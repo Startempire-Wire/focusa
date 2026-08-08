@@ -556,7 +556,7 @@ mod tests {
     }
 
     #[test]
-    fn entitlement_execution_guard_internal_maintenance_requires_initiating_posture() {
+    fn entitlement_execution_guard_internal_maintenance_entitlement_requires_initiating_posture() {
         let snapshot = base_snapshot(focusa_license::authority::EntitlementState::Active);
         let guard = focusa_license::LicenseGuard::from_entitlement(snapshot);
 
