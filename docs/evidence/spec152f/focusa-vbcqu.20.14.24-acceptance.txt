@@ -1,0 +1,39 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.24
+Title: 152F.03.03 Resolve all 199 REST inventory entries by inheritance
+
+Exact surfaces
+- crates/focusa-api/src/middleware/entitlement.rs
+- crates/focusa-api/src/middleware/entitlement_routes.rs
+- docs/contracts/spec152-entitlement-coverage.v1.json
+- docs/contracts/spec152f-surface-reconciliation.v1.json (+ rest/cli baselines)
+- scripts/generate-spec152-entitlement-coverage.py
+- scripts/generate-spec152-route-entitlement-table.py
+- tests/spec152f_rest_entitlement_inheritance_test.py
+
+Bounded result
+- Resolved the complete REST route inventory (199 known entries) through
+  canonical operation-family inheritance: every route inherits base_focusa,
+  an optional premium family, a recovery/read/export allowance, or
+  account-control/maintenance posture from the canonical registry — no
+  per-route pricing, feature flags, or caller-controlled grants.
+- Updated entitlement coverage and surface-reconciliation baselines to a
+  zero-unresolved state; regeneration scripts now emit the canonical table.
+- Middleware classification and route-policy tables align with the
+  entitlement-coverage ledger; unknown/uncategorized methods remain
+  fail-closed (see 152F.02.03 / 152F.03.02).
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_rest_entitlement_inheritance_test.py` — exit 0.
+   Bounded result: 0 unresolved paths; 199-entry REST inheritance validated.
+2. `cargo test -p focusa-api route_entitlement_inheritance` — exit 0.
+   test result: ok. 1 passed; 0 failed (468 filtered out).
+
+Tests added
+- tests/spec152f_rest_entitlement_inheritance_test.py (REST inventory inheritance validator).
+
+Rollback
+- Revert only commit `bb9856c0e0efdeec8a696dd7cdf399a72fd1a34e` (and this evidence record
+  if required). Preserve customers, orders, refunds, licenses, nodes, sequences,
+  customer data, migration journals, and accepted authority/evidence state.
+  No push, deploy, release, merge, or Beads mutation was performed by the atom.

@@ -1,7 +1,7 @@
 {
   "schema": "focusa.spec152f.surface_reconciliation_shard.v1",
   "surface_group": "cli",
-  "row_count": 86,
+  "row_count": 87,
   "rows": [
     {"baseline_id":"cli:34408ff11349fd38","candidate_family":null,"mutation_class":"unknown","owner_task":"focusa-vbcqu.20.14.25","rationale":"Top-level command names are presenters, not SKUs.","resolution":"inherit_canonical_operation","source":"crates/focusa-cli/src/main.rs","surface":"cli","symbol_or_route":"About"},
     {"baseline_id":"cli:cf59cc84101236a1","candidate_family":null,"mutation_class":"unknown","owner_task":"focusa-vbcqu.20.14.25","rationale":"Top-level command names are presenters, not SKUs.","resolution":"inherit_canonical_operation","source":"crates/focusa-cli/src/main.rs","surface":"cli","symbol_or_route":"Action"},
@@ -86,6 +86,7 @@
     {"baseline_id":"cli:2c481cb01c605df0","candidate_family":null,"mutation_class":"unknown","owner_task":"focusa-vbcqu.20.14.25","rationale":"Top-level command names are presenters, not SKUs.","resolution":"inherit_canonical_operation","source":"crates/focusa-cli/src/main.rs","surface":"cli","symbol_or_route":"Utility"},
     {"baseline_id":"cli:60bdaa4700c44832","candidate_family":null,"mutation_class":"unknown","owner_task":"focusa-vbcqu.20.14.25","rationale":"Top-level command names are presenters, not SKUs.","resolution":"inherit_canonical_operation","source":"crates/focusa-cli/src/main.rs","surface":"cli","symbol_or_route":"Walkthrough"},
     {"baseline_id":"cli:58dfaaaeb432b02c","candidate_family":null,"mutation_class":"unknown","owner_task":"focusa-vbcqu.20.14.25","rationale":"Top-level command names are presenters, not SKUs.","resolution":"inherit_canonical_operation","source":"crates/focusa-cli/src/main.rs","surface":"cli","symbol_or_route":"WorkItem"},
+    {"baseline_id":"cli:c6dbc476c7416003","candidate_family":null,"mutation_class":"unknown","owner_task":"focusa-vbcqu.20.14.25","rationale":"Top-level command names are presenters, not SKUs.","resolution":"inherit_canonical_operation","source":"crates/focusa-cli/src/main.rs","surface":"cli","symbol_or_route":"WorkLoop"},
     {"baseline_id":"cli:41fe9a9d782d6288","candidate_family":null,"mutation_class":"unknown","owner_task":"focusa-vbcqu.20.14.25","rationale":"Top-level command names are presenters, not SKUs.","resolution":"inherit_canonical_operation","source":"crates/focusa-cli/src/main.rs","surface":"cli","symbol_or_route":"Workflow"},
     {"baseline_id":"cli:e594c8629c37e9dd","candidate_family":null,"mutation_class":"unknown","owner_task":"focusa-vbcqu.20.14.25","rationale":"Top-level command names are presenters, not SKUs.","resolution":"inherit_canonical_operation","source":"crates/focusa-cli/src/main.rs","surface":"cli","symbol_or_route":"Workpoint"},
     {"baseline_id":"cli:6afa954b195f11b6","candidate_family":null,"mutation_class":"unknown","owner_task":"focusa-vbcqu.20.14.25","rationale":"Top-level command names are presenters, not SKUs.","resolution":"inherit_canonical_operation","source":"crates/focusa-cli/src/main.rs","surface":"cli","symbol_or_route":"Wrap"}

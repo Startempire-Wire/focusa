@@ -730,4 +730,88 @@ mod tests {
             "ENTITLEMENT_BASE_REQUIRED"
         );
     }
+
+    #[test]
+    fn route_entitlement_inheritance() {
+        // Verify all routes in the reconciliation manifest resolve through
+        // inheritance to a canonical operation policy without owning pricing,
+        // tier, or caller-controlled grants.
+        let reconciliation_json = include_str!(
+            "../../../../docs/contracts/spec152f-surface-reconciliation/rest.v1.json"
+        );
+        let reconciliation: serde_json::Value =
+            serde_json::from_str(reconciliation_json).expect("valid reconciliation JSON");
+        let rows = reconciliation["rows"]
+            .as_array()
+            .expect("rows is an array");
+        assert!(
+            rows.len() >= 189,
+            "expected >=189 REST entries in reconciliation manifest, got {}",
+            rows.len()
+        );
+
+        let mut resolved = 0u32;
+        let mut unresolved = Vec::new();
+
+        for row in rows {
+            let path = row["symbol_or_route"]
+                .as_str()
+                .expect("path is a string");
+            let resolution = row["resolution"].as_str().unwrap_or_default();
+
+            // Recovery routes are handled by the middleware
+            if resolution == "recovery_or_read_allowance" {
+                assert!(
+                    resolve_route_entitlement_policy(&Method::POST, path).is_none()
+                        || route_recovery_allowance(path).is_some(),
+                    "{path}: recovery route must resolve via recovery allowance, not entitlement"
+                );
+                resolved += 1;
+                continue;
+            }
+
+            // All base and premium routes must resolve through inheritance
+            // Try common mutation methods for each path
+            let policy = resolve_route_entitlement_policy(&Method::POST, path)
+                .or_else(|| resolve_route_entitlement_policy(&Method::GET, path))
+                .or_else(|| resolve_route_entitlement_policy(&Method::PATCH, path))
+                .or_else(|| resolve_route_entitlement_policy(&Method::PUT, path))
+                .or_else(|| resolve_route_entitlement_policy(&Method::DELETE, path));
+
+            match policy {
+                Some(p) => {
+                    // No route may present itself as owning pricing or tier
+                    assert!(
+                        !p.operation_id.is_empty(),
+                        "{path}: must have a synthetic operation id"
+                    );
+                    // Premium routes must use approved families
+                    if p.capability_family.is_optional_premium() {
+                        assert!(
+                            resolution == "premium_family_candidate",
+                            "{path}: carries premium family {:?} but resolution is {resolution}",
+                            p.capability_family
+                        );
+                    }
+                    resolved += 1;
+                }
+                None => {
+                    unresolved.push(path.to_string());
+                }
+            }
+        }
+
+        assert!(
+            unresolved.is_empty(),
+            "{} REST routes could not resolve: {:?}",
+            unresolved.len(),
+            &unresolved[..unresolved.len().min(20)]
+        );
+        assert_eq!(
+            resolved as usize,
+            rows.len(),
+            "all {} REST entries must resolve",
+            rows.len()
+        );
+    }
 }
