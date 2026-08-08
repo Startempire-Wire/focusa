@@ -30,6 +30,13 @@ pub enum SilentSessionPriority {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SilentSessionDispatchEntitlementContext {
+    pub dispatch_policy: EntitlementExecutionPolicy,
+    pub initiating_policy: Option<EntitlementExecutionPolicy>,
+    pub reservation_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SilentSessionDispatchCandidate {
     pub session_id: SilentSessionId,
     pub work_item: WorkItemRef,
@@ -37,6 +44,7 @@ pub struct SilentSessionDispatchCandidate {
     pub queued_at: DateTime<Utc>,
     pub resource_admission: ResourceAdmissionDecision,
     pub writer_admission: WriterAdmissionDecision,
+    pub entitlement_context: Option<SilentSessionDispatchEntitlementContext>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +53,7 @@ pub enum DispatchDeferralReason {
     WorkItemNotReady,
     ResourceAdmissionDenied,
     WriterAdmissionDenied,
+    EntitlementDenied,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -72,6 +81,7 @@ pub struct SilentSessionDispatchEntitlementError {
     pub limit_bucket: Option<String>,
     pub initiating_posture: Option<String>,
     pub initiating_operation_id: Option<String>,
+    pub reservation_id: Option<String>,
 }
 
 fn silent_session_dispatch_entitlement_policy() -> EntitlementExecutionPolicy {
@@ -94,30 +104,127 @@ fn resolve_internal_maintenance_posture_from_guard(
         .map(|_| focusa_license::EntitlementPolicyPosture::Base)
 }
 
+fn entitlement_status_to_posture(
+    status: &str,
+) -> Option<focusa_license::EntitlementPolicyPosture> {
+    match status {
+        s if s == focusa_license::EntitlementPolicyPosture::Allow.status() => {
+            Some(focusa_license::EntitlementPolicyPosture::Allow)
+        }
+        s if s == focusa_license::EntitlementPolicyPosture::Read.status() => {
+            Some(focusa_license::EntitlementPolicyPosture::Read)
+        }
+        s if s == focusa_license::EntitlementPolicyPosture::Base.status() => {
+            Some(focusa_license::EntitlementPolicyPosture::Base)
+        }
+        s if s == focusa_license::EntitlementPolicyPosture::Feature.status() => {
+            Some(focusa_license::EntitlementPolicyPosture::Feature)
+        }
+        _ => None,
+    }
+}
+
 fn evaluate_silent_session_dispatch_entitlement(
     entitlement_guard: &focusa_license::LicenseGuard,
     policy: &EntitlementExecutionPolicy,
     context: EntitlementExecutionContext,
     initiating_operation_id: Option<&str>,
+    reservation_id: Option<&str>,
 ) -> Result<(), SilentSessionDispatchEntitlementError> {
-    evaluate_entitlement_execution(
+    evaluate_entitlement_execution(entitlement_guard, policy, context)
+        .map(|_| ())
+        .map_err(|error| SilentSessionDispatchEntitlementError {
+            code: error.code,
+            message: error.message,
+            required_feature: error.required_feature,
+            limit_bucket: error.limit_bucket,
+            initiating_posture: context
+                .initiating_posture
+                .map(|posture| posture.status().to_string()),
+            initiating_operation_id: initiating_operation_id
+                .map(ToString::to_string)
+                .or_else(|| Some(policy.operation_id.clone())),
+            reservation_id: reservation_id.map(ToString::to_string),
+        })
+}
+
+fn evaluate_silent_session_dispatch_candidate_entitlement(
+    entitlement_guard: &focusa_license::LicenseGuard,
+    candidate: &SilentSessionDispatchCandidate,
+    dispatch_policy: &EntitlementExecutionPolicy,
+    fallback_initiating_posture: Option<focusa_license::EntitlementPolicyPosture>,
+    fallback_initiating_operation_id: Option<&str>,
+) -> Result<(), SilentSessionDispatchEntitlementError> {
+    let reference = candidate.entitlement_context.as_ref();
+    let resolved_dispatch_policy = reference
+        .map(|reference| &reference.dispatch_policy)
+        .unwrap_or(dispatch_policy);
+    let resolved_initiating_operation_id = reference
+        .and_then(|reference| reference.initiating_policy.as_ref())
+        .map(|policy| policy.operation_id.as_str())
+        .or(fallback_initiating_operation_id);
+
+    let resolved_initiating_posture = if resolved_dispatch_policy
+        .capability_family
+        == focusa_license::CapabilityFamily::InternalMaintenance
+    {
+        match reference.and_then(|reference| reference.initiating_policy.as_ref()) {
+            Some(policy) => {
+                let decision = evaluate_entitlement_execution(
+                    entitlement_guard,
+                    policy,
+                    EntitlementExecutionContext::default(),
+                )
+                .map_err(|error| SilentSessionDispatchEntitlementError {
+                    code: error.code,
+                    message: error.message,
+                    required_feature: error.required_feature,
+                    limit_bucket: error.limit_bucket,
+                    initiating_posture: Some(
+                        focusa_license::EntitlementPolicyPosture::Deny.status().to_string(),
+                    ),
+                    initiating_operation_id: Some(policy.operation_id.clone()),
+                    reservation_id: reference
+                        .and_then(|context| context.reservation_id.as_deref())
+                        .map(ToString::to_string),
+                })?;
+                let posture = entitlement_status_to_posture(&decision.status).ok_or_else(||
+                    SilentSessionDispatchEntitlementError {
+                        code: "ENTITLEMENT_ROUTE_UNCLASSIFIED".to_string(),
+                        message: format!(
+                            "unsupported entitlement posture {} for initiating operation {}",
+                            decision.status, policy.operation_id
+                        ),
+                        required_feature: None,
+                        limit_bucket: None,
+                        initiating_posture: Some(
+                            focusa_license::EntitlementPolicyPosture::Deny.status().to_string(),
+                        ),
+                        initiating_operation_id: Some(policy.operation_id.clone()),
+                        reservation_id: reference
+                            .and_then(|context| context.reservation_id.as_deref())
+                            .map(ToString::to_string),
+                    }
+                )?;
+                Some(posture)
+            }
+            None => fallback_initiating_posture,
+        }
+    } else {
+        None
+    };
+
+    evaluate_silent_session_dispatch_entitlement(
         entitlement_guard,
-        policy,
-        context,
+        resolved_dispatch_policy,
+        EntitlementExecutionContext {
+            now: Utc::now(),
+            initiating_posture: resolved_initiating_posture,
+        },
+        resolved_initiating_operation_id,
+        reference
+            .and_then(|context| context.reservation_id.as_deref()),
     )
-    .map(|_| ())
-    .map_err(|error| SilentSessionDispatchEntitlementError {
-        code: error.code,
-        message: error.message,
-        required_feature: error.required_feature,
-        limit_bucket: error.limit_bucket,
-        initiating_posture: context
-            .initiating_posture
-            .map(|posture| posture.status().to_string()),
-        initiating_operation_id: initiating_operation_id
-            .map(ToString::to_string)
-            .or_else(|| Some(policy.operation_id.clone())),
-    })
 }
 
 pub fn select_silent_session_dispatch_with_entitlement(
@@ -147,16 +254,37 @@ pub fn select_silent_session_dispatch_with_entitlement_with_initiating_context(
     initiating_posture: Option<focusa_license::EntitlementPolicyPosture>,
     initiating_operation_id: Option<&str>,
 ) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
-    evaluate_silent_session_dispatch_entitlement(
+    let has_entitlement_context = candidates
+        .iter()
+        .any(|candidate| candidate.entitlement_context.is_some());
+
+    if !has_entitlement_context {
+        evaluate_silent_session_dispatch_entitlement(
+            entitlement_guard,
+            entitlement_policy,
+            EntitlementExecutionContext {
+                now: Utc::now(),
+                initiating_posture,
+            },
+            initiating_operation_id,
+            None,
+        )?;
+        return Ok(select_silent_session_dispatch(
+            work_items,
+            query,
+            candidates,
+        ));
+    }
+
+    Ok(select_silent_session_dispatch_with_entitlement_contexts(
+        work_items,
+        query,
+        candidates,
         entitlement_guard,
         entitlement_policy,
-        EntitlementExecutionContext {
-            now: Utc::now(),
-            initiating_posture,
-        },
+        initiating_posture,
         initiating_operation_id,
-    )?;
-    Ok(select_silent_session_dispatch(work_items, query, candidates))
+    ))
 }
 
 pub fn select_silent_session_dispatch_with_default_entitlement(
@@ -193,6 +321,106 @@ pub fn select_silent_session_dispatch_with_default_entitlement_with_initiating_c
         initiating_posture,
         initiating_operation_id,
     )
+}
+
+fn select_silent_session_dispatch_with_entitlement_contexts(
+    work_items: &[WorkItem],
+    query: &WorkItemQuery,
+    candidates: &[SilentSessionDispatchCandidate],
+    entitlement_guard: &focusa_license::LicenseGuard,
+    entitlement_policy: &EntitlementExecutionPolicy,
+    initiating_posture: Option<focusa_license::EntitlementPolicyPosture>,
+    initiating_operation_id: Option<&str>,
+) -> (WorkItemReadiness, SilentSessionDispatchDecision) {
+    let readiness = evaluate_readiness(work_items, query);
+    let mut eligible = Vec::new();
+    let mut deferred = Vec::new();
+    for candidate in candidates {
+        let ready_item = readiness
+            .ready
+            .iter()
+            .find(|item| same_work_item(&item.reference(), &candidate.work_item));
+        let Some(item) = ready_item else {
+            let detail = readiness
+                .blocked
+                .iter()
+                .find(|blocked| same_work_item(&blocked.item.reference(), &candidate.work_item))
+                .map(|blocked| blocked.reason.clone())
+                .unwrap_or_else(|| "work item is absent from canonical ready set".into());
+            deferred.push(DeferredDispatchCandidate {
+                session_id: candidate.session_id,
+                work_item: candidate.work_item.clone(),
+                reason: DispatchDeferralReason::WorkItemNotReady,
+                detail,
+            });
+            continue;
+        };
+
+        if let Err(error) = evaluate_silent_session_dispatch_candidate_entitlement(
+            entitlement_guard,
+            candidate,
+            entitlement_policy,
+            initiating_posture,
+            initiating_operation_id,
+        ) {
+            deferred.push(DeferredDispatchCandidate {
+                session_id: candidate.session_id,
+                work_item: candidate.work_item.clone(),
+                reason: DispatchDeferralReason::EntitlementDenied,
+                detail: format!(
+                    "entitlement denied: {} {} (reservation={})",
+                    error.code,
+                    error.message,
+                    error
+                        .reservation_id
+                        .unwrap_or_else(|| "missing".to_string())
+                ),
+            });
+            continue;
+        }
+        if !candidate.resource_admission.admitted {
+            deferred.push(DeferredDispatchCandidate {
+                session_id: candidate.session_id,
+                work_item: candidate.work_item.clone(),
+                reason: DispatchDeferralReason::ResourceAdmissionDenied,
+                detail: format!(
+                    "resource admission denied: {:?}",
+                    candidate.resource_admission.denials
+                ),
+            });
+            continue;
+        }
+        if !candidate.writer_admission.admitted {
+            deferred.push(DeferredDispatchCandidate {
+                session_id: candidate.session_id,
+                work_item: candidate.work_item.clone(),
+                reason: DispatchDeferralReason::WriterAdmissionDenied,
+                detail: format!(
+                    "writer admission denied: {:?}",
+                    candidate.writer_admission.denials
+                ),
+            });
+            continue;
+        }
+        eligible.push((candidate, item.priority));
+    }
+    eligible.sort_by(|(left, left_item_priority), (right, right_item_priority)| {
+        left.priority
+            .cmp(&right.priority)
+            .then_with(|| left_item_priority.cmp(right_item_priority))
+            .then_with(|| left.queued_at.cmp(&right.queued_at))
+            .then_with(|| left.session_id.cmp(&right.session_id))
+    });
+    deferred.sort_by_key(|item| item.session_id);
+    let selected = eligible.first().map(|(candidate, _)| *candidate);
+    let decision = SilentSessionDispatchDecision {
+        schema: SILENT_SESSION_DISPATCH_SCHEMA.into(),
+        selected_session_id: selected.map(|candidate| candidate.session_id),
+        selected_work_item: selected.map(|candidate| candidate.work_item.clone()),
+        deferred,
+        canonical_ready_count: readiness.ready.len(),
+    };
+    (readiness, decision)
 }
 
 /// Dispatch only from canonical Work Loop readiness. This function never
@@ -346,22 +574,50 @@ mod tests {
             queued_at,
             resource_admission: resource(true),
             writer_admission: writer(true),
+            entitlement_context: None,
         }
     }
 
-    fn signed_base_snapshot() -> focusa_license::LicenseGuard {
+    fn contextual_policy_candidate(
+        item: &WorkItem,
+        priority: SilentSessionPriority,
+        queued_at: DateTime<Utc>,
+        context: SilentSessionDispatchEntitlementContext,
+    ) -> SilentSessionDispatchCandidate {
+        SilentSessionDispatchCandidate {
+            session_id: SilentSessionId::new(),
+            work_item: item.reference(),
+            priority,
+            queued_at,
+            resource_admission: resource(true),
+            writer_admission: writer(true),
+            entitlement_context: Some(context),
+        }
+    }
+
+    fn signed_snapshot(
+        state: EntitlementState,
+        offline_grace_until: Option<DateTime<Utc>>,
+    ) -> focusa_license::LicenseGuard {
         let now = Utc::now();
         let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-scheduler");
-        snapshot.state = EntitlementState::Active;
+        snapshot.state = state;
         snapshot.sequence = Some(7);
         snapshot.lease_id = Some("lease-3".into());
         snapshot.lease_digest = Some("sha256:scheduler".into());
         snapshot
             .features
             .insert("focusa.agent.silent_sessions".into(), true);
+        snapshot
+            .features
+            .insert("focusa.agent.parallelism".into(), true);
         snapshot.expires_at = Some(now + chrono::Duration::hours(1));
-        snapshot.offline_grace_until = Some(now + chrono::Duration::hours(1));
+        snapshot.offline_grace_until = offline_grace_until;
         focusa_license::LicenseGuard::from_entitlement(snapshot)
+    }
+
+    fn signed_base_snapshot() -> focusa_license::LicenseGuard {
+        signed_snapshot(EntitlementState::Active, Some(Utc::now() + chrono::Duration::hours(1)))
     }
 
     #[test]
@@ -422,6 +678,142 @@ mod tests {
         )
         .expect("default entitlement should allow silent session dispatch selection");
         assert_eq!(dispatch.selected_work_item, Some(first.reference()));
+    }
+
+    #[test]
+    fn scheduler_entitlement_revalidation_stops_when_entitlement_is_recovered_or_revoked() {
+        let first = item("first", WorkItemStatus::Open, 0);
+        let query = WorkItemQuery {
+            project_root: PathBuf::from("/projects/focusa"),
+            parent: None,
+            limit: 100,
+        };
+        let context = SilentSessionDispatchEntitlementContext {
+            dispatch_policy: EntitlementExecutionPolicy::new(
+                "focusa.silent_session.dispatch",
+                focusa_license::OperationClass::InternalMaintenance,
+                focusa_license::CapabilityFamily::InternalMaintenance,
+                None,
+                None,
+                focusa_license::RecoveryAllowance::None,
+            ),
+            initiating_policy: Some(EntitlementExecutionPolicy::new(
+                "focusa.workpoint.checkpoint",
+                focusa_license::OperationClass::ValueMutation,
+                focusa_license::CapabilityFamily::BaseFocusa,
+                None,
+                None,
+                focusa_license::RecoveryAllowance::None,
+            )),
+            reservation_id: Some("reservation-workflow".into()),
+        };
+
+        let (_readiness, active_dispatch) = select_silent_session_dispatch_with_entitlement(
+            &[first.clone()],
+            &query,
+            &[contextual_policy_candidate(
+                &first,
+                SilentSessionPriority::Normal,
+                Utc::now(),
+                context.clone(),
+            )],
+            &signed_snapshot(EntitlementState::Active, Some(Utc::now() + Duration::hours(1))),
+            &silent_session_dispatch_entitlement_policy(),
+        )
+        .expect("active entitlement should permit dispatch");
+        assert_eq!(active_dispatch.selected_work_item, Some(first.reference()));
+
+        let (_readiness, revoked_dispatch) = select_silent_session_dispatch_with_entitlement(
+            &[first.clone()],
+            &query,
+            &[contextual_policy_candidate(
+                &first,
+                SilentSessionPriority::Normal,
+                Utc::now(),
+                context,
+            )],
+            &signed_snapshot(EntitlementState::RecoveryOnly, None),
+            &silent_session_dispatch_entitlement_policy(),
+        )
+        .expect("dispatch should stay ordered after entitlement loss");
+        assert_eq!(revoked_dispatch.selected_work_item, None);
+        assert_eq!(revoked_dispatch.deferred.len(), 1);
+        assert_eq!(
+            revoked_dispatch.deferred[0].reason,
+            DispatchDeferralReason::EntitlementDenied
+        );
+        assert_eq!(
+            revoked_dispatch.deferred[0].detail.contains("ENTITLEMENT_BASE_REQUIRED"),
+            true
+        );
+    }
+
+    #[test]
+    fn scheduler_entitlement_revalidation_refuses_past_offline_grace_for_features() {
+        let first = item("first", WorkItemStatus::Open, 0);
+        let query = WorkItemQuery {
+            project_root: PathBuf::from("/projects/focusa"),
+            parent: None,
+            limit: 100,
+        };
+        let mut context = SilentSessionDispatchEntitlementContext {
+            dispatch_policy: EntitlementExecutionPolicy::new(
+                "focusa.silent_session.dispatch",
+                focusa_license::OperationClass::ValueMutation,
+                focusa_license::CapabilityFamily::Automation,
+                Some("focusa.agent.parallelism"),
+                Some("parallel_workers"),
+                focusa_license::RecoveryAllowance::None,
+            ),
+            initiating_policy: None,
+            reservation_id: Some("reservation-offline".into()),
+        };
+
+        let now = Utc::now();
+        let (_readiness, valid_dispatch) = select_silent_session_dispatch_with_entitlement(
+            &[first.clone()],
+            &query,
+            &[contextual_policy_candidate(
+                &first,
+                SilentSessionPriority::Normal,
+                now,
+                context.clone(),
+            )],
+            &signed_snapshot(
+                EntitlementState::OfflineGrace,
+                Some(now + Duration::hours(1)),
+            ),
+            &silent_session_dispatch_entitlement_policy(),
+        )
+        .expect("valid offline grace should permit premium dispatch");
+        assert_eq!(valid_dispatch.selected_work_item, Some(first.reference()));
+
+        context.dispatch_policy = EntitlementExecutionPolicy::new(
+            "focusa.silent_session.dispatch",
+            focusa_license::OperationClass::ValueMutation,
+            focusa_license::CapabilityFamily::Automation,
+            Some("focusa.agent.parallelism"),
+            Some("parallel_workers"),
+            focusa_license::RecoveryAllowance::None,
+        );
+        let (_readiness, expired_dispatch) = select_silent_session_dispatch_with_entitlement(
+            &[first.clone()],
+            &query,
+            &[contextual_policy_candidate(
+                &first,
+                SilentSessionPriority::Normal,
+                now,
+                context,
+            )],
+            &signed_snapshot(EntitlementState::OfflineGrace, Some(now - Duration::hours(1))),
+            &silent_session_dispatch_entitlement_policy(),
+        )
+        .expect("expired offline grace should stop dispatch");
+        assert_eq!(expired_dispatch.selected_work_item, None);
+        assert_eq!(
+            expired_dispatch.deferred[0].detail.contains("ENTITLEMENT_REQUIRED"),
+            true
+        );
     }
 
     #[test]
