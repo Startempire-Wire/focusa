@@ -56,6 +56,8 @@ try {
     await exerciseProfileGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.activity.list') {
     await exerciseActivityList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.registry.list') {
+    await exerciseRegistryList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.activity.select') {
     await exerciseActivitySelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, fixture });
   } else if (operationId === 'focusa.mission_canvas.layout_memory.get') {
@@ -787,6 +789,197 @@ async function exerciseActivityList({ MissionCanvasClient, MissionCanvasHttpTran
   );
 
   console.log('Mission Canvas operation consumer: PASS (generated activityList, exact Workstream GET, direct registered ActivityMode[], empty activity list, foreign scope, missing authority, permission, unavailable capability/operation, and hostile response checks)');
+}
+
+async function exerciseRegistryList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  const registryEntry = (entryId, kind) => ({
+    enabled: true,
+    entry_id: entryId,
+    payload_ref: `registry-entry:${entryId}@1`,
+    registry_kind: kind,
+    revision: 1,
+    schema_ref: 'registry-entry.schema.json',
+    required_capabilities: [],
+    required_permissions: []
+  });
+  const registryKind = 'PanelRegistry';
+  const entries = [
+    registryEntry('panel:focusa-inspector', registryKind),
+    registryEntry('panel:work-rail', registryKind)
+  ];
+  let calls = 0;
+  const requests = [];
+  let response = structuredClone(entries);
+  const transport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787/',
+    async (url, init) => {
+      calls += 1;
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  const client = new MissionCanvasClient(transport);
+  const listed = await client.registryList({
+    ...structuredClone(authority),
+    registry_kind: registryKind
+  });
+  assert.deepEqual(listed, entries);
+  assert.equal(calls, 1);
+
+  const requestUrl = new URL(requests[0].url);
+  assert.equal(`${requestUrl.origin}${requestUrl.pathname}`, `http://127.0.0.1:8787/v1/mission-canvas/registries/${registryKind}`);
+  assert.deepEqual(JSON.parse(requestUrl.searchParams.get('workstream')), authority.workstream);
+  assert.deepEqual(JSON.parse(requestUrl.searchParams.get('attachment')), authority.attachment);
+  assert.equal(requestUrl.searchParams.get('continuity_id'), authority.continuity_id);
+  assert.equal(requestUrl.searchParams.get('workspace_binding_id'), authority.workspace_binding_id);
+  assert.equal(requestUrl.searchParams.get('runtime_object'), JSON.stringify(authority.runtime_object));
+  assert.equal(requestUrl.searchParams.get('work_surface_id'), authority.work_surface_id);
+  assert.equal(requestUrl.searchParams.get('registry_kind'), null);
+  assert.equal(requests[0].init.method, 'GET');
+  assert.equal(requests[0].init.body, undefined);
+  assert.equal(requests[0].init.headers['X-Focusa-Permissions'], 'mission_canvas:read');
+  assert.equal(requests[0].init.headers['X-Focusa-Capabilities'], undefined, 'registry.list must not mint an operation capability');
+  assert.equal(requests[0].init.headers['X-Focusa-Actor-Id'], 'actor:desktop');
+  assert.equal(requests[0].init.headers['X-Focusa-Authority-Ref'], 'authority:desktop');
+
+  // empty registry output is still a valid generated response when no matching
+  // entries exist for the requested kind.
+  response = [];
+  assert.deepEqual(await client.registryList({
+    ...structuredClone(authority),
+    registry_kind: registryKind
+  }), []);
+
+  const missingPathTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => new Response(JSON.stringify(response), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingPathTransport).registryList(structuredClone(authority)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'path_parameter_required:registry_kind'
+  );
+
+  const wrappedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ entries: entries }), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(wrappedTransport).registryList({
+      ...structuredClone(authority),
+      registry_kind: registryKind
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:expected array'
+  );
+
+  const malformedEntry = structuredClone(entries[0]);
+  delete malformedEntry.registry_kind;
+  const malformedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify([malformedEntry]), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(malformedTransport).registryList({
+      ...structuredClone(authority),
+      registry_kind: registryKind
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:0:missing:registry_kind'
+  );
+
+  const foreignPayload = structuredClone(entries[0]);
+  foreignPayload.workstream = { workstream_id: 'ws:foreign' };
+  const foreignPayloadTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify([foreignPayload]), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignPayloadTransport).registryList({
+      ...structuredClone(authority),
+      registry_kind: registryKind
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:0:unknown:workstream')
+  );
+
+  const foreignScopeTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'workstream_identity_mismatch' } }), { status: 409 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignScopeTransport).registryList({
+      ...structuredClone(authority),
+      registry_kind: registryKind
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 409
+  );
+
+  let missingScopeCalls = 0;
+  const missingScopeTransport = new MissionCanvasHttpTransport(
+    'http://127.0.0.1:8787',
+    async () => {
+      missingScopeCalls += 1;
+      return new Response(JSON.stringify(entries), { status: 200 });
+    },
+    undefined,
+    30_000,
+    ['mission_canvas:read'],
+    [],
+    'actor:desktop',
+    'authority:desktop'
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(missingScopeTransport).registryList({
+      registry_kind: registryKind
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_workstream_identity:')
+  );
+  assert.equal(missingScopeCalls, 0, 'missing Workstream authority must fail before registryList HTTP');
+
+  const deniedTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Permissions'], undefined);
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'permission_denied' } }), { status: 403 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(deniedTransport).registryList({
+      ...structuredClone(authority),
+      registry_kind: registryKind
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 403
+  );
+
+  const missingAuthorityTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async (_url, init) => {
+    assert.equal(init.headers['X-Focusa-Actor-Id'], undefined);
+    assert.equal(init.headers['X-Focusa-Authority-Ref'], undefined);
+    return new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'workstream_context_invalid' } }), { status: 422 });
+  });
+  await assert.rejects(
+    () => new MissionCanvasClient(missingAuthorityTransport).registryList({
+      ...structuredClone(authority),
+      registry_kind: registryKind
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 422
+  );
+
+  await assert.rejects(
+    () => transport.request('focusa.mission_canvas.registry.unavailable', {
+      ...structuredClone(authority),
+      registry_kind: registryKind
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'operation_unavailable'
+  );
+
+  const unknownKindTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify({ schema: 'focusa.tool_result.v1', status: 'blocked', error: { code: 'registry_kind_unknown' } }), { status: 422 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(unknownKindTransport).registryList({
+      ...structuredClone(authority),
+      registry_kind: 'UnknownRegistryKind'
+    }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'transport_response_failed' && error.status === 422
+  );
+
+  console.log('Mission Canvas operation consumer: PASS (generated registryList, exact Workstream GET, path param handling, direct RegistryEntry[], empty registry list, foreign scope, missing authority, missing path, malformed/hostile response checks)');
 }
 
 async function exerciseActivitySelect({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, fixture }) {

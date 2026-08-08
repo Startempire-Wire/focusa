@@ -20,8 +20,9 @@ use focusa_core::mission_canvas::{
     LayoutMemoryUpdateCommand, LayoutMemoryUpdateError, LayoutMemoryUpdateService,
     LayoutMutationCommand, LayoutMutationError, LayoutMutationExecution, LayoutMutationService,
     MissionCanvasScope, MissionCanvasStore, ProfileLayoutMemory, ProfileSelectionCommand,
-    ProfileSelectionError, ProfileSelectionService, ResolveProjectionInput, StoredDocument,
-    WorkspaceProfileDefinition, DOMAIN_PACK_INSTALL_CAPABILITY, LAYOUT_MEMORY_UPDATE_PERMISSION,
+    ProfileSelectionError, ProfileSelectionService, RegistryDefinition, ResolveProjectionInput,
+    StoredDocument, WorkspaceProfileDefinition, DOMAIN_PACK_INSTALL_CAPABILITY,
+    LAYOUT_MEMORY_UPDATE_PERMISSION,
 };
 use focusa_core::workstream_context::{
     ActorRef, ActorType, AuthorityContext, WorkstreamContext, WorkstreamContextError,
@@ -1812,21 +1813,88 @@ async fn list_activities(
     Ok(Json(serde_json::to_value(viable).map_err(json_error)?))
 }
 
+fn registered_registry_entries(
+    store: &MissionCanvasStore,
+    scope: &MissionCanvasScope,
+    registry_kind: &str,
+) -> Result<Vec<RegistryDefinition>, (StatusCode, Json<Value>)> {
+    if !matches!(
+        registry_kind,
+        "WorkspaceProfileRegistry"
+            | "ActivityModeRegistry"
+            | "PanelRegistry"
+            | "HomeCanvasRegistry"
+            | "WorkSurfaceRendererRegistry"
+            | "ArtifactRendererRegistry"
+            | "TerminologyRegistry"
+            | "DomainSemanticBindingRegistry"
+    ) {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "registry_kind_unknown",
+            "The requested registry kind is not supported",
+        ));
+    }
+    let mut registry = CompositionRegistry::builtin();
+    let entries = match registry_kind {
+        "PanelRegistry" => &mut registry.panels,
+        "HomeCanvasRegistry" => &mut registry.home_canvases,
+        "WorkSurfaceRendererRegistry" => &mut registry.work_surface_renderers,
+        "ArtifactRendererRegistry" => &mut registry.artifact_renderers,
+        "TerminologyRegistry" => &mut registry.terminology,
+        "DomainSemanticBindingRegistry" => &mut registry.domain_semantics,
+        _ => return Ok(Vec::new()),
+    };
+    for document in store
+        .list_documents("mission_canvas_registry_entries", scope)
+        .map_err(store_error)?
+    {
+        let entry: RegistryDefinition = serde_json::from_value(document.payload).map_err(|_| {
+            error(
+                StatusCode::CONFLICT,
+                "registry_catalog_invalid",
+                "A canonical registry entry document is malformed",
+            )
+        })?;
+        if entry.registry_kind != registry_kind {
+            continue;
+        }
+        if entry.entry_id.trim().is_empty()
+            || entry.schema_ref.trim().is_empty()
+            || entry.payload_ref.trim().is_empty()
+            || entry.revision == 0
+        {
+            return Err(error(
+                StatusCode::CONFLICT,
+                "registry_catalog_invalid",
+                "A canonical registry entry is missing required metadata",
+            ));
+        }
+        if document.document_id != format!("registry:{}", entry.entry_id) {
+            return Err(error(
+                StatusCode::CONFLICT,
+                "registry_catalog_identity_mismatch",
+                "The canonical registry document does not match its registered entry identity",
+            ));
+        }
+        entries.insert(entry.entry_id.clone(), entry);
+    }
+    Ok(entries.into_values().collect())
+}
+
 async fn list_registry(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Path(registry_kind): Path<String>,
     Query(query): Query<ScopeQuery>,
 ) -> ApiResult {
-    let mut response = list_documents(&state, &headers, query, "mission_canvas_registry_entries")?;
-    if let Some(items) = response.0.as_array_mut() {
-        items.retain(|item| {
-            item.pointer("/payload/registry_kind")
-                .and_then(Value::as_str)
-                == Some(registry_kind.as_str())
-        });
-    }
-    Ok(response)
+    require_permission(&headers, "mission_canvas:read")?;
+    let scope = query.scope()?;
+    // Registry list is authority-bearing.  Establish the exact Workstream
+    // before reading profile/activity/bundle registries.
+    exact_workstream_context(&scope, &headers).map_err(host_renderer_context_error)?;
+    let entries = registered_registry_entries(&store(&state)?, &scope, &registry_kind)?;
+    Ok(Json(serde_json::to_value(entries).map_err(json_error)?))
 }
 
 async fn get_layout_memory(

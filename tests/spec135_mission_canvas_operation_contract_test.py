@@ -435,6 +435,48 @@ elif operation_id == "focusa.mission_canvas.activity.select":
     ):
         assert marker in consumer, marker
 
+elif operation_id == "focusa.mission_canvas.registry.list":
+    assert operation["method"] == "GET"
+    assert operation["path"] == "/v1/mission-canvas/registries/{registry_kind}"
+    assert operation["mode"] == "read"
+    assert operation["permissions_required"] == ["mission_canvas:read"]
+    assert operation["request_schema_ref"] == "focusa.mission_canvas.registry_list.request.v1"
+    assert operation["response_schema_ref"] == "RegistryEntry[]"
+    assert operation["requires_idempotency_key"] is False
+    assert operation["requires_if_match_revision"] is False
+    assert operation["receipt_required"] is False
+
+    for marker in (
+        "get(list_registry)",
+        "require_permission(&headers, \"mission_canvas:read\")",
+        "let scope = query.scope()?",
+        "exact_workstream_context(&scope, &headers)",
+        "WorkspaceProfileRegistry",
+        "registered_registry_entries",
+        "registry_catalog_invalid",
+        "registry_catalog_identity_mismatch",
+        "registry_kind_unknown",
+    ):
+        assert marker in route_text, marker
+    for marker in (
+        "path_parameter_required",
+        "schemaRef.endsWith('[]')",
+        "validateResponse",
+        "expected array",
+    ):
+        assert marker in transport, marker
+    for marker in (
+        "registryList",
+        "exact Workstream GET",
+        "path param",
+        "direct RegistryEntry[]",
+        "empty registry list",
+        "missing path",
+        "missing authority",
+        "permission",
+    ):
+        assert marker in consumer, marker
+
 elif operation_id == "focusa.mission_canvas.rich_host.resolve":
     assert operation["method"] == "GET"
     assert operation["path"] == "/v1/mission-canvas/rich-host/resolution"
