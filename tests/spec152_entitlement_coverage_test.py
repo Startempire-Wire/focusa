@@ -17,7 +17,7 @@ expected = module.build()
 actual = json.loads(OUTPUT.read_text())
 assert actual == expected, "generated coverage is stale or nondeterministic"
 assert actual["counts"]["total"] == len(actual["coverage"]) + len(actual["unmatched_surfaces"])
-assert actual["unmatched_surfaces"], "unknown surfaces were silently treated as covered"
+assert actual["counts"]["unmatched"] == 0, f"unmatched surfaces remain: {actual['counts']['unmatched']}"
 
 operation_count = json.loads(module.OPERATIONS.read_text())["operation_count"]
 route_count = json.loads(module.ROUTES.read_text())["route_count"]
@@ -43,8 +43,7 @@ for row in all_rows:
 for row in actual["coverage"]:
     if row["mutation_class"] == "mutation" and not row["recovery_allowance"]:
         assert row["feature"] and row["gate_location"] and row["pre_side_effect_test"] == "required"
-for row in actual["unmatched_surfaces"]:
-    assert row["mutation_class"] in {"mutation", "unknown"} or row["feature"] is None
+assert actual["counts"]["unmatched"] == 0, "every surface must resolve through base, premium, allowance, or explicit denial"
 
 source = GENERATOR.read_text()
 assert "FAMILY_FEATURE" in source and '.get("family")' in source

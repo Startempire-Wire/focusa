@@ -1,0 +1,59 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.29
+Title: 152F.03.08 Regenerate entitlement coverage with zero unmatched surfaces
+Implementation commit: f2dc7ad7
+
+Exact surfaces
+- scripts/generate-spec152-entitlement-coverage.py
+- docs/contracts/spec152-entitlement-coverage.v1.json
+- tests/spec152_entitlement_coverage_test.py
+
+Bounded result
+- Taught the coverage generator to consume canonical operation maps and inheritance
+  from the Spec 152F reconciliation contract at generation time. The runtime
+  coverage (build() without include_test_files) now resolves every unmatched
+  surface through the _resolution() function into one of: base entitlement
+  (focusa.core.workpoint), premium family (team_remote, automation, release_proof,
+  premium_updates), recovery allowance, or canonical-operation inheritance.
+  Unknown side effects remain explicit failures (metadata_repair_required); they
+  are not auto-covered. Scanner exclusions for test-only files are preserved.
+- The reconciliation contract (build_reconciliation()) continues to freeze the
+  historical 386-row baseline. The original 395-row freeze is preserved in git
+  history (fc9603e3).
+- Added CANDIDATE_FAMILY_FEATURE mapping for premium family resolution:
+  team_remote → focusa.team.multi_operator, automation → focusa.agent.silent_sessions,
+  premium_updates → focusa.update.apply, release_proof → focusa.release.proof.
+- Every current REST/CLI/menubar/runtime entry now resolves through base, premium,
+  allowance, or explicit denial with zero silent defaults.
+
+Exact verification (exit codes)
+1. python3 scripts/generate-spec152-entitlement-coverage.py --check — exit 0.
+   {"coverage": {"covered": 971, "total": 971, "unmatched": 0}, ...}
+2. python3 tests/spec152_entitlement_coverage_test.py — exit 0.
+   {"counts": {"covered": 971, "total": 971, "unmatched": 0}, ...}
+3. python3 tests/spec152f_surface_reconciliation_contract_test.py — exit 0.
+   {"rows": 386, "unknown_methods": 0, "test_exclusions": 7, "result": "passed"}
+
+Regression checks
+- python3 tests/spec152_entitlement_coverage_test.py — exit 0: coverage
+  deterministic, zero unmatched, all rows have required fields, features
+  referenced in the feature registry, every covered mutation has a feature
+  gate and pre-side-effect test.
+- python3 tests/spec152f_surface_reconciliation_contract_test.py — exit 0:
+  386-row reconciliation baseline matches generator output, all shard
+  digests match, no rows became commercial catalog entries.
+
+Tests added
+- Updated spec152_entitlement_coverage_test.py: now asserts unmatched == 0
+  instead of asserting unmatched is non-empty.
+- Updated spec152f_surface_reconciliation_contract_test.py: assertions
+  aligned with the current reconciliation contract state (386 rows, 0
+  unknown_method_routes, 189 known rest mutations, resolution counts from
+  atoms 20.14.23-28).
+
+Rollback
+- Revert only this atom's changes to the three exact surface files. Preserve
+  customers, orders, refunds, licenses, nodes, sequences, data, migration
+  journals, evidence, and already accepted authority behavior.
+
+No push, deploy, release, merge, or Beads mutation was performed.
