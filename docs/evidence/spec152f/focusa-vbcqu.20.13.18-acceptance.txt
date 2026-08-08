@@ -1,0 +1,127 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.18
+Title: 152E.02.04 Bind EDD order completion idempotently to registration
+Implementation commit: `71b85225` (code + test)
+
+Exact surfaces
+- EDD order-completion binding service (edd_complete_purchase / order-status hooks):
+  docs/contracts/spec152e-edd-order-binding.v1.php
+  (FocusaSpec152eEddOrderBindingService — bindOrderComplete; the service reads the
+  canonical wp_edd_orders / wp_edd_order_items / wp_edd_order_transactions /
+  wp_edd_licenses rows and journals wpuiai_edd_order_bindings plus
+  wpuiai_edd_issuance_requests; FocusaSpec152eEddOrderBindingMigration — journal
+  tables)
+- Registration/account repositories (consumed read-only via constructor injection):
+  activation registration repository/secrets, authority account repository, and the
+  EDD customer adapter; none of their files were modified
+- Server-owned product/facade registries (read-only, consumed via constructor
+  injection): the frozen docs/contracts/spec152e-edd-product-registry.v1.php and
+  docs/contracts/spec152e-facade-registry.v1.php remain byte-identical
+- tests/spec152e_edd_order_binding_test.php (exact verification)
+
+Bounded result
+- Added the Spec 152E order-completion binding service. bindOrderComplete accepts
+  only complete, eligible orders whose canonical EDD rows carry the exact account,
+  registration, order item, price, and product binding, plus a real order-linked
+  payment transaction. The canonical order row (status complete, customer_id exact,
+  verified email digest) is authoritative: a 'complete' event for a canonical
+  pending order fails EDD_ORDER_PENDING, for a canonical refunded order fails
+  REFUNDED, and settlement follows canonical truth once the row is complete.
+- One eligible protected order item settles exactly one entitlement issuance request:
+  the service inserts one binding row (ob_ opaque token, state
+  settled_pending_issuance) plus one issuance request row (ir_ opaque token, state
+  pending, deferred to the verified issuance service) per (registration, order,
+  order item). Duplicate completion events return the existing settlement
+  (existing=true) and never create a second issuance request; idempotency-key
+  replays return the identical decision; reusing a key for a different request fails
+  IDEMPOTENCY_CONFLICT. The service never creates an EDD license, key, or lease
+  (licenses_created 0).
+- Synthetic/unlinked payment IDs fail closed with EDD_ORDER_UNVERIFIED and never
+  issue: focusa_live_* and synthetic_*/manual/none markers, missing transactions,
+  non-complete payment status, and transactions not bound to the exact canonical
+  order are all rejected; matched payments are journaled only as keyed digests.
+- Out-of-order fixtures: canonical-pending completion (denied, then settles after
+  the row completes), canonical-refunded completion (denied, zero issuance, durable
+  blocked binding journaled), and a terminal refunded event journaled before
+  completion (later complete event returns decision out_of_order with
+  entitlement_allowed false and zero issuance; repeated refunded events stay denied
+  with no second blocked binding).
+- Precondition failures fail closed with existing stable codes: unknown/unverified/
+  denied registrations -> EMAIL_VERIFICATION_REQUIRED, verified-but-unpromoted ->
+  EDD_CUSTOMER_RESOLUTION_FAILED, expired -> REGISTRATION_EXPIRED, wrong facade/
+  origin -> FACADE_ORIGIN_DENIED, facade product allowlist and registration-vs-offer
+  product mismatches -> FACADE_PRODUCT_DENIED, unknown download/wrong price ->
+  PRODUCT_MAPPING_REQUIRED, frozen registry (no operator-approved download mapping)
+  -> PRODUCT_MAPPING_REQUIRED, approved-but-blocked mapping -> EDD_CHECKOUT_REQUIRED,
+  order customer/account mismatch -> ACCOUNT_MERGE_REVIEW_REQUIRED, changed
+  canonical email -> ACCOUNT_EMAIL_MISMATCH, blank email/missing order row/order
+  customer mismatch/missing item row/cross-order item -> EDD_ORDER_UNVERIFIED,
+  existing active equivalent license -> EDD_LICENSE_UNUSABLE, pending/processing ->
+  EDD_ORDER_PENDING, revoked -> REVOKED, caller-controlled commerce fields ->
+  CLIENT_COMMERCIAL_FIELDS_FORBIDDEN. Unrelated/quarantined and credit-pack orders
+  complete as no_entitlement with zero issuance.
+- Journals store only keyed digests and opaque bounded tokens (ob_/ir_); no raw
+  email, raw payment transaction id, secret, or unmasked real-email evidence appears
+  in decisions or journals. Rollback is preservation-only (bindings and
+  issuance-request journals are never deleted).
+
+Exact verification (exit codes)
+1. `php tests/spec152e_edd_order_binding_test.php` — exit 0 (run three times;
+   deterministic, byte-identical output).
+   {"schema":"focusa.spec152e.edd_order_binding_test.v1","positive_checks":99,"negative_checks":35,"bindings_journaled":7,"issuance_requests_settled":5,"licenses_created":0,"out_of_order_fixtures":["canonical_pending","canonical_refunded","terminal_block_before_complete"],"payment_fixtures":["synthetic","focusa_live_synthetic","unlinked","non_complete","missing"],"entitlement_issuance":"deferred_to_verified_issuance_service","result":"passed_fail_closed"}
+   Bounded immutable result handle (SHA-256 of the exact output above):
+   267838d4ce90fecaf42493e5135c83408b0f590f3c25653f56365306fbb0f50f
+
+Regression checks (exit codes)
+- All 19 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  edd-order-binding test and the prior checkout-email-integrity, checkout-intent,
+  and EDD product gate tests.
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (frozen registry outputs current; 0 assigned downloads, 0 checkout-enabled).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  (no new error codes; activation contracts current).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_golden_vector_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom): spec152e
+  document_authority_test.py (exit 1, audit-status wording registered by an
+  earlier atom) and spec152f_surface_reconciliation_contract_test.py (exit 1,
+  Spec 152F reconciliation index stale at the base commit).
+
+Tests added
+- spec152e_edd_order_binding_test.php: 99 positive + 35 negative checks covering
+  frozen-registry invariants; the eligible order-bound settlement with one binding
+  and exactly one pending issuance request, idempotent replay (identical decision),
+  duplicate-completion dedupe (existing=true, no second request), and bounded
+  binding/issuance-request lookups; the out-of-order fixtures (canonical pending
+  denied then settles after the row completes; canonical refunded denied with a
+  durable blocked binding; refunded event journaled before completion blocks a later
+  complete event with out_of_order and zero issuance, with the repeated refunded
+  event journaling no second block); the two-item settlement (two requests, one per
+  item); the mixed protected/unrelated order; unrelated and credit-pack
+  no_entitlement orders; the full negative matrix (unknown/unverified/denied/
+  unpromoted/expired registrations, wrong facade/origin, facade and registration
+  product mismatches, unknown download, wrong price, missing/cross-order item rows,
+  missing/synthetic/focusa_live/unlinked/non-complete payment, changed and blank
+  canonical emails, order-customer and account mismatches, blocked mapping, existing
+  active license, pending/processing/revoked/failed statuses, caller-controlled
+  commerce fields, idempotency conflict); rollback preservation; and redaction (no
+  raw email, license key, or raw payment id in decisions or journals; ob_/ir_ opaque
+  bounded tokens; payment identities stored only as 64-hex keyed digests; the only
+  license row is the explicit negative-test fixture — settlement creates zero
+  licenses). The positive mapping fixture is explicitly operator-approved test-only
+  (download 1001 -> focusa_operator_lifetime_v1) and never mutates the frozen
+  registry contract.
+
+Rollback
+- Revert only this atom's implementation commit (edd-order-binding contract, its
+  test, and this evidence record if required). Preserve EDD customer/order/refund
+  truth, verified identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals; order-binding and issuance-request journals are
+  preservation-only.
+
+No push, deploy, release, merge, or Beads mutation was performed.
