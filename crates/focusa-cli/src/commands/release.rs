@@ -4,7 +4,7 @@
 mod release_master;
 
 use clap::{Subcommand, ValueEnum};
-use focusa_core::license::require_feature;
+use focusa_core::license::require_release_proof;
 use focusa_core::release_cycle::ReleaseTopology;
 use focusa_core::release_intelligence::ReleaseIntelligencePacket;
 use focusa_core::release_orchestrator::ReleaseInvocationSurface;
@@ -353,8 +353,10 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
             publishable,
         } => render_intelligence(packet, output, publishable, json_mode)?,
         ReleaseCmd::Prove { tag, github, fast } => {
-            // Spec §5.4: producing an official release bundle remains license-gated.
-            if let Err(error) = require_feature("official_release_bundle") {
+            // Spec 152F §3, §4, §6: release proof orchestration requires the
+            // release_proof premium family grant. Safe status reads remain
+            // available through the ReadProjection family.
+            if let Err(error) = require_release_proof() {
                 anyhow::bail!("{error}");
             }
             let mut gates = vec![

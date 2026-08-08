@@ -1545,8 +1545,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/release/proof/status",
-        feature: "focusa.release.proof",
-        limit_bucket: Some("release_proof_runs"),
+        feature: "focusa.core.evidence",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/resource/mode",

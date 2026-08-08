@@ -363,6 +363,32 @@ pub fn require_feature(feature: &str) -> Result<(), LicenseError> {
     }
 }
 
+/// Require the release-proof premium family for advanced governed release
+/// orchestration and proof operations (Spec 152F §3, §4, §6).
+///
+/// Safe release status reads remain available through the ReadProjection
+/// family; only mutation-class release orchestration and proof operations
+/// require the `focusa.release.proof` feature grant.
+pub fn require_release_proof() -> Result<(), LicenseError> {
+    let guard = focusa_license::resolve_license_guard();
+    let policy = EntitlementExecutionPolicy::new(
+        "focusa.release.proof.orchestrate",
+        focusa_license::OperationClass::ValueMutation,
+        focusa_license::CapabilityFamily::ReleaseProof,
+        Some("focusa.release.proof"),
+        Some("release_proof_runs"),
+        focusa_license::RecoveryAllowance::None,
+    );
+    match evaluate_entitlement_execution(
+        &guard,
+        &policy,
+        EntitlementExecutionContext::default(),
+    ) {
+        Ok(_decision) => Ok(()),
+        Err(failure) => Err(LicenseError::FeatureRequiresLicense(failure.code)),
+    }
+}
+
 /// Activate a license: validate with the registry, write the local file. Spec §5.2.
 /// Async because the registry call uses reqwest which needs a tokio runtime.
 pub async fn activate(
