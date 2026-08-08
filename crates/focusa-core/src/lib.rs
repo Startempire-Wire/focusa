@@ -85,6 +85,7 @@ pub mod installation_convergence;
 pub mod intuition;
 pub mod entitlement_execution_guard;
 pub mod license;
+pub mod limited_project;
 pub mod memory;
 pub mod metacognitive_learning;
 pub mod outcome_resolution;
