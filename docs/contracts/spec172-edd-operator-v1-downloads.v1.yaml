@@ -1,0 +1,116 @@
+# Spec 172.02.03 — dedicated EDD Operator v1 Downloads and price records.
+#
+# These are the server-owned EDD Downloads and Software Licensing price records for the
+# three dedicated Spec 172 paid offers: Focusa Operator Lifetime v1, UIAI Engine Operator
+# Lifetime v1, and the exact-union Bundle v1. Every record is derived from, and must
+# exactly match, the canonical Spec 152E product registry offer with the same public code
+# (docs/contracts/spec152e-edd-product-registry.v1.yaml). Prices are recorded in USD minor
+# units (69700, 69700, 125460) with the human USD string; lifetime duration with
+# whole-order 30-day refund metadata; one operator seat; three shared nodes
+# (operator_shared_v1). Checkout stays disabled until validation passes
+# (checkout_enabled: false, sale_status: approved_not_yet_enabled, download status: draft).
+# Legacy WPUIAI downloads and Download 453 are never referenced and can never grant these
+# License Types. No caller-controlled download, price, License Type, family, feature,
+# limit, node, or commercial right is accepted.
+schema: focusa.spec172.edd_operator_v1_downloads.v1
+version: 1
+owner: WPUIAI/wpuiai
+registry_schema: focusa.spec152e.edd_product_registry.v1
+provisioner: wpuiai.spec172.edd_operator_v1_provisioner
+authority:
+  checkout_enabled: false
+  checkout_block_reason: awaiting_validation_pass
+  sale_status: approved_not_yet_enabled
+  caller_controls_forbidden: [edd_download_id, edd_price_id, amount_minor, price, price_usd, currency, tier, product, product_code, products, license_type, license_type_ref, capability_family, families, features, limits, node_limit, node_set, operator_seats, sale_status, refund_policy, refund_days, license_duration, license_length, license_unit, activation_limit, evaluation_duration, checkout_enabled, future_products_included, future_license_types_included]
+  legacy_download_ids: [16, 17, 21, 22, 23, 24, 25, 66, 452, 453, 454, 455, 456, 457]
+  forbidden_implicit_download: 453
+records:
+  - public_code: focusa_operator_lifetime_v1
+    license_type_ref: focusa_operator_lifetime_v1
+    edd_download_id: 458
+    edd_price_id: price_focusa_operator_lifetime_v1
+    title: Focusa Operator Lifetime v1
+    status: draft
+    currency: USD
+    price_usd: '697.00'
+    amount_minor: 69700
+    licensing_enabled: true
+    license_duration: lifetime
+    license_length: 0
+    license_unit: lifetime
+    activation_limit: 3
+    operator_seats: 1
+    node_limit: 3
+    node_set: operator_shared_v1
+    products: [focusa]
+    refund_policy: whole_order_30_days
+    refund_days: 30
+    sale_status: approved_not_yet_enabled
+    checkout_enabled: false
+    evaluation: false
+    future_products_included: false
+    future_license_types_included: false
+  - public_code: uiai_operator_lifetime_v1
+    license_type_ref: uiai_operator_lifetime_v1
+    edd_download_id: 459
+    edd_price_id: price_uiai_operator_lifetime_v1
+    title: UIAI Engine Operator Lifetime v1
+    status: draft
+    currency: USD
+    price_usd: '697.00'
+    amount_minor: 69700
+    licensing_enabled: true
+    license_duration: lifetime
+    license_length: 0
+    license_unit: lifetime
+    activation_limit: 3
+    operator_seats: 1
+    node_limit: 3
+    node_set: operator_shared_v1
+    products: [uiai_engine]
+    refund_policy: whole_order_30_days
+    refund_days: 30
+    sale_status: approved_not_yet_enabled
+    checkout_enabled: false
+    evaluation: false
+    future_products_included: false
+    future_license_types_included: false
+  - public_code: focusa_uiai_operator_bundle_lifetime_v1
+    composite_sku_ref: focusa_uiai_operator_bundle_lifetime_v1
+    edd_download_id: 460
+    edd_price_id: price_focusa_uiai_operator_bundle_lifetime_v1
+    title: Focusa and UIAI Engine Operator Lifetime Bundle v1
+    status: draft
+    currency: USD
+    price_usd: '1254.60'
+    amount_minor: 125460
+    licensing_enabled: true
+    license_duration: lifetime
+    license_length: 0
+    license_unit: lifetime
+    activation_limit: 3
+    operator_seats: 1
+    node_limit: 3
+    node_set: operator_shared_v1
+    products: [focusa, uiai_engine]
+    grants: [focusa_operator_lifetime_v1, uiai_operator_lifetime_v1]
+    grant_composition: exact_union
+    component_refunds_allowed: false
+    refund_policy: whole_order_30_days
+    refund_days: 30
+    sale_status: approved_not_yet_enabled
+    checkout_enabled: false
+    evaluation: false
+    future_products_included: false
+    future_license_types_included: false
+invariants:
+  - exactly_three_dedicated_operator_v1_records
+  - each_dedicated_record_matches_the_canonical_registry_offer
+  - minor_units_are_69700_69700_125460
+  - amount_minor_matches_price_usd
+  - lifetime_duration_with_whole_order_30_day_refund
+  - one_operator_seat_and_three_shared_nodes
+  - checkout_disabled_until_validation_passes
+  - dedicated_downloads_never_reuse_legacy_or_453
+  - legacy_downloads_and_453_never_grant_operator_v1
+  - caller_metadata_never_selects_download_price_grant_limit_or_right
