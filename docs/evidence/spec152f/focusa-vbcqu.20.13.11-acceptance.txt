@@ -1,0 +1,66 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.11
+Title: 152E.01.07 Implement delivery, bounce, suppression, and consent settlement
+Implementation commit: (see below)
+
+Exact surfaces
+- docs/contracts/spec152e-email-delivery-consent.v1.php
+- docs/contracts/spec152e-email-identity.v1.php (adds findByUuid, settleConsent, revokePromotionalConsent)
+- tests/spec152e_email_delivery_consent_test.php
+
+Bounded result
+- Added FocusaSpec152eEmailDeliveryConsentHandler: records delivery outcomes
+  (sent/delivered/bounced/complained) from email provider callbacks without raw
+  tokens; manages bounce state (soft/hard) and suppression state (none/
+  transactional/promotional/all); settles transactional consent independently
+  from optional promotional consent; revokes promotional consent without
+  affecting transactional consent; provides capability checks:
+  canSendTransactional (never gated by promotional consent), canSendPromotional
+  (requires promotional consent + no suppression), canVerifyIdentity (hard
+  bounce and suppression cannot become verified identity).
+- Hard bounces prevent all sending and verification.
+- Soft bounces record but do not prevent transactional sending.
+- Complaints (spam reports) suppress the reported message kind plus all
+  promotional messaging.
+- Promotional consent settlement is blocked for hard-bounced and suppressed
+  identities.
+- Transactional consent settlement is never blocked by bounce or suppression
+  (promotional consent never gates transactional messages).
+- All envelopes are masked: no raw email, tokens, secrets, or authority
+  references in output.
+- Added findByUuid, settleConsent, and revokePromotionalConsent to
+  FocusaSpec152eEmailIdentityRepository (minimal additions to support the
+  delivery/consent handler).
+
+Exact verification (exit codes)
+1. php tests/spec152e_email_delivery_consent_test.php — exit 0.
+   {"schema":"focusa.spec152e.email_delivery_consent_test.v1","positive_checks":30,"negative_checks":18,"result":"passed_fail_closed"}
+
+Regression checks (exit codes)
+- All 12 PHP tests pass with exit 0.
+- php tests/spec152e_email_identity_schema_test.php — exit 0.
+  {"schema":"focusa.spec152e.email_identity_schema_validation.v1","migration_versions":1,"verified_identities":2,"assertion_groups":12,"raw_email_logging":false,"result":"passed_fail_closed"}
+- php tests/spec152e_verification_complete_test.php — exit 0.
+  {"schema":"focusa.spec152e.verification_complete_test.v1","positive_checks":22,"negative_checks":18,"result":"passed_fail_closed"}
+- php tests/spec152e_verification_start_test.php — exit 0.
+  {"schema":"focusa.spec152e.verification_start_test.v1","positive_checks":30,"negative_checks":12,"result":"passed_fail_closed"}
+
+Tests added
+- spec152e_email_delivery_consent_test.php: 30 positive checks + 18 negative
+  checks covering: delivery outcome recording (sent, delivered, soft bounce,
+  hard bounce, complaint), transactional consent settlement, promotional
+  consent settlement, promotional consent revocation, capability checks
+  (canSendTransactional, canSendPromotional, canVerifyIdentity), revoked
+  identity rejection, nonexistent identity safe error, hard bounce blocks
+  promotional consent, suppression blocks promotional consent, promotional
+  consent never gates transactional messages, idempotent consent settlement,
+  no raw email/secrets/license keys in envelopes, invalid input validation,
+  transactional consent independence from promotional consent, rollback
+  preservation.
+
+Rollback
+- Revert only this atom's files. Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.
