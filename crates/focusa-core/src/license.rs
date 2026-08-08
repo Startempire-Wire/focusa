@@ -26,6 +26,14 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+pub use crate::entitlement_execution_guard::{
+    evaluate_entitlement_execution,
+    EntitlementExecutionContext,
+    EntitlementExecutionDecision,
+    EntitlementExecutionFailure,
+    EntitlementExecutionPolicy,
+};
+
 const LICENSE_FILE: &str = "license.json";
 const CONFIG_DIR: &str = ".config";
 const FOCUSA_DIR: &str = "focusa";
@@ -215,6 +223,21 @@ pub struct DoctorReport {
 /// separately purchased features.
 pub fn require_base_product() -> Result<focusa_license::BaseProductProjection, LicenseError> {
     let guard = focusa_license::resolve_license_guard();
+    let policy = EntitlementExecutionPolicy::new(
+        "focusa.core.mutation.base_focusa",
+        focusa_license::OperationClass::ValueMutation,
+        focusa_license::CapabilityFamily::BaseFocusa,
+        None,
+        None,
+        focusa_license::RecoveryAllowance::None,
+    );
+    if let Err(error) = evaluate_entitlement_execution(
+        &guard,
+        &policy,
+        EntitlementExecutionContext::default(),
+    ) {
+        return Err(LicenseError::BaseProductRequired(error.code));
+    }
     let projection = focusa_license::base_product_projection(guard.entitlement.as_ref())
         .map_err(|_| LicenseError::BaseProductRequired("snapshot_missing".to_string()))?;
     if projection.permits_base_mutations {

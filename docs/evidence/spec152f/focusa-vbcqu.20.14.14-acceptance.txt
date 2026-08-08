@@ -1,0 +1,22 @@
+Spec 152F / core presenter-agnostic entitlement execution guard
+Work item: focusa-vbcqu.20.14.14
+Title: 152F.02.01 Implement non-HTTP core execution guard
+
+Implementation commit: this commit
+
+Exact touched surfaces
+- crates/focusa-core/src/lib.rs
+- crates/focusa-core/src/license.rs
+- crates/focusa-core/src/entitlement_execution_guard.rs
+- crates/focusa-license/src/lib.rs
+
+Validation steps
+1) cargo test -p focusa-core entitlement_execution_guard
+   - command exit code: 0
+   - 6 tests passed, 0 failed in module `entitlement_execution_guard`
+   - verified that recovery/read paths are available and value-mutation paths are blocked/feature-gated
+2) cargo test -p focusa-license --lib
+   - command exit code: 0
+   - 49 tests passed, 0 failed; validates new focusa-license exports remain compatible
+
+Outcome: passed
