@@ -2,6 +2,26 @@
 # docs/contracts/spec152f-entitlement-policy.v1.yaml. This registry retains stable
 # feature identifiers; it does not make core compatibility claims separate purchases
 # or make basic export, repair, rollback, or stable security updates premium.
+#
+# Premium-family resolution is operation-bound and authority-owned. These are
+# the complete feature allowlists for the four optional families; BASE is a
+# prerequisite and Offline Grace may use only the still-unexpired cached grant
+# at the signed lease sequence. Evaluation cannot add a feature locally.
+premium_family_resolution:
+  grant_source: authority_issued_signed_lease
+  base_product_required: true
+  sequence_binding: lease_sequence
+  offline_grant_policy: cached_unexpired_grants_only
+  evaluation_policy: authority_feature_allowlist_only
+  families:
+    automation:
+      feature_keys: [focusa.agent.parallelism, focusa.agent.silent_sessions]
+    team_remote:
+      feature_keys: [focusa.remote.stream, focusa.team.multi_operator]
+    release_proof:
+      feature_keys: [focusa.release.proof]
+    premium_updates:
+      feature_keys: [focusa.install.channel.nightly, focusa.install.channel.preview, focusa.update.unattended]
 schema: focusa.feature_registry.v1
 product: focusa
 features:

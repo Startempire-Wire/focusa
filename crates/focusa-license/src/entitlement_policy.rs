@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::OnceLock;
@@ -266,6 +267,12 @@ impl TryFrom<String> for RequiredFeature {
 impl From<RequiredFeature> for String {
     fn from(value: RequiredFeature) -> Self {
         value.0
+    }
+}
+
+impl AsRef<str> for RequiredFeature {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -905,6 +912,371 @@ pub fn base_product_compatibility_projection(
         projected.insert(id.to_string(), entitled);
     }
     projected
+}
+
+/// Authority-owned feature identifiers for each of the four optional premium
+/// families. The operation policy supplies the family and its canonical feature
+/// identifier; callers never supply a grant or expand these sets.
+pub const AUTOMATION_PREMIUM_FEATURE_IDS: &[&str] = &[
+    "focusa.agent.parallelism",
+    "focusa.agent.silent_sessions",
+];
+pub const TEAM_REMOTE_PREMIUM_FEATURE_IDS: &[&str] = &[
+    "focusa.remote.stream",
+    "focusa.team.multi_operator",
+];
+pub const RELEASE_PROOF_PREMIUM_FEATURE_IDS: &[&str] = &["focusa.release.proof"];
+pub const PREMIUM_UPDATES_PREMIUM_FEATURE_IDS: &[&str] = &[
+    "focusa.install.channel.nightly",
+    "focusa.install.channel.preview",
+    "focusa.update.unattended",
+];
+
+/// Return the exact registered feature identifiers for one optional family.
+/// Non-premium families intentionally return an empty set and cannot be
+/// promoted by a caller into an optional feature decision.
+pub const fn premium_family_feature_ids(family: CapabilityFamily) -> &'static [&'static str] {
+    match family {
+        CapabilityFamily::Automation => AUTOMATION_PREMIUM_FEATURE_IDS,
+        CapabilityFamily::TeamRemote => TEAM_REMOTE_PREMIUM_FEATURE_IDS,
+        CapabilityFamily::ReleaseProof => RELEASE_PROOF_PREMIUM_FEATURE_IDS,
+        CapabilityFamily::PremiumUpdates => PREMIUM_UPDATES_PREMIUM_FEATURE_IDS,
+        _ => &[],
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PremiumFamilyDenial {
+    /// Base Focusa is always checked before an optional family.
+    BaseProductRequired { decision: BaseProductDecision },
+    /// The authority snapshot has no usable lease sequence to bind the result.
+    MissingLeaseSequence,
+    /// The authority snapshot is missing the immutable lease identity/digest
+    /// needed to bind a feature claim to its authority record.
+    MissingLeaseBinding,
+    /// A feature identifier was not a qualified Focusa identifier.
+    InvalidRequiredFeature { feature: String },
+    /// The requested operation feature is not registered under this family.
+    FeatureNotRegistered {
+        family: CapabilityFamily,
+        feature: RequiredFeature,
+    },
+    /// The signed authority feature allowlist does not grant this operation.
+    MissingFeature {
+        family: CapabilityFamily,
+        feature: RequiredFeature,
+    },
+    /// An Offline Grace snapshot did not carry a bounded cached-grant window.
+    MissingCachedGrantExpiry,
+    /// The cached authority grant is outside its signed Offline Grace window.
+    CachedGrantExpired,
+    /// A directly supplied snapshot is stale even though it says Active.
+    ActiveLeaseExpired,
+    /// Recovery, read, base, or maintenance policy is not an optional family.
+    NotPremiumFamily { family: CapabilityFamily },
+}
+
+/// A typed result for one operation-bound premium feature decision.
+///
+/// The `Feature` variant is only produced after the base product gate, a
+/// non-zero authority lease sequence, the family-to-feature registry mapping,
+/// and the authority feature claim all pass. `offline_cached` is descriptive;
+/// it never broadens the authority feature set.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PremiumFamilyDecision {
+    Feature {
+        family: CapabilityFamily,
+        required_feature: RequiredFeature,
+        lease_sequence: u64,
+        offline_cached: bool,
+    },
+    Denied(PremiumFamilyDenial),
+}
+
+impl PremiumFamilyDecision {
+    pub const fn posture(&self) -> EntitlementPolicyPosture {
+        match self {
+            Self::Feature { .. } => EntitlementPolicyPosture::Feature,
+            Self::Denied(_) => EntitlementPolicyPosture::Deny,
+        }
+    }
+
+    pub const fn is_feature(&self) -> bool {
+        matches!(self, Self::Feature { .. })
+    }
+
+    pub const fn lease_sequence(&self) -> Option<u64> {
+        match self {
+            Self::Feature { lease_sequence, .. } => Some(*lease_sequence),
+            Self::Denied(_) => None,
+        }
+    }
+
+    pub fn required_feature(&self) -> Option<&RequiredFeature> {
+        match self {
+            Self::Feature {
+                required_feature, ..
+            } => Some(required_feature),
+            Self::Denied(_) => None,
+        }
+    }
+
+    pub const fn denial(&self) -> Option<&PremiumFamilyDenial> {
+        match self {
+            Self::Feature { .. } => None,
+            Self::Denied(denial) => Some(denial),
+        }
+    }
+}
+
+fn authority_policy_state(
+    snapshot: &crate::authority::EntitlementSnapshot,
+) -> PolicyEntitlementState {
+    match snapshot.state {
+        crate::authority::EntitlementState::Active => PolicyEntitlementState::ActivePaid,
+        crate::authority::EntitlementState::OfflineGrace => PolicyEntitlementState::OfflineGrace,
+        crate::authority::EntitlementState::Unactivated => PolicyEntitlementState::PendingUnverified,
+        crate::authority::EntitlementState::RecoveryOnly => PolicyEntitlementState::RefundedOrRevoked,
+    }
+}
+
+/// Resolve an operation-bound premium feature from one verified authority
+/// snapshot. The feature key is operation metadata, not a grant request: it
+/// must be one of the exact identifiers registered for `family`, and the
+/// snapshot's authority-owned feature map is the only source of permission.
+///
+/// `now` is explicit so Offline Grace cannot be extended by a caller or by a
+/// cached local flag. Authority verification normally establishes these bounds;
+/// this function repeats the expiry check at the policy boundary before emitting
+/// a sequence-bound FEATURE decision.
+pub fn resolve_premium_family<F>(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    family: CapabilityFamily,
+    required_feature: F,
+    now: DateTime<Utc>,
+) -> PremiumFamilyDecision
+where
+    F: AsRef<str>,
+{
+    if premium_family_feature_ids(family).is_empty() {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::NotPremiumFamily { family });
+    }
+
+    let base = resolve_base_focusa_product(&snapshot.product, authority_policy_state(snapshot));
+    if !base.permits_base_mutations() {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::BaseProductRequired {
+            decision: base,
+        });
+    }
+
+    let Some(lease_sequence) = snapshot.sequence.filter(|sequence| *sequence > 0) else {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingLeaseSequence);
+    };
+    if snapshot.lease_id.as_deref().is_none_or(str::is_empty)
+        || snapshot.lease_digest.as_deref().is_none_or(str::is_empty)
+    {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingLeaseBinding);
+    }
+
+    let feature_name = required_feature.as_ref().to_string();
+    let Ok(feature) = RequiredFeature::new(feature_name.clone()) else {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::InvalidRequiredFeature {
+            feature: feature_name,
+        });
+    };
+    if !premium_family_feature_ids(family)
+        .iter()
+        .any(|registered| *registered == feature.as_str())
+    {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::FeatureNotRegistered {
+            family,
+            feature,
+        });
+    }
+
+    let offline_cached = snapshot.state == crate::authority::EntitlementState::OfflineGrace;
+    if offline_cached {
+        let Some(grace_until) = snapshot.offline_grace_until else {
+            return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingCachedGrantExpiry);
+        };
+        if now > grace_until {
+            return PremiumFamilyDecision::Denied(PremiumFamilyDenial::CachedGrantExpired);
+        }
+    } else if snapshot
+        .expires_at
+        .is_some_and(|expires_at| now > expires_at)
+    {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::ActiveLeaseExpired);
+    }
+
+    if !snapshot
+        .features
+        .get(feature.as_str())
+        .copied()
+        .unwrap_or(false)
+    {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingFeature {
+            family,
+            feature,
+        });
+    }
+
+    PremiumFamilyDecision::Feature {
+        family,
+        required_feature: feature,
+        lease_sequence,
+        offline_cached,
+    }
+}
+
+#[cfg(test)]
+mod premium_family_resolution_tests {
+    use super::*;
+    use crate::authority::{EntitlementSnapshot, EntitlementState};
+
+    fn snapshot(state: EntitlementState) -> EntitlementSnapshot {
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-001");
+        snapshot.state = state;
+        snapshot.lease_id = Some("lease-001".to_string());
+        snapshot.sequence = Some(7);
+        snapshot.lease_digest = Some("sha256:lease".to_string());
+        snapshot.expires_at = Some(Utc::now() + chrono::Duration::hours(1));
+        snapshot
+    }
+
+    #[test]
+    fn premium_family_resolution_maps_exact_feature_ids_and_is_base_first() {
+        let mut active = snapshot(EntitlementState::Active);
+        for (family, feature_ids) in [
+            (CapabilityFamily::Automation, AUTOMATION_PREMIUM_FEATURE_IDS),
+            (CapabilityFamily::TeamRemote, TEAM_REMOTE_PREMIUM_FEATURE_IDS),
+            (
+                CapabilityFamily::ReleaseProof,
+                RELEASE_PROOF_PREMIUM_FEATURE_IDS,
+            ),
+            (
+                CapabilityFamily::PremiumUpdates,
+                PREMIUM_UPDATES_PREMIUM_FEATURE_IDS,
+            ),
+        ] {
+            for feature in feature_ids {
+                active.features.insert((*feature).to_string(), true);
+                let decision = resolve_premium_family(&active, family, *feature, Utc::now());
+                assert!(decision.is_feature(), "{family:?}/{feature}");
+                assert_eq!(decision.lease_sequence(), Some(7));
+                assert_eq!(decision.required_feature().unwrap().as_str(), *feature);
+            }
+        }
+
+        active.product = "uiai-engine".to_string();
+        assert_eq!(
+            resolve_premium_family(
+                &active,
+                CapabilityFamily::Automation,
+                "focusa.agent.parallelism",
+                Utc::now()
+            ),
+            PremiumFamilyDecision::Denied(PremiumFamilyDenial::BaseProductRequired {
+                decision: BaseProductDecision::Denied,
+            })
+        );
+    }
+
+    #[test]
+    fn premium_family_resolution_fails_closed_with_exact_missing_feature_reasons() {
+        let active = snapshot(EntitlementState::Active);
+        assert_eq!(
+            resolve_premium_family(
+                &active,
+                CapabilityFamily::ReleaseProof,
+                "focusa.release.proof",
+                Utc::now()
+            ),
+            PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingFeature {
+                family: CapabilityFamily::ReleaseProof,
+                feature: RequiredFeature::new("focusa.release.proof").unwrap(),
+            })
+        );
+        assert_eq!(
+            resolve_premium_family(
+                &active,
+                CapabilityFamily::Automation,
+                "focusa.release.proof",
+                Utc::now()
+            ),
+            PremiumFamilyDecision::Denied(PremiumFamilyDenial::FeatureNotRegistered {
+                family: CapabilityFamily::Automation,
+                feature: RequiredFeature::new("focusa.release.proof").unwrap(),
+            })
+        );
+        assert_eq!(
+            resolve_premium_family(
+                &active,
+                CapabilityFamily::Automation,
+                "focusa.agent.parallelism",
+                Utc::now()
+            )
+            .posture(),
+            EntitlementPolicyPosture::Deny
+        );
+    }
+
+    #[test]
+    fn premium_family_resolution_requires_sequence_and_bounded_cached_grants() {
+        let mut active = snapshot(EntitlementState::Active);
+        active.features.insert("focusa.release.proof".to_string(), true);
+        active.sequence = None;
+        assert_eq!(
+            resolve_premium_family(
+                &active,
+                CapabilityFamily::ReleaseProof,
+                "focusa.release.proof",
+                Utc::now()
+            ),
+            PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingLeaseSequence)
+        );
+
+        let mut offline = snapshot(EntitlementState::OfflineGrace);
+        offline.features.insert("focusa.release.proof".to_string(), true);
+        offline.offline_grace_until = Some(Utc::now() + chrono::Duration::minutes(5));
+        let decision = resolve_premium_family(
+            &offline,
+            CapabilityFamily::ReleaseProof,
+            "focusa.release.proof",
+            Utc::now(),
+        );
+        assert_eq!(decision.lease_sequence(), Some(7));
+        assert!(matches!(
+            decision,
+            PremiumFamilyDecision::Feature {
+                offline_cached: true,
+                ..
+            }
+        ));
+
+        assert_eq!(
+            resolve_premium_family(
+                &offline,
+                CapabilityFamily::ReleaseProof,
+                "focusa.release.proof",
+                Utc::now() + chrono::Duration::minutes(6)
+            ),
+            PremiumFamilyDecision::Denied(PremiumFamilyDenial::CachedGrantExpired)
+        );
+        assert_eq!(
+            resolve_premium_family(
+                &offline,
+                CapabilityFamily::PremiumUpdates,
+                "focusa.install.channel.preview",
+                Utc::now()
+            ),
+            PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingFeature {
+                family: CapabilityFamily::PremiumUpdates,
+                feature: RequiredFeature::new("focusa.install.channel.preview").unwrap(),
+            })
+        );
+    }
 }
 
 #[cfg(test)]
