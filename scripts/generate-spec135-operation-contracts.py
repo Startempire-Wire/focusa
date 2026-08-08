@@ -58,6 +58,19 @@ def spec172_family(descriptor):
     return SPEC172_FAMILY_CLASSIFICATION.get(descriptor["family"])
 
 
+def side_effect_class(descriptor, operation_class):
+    """Canonical Spec 172 side-effect class for one operation descriptor.
+
+    Reads have no side effect; device pairing crosses operator devices
+    (remote); every other operation is a local effect. Only the registered
+    Spec 172 classes (none | local | remote | external) are emitted.
+    """
+    if operation_class == "read":
+        return "none"
+    if descriptor["operation_id"].startswith("focusa.device_pair."):
+        return "remote"
+    return "local"
+
 def operation_policy(descriptor):
     """Derive closed Spec 152F policy metadata for one registry operation."""
     operation_id = descriptor["operation_id"]
@@ -91,6 +104,8 @@ def operation_policy(descriptor):
         "source_owner": descriptor["ownership"]["subsystem"],
         "policy_owner": POLICY_OWNER,
         "spec172_family": spec172_family(descriptor),
+        "product_owner": "focusa",
+        "side_effect_class": side_effect_class(descriptor, operation_class),
     }
 
 
@@ -163,6 +178,8 @@ def generated(registry, openapi):
                 "recovery_allowance": descriptor["recovery_allowance"],
                 "source_owner": descriptor["source_owner"],
                 "policy_owner": descriptor["policy_owner"],
+                "product_owner": descriptor["product_owner"],
+                "side_effect_class": descriptor["side_effect_class"],
             },
         })
     openapi["x-focusa-operation-registry-ref"] = "operation-registry.json"
