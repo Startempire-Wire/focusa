@@ -728,7 +728,7 @@ mod tests {
             route_entitlement_denial(&LicenseGuard::eval(7), &Method::GET, "/v1/connect/rooms")
                 .unwrap()
                 .code,
-            "ENTITLEMENT_ROUTE_UNCLASSIFIED"
+            "ENTITLEMENT_BASE_REQUIRED"
         );
     }
 

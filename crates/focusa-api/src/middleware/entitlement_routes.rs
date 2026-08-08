@@ -15,8 +15,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/connect/firstrun",
-        feature: "focusa.team.multi_operator",
-        limit_bucket: Some("team_operators"),
+        feature: "focusa.core.workpoint",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/connect/room/{room_id}/scan",
@@ -585,8 +585,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/room/firstrun",
-        feature: "focusa.team.multi_operator",
-        limit_bucket: Some("team_operators"),
+        feature: "focusa.core.workpoint",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/room/start",
@@ -610,13 +610,13 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/room/{room_id}/status",
-        feature: "focusa.team.multi_operator",
-        limit_bucket: Some("team_operators"),
+        feature: "focusa.core.evidence",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/rooms",
-        feature: "focusa.team.multi_operator",
-        limit_bucket: Some("team_operators"),
+        feature: "focusa.core.evidence",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/start",
@@ -625,8 +625,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/status",
-        feature: "focusa.team.multi_operator",
-        limit_bucket: Some("team_operators"),
+        feature: "focusa.core.evidence",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/constitution",
@@ -785,23 +785,23 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/device/pair/list",
-        feature: "focusa.team.multi_operator",
-        limit_bucket: Some("team_operators"),
+        feature: "focusa.core.evidence",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/device/pair/revoke",
-        feature: "focusa.team.multi_operator",
-        limit_bucket: Some("team_operators"),
+        feature: "focusa.core.workpoint",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/device/pair/start",
-        feature: "focusa.team.multi_operator",
-        limit_bucket: Some("team_operators"),
+        feature: "focusa.core.workpoint",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/device/pair/status",
-        feature: "focusa.team.multi_operator",
-        limit_bucket: Some("team_operators"),
+        feature: "focusa.core.evidence",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/dxux/digest",
@@ -1435,8 +1435,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/project/session-transfer",
-        feature: "focusa.core.mission",
-        limit_bucket: Some("missions"),
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
         template: "/v1/project/settings",
