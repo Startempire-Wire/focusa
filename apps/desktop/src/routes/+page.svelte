@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { FOCUSA_DESKTOP_WORKSPACES, workspaceById } from '$lib/shell/workspace-manifest';
-  import { readDaemonHealth, type DaemonReadStatus } from '$lib/shell/daemon-health';
+  import { readDaemonHealth, supportsMissionCanvasApi, type DaemonReadStatus } from '$lib/shell/daemon-health';
   import MissionCanvasShell from '$lib/shell/MissionCanvasShell.svelte';
   import AgentTuiSurface from '$lib/shell/AgentTuiSurface.svelte';
   import ContextControlPanel from '$lib/shell/ContextControlPanel.svelte';
@@ -39,6 +39,7 @@
   let activeWorkspace = $derived(workspaceById(activeWorkspaceId));
   let developmentProjection = $state<ResolvedWorkspaceProjection>();
   let daemonOrbState = $derived<'idle' | 'loading' | 'error'>(daemon.kind === 'checking' ? 'loading' : daemon.kind === 'unavailable' ? 'error' : 'idle');
+  let missionCanvasApiAvailable = $derived(supportsMissionCanvasApi('version' in daemon ? daemon.version : undefined));
   let sidebarMode = $state<DesktopSidebarMode>('expanded');
   let sidebarWidth = $state(248);
   let collapsedSidebarGroups = $state<string[]>([]);
@@ -104,7 +105,11 @@
     const preferences = readSidebarPreferences();
     sidebarMode = preferences.mode;
     sidebarWidth = preferences.widthPx;
-    collapsedSidebarGroups = preferences.collapsedGroups;
+    // Clutter guard: unless the operator persisted an explicit collapse set,
+    // default to collapsing every group except the active workspace's group.
+    collapsedSidebarGroups = preferences.collapsedGroups.length > 0
+      ? preferences.collapsedGroups
+      : sidebarGroups.filter((group) => !group.workspaceIds.includes(activeWorkspaceId)).map((group) => group.id);
     const onKeyDown = (event: KeyboardEvent) => {
       const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); commandOpen = true; }
@@ -217,6 +222,12 @@
     {:else if activeWorkspace.id === 'mission-canvas' || developmentProjection}
       {#if developmentProjection}
         <div class="development-fixture-label" role="status">Schema fixture · noncanonical development preview</div>
+        {#if daemon.kind === 'read-only' && !missionCanvasApiAvailable}
+          <p class="infra-gap-notice" role="note">
+            Mission Canvas API requires Focusa daemon 0.9.143+ (running {daemon.version}). The canvas stays
+            read-only until the daemon is upgraded; no authority is invented.
+          </p>
+        {/if}
       {/if}
       <MissionCanvasShell projection={developmentProjection} />
     {:else}
