@@ -11,6 +11,7 @@ pub mod authority_client;
 pub mod authority_credentials;
 pub mod authority_http;
 pub mod authority_store;
+pub mod dynamic_operation_manifest;
 mod entitlement_policy;
 pub mod feature_decision;
 pub mod license_migration;
@@ -40,6 +41,14 @@ pub use entitlement_policy::{
     SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
     SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
     TEAM_REMOTE_PREMIUM_FEATURE_IDS,
+};
+pub use dynamic_operation_manifest::{
+    verify_dynamic_operation_manifest, verify_generated_ui_action,
+    CanonicalManifestFacts, DynamicOperationManifest, ManifestQuarantineLedger,
+    ManifestTrustDecision, QuarantinedManifestRecord,
+    ENTITLEMENT_POLICY_UNKNOWN, FORBIDDEN_CLIENT_POLICY_FIELDS,
+    REGISTERED_OPERATION_CLASSES, REGISTERED_PRODUCT_OWNERS,
+    REGISTERED_SIDE_EFFECT_CLASSES,
 };
 pub mod uiai_child_token;
 
