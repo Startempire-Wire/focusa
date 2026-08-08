@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
 use axum::{
@@ -78,7 +78,7 @@ struct RouteClassificationDocument {
 
 #[derive(Debug)]
 struct EntitlementMetadata {
-    operations: HashMap<String, RoutePolicyRecord>,
+    operations: BTreeMap<String, RoutePolicyRecord>,
     routes: Vec<RouteClassificationRecord>,
 }
 
@@ -103,7 +103,7 @@ fn load_entitlement_metadata() -> Result<EntitlementMetadata, String> {
     let routes: RouteClassificationDocument = serde_json::from_str(ROUTE_CLASSIFICATION_JSON)
         .map_err(|error| format!("failed parsing route-classification.json: {error}"))?;
 
-    let mut operation_by_id = HashMap::with_capacity(operations.operations.len());
+    let mut operation_by_id = BTreeMap::new();
     for operation in operations.operations {
         operation_by_id.insert(operation.operation_id.clone(), operation);
     }
@@ -138,16 +138,17 @@ pub async fn entitlement_gate_layer(
     }
 
     let reservation = if requires_entitlement {
-        let Some(policy) = policy else {
-            return denial_response(&state, route_unclassified_denial());
-        };
-        if policy.recovery_allowance == RecoveryAllowance::None {
-            match reserve_route_limit(&state, &request, &policy) {
-                Ok(reservation) => reservation,
-                Err(denial) => return denial_response(&state, denial),
+        if let Some(policy) = policy {
+            if policy.recovery_allowance == RecoveryAllowance::None {
+                match reserve_route_limit(&state, &request) {
+                    Ok(reservation) => reservation,
+                    Err(denial) => return denial_response(&state, denial),
+                }
+            } else {
+                None
             }
         } else {
-            None
+            return denial_response(&state, route_unclassified_denial());
         }
     } else {
         None
@@ -198,8 +199,12 @@ fn denial_response(state: &AppState, denial: RouteEntitlementDenial) -> Response
 fn reserve_route_limit(
     state: &AppState,
     request: &Request,
-    policy: &RouteEntitlementPolicy,
 ) -> Result<Option<String>, RouteEntitlementDenial> {
+    let method = request.method();
+    let path = request.uri().path();
+    let Some(policy) = resolve_route_entitlement_policy(method, path) else {
+        return Ok(None);
+    };
     let Some(bucket) = policy.limit_bucket.as_deref() else {
         return Ok(None);
     };
