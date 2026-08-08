@@ -17,6 +17,7 @@ pub mod license_migration;
 
 pub use entitlement_policy::{
     authority_policy_state, base_product_compatibility_projection,
+    classify_operator_family_inheritance,
     embedded_entitlement_policy_registry, is_focusa_verified_no_license_family_allowed,
     premium_family_feature_ids, reduce_entitlement_state, resolve_base_focusa_product,
     resolve_export_packaged, resolve_premium_family,
@@ -24,7 +25,8 @@ pub use entitlement_policy::{
     CompositeGrant, DecisionReason, EmbeddedEntitlementPolicyRegistry,
     EntitlementPolicyPosture, EntitlementPolicyRegistryError, EntitlementPolicyTypeError,
     EntitlementStateDecision, LicenseTypeCode, LicenseTypeGrant,
-    LicenseTypeVersion, LimitBucket, OperationClass, OperatorSeats, PolicyActivation,
+    LicenseTypeVersion, LimitBucket, OperationClass, OperatorFamilyInheritanceDecision,
+    OperatorSeats, PolicyActivation,
     PolicyEntitlementState, PremiumFamilyDecision, PremiumFamilyDenial, ProductCode,
     RecoveryAllowance, RequiredFeature, ResolvedEntitlementPolicy, ResourceRight, SaleStatus,
     SecurityPrerequisite, SharedNodeLimit, AUTOMATION_PREMIUM_FEATURE_IDS,
@@ -32,6 +34,7 @@ pub use entitlement_policy::{
     CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS,
     PREMIUM_UPDATES_PREMIUM_FEATURE_IDS,
     RELEASE_PROOF_PREMIUM_FEATURE_IDS,
+    SPEC172_FOCUSA_OPERATOR_V1_FAMILIES,
     SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
     SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
     SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,

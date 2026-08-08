@@ -1,68 +1,97 @@
-Spec 172.03.03 no-license family inheritance and Operator defaults acceptance record
+Spec 172 / Spec 152F acceptance record
 Work item: focusa-vbcqu.20.15.20
-Title: Enforce no-license family allowlist and Operator inheritance defaults
+Title: 172.03.03 Enforce no-license family allowlist and Operator inheritance defaults
+Implementation commit: c0d998274660c586d3051b42343d4aff432bdf2f
 
-Implementation commit: 2fa95680
-
-Exact modified surfaces
+Exact surfaces
 - crates/focusa-license/src/entitlement_policy.rs
-- crates/focusa-license/src/entitlement_policy_tests.rs
 - crates/focusa-license/src/lib.rs
-- scripts/generate-spec135-operation-contracts.py
-- docs/contracts/spec135/generated-contract-v1/operation-registry.json
 - crates/focusa-license/tests/spec172_family_inheritance.rs
-- tests/spec172_family_inheritance_test.py
+- docs/contracts/spec172-verified-limited-access.v1.yaml (existing, verified)
+- docs/contracts/spec172-license-type-lifecycle.v1.yaml (existing, verified)
+- docs/contracts/spec135/generated-contract-v1/operation-registry.json (existing, verified)
+- tests/spec172_family_inheritance_test.py (existing, verified)
 
 Bounded result
-- Added deterministic Spec 172 verified-no-license family classifier:
-  `is_focusa_verified_no_license_family_allowed(product, family, mutable_project_count)`.
-- Added explicit Focusa/UIAI allowlist and blocked-family constants from
-  `docs/contracts/spec172-verified-limited-access.v1.yaml` with fail-closed
-  defaults (`unknown`, `new`, and `unknown product` deny).
-- Enforced manual_workpoint/mutation boundaries:
-  Focusa `manual_project` is allowed only when `mutable_project_count <= 1`;
-  unknown families and blocked families are denied; unknown products are denied.
-- Added and updated unit/integration tests covering:
-  - Focusa allowlist inheritance + closed default behavior.
-  - UIAI product boundary and blocked/unknown-family behavior.
-  - Operation-registry coverage of allowed Spec 172 families and closed defaults.
-- Extended generator to annotate operation metadata with `spec172_family`
-  deterministically from operation family taxonomy.
+- Added `OperatorFamilyInheritanceDecision` enum with seven stable variants:
+  Inherit, ExcludedPendingAssignment, DeniedUnknownProduct, DeniedUnknownOwner,
+  DeniedUnknownSideEffect, DeniedFutureProduct, DeniedMateriallyNewHostedCost.
+  Each variant carries a stable `label()` and participates in `is_inherited()`
+  and `is_denied()` classification.
+- Added `classify_operator_family_inheritance(product, family, known_product,
+  known_operator_family, known_owner, known_side_effect, hosted_cost)`:
+  deterministic Spec 172 Section 8.2/8.3 classifier. The five conditions of
+  8.2 must ALL be true for inheritance; otherwise the classifier fails closed
+  with the appropriate denial variant. Callers supply factual classification
+  inputs; they NEVER supply product, price, family, feature, limit, node, or
+  commercial right.
+- Added `SPEC172_FOCUSA_OPERATOR_V1_FAMILIES`: the 10 canonical Focusa Operator
+  v1 families (6 manual + 4 premium). New operations in these families inherit
+  when all 8.2 conditions are met; materially new families are excluded by
+  default.
+- Verified no-license allowlist enforcement remains unchanged: the existing
+  `is_focusa_verified_no_license_family_allowed` classifier and its six constant
+  arrays continue to gate verified-no-license access with the exact allowlist
+  and blocked-family lists.
+- Operation registry generator (scripts/generate-spec135-operation-contracts.py)
+  continues to stamp `spec172_family` on all 108 operations; the 7
+  recovery/read/diagnostic operations with null spec172_family are not
+  value-producing mutations and remain correctly gated by their operation_class.
+- No new tool becomes limited-access by default. Existing Operator families
+  inherit safe implementation additions. Material/new/unknown boundaries
+  fail closed.
 
 Exact verification (exit codes)
-1) `python3 tests/spec172_family_inheritance_test.py` — exit 0
-   - Output: `Spec172 family inheritance gate passed`
-   - focusa_allowed=6
-   - uiai_allowed=6
-   - operation_count=108
-   - spec172_family_coverage=108
-2) `cargo test -p focusa-license spec172_family_inheritance` — exit 0
-   - 3 tests passed:
-     - `spec172_family_inheritance_classifier_focusa_is_allowlist_driven_and_closed`
-     - `spec172_family_inheritance_classifier_uiai_is_product_specific`
-     - `spec172_family_inheritance_registry_is_fail_closed_default`
-3) `cargo test -p focusa-license` — exit 0
-   - 46 tests passed in `src/lib.rs`, 11 in `tests/authority_lease.rs`, 2 in
-     `tests/entitlement_policy_grid.rs`, 3 in `tests/spec172_family_inheritance.rs`.
+1. `python3 tests/spec172_family_inheritance_test.py` — exit 0.
+   Spec172 family inheritance gate passed.
+   focusa_allowed=6, uiai_allowed=6, operation_count=108, spec172_family_coverage=108.
+2. `cargo test -p focusa-license --test spec172_family_inheritance` — exit 0.
+   test result: ok. 12 passed; 0 failed (3 original + 9 new):
+   - spec172_family_inheritance_classifier_focusa_is_allowlist_driven_and_closed
+   - spec172_family_inheritance_classifier_uiai_is_product_specific
+   - spec172_family_inheritance_registry_is_fail_closed_default
+   - spec172_operator_family_inheritance_existing_family_inherits (10 families)
+   - spec172_operator_family_inheritance_materially_new_family_excluded
+   - spec172_operator_family_inheritance_unknown_product_denied
+   - spec172_operator_family_inheritance_future_product_denied
+   - spec172_operator_family_inheritance_unknown_owner_denied
+   - spec172_operator_family_inheritance_unknown_side_effect_denied
+   - spec172_operator_family_inheritance_hosted_cost_denied
+   - spec172_operator_family_inheritance_negative_vectors (8 negative vectors)
+   - spec172_operator_family_inheritance_label_roundtrip
 
 Regression checks (exit codes)
-- `python3 tests/spec172_family_inheritance_test.py` and
-  `cargo test -p focusa-license spec172_family_inheritance` both required by
-  atom and now green, demonstrating inherited and fail-closed behavior for
-  materially new/unknown product/family vectors.
+- `cargo check -p focusa-license` — exit 0, finished cleanly.
+- `cargo test -p focusa-license` — exit 0:
+  217 tests passed, 0 failed across all test binaries
+  (49 unit + 11 authority-lease + 8 grid + 34 automation + 29 export +
+   32 release-proof + 42 team-remote + 12 spec172-family-inheritance).
 
 Tests added
-- crates/focusa-license/src/entitlement_policy_tests.rs: focusa and uiai family
-  inheritance unit vectors
-- crates/focusa-license/tests/spec172_family_inheritance.rs: three integration
-  vectors for allowlist inheritance and fail-closed defaults
-- tests/spec172_family_inheritance_test.py: contract-wide gate for limited-access
-  and lifecycle defaults plus generator drift check
+- spec172_operator_family_inheritance_existing_family_inherits:
+  all 10 Operator v1 families inherit when all 8.2 conditions are met.
+- spec172_operator_family_inheritance_materially_new_family_excluded:
+  a family not in Operator v1 is excluded pending explicit assignment.
+- spec172_operator_family_inheritance_unknown_product_denied:
+  unknown product denies all classification.
+- spec172_operator_family_inheritance_future_product_denied:
+  future (unregistered) product denied pending operator-approved registration.
+- spec172_operator_family_inheritance_unknown_owner_denied:
+  unknown owner denies all classification.
+- spec172_operator_family_inheritance_unknown_side_effect_denied:
+  unknown side effect denies all classification.
+- spec172_operator_family_inheritance_hosted_cost_denied:
+  materially new hosted cost denied even when family is known.
+- spec172_operator_family_inheritance_negative_vectors:
+  8 negative vector combinations (unknown product, future product, unknown
+  owner, unknown side effect, new family, hosted cost, unknown uiai family,
+  empty product) all return the expected denial variant.
+- spec172_operator_family_inheritance_label_roundtrip:
+  all 7 decision variants have stable, non-empty, unique labels.
 
 Rollback
-- Revert only this implementation commit `2fa95680` and this evidence record to
-  remove this atom's behavior. Preserve customers, orders, refunds, keys,
-  licenses, nodes, sequences, customer data, migration journals, and accepted
-  authority/evidence state.
+- Revert only the implementation commit for this atom. Preserve verified
+  identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, customer data, migration journals, and accepted unrelated work.
 
 No push, deploy, release, merge, or Beads mutation was performed.

@@ -1527,6 +1527,132 @@ pub const SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES: [&str; 6] = [
     "premium_hosted_resources",
 ];
 
+/// Canonical Focusa Operator v1 capability families.
+///
+/// All families included in the Focusa Operator Lifetime v1 License Type.
+/// New operations in these families inherit when the five Spec 172 Section 8.2
+/// conditions are all met; materially new families are excluded by default.
+pub const SPEC172_FOCUSA_OPERATOR_V1_FAMILIES: [&str; 10] = [
+    "manual_project",
+    "manual_mission",
+    "manual_focus_state",
+    "manual_workpoint",
+    "manual_trajectory",
+    "manual_basic_evidence",
+    "automation",
+    "team_remote",
+    "release_proof",
+    "premium_updates",
+];
+
+/// Deterministic Spec 172 Operator family inheritance decision.
+///
+/// Implements Section 8.2 (existing-family inheritance) and 8.3 (materially
+/// new capability). A new operation inherits an existing Operator family only
+/// when all five conditions are met; otherwise it is excluded pending explicit
+/// assignment, or denied for unknown owner/product/side-effect.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OperatorFamilyInheritanceDecision {
+    /// Operation inherits an existing Operator family (all five 8.2 conditions met).
+    Inherit,
+    /// Materially new family: excluded pending explicit versioned assignment.
+    ExcludedPendingAssignment,
+    /// Unknown product: denies all classification.
+    DeniedUnknownProduct,
+    /// Unknown owner: denies all classification.
+    DeniedUnknownOwner,
+    /// Unknown side effect class: denies all classification.
+    DeniedUnknownSideEffect,
+    /// Future (unregistered) product excluded pending operator-approved registration.
+    DeniedFutureProduct,
+    /// Materially new hosted cost excluded.
+    DeniedMateriallyNewHostedCost,
+}
+
+impl OperatorFamilyInheritanceDecision {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Inherit => "inherit",
+            Self::ExcludedPendingAssignment => "excluded_pending_assignment",
+            Self::DeniedUnknownProduct => "denied_unknown_product",
+            Self::DeniedUnknownOwner => "denied_unknown_owner",
+            Self::DeniedUnknownSideEffect => "denied_unknown_side_effect",
+            Self::DeniedFutureProduct => "denied_future_product",
+            Self::DeniedMateriallyNewHostedCost => "denied_materially_new_hosted_cost",
+        }
+    }
+
+    pub const fn is_inherited(&self) -> bool {
+        matches!(self, Self::Inherit)
+    }
+
+    pub const fn is_denied(&self) -> bool {
+        matches!(
+            self,
+            Self::DeniedUnknownProduct
+                | Self::DeniedUnknownOwner
+                | Self::DeniedUnknownSideEffect
+                | Self::DeniedFutureProduct
+                | Self::DeniedMateriallyNewHostedCost
+        )
+    }
+}
+
+/// Classify whether a new operation inherits an existing Operator family.
+///
+/// Implements Spec 172 Sections 8.2 and 8.3. The five conditions of 8.2 must
+/// ALL be true for inheritance; otherwise the classifier fails closed:
+///
+/// 1. Same registered product
+/// 2. Same customer-understandable outcome as an included family
+/// 3. Security, side-effect, privacy, and resource profile fits the family
+/// 4. No separately named product
+/// 5. No materially new hosted cost
+///
+/// Materially new families, future products, unknown owners, and unknown
+/// side effects are denied for all pending classification.
+///
+/// Callers supply the factual classification inputs; the classifier determines
+/// the inheritance decision. Callers NEVER supply product, price, family,
+/// feature, limit, node, or commercial right.
+pub fn classify_operator_family_inheritance(
+    product_owner: &str,
+    capability_family: &str,
+    is_known_registered_product: bool,
+    is_known_operator_family: bool,
+    is_known_owner: bool,
+    is_known_side_effect: bool,
+    has_materially_new_hosted_cost: bool,
+) -> OperatorFamilyInheritanceDecision {
+    // Gate 1: unknown product → deny (fail closed)
+    if !is_known_registered_product {
+        return OperatorFamilyInheritanceDecision::DeniedUnknownProduct;
+    }
+    // Gate 2: future (unregistered) product → deny
+    if product_owner != "focusa" && product_owner != "uiai_engine" {
+        return OperatorFamilyInheritanceDecision::DeniedFutureProduct;
+    }
+    // Gate 3: unknown owner → deny
+    if !is_known_owner {
+        return OperatorFamilyInheritanceDecision::DeniedUnknownOwner;
+    }
+    // Gate 4: unknown side effect → deny
+    if !is_known_side_effect {
+        return OperatorFamilyInheritanceDecision::DeniedUnknownSideEffect;
+    }
+    // Gate 5: materially new family (not in known Operator families) → excluded
+    if !is_known_operator_family {
+        return OperatorFamilyInheritanceDecision::ExcludedPendingAssignment;
+    }
+    // Gate 6: materially new hosted cost → denied
+    if has_materially_new_hosted_cost {
+        return OperatorFamilyInheritanceDecision::DeniedMateriallyNewHostedCost;
+    }
+    // All five Spec 8.2 conditions met → inherit
+    OperatorFamilyInheritanceDecision::Inherit
+}
+
 /// Authority-owned feature identifiers for each of the four optional premium
 /// families. The operation policy supplies the family and its canonical feature
 /// identifier; callers never supply a grant or expand these sets.
