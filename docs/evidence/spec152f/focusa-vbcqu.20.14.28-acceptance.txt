@@ -1,7 +1,7 @@
 Spec 152F / Spec 172 overlay acceptance record
 Work item: focusa-vbcqu.20.14.28
 Title: 152F.03.07 Classify the remaining 20 runtime file-derived entrypoints
-Implementation commit: (to be filled after commit)
+Implementation commit: d413d9a373fe79dd35c8092e063e1bb433aed2c1
 
 Exact surfaces
 - crates/focusa-core/src/runtime_entrypoint_classification.rs (new module)
