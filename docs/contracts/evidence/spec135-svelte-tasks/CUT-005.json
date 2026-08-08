@@ -1,0 +1,42 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CUT-005",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Menubar reduced to bounded status/resume/pairing/lifecycle plus a single Desktop open action via DesktopPresent.invoke; exact project-bound Workstream authority is required and foreign/missing/invalid scope fails closed.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "CUT-001",
+      "CUT-004"
+    ]
+  },
+  "targets": [
+    "apps/menubar/src/lib/desktop-present.ts",
+    "apps/menubar/src/lib/components/MissionCanvasView.svelte",
+    "apps/menubar/tests/desktop-handoff.mjs",
+    "apps/menubar/package.json"
+  ],
+  "checks": [
+    {
+      "command": "npm --prefix apps/menubar run test:desktop-handoff",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/menubar run check",
+      "result": "pass: 0 errors and 0 warnings"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "negative_cases": [
+    "missing authority",
+    "foreign attachment workstream",
+    "non-project scope",
+    "missing scope_key root_path"
+  ],
+  "remaining_work": [],
+  "deferred_repository_observation": "The literal npm test -- desktop-handoff chain includes daemon-dependent e2e tests that 404 with the daemon stopped; the bounded desktop-handoff gate passes standalone."
+}
