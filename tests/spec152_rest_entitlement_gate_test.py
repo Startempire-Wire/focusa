@@ -35,7 +35,7 @@ for path, feature, bucket in requirements:
 middleware = MIDDLEWARE.read_text()
 server = SERVER.read_text()
 for marker in [
-    "route_entitlement_denial(&state.license_guard, request.uri().path())",
+    "route_entitlement_denial(&state.license_guard,",
     "ENTITLEMENT_FEATURE_REQUIRED",
     "ENTITLEMENT_LIMIT_EXHAUSTED",
     "ENTITLEMENT_ROUTE_UNCLASSIFIED",
