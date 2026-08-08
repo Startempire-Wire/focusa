@@ -1,0 +1,62 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.26
+Title: 152F.03.05 Map all 83 menubar actions to canonical operations
+Implementation commit: (see commit sha below)
+
+Exact surfaces
+- apps/menubar/src/**/*.svelte
+- apps/menubar/src/lib/api.ts
+- docs/contracts/spec152f-menubar-action-map.v1.json
+
+Bounded result
+- Created docs/contracts/spec152f-menubar-action-map.v1.json: a complete 83-entry
+  action map that classifies every menubar baseline action from
+  docs/contracts/spec152f-surface-reconciliation/menubar.v1.json into one of
+  three action classes:
+    navigation_display (48): UI tab switching, modal open/close, copy-to-clipboard,
+      zoom reset, panel visibility toggles. No daemon call; no entitlement check.
+    recovery_account (26): license status refresh, connection management, pairing
+      lifecycle, debug bundle copy, update check/install. Always available per
+      account_recovery family.
+    canonical_operation (9): workpoint checkpoint/resume, evidence link, peer add,
+      sync pull, semantic pair invoke, project/workpoint verification. All inherit
+      policy from the invoked canonical operation's registered family.
+- Included a canonical operation registry with 17 operations, each assigned a
+  policy family, treatment, mutation class, and daemon route reference.
+- Documented presentation invariants: buttons never mint/reinterpret entitlement;
+  presenters inherit policy, they do not own it; protected denial remains
+  actionable; no raw keys/tokens/PII in the action map.
+- The action map is designed as a thin layer: it classifies what each click
+  handler does and delegates all entitlement decisions to the daemon's canonical
+  resolver. No presenter-owned commercial decisions remain.
+- Did not modify any .svelte source files: the existing handlers already forward
+  to the daemon API without evaluating or interpreting entitlement. The action
+  map classifier covers this architectural fact.
+
+Exact verification (exit codes)
+1. node tests/spec152f_menubar_action_map_test.mjs — exit 0.
+   933 assertions passed; 0 failed.
+   Verified: 83/83 baseline actions mapped; all action_class values valid;
+   all canonical_operation_ids registered; no navigation_display actions
+   reference operations; no recovery_account operations block protected
+   denial; no PII in the action map; action_classes contract complete.
+
+Regression checks
+- The action map is an additive contract file; no menubar source code was changed.
+- No regression risk to existing builds or deployments.
+- The menubar surface reconciliation contract (83 entries) is preserved unmodified.
+
+Tests added
+- tests/spec152f_menubar_action_map_test.mjs: 933 assertions covering
+  schema validation, baseline cross-reference (all 83 IDs bidirectional),
+  action class validity, canonical operation registry integrity,
+  policy family consistency, no-paywall invariants, no-PII invariants,
+  and action_classes contract validation.
+
+Rollback
+- Revert only this atom's additions: docs/contracts/spec152f-menubar-action-map.v1.json
+  and tests/spec152f_menubar_action_map_test.mjs.
+- Preserve customers, orders, refunds, licenses, nodes, sequences, customer data,
+  migration journals, and already accepted authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.
