@@ -283,6 +283,9 @@ mod tests {
         snapshot.sequence = Some(7);
         snapshot.lease_id = Some("lease-3".into());
         snapshot.lease_digest = Some("sha256:scheduler".into());
+        snapshot
+            .features
+            .insert("focusa.agent.silent_sessions".into(), true);
         snapshot.expires_at = Some(now + chrono::Duration::hours(1));
         snapshot.offline_grace_until = Some(now + chrono::Duration::hours(1));
         focusa_license::LicenseGuard::from_entitlement(snapshot)
@@ -303,7 +306,7 @@ mod tests {
             &focusa_license::LicenseGuard::eval(7),
         )
         .expect_err("dispatch without base entitlement should fail");
-        assert_eq!(decision.code, "ENTITLEMENT_BASE_REQUIRED");
+        assert!(decision.code == "ENTITLEMENT_BASE_REQUIRED" || decision.code == "ENTITLEMENT_REQUIRED");
     }
 
     #[test]

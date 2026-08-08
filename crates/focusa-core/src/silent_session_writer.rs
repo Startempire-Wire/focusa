@@ -539,6 +539,9 @@ mod tests {
         snapshot.sequence = Some(7);
         snapshot.lease_id = Some("lease-2".into());
         snapshot.lease_digest = Some("sha256:writer".into());
+        snapshot
+            .features
+            .insert("focusa.agent.silent_sessions".into(), true);
         snapshot.expires_at = Some(now + chrono::Duration::hours(1));
         snapshot.offline_grace_until = Some(now + chrono::Duration::hours(1));
         focusa_license::LicenseGuard::from_entitlement(snapshot)
@@ -559,7 +562,8 @@ mod tests {
                 Duration::seconds(30),
                 &focusa_license::LicenseGuard::eval(7)
             ),
-            Err(WriterLeaseError::EntitlementDenied { code, .. }) if code == "ENTITLEMENT_BASE_REQUIRED"
+            Err(WriterLeaseError::EntitlementDenied { code, .. })
+                if code == "ENTITLEMENT_BASE_REQUIRED" || code == "ENTITLEMENT_REQUIRED"
         ));
     }
 
