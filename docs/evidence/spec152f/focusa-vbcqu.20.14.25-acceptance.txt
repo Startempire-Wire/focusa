@@ -1,0 +1,38 @@
+Spec 152F CLI top-level command operation-map acceptance
+Work item: focusa-vbcqu.20.14.25
+Implementation commit: `9640714b07f3ba0d9f495b585263e94cff8e924a`
+
+OUTPUTS
+- CLI operation map artifact: docs/contracts/spec152f-cli-operation-map.v1.json
+  SHA256: dcd20ae963065cde701b6459638c0c709a753e84f7ba32a1499cc3671b0978c3
+- CLI map validation script: tests/spec152f_cli_operation_map_test.py
+  SHA256: b64f4f402cd80d7d513cccd812a7c3ed2da15bcee0903cf0ddf2298ade189d25
+
+VALIDATION
+PASS python3 tests/spec152f_cli_operation_map_test.py
+  {
+    "schema": "focusa.spec152f.cli_operation_map_validation.v1",
+    "result": "passed",
+    "rows": 86,
+    "direct_core_rows": 16,
+    "local_display_rows": 24,
+    "recovery_rows": 2
+  }
+PASS cargo test -p focusa-cli --test command_hierarchy_e2e
+  6 passed; 0 failed
+
+SCOPE
+- Top-level command surface count: 86 (matching CLI reconciliation shard)
+- WorkLoop intentionally excluded from top-level CLI mapping by design.
+- Protected/dangerous flow flags are explicit (`recovery`/`destructive` and `requires_confirmation`).
+- Core-direct calls are marked with `direct_core_call` and guarded features captured for:
+  - Binary: packaged_installer
+  - Device: qr_pwa_handoff
+  - Export: commercial_export
+  - Release: official_release_bundle
+- Local presentation/help surfaces are marked as non-canonical/local in map metadata.
+
+RESULT
+TECHNICAL_ACCEPTANCE: VERIFIED
+Generated Spec152F CLI operation-map is complete for the 86 top-level command rows, deterministic, and stable under required validation paths.
+Command-help and migration hierarchy contracts remain intact via `command_hierarchy_e2e`.
