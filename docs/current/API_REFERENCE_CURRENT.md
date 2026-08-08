@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `525`
+- Classified paths: `538`
 - Agent eligible: `108`
-- Operator only: `405`
+- Operator only: `418`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -18,7 +18,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/connect`
 
-- Methods: `ROUTE /connect`
+- Methods: `GET /connect`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -26,7 +26,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/connect/firstrun`
 
-- Methods: `ROUTE /connect/firstrun`
+- Methods: `GET /connect/firstrun`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -34,7 +34,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/connect/room/{room_id}/scan`
 
-- Methods: `ROUTE /connect/room/{room_id}/scan`
+- Methods: `GET /connect/room/{room_id}/scan`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -42,7 +42,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/connect/{room_id}`
 
-- Methods: `ROUTE /connect/{room_id}`
+- Methods: `GET /connect/{room_id}`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -66,7 +66,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/pair/{device_id}`
 
-- Methods: `ROUTE /pair/{device_id}`
+- Methods: `GET /pair/{device_id}`
 - Classification: `public_pairing`
 - Rationale: Pairing/auth/license bootstrap surface; governed by its own token and expiry checks.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -74,7 +74,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/pair/{device_id}/manifest.json`
 
-- Methods: `ROUTE /pair/{device_id}/manifest.json`
+- Methods: `GET /pair/{device_id}/manifest.json`
 - Classification: `public_pairing`
 - Rationale: Pairing/auth/license bootstrap surface; governed by its own token and expiry checks.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -82,7 +82,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/pair/{device_id}/sw.js`
 
-- Methods: `ROUTE /pair/{device_id}/sw.js`
+- Methods: `GET /pair/{device_id}/sw.js`
 - Classification: `public_pairing`
 - Rationale: Pairing/auth/license bootstrap surface; governed by its own token and expiry checks.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -442,7 +442,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/agent/prompt`
 
-- Methods: `ROUTE /v1/agent/prompt`
+- Methods: `GET /v1/agent/prompt`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/agent_reminder.rs`
@@ -858,7 +858,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/call-stack/list`
 
-- Methods: `ROUTE /v1/call-stack/list`
+- Methods: `GET /v1/call-stack/list`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/call_stack.rs`
@@ -866,7 +866,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/call-stack/show`
 
-- Methods: `ROUTE /v1/call-stack/show`
+- Methods: `GET /v1/call-stack/show`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/call_stack.rs`
@@ -968,6 +968,94 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/compaction.rs`
 - Agent operations: none
 
+### `/v1/compaction/policy`
+
+- Methods: `GET /v1/compaction/policy`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy.rs`
+- Agent operations: none
+
+### `/v1/compaction/policy/canary/enroll`
+
+- Methods: `POST /v1/compaction/policy/canary/enroll`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy_resolution.rs`
+- Agent operations: none
+
+### `/v1/compaction/policy/canary/pause`
+
+- Methods: `POST /v1/compaction/policy/canary/pause`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy_resolution.rs`
+- Agent operations: none
+
+### `/v1/compaction/policy/candidates`
+
+- Methods: `GET /v1/compaction/policy/candidates`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy_resolution.rs`
+- Agent operations: none
+
+### `/v1/compaction/policy/evidence`
+
+- Methods: `GET /v1/compaction/policy/evidence`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy_resolution.rs`
+- Agent operations: none
+
+### `/v1/compaction/policy/observe`
+
+- Methods: `POST /v1/compaction/policy/observe`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy_resolution.rs`
+- Agent operations: none
+
+### `/v1/compaction/policy/override`
+
+- Methods: `POST /v1/compaction/policy/override`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy.rs`
+- Agent operations: none
+
+### `/v1/compaction/policy/report`
+
+- Methods: `POST /v1/compaction/policy/report`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy.rs`
+- Agent operations: none
+
+### `/v1/compaction/policy/resolve`
+
+- Methods: `POST /v1/compaction/policy/resolve`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy_resolution.rs`
+- Agent operations: none
+
+### `/v1/compaction/policy/rollback`
+
+- Methods: `POST /v1/compaction/policy/rollback`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy_resolution.rs`
+- Agent operations: none
+
+### `/v1/compaction/policy/status`
+
+- Methods: `GET /v1/compaction/policy/status`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction_policy_resolution.rs`
+- Agent operations: none
+
 ### `/v1/compaction/prepare`
 
 - Methods: `POST /v1/compaction/prepare`
@@ -994,7 +1082,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/approve`
 
-- Methods: `ROUTE /v1/connect/approve`
+- Methods: `POST /v1/connect/approve`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1002,7 +1090,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/room/create`
 
-- Methods: `ROUTE /v1/connect/room/create`
+- Methods: `POST /v1/connect/room/create`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1010,7 +1098,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/room/firstrun`
 
-- Methods: `ROUTE /v1/connect/room/firstrun`
+- Methods: `POST /v1/connect/room/firstrun`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1018,7 +1106,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/room/start`
 
-- Methods: `ROUTE /v1/connect/room/start`
+- Methods: `POST /v1/connect/room/start`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1026,7 +1114,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/room/{room_id}/approve`
 
-- Methods: `ROUTE /v1/connect/room/{room_id}/approve`
+- Methods: `POST /v1/connect/room/{room_id}/approve`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1034,7 +1122,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/room/{room_id}/join`
 
-- Methods: `ROUTE /v1/connect/room/{room_id}/join`
+- Methods: `POST /v1/connect/room/{room_id}/join`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1042,7 +1130,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/room/{room_id}/mac-offer`
 
-- Methods: `ROUTE /v1/connect/room/{room_id}/mac-offer`
+- Methods: `POST /v1/connect/room/{room_id}/mac-offer`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1050,7 +1138,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/room/{room_id}/status`
 
-- Methods: `ROUTE /v1/connect/room/{room_id}/status`
+- Methods: `GET /v1/connect/room/{room_id}/status`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1058,7 +1146,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/rooms`
 
-- Methods: `ROUTE /v1/connect/rooms`
+- Methods: `GET /v1/connect/rooms`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1066,7 +1154,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/start`
 
-- Methods: `ROUTE /v1/connect/start`
+- Methods: `POST /v1/connect/start`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1074,7 +1162,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/connect/status`
 
-- Methods: `ROUTE /v1/connect/status`
+- Methods: `GET /v1/connect/status`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1138,7 +1226,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/context-cognition`
 
-- Methods: `ROUTE /v1/context-cognition`
+- Methods: `GET /v1/context-cognition`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/context_cognition.rs`
@@ -1154,7 +1242,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/context-cognition/curate/eval`
 
-- Methods: `ROUTE /v1/context-cognition/curate/eval`
+- Methods: `POST /v1/context-cognition/curate/eval`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/context_cognition.rs`
@@ -1162,7 +1250,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/context-cognition/curate/eval/runs`
 
-- Methods: `ROUTE /v1/context-cognition/curate/eval/runs`
+- Methods: `GET /v1/context-cognition/curate/eval/runs`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/context_cognition.rs`
@@ -1170,7 +1258,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/context-cognition/curate/optimize`
 
-- Methods: `ROUTE /v1/context-cognition/curate/optimize`
+- Methods: `POST /v1/context-cognition/curate/optimize`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/context_cognition.rs`
@@ -1178,7 +1266,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/context-cognition/optimizer/artifacts`
 
-- Methods: `ROUTE /v1/context-cognition/optimizer/artifacts`
+- Methods: `GET /v1/context-cognition/optimizer/artifacts`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/context_cognition.rs`
@@ -1186,7 +1274,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/context-cognition/proof`
 
-- Methods: `ROUTE /v1/context-cognition/proof`
+- Methods: `GET /v1/context-cognition/proof`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/context_cognition.rs`
@@ -1194,7 +1282,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/context-cognition/render`
 
-- Methods: `ROUTE /v1/context-cognition/render`
+- Methods: `GET /v1/context-cognition/render`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/context_cognition.rs`
@@ -1312,6 +1400,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/training.rs`
 - Agent operations: none
 
+### `/v1/daemon-routing/resolve`
+
+- Methods: `POST /v1/daemon-routing/resolve`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/daemon_routing.rs`
+- Agent operations: none
+
 ### `/v1/debug/set-pressure-threshold`
 
 - Methods: `GET /v1/debug/set-pressure-threshold`
@@ -1362,7 +1458,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/device/pair/complete`
 
-- Methods: `ROUTE /v1/device/pair/complete`
+- Methods: `POST /v1/device/pair/complete`
 - Classification: `public_pairing`
 - Rationale: Pairing/auth/license bootstrap surface; governed by its own token and expiry checks.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1370,7 +1466,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/device/pair/list`
 
-- Methods: `ROUTE /v1/device/pair/list`
+- Methods: `GET /v1/device/pair/list`
 - Classification: `public_pairing`
 - Rationale: Pairing/auth/license bootstrap surface; governed by its own token and expiry checks.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1378,7 +1474,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/device/pair/revoke`
 
-- Methods: `ROUTE /v1/device/pair/revoke`
+- Methods: `POST /v1/device/pair/revoke`
 - Classification: `public_pairing`
 - Rationale: Pairing/auth/license bootstrap surface; governed by its own token and expiry checks.
 - Sources: `crates/focusa-api/src/routes/device_pairing.rs`
@@ -1774,6 +1870,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/info.rs`
+- Agent operations: none
+
+### `/v1/installations/convergence/plan`
+
+- Methods: `POST /v1/installations/convergence/plan`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/convergence.rs`
 - Agent operations: none
 
 ### `/v1/instances/connect`

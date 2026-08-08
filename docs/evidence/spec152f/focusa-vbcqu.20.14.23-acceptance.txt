@@ -1,0 +1,35 @@
+Spec 152F / Spec 152F.03.02 acceptance record
+Work item: focusa-vbcqu.20.14.23
+Title: Classify all 31 unknown-method REST routes
+
+Exact surfaces
+- Route declaration sources for:
+  - crates/focusa-api/src/routes/device_pairing.rs
+  - crates/focusa-api/src/routes/context_cognition.rs
+  - crates/focusa-api/src/routes/call_stack.rs
+  - crates/focusa-api/src/routes/agent_reminder.rs
+- scripts/generate-agent-route-classification.py
+- docs/contracts/spec141/generated-capability-v2/route-classification.json
+- docs/current/API_REFERENCE_CURRENT.md
+- tests/spec152f_unknown_route_method_test.py
+
+Result
+- Updated route-classification generator to parse explicit method call sites whether registered as
+  `get(...)` or `axum::routing::get(...)`.
+- Re-generated route-classification output and API reference from source:
+  - `31` previously method-ambiguous routes now contain concrete method arrays.
+  - No mutation route in this baseline set is mis-tagged as read-only metadata.
+  - Read/recovery/base policy buckets inferred by source method and explicit recovery exception:
+    read=19, recovery=1 (`/v1/device/pair/revoke`), base=11.
+  - Route inventory also surfaced 13 additional source-backed paths previously missing from
+    generated classification due prior parsing misses.
+
+Verification
+1. `python3 scripts/generate-agent-route-classification.py --check` — exit 0.
+   Result: passed, mode check, routes=538, counts `{operator_only: 418, agent_eligible: 108, public_pairing: 6, internal: 6}`.
+2. `python3 tests/spec152f_unknown_route_method_test.py` — exit 0.
+   Result: `{\n  "classified_base": 11,\n  "classified_read": 19,\n  "classified_recovery": 1,\n  "result": "passed",\n  "schema": "focusa.spec152f.unknown_route_method_validation.v1",\n  "target_route_count": 31\n}`
+
+Scope / constraints
+- Only the allowed generation surfaces plus test/evidence artifacts were modified.
+- No deployment, release, branch switching, or git remote pushes were performed in this work session.
