@@ -1,0 +1,118 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.15.13
+Title: 172.02.04 Issue Focusa Operator Lifetime v1 from canonical EDD truth
+Implementation commit: `7da479e4` (base HEAD `5cbc2f0e`, branch atom/focusa-vbcqu.20.15.13,
+based on local/luna-152f-reducer)
+Recorded at: 2026-08-06 (worktree execution)
+
+Exact surfaces
+- WPUIAI EDD order binding/SL issuance/License Type projector:
+  `docs/contracts/spec172-edd-license-type-projector.v1.php` (schema migration +
+  `FocusaSpec172FocusaOperatorProjector`). Consumes the issued canonical EDD Software
+  Licensing key for one verified complete eligible Focusa order and projects
+  `focusa_operator_lifetime_v1` from canonical EDD truth (order binding journal, SL
+  issuance journal, canonical order/item/license rows, server-owned dedicated Downloads
+  offer).
+- Focusa paid lease fixture:
+  `docs/contracts/spec172-focusa-paid-lease-fixture.v1.php` (derives the machine
+  execution credential payload exclusively from the accepted projection; bounded
+  credential lifetime for the lifetime entitlement).
+- `tests/spec172_focusa_operator_issuance_test.php` (exact verification).
+
+Bounded result
+- One verified complete eligible Focusa order (download binding 1001 ->
+  focusa_operator_lifetime_v1 at the canonical 697.00 USD price) settles exactly one
+  issuance request, issues exactly one canonical EDD Software Licensing human key, and
+  projects exactly one `focusa_operator_lifetime_v1` grant. The projection freezes the
+  family set (base_focusa, automation, team_remote, release_proof, premium_updates;
+  SHA-256 family digest `7f82c331…`, Spec 172 section 7.1), seat/node limits (1 operator
+  seat, 3 shared operator_shared_v1 nodes), price version
+  (`focusa_operator_lifetime_v1.697.00.v1`, minor units 69700), and a strictly monotonic
+  per-account authority sequence (first projection sequence 1, advanced atomically with
+  the journal row; ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED on regression).
+- Duplicate issuance is impossible: idempotency-key replay returns the byte-identical
+  decision with zero new rows, and a duplicate projection call for the same issued
+  request returns the same projection with existing=true and projections_created=0 (the
+  projection journal is UNIQUE on issuance_request_key). The authority sequence is never
+  bumped by replays or duplicates.
+- Wrong product (a fully eligible UIAI order issues its own canonical UIAI key but can
+  never project a Focusa grant: LICENSE_TYPE_NOT_INCLUDED), wrong price (a settled item
+  whose price id no longer matches the dedicated offer: PRODUCT_MAPPING_REQUIRED; a
+  never-matching price id fails at the binding boundary), wrong account
+  (EDD_ORDER_UNVERIFIED), refunded/revoked/pending orders (REFUNDED/REVOKED/
+  EDD_ORDER_PENDING), projection before issuance, revoked or tampered canonical licenses
+  (EDD_LICENSE_UNUSABLE), checkout-disabled offers (EDD_CHECKOUT_REQUIRED), drifted
+  download mappings (PRODUCT_MAPPING_REQUIRED), caller-controlled commerce fields
+  (CLIENT_COMMERCIAL_FIELDS_FORBIDDEN), and idempotency conflicts
+  (IDEMPOTENCY_CONFLICT) create zero projections and never advance the sequence. The
+  truly frozen dedicated Downloads contract (checkout disabled, no fixture mapping)
+  also denies.
+- The Focusa paid lease fixture derives the `focusa.authority_lease.v1` payload
+  exclusively from the projection: explicit product, license type, price version, frozen
+  family digest, one seat, three shared nodes, whole-order 30-day refund policy, and the
+  projection sequence; the credential refresh window is bounded (90 days) and offline
+  grace is bounded (30 days past the refresh window) while the entitlement term stays
+  `lifetime` (Spec 172 section 14). Tampered limits, family digest, node ids, and
+  non-projection inputs fail validation closed.
+- No anonymous product capability, no local/self-issued grant, no caller-controlled
+  product, price, License Type, family, feature, limit, node, seat, or commercial right,
+  and no presenter-owned policy. No raw email, key, token, customer row, credential, or
+  card data in journals, decisions, fixtures, or evidence (verified by regex scans:
+  no email address, no full canonical key outside the SL delivery envelope, no payment
+  key, no card pattern). The projection journal stores only the keyed license digest and
+  mask. Legacy Download 453 is never referenced and cannot grant.
+
+Exact verification (exit codes)
+Command (run literally from the canonical project root):
+  php tests/spec172_focusa_operator_issuance_test.php
+Exit code: 0
+  schema=focusa.spec172.focusa_operator_issuance_test.v1
+  positive_checks=124 negative_checks=22 projections_created=1
+  canonical_licenses_created=10 license_type=focusa_operator_lifetime_v1
+  product=focusa price_version=focusa_operator_lifetime_v1.697.00.v1
+  price_usd=697.00 family_count=5
+  family_digest=7f82c331c9568dc4274753303691b1731498fdb692fb737d5f868cac53d909f4
+  operator_seats=1 node_limit=3 node_set=operator_shared_v1 term=lifetime
+  sequence=1 paid_lease_fixture=derived_from_projection_bounded_credential
+  result=passed_fail_closed
+No cargo build was required: this atom's exact surfaces are PHP contracts plus the PHP
+test; the exact verification command is the PHP test above (PHP-only worktree, matching
+the prior 172.02.03 and 152E.02.05 atoms).
+
+Regression checks (exit codes)
+- php tests/spec172_edd_operator_products_test.php — exit 0 (dedicated Downloads).
+- php tests/spec152e_edd_license_issuance_test.php — exit 0 (SL issuance dependency).
+- php tests/spec152e_edd_order_binding_test.php — exit 0 (order binding dependency).
+- php tests/spec172_verified_access_schema_test.php — exit 0.
+- php tests/spec152e_edd_lifecycle_projection_test.php — exit 0.
+- Full sweep of tests/spec152e_*.php and tests/spec172_*.php — all exit 0.
+- python3 tests/spec172_*.py — all exit 0.
+- python3 tests/spec152e_document_authority_test.py — exit 1, PRE-EXISTING and unrelated
+  to this atom: it requires a `publication_rule: forbidden until focusa-vbcqu.20.13.63
+  and focusa-vbcqu.20.14.52 close` token in
+  docs/contracts/spec152-final-audit-status.v1.yaml, a file this atom never touched and
+  which is unchanged from HEAD (verified: zero tracked modifications in the worktree).
+
+Tests added
+- tests/spec172_focusa_operator_issuance_test.php (146 checks: 124 positive + 22
+  negative): one eligible Focusa item -> one canonical key + one frozen projection with
+  family digest, seat/node limits, price version, and sequence; idempotent replay;
+  duplicate projection call; paid lease fixture derivation and validation; wrong
+  product/price/account; refunded/revoked/pending orders; pre-issuance, revoked and
+  tampered licenses; checkout-disabled and drifted offers; caller commerce fields;
+  idempotency conflicts; rollback preservation event; full redaction scans.
+
+Remaining blockers
+- None for this atom. Checkout activation, UIAI issuance (172.02.05), Bundle
+  single-SKU/two-grant implementation (172.02.06), refund/revoke/downgrade settlement
+  (172.02.07), and the full commerce matrix (172.02.08) remain downstream approved atoms.
+
+Rollback
+- Revert only this atom's commit (the projector contract, the paid lease fixture, the
+  test, and this evidence file). Preserve verified identities, customers, orders,
+  refunds, License Types, keys, nodes, sequences, customer data, migration journals,
+  evidence, and accepted unrelated work.
+- Rollback must not invent an implicit mapping for Download 453, enable checkout, or
+  delete the frozen dedicated Downloads or Spec 152E registry records.
+
+No push, deploy, release, merge, or Beads mutation was performed.
