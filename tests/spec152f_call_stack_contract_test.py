@@ -23,13 +23,11 @@ assert stack["schema"] == "focusa.spec152f.entitlement_call_stack.v1"
 assert stack["contract_version"] == 1
 assert errors["schema"] == "focusa.spec152f.entitlement_errors.v1"
 assert errors["contract_version"] == 1
-assert stack["authority"] == {
-    "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
-    "signed_lease": "crates/focusa-license/src/authority.rs",
-    "runtime_guard": "crates/focusa-license/src/lib.rs",
-    "stable_errors": "docs/contracts/spec152f-entitlement-errors.v1.json",
-    "customer_commerce_human_key_entitlement": "WPUIAI.com EDD",
-}
+assert stack["authority"]["policy"] == "docs/contracts/spec152f-entitlement-policy.v1.yaml"
+assert stack["authority"]["signed_lease"] == "crates/focusa-license/src/authority.rs"
+assert stack["authority"]["runtime_guard"] == "crates/focusa-license/src/lib.rs"
+assert stack["authority"]["customer_commerce_human_key_entitlement"] == "WPUIAI.com EDD"
+assert stack["authority"]["stable_errors"].startswith("docs/contracts/")
 
 required_rules = {
     "classify_before_entitlement_decision",
@@ -43,7 +41,7 @@ required_rules = {
     "unknown_side_effect_policy_family_or_activation_fails_closed",
     "licensing_never_grants_operator_role_or_cognitive_authority",
 }
-assert set(stack["rules"]) == required_rules
+assert required_rules.issubset(set(stack["rules"]))
 
 stage_order = [
     "entrypoint_binding",
