@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 525,
+  "route_count": 538,
   "classification_counts": {
     "agent_eligible": 108,
     "internal": 6,
-    "operator_only": 405,
+    "operator_only": 418,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -23,7 +23,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -33,7 +35,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -43,7 +47,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -53,7 +59,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -87,7 +95,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -97,7 +107,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -107,7 +119,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -651,7 +665,9 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_reminder.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1284,7 +1300,9 @@
       "sources": [
         "crates/focusa-api/src/routes/call_stack.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1294,7 +1312,9 @@
       "sources": [
         "crates/focusa-api/src/routes/call_stack.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1444,6 +1464,138 @@
       "operation_refs": []
     },
     {
+      "path": "/v1/compaction/policy",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/compaction/policy/canary/enroll",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy_resolution.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/compaction/policy/canary/pause",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy_resolution.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/compaction/policy/candidates",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy_resolution.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/compaction/policy/evidence",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy_resolution.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/compaction/policy/observe",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy_resolution.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/compaction/policy/override",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/compaction/policy/report",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/compaction/policy/resolve",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy_resolution.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/compaction/policy/rollback",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy_resolution.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/compaction/policy/status",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/compaction_policy_resolution.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
+    },
+    {
       "path": "/v1/compaction/prepare",
       "classification": "operator_only",
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
@@ -1486,7 +1638,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1496,7 +1650,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1506,7 +1662,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1516,7 +1674,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1526,7 +1686,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1536,7 +1698,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1546,7 +1710,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1556,7 +1722,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1566,7 +1734,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1576,7 +1746,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1586,7 +1758,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1680,7 +1854,9 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1704,7 +1880,9 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1714,7 +1892,9 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1724,7 +1904,9 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1734,7 +1916,9 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1744,7 +1928,9 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1754,7 +1940,9 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1940,6 +2128,18 @@
       "operation_refs": []
     },
     {
+      "path": "/v1/daemon-routing/resolve",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/daemon_routing.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
       "path": "/v1/debug/set-pressure-threshold",
       "classification": "internal",
       "rationale": "Runtime/operator diagnostic surface not projected as an agent capability.",
@@ -2018,7 +2218,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2028,7 +2230,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2038,7 +2242,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
-      "methods": [],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2640,6 +2846,18 @@
       ],
       "methods": [
         "GET"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/installations/convergence/plan",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/convergence.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },

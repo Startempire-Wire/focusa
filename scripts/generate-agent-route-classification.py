@@ -29,7 +29,7 @@ def main() -> int:
         for path in re.findall(r'\.route\(\s*"([^"]+)"', body, re.S):
             paths.setdefault(path, set()).add(relative_source)
         for path, method in re.findall(
-            r'\.route\(\s*"([^"]+)"\s*,\s*(get|post|patch|delete|put)\(',
+            r'\.route\(\s*"([^"]+)"\s*,\s*(?:axum::routing::)?(get|post|patch|delete|put|head|options)\(',
             body,
             re.S,
         ):
