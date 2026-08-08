@@ -1,9 +1,28 @@
 export type DaemonReadStatus =
   | { kind: 'checking'; label: 'Checking daemon'; detail: string }
-  | { kind: 'unavailable'; label: 'Daemon unavailable'; detail: string }
-  | { kind: 'read-only'; label: 'Daemon connected · read-only'; detail: string };
+  | { kind: 'unavailable'; label: 'Daemon unavailable'; detail: string; version?: string }
+  | { kind: 'read-only'; label: 'Daemon connected · read-only'; detail: string; version?: string };
 
 const DEFAULT_DAEMON_URL = 'http://127.0.0.1:8787';
+
+/** Numeric semver compare on [major, minor, patch]; malformed versions compare equal. */
+export function semverCompare(left: string | undefined, right: string | undefined): number {
+  const parse = (value: string | undefined): number[] => {
+    const match = String(value ?? '').trim().match(/^(\d+)\.(\d+)\.(\d+)/);
+    return match ? match.slice(1).map((part) => Number(part)) : [0, 0, 0];
+  };
+  const a = parse(left);
+  const b = parse(right);
+  for (let index = 0; index < 3; index += 1) {
+    if (a[index] !== b[index]) return a[index] < b[index] ? -1 : 1;
+  }
+  return 0;
+}
+
+/** The Mission Canvas HTTP API ships with the daemon starting at 0.9.143. */
+export function supportsMissionCanvasApi(version: string | undefined): boolean {
+  return semverCompare(version, '0.9.143') >= 0;
+}
 
 export async function readDaemonHealth(baseUrl = DEFAULT_DAEMON_URL): Promise<DaemonReadStatus> {
   const controller = new AbortController();
@@ -21,10 +40,13 @@ export async function readDaemonHealth(baseUrl = DEFAULT_DAEMON_URL): Promise<Da
         detail: `Health returned HTTP ${response.status}. No cognitive state was requested.`
       };
     }
+    const body = await response.json() as { version?: unknown };
+    const version = typeof body.version === 'string' ? body.version : undefined;
     return {
       kind: 'read-only',
       label: 'Daemon connected · read-only',
-      detail: 'Infrastructure health is reachable. No Workstream is attached and no canonical mutation is enabled.'
+      detail: 'Infrastructure health is reachable. No Workstream is attached and no canonical mutation is enabled.',
+      version
     };
   } catch {
     return {
