@@ -5,6 +5,7 @@ import FollowUpQueueContribution from './contributions/FollowUpQueueContribution
 import WorkSurfaceContribution from './contributions/WorkSurfaceContribution.svelte';
 import SessionInventoryContribution from './contributions/SessionInventoryContribution.svelte';
 import WorkRailContribution from './contributions/WorkRailContribution.svelte';
+import CanonicalEventHistoryContribution from './contributions/CanonicalEventHistoryContribution.svelte';
 import { ContributionRendererRegistry, type TrustedContributionRenderer } from './contribution-renderers';
 
 export const DEFAULT_CONTRIBUTION_RENDERERS = [
@@ -68,6 +69,11 @@ export const DEFAULT_CONTRIBUTION_RENDERERS = [
     semanticBindingIds: ['semantic:follow-up-queue'],
     contributionKinds: ['follow_up_queue'],
     component: FollowUpQueueContribution
+  },
+  {
+    rendererBindingId: 'renderer:history@v1',
+    semanticBindingIds: ['semantic:history'],
+    component: CanonicalEventHistoryContribution
   },
   {
     rendererBindingId: 'renderer:prompt-editor@v1',
