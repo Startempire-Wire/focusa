@@ -1810,8 +1810,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/subagent/result",
-        feature: "focusa.core.workpoint",
-        limit_bucket: Some("workpoints"),
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
     },
     RouteEntitlementRequirement {
         template: "/v1/sync/crdt/export",

@@ -18,7 +18,8 @@ pub mod license_migration;
 pub use entitlement_policy::{
     authority_policy_state, base_product_compatibility_projection,
     embedded_entitlement_policy_registry, is_focusa_verified_no_license_family_allowed,
-    reduce_entitlement_state, resolve_base_focusa_product, resolve_premium_family,
+    premium_family_feature_ids, reduce_entitlement_state, resolve_base_focusa_product,
+    resolve_premium_family,
     AccessPosture, BaseProductDecision, CapabilityFamily, CommercialTreatment,
     CompositeGrant, DecisionReason, EmbeddedEntitlementPolicyRegistry,
     EntitlementPolicyPosture, EntitlementPolicyRegistryError, EntitlementPolicyTypeError,
@@ -26,11 +27,15 @@ pub use entitlement_policy::{
     LicenseTypeVersion, LimitBucket, OperationClass, OperatorSeats, PolicyActivation,
     PolicyEntitlementState, PremiumFamilyDecision, PremiumFamilyDenial, ProductCode,
     RecoveryAllowance, RequiredFeature, ResolvedEntitlementPolicy, ResourceRight, SaleStatus,
-    SharedNodeLimit, BASE_PRODUCT_CORE_COMPATIBILITY_IDS,
+    SharedNodeLimit, AUTOMATION_PREMIUM_FEATURE_IDS,
+    BASE_PRODUCT_CORE_COMPATIBILITY_IDS,
+    PREMIUM_UPDATES_PREMIUM_FEATURE_IDS,
+    RELEASE_PROOF_PREMIUM_FEATURE_IDS,
     SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
     SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
     SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
     SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
+    TEAM_REMOTE_PREMIUM_FEATURE_IDS,
 };
 pub mod uiai_child_token;
 
