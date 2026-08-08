@@ -190,6 +190,8 @@ pub enum LicenseError {
     RegistryUnreachable(String),
     #[error("evaluation mode — feature '{0}' not permitted")]
     EvaluationRestricted(String),
+    #[error("base Focusa product gate not satisfied (decision={0}); one usable signed product entitlement is required for value-producing core mutations")]
+    BaseProductRequired(String),
 }
 
 /// Doctor report for `focusa license doctor` per spec §5.2.
@@ -204,6 +206,22 @@ pub struct DoctorReport {
     pub eval_mode: bool,
     pub warnings: Vec<String>,
     pub failures: Vec<String>,
+}
+
+/// Require the canonical base Focusa product gate for value-producing core
+/// mutations (Spec 152F P3). One usable signed product entitlement for product
+/// `focusa` gates the base; the legacy `focusa.core.mission` / `focusa.core.workpoint` /
+/// `focusa.core.evidence` identifiers are compatibility/projection claims, never
+/// separately purchased features.
+pub fn require_base_product() -> Result<focusa_license::BaseProductProjection, LicenseError> {
+    let guard = focusa_license::resolve_license_guard();
+    let projection = focusa_license::base_product_projection(guard.entitlement.as_ref())
+        .map_err(|_| LicenseError::BaseProductRequired("snapshot_missing".to_string()))?;
+    if projection.permits_base_mutations {
+        Ok(projection)
+    } else {
+        Err(LicenseError::BaseProductRequired(projection.decision))
+    }
 }
 
 /// Path to the local license file. Resolves to `~/.config/focusa/license.json`.
@@ -695,5 +713,40 @@ mod tests {
         assert_eq!(hash.len(), 64);
         let prefix: String = key.chars().take(16).collect();
         assert_eq!(prefix, "focusa_live_abc1");
+    }
+
+    #[test]
+    fn license_base_product_gate_requires_one_signed_entitlement() {
+        use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-001");
+        snapshot.state = EntitlementState::Active;
+        let guard = focusa_license::LicenseGuard::from_entitlement(snapshot);
+        let projection =
+            focusa_license::base_product_projection(guard.entitlement.as_ref()).expect("projection");
+        assert_eq!(projection.product, "focusa");
+        assert_eq!(projection.decision, "entitled");
+        assert!(projection.permits_base_mutations);
+        // Legacy core identifiers resolve as base-product claims, not separate purchases.
+        assert_eq!(projection.compatibility.get("focusa.core.mission"), Some(&true));
+        assert_eq!(projection.compatibility.get("focusa.core.workpoint"), Some(&true));
+        assert_eq!(projection.compatibility.get("focusa.core.evidence"), Some(&true));
+    }
+
+    #[test]
+    fn license_base_product_gate_fails_closed_without_signed_entitlement() {
+        // Self-issued Evaluation carries no signed entitlement snapshot and must
+        // never satisfy the base product gate.
+        let guard = focusa_license::LicenseGuard::eval(7);
+        assert!(guard.entitlement.is_none());
+        assert!(focusa_license::base_product_projection(guard.entitlement.as_ref()).is_err());
+
+        // Offline Grace remains a usable base product posture.
+        use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-002");
+        snapshot.state = EntitlementState::OfflineGrace;
+        let guard = focusa_license::LicenseGuard::from_entitlement(snapshot);
+        let projection =
+            focusa_license::base_product_projection(guard.entitlement.as_ref()).expect("projection");
+        assert!(projection.permits_base_mutations);
     }
 }

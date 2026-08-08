@@ -731,6 +731,92 @@ fn is_identifier(value: &str) -> bool {
         && value.as_bytes()[0].is_ascii_lowercase()
 }
 
+/// Canonical base Focusa product gate (Spec 152F P3 / P2).
+///
+/// One usable signed product entitlement for product `focusa` grants the base
+/// product. Value-producing core mutations (projects, missions, Focus State,
+/// Workpoints, Trajectories, Work Loops, evidence, cognition) inherit this single
+/// decision; the legacy `focusa.core.mission` / `focusa.core.workpoint` /
+/// `focusa.core.evidence` identifiers resolve as parts of the base product and are
+/// never separately purchased features.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BaseProductDecision {
+    /// Usable signed product entitlement (Active paid lease or valid Offline Grace).
+    Entitled,
+    /// Verified identity but no usable product entitlement: only the explicit
+    /// manual one-project Focusa subset is permitted.
+    Limited,
+    /// No base product entitlement; value-producing mutations are denied.
+    Denied,
+}
+
+impl BaseProductDecision {
+    /// Base gate satisfied: value-producing core mutations are permitted.
+    pub const fn permits_base_mutations(self) -> bool {
+        matches!(self, Self::Entitled)
+    }
+
+    /// Stable snake_case label for projections and telemetry.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Entitled => "entitled",
+            Self::Limited => "limited",
+            Self::Denied => "denied",
+        }
+    }
+}
+
+/// Legacy core identifiers that resolve as parts of the base Focusa product.
+/// They may remain in leases, telemetry, and compatibility projections, but they
+/// SHALL resolve as base-product claims rather than separate purchases.
+pub const BASE_PRODUCT_CORE_COMPATIBILITY_IDS: [&str; 3] = [
+    "focusa.core.mission",
+    "focusa.core.workpoint",
+    "focusa.core.evidence",
+];
+
+/// Resolve the canonical base Focusa product gate from a Spec 172 policy state.
+///
+/// Only `product == "focusa"` counts. Active paid and valid Offline Grace are
+/// usable; verified-but-license-less resolves to the explicit manual one-project
+/// subset; every other state denies value-producing mutations. No caller-supplied
+/// product, price, grant, or feature input is accepted here — those remain
+/// authority-owned concerns resolved before this bounded policy step.
+pub fn resolve_base_focusa_product(
+    product: &str,
+    state: PolicyEntitlementState,
+) -> BaseProductDecision {
+    if !product.trim().eq_ignore_ascii_case("focusa") {
+        return BaseProductDecision::Denied;
+    }
+    match state {
+        PolicyEntitlementState::ActivePaid | PolicyEntitlementState::OfflineGrace => {
+            BaseProductDecision::Entitled
+        }
+        PolicyEntitlementState::VerifiedNoLicense => BaseProductDecision::Limited,
+        _ => BaseProductDecision::Denied,
+    }
+}
+
+/// Compatibility projection for the base product (Spec 152F P3).
+///
+/// `focusa.core.mission`, `focusa.core.workpoint`, and `focusa.core.evidence`
+/// remain visible for telemetry and compatibility, but their projected values
+/// resolve from the base product gate — stored lease values are non-authoritative
+/// projection claims, never separately purchased features.
+pub fn base_product_compatibility_projection(
+    decision: BaseProductDecision,
+    stored_features: &std::collections::BTreeMap<String, bool>,
+) -> std::collections::BTreeMap<String, bool> {
+    let entitled = decision.permits_base_mutations();
+    let mut projected = stored_features.clone();
+    for id in BASE_PRODUCT_CORE_COMPATIBILITY_IDS {
+        projected.insert(id.to_string(), entitled);
+    }
+    projected
+}
+
 #[cfg(test)]
 #[path = "entitlement_policy_tests.rs"]
 mod tests;

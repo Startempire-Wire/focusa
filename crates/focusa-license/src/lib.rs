@@ -16,13 +16,15 @@ pub mod feature_decision;
 pub mod license_migration;
 
 pub use entitlement_policy::{
-    embedded_entitlement_policy_registry, reduce_entitlement_state, AccessPosture,
+    base_product_compatibility_projection, embedded_entitlement_policy_registry,
+    reduce_entitlement_state, resolve_base_focusa_product, AccessPosture, BaseProductDecision,
     CapabilityFamily, CommercialTreatment, CompositeGrant, DecisionReason,
     EmbeddedEntitlementPolicyRegistry, EntitlementPolicyPosture, EntitlementPolicyRegistryError,
     EntitlementPolicyTypeError, EntitlementStateDecision, LicenseTypeCode, LicenseTypeGrant,
     LicenseTypeVersion, LimitBucket, OperationClass, OperatorSeats, PolicyActivation,
     PolicyEntitlementState, ProductCode, RecoveryAllowance, RequiredFeature,
     ResolvedEntitlementPolicy, ResourceRight, SaleStatus, SharedNodeLimit,
+    BASE_PRODUCT_CORE_COMPATIBILITY_IDS,
 };
 pub mod uiai_child_token;
 
@@ -70,6 +72,43 @@ pub fn entitlement_projection(
         features: snapshot.features.clone(),
         limits: snapshot.limits.clone(),
         recovery_reason: snapshot.recovery_reason.clone(),
+    })
+}
+
+/// Canonical, client-safe base-product projection derived from one signed
+/// entitlement snapshot (Spec 152F P3). REST, CLI, desktop, TUI, Pi, agents,
+/// installers, UIAI, workers, and schedulers inherit this single decision.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BaseProductProjection {
+    pub schema: String,
+    pub product: String,
+    pub decision: String,
+    pub permits_base_mutations: bool,
+    pub compatibility: BTreeMap<String, bool>,
+}
+
+/// Project the canonical base Focusa product gate from a signed authority
+/// snapshot. Legacy core identifiers are reported through the compatibility
+/// projection and resolve as base-product claims, never separate purchases.
+pub fn base_product_projection(
+    snapshot: Option<&authority::EntitlementSnapshot>,
+) -> Result<BaseProductProjection, LicenseError> {
+    let snapshot = snapshot.ok_or(LicenseError::EntitlementSnapshotMissing)?;
+    let policy_state = match snapshot.state {
+        authority::EntitlementState::Active => PolicyEntitlementState::ActivePaid,
+        authority::EntitlementState::OfflineGrace => PolicyEntitlementState::OfflineGrace,
+        // Recovery-only is a signed recovery posture, not base entitlement.
+        authority::EntitlementState::RecoveryOnly => PolicyEntitlementState::RefundedOrRevoked,
+        authority::EntitlementState::Unactivated => PolicyEntitlementState::PendingUnverified,
+    };
+    let decision = resolve_base_focusa_product(&snapshot.product, policy_state);
+    let compatibility = base_product_compatibility_projection(decision, &snapshot.features);
+    Ok(BaseProductProjection {
+        schema: "focusa.base_product_projection.v1".to_string(),
+        product: snapshot.product.clone(),
+        decision: decision.label().to_string(),
+        permits_base_mutations: decision.permits_base_mutations(),
+        compatibility,
     })
 }
 
@@ -579,5 +618,110 @@ mod tests {
             let back: Tier = serde_json::from_str(&json).unwrap();
             assert_eq!(t, back);
         }
+    }
+
+    #[test]
+    fn base_product_resolution_one_signed_entitlement_gates_base_focusa() {
+        // Active paid lease for product=focusa is a usable base entitlement.
+        assert_eq!(
+            resolve_base_focusa_product("focusa", PolicyEntitlementState::ActivePaid),
+            BaseProductDecision::Entitled
+        );
+        assert!(BaseProductDecision::Entitled.permits_base_mutations());
+        // Valid Offline Grace also gates the base product.
+        assert_eq!(
+            resolve_base_focusa_product("focusa", PolicyEntitlementState::OfflineGrace),
+            BaseProductDecision::Entitled
+        );
+        // Verified but license-less is limited to the explicit manual one-project subset.
+        assert_eq!(
+            resolve_base_focusa_product("focusa", PolicyEntitlementState::VerifiedNoLicense),
+            BaseProductDecision::Limited
+        );
+        assert!(!BaseProductDecision::Limited.permits_base_mutations());
+        // Every other state denies value-producing mutations.
+        for state in [
+            PolicyEntitlementState::PendingUnverified,
+            PolicyEntitlementState::Expired,
+            PolicyEntitlementState::RefundedOrRevoked,
+            PolicyEntitlementState::MissingOrCorrupt,
+        ] {
+            assert_eq!(
+                resolve_base_focusa_product("focusa", state),
+                BaseProductDecision::Denied
+            );
+        }
+        // Wrong product is never the base gate.
+        assert_eq!(
+            resolve_base_focusa_product("uiai-engine", PolicyEntitlementState::ActivePaid),
+            BaseProductDecision::Denied
+        );
+        assert_eq!(
+            resolve_base_focusa_product("focusa-premium", PolicyEntitlementState::ActivePaid),
+            BaseProductDecision::Denied
+        );
+    }
+
+    #[test]
+    fn base_product_resolution_requires_one_not_three_separate_features() {
+        // Base capability does not require separately purchased core features:
+        // with an ActivePaid product=focusa lease, the base gate is satisfied even
+        // when legacy core identifiers are absent or individually false.
+        let empty = BTreeMap::new();
+        let decision = resolve_base_focusa_product("focusa", PolicyEntitlementState::ActivePaid);
+        assert!(decision.permits_base_mutations());
+        let projection = base_product_compatibility_projection(decision, &empty);
+        for id in BASE_PRODUCT_CORE_COMPATIBILITY_IDS {
+            assert_eq!(projection.get(id), Some(&true), "{id} resolves as base product");
+        }
+
+        // Stored false values are non-authoritative projection claims; the base
+        // decision governs, never a separate feature purchase.
+        let mut stored = BTreeMap::new();
+        stored.insert("focusa.core.mission".to_string(), false);
+        stored.insert("focusa.core.workpoint".to_string(), false);
+        stored.insert("focusa.core.evidence".to_string(), false);
+        let projection = base_product_compatibility_projection(decision, &stored);
+        assert_eq!(projection.get("focusa.core.mission"), Some(&true));
+        assert_eq!(projection.get("focusa.core.workpoint"), Some(&true));
+        assert_eq!(projection.get("focusa.core.evidence"), Some(&true));
+
+        // Denied base never projects core identifiers as granted, and never
+        // manufactures a purchase from stored values.
+        let denied = resolve_base_focusa_product("focusa", PolicyEntitlementState::Expired);
+        let projection = base_product_compatibility_projection(denied, &stored);
+        assert_eq!(projection.get("focusa.core.mission"), Some(&false));
+        assert_eq!(projection.get("focusa.core.workpoint"), Some(&false));
+        assert_eq!(projection.get("focusa.core.evidence"), Some(&false));
+    }
+
+    #[test]
+    fn base_product_resolution_snapshot_projection_is_canonical_and_fails_closed() {
+        let mut snapshot = authority::EntitlementSnapshot::unactivated("focusa", "node-001");
+        snapshot.state = authority::EntitlementState::Active;
+        snapshot.lease_id = Some("lease-base-001".to_string());
+        snapshot.sequence = Some(7);
+        let projection = base_product_projection(Some(&snapshot)).expect("projection");
+        assert_eq!(projection.schema, "focusa.base_product_projection.v1");
+        assert_eq!(projection.product, "focusa");
+        assert_eq!(projection.decision, "entitled");
+        assert!(projection.permits_base_mutations);
+        assert_eq!(projection.compatibility.get("focusa.core.mission"), Some(&true));
+
+        // No snapshot fails closed.
+        assert!(matches!(
+            base_product_projection(None),
+            Err(LicenseError::EntitlementSnapshotMissing)
+        ));
+
+        // Offline Grace is usable.
+        snapshot.state = authority::EntitlementState::OfflineGrace;
+        assert!(base_product_projection(Some(&snapshot)).unwrap().permits_base_mutations);
+
+        // Recovery-only is not base entitlement.
+        snapshot.state = authority::EntitlementState::RecoveryOnly;
+        let projection = base_product_projection(Some(&snapshot)).unwrap();
+        assert_eq!(projection.decision, "denied");
+        assert!(!projection.permits_base_mutations);
     }
 }
