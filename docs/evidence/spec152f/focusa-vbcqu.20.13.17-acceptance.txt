@@ -1,0 +1,119 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.17
+Title: 152E.02.03 Hold fulfillment on checkout email change or account mismatch
+Implementation commit: `5371dbbf1bb418b8511febf45130c859f4340d52` (code + test)
+
+Exact surfaces
+- Checkout email integrity handler (EDD checkout validation/completion hooks):
+  docs/contracts/spec152e-checkout-email-integrity.v1.php
+  (FocusaSpec152eCheckoutEmailIntegrityService — assessOrder + releaseHold;
+  FocusaSpec152eCheckoutEmailIntegrityMigration — journal tables)
+- Verified identity and registration services (consumed read-only via constructor
+  injection): activation registration repository/secrets, email identity
+  repository, and authority account repository; none of their files were modified
+- Server-owned product/facade registries (read-only, consumed via constructor
+  injection): the frozen docs/contracts/spec152e-edd-product-registry.v1.php and
+  docs/contracts/spec152e-facade-registry.v1.php remain byte-identical
+- tests/spec152e_checkout_email_integrity_test.php (exact verification)
+
+Bounded result
+- Added the Spec 152E checkout identity-integrity handler. Protected EDD order
+  completion locks the checkout email to the mailbox-verified registration
+  identity: the assessment requires a verified, live, promoted registration bound
+  to the exact facade/product, an order customer/account that matches the
+  registration's promoted customer/account, and an order email that matches the
+  verified registration email digest. An order email that is an already
+  mailbox-verified identity safely linked to the same authority account also
+  proceeds (prior mailbox control, never payment). Matching assessments return
+  email_integrity_passed with entitlement_allowed true and issuance deferred.
+- Changed, blank, or conflicting checkout emails, and order customer/account
+  mismatches, journal a bounded fulfillment hold (decision fulfillment_held,
+  entitlement_allowed false, issuance held_until_email_verified) with an opaque
+  hold key (fh_) and review handle (hr_). Stable public-safe codes only:
+  changed -> ACCOUNT_EMAIL_MISMATCH, blank -> EDD_ORDER_UNVERIFIED, conflicting
+  and account -> ACCOUNT_MERGE_REVIEW_REQUIRED. Zero EDD licenses, orders, keys,
+  or leases are ever created by this surface, and payment success alone can never
+  promote the new email: a hold persists across repeats and retries (repeat
+  returns the existing hold), idempotency-key reuse with a different request fails
+  IDEMPOTENCY_CONFLICT, and the same held order still blocks even after the new
+  email becomes verified until an explicit release review runs.
+- Release requires a separately verified link review: the held email must be an
+  existing mailbox-verified identity (primary/linked, verified_at set) of the
+  exact same authority account, plus a bounded opaque review evidence handle.
+  Evidence kind is fixed to 'verified_link_review'; payment/operator/facade
+  evidence can never release a hold (payment_success -> EMAIL_VERIFICATION_REQUIRED).
+  Release marks entitlement_allowed true (fulfillment_released) but issuance stays
+  deferred to the verified issuance service; release replays are idempotent and a
+  repeated canonical release returns the existing release.
+- Precondition failures fail closed with existing stable codes: unknown/unverified/
+  denied registrations -> EMAIL_VERIFICATION_REQUIRED, verified-unpromoted ->
+  EDD_CUSTOMER_RESOLUTION_FAILED, expired -> REGISTRATION_EXPIRED, wrong facade ->
+  FACADE_ORIGIN_DENIED, unknown download/wrong price -> PRODUCT_MAPPING_REQUIRED,
+  blocked mapping/frozen registry -> EDD_CHECKOUT_REQUIRED (or
+  PRODUCT_MAPPING_REQUIRED when the download is not assigned in the frozen
+  registry), duplicate active license -> EDD_LICENSE_UNUSABLE, pending/refunded
+  orders -> EDD_ORDER_PENDING/REFUNDED, caller-controlled commerce fields ->
+  CLIENT_COMMERCIAL_FIELDS_FORBIDDEN. Unrelated/quarantined orders complete as
+  no_entitlement with no identity requirement and no entitlement.
+- Journals store only keyed digests (registration-secrets HMAC of the normalized
+  email) and opaque bounded tokens; no raw email, secret, license key, or unmasked
+  real-email evidence appears in decisions or journals. Rollback is
+  preservation-only (holds and release journals are never deleted).
+
+Exact verification (exit codes)
+1. `php tests/spec152e_checkout_email_integrity_test.php` — exit 0 (run three
+   times; deterministic, byte-identical output).
+   {"schema":"focusa.spec152e.checkout_email_integrity_test.v1","positive_checks":128,"negative_checks":30,"holds_journaled":7,"releases_journaled":1,"licenses_created":0,"mismatch_fixtures":["changed","blank","conflicting","account"],"release_evidence":"verified_link_review_only","entitlement_issuance":"deferred","result":"passed_fail_closed"}
+   Bounded immutable result handle (SHA-256 of the exact output above):
+   c63d594e05e742ea2a6f3b0787b33b74b19d9fec6ac90b6a0bb93e482a4ef1e9
+
+Regression checks (exit codes)
+- All 18 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  checkout-email-integrity test and the prior checkout-intent and EDD product gate
+  tests.
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (frozen registry outputs current; 0 assigned downloads, 0 checkout-enabled).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  (no new error codes; activation contracts current).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_golden_vector_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom): spec152e
+  document_authority_test.py (exit 1, audit-status wording registered by an
+  earlier atom) and spec152f_surface_reconciliation_contract_test.py (exit 1,
+  Spec 152F reconciliation index stale at the base commit).
+
+Tests added
+- spec152e_checkout_email_integrity_test.php: 128 positive + 30 negative checks
+  covering frozen-registry invariants; order-completion preconditions (unknown,
+  unverified, unpromoted, wrong-facade, expired, denied registrations; pending and
+  refunded statuses; unknown download, wrong price, blocked mapping, frozen
+  registry, duplicate active license; caller-controlled commerce fields; input
+  bounds); the matching verified checkout email pass with journaling, idempotent
+  replay, and repeated-request dedupe; the changed-email hold with the keyed
+  digest journal, persistence across repeats, and IDEMPOTENCY_CONFLICT; the
+  blank-email hold; the conflicting-verified-email hold on another account; the
+  order customer/account mismatch hold; the already-verified-and-safely-linked
+  email pass; the full release matrix (payment evidence denied, unknown hold
+  denied, unverified identity denied, verified identity of another account denied,
+  wrong email denied, then verified-link review release with evidence handle,
+  idempotent replay, repeated-release dedupe, and hold_state released with
+  issuance still deferred and zero licenses); the unrelated non-entitlement order;
+  rollback preservation; and redaction (no raw email or license key in decisions,
+  hold journals, or release journals; fh_/hr_/rl_/ev_ opaque bounded tokens;
+  digests only for emails). The positive mapping fixture is explicitly
+  operator-approved test-only (download 1001 -> focusa_operator_lifetime_v1) and
+  never mutates the frozen registry contract.
+
+Rollback
+- Revert only this atom's implementation commit (checkout-email-integrity
+  contract, its test, and this evidence record if required). Preserve EDD
+  customer/order/refund truth, verified identities, licenses, nodes, sequences,
+  credentials, Workpoints, Evidence, and migration journals; checkout-email
+  integrity holds and release journals are preservation-only.
+
+No push, deploy, release, merge, or Beads mutation was performed.
