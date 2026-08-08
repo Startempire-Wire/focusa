@@ -1,0 +1,135 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.19
+Title: 152E.02.05 Make EDD Software Licensing key canonical and remove duplicate issuance
+Implementation commit: local (unpushed; see git log for this atom)
+
+Exact surfaces
+- EDD Software Licensing APIs/tables/hooks (canonical key issuance adapter):
+  docs/contracts/spec152e-edd-license-issuance.v1.php
+  (FocusaSpec152eEddLicenseIssuanceMigration — wpuiai_edd_license_issuances journal;
+  FocusaSpec152eEddLicenseIssuanceService — issue(): consumes exactly one settled
+  pending issuance request from the order-binding journal, re-verifies canonical EDD
+  order/item/email truth, resolves the server-owned offer, and creates exactly one
+  canonical EDD SL license row in wp_edd_licenses per eligible order item)
+- class-focusa-license-production.php custom focusa_live issuer (duplicate-key
+  regression fixtures): synthetic focusa_live_* / synthetic_* / local_* / eval_* keys
+  are quarantine migration input — the adapter never creates them, blocks canonical
+  issuance next to them (EDD_LICENSE_UNUSABLE), and preserves them (never deleted,
+  never overwritten). The deployed transitional issuer remains represented by
+  docs/contracts/spec152e-deployed-surface-inventory.v1.json (untouched);
+  issuance is now canonical EDD SL only.
+- Registration fulfillment: checkout_pending -> entitlement_issued with the canonical
+  edd_order_id / edd_order_item_id / edd_license_id references, driven idempotently by
+  the issuance idempotency key through the existing activation-registration repository
+  (no modifications to prior atoms' files).
+- tests/spec152e_edd_license_issuance_test.php (exact verification)
+
+Bounded result
+- Added the canonical EDD Software Licensing issuance adapter. issue() starts only
+  from a settled_pending_issuance binding plus a pending ir_ issuance request; the
+  canonical EDD order row (status complete, exact customer, exact verified email
+  digest) and the exact canonical order item row are re-verified at issuance time;
+  refunded/revoked/pending canonical truth fails closed (REFUNDED / REVOKED /
+  EDD_ORDER_PENDING / EDD_ORDER_UNVERIFIED / ACCOUNT_EMAIL_MISMATCH) and never
+  issues. The server-owned offer is the only product/price/duration/limit authority
+  (PRODUCT_MAPPING_REQUIRED / EDD_CHECKOUT_REQUIRED on any drift or a frozen registry).
+- One eligible order item produces exactly one canonical EDD SL key, forever, linked
+  to the verified registration/account/customer and the canonical order/item rows.
+  An idempotency-key replay returns the identical decision; a delivery retry with a
+  new idempotency key returns the same key with existing=true and keys_created=0;
+  a duplicate completion/issuance call never creates a second key, binding, or
+  issuance journal row (canonical_licenses_created 4 for 4 issued items).
+- Duplicate-key regression fixtures: synthetic focusa_live_* keys (inactive or active)
+  block canonical issuance (issuance-level EDD_LICENSE_UNUSABLE; active synthetic also
+  blocked at the binding boundary with EDD_LICENSE_UNUSABLE) and are preserved; an
+  active canonical license for the same customer/download from another order blocks
+  issuance (EDD_LICENSE_UNUSABLE, defense in depth); sibling items of the same order
+  each issue their own key (two items -> two distinct keys) and the registration
+  advances exactly once; an already-fulfilled registration with a pending sibling
+  request issues its own key without disturbing the registration fulfillment
+  reference. All adapter-issued keys are canonical EDD SL format
+  ([0-9A-F]{8}-x3 groups); no focusa_live_* or synthetic prefix is ever produced.
+- Registration fulfillment: the first order item advances the registration
+  checkout_pending -> entitlement_issued with the canonical order/item/license
+  references; registrations that never entered checkout fail closed with
+  EDD_CHECKOUT_REQUIRED; denied/expired/terminal registrations fail closed
+  (EMAIL_VERIFICATION_REQUIRED / REGISTRATION_EXPIRED); no-checkout denials leave the
+  registration state untouched.
+- No plaintext leakage: journals store only the 64-hex license-key digest plus a
+  masked key; the full key is returned only inside the bounded fulfillment delivery
+  envelope (focusa.spec152e.edd_license_delivery.v1) and is never written to any
+  journal, decision outside delivery, or log. No raw email, raw payment transaction
+  id, secret, or unmasked real-email evidence appears in decisions or journals
+  (redaction checks assert no '@', no txn ids, no full-key pattern, no synthetic key
+  material outside the explicit legacy fixtures). Rollback is preservation-only
+  (issuance journals are never deleted; license rows are never deleted).
+
+Exact verification (exit codes)
+1. `php tests/spec152e_edd_license_issuance_test.php` — exit 0 (run three times;
+   deterministic, byte-identical output).
+   {"schema":"focusa.spec152e.edd_license_issuance_test.v1","positive_checks":152,"negative_checks":18,"issuances_journaled":4,"canonical_licenses_created":4,"synthetic_legacy_preserved":2,"duplicate_key_fixtures":["idempotent_replay","delivery_retry","synthetic_focusa_live_inactive","synthetic_focusa_live_active_binding_block","parallel_active_license_other_order","sibling_item_same_order"],"fulfillment":"registration_checkout_pending_to_entitlement_issued","key_storage":"keyed_digest_journal_bounded_delivery_envelope","result":"passed_fail_closed"}
+   Bounded immutable result handle (SHA-256 of the exact output above):
+   c1230f519fa9348780109981389f80985085daa243b92698822bf4292d925860
+
+Regression checks (exit codes)
+- All 20 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  edd-license-issuance test and the prior order-binding, checkout-email-integrity,
+  checkout-intent, and EDD product gate tests.
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (frozen registry outputs current; 0 assigned downloads, 0 checkout-enabled).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  (no new error codes; activation contracts current).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_golden_vector_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0.
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom): spec152e
+  document_authority_test.py (exit 1, audit-status wording registered by an
+  earlier atom) and spec152f_surface_reconciliation_contract_test.py (exit 1,
+  Spec 152F reconciliation index stale at the base commit).
+
+Tests added
+- spec152e_edd_license_issuance_test.php: 152 positive + 18 negative checks covering
+  frozen-registry invariants and the canonical issuance schema; the full paid flow
+  (verified+promoted+checkout_pending registration -> canonical complete order ->
+  one settled binding/issuance request -> one canonical EDD SL key linked to
+  registration/account/customer/order/item, license row active with server-owned
+  activation limit, issuance request pending->issued, issuance journal with keyed
+  digest only, registration advanced to entitlement_issued with canonical
+  order/item/license references); idempotent replay returning the identical decision;
+  delivery retry returning the same key with existing=true and zero creation; two
+  eligible items producing exactly two distinct keys with the registration advancing
+  exactly once; sibling re-issuance returning the identical key; the duplicate-key
+  regression fixtures (inactive synthetic focusa_live blocked at issuance and
+  preserved, active synthetic focusa_live blocked at the binding boundary with zero
+  issuance requests, active canonical license from another order blocked at
+  issuance, adapter never producing synthetic-prefixed keys); the canonical-order
+  truth negatives (refunded -> REFUNDED, revoked -> REVOKED, pending ->
+  EDD_ORDER_PENDING, customer changed -> EDD_ORDER_UNVERIFIED, email changed ->
+  ACCOUNT_EMAIL_MISMATCH); the registration/account negatives (denied ->
+  EMAIL_VERIFICATION_REQUIRED, expired -> REGISTRATION_EXPIRED, never-entered-checkout
+  -> EDD_CHECKOUT_REQUIRED with state untouched, already-fulfilled sibling issues its
+  own key without disturbing the fulfillment reference); the registry/offer negatives
+  (frozen registry -> PRODUCT_MAPPING_REQUIRED, drifted download/license-type ->
+  PRODUCT_MAPPING_REQUIRED, no-longer-checkout-enabled -> EDD_CHECKOUT_REQUIRED); the
+  input/idempotency negatives (malformed handle, unknown handle -> EDD_LICENSE_UNUSABLE,
+  caller-controlled commerce fields -> CLIENT_COMMERCIAL_FIELDS_FORBIDDEN, key reuse
+  -> IDEMPOTENCY_CONFLICT); rollback preservation (issuance schema events journaled);
+  and redaction (no raw email, no raw payment id, no full key in any journal or
+  decision outside the bounded delivery envelope, journals store only 64-hex keyed
+  digests and masks, result payloads never contain a raw license_key field). The
+  positive mapping fixture is explicitly operator-approved test-only (download 1001 ->
+  focusa_operator_lifetime_v1) and never mutates the frozen registry contract.
+
+Rollback
+- Revert only this atom's implementation commit (edd-license-issuance contract, its
+  test, and this evidence record if required). Preserve EDD customer/order/refund
+  truth, verified identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals; license-issuance journals and EDD license rows
+  are preservation-only and never deleted.
+
+No push, deploy, release, merge, or Beads mutation was performed.
