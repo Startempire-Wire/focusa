@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate OpenAPI operation metadata from the canonical Spec 135 Operation Registry."""
 import argparse
+import copy
 import json
 import sys
 from pathlib import Path
@@ -10,6 +11,60 @@ B = R / "docs/contracts/spec135/generated-contract-v1"
 REGISTRY = B / "operation-registry.json"
 OPENAPI = B / "openapi-3.0.3.json"
 UI_BINDINGS = B / "ui-action-bindings.fixture.json"
+
+POLICY_SCHEMA = "focusa.operation_policy_metadata.v1"
+POLICY_AUTHORITY = "docs/contracts/spec152f-entitlement-policy.v1.yaml"
+POLICY_OWNER = "entitlement_policy_resolver"
+RECOVERY_OPERATION_IDS = {
+    "focusa.device_pair.start",
+    "focusa.device_pair.status",
+    "focusa.license.validate",
+}
+
+
+def operation_policy(descriptor):
+    """Derive closed Spec 152F policy metadata for one registry operation."""
+    operation_id = descriptor["operation_id"]
+    mode = descriptor["control"]["mode"]
+    if operation_id in RECOVERY_OPERATION_IDS:
+        operation_class = "recovery"
+        capability_family = "account_recovery"
+        recovery_allowance = "account_recovery"
+    elif mode == "read":
+        operation_class = "read"
+        capability_family = "read_projection"
+        recovery_allowance = "read_projection"
+    else:
+        operation_class = "value_mutation"
+        capability_family = "base_focusa"
+        recovery_allowance = "none"
+
+    treatments = {
+        "account_recovery": "always_available",
+        "read_projection": "read_allowance",
+        "base_focusa": "base_entitlement",
+    }
+    return {
+        "operation_class": operation_class,
+        "capability_family": capability_family,
+        "commercial_treatment": treatments[capability_family],
+        "policy_activation": "active",
+        "required_feature": None,
+        "limit_bucket": None,
+        "recovery_allowance": recovery_allowance,
+        "source_owner": descriptor["ownership"]["subsystem"],
+        "policy_owner": POLICY_OWNER,
+    }
+
+
+def generated_registry(registry):
+    """Generate policy metadata without changing stable operation identity."""
+    result = copy.deepcopy(registry)
+    result["operation_policy_schema"] = POLICY_SCHEMA
+    result["operation_policy_authority"] = POLICY_AUTHORITY
+    for descriptor in result["operations"]:
+        descriptor.update(operation_policy(descriptor))
+    return result
 
 
 def generated(registry, openapi):
@@ -62,6 +117,15 @@ def generated(registry, openapi):
                 "supports_side_effect_policy": descriptor["supports_side_effect_policy"],
                 "requires_preview_token": descriptor["requires_preview_token"],
                 "deprecation": descriptor["deprecation"],
+                "operation_class": descriptor["operation_class"],
+                "capability_family": descriptor["capability_family"],
+                "commercial_treatment": descriptor["commercial_treatment"],
+                "policy_activation": descriptor["policy_activation"],
+                "required_feature": descriptor["required_feature"],
+                "limit_bucket": descriptor["limit_bucket"],
+                "recovery_allowance": descriptor["recovery_allowance"],
+                "source_owner": descriptor["source_owner"],
+                "policy_owner": descriptor["policy_owner"],
             },
         })
     openapi["x-focusa-operation-registry-ref"] = "operation-registry.json"
@@ -122,9 +186,11 @@ def main():
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    registry = json.loads(REGISTRY.read_text())
+    registry = generated_registry(json.loads(REGISTRY.read_text()))
     current = json.loads(OPENAPI.read_text())
     expected = generated(registry, json.loads(json.dumps(current)))
+    rendered_registry = json.dumps(registry, indent=2) + "\n"
+    existing_registry = REGISTRY.read_text()
     rendered = json.dumps(expected, indent=2) + "\n"
     existing = json.dumps(current, indent=2) + "\n"
     current_bindings = json.loads(UI_BINDINGS.read_text())
@@ -134,10 +200,13 @@ def main():
     rendered_bindings = json.dumps(expected_bindings, indent=2) + "\n"
     existing_bindings = json.dumps(current_bindings, indent=2) + "\n"
     if args.write:
+        REGISTRY.write_text(rendered_registry)
         OPENAPI.write_text(rendered)
         UI_BINDINGS.write_text(rendered_bindings)
     if args.check and (
-        rendered != existing or rendered_bindings != existing_bindings
+        rendered_registry != existing_registry
+        or rendered != existing
+        or rendered_bindings != existing_bindings
     ):
         print(json.dumps({"status":"blocked","reason":"generated_operation_contract_drift","recovery":"run scripts/generate-spec135-operation-contracts.py --write"}))
         return 1

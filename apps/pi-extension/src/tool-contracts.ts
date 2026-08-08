@@ -28,6 +28,50 @@ export type FocusaScopeRequirement =
 
 export type FocusaAuthorityRequirement = { kind: "advisory_only" } | { kind: "canonical"; path: string };
 
+export type FocusaOperationClass =
+  | "read"
+  | "value_mutation"
+  | "recovery"
+  | "internal_maintenance";
+
+export type FocusaCapabilityFamily =
+  | "account_recovery"
+  | "read_projection"
+  | "base_focusa"
+  | "automation"
+  | "team_remote"
+  | "release_proof"
+  | "premium_updates"
+  | "customer_data_export"
+  | "internal_maintenance";
+
+export type FocusaCommercialTreatment =
+  | "always_available"
+  | "read_allowance"
+  | "base_entitlement"
+  | "optional_premium"
+  | "always_available_basic_with_optional_premium_packaging"
+  | "inherit_initiating_operation";
+
+export interface FocusaOperationPolicy {
+  operation_class: FocusaOperationClass;
+  capability_family: FocusaCapabilityFamily;
+  commercial_treatment: FocusaCommercialTreatment;
+  policy_activation: "active";
+  required_feature: string | null;
+  limit_bucket: string | null;
+  recovery_allowance:
+    | "none"
+    | "account_recovery"
+    | "read_projection"
+    | "customer_data_export"
+    | "stable_security_update"
+    | "repair_rollback"
+    | "uninstall";
+  source_owner: string;
+  policy_owner: "entitlement_policy_resolver";
+}
+
 export interface FocusaToolContract {
   name: string;
   family: FocusaToolFamily;
@@ -49,6 +93,8 @@ export interface FocusaToolContract {
   scope_requirement: FocusaScopeRequirement;
   /** Whether the tool is canonical authority or advisory (Spec104 TOOL-07). */
   authority_requirement: FocusaAuthorityRequirement;
+  /** Spec 152F operation policy projected into every Agent Descriptor V2. */
+  operation_policy?: FocusaOperationPolicy;
 }
 
 export interface FocusaToolAffordance {
@@ -72,6 +118,51 @@ export interface FocusSliceToolAffordanceOptions {
   hasTrajectory: boolean;
   hasWorkpoint: boolean;
   hasOntologyAmbiguity: boolean;
+}
+
+function operationPolicyForContract(contract: FocusaToolContract): FocusaOperationPolicy {
+  const lowerName = contract.name.toLowerCase();
+  const profile = contract.side_effect_profile.toLowerCase();
+  const recovery = /device_pair|license|repair|rollback|uninstall|activation|verification/.test(lowerName);
+  const read =
+    /^(read|advisory|local_note|read_only|none)/.test(profile) ||
+    profile.includes("read_or_preview") ||
+    (contract.authority_requirement.kind === "advisory_only" &&
+      !/write|append|commit|delivery|mutation/.test(profile));
+  const operation_class: FocusaOperationClass = recovery
+    ? "recovery"
+    : read
+      ? "read"
+      : "value_mutation";
+  const capability_family: FocusaCapabilityFamily = recovery
+    ? "account_recovery"
+    : read
+      ? "read_projection"
+      : lowerName.includes("silent_sessions")
+        ? "automation"
+        : "base_focusa";
+  const commercial_treatment: FocusaCommercialTreatment = capability_family === "account_recovery"
+    ? "always_available"
+    : capability_family === "read_projection"
+      ? "read_allowance"
+      : capability_family === "automation"
+        ? "optional_premium"
+        : "base_entitlement";
+  return {
+    operation_class,
+    capability_family,
+    commercial_treatment,
+    policy_activation: "active",
+    required_feature: capability_family === "automation" ? "focusa.agent.silent_sessions" : null,
+    limit_bucket: capability_family === "automation" ? "silent_session_runs" : null,
+    recovery_allowance: recovery
+      ? "account_recovery"
+      : read
+        ? "read_projection"
+        : "none",
+    source_owner: "agent_capability_contracts",
+    policy_owner: "entitlement_policy_resolver",
+  };
 }
 
 const PRELOAD_TOOL_CONTRACTS: FocusaToolContract[] = [
@@ -2662,7 +2753,10 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     scope_requirement: { kind: "read", route_family: "auto" },
     authority_requirement: { kind: "advisory_only" },
   },
-];
+].map((contract) => ({
+  ...contract,
+  operation_policy: operationPolicyForContract(contract),
+}));
 
 export function focusaToolContractSummary() {
   const byFamily: Record<string, number> = {};

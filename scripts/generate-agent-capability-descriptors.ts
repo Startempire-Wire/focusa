@@ -16,6 +16,13 @@ import {
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "docs/contracts/spec141/generated-capability-v2");
+const OPERATION_REGISTRY = JSON.parse(readFileSync(join(ROOT, "docs/contracts/spec135/generated-contract-v1/operation-registry.json"), "utf8"));
+const OPERATION_BY_ROUTE = new Map(
+  OPERATION_REGISTRY.operations.map((operation: any) => [
+    `${operation.method} ${operation.path}`,
+    operation,
+  ]),
+);
 const CHECK = process.argv.includes("--check");
 const WRITE = process.argv.includes("--write") || !CHECK;
 const WORKSPACE_VERSION = (() => {
@@ -71,6 +78,37 @@ function digest(value: unknown): string {
 
 function jsonSchema(value: unknown): Record<string, unknown> {
   return JSON.parse(JSON.stringify(value || { type: "object", properties: {}, additionalProperties: false }));
+}
+
+function routeKey(method: string, path: string): string {
+  return `${method.toUpperCase()} ${path.split("?")[0]}`;
+}
+
+function policyProjection(contract: FocusaToolContract, route: { method: string; path: string }) {
+  const canonical = OPERATION_BY_ROUTE.get(routeKey(route.method, route.path));
+  const fallback = contract.operation_policy!;
+  if (!canonical) {
+    return {
+      operation_id: null,
+      method: route.method,
+      path: route.path,
+      ...fallback,
+    };
+  }
+  return {
+    operation_id: canonical.operation_id,
+    method: canonical.method,
+    path: canonical.path,
+    operation_class: canonical.operation_class,
+    capability_family: canonical.capability_family,
+    commercial_treatment: canonical.commercial_treatment,
+    policy_activation: canonical.policy_activation,
+    required_feature: canonical.required_feature,
+    limit_bucket: canonical.limit_bucket,
+    recovery_allowance: canonical.recovery_allowance,
+    source_owner: canonical.source_owner,
+    policy_owner: canonical.policy_owner,
+  };
 }
 
 function exampleFromSchema(schema: any, field = "value"): unknown {
@@ -224,6 +262,13 @@ const descriptors = [...tools.values()].sort((a, b) => a.name.localeCompare(b.na
     const [method, ...rest] = route.split(" ");
     return { method, path: rest.join(" ") };
   });
+  const operation_policies = routes.map((route) => policyProjection(contract, route));
+  const operation_policy = operation_policies[0] || {
+    operation_id: null,
+    method: null,
+    path: null,
+    ...contract.operation_policy!,
+  };
   const descriptor = {
     schema: "focusa.agent_capability_descriptor.v2",
     operator_alignment: OPERATOR_ALIGNMENT_CONTRACT,
@@ -241,6 +286,17 @@ const descriptors = [...tools.values()].sort((a, b) => a.name.localeCompare(b.na
     description: [tool.description || contract.purpose, `Use it when ${affordance.when_to_use[0] || contract.purpose}`, `It returns a typed Focusa result with bounded recovery and likely next capabilities.`].join(" "),
     family: contract.family,
     namespace: `focusa.${contract.family}`,
+    operation_policy,
+    operation_policies,
+    operation_class: operation_policy.operation_class,
+    capability_family: operation_policy.capability_family,
+    commercial_treatment: operation_policy.commercial_treatment,
+    policy_activation: operation_policy.policy_activation,
+    required_feature: operation_policy.required_feature,
+    limit_bucket: operation_policy.limit_bucket,
+    recovery_allowance: operation_policy.recovery_allowance,
+    source_owner: operation_policy.source_owner,
+    policy_owner: operation_policy.policy_owner,
     availability: {
       requires_daemon: !contract.exemptions.includes("local_scratchpad_only") && !contract.exemptions.includes("pi_session_only"),
       supported_harnesses: ["pi", ...(contract.api_routes.length ? ["mcp", "openai", "rest"] : []), ...(contract.cli_commands.length ? ["cli"] : [])],
@@ -331,7 +387,28 @@ const cli = {
 const rest = {
   schema: "focusa.rest_agent_operation_projection.v2",
   registry_digest: registry.registry_digest,
-  operations: descriptors.flatMap((d) => d.tool_names.rest.map((route) => ({ ...route, capability_id: d.capability_id, operation_id: d.tool_names.pi, input_schema: d.input_schema, output_schema: d.output_schema, error_schema: d.error_schema, authority: d.authority, permissions: d.permissions, docs_ref: d.docs_ref }))),
+  operations: descriptors.flatMap((d) => d.operation_policies.map((policy: any) => ({
+    method: policy.method,
+    path: policy.path,
+    capability_id: d.capability_id,
+    operation_id: d.tool_names.pi,
+    canonical_operation_id: policy.operation_id,
+    input_schema: d.input_schema,
+    output_schema: d.output_schema,
+    error_schema: d.error_schema,
+    authority: d.authority,
+    permissions: d.permissions,
+    docs_ref: d.docs_ref,
+    operation_class: policy.operation_class,
+    capability_family: policy.capability_family,
+    commercial_treatment: policy.commercial_treatment,
+    policy_activation: policy.policy_activation,
+    required_feature: policy.required_feature,
+    limit_bucket: policy.limit_bucket,
+    recovery_allowance: policy.recovery_allowance,
+    source_owner: policy.source_owner,
+    policy_owner: policy.policy_owner,
+  }))),
 };
 
 const capabilitySkills = [...new Set(descriptors.flatMap((d) => d.skill_refs))].sort();

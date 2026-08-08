@@ -1,12 +1,13 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:c7392ed838c10d4117584ee11a47c93214e4a887aeec4bd838cf3c1bb570305f",
+  "registry_digest": "sha256:30eb029b1aec441bb874080b4381ad298fe1efb7bceac641ef7c24f260a6be52",
   "operations": [
     {
       "method": "POST",
       "path": "/v1/workpoint/active-object/resolve",
       "capability_id": "focusa.active.object.resolve",
       "operation_id": "focusa_active_object_resolve",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -235,13 +236,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_active_object_resolve.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_active_object_resolve.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/agent-runtime/delivery/commit",
       "capability_id": "focusa.agent.artifact.delivery",
       "operation_id": "focusa_agent_artifact_delivery",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -478,13 +489,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_agent_artifact_delivery.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_artifact_delivery.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/agent-runtime/delivery/preview",
       "capability_id": "focusa.agent.artifact.preview",
       "operation_id": "focusa_agent_artifact_preview",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -715,13 +736,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_agent_artifact_preview.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_artifact_preview.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/agent-runtime/delivery/verify",
       "capability_id": "focusa.agent.artifact.verify",
       "operation_id": "focusa_agent_artifact_verify",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -952,13 +983,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_agent_artifact_verify.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_artifact_verify.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent/card",
       "capability_id": "focusa.agent.card",
       "operation_id": "focusa_agent_card",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -1187,13 +1228,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_agent_card.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_card.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent/prompt",
       "capability_id": "focusa.agent.prompt",
       "operation_id": "focusa_agent_prompt",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -1417,13 +1468,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_agent_prompt.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_prompt.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent-runtime/doctor",
       "capability_id": "focusa.agent.runtime.doctor",
       "operation_id": "focusa_agent_runtime_doctor",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -1647,13 +1708,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_agent_runtime_doctor.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_runtime_doctor.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent-runtime/instructions/effective",
       "capability_id": "focusa.agent.runtime.effective",
       "operation_id": "focusa_agent_runtime_effective",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -1889,13 +1960,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_agent_runtime_effective.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_runtime_effective.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/agent-runtime/headless/verify",
       "capability_id": "focusa.agent.runtime.headless.verify",
       "operation_id": "focusa_agent_runtime_headless_verify",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -2127,13 +2208,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/awareness/packet",
       "capability_id": "focusa.awareness.packet",
       "operation_id": "focusa_awareness_packet",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -2427,13 +2518,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_awareness_packet.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_awareness_packet.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/awareness/packet/{surface}",
       "capability_id": "focusa.awareness.packet",
       "operation_id": "focusa_awareness_packet",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -2727,13 +2828,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_awareness_packet.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_awareness_packet.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/domain/{name}",
       "capability_id": "focusa.bloatgaurd.domain",
       "operation_id": "focusa_bloatgaurd_domain",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -2967,13 +3078,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_domain.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_domain.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/gate-modes/mode/{name}",
       "capability_id": "focusa.bloatgaurd.gate.mode",
       "operation_id": "focusa_bloatgaurd_gate_mode",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -3207,13 +3328,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/gate-modes/report",
       "capability_id": "focusa.bloatgaurd.gate.modes",
       "operation_id": "focusa_bloatgaurd_gate_modes",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -3437,13 +3568,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/profiles/profile/{name}",
       "capability_id": "focusa.bloatgaurd.profile",
       "operation_id": "focusa_bloatgaurd_profile",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -3677,13 +3818,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_profile.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_profile.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/profiles/report",
       "capability_id": "focusa.bloatgaurd.profiles",
       "operation_id": "focusa_bloatgaurd_profiles",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -3907,13 +4058,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/report",
       "capability_id": "focusa.bloatgaurd.report",
       "operation_id": "focusa_bloatgaurd_report",
+      "canonical_operation_id": "focusa.bloatgaurd.report",
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -4137,13 +4298,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_report.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_report.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "bloatgaurd",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/rollout/report",
       "capability_id": "focusa.bloatgaurd.rollout",
       "operation_id": "focusa_bloatgaurd_rollout",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -4367,13 +4538,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/routines/routine/{name}",
       "capability_id": "focusa.bloatgaurd.routine",
       "operation_id": "focusa_bloatgaurd_routine",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -4607,13 +4788,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_routine.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_routine.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/routines/report",
       "capability_id": "focusa.bloatgaurd.routines",
       "operation_id": "focusa_bloatgaurd_routines",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -4837,13 +5028,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_routines.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_routines.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/tokenbloat/domain/{name}",
       "capability_id": "focusa.bloatgaurd.tokenbloat.domain",
       "operation_id": "focusa_bloatgaurd_tokenbloat_domain",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -5077,13 +5278,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/bloatgaurd/tokenbloat/report",
       "capability_id": "focusa.bloatgaurd.tokenbloat.report",
       "operation_id": "focusa_bloatgaurd_tokenbloat_report",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -5307,13 +5518,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/browser/capabilities/intake",
       "capability_id": "focusa.browser.capabilities.intake",
       "operation_id": "focusa_browser_capabilities_intake",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -5611,13 +5832,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_browser_capabilities_intake.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_browser_capabilities_intake.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/workpoint/evidence/link",
       "capability_id": "focusa.browser.diagnostics.intake",
       "operation_id": "focusa_browser_diagnostics_intake",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -5899,13 +6130,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/predictions",
       "capability_id": "focusa.browser.diagnostics.intake",
       "operation_id": "focusa_browser_diagnostics_intake",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -6187,13 +6428,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/capture",
       "capability_id": "focusa.browser.diagnostics.intake",
       "operation_id": "focusa_browser_diagnostics_intake",
+      "canonical_operation_id": "focusa.metacog.capture",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -6475,13 +6726,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/browser/workflow/plan",
       "capability_id": "focusa.browser.workflow.plan",
       "operation_id": "focusa_browser_workflow_plan",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -6727,13 +6988,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_browser_workflow_plan.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_browser_workflow_plan.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/call-stack/design",
       "capability_id": "focusa.call.stack.design",
       "operation_id": "focusa_call_stack_design",
+      "canonical_operation_id": "focusa.call_stack.design",
       "input_schema": {
         "type": "object",
         "required": [
@@ -7024,13 +7295,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_design.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_design.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "call_stack",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/call-stack/verify",
       "capability_id": "focusa.call.stack.verify",
       "operation_id": "focusa_call_stack_verify",
+      "canonical_operation_id": "focusa.call_stack.verify",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -7289,13 +7570,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_verify.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_verify.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "call_stack",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/call-stack/list",
       "capability_id": "focusa.call.stack.verify",
       "operation_id": "focusa_call_stack_verify",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -7554,13 +7845,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_verify.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_verify.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/call-stack/show",
       "capability_id": "focusa.call.stack.verify",
       "operation_id": "focusa_call_stack_verify",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -7819,13 +8120,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_verify.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_verify.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/agent-runtime/amendments/activate",
       "capability_id": "focusa.canonical.instruction.amendment.activate",
       "operation_id": "focusa_canonical_instruction_amendment_activate",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -8062,13 +8373,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_canonical_instruction_amendment_activate.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_canonical_instruction_amendment_activate.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/agent-runtime/amendments/propose",
       "capability_id": "focusa.canonical.instruction.amendment.propose",
       "operation_id": "focusa_canonical_instruction_amendment_propose",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -8300,13 +8621,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.constraint",
       "operation_id": "focusa_constraint",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -8542,13 +8873,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_constraint.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_constraint.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/context-cognition",
       "capability_id": "focusa.context.cognition",
       "operation_id": "focusa_context_cognition",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -8792,13 +9133,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/context-cognition/curate",
       "capability_id": "focusa.context.cognition.curate",
       "operation_id": "focusa_context_cognition_curate",
+      "canonical_operation_id": "focusa.context_cognition.curate",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -9085,13 +9436,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "context_cognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/context-cognition/curate/eval",
       "capability_id": "focusa.context.cognition.curate.eval",
       "operation_id": "focusa_context_cognition_curate_eval",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -9400,13 +9761,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/context-cognition/curate/eval/runs",
       "capability_id": "focusa.context.cognition.curate.eval",
       "operation_id": "focusa_context_cognition_curate_eval",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -9715,13 +10086,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/context-cognition/curate/optimize",
       "capability_id": "focusa.context.cognition.curate.optimize",
       "operation_id": "focusa_context_cognition_curate_optimize",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -9996,13 +10377,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/context-cognition/optimizer/artifacts",
       "capability_id": "focusa.context.cognition.optimizer.artifacts",
       "operation_id": "focusa_context_cognition_optimizer_artifacts",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -10242,13 +10633,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/context-cognition/proof",
       "capability_id": "focusa.context.cognition.proof",
       "operation_id": "focusa_context_cognition_proof",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -10483,13 +10884,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_proof.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_proof.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/context-cognition/render",
       "capability_id": "focusa.context.cognition.render",
       "operation_id": "focusa_context_cognition_render",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -10724,13 +11135,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_render.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_render.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.current.focus",
       "operation_id": "focusa_current_focus",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -10962,13 +11383,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_current_focus.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_current_focus.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.decide",
       "operation_id": "focusa_decide",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -11204,13 +11635,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_decide.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_decide.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/device/pair/complete",
       "capability_id": "focusa.device.pair.complete",
       "operation_id": "focusa_device_pair_complete",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -11454,13 +11895,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_complete.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_complete.md",
+      "operation_class": "recovery",
+      "capability_family": "account_recovery",
+      "commercial_treatment": "always_available",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "account_recovery",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/device/pair/list",
       "capability_id": "focusa.device.pair.list",
       "operation_id": "focusa_device_pair_list",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -11695,13 +12146,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_list.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_list.md",
+      "operation_class": "recovery",
+      "capability_family": "account_recovery",
+      "commercial_treatment": "always_available",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "account_recovery",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/device/pair/start",
       "capability_id": "focusa.device.pair.qr",
       "operation_id": "focusa_device_pair_qr",
+      "canonical_operation_id": "focusa.device_pair.start",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -11946,13 +12407,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_qr.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_qr.md",
+      "operation_class": "recovery",
+      "capability_family": "account_recovery",
+      "commercial_treatment": "always_available",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "account_recovery",
+      "source_owner": "device",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/device/pair/revoke",
       "capability_id": "focusa.device.pair.revoke",
       "operation_id": "focusa_device_pair_revoke",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -12192,13 +12663,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_revoke.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_revoke.md",
+      "operation_class": "recovery",
+      "capability_family": "account_recovery",
+      "commercial_treatment": "always_available",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "account_recovery",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/device/pair/start",
       "capability_id": "focusa.device.pair.start",
       "operation_id": "focusa_device_pair_start",
+      "canonical_operation_id": "focusa.device_pair.start",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -12443,13 +12924,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_start.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_start.md",
+      "operation_class": "recovery",
+      "capability_family": "account_recovery",
+      "commercial_treatment": "always_available",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "account_recovery",
+      "source_owner": "device",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/device/pair/status",
       "capability_id": "focusa.device.pair.status",
       "operation_id": "focusa_device_pair_status",
+      "canonical_operation_id": "focusa.device_pair.status",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -12682,13 +13173,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_status.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_status.md",
+      "operation_class": "recovery",
+      "capability_family": "account_recovery",
+      "commercial_treatment": "always_available",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "account_recovery",
+      "source_owner": "device",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/dxux/digest",
       "capability_id": "focusa.dxux.digest",
       "operation_id": "focusa_dxux_digest",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -12912,13 +13413,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_dxux_digest.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_dxux_digest.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/dxux/explain/{failure}",
       "capability_id": "focusa.dxux.explain",
       "operation_id": "focusa_dxux_explain",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -13152,13 +13663,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_dxux_explain.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_dxux_explain.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/dxux/report",
       "capability_id": "focusa.dxux.report",
       "operation_id": "focusa_dxux_report",
+      "canonical_operation_id": "focusa.dxux.report",
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -13382,13 +13903,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_dxux_report.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_dxux_report.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "dxux",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/dxux/requirement/{id}",
       "capability_id": "focusa.dxux.requirement",
       "operation_id": "focusa_dxux_requirement",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -13622,13 +14153,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_dxux_requirement.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_dxux_requirement.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/workpoint/evidence/link",
       "capability_id": "focusa.evidence.capture",
       "operation_id": "focusa_evidence_capture",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -13890,13 +14431,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_evidence_capture.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_evidence_capture.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.failure",
       "operation_id": "focusa_failure",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -14132,13 +14683,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_failure.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_failure.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/hlt/history",
       "capability_id": "focusa.hlt.history",
       "operation_id": "focusa_hlt_history",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -14389,13 +14950,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_hlt_history.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_hlt_history.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent-runtime/instructions/conflicts",
       "capability_id": "focusa.instruction.conflicts",
       "operation_id": "focusa_instruction_conflicts",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -14630,13 +15201,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_conflicts.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_conflicts.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent-runtime/instructions/claims",
       "capability_id": "focusa.instruction.explain",
       "operation_id": "focusa_instruction_explain",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -14875,13 +15456,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_explain.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_explain.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/agent-runtime/instruction-integrity/evaluate",
       "capability_id": "focusa.instruction.integrity.evaluate",
       "operation_id": "focusa_instruction_integrity_evaluate",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -15113,13 +15704,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_integrity_evaluate.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_integrity_evaluate.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent-runtime/instruction-integrity/status",
       "capability_id": "focusa.instruction.integrity.status",
       "operation_id": "focusa_instruction_integrity_status",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -15343,13 +15944,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_integrity_status.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_integrity_status.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/agent-runtime/instructions/simulate",
       "capability_id": "focusa.instruction.simulate",
       "operation_id": "focusa_instruction_simulate",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -15593,13 +16204,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_simulate.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_simulate.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent-runtime/instructions/sources",
       "capability_id": "focusa.instruction.sources",
       "operation_id": "focusa_instruction_sources",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -15834,13 +16455,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_sources.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_sources.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.intent",
       "operation_id": "focusa_intent",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -16072,13 +16703,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_intent.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_intent.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/lineage/tree",
       "capability_id": "focusa.li.tree.extract",
       "operation_id": "focusa_li_tree_extract",
+      "canonical_operation_id": "focusa.lineage.tree",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -16311,13 +16952,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_li_tree_extract.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_li_tree_extract.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "lineage",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/lineage/tree",
       "capability_id": "focusa.lineage.tree",
       "operation_id": "focusa_lineage_tree",
+      "canonical_operation_id": "focusa.lineage.tree",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -16554,13 +17205,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_lineage_tree.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_lineage_tree.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "lineage",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/capture",
       "capability_id": "focusa.metacog.capture",
       "operation_id": "focusa_metacog_capture",
+      "canonical_operation_id": "focusa.metacog.capture",
       "input_schema": {
         "type": "object",
         "required": [
@@ -16824,13 +17485,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_capture.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_capture.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/retrieve",
       "capability_id": "focusa.metacog.doctor",
       "operation_id": "focusa_metacog_doctor",
+      "canonical_operation_id": "focusa.metacog.retrieve",
       "input_schema": {
         "type": "object",
         "required": [
@@ -17085,13 +17756,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_doctor.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_doctor.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/metacognition/reflections/recent",
       "capability_id": "focusa.metacog.doctor",
       "operation_id": "focusa_metacog_doctor",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -17346,13 +18027,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_doctor.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_doctor.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/evaluate",
       "capability_id": "focusa.metacog.evaluate.outcome",
       "operation_id": "focusa_metacog_evaluate_outcome",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -17604,13 +18295,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/metacognition/evaluations/recent",
       "capability_id": "focusa.metacog.evaluate.outcome",
       "operation_id": "focusa_metacog_evaluate_outcome",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -17862,13 +18563,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/capture",
       "capability_id": "focusa.metacog.loop.run",
       "operation_id": "focusa_metacog_loop_run",
+      "canonical_operation_id": "focusa.metacog.capture",
       "input_schema": {
         "type": "object",
         "required": [
@@ -18202,13 +18913,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/retrieve",
       "capability_id": "focusa.metacog.loop.run",
       "operation_id": "focusa_metacog_loop_run",
+      "canonical_operation_id": "focusa.metacog.retrieve",
       "input_schema": {
         "type": "object",
         "required": [
@@ -18542,13 +19263,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/reflect",
       "capability_id": "focusa.metacog.loop.run",
       "operation_id": "focusa_metacog_loop_run",
+      "canonical_operation_id": "focusa.metacog.reflect",
       "input_schema": {
         "type": "object",
         "required": [
@@ -18882,13 +19613,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/adjust",
       "capability_id": "focusa.metacog.loop.run",
       "operation_id": "focusa_metacog_loop_run",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -19222,13 +19963,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/evaluate",
       "capability_id": "focusa.metacog.loop.run",
       "operation_id": "focusa_metacog_loop_run",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -19562,13 +20313,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/adjust",
       "capability_id": "focusa.metacog.plan.adjust",
       "operation_id": "focusa_metacog_plan_adjust",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -19813,13 +20574,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_plan_adjust.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_plan_adjust.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/metacognition/adjustments/recent",
       "capability_id": "focusa.metacog.recent.adjustments",
       "operation_id": "focusa_metacog_recent_adjustments",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -20050,13 +20821,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/metacognition/reflections/recent",
       "capability_id": "focusa.metacog.recent.reflections",
       "operation_id": "focusa_metacog_recent_reflections",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -20287,13 +21068,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_recent_reflections.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_recent_reflections.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/reflect",
       "capability_id": "focusa.metacog.reflect",
       "operation_id": "focusa_metacog_reflect",
+      "canonical_operation_id": "focusa.metacog.reflect",
       "input_schema": {
         "type": "object",
         "required": [
@@ -20538,13 +21329,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_reflect.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_reflect.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/metacognition/retrieve",
       "capability_id": "focusa.metacog.retrieve",
       "operation_id": "focusa_metacog_retrieve",
+      "canonical_operation_id": "focusa.metacog.retrieve",
       "input_schema": {
         "type": "object",
         "required": [
@@ -20794,13 +21595,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_retrieve.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_retrieve.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.next.step",
       "operation_id": "focusa_next_step",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -21032,13 +21843,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_next_step.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_next_step.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.note",
       "operation_id": "focusa_note",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -21270,13 +22091,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_note.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_note.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/ontology/scope-migrations",
       "capability_id": "focusa.ontology.scope.migration",
       "operation_id": "focusa_ontology_scope_migration",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -21600,13 +22431,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_ontology_scope_migration.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_ontology_scope_migration.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.open.question",
       "operation_id": "focusa_open_question",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -21838,13 +22679,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_open_question.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_open_question.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/predictions/{prediction_id}/evaluate",
       "capability_id": "focusa.predict.evaluate",
       "operation_id": "focusa_predict_evaluate",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -22097,13 +22948,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_predict_evaluate.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_predict_evaluate.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/predictions/recent",
       "capability_id": "focusa.predict.recent",
       "operation_id": "focusa_predict_recent",
+      "canonical_operation_id": "focusa.prediction.recent",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -22340,13 +23201,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_predict_recent.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_predict_recent.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "prediction",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/predictions",
       "capability_id": "focusa.predict.record",
       "operation_id": "focusa_predict_record",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -22616,13 +23487,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_predict_record.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_predict_record.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/predictions/stats",
       "capability_id": "focusa.predict.stats",
       "operation_id": "focusa_predict_stats",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -22855,13 +23736,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_predict_stats.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_predict_stats.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/prediction-authority/events",
       "capability_id": "focusa.prediction.authority",
       "operation_id": "focusa_prediction_authority",
+      "canonical_operation_id": "focusa.prediction_authority.append",
       "input_schema": {
         "type": "object",
         "required": [
@@ -23126,13 +24017,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_prediction_authority.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_prediction_authority.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/prediction-authority/projection",
       "capability_id": "focusa.prediction.authority",
       "operation_id": "focusa_prediction_authority",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -23397,13 +24298,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_prediction_authority.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_prediction_authority.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/prediction-authority/projection",
       "capability_id": "focusa.prediction.authority",
       "operation_id": "focusa_prediction_authority",
+      "canonical_operation_id": "focusa.prediction_authority.projection",
       "input_schema": {
         "type": "object",
         "required": [
@@ -23668,13 +24579,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_prediction_authority.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_prediction_authority.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/preload/build",
       "capability_id": "focusa.preload.build",
       "operation_id": "focusa_preload_build",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -23930,13 +24851,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_preload_build.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_preload_build.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/preload/doctor",
       "capability_id": "focusa.preload.doctor",
       "operation_id": "focusa_preload_doctor",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -24192,13 +25123,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_preload_doctor.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_preload_doctor.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/preload/profiles",
       "capability_id": "focusa.preload.profiles",
       "operation_id": "focusa_preload_profiles",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -24422,13 +25363,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_preload_profiles.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_preload_profiles.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/preload/receipt-commit",
       "capability_id": "focusa.preload.receipt.commit",
       "operation_id": "focusa_preload_receipt_commit",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -24683,13 +25634,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_preload_receipt_commit.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_preload_receipt_commit.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/preload/receipt-preview",
       "capability_id": "focusa.preload.receipt.preview",
       "operation_id": "focusa_preload_receipt_preview",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -24935,13 +25896,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_preload_receipt_preview.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_preload_receipt_preview.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/preload/render",
       "capability_id": "focusa.preload.render",
       "operation_id": "focusa_preload_render",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -25197,13 +26168,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_preload_render.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_preload_render.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/preload/verify",
       "capability_id": "focusa.preload.verify",
       "operation_id": "focusa_preload_verify",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -25459,13 +26440,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_preload_verify.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_preload_verify.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/preload/write",
       "capability_id": "focusa.preload.write",
       "operation_id": "focusa_preload_write",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -25729,13 +26720,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_preload_write.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_preload_write.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/project/bootstrap/preview",
       "capability_id": "focusa.project.bootstrap",
       "operation_id": "focusa_project_bootstrap",
+      "canonical_operation_id": "focusa.project.bootstrap.preview",
       "input_schema": {
         "type": "object",
         "required": [
@@ -26063,13 +27064,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/project/bootstrap/apply",
       "capability_id": "focusa.project.bootstrap",
       "operation_id": "focusa_project_bootstrap",
+      "canonical_operation_id": "focusa.project.bootstrap.apply",
       "input_schema": {
         "type": "object",
         "required": [
@@ -26397,13 +27408,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/project/bootstrap/status",
       "capability_id": "focusa.project.bootstrap",
       "operation_id": "focusa_project_bootstrap",
+      "canonical_operation_id": "focusa.project.bootstrap.status",
       "input_schema": {
         "type": "object",
         "required": [
@@ -26731,13 +27752,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/project/bootstrap/repair",
       "capability_id": "focusa.project.bootstrap",
       "operation_id": "focusa_project_bootstrap",
+      "canonical_operation_id": "focusa.project.bootstrap.repair",
       "input_schema": {
         "type": "object",
         "required": [
@@ -27065,13 +28096,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/project/card",
       "capability_id": "focusa.project.card",
       "operation_id": "focusa_project_card",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -27334,13 +28375,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_card.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_card.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/project/card/outcome",
       "capability_id": "focusa.project.card.outcome",
       "operation_id": "focusa_project_card_outcome",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -27602,13 +28653,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_card_outcome.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_card_outcome.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/project/genesis/start",
       "capability_id": "focusa.project.genesis",
       "operation_id": "focusa_project_genesis",
+      "canonical_operation_id": "focusa.project.genesis.start",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -27936,13 +28997,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/project/genesis/resume",
       "capability_id": "focusa.project.genesis",
       "operation_id": "focusa_project_genesis",
+      "canonical_operation_id": "focusa.project.genesis.resume",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -28270,13 +29341,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/project/genesis/status",
       "capability_id": "focusa.project.genesis",
       "operation_id": "focusa_project_genesis",
+      "canonical_operation_id": "focusa.project.genesis.status",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -28604,13 +29685,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/project/genesis/commit",
       "capability_id": "focusa.project.genesis",
       "operation_id": "focusa_project_genesis",
+      "canonical_operation_id": "focusa.project.genesis.commit",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -28938,13 +30029,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/project/identity",
       "capability_id": "focusa.project.identity",
       "operation_id": "focusa_project_identity",
+      "canonical_operation_id": "focusa.project.identity",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -29207,13 +30308,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_identity.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_identity.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/project/verify",
       "capability_id": "focusa.project.verify",
       "operation_id": "focusa_project_verify",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -29488,13 +30599,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_project_verify.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_verify.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/agent-runtime/compile/system-prompt",
       "capability_id": "focusa.prompt.variant.preview",
       "operation_id": "focusa_prompt_variant_preview",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -29725,13 +30846,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_prompt_variant_preview.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_prompt_variant_preview.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.recent.result",
       "operation_id": "focusa_recent_result",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -29963,13 +31094,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_recent_result.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_recent_result.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/reflex/primitives",
       "capability_id": "focusa.reflex.primitives",
       "operation_id": "focusa_reflex_primitives",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -30212,13 +31353,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_reflex_primitives.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_reflex_primitives.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/resource/mode",
       "capability_id": "focusa.resource.mode",
       "operation_id": "focusa_resource_mode",
+      "canonical_operation_id": "focusa.resource_mode",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -30516,13 +31667,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_resource_mode.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_resource_mode.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "resource",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/resource/mode",
       "capability_id": "focusa.resource.mode",
       "operation_id": "focusa_resource_mode",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -30820,13 +31981,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_resource_mode.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_resource_mode.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/agent-runtime/constitutions/{id}/preview",
       "capability_id": "focusa.runtime.constitution.preview",
       "operation_id": "focusa_runtime_constitution_preview",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -31061,13 +32232,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_runtime_constitution_preview.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_runtime_constitution_preview.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/project/session-transfer",
       "capability_id": "focusa.session.transfer",
       "operation_id": "focusa_session_transfer",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -31562,13 +32743,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/project/card",
       "capability_id": "focusa.session.transfer",
       "operation_id": "focusa_session_transfer",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -32063,13 +33254,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/workpoint/checkpoint",
       "capability_id": "focusa.session.transfer",
       "operation_id": "focusa_session_transfer",
+      "canonical_operation_id": "focusa.workpoint.checkpoint",
       "input_schema": {
         "type": "object",
         "required": [
@@ -32564,13 +33765,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "workpoint",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/workpoint/resume",
       "capability_id": "focusa.session.transfer",
       "operation_id": "focusa_session_transfer",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -33065,13 +34276,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/trajectory/view",
       "capability_id": "focusa.session.transfer",
       "operation_id": "focusa_session_transfer",
+      "canonical_operation_id": "focusa.trajectory.view",
       "input_schema": {
         "type": "object",
         "required": [
@@ -33566,13 +34787,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/silent-sessions",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -34009,13 +35240,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/silent-sessions/preflight",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -34452,13 +35693,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/silent-sessions/{session_id}",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -34895,13 +36146,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/silent-sessions/{session_id}/output",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -35338,13 +36599,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/silent-sessions/{session_id}/input",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -35781,13 +37052,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/silent-sessions/{session_id}/start",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -36224,13 +37505,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/silent-sessions/{session_id}/pause",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -36667,13 +37958,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/silent-sessions/{session_id}/resume",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -37110,13 +38411,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/silent-sessions/{session_id}/interrupt",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -37553,13 +38864,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/silent-sessions/{session_id}/cancel",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -37996,13 +39317,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/silent-sessions/{session_id}/restart",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -38439,13 +39770,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/silent-sessions/{session_id}/config/preview",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -38882,13 +40223,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/silent-sessions/{session_id}/receipts",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -39325,13 +40676,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/silent-sessions/capabilities",
       "capability_id": "focusa.silent.sessions",
       "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -39768,13 +41129,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.state.hygiene.apply",
       "operation_id": "focusa_state_hygiene_apply",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -40009,13 +41380,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_state_hygiene_apply.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_state_hygiene_apply.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/temporal/status",
       "capability_id": "focusa.temporal.authority",
       "operation_id": "focusa_temporal_authority",
+      "canonical_operation_id": "focusa.temporal.status",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -40588,13 +41969,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/temporal/commit",
       "capability_id": "focusa.temporal.authority",
       "operation_id": "focusa_temporal_authority",
+      "canonical_operation_id": "focusa.temporal.commit",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -41167,13 +42558,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/temporal/revise",
       "capability_id": "focusa.temporal.authority",
       "operation_id": "focusa_temporal_authority",
+      "canonical_operation_id": "focusa.temporal.revise",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -41746,13 +43147,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/temporal/observe",
       "capability_id": "focusa.temporal.authority",
       "operation_id": "focusa_temporal_authority",
+      "canonical_operation_id": "focusa.temporal.observe",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -42325,13 +43736,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/temporal/forecast",
       "capability_id": "focusa.temporal.authority",
       "operation_id": "focusa_temporal_authority",
+      "canonical_operation_id": "focusa.temporal.forecast",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -42904,13 +44325,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/temporal/preflight",
       "capability_id": "focusa.temporal.authority",
       "operation_id": "focusa_temporal_authority",
+      "canonical_operation_id": "focusa.temporal.preflight",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -43483,13 +44914,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent/tool-bundles",
       "capability_id": "focusa.tool.bundle",
       "operation_id": "focusa_tool_bundle",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -43731,13 +45172,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tool_bundle.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_bundle.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent/tools/{name}",
       "capability_id": "focusa.tool.describe",
       "operation_id": "focusa_tool_describe",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -43973,13 +45424,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tool_describe.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_describe.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/health",
       "capability_id": "focusa.tool.doctor",
       "operation_id": "focusa_tool_doctor",
+      "canonical_operation_id": "focusa.health.check",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -44222,13 +45683,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tool_doctor.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_doctor.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "health",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/workpoint/current",
       "capability_id": "focusa.tool.doctor",
       "operation_id": "focusa_tool_doctor",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -44471,13 +45942,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tool_doctor.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_doctor.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
-      "path": "/v1/work-loop/status?summary_only=true",
+      "path": "/v1/work-loop/status",
       "capability_id": "focusa.tool.doctor",
       "operation_id": "focusa_tool_doctor",
+      "canonical_operation_id": "focusa.work_loop.status",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -44720,13 +46201,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tool_doctor.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_doctor.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "work_loop",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent/tool-graph",
       "capability_id": "focusa.tool.graph",
       "operation_id": "focusa_tool_graph",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -44970,13 +46461,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tool_graph.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_graph.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/agent/tools",
       "capability_id": "focusa.tool.search",
       "operation_id": "focusa_tool_search",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -45218,13 +46719,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tool_search.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_search.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/trajectory/assess",
       "capability_id": "focusa.trajectory.assess",
       "operation_id": "focusa_trajectory_assess",
+      "canonical_operation_id": "focusa.trajectory.assess",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -45472,13 +46983,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_assess.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_assess.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/trajectory/checkpoint",
       "capability_id": "focusa.trajectory.checkpoint",
       "operation_id": "focusa_trajectory_checkpoint",
+      "canonical_operation_id": "focusa.trajectory.checkpoint",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -45723,13 +47244,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_checkpoint.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_checkpoint.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/trajectory/define-goal",
       "capability_id": "focusa.trajectory.define.goal",
       "operation_id": "focusa_trajectory_define_goal",
+      "canonical_operation_id": "focusa.trajectory.define_goal",
       "input_schema": {
         "type": "object",
         "required": [
@@ -46052,13 +47583,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_define_goal.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_define_goal.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/trajectory/propose-workpoint",
       "capability_id": "focusa.trajectory.propose.workpoint",
       "operation_id": "focusa_trajectory_propose_workpoint",
+      "canonical_operation_id": "focusa.trajectory.propose_workpoint",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -46307,13 +47848,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/trajectory/resume",
       "capability_id": "focusa.trajectory.resume",
       "operation_id": "focusa_trajectory_resume",
+      "canonical_operation_id": "focusa.trajectory.resume",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -46563,13 +48114,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_resume.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_resume.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/trajectory/view",
       "capability_id": "focusa.trajectory.view",
       "operation_id": "focusa_trajectory_view",
+      "canonical_operation_id": "focusa.trajectory.view",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -46823,13 +48384,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_view.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_view.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/traverse",
       "capability_id": "focusa.traverse",
       "operation_id": "focusa_traverse",
+      "canonical_operation_id": "focusa.traverse",
       "input_schema": {
         "type": "object",
         "required": [
@@ -47198,13 +48769,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_traverse.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_traverse.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "traverse",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/traverse/verify-tags",
       "capability_id": "focusa.traverse",
       "operation_id": "focusa_traverse",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -47573,13 +49154,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_traverse.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_traverse.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/snapshots/diff",
       "capability_id": "focusa.tree.diff.context",
       "operation_id": "focusa_tree_diff_context",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -47822,13 +49413,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tree_diff_context.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tree_diff_context.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/lineage/head",
       "capability_id": "focusa.tree.head",
       "operation_id": "focusa_tree_head",
+      "canonical_operation_id": "focusa.lineage.head",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -48059,13 +49660,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tree_head.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tree_head.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "lineage",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/lineage/path/{clt_node_id}",
       "capability_id": "focusa.tree.path",
       "operation_id": "focusa_tree_path",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -48300,13 +49911,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tree_path.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tree_path.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/focus/snapshots/recent",
       "capability_id": "focusa.tree.recent.snapshots",
       "operation_id": "focusa_tree_recent_snapshots",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -48537,13 +50158,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tree_recent_snapshots.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tree_recent_snapshots.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/snapshots/restore",
       "capability_id": "focusa.tree.restore.state",
       "operation_id": "focusa_tree_restore_state",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -48791,13 +50422,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tree_restore_state.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tree_restore_state.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/focus/snapshots/recent",
       "capability_id": "focusa.tree.snapshot.compare.latest",
       "operation_id": "focusa_tree_snapshot_compare_latest",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -49047,13 +50688,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/snapshots",
       "capability_id": "focusa.tree.snapshot.compare.latest",
       "operation_id": "focusa_tree_snapshot_compare_latest",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -49303,13 +50954,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/snapshots/diff",
       "capability_id": "focusa.tree.snapshot.compare.latest",
       "operation_id": "focusa_tree_snapshot_compare_latest",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -49559,13 +51220,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/focus/snapshots",
       "capability_id": "focusa.tree.snapshot.state",
       "operation_id": "focusa_tree_snapshot_state",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -49801,13 +51472,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_state.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_state.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/utility/card",
       "capability_id": "focusa.utility.card",
       "operation_id": "focusa_utility_card",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -50045,13 +51726,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_utility_card.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_utility_card.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/utility/bootstrap",
       "capability_id": "focusa.utility.card",
       "operation_id": "focusa_utility_card",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -50289,13 +51980,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_utility_card.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_utility_card.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
       "path": "/v1/utility/post-compaction",
       "capability_id": "focusa.utility.card",
       "operation_id": "focusa_utility_card",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -50533,13 +52234,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_utility_card.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_utility_card.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/work-loop/checkpoint",
       "capability_id": "focusa.work.loop.checkpoint",
       "operation_id": "focusa_work_loop_checkpoint",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -50768,13 +52479,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_checkpoint.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_checkpoint.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/work-loop/context",
       "capability_id": "focusa.work.loop.context",
       "operation_id": "focusa_work_loop_context",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -51034,13 +52755,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_context.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_context.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/work-loop/enable",
       "capability_id": "focusa.work.loop.control",
       "operation_id": "focusa_work_loop_control",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -51361,13 +53092,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_control.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_control.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/work-loop/pause",
       "capability_id": "focusa.work.loop.control",
       "operation_id": "focusa_work_loop_control",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -51688,13 +53429,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_control.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_control.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/work-loop/resume",
       "capability_id": "focusa.work.loop.control",
       "operation_id": "focusa_work_loop_control",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -52015,13 +53766,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_control.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_control.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/work-loop/stop",
       "capability_id": "focusa.work.loop.control",
       "operation_id": "focusa_work_loop_control",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -52342,13 +54103,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_control.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_control.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/work-loop/select-next",
       "capability_id": "focusa.work.loop.select.next",
       "operation_id": "focusa_work_loop_select_next",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -52577,13 +54348,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_select_next.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_select_next.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
-      "path": "/v1/work-loop/status?summary_only=true",
+      "path": "/v1/work-loop/status",
       "capability_id": "focusa.work.loop.status",
       "operation_id": "focusa_work_loop_status",
+      "canonical_operation_id": "focusa.work_loop.status",
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -52807,13 +54588,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_status.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_status.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "work_loop",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "GET",
-      "path": "/v1/work-loop/status?summary_only=true",
+      "path": "/v1/work-loop/status",
       "capability_id": "focusa.work.loop.writer.status",
       "operation_id": "focusa_work_loop_writer_status",
+      "canonical_operation_id": "focusa.work_loop.status",
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -53037,13 +54828,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_writer_status.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_writer_status.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "work_loop",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/workpoint/checkpoint",
       "capability_id": "focusa.workpoint.checkpoint",
       "operation_id": "focusa_workpoint_checkpoint",
+      "canonical_operation_id": "focusa.workpoint.checkpoint",
       "input_schema": {
         "type": "object",
         "required": [
@@ -53344,13 +55145,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_checkpoint.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_checkpoint.md",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "workpoint",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/workpoint/evidence/link",
       "capability_id": "focusa.workpoint.link.evidence",
       "operation_id": "focusa_workpoint_link_evidence",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "required": [
@@ -53611,13 +55422,23 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_link_evidence.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_link_evidence.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "method": "POST",
       "path": "/v1/workpoint/resume",
       "capability_id": "focusa.workpoint.resume",
       "operation_id": "focusa_workpoint_resume",
+      "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
         "properties": {
@@ -53866,7 +55687,16 @@
           }
         }
       ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_resume.md"
+      "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_resume.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
     }
   ]
 }

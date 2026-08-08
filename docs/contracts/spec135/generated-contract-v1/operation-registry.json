@@ -75,7 +75,16 @@
         "plain_language_description": "Abort Current Pi RPC Turn",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "work_loop",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -150,7 +159,16 @@
         "plain_language_description": "Prompt Governed Pi RPC Execution",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "work_loop",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -225,7 +243,16 @@
         "plain_language_description": "Start or Resume Governed Pi RPC Execution",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "work_loop",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -300,7 +327,16 @@
         "plain_language_description": "Stop Governed Pi RPC Execution",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "work_loop",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -376,7 +412,16 @@
         "plain_language_description": "Awareness Packet",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "awareness",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -452,7 +497,16 @@
         "plain_language_description": "Bloatgaurd Report",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "bloatgaurd",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -529,7 +583,16 @@
         "plain_language_description": "Call Stack Design",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "call_stack",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -605,7 +668,16 @@
         "plain_language_description": "Call Stack Verify",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "call_stack",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -675,7 +747,16 @@
         "plain_language_description": "Read Protocol Compatibility Lock",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -754,7 +835,16 @@
         "plain_language_description": "Read Docling Context Adapter Health",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "context",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -832,7 +922,16 @@
         "plain_language_description": "Review Context Claims and Contradictions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "context",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -911,7 +1010,16 @@
         "plain_language_description": "Read Context Claim Graph",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "context",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -990,7 +1098,16 @@
         "plain_language_description": "Retrieve Cited Context",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "context",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1067,7 +1184,16 @@
         "plain_language_description": "Commit Context Source",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "context",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1145,7 +1271,16 @@
         "plain_language_description": "Ingest Context Source",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "context",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1223,7 +1358,16 @@
         "plain_language_description": "List Canonical Context Sources",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "context",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1300,7 +1444,16 @@
         "plain_language_description": "Context Cognition Curate",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "context_cognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1378,7 +1531,16 @@
         "plain_language_description": "Context Cognition Packet",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "context_cognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1453,7 +1615,16 @@
         "plain_language_description": "Device Pair Start",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "recovery",
+      "capability_family": "account_recovery",
+      "commercial_treatment": "always_available",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "account_recovery",
+      "source_owner": "device",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1527,7 +1698,16 @@
         "plain_language_description": "Device Pair Status",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "recovery",
+      "capability_family": "account_recovery",
+      "commercial_treatment": "always_available",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "account_recovery",
+      "source_owner": "device",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1603,7 +1783,16 @@
         "plain_language_description": "DXUX Report",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "dxux",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1676,7 +1865,16 @@
         "plain_language_description": "Replay and Stream Durable Events",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "events",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1754,7 +1952,16 @@
         "plain_language_description": "Evidence Capture",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "evidence",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1828,7 +2035,16 @@
         "plain_language_description": "Health Check",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "health",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1907,7 +2123,16 @@
         "plain_language_description": "List Durable Interview Session Revisions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project_interview",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -1986,7 +2211,16 @@
         "plain_language_description": "List Durable Interview Session Revisions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project_interview",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2066,7 +2300,16 @@
         "plain_language_description": "Mutate Durable Interview Session",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project_interview",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2144,7 +2387,16 @@
         "plain_language_description": "Propose Next Retrieval-Grounded Grill Question",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "interview_strategy",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2219,7 +2471,16 @@
         "plain_language_description": "License Validate",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "recovery",
+      "capability_family": "account_recovery",
+      "commercial_treatment": "always_available",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "account_recovery",
+      "source_owner": "license",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2295,7 +2556,16 @@
         "plain_language_description": "Lineage Head",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "lineage",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2372,7 +2642,16 @@
         "plain_language_description": "Lineage Tree",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "lineage",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2449,7 +2728,16 @@
         "plain_language_description": "Read Procedural Memory",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "memory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2525,7 +2813,16 @@
         "plain_language_description": "Reinforce Procedural Rule",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "memory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2602,7 +2899,16 @@
         "plain_language_description": "Read Semantic Memory",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "memory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2678,7 +2984,16 @@
         "plain_language_description": "Upsert Semantic Memory",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "memory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2756,7 +3071,16 @@
         "plain_language_description": "Metacog Capture",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2833,7 +3157,16 @@
         "plain_language_description": "Metacog Doctor",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2910,7 +3243,16 @@
         "plain_language_description": "Metacog Reflect",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -2988,7 +3330,16 @@
         "plain_language_description": "Metacog Retrieve",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "metacognition",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3069,7 +3420,16 @@
         "plain_language_description": "Rehydrate Exact Mission Canvas Client State",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "mission_canvas",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3151,7 +3511,16 @@
         "plain_language_description": "Persist Exact Mission Canvas Client State",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "mission_canvas",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3230,7 +3599,16 @@
         "plain_language_description": "List Mission Canvas Work Surface Revisions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "mission_canvas",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3310,7 +3688,16 @@
         "plain_language_description": "Create, Arrange, Suspend, Resume, or Close Work Surface",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "mission_canvas",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3390,7 +3777,16 @@
         "plain_language_description": "List Mission Canvas Work Surface Revisions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "mission_canvas",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3471,7 +3867,16 @@
         "plain_language_description": "Create, Arrange, Suspend, Resume, or Close Work Surface",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "mission_canvas",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3543,7 +3948,16 @@
         "plain_language_description": "Read Operation Registry",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3621,7 +4035,16 @@
         "plain_language_description": "Prediction Evaluate",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "prediction",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3698,7 +4121,16 @@
         "plain_language_description": "Prediction Recent",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "prediction",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3776,7 +4208,16 @@
         "plain_language_description": "Prediction Record",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "prediction",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3856,7 +4297,16 @@
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential",
         "label": "Append prediction authority event"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -3936,7 +4386,16 @@
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine",
         "label": "Prediction authority projection"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4015,7 +4474,16 @@
         "plain_language_description": "Project Bootstrap Apply",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4094,7 +4562,16 @@
         "plain_language_description": "Project Bootstrap Preview",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4173,7 +4650,16 @@
         "plain_language_description": "Project Bootstrap Repair",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4251,7 +4737,16 @@
         "plain_language_description": "Project Bootstrap Status",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4330,7 +4825,16 @@
         "plain_language_description": "Project Genesis Commit",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4409,7 +4913,16 @@
         "plain_language_description": "Project Genesis Resume",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4488,7 +5001,16 @@
         "plain_language_description": "Project Genesis Start",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4566,7 +5088,16 @@
         "plain_language_description": "Project Genesis Status",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4642,7 +5173,16 @@
         "plain_language_description": "Project Identity",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4718,7 +5258,16 @@
         "plain_language_description": "Project Verify",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4795,7 +5344,16 @@
         "plain_language_description": "Negotiate Focusa Protocol Compatibility",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4875,7 +5433,16 @@
         "plain_language_description": "Evaluate Provider Governance Conformance",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "provider_execution",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -4954,7 +5521,16 @@
         "plain_language_description": "List Provider Governance Contracts",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "provider_execution",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5030,7 +5606,16 @@
         "plain_language_description": "Resource Mode",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "resource",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5108,7 +5693,16 @@
         "plain_language_description": "Draft Grounded Project Role Profile",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project_role_profile",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5187,7 +5781,16 @@
         "plain_language_description": "List Project Role Profile Revisions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "project_role_profile",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5265,7 +5868,16 @@
         "plain_language_description": "Approve, Reject, or Defer Project Role Profile",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "project_role_profile",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5344,7 +5956,16 @@
         "plain_language_description": "List Spec Workbench Session Revisions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "spec_workbench",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5424,7 +6045,16 @@
         "plain_language_description": "Mutate Canonical Spec Workbench",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "spec_workbench",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5501,7 +6131,16 @@
         "plain_language_description": "State Current",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "state",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5580,7 +6219,16 @@
         "plain_language_description": "List Provider-Neutral Task Plan Revisions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "task_plan",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5660,7 +6308,16 @@
         "plain_language_description": "Materialize Approved Task Plan into Canonical Beads",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "task_plan",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5740,7 +6397,16 @@
         "plain_language_description": "Draft, Preview, Edit, and Approve Task Plan",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "task_plan",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5819,7 +6485,16 @@
         "plain_language_description": "Temporal Civil Resolve",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5898,7 +6573,16 @@
         "plain_language_description": "Temporal Clock Capture",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -5977,7 +6661,16 @@
         "plain_language_description": "Temporal Commit",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6056,7 +6749,16 @@
         "plain_language_description": "Temporal Forecast",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6135,7 +6837,16 @@
         "plain_language_description": "Temporal High Consequence Preflight",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6214,7 +6925,16 @@
         "plain_language_description": "Temporal Signature Migration",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6293,7 +7013,16 @@
         "plain_language_description": "Temporal Observe",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6372,7 +7101,16 @@
         "plain_language_description": "Temporal Preflight",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6451,7 +7189,16 @@
         "plain_language_description": "Temporal Priority Commit",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6530,7 +7277,16 @@
         "plain_language_description": "Temporal Revise",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6609,7 +7365,16 @@
         "plain_language_description": "Temporal Closure Settlement",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6688,7 +7453,16 @@
         "plain_language_description": "Temporal Status",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6764,7 +7538,16 @@
         "plain_language_description": "Tool Doctor",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "diagnostics",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6842,7 +7625,16 @@
         "plain_language_description": "Trajectory Assess",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6920,7 +7712,16 @@
         "plain_language_description": "Trajectory Checkpoint",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -6998,7 +7799,16 @@
         "plain_language_description": "Trajectory Define Goal",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7075,7 +7885,16 @@
         "plain_language_description": "Trajectory Propose Workpoint",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7152,7 +7971,16 @@
         "plain_language_description": "Trajectory Resume",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7230,7 +8058,16 @@
         "plain_language_description": "Trajectory View",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "trajectory",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7307,7 +8144,16 @@
         "plain_language_description": "Traverse",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "traverse",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7383,7 +8229,16 @@
         "plain_language_description": "Append Turn Chunk",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "turn",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7459,7 +8314,16 @@
         "plain_language_description": "Complete Turn",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "turn",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7535,7 +8399,16 @@
         "plain_language_description": "Start Turn",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "turn",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7612,7 +8485,16 @@
         "plain_language_description": "Read Generated UI Action Bindings",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7689,7 +8571,16 @@
         "plain_language_description": "Read Generated UI Capability Snapshot",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7767,7 +8658,16 @@
         "plain_language_description": "Work Loop Control",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "work_loop",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7844,7 +8744,16 @@
         "plain_language_description": "Work Loop Status",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "work_loop",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -7924,7 +8833,16 @@
         "plain_language_description": "List Scoped Work Rail Revisions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "work_rail",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -8005,7 +8923,16 @@
         "plain_language_description": "Bind, Activate, Verify, or Close Work Rail Row",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "work_rail",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -8084,7 +9011,16 @@
         "plain_language_description": "Workpoint Checkpoint",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "workpoint",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -8162,7 +9098,16 @@
         "plain_language_description": "Workpoint Link Evidence",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "workpoint",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -8240,7 +9185,16 @@
         "plain_language_description": "Workpoint Resume",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "workpoint",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -8318,7 +9272,16 @@
         "plain_language_description": "Link Workspace Artifact",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
-      }
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "workspace_artifact",
+      "policy_owner": "entitlement_policy_resolver"
     },
     {
       "alias_of": null,
@@ -8397,9 +9360,20 @@
         "plain_language_description": "List Linked Workspace Artifacts",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
-      }
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "workspace_artifact",
+      "policy_owner": "entitlement_policy_resolver"
     }
   ],
   "registry_version": "1.0.0",
-  "schema": "focusa.operation_registry.v1"
+  "schema": "focusa.operation_registry.v1",
+  "operation_policy_schema": "focusa.operation_policy_metadata.v1",
+  "operation_policy_authority": "docs/contracts/spec152f-entitlement-policy.v1.yaml"
 }
