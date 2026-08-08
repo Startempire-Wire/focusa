@@ -2505,7 +2505,18 @@ async fn get_draft(
     Query(query): Query<ScopeQuery>,
 ) -> ApiResult {
     require_permission(&headers, "mission_canvas:draft")?;
-    get_document_with_permission(&state, query, "mission_canvas_drafts", &draft_id)
+    let scope = query.scope()?;
+    validate_authority(&scope)?;
+    exact_workstream_context(&scope, &headers).map_err(host_renderer_context_error)?;
+    let store = store(&state)?;
+    match store.load_draft(&scope, &draft_id).map_err(store_error)? {
+        Some(draft) => Ok(Json(draft)),
+        None => Err(error(
+            StatusCode::NOT_FOUND,
+            "draft_not_found",
+            "No CanvasDraftState exists for this exact scope and draft",
+        )),
+    }
 }
 
 async fn sync_draft(

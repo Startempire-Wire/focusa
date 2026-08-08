@@ -274,6 +274,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (operationId === 'focusa.mission_canvas.layout.mutate') {
       validateLayoutMutationResult(operationId, response.status, value, authority, requestInput);
     }
+    if (operationId === 'focusa.mission_canvas.draft.get') {
+      validateDraftGetResponse(operationId, response.status, value, authority);
+    }
     if (operation.response_schema_ref === 'ResolvedWorkspaceProjection') {
       const watermark = validateProjectionResponse(
         operationId,
@@ -802,6 +805,36 @@ function validateProfileLayoutMemoryResponse(
   }
 
   return { memoryRevision };
+}
+
+function validateDraftGetResponse(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext
+): void {
+  const draft = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  if (!draft) {
+    throw new MissionCanvasTransportError('invalid_response:expected_draft', operationId, status, value);
+  }
+  const responseAuthority = authorityFromRecord(draft);
+  const authorityValidation = validateMissionCanvasContract('WorkstreamAuthorityContext', responseAuthority);
+  if (!authorityValidation.valid || !sameWorkstreamAuthorityContext(responseAuthority, expectedAuthority)) {
+    throw new MissionCanvasTransportError('invalid_response:scope_mismatch', operationId, status, value);
+  }
+  if (typeof draft.draft_id !== 'string' || draft.draft_id.trim().length === 0) {
+    throw new MissionCanvasTransportError('invalid_response:missing:draft_id', operationId, status, value);
+  }
+  if (!Number.isSafeInteger(draft.draft_revision) || (draft.draft_revision as number) < 0) {
+    throw new MissionCanvasTransportError('invalid_response:invalid:draft_revision', operationId, status, value);
+  }
+  if (draft.sync_state !== 'synchronized' && draft.sync_state !== 'pi_newer'
+    && draft.sync_state !== 'canvas_newer' && draft.sync_state !== 'conflict'
+    && draft.sync_state !== 'offline') {
+    throw new MissionCanvasTransportError('invalid_response:invalid:sync_state', operationId, status, value);
+  }
 }
 
 function validateLayoutMutationResult(

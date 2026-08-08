@@ -1,0 +1,49 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-018",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "draft.get returns the exact Workstream/Surface/recipient CanvasDraftState revision through the generated draftGet method; missing/foreign/incomplete authority and malformed drafts fail closed.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "UI-002",
+      "CORE-007"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo check -p focusa-core -p focusa-api",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-core mission_canvas",
+      "result": "pass: 58/58"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.draft.get",
+      "result": "pass"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+      "result": "pass"
+    },
+    {
+      "command": "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.draft.get --client draftGet",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}

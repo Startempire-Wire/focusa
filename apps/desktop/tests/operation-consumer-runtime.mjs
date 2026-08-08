@@ -82,6 +82,8 @@ try {
     await exerciseHostClose({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.domain_pack.install') {
     await exerciseDomainPackInstall({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.draft.get') {
+    await exerciseDraftGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.events.stream') {
     await exerciseEventsStream({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, server });
   } else {
@@ -2721,6 +2723,60 @@ async function exerciseHostFocus({ MissionCanvasClient, MissionCanvasHttpTranspo
   );
 
   console.log('Mission Canvas operation consumer: PASS (generated rich_hostFocus, exact Workstream POST, existing Desktop focus, canonical activity preservation, foreign authority/renderer, missing authority, capability/permission denial, stale lifecycle, and hostile response checks)');
+}
+
+async function exerciseDraftGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  assert.ok(authority.attachment, 'draft.get fixture requires exact attachment authority');
+  const draft = {
+    ...structuredClone(authority),
+    attachment: structuredClone(authority.attachment),
+    content: '# Draft\nCanonical draft content',
+    content_sha256: `sha256:${'d'.repeat(64)}`,
+    draft_id: 'draft:prompt',
+    draft_revision: 4,
+    idempotency_key: 'idem:draft:1',
+    owner: 'canvas_prompt_editor',
+    recipient_ref: 'recipient:pi-session',
+    selection_start: 2,
+    selection_end: 5,
+    sync_state: 'synchronized',
+    updated_at: new Date().toISOString()
+  };
+  let responseBody = structuredClone(draft);
+  const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(responseBody), { status: 200 })
+  );
+  const client = new MissionCanvasClient(transport);
+  const result = await client.draftGet({ ...structuredClone(authority), draft_id: 'draft:prompt' });
+  assert.equal(result.draft_id, 'draft:prompt');
+  assert.equal(result.draft_revision, 4);
+  assert.equal(result.sync_state, 'synchronized');
+
+  responseBody = structuredClone(draft);
+  responseBody.workstream.workstream_id = 'ws:foreign';
+  if (responseBody.attachment) responseBody.attachment.workstream.workstream_id = 'ws:foreign';
+  await assert.rejects(
+    () => client.draftGet({ ...structuredClone(authority), draft_id: 'draft:foreign' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:scope_mismatch'
+  );
+
+  responseBody = { ...structuredClone(draft), draft_id: '' };
+  await assert.rejects(
+    () => client.draftGet({ ...structuredClone(authority), draft_id: 'draft:missing-id' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:missing:draft_id'
+  );
+
+  responseBody = { ...structuredClone(draft), draft_revision: -1 };
+  await assert.rejects(
+    () => client.draftGet({ ...structuredClone(authority), draft_id: 'draft:bad-rev' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:draft_revision'
+  );
+
+  responseBody = { ...structuredClone(draft), sync_state: 'invented' };
+  await assert.rejects(
+    () => client.draftGet({ ...structuredClone(authority), draft_id: 'draft:bad-sync' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:sync_state'
+  );
 }
 
 async function exerciseHostClose({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {

@@ -1034,6 +1034,64 @@ impl MissionCanvasStore {
         self.load_projection(scope)
     }
 
+    /// Load one exact-Workstream CanvasDraftState document and fail closed on
+    /// missing, foreign, or incomplete authority. A stored draft that claims
+    /// subordinate Attachment/Surface identity must match the requested scope;
+    /// an aggregate read never guesses an Attachment or Surface.
+    pub fn load_draft(
+        &self,
+        scope: &MissionCanvasScope,
+        draft_id: &str,
+    ) -> Result<Option<serde_json::Value>> {
+        if draft_id.trim().is_empty() {
+            return Err(MissionCanvasStoreError::InvalidScope("draft_id is required"));
+        }
+        let document = self.get_document(
+            "mission_canvas_drafts",
+            scope,
+            &format!("draft:{draft_id}"),
+        )?;
+        let Some(document) = document else {
+            return Ok(None);
+        };
+        let draft = &document.payload;
+        let draft_object = draft.as_object().ok_or_else(|| {
+            MissionCanvasStoreError::InvalidScope("draft payload is not a JSON object")
+        })?;
+        let draft_workstream = draft_object.get("workstream").ok_or_else(|| {
+            MissionCanvasStoreError::InvalidScope("draft payload is missing exact Workstream identity")
+        })?;
+        let scope_workstream = serde_json::to_value(&scope.workstream)
+            .map_err(MissionCanvasStoreError::Serialization)?;
+        if draft_workstream != &scope_workstream {
+            return Err(MissionCanvasStoreError::WorkstreamMismatch);
+        }
+        if let Some(attachment) = draft_object.get("attachment") {
+            let expected_attachment = scope
+                .attachment
+                .as_ref()
+                .map(|attachment| serde_json::to_value(attachment).map_err(MissionCanvasStoreError::Serialization))
+                .transpose()?;
+            match (attachment, expected_attachment) {
+                (Value::Null, None) => {}
+                (Value::Null, Some(_)) => {
+                    return Err(MissionCanvasStoreError::InvalidScope("draft claims attachment authority but scope lacks it"))
+                }
+                (value, None) => {
+                    if !value.is_null() {
+                        return Err(MissionCanvasStoreError::InvalidScope("draft carries attachment identity outside the request scope"));
+                    }
+                }
+                (value, Some(expected)) => {
+                    if value != &expected {
+                        return Err(MissionCanvasStoreError::WorkstreamMismatch);
+                    }
+                }
+            }
+        }
+        Ok(Some(draft.clone()))
+    }
+
     /// Save one Workstream-owned projection and its lifecycle event atomically.
     /// Evidence, receipt, omission diagnostics, layout memory references, and
     /// the projection revision remain in the canonical payload/event rows.
