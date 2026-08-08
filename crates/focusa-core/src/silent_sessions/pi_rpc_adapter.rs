@@ -4,7 +4,21 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use super::{HarnessRunRef, InputPayload, ObservedHarnessModel, PromptPayload};
+use super::{
+    HarnessRunRef,
+    InputPayload,
+    ObservedHarnessModel,
+    PromptPayload,
+    SilentSessionId,
+    SilentSessionRunId,
+};
+
+use crate::license::{
+    evaluate_entitlement_execution,
+    EntitlementExecutionContext,
+    EntitlementExecutionDecision,
+    EntitlementExecutionPolicy,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AgentBootstrapBinding {
@@ -159,6 +173,61 @@ pub struct PiRpcResponse {
     pub native_session_ref: Option<String>,
 }
 
+fn entitlement_policy_for_request(request: &PiRpcRequest) -> EntitlementExecutionPolicy {
+    let operation_id = match request {
+        PiRpcRequest::Prompt { .. } => "focusa.agent_runtime.prompt",
+        PiRpcRequest::Input { .. } => "focusa.agent_runtime.input",
+        PiRpcRequest::Steer { .. } => "focusa.agent_runtime.steer",
+        PiRpcRequest::Followup { .. } => "focusa.agent_runtime.followup",
+        PiRpcRequest::Abort { .. } => "focusa.agent_runtime.abort",
+        PiRpcRequest::ResumeNativeSession { .. } => {
+            "focusa.agent_runtime.resume_native_session"
+        }
+        PiRpcRequest::QueryState { .. } => "focusa.agent_runtime.query_state",
+        PiRpcRequest::QueryModel { .. } => "focusa.agent_runtime.query_model",
+        PiRpcRequest::QueryUsage { .. } => "focusa.agent_runtime.query_usage",
+        PiRpcRequest::Bootstrap { .. } => "focusa.agent_runtime.bootstrap",
+    };
+
+    match request {
+        PiRpcRequest::QueryState { .. }
+        | PiRpcRequest::QueryModel { .. }
+        | PiRpcRequest::QueryUsage { .. } => EntitlementExecutionPolicy::new(
+            operation_id,
+            focusa_license::OperationClass::Read,
+            focusa_license::CapabilityFamily::ReadProjection,
+            None,
+            None,
+            focusa_license::RecoveryAllowance::None,
+        ),
+        _ => EntitlementExecutionPolicy::new(
+            operation_id,
+            focusa_license::OperationClass::ValueMutation,
+            focusa_license::CapabilityFamily::BaseFocusa,
+            None,
+            None,
+            focusa_license::RecoveryAllowance::None,
+        ),
+    }
+}
+
+fn evaluate_pi_rpc_request_entitlement(
+    guard: &focusa_license::LicenseGuard,
+    request: &PiRpcRequest,
+    now: DateTime<Utc>,
+) -> anyhow::Result<EntitlementExecutionDecision> {
+    let policy = entitlement_policy_for_request(request);
+    evaluate_entitlement_execution(
+        guard,
+        &policy,
+        EntitlementExecutionContext {
+            now,
+            ..Default::default()
+        },
+    )
+    .map_err(|error| anyhow::anyhow!("{}: {}", error.code, error.message))
+}
+
 pub trait PiRpcTransport {
     fn call(&mut self, request: PiRpcRequest) -> anyhow::Result<PiRpcResponse>;
 }
@@ -172,9 +241,12 @@ pub struct GovernedPiRpcAdapter<T> {
 impl<T: PiRpcTransport> GovernedPiRpcAdapter<T> {
     pub fn bootstrap(&mut self, now: DateTime<Utc>) -> anyhow::Result<PiRpcResponse> {
         self.barrier.verify(now)?;
-        let response = self.transport.call(PiRpcRequest::Bootstrap {
+        let request = PiRpcRequest::Bootstrap {
             barrier: Box::new(self.barrier.clone()),
-        })?;
+        };
+        let guard = focusa_license::resolve_license_guard();
+        evaluate_pi_rpc_request_entitlement(&guard, &request, now)?;
+        let response = self.transport.call(request)?;
         anyhow::ensure!(response.ok, "Pi rejected AgentBootstrap packet");
         self.bootstrapped = true;
         Ok(response)
@@ -202,6 +274,8 @@ impl<T: PiRpcTransport> GovernedPiRpcAdapter<T> {
             ),
             "non-mutation RPC must use query"
         );
+        let guard = focusa_license::resolve_license_guard();
+        evaluate_pi_rpc_request_entitlement(&guard, &request, now)?;
         let response = self.transport.call(request)?;
         anyhow::ensure!(response.ok, "Pi mutation RPC failed");
         Ok(response)
@@ -217,6 +291,9 @@ impl<T: PiRpcTransport> GovernedPiRpcAdapter<T> {
             ),
             "mutation RPC must pass the AgentBootstrap barrier"
         );
+        let now = Utc::now();
+        let guard = focusa_license::resolve_license_guard();
+        evaluate_pi_rpc_request_entitlement(&guard, &request, now)?;
         self.transport.call(request)
     }
 }
@@ -265,4 +342,109 @@ pub fn observed_model_from_response(
             .into(),
         source: "pi_rpc".into(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
+    use std::collections::BTreeMap;
+
+    fn sample_barrier(now: DateTime<Utc>) -> AgentBootstrapBarrier {
+        AgentBootstrapBarrier {
+            binding: AgentBootstrapBinding {
+                project_root: "/tmp/focusa-core-pi-rpc-tests".into(),
+                project_identity_ref: "identity-ref".into(),
+                continuity_id: "continuity-id".into(),
+                trajectory_ref: "trajectory-ref".into(),
+                workpoint_ref: "workpoint-ref".into(),
+                context_packet_ref: "context-ref".into(),
+                context_packet_digest: "context-digest".into(),
+                writer_lease_ref: "lease-ref".into(),
+                writer_lease_expires_at: now + chrono::Duration::minutes(10),
+                authority_verified_at: now - chrono::Duration::minutes(1),
+                authority_max_age_seconds: 3600,
+                requested_model: "test-model".into(),
+                effective_model: "test-model".into(),
+                observed_model: None,
+            },
+            project_identity_verified: true,
+            trajectory_verified: true,
+            workpoint_verified: true,
+            context_packet_verified: true,
+            writer_lease_verified: true,
+            model_preflight_verified: true,
+        }
+    }
+
+    fn sample_run_ref() -> HarnessRunRef {
+        HarnessRunRef {
+            session_id: SilentSessionId::new(),
+            run_id: SilentSessionRunId::new(),
+        }
+    }
+
+    fn sample_focusa_license_guard(now: DateTime<Utc>) -> focusa_license::LicenseGuard {
+        focusa_license::LicenseGuard::from_entitlement(EntitlementSnapshot {
+            state: EntitlementState::Active,
+            product: "focusa".into(),
+            node_id: "test-node".into(),
+            lease_id: Some("lease-id".into()),
+            sequence: Some(7),
+            lease_digest: Some("lease-digest".into()),
+            expires_at: Some(now + chrono::Duration::hours(1)),
+            offline_grace_until: None,
+            features: BTreeMap::new(),
+            limits: BTreeMap::new(),
+            recovery_reason: None,
+        })
+    }
+
+    #[test]
+    fn pi_rpc_adapter_rejects_mutation_when_base_entitlement_is_missing() {
+        let now = Utc::now();
+        let request = PiRpcRequest::Prompt {
+            run: sample_run_ref(),
+            prompt: PromptPayload {
+                artifact_ref: "artifact".into(),
+                sha256: "sha256".into(),
+            },
+        };
+        let guard = focusa_license::LicenseGuard::eval(7);
+        let error = evaluate_pi_rpc_request_entitlement(&guard, &request, now).unwrap_err();
+        assert!(error.to_string().contains("ENTITLEMENT_BASE_REQUIRED"));
+    }
+
+    #[test]
+    fn pi_rpc_adapter_allows_mutation_with_signed_base_entitlement_projection() {
+        let now = Utc::now();
+        let request = PiRpcRequest::Followup {
+            run: sample_run_ref(),
+            prompt: PromptPayload {
+                artifact_ref: "artifact".into(),
+                sha256: "sha256".into(),
+            },
+        };
+        let guard = sample_focusa_license_guard(now);
+        let decision = evaluate_pi_rpc_request_entitlement(&guard, &request, now).unwrap();
+        assert_eq!(decision.code, "ENTITLEMENT_ALLOWED");
+    }
+
+    #[test]
+    fn pi_rpc_adapter_uses_read_projection_for_query_requests() {
+        let now = Utc::now();
+        let request = PiRpcRequest::QueryUsage {
+            run: sample_run_ref(),
+        };
+        let guard = sample_focusa_license_guard(now);
+        assert!(
+            evaluate_pi_rpc_request_entitlement(&guard, &request, now).is_ok(),
+            "read-path should use a read policy when using query operations"
+        );
+        let _adapter = GovernedPiRpcAdapter {
+            transport: DeterministicPiRpcTransport::default(),
+            barrier: sample_barrier(now),
+            bootstrapped: true,
+        };
+    }
 }

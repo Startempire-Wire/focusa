@@ -83,6 +83,7 @@ pub mod google_drive_connector;
 pub mod install_lifecycle;
 pub mod installation_convergence;
 pub mod intuition;
+pub mod entitlement_execution_guard;
 pub mod license;
 pub mod memory;
 pub mod metacognitive_learning;
@@ -192,3 +193,11 @@ pub mod uxp;
 pub mod work_item;
 pub mod workers;
 pub mod working_subpath;
+
+pub use entitlement_execution_guard::{
+    evaluate_entitlement_execution,
+    EntitlementExecutionContext,
+    EntitlementExecutionDecision,
+    EntitlementExecutionFailure,
+    EntitlementExecutionPolicy,
+};

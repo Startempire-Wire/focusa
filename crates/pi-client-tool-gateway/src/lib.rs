@@ -1,6 +1,13 @@
 use agent_stateful_cognitive_runtime::{
     ClientToolRequest, ClientToolResult, RuntimeBinding, ToolResultStatus,
 };
+use chrono::{Duration, Utc};
+use focusa_core::license::{
+    evaluate_entitlement_execution,
+    EntitlementExecutionContext,
+    EntitlementExecutionPolicy,
+};
+use focusa_license::LicenseGuard;
 use letta_adapter::{AdapterFuture, LettaAdapterError, PiClientToolGateway};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -11,6 +18,29 @@ use std::{
 use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolEntitlementPolicy {
+    #[serde(default)]
+    pub operation_class: Option<String>,
+    #[serde(default)]
+    pub capability_family: Option<String>,
+    #[serde(default)]
+    pub required_feature: Option<String>,
+    #[serde(default)]
+    pub limit_bucket: Option<String>,
+}
+
+impl Default for ToolEntitlementPolicy {
+    fn default() -> Self {
+        Self {
+            operation_class: None,
+            capability_family: None,
+            required_feature: None,
+            limit_bucket: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ToolManifest {
     pub tool_name: String,
     pub operation: String,
@@ -18,6 +48,8 @@ pub struct ToolManifest {
     pub admitted_capabilities: BTreeSet<String>,
     pub mutation: bool,
     pub max_result_bytes: usize,
+    #[serde(default)]
+    pub entitlement_policy: Option<ToolEntitlementPolicy>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -53,6 +85,115 @@ pub trait FocusaOperationExecutor: Send + Sync {
     ) -> AdapterFuture<'a, Result<OperationOutcome, GatewayError>>;
 }
 
+fn parse_operation_class(value: &str) -> Option<focusa_license::OperationClass> {
+    match value {
+        "read" => Some(focusa_license::OperationClass::Read),
+        "value_mutation" | "value-mutation" | "mutation" => {
+            Some(focusa_license::OperationClass::ValueMutation)
+        }
+        "recovery" => Some(focusa_license::OperationClass::Recovery),
+        "internal_maintenance" | "internal-maintenance" => {
+            Some(focusa_license::OperationClass::InternalMaintenance)
+        }
+        _ => None,
+    }
+}
+
+fn parse_capability_family(value: &str) -> Option<focusa_license::CapabilityFamily> {
+    match value {
+        "read_projection" | "read-projection" => {
+            Some(focusa_license::CapabilityFamily::ReadProjection)
+        }
+        "base_focusa" | "base-focusa" => Some(focusa_license::CapabilityFamily::BaseFocusa),
+        "automation" => Some(focusa_license::CapabilityFamily::Automation),
+        "team_remote" | "team-remote" => Some(focusa_license::CapabilityFamily::TeamRemote),
+        "account_recovery" | "account-recovery" => {
+            Some(focusa_license::CapabilityFamily::AccountRecovery)
+        }
+        _ => None,
+    }
+}
+
+fn entitlement_policy_for_manifest(
+    manifest: &ToolManifest,
+) -> Result<EntitlementExecutionPolicy, GatewayError> {
+    let lowered = manifest.operation.to_lowercase();
+    let operation_id = manifest.operation.clone();
+    let is_read_fallback = !manifest.mutation;
+    let is_automation = lowered.contains("silent") || lowered.contains("parallel") || lowered.contains("agent_loop");
+
+    let explicit = manifest.entitlement_policy.as_ref();
+    let operation_class = explicit
+        .and_then(|policy| {
+            policy
+                .operation_class
+                .as_deref()
+                .and_then(parse_operation_class)
+        })
+        .or_else(|| {
+            if is_read_fallback {
+                Some(focusa_license::OperationClass::Read)
+            } else {
+                Some(focusa_license::OperationClass::ValueMutation)
+            }
+        })
+        .ok_or_else(|| {
+            GatewayError::ConstitutionDenied(
+                "ENTITLEMENT_ROUTE_UNCLASSIFIED: operation class is missing or unknown".into(),
+            )
+        })?;
+    let capability_family = explicit
+        .and_then(|policy| {
+            policy
+                .capability_family
+                .as_deref()
+                .and_then(parse_capability_family)
+        })
+        .or_else(|| {
+            if is_automation {
+                Some(focusa_license::CapabilityFamily::Automation)
+            } else if is_read_fallback {
+                Some(focusa_license::CapabilityFamily::ReadProjection)
+            } else {
+                Some(focusa_license::CapabilityFamily::BaseFocusa)
+            }
+        })
+        .ok_or_else(|| {
+            GatewayError::ConstitutionDenied(
+                "ENTITLEMENT_ROUTE_UNCLASSIFIED: capability family is missing or unknown".into(),
+            )
+        })?;
+    let recovery_allowance = if operation_class == focusa_license::OperationClass::Read {
+        focusa_license::RecoveryAllowance::ReadProjection
+    } else {
+        focusa_license::RecoveryAllowance::None
+    };
+
+    Ok(EntitlementExecutionPolicy::new(
+        &operation_id,
+        operation_class,
+        capability_family,
+        explicit.and_then(|policy| policy.required_feature.as_deref()),
+        explicit.and_then(|policy| policy.limit_bucket.as_deref()),
+        recovery_allowance,
+    ))
+}
+
+fn evaluate_tool_entitlement(
+    manifest: &ToolManifest,
+    license_guard: &LicenseGuard,
+) -> Result<(), GatewayError> {
+    evaluate_entitlement_execution(
+        license_guard,
+        &entitlement_policy_for_manifest(manifest)?,
+        EntitlementExecutionContext::default(),
+    )
+    .map(|_| ())
+    .map_err(|failure| {
+        GatewayError::ConstitutionDenied(format!("{}: {}", failure.code, failure.message))
+    })
+}
+
 #[derive(Debug, Error)]
 pub enum GatewayError {
     #[error("runtime contract rejected request: {0}")]
@@ -75,6 +216,7 @@ pub struct Gateway<G, E> {
     manifests: BTreeMap<String, ToolManifest>,
     guard: Arc<G>,
     executor: Arc<E>,
+    entitlement_guard: Option<LicenseGuard>,
 }
 
 impl<G, E> Gateway<G, E>
@@ -94,7 +236,20 @@ where
                 .collect(),
             guard,
             executor,
+            entitlement_guard: None,
         }
+    }
+
+    pub fn with_entitlement_guard(
+        mut self,
+        entitlement_guard: LicenseGuard,
+    ) -> Self {
+        self.entitlement_guard = Some(entitlement_guard);
+        self
+    }
+
+    pub fn with_resolved_entitlement_guard(self) -> Self {
+        self.with_entitlement_guard(focusa_license::resolve_license_guard())
     }
 
     pub async fn execute_governed(
@@ -119,6 +274,11 @@ where
         {
             return Err(GatewayError::CapabilityNotAdmitted(capability.clone()));
         }
+        let entitlement_guard = self
+            .entitlement_guard
+            .clone()
+            .unwrap_or_else(focusa_license::resolve_license_guard);
+        evaluate_tool_entitlement(manifest, &entitlement_guard)?;
         let decision = self.guard.authorize(binding, request, manifest).await?;
         if !decision.permitted {
             return Err(GatewayError::ConstitutionDenied(decision.reason_code));
@@ -187,6 +347,7 @@ fn receipt_ref(
 mod tests {
     use super::*;
     use agent_stateful_cognitive_runtime::{CognitiveLoopOwner, RuntimeEpochIdentity, RuntimeMode};
+    use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
     use uuid::Uuid;
 
     struct Guard(bool);
@@ -265,8 +426,26 @@ mod tests {
                 admitted_capabilities: BTreeSet::from(["focusa_write".into()]),
                 mutation: true,
                 max_result_bytes: 4096,
+                entitlement_policy: Some(ToolEntitlementPolicy {
+                    operation_class: Some("value_mutation".into()),
+                    capability_family: Some("base_focusa".into()),
+                    required_feature: None,
+                    limit_bucket: None,
+                }),
             },
         )
+    }
+
+    fn signed_base_snapshot() -> LicenseGuard {
+        let now = Utc::now();
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "tool-gateway");
+        snapshot.state = EntitlementState::Active;
+        snapshot.sequence = Some(7);
+        snapshot.lease_id = Some("lease-tool-gateway".into());
+        snapshot.lease_digest = Some("sha256:tool-gateway".into());
+        snapshot.expires_at = Some(now + Duration::hours(1));
+        snapshot.offline_grace_until = Some(now + Duration::hours(1));
+        LicenseGuard::from_entitlement(snapshot)
     }
 
     #[tokio::test]
@@ -276,10 +455,26 @@ mod tests {
             [manifest],
             Arc::new(Guard(true)),
             Arc::new(Executor { evidence: true }),
-        );
+        )
+        .with_entitlement_guard(signed_base_snapshot());
         let result = gateway.execute_governed(&binding, &request).await.unwrap();
         assert_eq!(result.status, ToolResultStatus::Completed);
         assert!(result.receipt_ref.unwrap().starts_with("sha256:"));
+    }
+
+    #[tokio::test]
+    async fn denied_mutation_without_signed_base_entitlement() {
+        let (binding, request, manifest) = fixture();
+        let gateway = Gateway::new(
+            [manifest],
+            Arc::new(Guard(true)),
+            Arc::new(Executor { evidence: true }),
+        )
+        .with_entitlement_guard(LicenseGuard::eval(7));
+        assert!(matches!(
+            gateway.execute_governed(&binding, &request).await,
+            Err(GatewayError::ConstitutionDenied(message)) if message.contains("ENTITLEMENT_BASE_REQUIRED")
+        ));
     }
 
     #[tokio::test]
@@ -289,7 +484,8 @@ mod tests {
             [manifest.clone()],
             Arc::new(Guard(false)),
             Arc::new(Executor { evidence: true }),
-        );
+        )
+        .with_entitlement_guard(signed_base_snapshot());
         assert!(matches!(
             denied.execute_governed(&binding, &request).await,
             Err(GatewayError::ConstitutionDenied(_))
@@ -298,7 +494,8 @@ mod tests {
             [manifest],
             Arc::new(Guard(true)),
             Arc::new(Executor { evidence: false }),
-        );
+        )
+        .with_entitlement_guard(signed_base_snapshot());
         assert!(matches!(
             no_evidence.execute_governed(&binding, &request).await,
             Err(GatewayError::MutationEvidenceMissing)

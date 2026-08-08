@@ -9,6 +9,14 @@ use serde::{Deserialize, Serialize};
 use std::path::{Component, Path, PathBuf};
 use thiserror::Error;
 
+use crate::license::{
+    evaluate_entitlement_execution,
+    EntitlementExecutionContext,
+    EntitlementExecutionPolicy,
+};
+
+const ENTITLEMENT_ROUTE_UNCLASSIFIED: &str = "ENTITLEMENT_ROUTE_UNCLASSIFIED";
+
 pub const WRITER_ADMISSION_SCHEMA: &str = "focusa.writer_admission_decision.v1";
 pub const WRITER_LEASE_REGISTRY_SCHEMA: &str = "focusa.writer_lease_registry.v1";
 
@@ -81,6 +89,34 @@ pub struct WriterAdmissionDecision {
     pub conflicting_actor_refs: Vec<String>,
     pub conflicting_lease_ids: Vec<SilentSessionLeaseId>,
     pub isolated_worktree_required: bool,
+}
+
+fn writer_entitlement_policy() -> EntitlementExecutionPolicy {
+    EntitlementExecutionPolicy::new(
+        "focusa.silent_session.writer_admission",
+        focusa_license::OperationClass::ValueMutation,
+        focusa_license::CapabilityFamily::Automation,
+        Some("focusa.agent.silent_sessions"),
+        Some("silent_session_admissions"),
+        focusa_license::RecoveryAllowance::None,
+    )
+}
+
+fn evaluate_writer_entitlement(
+    entitlement_guard: &focusa_license::LicenseGuard,
+) -> Result<(), WriterLeaseError> {
+    evaluate_entitlement_execution(
+        entitlement_guard,
+        &writer_entitlement_policy(),
+        EntitlementExecutionContext::default(),
+    )
+    .map(|_| ())
+    .map_err(|error| WriterLeaseError::EntitlementDenied {
+        code: error.code,
+        message: error.message,
+        required_feature: error.required_feature,
+        limit_bucket: error.limit_bucket,
+    })
 }
 
 pub fn analyze_writer_admission(
@@ -259,6 +295,19 @@ impl WriterLeaseRegistry {
             .collect()
     }
 
+    pub fn acquire_with_entitlement(
+        &mut self,
+        session: &SilentSession,
+        candidate: &WriterAdmissionCandidate,
+        external_claims: &[WriterClaim],
+        now: DateTime<Utc>,
+        ttl: Duration,
+        entitlement_guard: &focusa_license::LicenseGuard,
+    ) -> Result<SilentSessionLease, WriterLeaseError> {
+        evaluate_writer_entitlement(entitlement_guard)?;
+        self.acquire(session, candidate, external_claims, now, ttl)
+    }
+
     pub fn acquire(
         &mut self,
         session: &SilentSession,
@@ -312,6 +361,19 @@ impl WriterLeaseRegistry {
         Ok(lease)
     }
 
+    pub fn renew_with_entitlement(
+        &mut self,
+        lease_id: SilentSessionLeaseId,
+        owner_actor_instance_ref: &str,
+        fencing_token: u64,
+        now: DateTime<Utc>,
+        ttl: Duration,
+        entitlement_guard: &focusa_license::LicenseGuard,
+    ) -> Result<SilentSessionLease, WriterLeaseError> {
+        evaluate_writer_entitlement(entitlement_guard)?;
+        self.renew(lease_id, owner_actor_instance_ref, fencing_token, now, ttl)
+    }
+
     pub fn renew(
         &mut self,
         lease_id: SilentSessionLeaseId,
@@ -340,6 +402,17 @@ impl WriterLeaseRegistry {
         lease.heartbeat_at = now;
         lease.expires_at = now + ttl;
         Ok(lease.clone())
+    }
+
+    pub fn release_with_entitlement(
+        &mut self,
+        lease_id: SilentSessionLeaseId,
+        owner_actor_instance_ref: &str,
+        fencing_token: u64,
+        entitlement_guard: &focusa_license::LicenseGuard,
+    ) -> Result<SilentSessionLease, WriterLeaseError> {
+        evaluate_writer_entitlement(entitlement_guard)?;
+        self.release(lease_id, owner_actor_instance_ref, fencing_token)
     }
 
     pub fn release(
@@ -391,12 +464,20 @@ pub enum WriterLeaseError {
     StaleFencingToken,
     #[error("writer fencing token source is exhausted")]
     FencingTokenExhausted,
+    #[error("writer entitlement was denied ({code}): {message}")]
+    EntitlementDenied {
+        code: String,
+        message: String,
+        required_feature: Option<String>,
+        limit_bucket: Option<String>,
+    },
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::silent_session::*;
+    use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
 
     fn session() -> SilentSession {
         let now = Utc::now();
@@ -449,6 +530,60 @@ mod tests {
             writer_role: "primary".into(),
             adoption_policy: "signed_match_only".into(),
         }
+    }
+
+    fn signed_base_snapshot() -> focusa_license::LicenseGuard {
+        let now = Utc::now();
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-writer");
+        snapshot.state = EntitlementState::Active;
+        snapshot.sequence = Some(7);
+        snapshot.lease_id = Some("lease-2".into());
+        snapshot.lease_digest = Some("sha256:writer".into());
+        snapshot
+            .features
+            .insert("focusa.agent.silent_sessions".into(), true);
+        snapshot.expires_at = Some(now + chrono::Duration::hours(1));
+        snapshot.offline_grace_until = Some(now + chrono::Duration::hours(1));
+        focusa_license::LicenseGuard::from_entitlement(snapshot)
+    }
+
+    #[test]
+    fn writer_lease_acquire_rejects_without_entitlement_snapshot() {
+        let now = Utc::now();
+        let session = session();
+        let candidate = candidate(&session);
+        let mut registry = WriterLeaseRegistry::default();
+        assert!(matches!(
+            registry.acquire_with_entitlement(
+                &session,
+                &candidate,
+                &[],
+                now,
+                Duration::seconds(30),
+                &focusa_license::LicenseGuard::eval(7)
+            ),
+            Err(WriterLeaseError::EntitlementDenied { code, .. })
+                if code == "ENTITLEMENT_BASE_REQUIRED" || code == "ENTITLEMENT_REQUIRED"
+        ));
+    }
+
+    #[test]
+    fn writer_lease_acquire_with_signed_base_snapshot_is_allowed() {
+        let now = Utc::now();
+        let session = session();
+        let candidate = candidate(&session);
+        let mut registry = WriterLeaseRegistry::default();
+        let lease = registry
+            .acquire_with_entitlement(
+                &session,
+                &candidate,
+                &[],
+                now,
+                Duration::seconds(30),
+                &signed_base_snapshot(),
+            )
+            .expect("writer admission should pass entitlement gate");
+        assert_eq!(lease.fencing_token, 1);
     }
 
     #[test]

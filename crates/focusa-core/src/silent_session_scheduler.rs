@@ -9,6 +9,13 @@ use crate::work_item::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::license::{
+    evaluate_entitlement_execution,
+    EntitlementExecutionContext,
+    EntitlementExecutionPolicy,
+};
+
+
 pub const SILENT_SESSION_DISPATCH_SCHEMA: &str = "focusa.silent_session_dispatch.v1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -55,6 +62,64 @@ pub struct SilentSessionDispatchDecision {
     pub selected_work_item: Option<WorkItemRef>,
     pub deferred: Vec<DeferredDispatchCandidate>,
     pub canonical_ready_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SilentSessionDispatchEntitlementError {
+    pub code: String,
+    pub message: String,
+    pub required_feature: Option<String>,
+    pub limit_bucket: Option<String>,
+}
+
+fn silent_session_dispatch_entitlement_policy() -> EntitlementExecutionPolicy {
+    EntitlementExecutionPolicy::new(
+        "focusa.silent_session.dispatch",
+        focusa_license::OperationClass::ValueMutation,
+        focusa_license::CapabilityFamily::Automation,
+        Some("focusa.agent.silent_sessions"),
+        Some("silent_session_runs"),
+        focusa_license::RecoveryAllowance::None,
+    )
+}
+
+fn evaluate_silent_session_dispatch_entitlement(
+    entitlement_guard: &focusa_license::LicenseGuard,
+    policy: &EntitlementExecutionPolicy,
+) -> Result<(), SilentSessionDispatchEntitlementError> {
+    evaluate_entitlement_execution(
+        entitlement_guard,
+        policy,
+        EntitlementExecutionContext::default(),
+    )
+    .map(|_| ())
+    .map_err(|error| SilentSessionDispatchEntitlementError {
+        code: error.code,
+        message: error.message,
+        required_feature: error.required_feature,
+        limit_bucket: error.limit_bucket,
+    })
+}
+
+pub fn select_silent_session_dispatch_with_entitlement(
+    work_items: &[WorkItem],
+    query: &WorkItemQuery,
+    candidates: &[SilentSessionDispatchCandidate],
+    entitlement_guard: &focusa_license::LicenseGuard,
+    entitlement_policy: &EntitlementExecutionPolicy,
+) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
+    evaluate_silent_session_dispatch_entitlement(entitlement_guard, entitlement_policy)?;
+    Ok(select_silent_session_dispatch(work_items, query, candidates))
+}
+
+pub fn select_silent_session_dispatch_with_default_entitlement(
+    work_items: &[WorkItem],
+    query: &WorkItemQuery,
+    candidates: &[SilentSessionDispatchCandidate],
+    entitlement_guard: &focusa_license::LicenseGuard,
+) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
+    evaluate_silent_session_dispatch_entitlement(entitlement_guard, &silent_session_dispatch_entitlement_policy())?;
+    Ok(select_silent_session_dispatch(work_items, query, candidates))
 }
 
 /// Dispatch only from canonical Work Loop readiness. This function never
@@ -145,6 +210,7 @@ mod tests {
     use crate::silent_session_writer::{WRITER_ADMISSION_SCHEMA, WriterAdmissionDenial};
     use crate::work_item::{WorkItemProvider, WorkItemStatus};
     use chrono::Duration;
+    use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
     use std::path::PathBuf;
 
     fn item(id: &str, status: WorkItemStatus, priority: i32) -> WorkItem {
@@ -208,6 +274,57 @@ mod tests {
             resource_admission: resource(true),
             writer_admission: writer(true),
         }
+    }
+
+    fn signed_base_snapshot() -> focusa_license::LicenseGuard {
+        let now = Utc::now();
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-scheduler");
+        snapshot.state = EntitlementState::Active;
+        snapshot.sequence = Some(7);
+        snapshot.lease_id = Some("lease-3".into());
+        snapshot.lease_digest = Some("sha256:scheduler".into());
+        snapshot
+            .features
+            .insert("focusa.agent.silent_sessions".into(), true);
+        snapshot.expires_at = Some(now + chrono::Duration::hours(1));
+        snapshot.offline_grace_until = Some(now + chrono::Duration::hours(1));
+        focusa_license::LicenseGuard::from_entitlement(snapshot)
+    }
+
+    #[test]
+    fn delayed_dispatch_rejects_when_entitlement_gate_denies() {
+        let first = item("first", WorkItemStatus::Open, 0);
+        let query = WorkItemQuery {
+            project_root: PathBuf::from("/projects/focusa"),
+            parent: None,
+            limit: 100,
+        };
+        let decision = select_silent_session_dispatch_with_default_entitlement(
+            &[first],
+            &query,
+            &[candidate(&item("first", WorkItemStatus::Open, 1), SilentSessionPriority::Normal, Utc::now())],
+            &focusa_license::LicenseGuard::eval(7),
+        )
+        .expect_err("dispatch without base entitlement should fail");
+        assert!(decision.code == "ENTITLEMENT_BASE_REQUIRED" || decision.code == "ENTITLEMENT_REQUIRED");
+    }
+
+    #[test]
+    fn delayed_dispatch_allows_when_base_entitlement_exists() {
+        let first = item("first", WorkItemStatus::Open, 0);
+        let query = WorkItemQuery {
+            project_root: PathBuf::from("/projects/focusa"),
+            parent: None,
+            limit: 100,
+        };
+        let (_readiness, dispatch) = select_silent_session_dispatch_with_default_entitlement(
+            &[first.clone()],
+            &query,
+            &[candidate(&first, SilentSessionPriority::Normal, Utc::now())],
+            &signed_base_snapshot(),
+        )
+        .expect("default entitlement should allow silent session dispatch selection");
+        assert_eq!(dispatch.selected_work_item, Some(first.reference()));
     }
 
     #[test]
