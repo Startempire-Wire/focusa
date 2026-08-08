@@ -34,7 +34,7 @@ families:
     feature_resolution: none
     active_feature_keys: []
     security_controls_still_required: true
-    examples: [registration, verification, checkout, activation, status, account, diagnostics, repair, stable_security_update, rollback, uninstall]
+    examples: [registration, verification, checkout, activation, status, account, diagnostics, node_deactivation, repair, stable_security_update, rollback, uninstall]
   - id: read_projection
     treatment: read_allowance
     base_product_required: false
@@ -238,6 +238,16 @@ stable_update_and_export_exceptions:
     family: customer_data_export
     commercial_entitlement_required: true
     required_feature: focusa.export.packaged
+  node_deactivation_and_diagnostics:
+    family: account_recovery
+    commercial_entitlement_required: false
+    security_prerequisites: [identity_verification, role_permission, scope_binding, device_binding, operator_confirmation]
+    still_requires: [identity, authorization, scope, role, confirmation_when_applicable]
+  explicit_uninstall_path:
+    family: account_recovery
+    commercial_entitlement_required: false
+    security_prerequisites: [identity_verification, role_permission, scope_binding, device_binding, operator_confirmation]
+    still_requires: [identity, authorization, scope, role, confirmation_when_applicable]
 future_dimensions:
   - id: capability_family
     commercial_activation: active

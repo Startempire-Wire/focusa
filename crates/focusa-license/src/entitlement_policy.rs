@@ -302,6 +302,20 @@ impl From<LimitBucket> for String {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SecurityPrerequisite {
+    IdentityVerification,
+    RolePermission,
+    ScopeBinding,
+    DeviceBinding,
+    OperatorConfirmation,
+    PlatformPermission,
+    ArtifactSignature,
+    TrustMetadata,
+    PrivacyRedaction,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RecoveryAllowance {
@@ -312,6 +326,82 @@ pub enum RecoveryAllowance {
     StableSecurityUpdate,
     RepairRollback,
     Uninstall,
+}
+
+const ACCOUNT_RECOVERY_SECURITY_PREREQUISITES: &[SecurityPrerequisite] = &[
+    SecurityPrerequisite::IdentityVerification,
+    SecurityPrerequisite::RolePermission,
+    SecurityPrerequisite::ScopeBinding,
+    SecurityPrerequisite::DeviceBinding,
+    SecurityPrerequisite::OperatorConfirmation,
+];
+
+const READ_PROJECTION_SECURITY_PREREQUISITES: &[SecurityPrerequisite] = &[
+    SecurityPrerequisite::IdentityVerification,
+    SecurityPrerequisite::ScopeBinding,
+];
+
+const CUSTOMER_DATA_EXPORT_SECURITY_PREREQUISITES: &[SecurityPrerequisite] = &[
+    SecurityPrerequisite::IdentityVerification,
+    SecurityPrerequisite::ScopeBinding,
+    SecurityPrerequisite::PrivacyRedaction,
+];
+
+const STABLE_SECURITY_UPDATE_SECURITY_PREREQUISITES: &[SecurityPrerequisite] = &[
+    SecurityPrerequisite::IdentityVerification,
+    SecurityPrerequisite::RolePermission,
+    SecurityPrerequisite::ScopeBinding,
+    SecurityPrerequisite::DeviceBinding,
+    SecurityPrerequisite::OperatorConfirmation,
+    SecurityPrerequisite::PlatformPermission,
+    SecurityPrerequisite::ArtifactSignature,
+    SecurityPrerequisite::TrustMetadata,
+];
+
+const REPAIR_ROLLBACK_SECURITY_PREREQUISITES: &[SecurityPrerequisite] = &[
+    SecurityPrerequisite::IdentityVerification,
+    SecurityPrerequisite::RolePermission,
+    SecurityPrerequisite::ScopeBinding,
+    SecurityPrerequisite::DeviceBinding,
+    SecurityPrerequisite::OperatorConfirmation,
+    SecurityPrerequisite::PlatformPermission,
+    SecurityPrerequisite::ArtifactSignature,
+    SecurityPrerequisite::TrustMetadata,
+];
+
+const UNINSTALL_SECURITY_PREREQUISITES: &[SecurityPrerequisite] = &[
+    SecurityPrerequisite::IdentityVerification,
+    SecurityPrerequisite::RolePermission,
+    SecurityPrerequisite::ScopeBinding,
+    SecurityPrerequisite::OperatorConfirmation,
+];
+
+impl RecoveryAllowance {
+    pub const fn security_prerequisites(self) -> &'static [SecurityPrerequisite] {
+        match self {
+            Self::None => &[],
+            Self::AccountRecovery => ACCOUNT_RECOVERY_SECURITY_PREREQUISITES,
+            Self::ReadProjection => READ_PROJECTION_SECURITY_PREREQUISITES,
+            Self::CustomerDataExport => CUSTOMER_DATA_EXPORT_SECURITY_PREREQUISITES,
+            Self::StableSecurityUpdate => STABLE_SECURITY_UPDATE_SECURITY_PREREQUISITES,
+            Self::RepairRollback => REPAIR_ROLLBACK_SECURITY_PREREQUISITES,
+            Self::Uninstall => UNINSTALL_SECURITY_PREREQUISITES,
+        }
+    }
+
+    /// Recovery allowance variants resolve to a capability family; no caller input is
+    /// consulted here, and `None` is explicitly non-operational.
+    pub const fn implied_family(self) -> Option<CapabilityFamily> {
+        match self {
+            Self::None => None,
+            Self::AccountRecovery
+            | Self::StableSecurityUpdate
+            | Self::RepairRollback
+            | Self::Uninstall => Some(CapabilityFamily::AccountRecovery),
+            Self::ReadProjection => Some(CapabilityFamily::ReadProjection),
+            Self::CustomerDataExport => Some(CapabilityFamily::CustomerDataExport),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -815,6 +905,92 @@ pub fn base_product_compatibility_projection(
         projected.insert(id.to_string(), entitled);
     }
     projected
+}
+
+#[cfg(test)]
+mod recovery_allowance_tests {
+    use super::{
+        reduce_entitlement_state, CapabilityFamily as Family, DecisionReason as Reason,
+        EntitlementPolicyPosture as Posture, PolicyEntitlementState as State,
+        RecoveryAllowance, SecurityPrerequisite,
+    };
+
+    #[test]
+    fn recovery_allowances_require_typed_security_prerequisites() {
+        assert!(RecoveryAllowance::AccountRecovery
+            .security_prerequisites()
+            .contains(&SecurityPrerequisite::IdentityVerification));
+        assert!(RecoveryAllowance::AccountRecovery
+            .security_prerequisites()
+            .contains(&SecurityPrerequisite::RolePermission));
+        assert!(RecoveryAllowance::StableSecurityUpdate
+            .security_prerequisites()
+            .contains(&SecurityPrerequisite::ArtifactSignature));
+        assert!(RecoveryAllowance::CustomerDataExport
+            .security_prerequisites()
+            .contains(&SecurityPrerequisite::PrivacyRedaction));
+        assert!(RecoveryAllowance::Uninstall
+            .security_prerequisites()
+            .contains(&SecurityPrerequisite::OperatorConfirmation));
+        assert!(RecoveryAllowance::None.security_prerequisites().is_empty());
+    }
+
+    #[test]
+    fn recovery_allowances_return_non_commercial_postures() {
+        let states = [
+            State::PendingUnverified,
+            State::VerifiedNoLicense,
+            State::ActivePaid,
+            State::OfflineGrace,
+            State::Expired,
+            State::RefundedOrRevoked,
+            State::MissingOrCorrupt,
+        ];
+
+        for state in states {
+            let recovery = reduce_entitlement_state(state, Family::AccountRecovery, None);
+            let export = reduce_entitlement_state(state, Family::CustomerDataExport, None);
+
+            assert_ne!(recovery.posture(), Posture::Deny, "{state:?}/account_recovery");
+            assert_ne!(export.posture(), Posture::Deny, "{state:?}/customer_data_export");
+            if state != State::PendingUnverified {
+                let read = reduce_entitlement_state(state, Family::ReadProjection, None);
+                assert_ne!(read.posture(), Posture::Deny, "{state:?}/read_projection");
+            }
+
+            assert_ne!(recovery.reason(), Reason::RequireFeature);
+            assert_ne!(recovery.reason(), Reason::RequireCachedFeature);
+        }
+    }
+
+    #[test]
+    fn recovery_allowances_resolve_to_expected_families() {
+        assert_eq!(
+            RecoveryAllowance::AccountRecovery.implied_family(),
+            Some(Family::AccountRecovery)
+        );
+        assert_eq!(
+            RecoveryAllowance::StableSecurityUpdate.implied_family(),
+            Some(Family::AccountRecovery)
+        );
+        assert_eq!(
+            RecoveryAllowance::RepairRollback.implied_family(),
+            Some(Family::AccountRecovery)
+        );
+        assert_eq!(
+            RecoveryAllowance::CustomerDataExport.implied_family(),
+            Some(Family::CustomerDataExport)
+        );
+        assert_eq!(
+            RecoveryAllowance::Uninstall.implied_family(),
+            Some(Family::AccountRecovery)
+        );
+        assert_eq!(
+            RecoveryAllowance::ReadProjection.implied_family(),
+            Some(Family::ReadProjection)
+        );
+        assert_eq!(RecoveryAllowance::None.implied_family(), None);
+    }
 }
 
 #[cfg(test)]
