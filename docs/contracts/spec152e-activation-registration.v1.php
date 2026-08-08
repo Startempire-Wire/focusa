@@ -623,6 +623,18 @@ final class FocusaSpec152eActivationRegistrationRepository
     /** Attach only already-resolved canonical references, after mailbox verification. */
     public function promoteVerified(string $registrationUuid, string $accountUuid, int $eddCustomerId, string $requestId, string $idempotencyKey): array
     {
+        return $this->transaction(function () use ($registrationUuid, $accountUuid, $eddCustomerId, $requestId, $idempotencyKey): array {
+            return $this->promoteVerifiedInTransaction($registrationUuid, $accountUuid, $eddCustomerId, $requestId, $idempotencyKey);
+        });
+    }
+
+    /**
+     * Caller-owned transaction primitive: advance a mailbox-verified registration to
+     * account_promoted with already-resolved canonical references. Used by the atomic
+     * verified-account promotion service; never starts its own transaction.
+     */
+    public function promoteVerifiedInTransaction(string $registrationUuid, string $accountUuid, int $eddCustomerId, string $requestId, string $idempotencyKey): array
+    {
         $this->assertUuid($registrationUuid, 'registration');
         $this->assertUuid($accountUuid, 'account');
         if ($eddCustomerId < 1) {
@@ -637,28 +649,26 @@ final class FocusaSpec152eActivationRegistrationRepository
             'edd_customer_id' => $eddCustomerId,
             'request_id' => $requestId,
         ]);
-        return $this->transaction(function () use ($registrationUuid, $accountUuid, $eddCustomerId, $requestId, $idempotencyKey, $digest): array {
-            $replay = $this->replay('promote_verified', $idempotencyKey, $digest);
-            if ($replay !== null) {
-                return ['registration' => $this->findByUuid($registrationUuid), 'replayed' => true];
-            }
-            $row = $this->findByUuid($registrationUuid);
-            $this->assertNotExpired($row, false);
-            if ($row['state'] !== FocusaSpec152eActivationRegistrationState::EMAIL_VERIFIED
-                || $row['verification_state'] !== 'mailbox_verified'
-                || $row['verified_at'] === null) {
-                throw new DomainException('EMAIL_VERIFICATION_REQUIRED');
-            }
-            $updated = $this->transitionWithinTransaction($row, FocusaSpec152eActivationRegistrationState::EMAIL_VERIFIED,
-                FocusaSpec152eActivationRegistrationState::ACCOUNT_PROMOTED, (int) $row['state_version'], $requestId,
-                $idempotencyKey, [
-                    'state_reason' => 'account_promoted',
-                    'account_uuid' => $accountUuid,
-                    'edd_customer_id' => $eddCustomerId,
-                ], false);
-            $this->recordIdempotency('promote_verified', $idempotencyKey, $digest, $registrationUuid, $requestId, $updated, $this->now());
-            return ['registration' => $updated, 'replayed' => false];
-        });
+        $replay = $this->replay('promote_verified', $idempotencyKey, $digest);
+        if ($replay !== null) {
+            return ['registration' => $this->findByUuid($registrationUuid), 'replayed' => true];
+        }
+        $row = $this->findByUuid($registrationUuid);
+        $this->assertNotExpired($row, false);
+        if ($row['state'] !== FocusaSpec152eActivationRegistrationState::EMAIL_VERIFIED
+            || $row['verification_state'] !== 'mailbox_verified'
+            || $row['verified_at'] === null) {
+            throw new DomainException('EMAIL_VERIFICATION_REQUIRED');
+        }
+        $updated = $this->transitionWithinTransaction($row, FocusaSpec152eActivationRegistrationState::EMAIL_VERIFIED,
+            FocusaSpec152eActivationRegistrationState::ACCOUNT_PROMOTED, (int) $row['state_version'], $requestId,
+            $idempotencyKey, [
+                'state_reason' => 'account_promoted',
+                'account_uuid' => $accountUuid,
+                'edd_customer_id' => $eddCustomerId,
+            ], false);
+        $this->recordIdempotency('promote_verified', $idempotencyKey, $digest, $registrationUuid, $requestId, $updated, $this->now());
+        return ['registration' => $updated, 'replayed' => false];
     }
 
     /** Every state change requires the caller's observed state and version. */

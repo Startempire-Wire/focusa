@@ -359,6 +359,113 @@ final class FocusaSpec152eEmailIdentityRepository
         return $row === null ? null : $this->safe($row);
     }
 
+    /**
+     * Caller-owned transaction primitive: insert a verified identity for an already-resolved
+     * authority account. Used by the atomic verified-account promotion service; never starts
+     * its own transaction. The caller has already proven mailbox control for this email.
+     */
+    public function storeVerifiedInTransaction(string $submittedEmail, array $identity): array
+    {
+        if (($identity['verification_state'] ?? null) !== 'mailbox_verified') {
+            throw new DomainException('EMAIL_VERIFICATION_REQUIRED');
+        }
+        foreach (['verified_at', 'transactional_consent_at', 'promotional_consent_at', 'promotional_consent_revoked_at'] as $field) {
+            FocusaSpec152eEmailIdentityMigration::assertTimestamp($identity[$field] ?? null, $field !== 'verified_at');
+        }
+        $this->assertUuid((string) ($identity['identity_uuid'] ?? ''), 'identity');
+        $this->assertUuid((string) ($identity['account_uuid'] ?? ''), 'account');
+        $state = (string) ($identity['identity_state'] ?? '');
+        if (!in_array($state, ['primary', 'linked'], true)) {
+            throw new InvalidArgumentException('verified identity state required');
+        }
+        $method = (string) ($identity['verification_method'] ?? '');
+        if (preg_match('/^[a-z][a-z0-9_]{1,31}$/D', $method) !== 1) {
+            throw new InvalidArgumentException('verification method required');
+        }
+        $source = (string) ($identity['source'] ?? '');
+        if (preg_match('/^[a-z][a-z0-9_.:-]{1,63}$/D', $source) !== 1) {
+            throw new InvalidArgumentException('bounded identity source required');
+        }
+        $evidence = $identity['migration_evidence'] ?? [];
+        if (!is_array($evidence) || $evidence === []) {
+            throw new InvalidArgumentException('migration evidence is required');
+        }
+
+        $normalized = FocusaSpec152eEmailNormalizer::exact($submittedEmail);
+        $digest = $this->secrets->digest($normalized);
+        $existing = $this->findStoredByDigest($digest);
+        if ($existing !== null) {
+            if (!hash_equals($existing['identity_uuid'], $identity['identity_uuid'])
+                || !hash_equals($existing['account_uuid'], $identity['account_uuid'])) {
+                throw new DomainException('EMAIL_IDENTITY_CONFLICT');
+            }
+            return $this->safe($existing);
+        }
+        $now = ($this->clock)();
+        FocusaSpec152eEmailIdentityMigration::assertTimestamp($now);
+        $table = $this->schema->table('wpuiai_email_identities');
+        $statement = $this->db->prepare("INSERT INTO {$table} (
+            identity_uuid, account_uuid, encrypted_normalized_email, email_lookup_digest,
+            verified_at, verification_method, identity_state, transactional_consent_at,
+            promotional_consent_at, promotional_consent_revoked_at, bounce_state, bounced_at,
+            suppression_state, suppressed_at, revoked_at, source, migration_evidence, created_at, updated_at
+        ) VALUES (
+            :identity, :account, :encrypted, :digest, :verified, :method, :state, :transactional,
+            :promotional, :promotional_revoked, 'none', NULL, 'none', NULL, NULL, :source, :evidence, :created, :updated
+        )");
+        $statement->execute([
+            ':identity' => $identity['identity_uuid'], ':account' => $identity['account_uuid'],
+            ':encrypted' => $this->secrets->encrypt($normalized), ':digest' => $digest,
+            ':verified' => $identity['verified_at'], ':method' => $method, ':state' => $state,
+            ':transactional' => $identity['transactional_consent_at'] ?? null,
+            ':promotional' => $identity['promotional_consent_at'] ?? null,
+            ':promotional_revoked' => $identity['promotional_consent_revoked_at'] ?? null,
+            ':source' => $source,
+            ':evidence' => FocusaSpec152eEmailIdentityMigration::encodeCanonical($evidence),
+            ':created' => $now, ':updated' => $now,
+        ]);
+        $stored = $this->findStoredByDigest($digest);
+        return $this->safe($stored ?? throw new RuntimeException('identity insert missing'));
+    }
+
+    /**
+     * Caller-owned transaction primitive: settle promotion consent without ever overwriting
+     * consent that was settled earlier. Transactional consent is required at promotion and is
+     * recorded separately from optional promotional consent.
+     */
+    public function settleConsentAtPromotionInTransaction(string $identityUuid, string $transactional, ?string $promotional, string $occurredAt): array
+    {
+        $this->assertUuid($identityUuid, 'identity');
+        FocusaSpec152eEmailIdentityMigration::assertTimestamp($transactional);
+        FocusaSpec152eEmailIdentityMigration::assertTimestamp($promotional, true);
+        FocusaSpec152eEmailIdentityMigration::assertTimestamp($occurredAt);
+        $table = $this->schema->table('wpuiai_email_identities');
+        $statement = $this->db->prepare("UPDATE {$table} SET
+            transactional_consent_at = COALESCE(transactional_consent_at, :transactional),
+            promotional_consent_at = COALESCE(promotional_consent_at, :promotional),
+            updated_at = :occurred WHERE identity_uuid = :identity");
+        $statement->execute([
+            ':transactional' => $transactional,
+            ':promotional' => $promotional,
+            ':occurred' => $occurredAt,
+            ':identity' => $identityUuid,
+        ]);
+        if ($statement->rowCount() !== 1) {
+            throw new OutOfBoundsException('email identity not found');
+        }
+        return $this->findSafeByUuid($identityUuid);
+    }
+
+    /** Bounded primary check used by promotion to mark the first identity primary. */
+    public function hasPrimaryForAccount(string $accountUuid): bool
+    {
+        $this->assertUuid($accountUuid, 'account');
+        $table = $this->schema->table('wpuiai_email_identities');
+        $statement = $this->db->prepare("SELECT COUNT(*) FROM {$table} WHERE account_uuid = :account AND identity_state = 'primary'");
+        $statement->execute([':account' => $accountUuid]);
+        return (int) $statement->fetchColumn() > 0;
+    }
+
     /** Explicit authenticated-workflow seam; callers must never write its result to generic logs. */
     public function revealForAuthenticatedWorkflow(string $identityUuid): string
     {

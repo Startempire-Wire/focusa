@@ -132,6 +132,25 @@ final class FocusaSpec152eEddCustomerAdapter
     }
 
     /**
+     * Caller-owned transaction primitive: create a new EDD customer plus email-address row
+     * from a verified identity. Used by the atomic verified-account promotion service;
+     * never starts its own transaction.
+     */
+    public function createCustomerInTransaction(string $email, ?int $wpUserId, ?string $stripeCustomerId, string $provenance, string $now): int
+    {
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            throw new InvalidArgumentException('verified normalized email required');
+        }
+        self::assertTimestamp($now);
+        if ($provenance === '') {
+            throw new InvalidArgumentException('migration provenance is required');
+        }
+        $customerId = $this->createCustomer($email, $wpUserId, $stripeCustomerId, $provenance, $now);
+        $this->createCustomerEmailAddress($customerId, $email, $now);
+        return $customerId;
+    }
+
+    /**
      * Find an EDD customer by exact email address. Never returns multiple rows; never enumerates.
      */
     public function findCustomerByEmail(string $email): ?array

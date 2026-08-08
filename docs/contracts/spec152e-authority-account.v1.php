@@ -260,6 +260,111 @@ final class FocusaSpec152eAuthorityAccountRepository
         return $row;
     }
 
+    /**
+     * Caller-owned transaction primitive: resolve or create the authority account for an
+     * already-resolved EDD customer, linking optional WordPress and Stripe references without
+     * creating duplicates. Used by the atomic verified-account promotion service; never
+     * starts its own transaction. Returns the account row plus the resolution outcome.
+     */
+    public function resolveForPromotionInTransaction(int $customerId, ?int $wordpressUserId, ?string $stripeCustomerId, string $provenance, string $verifiedAt): array
+    {
+        if ($customerId < 1) {
+            throw new InvalidArgumentException('positive EDD customer ID required');
+        }
+        FocusaSpec152eAuthorityAccountMigration::assertTimestamp($verifiedAt);
+        if ($provenance === '') {
+            throw new InvalidArgumentException('migration provenance is required');
+        }
+        $now = ($this->clock)();
+        FocusaSpec152eAuthorityAccountMigration::assertTimestamp($now);
+        $existing = $this->findByCustomerId($customerId);
+        if ($existing !== null) {
+            $this->linkOptionalReferencesInTransaction((int) $existing['edd_customer_id'], $wordpressUserId, $stripeCustomerId, $now);
+            return ['account' => $this->findByUuid((string) $existing['account_uuid']), 'resolution' => 'existing'];
+        }
+        $accountUuid = self::uuid();
+        $table = $this->schema->table('wpuiai_authority_accounts');
+        $statement = $this->db->prepare("INSERT INTO {$table}
+            (account_uuid, edd_customer_id, wordpress_user_id, stripe_customer_id, status, status_reason,
+             highest_entitlement_sequence, migration_provenance, created_at, updated_at)
+            VALUES (:uuid, :customer, :wp_user, :stripe, 'active', 'mailbox_verified', 0, :provenance, :created, :updated)");
+        $statement->execute([
+            ':uuid' => $accountUuid,
+            ':customer' => $customerId,
+            ':wp_user' => $wordpressUserId,
+            ':stripe' => $stripeCustomerId,
+            ':provenance' => $provenance,
+            ':created' => $now,
+            ':updated' => $now,
+        ]);
+        return ['account' => $this->findByUuid($accountUuid), 'resolution' => 'new'];
+    }
+
+    /** Point lookup used to prove a WordPress user is not already linked to another account. */
+    public function findByWordpressUserId(int $wordpressUserId): ?array
+    {
+        if ($wordpressUserId < 1) {
+            throw new InvalidArgumentException('positive WordPress user ID required');
+        }
+        $table = $this->schema->table('wpuiai_authority_accounts');
+        $statement = $this->db->prepare("SELECT * FROM {$table} WHERE wordpress_user_id = :user LIMIT 1");
+        $statement->execute([':user' => $wordpressUserId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /** Point lookup used to prove a Stripe customer is not already linked to another account. */
+    public function findByStripeCustomerId(string $stripeCustomerId): ?array
+    {
+        if ($stripeCustomerId === '' || strlen($stripeCustomerId) > 191 || preg_match('/[\r\n]/', $stripeCustomerId)) {
+            throw new InvalidArgumentException('bounded Stripe customer ID required');
+        }
+        $table = $this->schema->table('wpuiai_authority_accounts');
+        $statement = $this->db->prepare("SELECT * FROM {$table} WHERE stripe_customer_id = :stripe LIMIT 1");
+        $statement->execute([':stripe' => $stripeCustomerId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    private function linkOptionalReferencesInTransaction(int $customerId, ?int $wordpressUserId, ?string $stripeCustomerId, string $now): void
+    {
+        $table = $this->schema->table('wpuiai_authority_accounts');
+        $fields = [];
+        $params = [':customer' => $customerId];
+        if ($wordpressUserId !== null) {
+            $row = $this->findByCustomerId($customerId);
+            if ($row !== null && $row['wordpress_user_id'] !== null && (int) $row['wordpress_user_id'] !== $wordpressUserId) {
+                throw new DomainException('ACCOUNT_MERGE_REVIEW_REQUIRED');
+            }
+            $fields[] = 'wordpress_user_id = :wp_user';
+            $params[':wp_user'] = $wordpressUserId;
+        }
+        if ($stripeCustomerId !== null) {
+            $row = $this->findByCustomerId($customerId);
+            if ($row !== null && $row['stripe_customer_id'] !== null
+                && !hash_equals((string) $row['stripe_customer_id'], $stripeCustomerId)) {
+                throw new DomainException('ACCOUNT_MERGE_REVIEW_REQUIRED');
+            }
+            $fields[] = 'stripe_customer_id = :stripe';
+            $params[':stripe'] = $stripeCustomerId;
+        }
+        if ($fields === []) {
+            return;
+        }
+        $fields[] = 'updated_at = :updated';
+        $params[':updated'] = $now;
+        $setClause = implode(', ', $fields);
+        $this->db->prepare("UPDATE {$table} SET {$setClause} WHERE edd_customer_id = :customer")->execute($params);
+    }
+
+    private static function uuid(): string
+    {
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
+    }
+
     private function replay(string $key, string $operation, string $digest): ?array
     {
         $table = $this->schema->table('wpuiai_authority_account_idempotency');
