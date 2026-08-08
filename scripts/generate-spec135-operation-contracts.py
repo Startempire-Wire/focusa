@@ -21,6 +21,42 @@ RECOVERY_OPERATION_IDS = {
     "focusa.license.validate",
 }
 
+SPEC172_FAMILY_CLASSIFICATION = {
+    "project": "manual_project",
+    "project_interview": "manual_mission",
+    "project_role_profile": "manual_mission",
+    "mission_canvas": "manual_mission",
+    "spec_workbench": "manual_mission",
+    "task_plan": "manual_mission",
+    "interview_strategy": "manual_mission",
+    "state": "manual_focus_state",
+    "trajectory": "manual_trajectory",
+    "agent": "manual_workpoint",
+    "work_loop": "manual_workpoint",
+    "work_rail": "manual_workpoint",
+    "workpoint": "manual_workpoint",
+    "turn": "manual_workpoint",
+    "events": "manual_workpoint",
+    "workspace_artifact": "manual_basic_evidence",
+    "awareness": "manual_basic_evidence",
+    "bloatgaurd": "manual_basic_evidence",
+    "call_stack": "manual_basic_evidence",
+    "context": "manual_basic_evidence",
+    "context_cognition": "manual_basic_evidence",
+    "dxux": "manual_basic_evidence",
+    "evidence": "manual_basic_evidence",
+    "lineage": "manual_basic_evidence",
+    "memory": "manual_basic_evidence",
+    "metacognition": "manual_basic_evidence",
+    "prediction": "manual_basic_evidence",
+    "resource": "manual_basic_evidence",
+    "traverse": "manual_basic_evidence",
+}
+
+
+def spec172_family(descriptor):
+    return SPEC172_FAMILY_CLASSIFICATION.get(descriptor["family"])
+
 
 def operation_policy(descriptor):
     """Derive closed Spec 152F policy metadata for one registry operation."""
@@ -54,6 +90,7 @@ def operation_policy(descriptor):
         "recovery_allowance": recovery_allowance,
         "source_owner": descriptor["ownership"]["subsystem"],
         "policy_owner": POLICY_OWNER,
+        "spec172_family": spec172_family(descriptor),
     }
 
 

@@ -17,6 +17,7 @@ pub mod license_migration;
 
 pub use entitlement_policy::{
     base_product_compatibility_projection, embedded_entitlement_policy_registry,
+    is_focusa_verified_no_license_family_allowed,
     reduce_entitlement_state, resolve_base_focusa_product, AccessPosture, BaseProductDecision,
     CapabilityFamily, CommercialTreatment, CompositeGrant, DecisionReason,
     EmbeddedEntitlementPolicyRegistry, EntitlementPolicyPosture, EntitlementPolicyRegistryError,
@@ -25,6 +26,10 @@ pub use entitlement_policy::{
     PolicyEntitlementState, ProductCode, RecoveryAllowance, RequiredFeature,
     ResolvedEntitlementPolicy, ResourceRight, SaleStatus, SharedNodeLimit,
     BASE_PRODUCT_CORE_COMPATIBILITY_IDS,
+    SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
+    SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
+    SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
+    SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
 };
 pub mod uiai_child_token;
 

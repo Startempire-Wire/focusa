@@ -305,3 +305,55 @@ fn entitlement_policy_types_reject_illegal_combinations() {
         Err(EntitlementPolicyTypeError::FeatureReasonMismatch)
     );
 }
+
+#[test]
+fn spec172_no_license_family_classifier_focusa_is_allowlist_backed_and_fail_closed() {
+    assert!(
+        is_focusa_verified_no_license_family_allowed("focusa", "manual_project", 1)
+    );
+    assert!(!is_focusa_verified_no_license_family_allowed(
+        "focusa",
+        "manual_project",
+        2,
+    ));
+    for family in SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES.iter().copied() {
+        if family != "manual_project" {
+            assert!(
+                is_focusa_verified_no_license_family_allowed("focusa", family, 1),
+                "focusa family {family} should be allowed"
+            );
+        }
+    }
+    for family in SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES {
+        assert!(
+            !is_focusa_verified_no_license_family_allowed("focusa", family, 1),
+            "focusa blocked family {family} must deny"
+        );
+    }
+    assert!(!is_focusa_verified_no_license_family_allowed(
+        "focusa",
+        "unlicensed_experimentation",
+        0,
+    ));
+}
+
+#[test]
+fn spec172_no_license_family_classifier_uiai_is_product_boundaryed() {
+    for family in SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES {
+        assert!(
+            is_focusa_verified_no_license_family_allowed("uiai_engine", family, 0),
+            "uiai allowed family {family} should be allowed"
+        );
+    }
+    for family in SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES {
+        assert!(
+            !is_focusa_verified_no_license_family_allowed("uiai_engine", family, 0),
+            "uiai blocked family {family} must deny"
+        );
+    }
+    assert!(!is_focusa_verified_no_license_family_allowed(
+        "unknown_product",
+        "manual_project",
+        1,
+    ));
+}

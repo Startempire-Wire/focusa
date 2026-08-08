@@ -1,0 +1,39 @@
+Spec 172.03.03 no-license family inheritance and Operator defaults acceptance record
+Work item: focusa-vbcqu.20.15.20
+Title: Enforce no-license family allowlist and Operator inheritance defaults
+
+Exact modified surfaces
+- crates/focusa-license/src/entitlement_policy.rs
+- crates/focusa-license/src/entitlement_policy_tests.rs
+- crates/focusa-license/src/lib.rs
+- scripts/generate-spec135-operation-contracts.py
+- docs/contracts/spec135/generated-contract-v1/operation-registry.json
+- crates/focusa-license/tests/spec172_family_inheritance.rs
+- tests/spec172_family_inheritance_test.py
+
+Bounded behavior changes
+- Added deterministic Spec 172 helper `is_focusa_verified_no_license_family_allowed(product, family, mutable_project_count)`.
+- Added explicit Focusa/UIAI allowlist and blocked-family constants from the `spec172-verified-limited-access` contract.
+- Enforced fail-closed defaults in classifier semantics (manual_project requires `mutable_project_count <= 1`, unknown/blocked/unknown product denies).
+- Added coverage in unit tests and integration tests for Focusa and uiai boundaries plus negative vectors.
+- Extended operation-policy generation with deterministic `spec172_family` annotations on registry operations.
+- Added `spec172_family` checks to the new `tests/spec172_family_inheritance_test.py`.
+
+Verification
+1) python3 tests/spec172_family_inheritance_test.py
+   - exit code: 0
+   - output: Spec172 family inheritance gate passed
+   - focusa_allowed=6
+   - uiai_allowed=6
+   - operation_count=108
+   - spec172_family_coverage=108
+2) cargo test -p focusa-license spec172_family_inheritance
+   - exit code: 0
+   - spec172_family_inheritance_classifier_focusa_is_allowlist_driven_and_closed ... ok
+   - spec172_family_inheritance_classifier_uiai_is_product_specific ... ok
+   - spec172_family_inheritance_registry_is_fail_closed_default ... ok
+
+Operational notes
+- `docs/contracts/spec135/generated-contract-v1/operation-registry.json` regenerated via
+  `python3 scripts/generate-spec135-operation-contracts.py --write`.
+- Evidence is stored under this file only and does not include any hidden or private fields.

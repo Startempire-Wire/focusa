@@ -1355,6 +1355,76 @@ pub fn base_product_compatibility_projection(
     projected
 }
 
+/// Deterministic Spec 172 verified-no-license family classifier.
+///
+/// The posture is explicit allowlist-driven and fail-closed:
+/// - blocked families are denied for their product.
+/// - unknown families are denied.
+/// - focusa manual_project mutations are allowed only while the mutable project
+///   count remains at most one.
+pub fn is_focusa_verified_no_license_family_allowed(
+    product: &str,
+    family: &str,
+    mutable_project_count: usize,
+) -> bool {
+    match product {
+        "focusa" => {
+            if SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES.contains(&family) {
+                return false;
+            }
+            if family == "manual_project" {
+                return mutable_project_count <= 1;
+            }
+            SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES
+                .iter()
+                .any(|allowed| *allowed == family)
+        }
+        "uiai_engine" => {
+            SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES
+                .iter()
+                .any(|allowed| *allowed == family)
+                && !SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES
+                    .iter()
+                    .any(|blocked| *blocked == family)
+        }
+        _ => false,
+    }
+}
+
+pub const SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES: [&str; 6] = [
+    "manual_project",
+    "manual_mission",
+    "manual_focus_state",
+    "manual_workpoint",
+    "manual_trajectory",
+    "manual_basic_evidence",
+];
+
+pub const SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES: [&str; 4] = [
+    "automation",
+    "team_remote",
+    "release_proof",
+    "premium_updates",
+];
+
+pub const SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES: [&str; 6] = [
+    "public_search",
+    "source_to_markdown",
+    "public_page_read",
+    "accessibility_snapshot",
+    "screenshot",
+    "basic_diagnostics",
+];
+
+pub const SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES: [&str; 6] = [
+    "browser_action",
+    "browser_persistence",
+    "authenticated_private_targets",
+    "unattended_browser_automation",
+    "scheduled_batch_qa",
+    "premium_hosted_resources",
+];
+
 /// Authority-owned feature identifiers for each of the four optional premium
 /// families. The operation policy supplies the family and its canonical feature
 /// identifier; callers never supply a grant or expand these sets.
