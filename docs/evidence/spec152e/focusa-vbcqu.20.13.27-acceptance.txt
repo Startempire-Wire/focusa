@@ -1,0 +1,90 @@
+Spec 152E install.focusa.dev activation facade acceptance evidence
+Work item: focusa-vbcqu.20.13.27
+Title: 152E.03.03 Implement install.focusa.dev activation facade
+Scope: install-site routes/pages for activation start, verify, offers, checkout,
+existing license, poll, refresh, nodes, and account links; authority proxy only
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md;
+Specs 152, 150A, 152A-D; Spec 158 implementation excluded.
+Implementation commit: 8594d34da64df9cca35f4b6249d1e29e8061ad45
+Immutable result handle: git:8594d34da64df9cca35f4b6249d1e29e8061ad45:docs/evidence/spec152e/focusa-vbcqu.20.13.27-acceptance.txt
+
+Exact surfaces (this atom only)
+- docs/contracts/spec152e-install-facade-routes.v1.php
+- tests/fixtures/spec152e/install-facade-integration-fixtures.v1.json
+- tests/spec152e_install_facade_test.php
+- docs/evidence/spec152e/focusa-vbcqu.20.13.27-acceptance.txt
+
+Bounded result
+- Added FocusaSpec152eInstallFacadeRoutes, the install.focusa.dev activation
+  facade plugin/routes contract. Nine named install-site surfaces (activation
+  start, verify, offers, checkout, existing license, poll, refresh, nodes, and
+  account links) map to eleven authority proxy actions: activation_start,
+  activation_verify, activation_offers, activation_select_offer,
+  activation_checkout, activation_existing_license, activation_poll,
+  lease_refresh, nodes_list, nodes_deactivate, and account_manage_link.
+- Every install-site page+method resolves to the registered focusa_install_v1
+  facade path (registry paths for verification/checkout/manage and the six
+  success/cancel/recovery render pages) and to an exact /v1/ authority proxy
+  route from the facade registry. There is no local issuance route; every
+  operation derives from a WPUIAI.com EDD authority response.
+- Proxy requests are server-owned: facade_id, origin, and product_code come
+  from the registry binding, never from the caller; operation inputs are the
+  exact call-stack allowlists; identity, commerce, product, price, grant,
+  limit, credential, and redirect fields are rejected (FACADE_REQUEST_FIELD_DENIED).
+- Responses are masked before render: only bounded public fields pass through;
+  raw email, license keys, credentials, card data, and internal EDD records
+  are never forwarded. When the upstream authority is unavailable the facade
+  fails closed with a bounded health/recovery envelope (AUTHORITY_UNAVAILABLE,
+  retry, recovery-only posture, safe recovery link) and never issues a local
+  license, node, or lease.
+- Added the integration fixture
+  tests/fixtures/spec152e/install-facade-integration-fixtures.v1.json: the nine
+  surfaces, six render pages, and positive/negative check inventory; synthetic
+  only, containing no secrets, real email addresses, or license-shaped evidence.
+
+Exact verification (exit codes)
+1. php tests/spec152e_install_facade_test.php — exit 0.
+   Bounded result: {"schema":"focusa.spec152e.install_facade_php_validation.v1","surfaces":9,"actions":11,"positive_checks":105,"negative_checks":48,"result":"passed_fail_closed"}
+   Positive: every install surface resolves to the registered facade page and
+   proxies to the authority route only; server-owned bindings; call-stack
+   operation inputs; masked authority responses; bounded outage recovery.
+   Negative: unknown page, method mismatch, unregistered origin, unknown
+   product, local issuance action absent/rejected, caller EDD/price/grant/
+   credential fields denied, missing required input denied, unmasked email
+   never produced, and fixture hygiene (no secrets, no real emails, no
+   license-shaped values).
+
+Regression checks (exit codes)
+- python3 scripts/generate-spec152e-facade-registry.py --check — exit 0:
+  generated facade registry contracts are current
+  ({"facades":6,"exact_origins":6,"proxy_routes":11,"result":"passed"}).
+- php tests/spec152e_facade_registry_test.php — exit 0.
+- php tests/spec152e_facade_protocol_test.php — exit 0.
+- php tests/spec152e_facade_security_test.php — exit 0.
+- python3 tests/spec152e_facade_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_golden_vector_test.py — exit 0.
+- node tests/spec152e_website_registration_test.mjs — exit 0.
+
+Tests added
+- tests/spec152e_install_facade_test.php (exact verification, 105 positive /
+  48 negative checks across the nine named surfaces and eleven actions).
+
+Acceptance criteria
+- All install-site operations derive from WPUIAI authority responses and local
+  direct issuance is unreachable: verified (no local issuance route; every
+  action resolves to a /v1/ authority proxy route; outage returns a bounded
+  recovery envelope without issuing anything).
+- All named positive and negative checks pass: verified with the exit codes
+  above; diff contains only the named surfaces; generated contracts are
+  current (registry --check passes); secrets and unmasked real email are
+  absent (fixture hygiene checks and masked-response checks pass); evidence is
+  replayable from the pinned commit.
+
+Rollback
+Revert only this atom's commit: docs/contracts/spec152e-install-facade-routes.v1.php,
+tests/fixtures/spec152e/install-facade-integration-fixtures.v1.json,
+tests/spec152e_install_facade_test.php, and this evidence file. Preserve EDD
+customer/order/refund truth, verified identities, licenses, nodes, sequences,
+credentials, Workpoints, Evidence, and migration journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.
