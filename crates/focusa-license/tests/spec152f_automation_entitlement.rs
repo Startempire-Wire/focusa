@@ -38,7 +38,6 @@ fn spec152f_automation_entitlement_non_premium_families_return_empty_features() 
         Family::AccountRecovery,
         Family::ReadProjection,
         Family::BaseFocusa,
-        Family::CustomerDataExport,
         Family::InternalMaintenance,
     ] {
         assert!(
@@ -46,6 +45,9 @@ fn spec152f_automation_entitlement_non_premium_families_return_empty_features() 
             "{family:?} must not have premium features"
         );
     }
+    // CustomerDataExport carries the optional focusa.export.packaged premium
+    // feature for value-added packaging; basic export is always available.
+    assert!(!premium_family_feature_ids(Family::CustomerDataExport).is_empty());
 }
 
 #[test]

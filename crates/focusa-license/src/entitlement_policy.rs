@@ -1544,9 +1544,13 @@ pub const PREMIUM_UPDATES_PREMIUM_FEATURE_IDS: &[&str] = &[
     "focusa.install.channel.preview",
     "focusa.update.unattended",
 ];
+pub const CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS: &[&str] = &[
+    "focusa.export.packaged",
+];
 
 /// Return the exact registered feature identifiers for one optional family.
-/// Non-premium families intentionally return an empty set and cannot be
+/// Non-premium families (except CustomerDataExport which carries an optional
+/// premium packaging feature) intentionally return an empty set and cannot be
 /// promoted by a caller into an optional feature decision.
 pub const fn premium_family_feature_ids(family: CapabilityFamily) -> &'static [&'static str] {
     match family {
@@ -1554,6 +1558,7 @@ pub const fn premium_family_feature_ids(family: CapabilityFamily) -> &'static [&
         CapabilityFamily::TeamRemote => TEAM_REMOTE_PREMIUM_FEATURE_IDS,
         CapabilityFamily::ReleaseProof => RELEASE_PROOF_PREMIUM_FEATURE_IDS,
         CapabilityFamily::PremiumUpdates => PREMIUM_UPDATES_PREMIUM_FEATURE_IDS,
+        CapabilityFamily::CustomerDataExport => CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS,
         _ => &[],
     }
 }
@@ -1706,6 +1711,87 @@ where
             family,
             feature,
         });
+    }
+
+    let offline_cached = snapshot.state == crate::authority::EntitlementState::OfflineGrace;
+    if offline_cached {
+        let Some(grace_until) = snapshot.offline_grace_until else {
+            return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingCachedGrantExpiry);
+        };
+        if now > grace_until {
+            return PremiumFamilyDecision::Denied(PremiumFamilyDenial::CachedGrantExpired);
+        }
+    } else if snapshot
+        .expires_at
+        .is_some_and(|expires_at| now > expires_at)
+    {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::ActiveLeaseExpired);
+    }
+
+    if !snapshot
+        .features
+        .get(feature.as_str())
+        .copied()
+        .unwrap_or(false)
+    {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingFeature {
+            family,
+            feature,
+        });
+    }
+
+    PremiumFamilyDecision::Feature {
+        family,
+        required_feature: feature,
+        lease_sequence,
+        offline_cached,
+    }
+}
+
+/// Resolve an export-packaged premium feature from one verified authority
+/// snapshot. Basic customer-data export is always available through the
+/// `CustomerDataExport` recovery allowance; this function gates only the
+/// optional value-added hosted packaging/transformation/report formats
+/// behind `focusa.export.packaged`.
+///
+/// `now` is explicit so Offline Grace cannot be extended by a caller or by a
+/// cached local flag. The function reuses the same premium-family resolution
+/// path, but the base product gate is intentionally not required here: basic
+/// export is always available, and this function only gates the additive
+/// premium packaging feature.
+pub fn resolve_export_packaged<F>(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    required_feature: F,
+    now: DateTime<Utc>,
+) -> PremiumFamilyDecision
+where
+    F: AsRef<str>,
+{
+    let family = CapabilityFamily::CustomerDataExport;
+
+    let feature_name = required_feature.as_ref().to_string();
+    let Ok(feature) = RequiredFeature::new(feature_name.clone()) else {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::InvalidRequiredFeature {
+            feature: feature_name,
+        });
+    };
+    if !CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS
+        .iter()
+        .any(|registered| *registered == feature.as_str())
+    {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::FeatureNotRegistered {
+            family,
+            feature,
+        });
+    }
+
+    let Some(lease_sequence) = snapshot.sequence.filter(|sequence| *sequence > 0) else {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingLeaseSequence);
+    };
+    if snapshot.lease_id.as_deref().is_none_or(str::is_empty)
+        || snapshot.lease_digest.as_deref().is_none_or(str::is_empty)
+    {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingLeaseBinding);
     }
 
     let offline_cached = snapshot.state == crate::authority::EntitlementState::OfflineGrace;
