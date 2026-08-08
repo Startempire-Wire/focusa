@@ -1,0 +1,42 @@
+{
+  "schema": "focusa.workspace_artifact_descriptor.v1",
+  "artifact_id": "artifact:uiai:browser:analysis-session",
+  "artifact_kind": "browser_snapshot",
+  "title": "Focusa operator evidence snapshot",
+  "before_ref": "artifact-ref:before:uiai:analysis",
+  "after_ref": "artifact-ref:after:uiai:analysis",
+  "evidence_refs": [
+    "evidence:uiai:analysis:1",
+    "evidence:uiai:analysis:2"
+  ],
+  "summary": "Structured DOM snapshot for isolated UIAI session context with preserved artifact provenance.",
+  "changes": [
+    "captured snapshot for isolated task context",
+    "preserved browser context identity",
+    "linked evidence candidates"
+  ],
+  "citations": [
+    {
+      "citation_ref": "citation:uiai:analysis",
+      "source_origin": "uiai:snapshot-session-01",
+      "authoritative": true
+    }
+  ],
+  "provenance": {
+    "source_kind": "uiai",
+    "harvested_at": "2026-07-30T12:00:00Z",
+    "uiai_session_ref": "uiai:session:analysis-01",
+    "browser_context_ref": "context:uiai:analysis-01"
+  },
+  "project_root": "/example/focusa",
+  "continuity_id": "continuity:mission-canvas",
+  "session_origin": "uiai:analysis-session",
+  "attachment_id": "attachment:uiai:analysis",
+  "freshness": "live",
+  "authority": "uiai-owned; focusa-scoped",
+  "vertical_dispatch": "Research",
+  "render_safe": true,
+  "redacted": false,
+  "artifact_handle": "artifact:uiai:analysis:handle",
+  "external_open_ref": "uiai-browser:session=analysis-01"
+}
