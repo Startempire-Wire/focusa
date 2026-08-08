@@ -1,0 +1,113 @@
+{
+  "authority": {
+    "canonical": "WPUIAI.com EDD",
+    "facade_role": "registered_branded_facade_and_bounded_proxy_only",
+    "spec158": "excluded"
+  },
+  "content_type_policy": {
+    ".ps1": "application/x-powershell",
+    ".sh": "application/x-sh"
+  },
+  "convenience_urls": [
+    {
+      "content_type": "application/x-sh",
+      "route": "/focusa",
+      "status": 200,
+      "target": "/installers/install-focusa.sh",
+      "trust": {
+        "inventory_id": "installer.unix",
+        "kind": "repository_verified",
+        "repository_path": "scripts/install-focusa.sh",
+        "sha256": "54a0968bf6c111f9346843fb496ee243cfa76b1449cc52e4bc04301dba9c23e0"
+      }
+    },
+    {
+      "content_type": "application/x-sh",
+      "route": "/bundle",
+      "status": 200,
+      "target": "/installers/install-bundle.sh",
+      "trust": {
+        "inventory_id": "installer.bundle",
+        "kind": "deployed_only_pinned",
+        "sha256": "16cb3944c969d5c3bd7c9cb73b3a30161ada1c2a1ab7282811f038c114904912"
+      }
+    },
+    {
+      "content_type": "application/x-sh",
+      "route": "/engine",
+      "status": 200,
+      "target": "/installers/install-engine.sh",
+      "trust": {
+        "inventory_id": "installer.engine",
+        "kind": "deployed_only_pinned",
+        "sha256": "d4419dcb01c61e2143f231e3f0b550387d4d42ec0b91747811b3aee1a1233fba"
+      }
+    },
+    {
+      "content_type": "application/x-powershell",
+      "route": "/powershell",
+      "status": 200,
+      "target": "/installers/install-focusa.ps1",
+      "trust": {
+        "inventory_id": "installer.windows",
+        "kind": "repository_verified",
+        "repository_path": "scripts/install-focusa.ps1",
+        "sha256": "8a6e5ce4796dbf1279b3f0e6331c04b741d132c176c986e57c4425aeb71b61ae"
+      }
+    }
+  ],
+  "counts": {
+    "convenience_urls": 4,
+    "deployed_only_pinned": 2,
+    "repository_verified": 2,
+    "transactional_links": 5
+  },
+  "invariants": [
+    "every advertised URL resolves to an exact verified asset or registered facade page",
+    "no advertised URL returns 404 and no unsafe redirect remains",
+    "content type and sha256 trust metadata are preserved for every verified asset",
+    "facade paths are stable through version changes and equal the registered facade paths",
+    "the manifest contains no credentials secrets or unmasked email addresses"
+  ],
+  "manifest_version": 1,
+  "origin": "https://install.focusa.dev",
+  "owner": "focusadev/install.focusa.dev",
+  "removed_stale": [
+    "advertised /focusa convenience URL previously returned 404 and is repaired to the verified installer asset",
+    "advertised /bundle convenience URL previously returned 404 and is repaired to the verified installer asset",
+    "stale installer/email link instructions that referenced versioned or broken routes are removed"
+  ],
+  "schema": "focusa.spec152e.installer_route_manifest.v1",
+  "stability": {
+    "asset_trust_is_pinned_by_sha256": true,
+    "convenience_urls_are_stable_aliases": true,
+    "facade_paths_never_embed_version_segments": true
+  },
+  "transactional_links": {
+    "manage": {
+      "facade_path_key": "manage",
+      "path": "/account",
+      "status": 200
+    },
+    "pay": {
+      "facade_path_key": "checkout",
+      "path": "/activate/checkout",
+      "status": 200
+    },
+    "recovery": {
+      "facade_path_key": "recovery",
+      "path": "/activate/recovery",
+      "status": 200
+    },
+    "success": {
+      "facade_path_key": "success",
+      "path": "/activate/success",
+      "status": 200
+    },
+    "verify": {
+      "facade_path_key": "verification",
+      "path": "/activate/verify",
+      "status": 200
+    }
+  }
+}
