@@ -86,6 +86,8 @@ try {
     await exerciseDraftGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.recomposition.evidence.get') {
     await exerciseRecompositionEvidenceGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.recipient.resolve') {
+    await exerciseRecipientResolve({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.events.stream') {
     await exerciseEventsStream({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, server });
   } else {
@@ -2725,6 +2727,51 @@ async function exerciseHostFocus({ MissionCanvasClient, MissionCanvasHttpTranspo
   );
 
   console.log('Mission Canvas operation consumer: PASS (generated rich_hostFocus, exact Workstream POST, existing Desktop focus, canonical activity preservation, foreign authority/renderer, missing authority, capability/permission denial, stale lifecycle, and hostile response checks)');
+}
+
+async function exerciseRecipientResolve({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  assert.ok(authority.attachment, 'recipient.resolve fixture requires exact attachment authority');
+  const resolution = {
+    schema: 'focusa.mission_canvas.recipient_resolution.v1',
+    ...structuredClone(authority),
+    attachment: structuredClone(authority.attachment),
+    recipient_ref: `recipient:session:${authority.attachment.session_id}`,
+    routable: true
+  };
+  let responseBody = structuredClone(resolution);
+  const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(responseBody), { status: 200 })
+  );
+  const client = new MissionCanvasClient(transport);
+  const result = await client.recipientResolve({ ...structuredClone(authority), recipient_ref: resolution.recipient_ref });
+  assert.equal(result.routable, true);
+  assert.equal(result.schema, 'focusa.mission_canvas.recipient_resolution.v1');
+
+  responseBody = structuredClone(resolution);
+  responseBody.workstream.workstream_id = 'ws:foreign';
+  if (responseBody.attachment) responseBody.attachment.workstream.workstream_id = 'ws:foreign';
+  await assert.rejects(
+    () => client.recipientResolve({ ...structuredClone(authority), recipient_ref: resolution.recipient_ref }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:scope_mismatch'
+  );
+
+  responseBody = { ...structuredClone(resolution), schema: 'invented' };
+  await assert.rejects(
+    () => client.recipientResolve({ ...structuredClone(authority), recipient_ref: resolution.recipient_ref }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:schema'
+  );
+
+  responseBody = { ...structuredClone(resolution), recipient_ref: '' };
+  await assert.rejects(
+    () => client.recipientResolve({ ...structuredClone(authority), recipient_ref: '' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:missing:recipient_ref'
+  );
+
+  responseBody = { ...structuredClone(resolution), routable: false };
+  await assert.rejects(
+    () => client.recipientResolve({ ...structuredClone(authority), recipient_ref: resolution.recipient_ref }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:not_routable'
+  );
 }
 
 async function exerciseRecompositionEvidenceGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
