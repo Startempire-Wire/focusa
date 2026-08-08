@@ -660,6 +660,15 @@ mod tests {
             resolve_base_focusa_product("focusa-premium", PolicyEntitlementState::ActivePaid),
             BaseProductDecision::Denied
         );
+        // Product identity is exact; normalization cannot turn caller input
+        // into an authority-owned Focusa product grant.
+        for product in ["FOCUSA", " focusa", "focusa ", "focusa/operator"] {
+            assert_eq!(
+                resolve_base_focusa_product(product, PolicyEntitlementState::ActivePaid),
+                BaseProductDecision::Denied,
+                "non-canonical product identity must fail closed: {product:?}"
+            );
+        }
     }
 
     #[test]

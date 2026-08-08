@@ -1322,7 +1322,10 @@ pub fn resolve_base_focusa_product(
     product: &str,
     state: PolicyEntitlementState,
 ) -> BaseProductDecision {
-    if !product.trim().eq_ignore_ascii_case("focusa") {
+    // Product codes are authority-owned canonical identifiers. Do not normalize
+    // caller-provided values: whitespace, casing, aliases, and prefixed names
+    // must never become a product grant at this boundary.
+    if product != "focusa" {
         return BaseProductDecision::Denied;
     }
     match state {
