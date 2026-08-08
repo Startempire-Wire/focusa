@@ -1,0 +1,112 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-016",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "implemented_complete",
+  "result": "Implemented focusa.mission_canvas.rich_host.hide end-to-end with explicit desktop transport path and dedicated Core lifecycle command. Hide now validates exact Workstream authority, idempotency, mission_canvas:host permission, and durable lifecycle ownership, transitions visible/focused hosts into hidden/unfocused state while preserving renderer/runtime/process/window/draft context, and emits a host_hidden composition event with projection/layout revisions unchanged. Desktop rejects stale or mismatched lifecycle responses and renderer/presentation mismatches before adopting state.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "OPS-014"
+    ]
+  },
+  "targets": [
+    "crates/focusa-core/src/mission_canvas/host.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/tests/operation-consumer-runtime.mjs",
+    "tests/spec135_mission_canvas_operation_contract_test.py"
+  ],
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.rich_host.hide",
+    "method": "POST",
+    "path": "/v1/mission-canvas/rich-host/hide",
+    "scope_required": [
+      "workstream"
+    ],
+    "scope_optional": [
+      "continuity_id",
+      "attachment",
+      "workspace_binding_id",
+      "runtime_object",
+      "work_surface_id"
+    ],
+    "permissions_required": [
+      "mission_canvas:host"
+    ],
+    "request_schema_ref": "focusa.mission_canvas.rich_host_command.v1",
+    "response_schema_ref": "HostLifecycleState",
+    "client_method": "rich_hostHide",
+    "artifact_status": "Canonical registry/openapi/client/validator contracts already contained this operation; implementation bound only destination assets."
+  },
+  "presentation_contract": {
+    "interaction_mode": "canvas-guided",
+    "host_renderer": "focusa_desktop_tauri",
+    "canonical_runtime": "Focusa Core remains canonical lifecycle owner; Desktop is the generated rich-host renderer",
+    "terminal_fallback_required": false,
+    "omitted_features": "No Pi-local composition rewrite; hide preserves existing process/window/pi/canvas/last_error context and projection/layout revision behavior (unchanged revisions)."
+  },
+  "implementation": [
+    "Added HostLifecycleHideCommand and exported RICH_HOST_HIDE_OPERATION in focusa-core mission_canvas module.",
+    "HostLifecycleService::hide persists hidden lifecycle state via mission_canvas_host_lifecycle with idempotency replay semantics; returns PresentationNotFound/PresentationUnavailable when lifecycle absent/unusable and idempotent repeat when same key and already hidden/focused=false.",
+    "Hide preserves all prior presentation context (process_id, window_id, drafts, renderer_resolution), increments lifecycle_revision, sets durable_event_cursor to event:pending, and emits a host_hidden composition event with payload.operation_id=focusa.mission_canvas.rich_host.hide.",
+    "API now exposes POST /v1/mission-canvas/rich-host/hide in mission_canvas router and maps generated request to HostLifecycleService::hide using mission_canvas:host permission and generated context/permission/capability extraction.",
+    "Desktop transport now includes hide-specific response validation: must receive state=hidden, focused=false, and selected_renderer=focusa_desktop_tauri before accepting HostLifecycleState.",
+    "Operation contract test now includes focused assertions for route/core/operation/transport markers, and generated consumer exercise now includes full positive/negative path coverage for missing idempotency, foreign workstream/renderer, hostile states, stale revision/cursor, and transport failures."
+  ],
+  "checks": [
+    {
+      "command": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+      "result": "pass",
+      "notes": "25 schema files, 25 operation entries, 10 derived artifacts, parity/determinism pass"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.rich_host.hide",
+      "result": "pass",
+      "notes": "registry, route, generated contract, core, transport, and consumer assertions all pass"
+    },
+    {
+      "command": "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.rich_host.hide --client rich_hostHide",
+      "result": "pass",
+      "notes": "happy path + hostile mismatches/authority/transport checks for hide operation pass"
+    },
+    {
+      "command": "rustfmt --edition 2021 --check crates/focusa-core/src/mission_canvas/host.rs crates/focusa-core/src/mission_canvas/mod.rs crates/focusa-api/src/routes/mission_canvas.rs",
+      "result": "pass"
+    },
+    {
+      "command": "node --check apps/desktop/tests/operation-consumer-runtime.mjs",
+      "result": "pass"
+    }
+  ],
+  "negative_cases": [
+    "foreign lifecycle scope rejected with foreign_lifecycle_scope before merge",
+    "missing nested renderer_workstream rejected with invalid_response:missing:renderer_resolution_workstream",
+    "foreign renderer rejected with invalid_response:hide_renderer",
+    "wrong state rejected with invalid_response:hide_state",
+    "stale lifecycle_revision rejected as stale_lifecycle_revision",
+    "stale durable_event_cursor rejected as stale_lifecycle_cursor",
+    "invalid host_instance_id rejected with invalid_response:host_instance_id",
+    "missing idempotency_key rejected locally before HTTP"
+  ],
+  "acceptance": [
+    "/v1/mission-canvas/rich-host/hide is implemented and reachable through generated MissionCanvasClient.rich_hostHide.",
+    "Hide transitions persisted host lifecycle to hidden/unfocused for exact Mission Canvas scope and returns HostLifecycleState with exact authority and durable lifecycle fields.",
+    "Mismatched or stale responses are fail-closed at Desktop boundary; no local composition inference or Pi-side process spawning is introduced."
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "crates/focusa-core/src/mission_canvas/host.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs"
+  ],
+  "remaining_work": [],
+  "deferred_repository_observation": "Cargo-based Rust checks were intentionally not run per project scope constraint; required Spec 135 packet commands and rustfmt passed."
+}

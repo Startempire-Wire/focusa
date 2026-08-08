@@ -24,6 +24,7 @@ use super::{
 pub const RICH_HOST_RESOLVE_OPERATION: &str = "focusa.mission_canvas.rich_host.resolve";
 pub const RICH_HOST_LAUNCH_OPERATION: &str = "focusa.mission_canvas.rich_host.launch";
 pub const RICH_HOST_FOCUS_OPERATION: &str = "focusa.mission_canvas.rich_host.focus";
+pub const RICH_HOST_HIDE_OPERATION: &str = "focusa.mission_canvas.rich_host.hide";
 pub const RICH_HOST_PERMISSION: &str = "mission_canvas:host";
 /// Capability advertised by the generated Desktop host client.  The short
 /// alias is retained because existing capability projections use
@@ -186,6 +187,17 @@ pub struct HostLifecycleFocusCommand {
     pub permissions: BTreeSet<String>,
 }
 
+/// Exact generated input for the hide mutation.  Hiding transitions a persisted
+/// presentation into the background without closing process ownership or drafts.
+#[derive(Clone, Debug)]
+pub struct HostLifecycleHideCommand {
+    pub context: WorkstreamContext,
+    pub scope: MissionCanvasScope,
+    pub idempotency_key: String,
+    pub capabilities: BTreeSet<String>,
+    pub permissions: BTreeSet<String>,
+}
+
 #[derive(Debug, Error)]
 pub enum HostLifecycleError {
     #[error("rich-host Workstream context is invalid: {0}")]
@@ -257,6 +269,115 @@ impl HostLifecycleService {
             ));
         }
         Ok(resolution)
+    }
+
+    pub fn hide(
+        &self,
+        store: &MissionCanvasStore,
+        command: &HostLifecycleHideCommand,
+        platform: HostPlatform,
+    ) -> Result<HostLifecycleState, HostLifecycleError> {
+        let _resolution = self.validate(command, platform)?;
+        let host_instance_id = stable_host_instance_id(&command.scope)?;
+        let document_id = format!("host:{host_instance_id}");
+        let existing = store.get_document(
+            "mission_canvas_host_lifecycle",
+            &command.scope,
+            &document_id,
+        )?;
+        let Some(document) = existing else {
+            return Err(HostLifecycleError::PresentationNotFound);
+        };
+        let (previous_state, previous_idempotency_key) =
+            lifecycle_document(&document, &command.scope)?;
+        if previous_state.lifecycle_revision != document.revision {
+            return Err(HostLifecycleError::InvalidDocument(
+                "document revision does not match lifecycle revision".into(),
+            ));
+        }
+        if previous_state.host_instance_id != host_instance_id {
+            return Err(HostLifecycleError::InvalidDocument(
+                "host instance is not derived from the exact Workstream scope".into(),
+            ));
+        }
+        if matches!(
+            previous_state.state.as_str(),
+            "absent" | "closing" | "failed"
+        ) {
+            return Err(HostLifecycleError::PresentationUnavailable(
+                previous_state.state.clone(),
+            ));
+        }
+        if previous_idempotency_key == command.idempotency_key {
+            if previous_state.state == "hidden" && !previous_state.focused {
+                return Ok(previous_state);
+            }
+            return Err(HostLifecycleError::IdempotencyConflict);
+        }
+
+        let lifecycle_revision = previous_state
+            .lifecycle_revision
+            .checked_add(1)
+            .ok_or_else(|| {
+                HostLifecycleError::InvalidDocument("lifecycle revision overflow".into())
+            })?;
+        let now = Utc::now().to_rfc3339();
+        let state = HostLifecycleState {
+            scope: command.scope.clone(),
+            host_instance_id: host_instance_id.clone(),
+            renderer_resolution: previous_state.renderer_resolution.clone(),
+            state: "hidden".into(),
+            focused: false,
+            process_id: previous_state.process_id,
+            window_id: previous_state.window_id.clone(),
+            pi_draft_ref: previous_state.pi_draft_ref.clone(),
+            canvas_draft_ref: previous_state.canvas_draft_ref.clone(),
+            last_error_ref: previous_state.last_error_ref.clone(),
+            durable_event_cursor: "event:pending".into(),
+            lifecycle_revision,
+            updated_at: now.clone(),
+        };
+        state
+            .validate_scope(&command.scope)
+            .map_err(HostLifecycleError::Scope)?;
+        let event = CompositionEvent {
+            event_id: format!(
+                "projection-event:rich-host-hide:{}:{}",
+                host_instance_id.replace(':', "-"),
+                digest_fragment(&command.idempotency_key),
+            ),
+            event_kind: "host_hidden".into(),
+            scope: command.scope.clone(),
+            // Hiding changes lifecycle ownership only; canonical composition
+            // revision is unchanged.
+            projection_revision: 0,
+            layout_revision: 0,
+            causation_id: Some(command.idempotency_key.clone()),
+            correlation_id: Some(command.context.authority.authority_ref.clone()),
+            occurred_at: now.clone(),
+            payload: json!({
+                "operation_id": RICH_HOST_HIDE_OPERATION,
+                "host_instance_id": host_instance_id,
+                "renderer": state.renderer_resolution.selected_renderer.clone(),
+                "lifecycle_revision": lifecycle_revision,
+            }),
+            evidence_refs: vec![],
+            receipt_refs: vec![format!("receipt:rich-host-hide:{lifecycle_revision}")],
+        };
+        let document = StoredDocument {
+            document_id,
+            scope: command.scope.clone(),
+            revision: lifecycle_revision,
+            payload: json!({
+                "idempotency_key": command.idempotency_key,
+                "state": state,
+            }),
+            updated_at: now,
+        };
+        let persisted =
+            store.put_idempotent_lifecycle_document(&document, &command.idempotency_key, &event)?;
+        let (persisted_state, _) = lifecycle_document(&persisted, &command.scope)?;
+        Ok(persisted_state)
     }
 
     fn validate_command(

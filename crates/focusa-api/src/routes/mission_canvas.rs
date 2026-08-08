@@ -15,14 +15,14 @@ use focusa_core::mission_canvas::{
     ActivitySelectionCommand, ActivitySelectionError, ActivitySelectionService,
     CandidateContribution, CompositionEvent, CompositionRegistry, DomainPackInstallCommand,
     DomainPackInstallError, DomainPackInstallService, EligibilityContext, HostLifecycleError,
-    HostLifecycleFocusCommand, HostLifecycleLaunchCommand, HostLifecycleService,
-    HostLifecycleState, HostPlatform, HostRendererResolutionError, HostRendererResolutionService,
-    LayoutMemoryUpdateCommand, LayoutMemoryUpdateError, LayoutMemoryUpdateService,
-    LayoutMutationCommand, LayoutMutationError, LayoutMutationExecution, LayoutMutationService,
-    MissionCanvasScope, MissionCanvasStore, ProfileLayoutMemory, ProfileSelectionCommand,
-    ProfileSelectionError, ProfileSelectionService, RegistryDefinition, ResolveProjectionInput,
-    StoredDocument, WorkspaceProfileDefinition, DOMAIN_PACK_INSTALL_CAPABILITY,
-    LAYOUT_MEMORY_UPDATE_PERMISSION,
+    HostLifecycleFocusCommand, HostLifecycleHideCommand, HostLifecycleLaunchCommand,
+    HostLifecycleService, HostLifecycleState, HostPlatform, HostRendererResolutionError,
+    HostRendererResolutionService, LayoutMemoryUpdateCommand, LayoutMemoryUpdateError,
+    LayoutMemoryUpdateService, LayoutMutationCommand, LayoutMutationError, LayoutMutationExecution,
+    LayoutMutationService, MissionCanvasScope, MissionCanvasStore, ProfileLayoutMemory,
+    ProfileSelectionCommand, ProfileSelectionError, ProfileSelectionService, RegistryDefinition,
+    ResolveProjectionInput, StoredDocument, WorkspaceProfileDefinition,
+    DOMAIN_PACK_INSTALL_CAPABILITY, LAYOUT_MEMORY_UPDATE_PERMISSION,
 };
 use focusa_core::workstream_context::{
     ActorRef, ActorType, AuthorityContext, WorkstreamContext, WorkstreamContextError,
@@ -312,6 +312,7 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         .route("/v1/mission-canvas/rich-host/launch", post(launch_host))
         .route("/v1/mission-canvas/rich-host/focus", post(focus_host))
+        .route("/v1/mission-canvas/rich-host/hide", post(hide_host))
         .route(
             "/v1/mission-canvas/rich-host/{action}",
             post(update_host_lifecycle),
@@ -2447,25 +2448,46 @@ async fn focus_host(
     Ok(Json(serde_json::to_value(lifecycle).map_err(json_error)?))
 }
 
+async fn hide_host(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(request): Json<RichHostCommandRequest>,
+) -> ApiResult {
+    require_permission_with_state(&state, &headers, "mission_canvas:host")?;
+    validate_authority(&request.scope)?;
+    let context = host_renderer_workstream_context(&request.scope, &headers)
+        .map_err(host_renderer_context_error)?;
+    let permissions = permission_context(&headers, token_enabled(&state))
+        .list()
+        .into_iter()
+        .collect();
+    let command = HostLifecycleHideCommand {
+        context,
+        scope: request.scope,
+        idempotency_key: request.idempotency_key,
+        capabilities: header_values(&headers, "x-focusa-capabilities"),
+        permissions,
+    };
+    let lifecycle: HostLifecycleState = HostLifecycleService
+        .hide(&store(&state)?, &command, HostPlatform::current())
+        .map_err(host_lifecycle_error)?;
+    Ok(Json(serde_json::to_value(lifecycle).map_err(json_error)?))
+}
+
 async fn update_host_lifecycle(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Path(action): Path<String>,
     Json(mut request): Json<DocumentWriteRequest>,
 ) -> ApiResult {
-    if !matches!(action.as_str(), "launch" | "focus" | "hide" | "close") {
+    if !matches!(action.as_str(), "close") {
         return Err(error(
             StatusCode::NOT_FOUND,
             "host_action_unknown",
             "Unknown rich-host lifecycle action",
         ));
     }
-    request.payload["state"] = json!(match action.as_str() {
-        "launch" => "launching",
-        "focus" => "focused",
-        "hide" => "hidden",
-        _ => "closing",
-    });
+    request.payload["state"] = json!("closing");
     write_document(
         &state,
         &headers,
