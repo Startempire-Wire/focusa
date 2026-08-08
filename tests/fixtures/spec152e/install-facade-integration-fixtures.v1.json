@@ -1,0 +1,107 @@
+{
+  "schema": "focusa.spec152e.install_facade_integration_fixtures.v1",
+  "synthetic_only": true,
+  "facade_id": "focusa_install_v1",
+  "origin": "https://install.focusa.dev",
+  "authority": "WPUIAI.com EDD",
+  "role": "registered_branded_facade_and_bounded_authority_proxy_only",
+  "local_issuance": "unreachable",
+  "products": [
+    "focusa_operator_lifetime_v1",
+    "uiai_operator_lifetime_v1",
+    "focusa_uiai_operator_bundle_lifetime_v1"
+  ],
+  "surfaces": [
+    {
+      "name": "activation_start",
+      "page": "/activate",
+      "actions": [
+        {"action": "activation_start", "method": "POST", "authority_route": "/v1/activation/start"}
+      ]
+    },
+    {
+      "name": "activation_verify",
+      "page": "/activate/verify",
+      "actions": [
+        {"action": "activation_verify", "method": "POST", "authority_route": "/v1/activation/verify"}
+      ]
+    },
+    {
+      "name": "activation_offers",
+      "page": "/activate/offers",
+      "actions": [
+        {"action": "activation_offers", "method": "GET", "authority_route": "/v1/activation/offers"},
+        {"action": "activation_select_offer", "method": "POST", "authority_route": "/v1/activation/select-offer"}
+      ]
+    },
+    {
+      "name": "activation_checkout",
+      "page": "/activate/checkout",
+      "actions": [
+        {"action": "activation_checkout", "method": "POST", "authority_route": "/v1/activation/checkout"}
+      ]
+    },
+    {
+      "name": "activation_existing_license",
+      "page": "/activate/existing",
+      "actions": [
+        {"action": "activation_existing_license", "method": "POST", "authority_route": "/v1/activation/existing-license"}
+      ]
+    },
+    {
+      "name": "activation_poll",
+      "page": "/activate/poll",
+      "actions": [
+        {"action": "activation_poll", "method": "POST", "authority_route": "/v1/activation/poll"}
+      ]
+    },
+    {
+      "name": "lease_refresh",
+      "page": "/activate/refresh",
+      "actions": [
+        {"action": "lease_refresh", "method": "POST", "authority_route": "/v1/lease/refresh"}
+      ]
+    },
+    {
+      "name": "nodes",
+      "page": "/account/nodes",
+      "actions": [
+        {"action": "nodes_list", "method": "GET", "authority_route": "/v1/nodes"},
+        {"action": "nodes_deactivate", "method": "POST", "authority_route": "/v1/nodes/deactivate"}
+      ]
+    },
+    {
+      "name": "account_manage_link",
+      "page": "/account",
+      "actions": [
+        {"action": "account_manage_link", "method": "GET", "authority_route": "/v1/account/manage-link"}
+      ]
+    }
+  ],
+  "render_pages": [
+    "/activate/success",
+    "/activate/cancel",
+    "/activate/recovery",
+    "/activate/callback/success",
+    "/activate/callback/cancel",
+    "/activate/callback/recovery"
+  ],
+  "positive_checks": [
+    "every_install_surface_resolves_to_registered_facade_page",
+    "every_install_surface_proxies_to_authority_route_only",
+    "facade_origin_and_product_are_server_owned_bindings",
+    "operation_inputs_are_exact_call_stack_allowlists",
+    "authority_responses_are_masked_before_render",
+    "upstream_outage_returns_bounded_health_recovery_without_local_issuance"
+  ],
+  "negative_checks": [
+    "unknown_page_denied",
+    "page_method_mismatch_denied",
+    "unregistered_origin_denied",
+    "unknown_product_denied",
+    "local_issuance_route_absent",
+    "client_edd_price_grant_and_credential_fields_denied",
+    "unmasked_email_never_forwarded",
+    "secrets_and_license_shaped_values_absent_from_fixture"
+  ]
+}
