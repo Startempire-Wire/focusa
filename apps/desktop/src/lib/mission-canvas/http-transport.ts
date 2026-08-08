@@ -283,6 +283,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (operationId === 'focusa.mission_canvas.recipient.resolve') {
       validateRecipientResolutionResponse(operationId, response.status, value, authority);
     }
+    if (operationId === 'focusa.mission_canvas.recomposition.receipt.get') {
+      validateRecompositionReceiptResponse(operationId, response.status, value, authority);
+    }
     if (operation.response_schema_ref === 'ResolvedWorkspaceProjection') {
       const watermark = validateProjectionResponse(
         operationId,
@@ -811,6 +814,34 @@ function validateProfileLayoutMemoryResponse(
   }
 
   return { memoryRevision };
+}
+
+function validateRecompositionReceiptResponse(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext
+): void {
+  const receipt = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  if (!receipt) {
+    throw new MissionCanvasTransportError('invalid_response:expected_receipt', operationId, status, value);
+  }
+  const responseAuthority = authorityFromRecord(receipt);
+  const authorityValidation = validateMissionCanvasContract('WorkstreamAuthorityContext', responseAuthority);
+  if (!authorityValidation.valid || !sameWorkstreamAuthorityContext(responseAuthority, expectedAuthority)) {
+    throw new MissionCanvasTransportError('invalid_response:scope_mismatch', operationId, status, value);
+  }
+  if (typeof receipt.receipt_id !== 'string' || receipt.receipt_id.trim().length === 0) {
+    throw new MissionCanvasTransportError('invalid_response:missing:receipt_id', operationId, status, value);
+  }
+  if (!Number.isSafeInteger(receipt.projection_revision) || (receipt.projection_revision as number) < 0) {
+    throw new MissionCanvasTransportError('invalid_response:invalid:projection_revision', operationId, status, value);
+  }
+  if (receipt.accepted !== true) {
+    throw new MissionCanvasTransportError('invalid_response:not_accepted', operationId, status, value);
+  }
 }
 
 function validateRecipientResolutionResponse(
