@@ -397,6 +397,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
       if (operationId === 'focusa.mission_canvas.rich_host.focus') {
         validateHostFocusResponse(operationId, response.status, value);
       }
+      if (operationId === 'focusa.mission_canvas.rich_host.hide') {
+        validateHostHideResponse(operationId, response.status, value);
+      }
       const key = workstreamAuthorityStorageKey(authority);
       const previous = this.#hostLifecycleWatermarks.get(key);
       if (previous && watermark.lifecycleRevision < previous.lifecycleRevision) {
@@ -1154,6 +1157,34 @@ function validateHostFocusResponse(
     || (renderer as Record<string, unknown>).selected_renderer !== 'focusa_desktop_tauri') {
     throw new MissionCanvasTransportError(
       'invalid_response:focus_renderer',
+      operationId,
+      status,
+      value
+    );
+  }
+}
+
+function validateHostHideResponse(
+  operationId: string,
+  status: number,
+  value: unknown
+): void {
+  const lifecycle = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  if (!lifecycle || lifecycle.state !== 'hidden' || lifecycle.focused !== false) {
+    throw new MissionCanvasTransportError(
+      'invalid_response:hide_state',
+      operationId,
+      status,
+      value
+    );
+  }
+  const renderer = lifecycle.renderer_resolution;
+  if (!renderer || typeof renderer !== 'object' || Array.isArray(renderer)
+    || (renderer as Record<string, unknown>).selected_renderer !== 'focusa_desktop_tauri') {
+    throw new MissionCanvasTransportError(
+      'invalid_response:hide_renderer',
       operationId,
       status,
       value

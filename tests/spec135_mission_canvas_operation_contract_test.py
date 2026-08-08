@@ -655,6 +655,67 @@ elif operation_id == "focusa.mission_canvas.rich_host.focus":
     assert "fork(" not in transport
     assert "child_process" not in transport
 
+elif operation_id == "focusa.mission_canvas.rich_host.hide":
+    assert operation["method"] == "POST"
+    assert operation["path"] == "/v1/mission-canvas/rich-host/hide"
+    assert operation["mode"] == "mutation"
+    assert operation["permissions_required"] == ["mission_canvas:host"]
+    assert operation["response_schema_ref"] == "HostLifecycleState"
+    assert operation["request_schema_ref"] == "focusa.mission_canvas.rich_host_command.v1"
+    assert operation["requires_idempotency_key"] is True
+    assert operation["requires_if_match_revision"] is False
+    assert operation["receipt_required"] is True
+
+    lifecycle_schema = json.loads(BUNDLE.read_text())["$defs"]["HostLifecycleState"]
+    assert "workstream" in lifecycle_schema["properties"]
+    assert "renderer_resolution" in lifecycle_schema["properties"]
+    for marker in (
+        "post(hide_host)",
+        "RichHostCommandRequest",
+        "require_permission_with_state",
+        "host_renderer_workstream_context",
+        "HostLifecycleHideCommand",
+        "HostLifecycleService",
+        "HostPlatform::current()",
+        "x-focusa-capabilities",
+        "idempotency_key",
+        "HostLifecycleState",
+    ):
+        assert marker in route_text, marker
+    host_text = (ROOT / "crates/focusa-core/src/mission_canvas/host.rs").read_text()
+    for marker in (
+        "RICH_HOST_HIDE_OPERATION",
+        "HostLifecycleHideCommand",
+        "pub fn hide(",
+        "host_hidden",
+        "projection_revision: 0",
+        "PresentationNotFound",
+    ):
+        assert marker in host_text, marker
+    for marker in (
+        "authorityFromLifecycleState",
+        "sameWorkstreamAuthorityContext",
+        "foreign_lifecycle_scope",
+        "stale_lifecycle_revision",
+        "stale_lifecycle_cursor",
+        "invalid_response:hide_state",
+        "invalid_response:hide_renderer",
+        "HostLifecycleState",
+    ):
+        assert marker in transport, marker
+    assert "focusa.mission_canvas.rich_host.hide" in client
+    assert "mission_canvas_host_lifecycle" in (ROOT / "crates/focusa-core/src/mission_canvas/persistence.rs").read_text()
+    for marker in (
+        "rich_hostHide",
+        "POST",
+        "idempotency_key",
+        "foreign lifecycle",
+        "stale lifecycle",
+    ):
+        assert marker in consumer, marker
+    assert "fork(" not in transport
+    assert "child_process" not in transport
+
 elif operation_id == "focusa.mission_canvas.layout_memory.get":
     assert operation["method"] == "GET"
     assert operation["path"] == "/v1/mission-canvas/layout-memory"
