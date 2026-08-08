@@ -90,6 +90,8 @@ try {
     await exerciseRecipientResolve({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.recomposition.receipt.get') {
     await exerciseRecompositionReceiptGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.recomposition.diagnostics.list') {
+    await exerciseRecompositionDiagnosticsList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.events.stream') {
     await exerciseEventsStream({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, server });
   } else {
@@ -2730,6 +2732,46 @@ async function exerciseHostFocus({ MissionCanvasClient, MissionCanvasHttpTranspo
 
   console.log('Mission Canvas operation consumer: PASS (generated rich_hostFocus, exact Workstream POST, existing Desktop focus, canonical activity preservation, foreign authority/renderer, missing authority, capability/permission denial, stale lifecycle, and hostile response checks)');
 }
+
+async function exerciseRecompositionDiagnosticsList({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  const now = new Date().toISOString();
+  const diagnostics = [
+    { contribution_id: 'contribution:omitted', reason: 'capability_not_present', rule_revision: 'resolver:v2', projection_revision: 11, canonical_input_refs: [], observed_at: now },
+    { contribution_id: 'contribution:ineligible', reason: 'not_authorized', rule_revision: 'resolver:v2', projection_revision: 11, canonical_input_refs: [], observed_at: now }
+  ];
+  let responseBody = structuredClone(diagnostics);
+  const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(responseBody), { status: 200 })
+  );
+  const client = new MissionCanvasClient(transport);
+  const result = await client.recompositionDiagnosticsList({ ...structuredClone(authority), revision: 11 });
+  assert.equal(result.length, 2);
+  assert.equal(result[0].contribution_id, 'contribution:omitted');
+
+  const foreignTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response('not-an-array', { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(foreignTransport).recompositionDiagnosticsList({ ...structuredClone(authority), revision: 11 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.includes('invalid_response')
+  );
+
+  responseBody = [{ contribution_id: '', reason: 'not_authorized', rule_revision: 'resolver:v2', projection_revision: 11, canonical_input_refs: [], observed_at: now }];
+  const badRowTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(responseBody), { status: 200 })
+  );
+  await assert.rejects(
+    () => new MissionCanvasClient(badRowTransport).recompositionDiagnosticsList({ ...structuredClone(authority), revision: 11 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.includes('invalid_response')
+  );
+
+  const acceptedCustomReason = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify([{ contribution_id: 'contribution:omitted', reason: 'custom_omission', rule_revision: 'resolver:v2', projection_revision: 11, canonical_input_refs: [], observed_at: now }]), { status: 200 })
+  );
+  const accepted = await new MissionCanvasClient(acceptedCustomReason).recompositionDiagnosticsList({ ...structuredClone(authority), revision: 11 });
+  assert.equal(accepted[0].contribution_id, 'contribution:omitted');
+}
+
 
 async function exerciseRecompositionReceiptGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
   assert.ok(authority.attachment, 'recomposition.receipt.get fixture requires exact attachment authority');
