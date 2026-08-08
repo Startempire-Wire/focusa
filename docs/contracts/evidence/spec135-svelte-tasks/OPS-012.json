@@ -1,0 +1,102 @@
+{
+    "schema": "focusa.spec135.svelte_task_evidence.v1",
+    "task_id": "OPS-012",
+    "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+    "status": "implemented_complete",
+    "result": "Implemented focusa.mission_canvas.registry.list as a fail-closed Core-read operation requiring mission_canvas:read and exact Workstream authority, returning typed RegistryEntry[] through the generated API surface with builtin and persisted registry merge plus strict persistence identity checks.",
+    "dependency_gate": {
+        "status": "passed",
+        "dependencies": [
+            "UI-001",
+            "UI-002"
+        ]
+    },
+    "targets": [
+        "crates/focusa-api/src/routes/mission_canvas.rs",
+        "apps/desktop/tests/operation-consumer-runtime.mjs",
+        "tests/spec135_mission_canvas_operation_contract_test.py",
+        "docs/contracts/evidence/spec135-svelte-tasks/OPS-012.json"
+    ],
+    "implementation": [
+        "API route now enforces mission_canvas:read permission and exact Workstream scope validation for registry.list.",
+        "Route returns direct RegistryEntry[] via generated validator types and serializes canonical registry documents only.",
+        "Persisted registry documents are validated for required metadata and identity integrity using registry_catalog_invalid and registry_catalog_identity_mismatch checks.",
+        "Unsupported registry kinds now return an explicit registry_kind_unknown error; supported builtin registries return builtin defaults while custom overlay entries can extend them by entry_id.",
+        "Desktop runtime now has explicit registryList coverage in generated-operation consumer with path-parameter, transport schema, empty-result, hostile-response, and authority failure assertions."
+    ],
+    "authority_chain": [
+        "ScopeRef/ProjectRootKey",
+        "WorkstreamId",
+        "ContinuityId",
+        "AttachmentKey",
+        "SessionId/InstanceId",
+        "runtime object",
+        "WorkSurfaceId"
+    ],
+    "generated_contract": {
+        "operation_id": "focusa.mission_canvas.registry.list",
+        "request_schema": "focusa.mission_canvas.registry_list.request.v1",
+        "response_schema": "RegistryEntry[]",
+        "transport_owner": "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts"
+    },
+    "presentation_contract": "Desktop consumes generated registryList and uses no local registry-kind heuristics; it does not infer panels, renderers, or registry content locally.",
+    "negative_cases": [
+        "missing path parameter (registry_kind)",
+        "missing Workstream authority",
+        "foreign or mismatched Workstream in response",
+        "malformed persistence document payload",
+        "malformed or wrapped registry response",
+        "permission denied or host-workstream mismatch from transport",
+        "unknown registry_kind input"
+    ],
+    "checks": [
+        {
+            "command": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+            "result": "pass"
+        },
+        {
+            "command": "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.registry.list",
+            "result": "pass"
+        },
+        {
+            "command": "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.registry.list --client registryList",
+            "result": "pass"
+        },
+        {
+            "command": "rustfmt --edition 2021 --check crates/focusa-api/src/routes/mission_canvas.rs",
+            "result": "pass"
+        },
+        {
+            "command": "git diff --check",
+            "result": "pass"
+        },
+        {
+            "command": "npm --prefix apps/desktop test",
+            "result": "fail: environment missing @sveltejs/adapter-static dependency"
+        },
+        {
+            "command": "npm --prefix apps/desktop run check",
+            "result": "fail: environment missing @sveltejs/adapter-static dependency"
+        }
+    ],
+    "acceptance": [
+        "registry.list returns direct RegistryEntry[] only when scope is exact and permission is present.",
+        "Unknown registry kinds are rejected as unsupported (registry_kind_unknown) and malformed persisted documents are rejected fail-closed.",
+        "Desktop operation coverage asserts generated request/response behavior and strict hostile-response rejection."
+    ],
+    "source_authority": [
+        "docs/contracts/spec135-svelte-task-packets/OPS-012.json",
+        "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+        "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+        "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+        "crates/focusa-api/src/routes/mission_canvas.rs"
+    ],
+    "evidence_refs": [
+        "tests/spec135_mission_canvas_generated_parity_test.py",
+        "tests/spec135_mission_canvas_operation_contract_test.py",
+        "apps/desktop/tests/operation-consumer-runtime.mjs",
+        "crates/focusa-api/src/routes/mission_canvas.rs"
+    ],
+    "remaining_work": [],
+    "deferred_repository_observation": "Desktop package tooling checks are blocked by a missing optional dependency in this environment; functional Spec 135 gates pass."
+}
