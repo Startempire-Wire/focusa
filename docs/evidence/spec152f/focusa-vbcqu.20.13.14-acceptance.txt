@@ -1,0 +1,87 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.14
+Title: 152E.01.10 Run complete verified-identity acceptance matrix
+Implementation commit: `ee04258d`
+
+Exact surfaces
+- tests/spec152e_identity_acceptance_test.php (exact verification: the
+  complete verified-identity acceptance matrix over every Spec 152E
+  identity repository/service/route and synthetic fixtures)
+- Identity surfaces exercised (read-only; unchanged): activation
+  registration repository/routes, email identity repository, authority
+  account repository, EDD customer adapter, account promotion service,
+  legacy activation adapter, challenge service, transactional mail
+  adapter, rate limiter, activation start + verification complete
+  handlers, email delivery consent handler, facade protocol/security,
+  facade registry, and EDD product registry.
+
+Bounded result
+- One build-independent identity acceptance test runs the full matrix of
+  named positive and negative identity cases against synthetic fixtures:
+  NEW (verified promotion creates exactly one customer/account/identity,
+  zero orders/licenses/nodes), EXISTING (same verified email resolves the
+  same account/identity with zero duplicates), ALIAS (provider dot, plus,
+  and local-part-case variants are never merged; only domain case is
+  canonical), WRONG CODE (bounded attempt counter, enumeration-resistant
+  masked error, promotion impossible), EXPIRED (challenge TTL then
+  registration TTL both fail closed), REPLAY (identical verification and
+  promotion replays return the stored bounded result with no duplicates;
+  consumed verifiers are single-use), BOUNCE (hard bounce blocks
+  transactional/promotional delivery and verification capability; consent
+  settlement denied), SUPPRESSED (complaint suppresses promotional
+  delivery; transactional consent is never gated by promotional
+  suppression; refused mail recorded as suppressed), RESEND (each resend
+  is a new bounded pending attempt with branded delivery; resend bursts
+  are rate-limited with the enumeration-resistant masked response),
+  DUPLICATE (same idempotency key returns the same registration, one
+  bounded attempt), CONFLICT (identity/account binding, WordPress, Stripe,
+  and paid-record conflicts enter ACCOUNT_MERGE_REVIEW_REQUIRED or
+  EMAIL_IDENTITY_CONFLICT), LEGACY PAID (verified legacy owner resolves
+  for activation and merges with evidence-pinned linkage; EDD order/
+  license truth preserved; paid license never downgraded), PRIOR
+  EVALUATION (unverified email can never promote or issue entitlement;
+  verified registrations are bound to exactly the verified email; zero
+  order/license state), and FACADE-SWITCH (cross-facade verification
+  denied with the registration unchanged; facade origin spoof and wrong
+  product denied at the route boundary; signed facade-protocol requests
+  reject origin spoofs, product spoofs, and nonce replays).
+- Fail-closed invariant proven at the database level: zero unverified
+  email identities (every stored identity has a verified timestamp and
+  primary/linked state), zero unverified customer/account references on
+  registrations, identity promotion never attaches order/license/node
+  references, identity flows create zero EDD orders and zero licenses
+  (only the single synthetic legacy fixture exists), protected offers are
+  never checkout-enabled client-side, verified_no_license carries no EDD
+  key, and facades never issue entitlement with no wildcard authority.
+- Results are fully redacted and replayable: the summary and every
+  envelope contain no raw email, no license key, no verifier, and no
+  credential secret.
+
+Exact verification (exit codes)
+1. `php tests/spec152e_identity_acceptance_test.php` — exit 0 (run twice;
+   deterministic).
+   {"schema":"focusa.spec152e.identity_acceptance_matrix.v1","positive_checks":110,"negative_checks":10,"accounts":10,"customers":10,"identities":10,"orders":1,"licenses":1,"purchase_links":1,"result":"passed_fail_closed"}
+
+Regression checks (exit codes)
+- All 15 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  acceptance matrix and the prior legacy identity merge test.
+- `python3 tests/spec152e_api_contract_test.py` — exit 0 (no new error
+  codes; generated activation contracts remain current).
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0
+  (19 states, 48 transitions; registration state machine untouched).
+
+Tests added
+- spec152e_identity_acceptance_test.php: 110 positive checks + 10
+  negative checks covering the 14 named identity cases (new, existing,
+  alias, wrong code, expired, replay, bounce, suppressed, resend,
+  duplicate, conflict, legacy paid, prior Evaluation, facade-switch) plus
+  the zero-unverified-creation and redaction gates. No contract, schema,
+  route, or repository files were modified by this atom.
+
+Rollback
+- Revert only this atom's commit `ee04258d` (and this evidence record if
+  required). Preserve EDD customer/order/refund truth, verified
+  identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.
