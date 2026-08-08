@@ -4,6 +4,12 @@
   import InstructionIntegrityPeek from './InstructionIntegrityPeek.svelte';
   import TemporalAuthorityPeek from './TemporalAuthorityPeek.svelte';
   import SemanticPairPeek from './SemanticPairPeek.svelte';
+  import { DesktopPresent } from '../desktop-present';
+
+  // CUT-005: the menubar owns only status, resume, pairing, lifecycle, and a
+  // single Desktop open action. It never owns full Mission Canvas content and
+  // never binds a Workstream from CWD, a tab, continuity alone, or a remembered
+  // workspace. DesktopPresent.invoke fails closed on missing/foreign scope.
 
   // Static contract markers retained for Spec96/106 Mission Canvas gates:
   // Mission-centered Focusa status | mission-brief | MISSION | ProjectIdentity | Continuity ID
@@ -12,6 +18,24 @@
   // PROJECT | TRAJECTORY | POST /v1/workpoint/resume | GET /v1/work-loop/health | GET /v1/telemetry/memory | GET /v1/doctor
   // envelopeLabel | envelopeTone | evidenceCount | class:watch | class:bad | class="chip"
   // manual gate | manual_proof_required
+
+  let desktopOpenMessage = $state<string | undefined>();
+  let handoffContext: unknown = undefined;
+
+  function requestDesktopOpen(): void {
+    const result = DesktopPresent.invoke(handoffContext);
+    desktopOpenMessage = result.ok
+      ? `Desktop open requested for ${result.intent.workstream_id} (attachment ${result.intent.attachment_bound ? 'bound' : 'not bound'}).`
+      : `Desktop open blocked: ${result.failure}.`;
+  }
+
+  /**
+   * The Desktop host supplies the exact project-bound handoff context. It is
+   * never inferred by the menubar.
+   */
+  export function bindHandoffContext(context: unknown): void {
+    handoffContext = context;
+  }
 </script>
 
 <section
@@ -30,9 +54,19 @@
   <EpistemicAuthorityPeek />
   <InstructionIntegrityPeek />
   <SemanticPairPeek />
+  <div class="desktop-handoff" data-desktop-present="true">
+    <button type="button" onclick={() => requestDesktopOpen()}>Open in Desktop</button>
+    {#if desktopOpenMessage}
+      <p class="handoff-message" role="status">{desktopOpenMessage}</p>
+    {/if}
+  </div>
 </section>
 
 <style>
+  .desktop-handoff{display:flex;align-items:center;gap:var(--space-2,8px);margin-block-start:var(--space-3,12px)}
+  .desktop-handoff button{border:1px solid currentColor;border-radius:999px;padding:4px 12px;background:transparent;color:currentColor;font:inherit;cursor:pointer}
+  .desktop-handoff .handoff-message{margin:0;font-size:.8em;opacity:.8}
+
   .sr-only {
     position: absolute;
     width: 1px;

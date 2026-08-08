@@ -10,8 +10,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test": "node tests/work-loop-scope.mjs && node tests/temporal-authority-peek.mjs && node tests/semantic-pair-parity.mjs && node tests/e2e-endpoints.mjs && node tests/e2e-post.mjs",
-    "tauri": "tauri"
+    "test": "node tests/work-loop-scope.mjs && node tests/temporal-authority-peek.mjs && node tests/semantic-pair-parity.mjs && node tests/e2e-endpoints.mjs && node tests/e2e-post.mjs && node tests/desktop-handoff.mjs",
+    "tauri": "tauri",
+    "test:desktop-handoff": "node tests/desktop-handoff.mjs"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.0",
