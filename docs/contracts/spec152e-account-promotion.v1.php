@@ -220,8 +220,63 @@ final class FocusaSpec152eAccountPromotionService
         }
         $priorPurchases = $this->validatePriorPurchases($input['prior_purchases'] ?? []);
         $registrationDigest = $this->registrationSecrets->emailLookupDigest($normalized);
-        $digest = $this->digest([
-            'operation' => 'promote_verified',
+        return $this->promoteWithLegacy($input, 'verified', null);
+    }
+
+    /**
+     * Merge a legacy EDD paid record (key + order + license) into the verified account.
+     * Identical to promoteVerified except that the legacy key must resolve to a usable
+     * license whose owner has the verified email, the evidence must be strong (synthetic
+     * records remain quarantined), and conflicting paid records enter review. Never
+     * transfers ownership by raw email match; existing order/license state is preserved.
+     */
+    public function mergeLegacyVerified(array $input): array
+    {
+        $legacyKey = (string) ($input['legacy_key'] ?? '');
+        if ($legacyKey === '' || strlen($legacyKey) > 191 || preg_match('/[\r\n\x00]/', $legacyKey)) {
+            throw new InvalidArgumentException('bounded legacy EDD license key required');
+        }
+        $evidence = $input['legacy_evidence'] ?? [];
+        if (!is_array($evidence) || $evidence === []) {
+            throw new DomainException('EDD_ORDER_UNVERIFIED');
+        }
+        $evidenceDigest = FocusaSpec152eLegacyActivationAdapter::validateLegacyEvidence($evidence);
+        return $this->promoteWithLegacy($input, 'legacy_merge', [
+            'key' => $legacyKey,
+            'evidence' => $evidence,
+            'evidence_digest' => $evidenceDigest,
+        ]);
+    }
+
+    private function promoteWithLegacy(array $input, string $mode, ?array $legacy): array
+    {
+        $operation = $mode === 'legacy_merge' ? 'legacy_merge' : 'promote_verified';
+        $registrationUuid = $this->assertUuid((string) ($input['registration_uuid'] ?? ''), 'registration');
+        $verifiedEmail = (string) ($input['verified_email'] ?? '');
+        if ($verifiedEmail === '') {
+            throw new InvalidArgumentException('verified email is required');
+        }
+        $normalized = FocusaSpec152eEmailNormalizer::exact($verifiedEmail);
+        $verificationMethod = (string) ($input['verification_method'] ?? '');
+        if (preg_match('/^[a-z][a-z0-9_]{1,31}$/D', $verificationMethod) !== 1) {
+            throw new InvalidArgumentException('verification method required');
+        }
+        $transactional = (string) ($input['transactional_consent_at'] ?? '');
+        FocusaSpec152eAccountPromotionMigration::assertTimestamp($transactional);
+        $promotional = $input['promotional_consent_at'] ?? null;
+        FocusaSpec152eAccountPromotionMigration::assertTimestamp($promotional, true);
+        $wpUserId = $this->optionalInt($input['wordpress_user_id'] ?? null, 'wordpress user');
+        $stripeCustomerId = $this->optionalToken($input['stripe_customer_id'] ?? null, 191);
+        $requestId = $this->assertRequestId((string) ($input['request_id'] ?? ''));
+        $idempotencyKey = $this->assertIdempotencyKey((string) ($input['idempotency_key'] ?? ''));
+        $provenance = $input['migration_provenance'] ?? [];
+        if (!is_array($provenance) || $provenance === []) {
+            throw new InvalidArgumentException('migration provenance is required');
+        }
+        $priorPurchases = $this->validatePriorPurchases($input['prior_purchases'] ?? []);
+        $registrationDigest = $this->registrationSecrets->emailLookupDigest($normalized);
+        $digestInput = [
+            'operation' => $operation,
             'registration_uuid' => $registrationUuid,
             'email_lookup_digest' => $registrationDigest,
             'verification_method' => $verificationMethod,
@@ -232,118 +287,225 @@ final class FocusaSpec152eAccountPromotionService
             'prior_purchases' => $priorPurchases,
             'migration_provenance' => $provenance,
             'request_id' => $requestId,
-        ]);
+        ];
+        if ($legacy !== null) {
+            $digestInput['legacy_key'] = $legacy['key'];
+            $digestInput['legacy_evidence'] = $legacy['evidence'];
+        }
+        $digest = $this->digest($digestInput);
 
-        return $this->transaction(function () use ($input, $registrationUuid, $normalized, $verificationMethod, $transactional, $promotional, $wpUserId, $stripeCustomerId, $requestId, $idempotencyKey, $provenance, $priorPurchases, $registrationDigest, $digest): array {
-            $replay = $this->replay($idempotencyKey, $digest);
-            if ($replay !== null) {
-                $result = json_decode($replay['result_payload'], true, 512, JSON_THROW_ON_ERROR);
-                $result['replayed'] = true;
-                return $result;
-            }
-
-            $registration = $this->registrations->findByUuid($registrationUuid);
-            $now = $this->now();
-            if ($registration['state'] !== FocusaSpec152eActivationRegistrationState::EMAIL_VERIFIED
-                || $registration['verification_state'] !== 'mailbox_verified'
-                || $registration['verified_at'] === null) {
-                throw new DomainException('EMAIL_VERIFICATION_REQUIRED');
-            }
-            if ($registration['expires_at'] !== null && $now >= (string) $registration['expires_at']) {
-                throw new DomainException('REGISTRATION_EXPIRED');
-            }
-            if (!hash_equals((string) $registration['email_lookup_digest'], $registrationDigest)) {
-                throw new DomainException('ACCOUNT_EMAIL_MISMATCH');
-            }
-
-            // 1. Resolve or create the EDD customer from the exact verified email.
-            $customer = $this->edd->findCustomerByEmail($normalized);
-            if ($customer === null) {
-                $customerId = $this->edd->createCustomerInTransaction($normalized, $wpUserId, $stripeCustomerId, $this->encodeCanonical($provenance), $now);
-                $customerResolution = 'new';
-            } else {
-                $customerId = (int) $customer['id'];
-                $customerResolution = 'existing';
-            }
-
-            // 2. Resolve or create the authority account for that customer.
-            $resolved = $this->accounts->resolveForPromotionInTransaction($customerId, $wpUserId, $stripeCustomerId, $this->encodeCanonical($provenance), (string) $registration['verified_at']);
-            $account = $resolved['account'];
-            $accountResolution = $resolved['resolution'];
-
-            // 3. Link the optional WordPress and Stripe references without creating duplicates.
-            if ($wpUserId !== null) {
-                $owner = $this->accounts->findByWordpressUserId($wpUserId);
-                if ($owner !== null && !hash_equals((string) $owner['account_uuid'], (string) $account['account_uuid'])) {
-                    throw new DomainException('ACCOUNT_MERGE_REVIEW_REQUIRED');
-                }
-            }
-            if ($stripeCustomerId !== null) {
-                $owner = $this->accounts->findByStripeCustomerId($stripeCustomerId);
-                if ($owner !== null && !hash_equals((string) $owner['account_uuid'], (string) $account['account_uuid'])) {
-                    throw new DomainException('ACCOUNT_MERGE_REVIEW_REQUIRED');
-                }
-            }
-
-            // 4. Resolve or create the verified email identity bound to the authority account.
-            $existingIdentity = $this->identities->findExact($normalized);
-            if ($existingIdentity !== null) {
-                if (!hash_equals((string) $existingIdentity['account_uuid'], (string) $account['account_uuid'])) {
-                    throw new DomainException('ACCOUNT_MERGE_REVIEW_REQUIRED');
-                }
-                $identity = $this->identities->settleConsentAtPromotionInTransaction((string) $existingIdentity['identity_uuid'], $transactional, $promotional, $now);
-                $identityUuid = (string) $identity['identity_uuid'];
-                $identityState = (string) $identity['identity_state'];
-            } else {
-                $identityState = $this->identities->hasPrimaryForAccount((string) $account['account_uuid']) ? 'linked' : 'primary';
-                $identity = $this->identities->storeVerifiedInTransaction($normalized, [
-                    'verification_state' => 'mailbox_verified',
-                    'verified_at' => (string) $registration['verified_at'],
-                    'account_uuid' => (string) $account['account_uuid'],
-                    'identity_uuid' => self::uuid(),
-                    'identity_state' => $identityState,
-                    'verification_method' => $verificationMethod,
-                    'transactional_consent_at' => $transactional,
-                    'promotional_consent_at' => $promotional,
-                    'promotional_consent_revoked_at' => null,
-                    'source' => 'account.promotion',
-                    'migration_evidence' => $provenance,
-                ]);
-                $identityUuid = (string) $identity['identity_uuid'];
-            }
-
-            // 5. Link prior evidence-backed EDD orders and licenses to the account.
-            $linkedOrders = [];
-            $linkedLicenses = [];
-            foreach ($priorPurchases as $purchase) {
-                $link = $this->linkPriorPurchaseInTransaction($account, $customerId, $purchase, $provenance, $now);
-                $linkedOrders[] = (int) $link['edd_order_id'];
-                if ($link['edd_license_id'] !== null) {
-                    $linkedLicenses[] = (int) $link['edd_license_id'];
-                }
-            }
-
-            // 6. Advance the registration to account_promoted (idempotent, caller-owned transaction).
-            $this->registrations->promoteVerifiedInTransaction($registrationUuid, (string) $account['account_uuid'], $customerId, $requestId, $idempotencyKey);
-
-            $result = [
-                'schema' => self::RESULT_SCHEMA,
-                'registration_id' => $registrationUuid,
-                'account_uuid' => (string) $account['account_uuid'],
-                'identity_uuid' => $identityUuid,
-                'edd_customer_id' => $customerId,
-                'customer_resolution' => $customerResolution,
-                'account_resolution' => $accountResolution,
-                'identity_state' => $identityState,
+        return $this->transaction(function () use ($operation, $legacy, $registrationUuid, $normalized, $verificationMethod, $transactional, $promotional, $wpUserId, $stripeCustomerId, $requestId, $idempotencyKey, $provenance, $priorPurchases, $registrationDigest, $digest): array {
+            return $this->promoteInTransaction([
+                'operation' => $operation,
+                'legacy' => $legacy,
+                'registration_uuid' => $registrationUuid,
+                'normalized' => $normalized,
+                'verification_method' => $verificationMethod,
                 'transactional_consent_at' => $transactional,
                 'promotional_consent_at' => $promotional,
-                'linked_orders' => $linkedOrders,
-                'linked_licenses' => $linkedLicenses,
-                'replayed' => false,
-            ];
-            $this->recordIdempotency($idempotencyKey, $digest, $result, $registrationUuid, (string) $account['account_uuid'], $identityUuid, $customerId, $now);
-            return $result;
+                'wordpress_user_id' => $wpUserId,
+                'stripe_customer_id' => $stripeCustomerId,
+                'request_id' => $requestId,
+                'idempotency_key' => $idempotencyKey,
+                'migration_provenance' => $provenance,
+                'prior_purchases' => $priorPurchases,
+                'registration_digest' => $registrationDigest,
+                'digest' => $digest,
+            ]);
         });
+    }
+
+    private function promoteInTransaction(array $p): array
+    {
+        $replay = $this->replay($p['idempotency_key'], $p['digest'], $p['operation']);
+        if ($replay !== null) {
+            $result = json_decode($replay['result_payload'], true, 512, JSON_THROW_ON_ERROR);
+            $result['replayed'] = true;
+            return $result;
+        }
+
+        $registration = $this->registrations->findByUuid($p['registration_uuid']);
+        $now = $this->now();
+        if ($registration['state'] !== FocusaSpec152eActivationRegistrationState::EMAIL_VERIFIED
+            || $registration['verification_state'] !== 'mailbox_verified'
+            || $registration['verified_at'] === null) {
+            throw new DomainException('EMAIL_VERIFICATION_REQUIRED');
+        }
+        if ($registration['expires_at'] !== null && $now >= (string) $registration['expires_at']) {
+            throw new DomainException('REGISTRATION_EXPIRED');
+        }
+        if (!hash_equals((string) $registration['email_lookup_digest'], $p['registration_digest'])) {
+            throw new DomainException('ACCOUNT_EMAIL_MISMATCH');
+        }
+
+        // Legacy merge gate: the key must resolve to a usable license whose owner has the
+        // verified email; the evidence must point at the exact record; conflicting paid
+        // records enter review. Raw email match alone never transfers ownership.
+        $resolvedLegacy = null;
+        if ($p['operation'] === 'legacy_merge') {
+            $resolvedLegacy = $this->resolveLegacyMergeRecord($p['legacy']['key'], $p['normalized'], $p['prior_purchases']);
+        }
+
+        // 1. Resolve or create the EDD customer from the exact verified email.
+        $customer = $this->edd->findCustomerByEmail($p['normalized']);
+        if ($customer === null) {
+            $customerId = $this->edd->createCustomerInTransaction($p['normalized'], $p['wordpress_user_id'], $p['stripe_customer_id'], $this->encodeCanonical($p['migration_provenance']), $now);
+            $customerResolution = 'new';
+        } else {
+            $customerId = (int) $customer['id'];
+            $customerResolution = 'existing';
+        }
+
+        // 2. Resolve or create the authority account for that customer.
+        $resolved = $this->accounts->resolveForPromotionInTransaction($customerId, $p['wordpress_user_id'], $p['stripe_customer_id'], $this->encodeCanonical($p['migration_provenance']), (string) $registration['verified_at']);
+        $account = $resolved['account'];
+        $accountResolution = $resolved['resolution'];
+
+        // 3. Link the optional WordPress and Stripe references without creating duplicates.
+        if ($p['wordpress_user_id'] !== null) {
+            $owner = $this->accounts->findByWordpressUserId($p['wordpress_user_id']);
+            if ($owner !== null && !hash_equals((string) $owner['account_uuid'], (string) $account['account_uuid'])) {
+                throw new DomainException('ACCOUNT_MERGE_REVIEW_REQUIRED');
+            }
+        }
+        if ($p['stripe_customer_id'] !== null) {
+            $owner = $this->accounts->findByStripeCustomerId($p['stripe_customer_id']);
+            if ($owner !== null && !hash_equals((string) $owner['account_uuid'], (string) $account['account_uuid'])) {
+                throw new DomainException('ACCOUNT_MERGE_REVIEW_REQUIRED');
+            }
+        }
+
+        // 4. Resolve or create the verified email identity bound to the authority account.
+        $existingIdentity = $this->identities->findExact($p['normalized']);
+        if ($existingIdentity !== null) {
+            if (!hash_equals((string) $existingIdentity['account_uuid'], (string) $account['account_uuid'])) {
+                throw new DomainException('ACCOUNT_MERGE_REVIEW_REQUIRED');
+            }
+            $identity = $this->identities->settleConsentAtPromotionInTransaction((string) $existingIdentity['identity_uuid'], $p['transactional_consent_at'], $p['promotional_consent_at'], $now);
+            $identityUuid = (string) $identity['identity_uuid'];
+            $identityState = (string) $identity['identity_state'];
+        } else {
+            $identityState = $this->identities->hasPrimaryForAccount((string) $account['account_uuid']) ? 'linked' : 'primary';
+            $identity = $this->identities->storeVerifiedInTransaction($p['normalized'], [
+                'verification_state' => 'mailbox_verified',
+                'verified_at' => (string) $registration['verified_at'],
+                'account_uuid' => (string) $account['account_uuid'],
+                'identity_uuid' => self::uuid(),
+                'identity_state' => $identityState,
+                'verification_method' => $p['verification_method'],
+                'transactional_consent_at' => $p['transactional_consent_at'],
+                'promotional_consent_at' => $p['promotional_consent_at'],
+                'promotional_consent_revoked_at' => null,
+                'source' => 'account.promotion',
+                'migration_evidence' => $p['migration_provenance'],
+            ]);
+            $identityUuid = (string) $identity['identity_uuid'];
+        }
+
+        // 5. Link prior evidence-backed EDD orders and licenses to the account.
+        $linkedOrders = [];
+        $linkedLicenses = [];
+        foreach ($p['prior_purchases'] as $purchase) {
+            $linkProvenance = $p['migration_provenance'];
+            if ($p['legacy'] !== null) {
+                $linkProvenance = array_merge($linkProvenance, [
+                    'legacy_evidence' => $p['legacy']['evidence'],
+                    'legacy_evidence_digest' => $p['legacy']['evidence_digest'],
+                ]);
+            }
+            $link = $this->linkPriorPurchaseInTransaction($account, $customerId, $purchase, $linkProvenance, $now);
+            $linkedOrders[] = (int) $link['edd_order_id'];
+            if ($link['edd_license_id'] !== null) {
+                $linkedLicenses[] = (int) $link['edd_license_id'];
+            }
+        }
+
+        // 6. Advance the registration to account_promoted (idempotent, caller-owned transaction).
+        $this->registrations->promoteVerifiedInTransaction($p['registration_uuid'], (string) $account['account_uuid'], $customerId, $p['request_id'], $p['idempotency_key']);
+
+        $result = [
+            'schema' => self::RESULT_SCHEMA,
+            'registration_id' => $p['registration_uuid'],
+            'account_uuid' => (string) $account['account_uuid'],
+            'identity_uuid' => $identityUuid,
+            'edd_customer_id' => $customerId,
+            'customer_resolution' => $customerResolution,
+            'account_resolution' => $accountResolution,
+            'identity_state' => $identityState,
+            'transactional_consent_at' => $p['transactional_consent_at'],
+            'promotional_consent_at' => $p['promotional_consent_at'],
+            'linked_orders' => $linkedOrders,
+            'linked_licenses' => $linkedLicenses,
+            'replayed' => false,
+        ];
+        if ($resolvedLegacy !== null) {
+            $result['legacy_merge'] = true;
+            $result['legacy_license_id'] = (int) $resolvedLegacy['license_id'];
+            $result['legacy_order_id'] = (int) $resolvedLegacy['order_id'];
+        }
+        $this->recordIdempotency($p['idempotency_key'], $p['digest'], $result, $p['registration_uuid'], (string) $account['account_uuid'], $identityUuid, $customerId, $now, $p['operation']);
+        return $result;
+    }
+
+    /**
+     * Resolve the legacy key inside the promotion transaction and require stronger
+     * evidence for conflicting paid records. Read-only over EDD truth: order/license
+     * rows are never modified here.
+     */
+    private function resolveLegacyMergeRecord(string $legacyKey, string $normalized, array $priorPurchases): array
+    {
+        $license = $this->edd->findLicenseByKey($legacyKey);
+        if ($license === null) {
+            throw new DomainException('EDD_LICENSE_UNVERIFIED');
+        }
+        if (in_array((string) $license['status'], self::UNUSABLE_LICENSE_STATUSES, true)) {
+            throw new DomainException('EDD_LICENSE_UNUSABLE');
+        }
+        $customerId = (int) $license['customer_id'];
+        if ($customerId < 1 || (int) $license['product_id'] < 1) {
+            throw new DomainException('EDD_LICENSE_UNVERIFIED');
+        }
+        $customer = $this->edd->findCustomerById($customerId);
+        if ($customer === null) {
+            throw new DomainException('EDD_LICENSE_UNVERIFIED');
+        }
+        if (!$this->edd->customerHasEmail($customerId, $normalized)) {
+            throw new DomainException('LICENSE_ACCOUNT_MISMATCH');
+        }
+        $orderId = $license['order_id'] !== null ? (int) $license['order_id'] : 0;
+        if ($orderId < 1) {
+            throw new DomainException('EDD_ORDER_UNVERIFIED');
+        }
+        $order = $this->edd->findOrderById($orderId);
+        if ($order === null || (int) $order['customer_id'] !== $customerId
+            || !in_array((string) $order['status'], self::PAID_ORDER_STATUSES, true)) {
+            throw new DomainException('EDD_ORDER_UNVERIFIED');
+        }
+        // Stronger evidence for conflicting paid records: the submitted evidence must
+        // point at the exact resolved order/license, and every claimed purchase must be
+        // owned by the resolved legacy customer. Anything else enters review.
+        $licenseId = (int) $license['id'];
+        $expected = false;
+        foreach ($priorPurchases as $purchase) {
+            if ((int) $purchase['order_id'] === $orderId && (int) $purchase['license_id'] === $licenseId) {
+                $expected = true;
+            }
+            $claimedOrder = $this->edd->findOrderById((int) $purchase['order_id']);
+            $claimedLicense = $this->edd->findLicenseById((int) $purchase['license_id']);
+            if ($claimedOrder === null || $claimedLicense === null
+                || (int) $claimedOrder['customer_id'] !== $customerId
+                || (int) $claimedLicense['customer_id'] !== $customerId) {
+                throw new DomainException('ACCOUNT_MERGE_REVIEW_REQUIRED');
+            }
+        }
+        if (!$expected) {
+            throw new DomainException('ACCOUNT_MERGE_REVIEW_REQUIRED');
+        }
+        return [
+            'license_id' => $licenseId,
+            'order_id' => $orderId,
+            'customer_id' => $customerId,
+        ];
     }
 
     // ── prior-purchase linkage ───────────────────────────────────────────
@@ -549,7 +711,7 @@ final class FocusaSpec152eAccountPromotionService
         }
     }
 
-    private function replay(string $key, string $digest): ?array
+    private function replay(string $key, string $digest, string $operation): ?array
     {
         $table = $this->schema->table('wpuiai_account_promotion_idempotency');
         $statement = $this->db->prepare("SELECT * FROM {$table} WHERE idempotency_key = :key");
@@ -558,22 +720,23 @@ final class FocusaSpec152eAccountPromotionService
         if ($row === false) {
             return null;
         }
-        if (!hash_equals('promote_verified', (string) $row['operation'])
+        if (!hash_equals($operation, (string) $row['operation'])
             || !hash_equals($digest, (string) $row['request_digest'])) {
             throw new DomainException('IDEMPOTENCY_CONFLICT');
         }
         return $row;
     }
 
-    private function recordIdempotency(string $key, string $digest, array $result, string $registrationUuid, string $accountUuid, string $identityUuid, int $customerId, string $now): void
+    private function recordIdempotency(string $key, string $digest, array $result, string $registrationUuid, string $accountUuid, string $identityUuid, int $customerId, string $now, string $operation): void
     {
         $table = $this->schema->table('wpuiai_account_promotion_idempotency');
         $statement = $this->db->prepare("INSERT INTO {$table}
             (idempotency_key, operation, request_digest, registration_uuid, account_uuid, identity_uuid,
              edd_customer_id, result_payload, created_at, retention_until)
-            VALUES (:key, 'promote_verified', :digest, :registration, :account, :identity, :customer, :payload, :created, :retention)");
+            VALUES (:key, :operation, :digest, :registration, :account, :identity, :customer, :payload, :created, :retention)");
         $statement->execute([
             ':key' => $key,
+            ':operation' => $operation,
             ':digest' => $digest,
             ':registration' => $registrationUuid,
             ':account' => $accountUuid,

@@ -202,6 +202,94 @@ final class FocusaSpec152eEddCustomerAdapter
         return (int) $this->db->query("SELECT COUNT(*) FROM {$table}")->fetchColumn();
     }
 
+    /**
+     * Exact EDD Software Licensing license lookup by key. Never enumerates; never reveals
+     * whether a key exists to callers that receive only a typed resolution. The key is
+     * never echoed in results, logs, or exceptions.
+     */
+    public function findLicenseByKey(string $licenseKey): ?array
+    {
+        if ($licenseKey === '' || strlen($licenseKey) > 191 || preg_match('/[\r\n\x00]/', $licenseKey)) {
+            throw new InvalidArgumentException('bounded EDD license key required');
+        }
+        $table = $this->table('edd_licenses');
+        $statement = $this->db->prepare("SELECT * FROM {$table} WHERE license_key = :key LIMIT 1");
+        $statement->execute([':key' => $licenseKey]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Exact EDD Software Licensing license lookup by ID. Returns null when not found.
+     */
+    public function findLicenseById(int $licenseId): ?array
+    {
+        if ($licenseId < 1) {
+            throw new InvalidArgumentException('positive EDD license ID required');
+        }
+        $table = $this->table('edd_licenses');
+        $statement = $this->db->prepare("SELECT * FROM {$table} WHERE id = :id LIMIT 1");
+        $statement->execute([':id' => $licenseId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Exact EDD order lookup by ID. Returns null when not found. Never enumerates.
+     */
+    public function findOrderById(int $orderId): ?array
+    {
+        if ($orderId < 1) {
+            throw new InvalidArgumentException('positive EDD order ID required');
+        }
+        $table = $this->table('edd_orders');
+        $statement = $this->db->prepare("SELECT * FROM {$table} WHERE id = :id LIMIT 1");
+        $statement->execute([':id' => $orderId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Exact EDD order-item lookup by ID. Returns null when not found. Never enumerates.
+     */
+    public function findOrderItemById(int $orderItemId): ?array
+    {
+        if ($orderItemId < 1) {
+            throw new InvalidArgumentException('positive EDD order item ID required');
+        }
+        $table = $this->table('edd_order_items');
+        $statement = $this->db->prepare("SELECT * FROM {$table} WHERE id = :id LIMIT 1");
+        $statement->execute([':id' => $orderItemId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Exact owner-email check: returns true only when the customer's primary or verified
+     * linked email-address row equals the submitted email. Used to prove that a legacy
+     * license key's owner is the mailbox-verified identity; raw email equality alone is
+     * never treated as ownership transfer. Bounded; never enumerates.
+     */
+    public function customerHasEmail(int $customerId, string $email): bool
+    {
+        if ($customerId < 1) {
+            throw new InvalidArgumentException('positive EDD customer ID required');
+        }
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            throw new InvalidArgumentException('valid email required');
+        }
+        $table = $this->table('edd_customers');
+        $emailTable = $this->table('edd_customer_email_addresses');
+        $statement = $this->db->prepare("SELECT 1 FROM {$table} WHERE id = :id AND email = :email LIMIT 1");
+        $statement->execute([':id' => $customerId, ':email' => $email]);
+        if ($statement->fetchColumn() !== false) {
+            return true;
+        }
+        $eaStatement = $this->db->prepare("SELECT 1 FROM {$emailTable} WHERE customer_id = :id AND email = :email LIMIT 1");
+        $eaStatement->execute([':id' => $customerId, ':email' => $email]);
+        return $eaStatement->fetchColumn() !== false;
+    }
+
     public function table(string $name): string
     {
         return $this->prefix . $name;
