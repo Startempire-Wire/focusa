@@ -88,6 +88,8 @@ try {
     await exerciseRecompositionEvidenceGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.recipient.resolve') {
     await exerciseRecipientResolve({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.recomposition.receipt.get') {
+    await exerciseRecompositionReceiptGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.events.stream') {
     await exerciseEventsStream({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority, server });
   } else {
@@ -2727,6 +2729,59 @@ async function exerciseHostFocus({ MissionCanvasClient, MissionCanvasHttpTranspo
   );
 
   console.log('Mission Canvas operation consumer: PASS (generated rich_hostFocus, exact Workstream POST, existing Desktop focus, canonical activity preservation, foreign authority/renderer, missing authority, capability/permission denial, stale lifecycle, and hostile response checks)');
+}
+
+async function exerciseRecompositionReceiptGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  assert.ok(authority.attachment, 'recomposition.receipt.get fixture requires exact attachment authority');
+  const receipt = {
+    ...structuredClone(authority),
+    attachment: structuredClone(authority.attachment),
+    accepted: true,
+    error_ref: null,
+    event_cursor: 'event:11',
+    evidence_id: 'recomposition-evidence:key:11',
+    idempotency_key: 'idem:resolve:11',
+    issued_at: new Date().toISOString(),
+    layout_revision: 5,
+    projection_digest: `sha256:${'r'.repeat(64)}`,
+    projection_revision: 11,
+    receipt_id: 'recomposition-receipt:key:11'
+  };
+  let responseBody = structuredClone(receipt);
+  const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(responseBody), { status: 200 })
+  );
+  const client = new MissionCanvasClient(transport);
+  const result = await client.recompositionReceiptGet({ ...structuredClone(authority), revision: 11 });
+  assert.equal(result.receipt_id, receipt.receipt_id);
+  assert.equal(result.projection_revision, 11);
+  assert.equal(result.accepted, true);
+
+  responseBody = structuredClone(receipt);
+  responseBody.workstream.workstream_id = 'ws:foreign';
+  if (responseBody.attachment) responseBody.attachment.workstream.workstream_id = 'ws:foreign';
+  await assert.rejects(
+    () => client.recompositionReceiptGet({ ...structuredClone(authority), revision: 11 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:scope_mismatch'
+  );
+
+  responseBody = { ...structuredClone(receipt), receipt_id: '' };
+  await assert.rejects(
+    () => client.recompositionReceiptGet({ ...structuredClone(authority), revision: 11 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:missing:receipt_id'
+  );
+
+  responseBody = { ...structuredClone(receipt), projection_revision: -1 };
+  await assert.rejects(
+    () => client.recompositionReceiptGet({ ...structuredClone(authority), revision: 11 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:projection_revision'
+  );
+
+  responseBody = { ...structuredClone(receipt), accepted: false };
+  await assert.rejects(
+    () => client.recompositionReceiptGet({ ...structuredClone(authority), revision: 11 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:not_accepted'
+  );
 }
 
 async function exerciseRecipientResolve({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
