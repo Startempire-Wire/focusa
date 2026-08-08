@@ -33,6 +33,17 @@ async fn license_status(
                 })),
             )
         })?;
+    let entitlement_decision = focusa_license::entitlement_decision_projection(g.entitlement.as_ref())
+        .map_err(|error| {
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({
+                    "error": "ENTITLEMENT_SNAPSHOT_MISSING",
+                    "message": error.to_string(),
+                    "recovery_policy": "recovery, export, repair, and uninstall remain available",
+                })),
+            )
+        })?;
     let caps = [
         Capability::CommercialUse,
         Capability::HostedMode,
@@ -87,6 +98,7 @@ async fn license_status(
         "masked_identity": g.customer_email.as_deref().and_then(mask_identity),
         "expired": g.is_expired(),
         "authority": authority,
+        "entitlement_decision": entitlement_decision,
         "capabilities": posture,
         "summary": format!(
             "tier={} capabilities={}",

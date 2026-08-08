@@ -1,0 +1,26 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.13
+Title: 152F.01.09 Spec152F entitlement policy vectors normalized to canonical state model
+Implementation commit: ce18cdbfdb69f9be5d01e978c2ef7de81d6570f8
+
+Exact touched surfaces
+- crates/focusa-license/tests/entitlement_policy_grid.rs
+- tests/fixtures/spec152f-entitlement-policy-cases.v1.json
+- tests/spec152f_entitlement_policy_vectors_test.py
+- tests/spec152f_entitlement_policy_contract_test.py (updated state grid canonicalization)
+
+Validation steps
+1) cargo test -p focusa-license --test entitlement_policy_grid
+   - 8 tests passed in entitlement_policy_grid
+2) python3 tests/spec152f_entitlement_policy_vectors_test.py
+   - JSON result:
+     {"family_count": 9, "feature_vector_count": 11, "grid_case_count": 63, "negative_mutation_count": 6, "policy_sha256": "dee9a8af1b79813d4d7a88becbc5c28b9500d3060f08f6711c5d31c27b034aff", "result": "passed", "schema": "focusa.spec152f.entitlement_policy_vectors_validation.v1", "state_count": 7, "uiai_vector_count": 6}
+
+Evidence outcomes
+- State/family matrix reduced to 7 canonical states:
+  [pending_unverified, verified_no_license, active_paid, offline_grace, expired, refunded_or_revoked, missing_or_corrupt]
+- grid_case_count is 63 (7x9)
+- fixture policy canonical SHA updated to match docs/contracts/spec152f-entitlement-policy.v1.yaml
+- base product, feature decision, uiai token, unknown family, dormant dimension vectors kept and fail-closed semantics preserved
+
+Result: passed

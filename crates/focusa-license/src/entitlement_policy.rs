@@ -19,6 +19,18 @@ pub enum OperationClass {
     Unknown,
 }
 
+impl OperationClass {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Read => "read",
+            Self::ValueMutation => "value_mutation",
+            Self::Recovery => "recovery",
+            Self::InternalMaintenance => "internal_maintenance",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CapabilityFamily {
@@ -31,6 +43,22 @@ pub enum CapabilityFamily {
     PremiumUpdates,
     CustomerDataExport,
     InternalMaintenance,
+}
+
+impl CapabilityFamily {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::AccountRecovery => "account_recovery",
+            Self::ReadProjection => "read_projection",
+            Self::BaseFocusa => "base_focusa",
+            Self::Automation => "automation",
+            Self::TeamRemote => "team_remote",
+            Self::ReleaseProof => "release_proof",
+            Self::PremiumUpdates => "premium_updates",
+            Self::CustomerDataExport => "customer_data_export",
+            Self::InternalMaintenance => "internal_maintenance",
+        }
+    }
 }
 
 impl CapabilityFamily {
@@ -66,6 +94,21 @@ pub enum CommercialTreatment {
     OptionalPremium,
     AlwaysAvailableBasicWithOptionalPremiumPackaging,
     InheritInitiatingOperation,
+}
+
+impl CommercialTreatment {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::AlwaysAvailable => "always_available",
+            Self::ReadAllowance => "read_allowance",
+            Self::BaseEntitlement => "base_entitlement",
+            Self::OptionalPremium => "optional_premium",
+            Self::AlwaysAvailableBasicWithOptionalPremiumPackaging => {
+                "always_available_basic_with_optional_premium_packaging"
+            }
+            Self::InheritInitiatingOperation => "inherit_initiating_operation",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -674,6 +717,20 @@ pub enum PolicyEntitlementState {
     MissingOrCorrupt,
 }
 
+impl PolicyEntitlementState {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::PendingUnverified => "pending_unverified",
+            Self::VerifiedNoLicense => "verified_no_license",
+            Self::ActivePaid => "active_paid",
+            Self::OfflineGrace => "offline_grace",
+            Self::Expired => "expired",
+            Self::RefundedOrRevoked => "refunded_or_revoked",
+            Self::MissingOrCorrupt => "missing_or_corrupt",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct RequiredFeature(String);
@@ -866,6 +923,39 @@ pub enum DecisionReason {
     Deny,
 }
 
+impl DecisionReason {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Allow => "allow",
+            Self::AllowVerifiedLimited => "allow_verified_limited",
+            Self::Read => "read",
+            Self::ReadLocalOnly => "read_local_only",
+            Self::AllowExistingLocalOnly => "allow_existing_local_only",
+            Self::AllowOfflineOnly => "allow_offline_only",
+            Self::RequireBase => "require_base",
+            Self::RequireFeature => "require_feature",
+            Self::RequireCachedFeature => "require_cached_feature",
+            Self::RequireCachedFeatureWhenSafe => "require_cached_feature_when_safe",
+            Self::Inherit => "inherit",
+            Self::MissingInitiatingPolicy => "missing_initiating_policy",
+            Self::Deny => "deny",
+        }
+    }
+
+    pub const fn recovery_action(self) -> &'static str {
+        match self {
+            Self::RequireBase => "activate_evaluation_purchase_or_manage_entitlement",
+            Self::RequireFeature
+            | Self::RequireCachedFeature
+            | Self::RequireCachedFeatureWhenSafe => "review_offer_or_manage_entitlement",
+            Self::Deny | Self::MissingInitiatingPolicy => {
+                "activate_evaluation_purchase_or_manage_entitlement"
+            }
+            _ => "license_status",
+        }
+    }
+}
+
 /// Commercial posture produced by the state-grid reducer. Security, identity,
 /// role, scope, node, sequence, and confirmation gates remain independent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -876,6 +966,18 @@ pub enum EntitlementPolicyPosture {
     Base,
     Feature,
     Deny,
+}
+
+impl EntitlementPolicyPosture {
+    pub const fn status(self) -> &'static str {
+        match self {
+            Self::Allow => "allow",
+            Self::Read => "read",
+            Self::Base => "base",
+            Self::Feature => "feature",
+            Self::Deny => "deny",
+        }
+    }
 }
 
 /// Pure, bounded result for one Spec 172-overlaid Spec 152F grid cell.
@@ -1541,7 +1643,7 @@ impl PremiumFamilyDecision {
     }
 }
 
-fn authority_policy_state(
+pub fn authority_policy_state(
     snapshot: &crate::authority::EntitlementSnapshot,
 ) -> PolicyEntitlementState {
     match snapshot.state {

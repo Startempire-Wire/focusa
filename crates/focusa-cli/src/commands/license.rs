@@ -591,9 +591,11 @@ async fn run_activate(json_output: bool, args: ActivateArgs) -> anyhow::Result<(
 async fn run_status(json_output: bool) -> anyhow::Result<()> {
     let guard = focusa_license::resolve_license_guard();
     let authority = focusa_license::entitlement_projection(guard.entitlement.as_ref())?;
+    let entitlement_decision = focusa_license::entitlement_decision_projection(guard.entitlement.as_ref())?;
     let payload = json!({
         "schema": "focusa.authority_license_status.v1",
         "authority": authority,
+        "entitlement_decision": entitlement_decision,
         "recovery_policy": "recovery, export, repair, and uninstall remain available when execution is locked",
         "marketing_preference": "managed_separately"
     });
@@ -610,6 +612,15 @@ async fn run_status(json_output: bool) -> anyhow::Result<()> {
         println!(
             "Product:        {}",
             payload["authority"]["product"].as_str().unwrap_or("focusa")
+        );
+        println!(
+            "Decision:       {} ({})",
+            payload["entitlement_decision"]["status"].as_str().unwrap_or("unknown"),
+            payload["entitlement_decision"]["reason_code"].as_str().unwrap_or("unknown")
+        );
+        println!(
+            "Recovery action: {}",
+            payload["entitlement_decision"]["recovery_action"].as_str().unwrap_or("unknown")
         );
         if let Some(sequence) = payload["authority"]["lease_sequence"].as_u64() {
             println!("Lease sequence: {sequence}");

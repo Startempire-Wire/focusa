@@ -16,8 +16,8 @@ pub mod feature_decision;
 pub mod license_migration;
 
 pub use entitlement_policy::{
-    base_product_compatibility_projection, embedded_entitlement_policy_registry,
-    is_focusa_verified_no_license_family_allowed,
+    authority_policy_state, base_product_compatibility_projection,
+    embedded_entitlement_policy_registry, is_focusa_verified_no_license_family_allowed,
     reduce_entitlement_state, resolve_base_focusa_product, AccessPosture, BaseProductDecision,
     CapabilityFamily, CommercialTreatment, CompositeGrant, DecisionReason,
     EmbeddedEntitlementPolicyRegistry, EntitlementPolicyPosture, EntitlementPolicyRegistryError,
@@ -80,6 +80,59 @@ pub fn entitlement_projection(
     })
 }
 
+/// Canonical, presenter-neutral entitlement decision projection for status-style
+/// presenters.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EntitlementDecisionProjection {
+    pub status: String,
+    pub entitlement_state: String,
+    pub operation_id: String,
+    pub operation_class: String,
+    pub capability_family: String,
+    pub commercial_treatment: String,
+    pub required_feature: Option<String>,
+    pub limit_bucket: Option<String>,
+    pub reason_code: String,
+    pub recovery_action: String,
+    pub policy_digest: String,
+    pub lease_sequence: u64,
+}
+
+pub const LICENSE_STATUS_OPERATION_ID: &str = "focusa.license.status";
+
+/// Project one redacted entitlement decision for the canonical license status view.
+///
+/// This projection intentionally excludes raw tokens, lease digests, and identity
+/// claims while preserving enough context for presenter rendering and recovery UX.
+pub fn entitlement_decision_projection(
+    snapshot: Option<&authority::EntitlementSnapshot>,
+) -> Result<EntitlementDecisionProjection, LicenseError> {
+    let snapshot = snapshot.ok_or(LicenseError::EntitlementSnapshotMissing)?;
+    let policy_state = authority_policy_state(snapshot);
+    let decision = reduce_entitlement_state(policy_state, CapabilityFamily::ReadProjection, None);
+
+    Ok(EntitlementDecisionProjection {
+        status: decision.posture().status().to_string(),
+        entitlement_state: policy_state.label().to_string(),
+        operation_id: LICENSE_STATUS_OPERATION_ID.to_string(),
+        operation_class: OperationClass::Read.label().to_string(),
+        capability_family: CapabilityFamily::ReadProjection.label().to_string(),
+        commercial_treatment: CapabilityFamily::ReadProjection
+            .commercial_treatment()
+            .label()
+            .to_string(),
+        required_feature: None,
+        limit_bucket: None,
+        reason_code: decision.reason().label().to_string(),
+        recovery_action: decision.reason().recovery_action().to_string(),
+        policy_digest: embedded_entitlement_policy_registry()
+            .expect("embedded entitlement policy registry")
+            .digest()
+            .to_string(),
+        lease_sequence: snapshot.sequence.unwrap_or_default(),
+    })
+}
+
 /// Canonical, client-safe base-product projection derived from one signed
 /// entitlement snapshot (Spec 152F P3). REST, CLI, desktop, TUI, Pi, agents,
 /// installers, UIAI, workers, and schedulers inherit this single decision.
@@ -99,13 +152,7 @@ pub fn base_product_projection(
     snapshot: Option<&authority::EntitlementSnapshot>,
 ) -> Result<BaseProductProjection, LicenseError> {
     let snapshot = snapshot.ok_or(LicenseError::EntitlementSnapshotMissing)?;
-    let policy_state = match snapshot.state {
-        authority::EntitlementState::Active => PolicyEntitlementState::ActivePaid,
-        authority::EntitlementState::OfflineGrace => PolicyEntitlementState::OfflineGrace,
-        // Recovery-only is a signed recovery posture, not base entitlement.
-        authority::EntitlementState::RecoveryOnly => PolicyEntitlementState::RefundedOrRevoked,
-        authority::EntitlementState::Unactivated => PolicyEntitlementState::PendingUnverified,
-    };
+    let policy_state = authority_policy_state(snapshot);
     let decision = resolve_base_focusa_product(&snapshot.product, policy_state);
     let compatibility = base_product_compatibility_projection(decision, &snapshot.features);
     Ok(BaseProductProjection {
@@ -542,6 +589,54 @@ mod tests {
             entitlement_projection(None),
             Err(LicenseError::EntitlementSnapshotMissing)
         ));
+    }
+
+    #[test]
+    fn entitlement_decision_projection_projects_status_read_envelope() {
+        let mut snapshot = authority::EntitlementSnapshot::unactivated("focusa", "node-001");
+        snapshot.state = authority::EntitlementState::Active;
+        snapshot.sequence = Some(42);
+
+        let decision = entitlement_decision_projection(Some(&snapshot))
+            .expect("decision projection");
+
+        assert_eq!(decision.status, "read");
+        assert_eq!(decision.entitlement_state, "active_paid");
+        assert_eq!(decision.operation_id, LICENSE_STATUS_OPERATION_ID);
+        assert_eq!(decision.operation_class, "read");
+        assert_eq!(decision.capability_family, "read_projection");
+        assert_eq!(decision.commercial_treatment, "read_allowance");
+        assert_eq!(decision.reason_code, "read");
+        assert_eq!(decision.recovery_action, "license_status");
+        assert_eq!(decision.lease_sequence, 42);
+
+        let body = serde_json::to_string(&decision).unwrap();
+        assert!(!body.contains("lease_digest"));
+        assert!(!body.contains("lease_id"));
+        assert!(!body.contains("node_id"));
+        assert_eq!(
+            decision.policy_digest,
+            embedded_entitlement_policy_registry().expect("registry").digest()
+        );
+    }
+
+    #[test]
+    fn entitlement_decision_projection_fails_closed_without_snapshot() {
+        assert!(matches!(
+            entitlement_decision_projection(None),
+            Err(LicenseError::EntitlementSnapshotMissing)
+        ));
+    }
+
+    #[test]
+    fn entitlement_decision_projection_fails_closed_for_unactivated_snapshot() {
+        let snapshot = authority::EntitlementSnapshot::unactivated("focusa", "node-001");
+        let decision = entitlement_decision_projection(Some(&snapshot)).expect("decision");
+        assert_eq!(decision.status, "deny");
+        assert_eq!(decision.reason_code, "deny");
+        assert_eq!(decision.recovery_action, "activate_evaluation_purchase_or_manage_entitlement");
+        assert_eq!(decision.entitlement_state, "pending_unverified");
+        assert_eq!(decision.lease_sequence, 0);
     }
 
     #[test]
