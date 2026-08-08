@@ -28,6 +28,7 @@ use std::path::{Path, PathBuf};
 
 pub use crate::entitlement_execution_guard::{
     evaluate_entitlement_execution,
+    evaluate_entitlement_execution_for_project,
     EntitlementExecutionContext,
     EntitlementExecutionDecision,
     EntitlementExecutionFailure,

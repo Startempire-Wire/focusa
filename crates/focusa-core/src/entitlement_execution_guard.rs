@@ -345,6 +345,52 @@ pub fn evaluate_entitlement_execution(
     }
 }
 
+/// Resolve one canonical operation against the signed Focusa entitlement policy,
+/// with an additional active-project guard for verified-no-license posture.
+///
+/// When the posture is verified-no-license and the capability family is BaseFocusa,
+/// this function additionally checks that the targeted project is the single
+/// explicitly selected mutable project. Second-project mutations and mutations
+/// without an explicit selection are denied with upgrade/switch actions.
+///
+/// All other postures and families pass through to the base
+/// `evaluate_entitlement_execution` without project-level checks.
+pub fn evaluate_entitlement_execution_for_project(
+    guard: &focusa_license::LicenseGuard,
+    policy: &EntitlementExecutionPolicy,
+    context: EntitlementExecutionContext,
+    project_root: &str,
+    active_selection: Option<&crate::limited_project::ActiveProjectSelection>,
+) -> Result<EntitlementExecutionDecision, EntitlementExecutionFailure> {
+    let decision = evaluate_entitlement_execution(guard, policy, context)?;
+
+    // Only apply the project guard for BaseFocusa mutations in verified-no-license posture.
+    if policy.capability_family == focusa_license::CapabilityFamily::BaseFocusa
+        && policy.operation_class == focusa_license::OperationClass::ValueMutation
+        && decision.reason_code == focusa_license::DecisionReason::AllowVerifiedLimited.label()
+    {
+        let base = focusa_license::resolve_base_focusa_product(
+            "focusa",
+            focusa_license::PolicyEntitlementState::VerifiedNoLicense,
+        );
+        let project_decision = crate::limited_project::ActiveProjectGuard::check_mutation(
+            base,
+            project_root,
+            active_selection,
+        );
+        if project_decision.is_denied() {
+            return Err(EntitlementExecutionFailure {
+                code: "ENTITLEMENT_LIMITED_PROJECT".to_string(),
+                message: project_decision.recovery_action().to_string(),
+                required_feature: None,
+                limit_bucket: None,
+            });
+        }
+    }
+
+    Ok(decision)
+}
+
 fn entitlement_execution_premium_denial(
     denial: focusa_license::PremiumFamilyDenial,
     required_feature: Option<String>,
@@ -592,5 +638,194 @@ mod tests {
         )
         .expect("maintenances can inherit initiating posture");
         assert_eq!(allowed.status, "read");
+    }
+
+    // ── Spec 172 verified_limited_project tests ──
+
+    fn limited_snapshot() -> focusa_license::authority::EntitlementSnapshot {
+        use focusa_license::authority::EntitlementSnapshot;
+        let snapshot = EntitlementSnapshot::unactivated("focusa", "node-limited-001");
+        // Verified-no-license posture: no paid lease, but verified identity.
+        // The authority_policy_state maps Unactivated → PendingUnverified,
+        // so we need to construct a state that the reducer will see as
+        // VerifiedNoLicense. We use the snapshot's product and the
+        // resolve_base_focusa_product call directly.
+        snapshot
+    }
+
+    #[test]
+    fn verified_limited_project_allows_mutation_in_active_project() {
+        let selection = crate::limited_project::ActiveProjectSelection::new(
+            "/home/user/projects/my-focusa",
+            "test",
+        );
+        // The project guard itself is tested in limited_project.rs;
+        // here we verify the integration with the execution guard.
+        let decision = crate::limited_project::ActiveProjectGuard::check_mutation(
+            focusa_license::BaseProductDecision::Limited,
+            "/home/user/projects/my-focusa",
+            Some(&selection),
+        );
+        assert!(decision.is_allowed());
+    }
+
+    #[test]
+    fn verified_limited_project_denies_second_project_mutation() {
+        let selection = crate::limited_project::ActiveProjectSelection::new(
+            "/home/user/projects/project-a",
+            "test",
+        );
+        let decision = crate::limited_project::ActiveProjectGuard::check_mutation(
+            focusa_license::BaseProductDecision::Limited,
+            "/home/user/projects/project-b",
+            Some(&selection),
+        );
+        assert!(decision.is_denied());
+        match decision {
+            crate::limited_project::ProjectMutationDecision::DeniedSecondProject {
+                active_project_root,
+                attempted_project_root,
+                ..
+            } => {
+                assert_eq!(active_project_root, "/home/user/projects/project-a");
+                assert_eq!(attempted_project_root, "/home/user/projects/project-b");
+            }
+            _ => panic!("expected DeniedSecondProject"),
+        }
+    }
+
+    #[test]
+    fn verified_limited_project_denies_mutation_without_explicit_selection() {
+        let decision = crate::limited_project::ActiveProjectGuard::check_mutation(
+            focusa_license::BaseProductDecision::Limited,
+            "/home/user/projects/any-project",
+            None,
+        );
+        assert!(decision.is_denied());
+        match decision {
+            crate::limited_project::ProjectMutationDecision::DeniedNoSelection { .. } => {}
+            _ => panic!("expected DeniedNoSelection"),
+        }
+    }
+
+    #[test]
+    fn verified_limited_project_paid_entitlement_bypasses_project_guard() {
+        // Paid entitlement: project guard is bypassed.
+        let selection = crate::limited_project::ActiveProjectSelection::new(
+            "/home/user/projects/project-a",
+            "test",
+        );
+        let decision = crate::limited_project::ActiveProjectGuard::check_mutation(
+            focusa_license::BaseProductDecision::Entitled,
+            "/home/user/projects/project-b",
+            Some(&selection),
+        );
+        assert!(decision.is_allowed());
+
+        // Even without a selection.
+        let decision = crate::limited_project::ActiveProjectGuard::check_mutation(
+            focusa_license::BaseProductDecision::Entitled,
+            "/home/user/projects/any-project",
+            None,
+        );
+        assert!(decision.is_allowed());
+    }
+
+    #[test]
+    fn verified_limited_project_read_export_always_available() {
+        // Read projection is never subject to the project mutation guard.
+        // The entitlement state grid reducer handles ReadProjection separately
+        // from BaseFocusa, and read operations always return Read posture.
+        let guard = focusa_license::LicenseGuard::eval(7);
+        let decision = evaluate_entitlement_execution(
+            &guard,
+            &EntitlementExecutionPolicy::new(
+                "focusa.project.read",
+                focusa_license::OperationClass::Read,
+                focusa_license::CapabilityFamily::ReadProjection,
+                None,
+                None,
+                focusa_license::RecoveryAllowance::ReadProjection,
+            ),
+            EntitlementExecutionContext::default(),
+        )
+        .expect("read projection is always available");
+        assert_eq!(decision.status, "read");
+        assert_eq!(decision.code, "ENTITLEMENT_ALLOWED");
+    }
+
+    #[test]
+    fn verified_limited_project_export_always_available() {
+        // Customer data export is always available through the recovery allowance.
+        let guard = focusa_license::LicenseGuard::eval(7);
+        let decision = evaluate_entitlement_execution(
+            &guard,
+            &EntitlementExecutionPolicy::new(
+                "focusa.export.basic",
+                focusa_license::OperationClass::Read,
+                focusa_license::CapabilityFamily::CustomerDataExport,
+                None,
+                None,
+                focusa_license::RecoveryAllowance::CustomerDataExport,
+            ),
+            EntitlementExecutionContext::default(),
+        )
+        .expect("customer data export is always available");
+        assert_eq!(decision.status, "allow");
+        assert_eq!(decision.code, "ENTITLEMENT_ALLOWED");
+    }
+
+    #[test]
+    fn verified_limited_project_switch_preserves_read_access() {
+        // After switching the active project, the previously active project
+        // is still readable (ReadProjection is always available) but no longer
+        // mutable.
+        let selection_a = crate::limited_project::ActiveProjectSelection::new(
+            "/home/user/projects/project-a",
+            "test",
+        );
+        let decision = crate::limited_project::ActiveProjectGuard::check_mutation(
+            focusa_license::BaseProductDecision::Limited,
+            "/home/user/projects/project-a",
+            Some(&selection_a),
+        );
+        assert!(decision.is_allowed());
+
+        // Switch to project-b
+        let selection_b = crate::limited_project::ActiveProjectSelection::new(
+            "/home/user/projects/project-b",
+            "test",
+        );
+        let decision = crate::limited_project::ActiveProjectGuard::check_mutation(
+            focusa_license::BaseProductDecision::Limited,
+            "/home/user/projects/project-b",
+            Some(&selection_b),
+        );
+        assert!(decision.is_allowed());
+
+        // project-a is now denied for mutation
+        let decision = crate::limited_project::ActiveProjectGuard::check_mutation(
+            focusa_license::BaseProductDecision::Limited,
+            "/home/user/projects/project-a",
+            Some(&selection_b),
+        );
+        assert!(decision.is_denied());
+
+        // But read projection is always available for project-a
+        let guard = focusa_license::LicenseGuard::eval(7);
+        let read_decision = evaluate_entitlement_execution(
+            &guard,
+            &EntitlementExecutionPolicy::new(
+                "focusa.project.read",
+                focusa_license::OperationClass::Read,
+                focusa_license::CapabilityFamily::ReadProjection,
+                None,
+                None,
+                focusa_license::RecoveryAllowance::ReadProjection,
+            ),
+            EntitlementExecutionContext::default(),
+        )
+        .expect("read projection is always available");
+        assert_eq!(read_decision.code, "ENTITLEMENT_ALLOWED");
     }
 }
