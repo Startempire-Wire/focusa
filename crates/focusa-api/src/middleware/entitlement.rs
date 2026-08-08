@@ -8,7 +8,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use focusa_core::runtime::persistence_sqlite::EntitlementLimitReservationOutcome;
-use focusa_license::authority::EntitlementState;
+use focusa_license::{
+    authority::EntitlementState,
+    reduce_entitlement_state, EntitlementPolicyPosture, LicenseGuard, PolicyEntitlementState,
+    RecoveryAllowance,
+};
 use sha2::{Digest, Sha256};
 
 use crate::{middleware::entitlement_routes::requirement_for_path, server::AppState};
@@ -18,16 +22,25 @@ pub async fn entitlement_gate_layer(
     request: Request,
     next: Next,
 ) -> Response {
-    if !route_requires_entitlement(request.method(), request.uri().path()) {
+    let path = request.uri().path();
+    if !route_requires_entitlement(request.method(), path) {
+        if let Some(denial) = route_entitlement_denial(&state.license_guard, request.uri().path()) {
+            return denial_response(&state, denial);
+        }
         return next.run(request).await;
     }
+
     if let Some(denial) = route_entitlement_denial(&state.license_guard, request.uri().path()) {
         return denial_response(&state, denial);
     }
 
-    let reservation = match reserve_route_limit(&state, &request) {
-        Ok(reservation) => reservation,
-        Err(denial) => return denial_response(&state, denial),
+    let reservation = if route_recovery_allowance(path).is_some() {
+        None
+    } else {
+        match reserve_route_limit(&state, &request) {
+            Ok(reservation) => reservation,
+            Err(denial) => return denial_response(&state, denial),
+        }
     };
     let response = next.run(request).await;
     if let Some(reservation_id) = reservation {
@@ -147,9 +160,21 @@ struct RouteEntitlementDenial {
 }
 
 fn route_entitlement_denial(
-    guard: &focusa_license::LicenseGuard,
+    guard: &LicenseGuard,
     path: &str,
 ) -> Option<RouteEntitlementDenial> {
+    if let Some(allowance) = route_recovery_allowance(path) {
+        if recovery_allowance_allows(guard, allowance) {
+            return None;
+        }
+        return Some(RouteEntitlementDenial {
+            code: "ENTITLEMENT_REQUIRED",
+            message: "A valid Focusa lease or recovery control posture is required for this operation.",
+            required_feature: requirement_for_path(path).map(|requirement| requirement.feature),
+            limit_bucket: requirement_for_path(path)
+                .and_then(|requirement| requirement.limit_bucket),
+        });
+    }
     if !entitlement_allows_mutation(guard) {
         return Some(RouteEntitlementDenial {
             code: "ENTITLEMENT_REQUIRED",
@@ -192,6 +217,41 @@ fn route_entitlement_denial(
         }
     }
     None
+}
+
+fn route_recovery_allowance(path: &str) -> Option<RecoveryAllowance> {
+    match path {
+        "/v1/device/pair/revoke" => Some(RecoveryAllowance::AccountRecovery),
+        "/v1/export/run" => Some(RecoveryAllowance::CustomerDataExport),
+        "/v1/project/bootstrap/repair" => Some(RecoveryAllowance::RepairRollback),
+        "/v1/update/apply" => Some(RecoveryAllowance::StableSecurityUpdate),
+        "/v1/update/rollback" => Some(RecoveryAllowance::RepairRollback),
+        _ => None,
+    }
+}
+
+fn recovery_allowance_allows(guard: &LicenseGuard, allowance: RecoveryAllowance) -> bool {
+    let Some(family) = allowance.implied_family() else {
+        return false;
+    };
+    let decision = reduce_entitlement_state(policy_state_for_recovery_route(guard), family, None);
+    matches!(
+        decision.posture(),
+        EntitlementPolicyPosture::Allow | EntitlementPolicyPosture::Read
+    ) && !allowance.security_prerequisites().is_empty()
+}
+
+fn policy_state_for_recovery_route(guard: &LicenseGuard) -> PolicyEntitlementState {
+    guard
+        .entitlement
+        .as_ref()
+        .map(|snapshot| match snapshot.state {
+            EntitlementState::Unactivated => PolicyEntitlementState::PendingUnverified,
+            EntitlementState::RecoveryOnly => PolicyEntitlementState::RefundedOrRevoked,
+            EntitlementState::Active => PolicyEntitlementState::ActivePaid,
+            EntitlementState::OfflineGrace => PolicyEntitlementState::OfflineGrace,
+        })
+        .unwrap_or(PolicyEntitlementState::MissingOrCorrupt)
 }
 
 pub(crate) fn entitlement_allows_mutation(guard: &focusa_license::LicenseGuard) -> bool {
@@ -296,6 +356,10 @@ mod tests {
             &Method::POST,
             "/v1/update/apply"
         ));
+        assert!(route_requires_entitlement(
+            &Method::POST,
+            "/v1/project/bootstrap/repair"
+        ));
         assert!(route_requires_entitlement(&Method::POST, "/v1/export/run"));
         assert!(!route_requires_entitlement(
             &Method::POST,
@@ -381,6 +445,40 @@ mod tests {
                 .unwrap()
                 .code,
             "ENTITLEMENT_ROUTE_UNCLASSIFIED"
+        );
+    }
+
+    #[test]
+    fn recovery_allowances_skip_entitlement_state_and_feature_checks() {
+        let guard = LicenseGuard::eval(7);
+        assert_eq!(
+            route_entitlement_denial(&guard, "/v1/update/apply"),
+            None,
+            "apply must remain available during recovery-only paths"
+        );
+        assert_eq!(
+            route_entitlement_denial(&guard, "/v1/project/bootstrap/repair"),
+            None,
+            "repair must remain available during recovery-only paths"
+        );
+        assert_eq!(
+            route_entitlement_denial(&guard, "/v1/export/run"),
+            None,
+            "export must remain available during recovery-only paths"
+        );
+        assert_eq!(
+            route_entitlement_denial(&guard, "/v1/update/rollback"),
+            None,
+            "rollback must remain available during recovery-only paths"
+        );
+        assert_eq!(
+            route_entitlement_denial(&guard, "/v1/device/pair/revoke"),
+            None,
+            "node deactivation must remain available during recovery-only paths"
+        );
+        assert_eq!(
+            route_entitlement_denial(&guard, "/v1/workpoint/checkpoint").unwrap().code,
+            "ENTITLEMENT_REQUIRED"
         );
     }
 }
