@@ -18,6 +18,7 @@ try {
   const { default: WorkspaceProfileSelector } = await server.ssrLoadModule('/src/lib/mission-canvas/WorkspaceProfileSelector.svelte');
   const generatedClientPath = fileURLToPath(new URL('../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts', import.meta.url));
   const { MissionCanvasClient } = await server.ssrLoadModule(generatedClientPath);
+  const { CanonicalEventHistory } = await server.ssrLoadModule('/src/lib/mission-canvas/canonical-event-history.ts');
   const { default: CustomElementHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasCustomElementHarness.svelte');
 
   const expectations = {
@@ -697,6 +698,137 @@ try {
   for (const contribution of queueFixture.eligible_contributions) {
     assert.ok(DEFAULT_CONTRIBUTION_REGISTRY.resolve(contribution), `default registry missing ${contribution.renderer_binding_id}`);
   }
+
+  const historyContribution = {
+    ...structuredClone(fixture.eligible_contributions[0]),
+    contribution_id: 'contribution:history',
+    kind: 'generated_surface',
+    semantic_binding_id: 'semantic:history',
+    renderer_binding_id: 'renderer:history@v1',
+    data_ref: {
+      kind: 'history',
+      ref: 'history:workspace',
+      revision: fixture.projection_revision,
+      freshness: 'current'
+    },
+    accessibility: {
+      label: 'Workspace History',
+      description: 'Canonical cursor-scoped projection event history',
+      landmark_role: 'region',
+      focus_semantic_id: 'focus:history',
+      keyboard_operation_ids: []
+    },
+    operation_ids: []
+  };
+  const historyProjection = {
+    ...structuredClone(fixture),
+    eligible_contributions: [historyContribution],
+    operation_bindings: [],
+    layout_tree: {
+      node_id: 'layout:history',
+      kind: 'single',
+      contribution_id: historyContribution.contribution_id
+    }
+  };
+  assert.ok(
+    DEFAULT_CONTRIBUTION_REGISTRY.resolve(historyContribution),
+    `default registry missing ${historyContribution.renderer_binding_id}`
+  );
+
+  const historyEvent = {
+    ...fixtureAuthority,
+    event_cursor: 'event:90',
+    event_id: 'event:history-1',
+    event_kind: 'projection_rehydrated',
+    evidence_refs: ['evidence:history-1'],
+    layout_revision: fixture.layout_revision + 1,
+    occurred_at: '2026-08-08T00:00:01Z',
+    payload_ref: 'history:payload:1',
+    projection_revision: fixture.projection_revision + 1,
+    receipt_refs: ['receipt:history-1']
+  };
+  const foreignHistoryEvent = {
+    ...historyEvent,
+    event_id: 'event:history-foreign',
+    event_cursor: 'event:91',
+    workstream: { ...structuredClone(fixtureAuthority.workstream), workstream_id: 'ws:foreign' },
+    attachment: {
+      ...structuredClone(fixtureAuthority.attachment),
+      workstream: { ...structuredClone(fixtureAuthority.workstream), workstream_id: 'ws:foreign' }
+    }
+  };
+  const staleHistoryEvent = {
+    ...historyEvent,
+    event_id: 'event:history-stale',
+    event_cursor: 'event:40'
+  };
+  const malformedHistoryEvent = {
+    ...historyEvent,
+    event_id: 'event:history-malformed',
+    event_cursor: 'cursor:not-a-number'
+  };
+  const historyRender = CanonicalEventHistory.render({
+    projection: historyProjection,
+    authority: fixtureAuthority,
+    events: [historyEvent, foreignHistoryEvent, staleHistoryEvent, malformedHistoryEvent],
+    maxRows: 1
+  });
+  assert.equal(historyRender.rows.length, 1);
+  assert.equal(historyRender.rows[0].event_id, 'event:history-1');
+  assert.equal(historyRender.rejected.some(({ reason }) => reason === 'foreign_event_scope'), true);
+  assert.equal(historyRender.rejected.some(({ reason }) => reason === 'event_cursor_stale'), true);
+  assert.equal(historyRender.rejected.some(({ reason }) => reason === 'invalid_event_cursor'), true);
+
+  const staleRevisionHistoryEvent = {
+    ...historyEvent,
+    event_id: 'event:history-stale-revision',
+    event_cursor: 'event:92',
+    projection_revision: fixture.projection_revision - 1
+  };
+  const staleRevisionRender = CanonicalEventHistory.render({
+    projection: historyProjection,
+    authority: fixtureAuthority,
+    events: [staleRevisionHistoryEvent]
+  });
+  assert.equal(staleRevisionRender.rows.length, 0);
+  assert.equal(staleRevisionRender.rejected.some(({ reason }) => reason === 'projection_revision_stale'), true);
+
+  const invalidAuthorityRender = CanonicalEventHistory.render({
+    projection: historyProjection,
+    authority: { workstream: {} },
+    events: [historyEvent]
+  });
+  assert.equal(invalidAuthorityRender.rows.length, 0);
+  assert.equal(invalidAuthorityRender.rejected[0].reason.startsWith('invalid_projection_authority'), true);
+
+  const blockedHistoryContributionBinding = {
+    ...historyContribution,
+    contribution_id: 'contribution:history-missing',
+    renderer_binding_id: 'renderer:history@v999'
+  };
+  const blockedResolution = DEFAULT_CONTRIBUTION_REGISTRY.resolveWithDiagnostic(blockedHistoryContributionBinding);
+  assert.equal(blockedResolution.status, 'blocked');
+
+  assert.equal(
+    CanonicalEventHistory.render({
+      projection: historyProjection,
+      authority: fixtureAuthority,
+      events: [historyEvent],
+      maxRows: 1
+    }).rows[0].event_id,
+    'event:history-1'
+  );
+  assert.equal(CanonicalEventHistory.render(historyProjection, [historyEvent], fixtureAuthority, 1).rows[0].event_id, 'event:history-1');
+
+  const malformedProjectionCursorRender = CanonicalEventHistory.render({
+    ...historyProjection,
+    durable_event_cursor: 'cursor:bad'
+  },
+  [historyEvent],
+  fixtureAuthority,
+  1);
+  assert.equal(malformedProjectionCursorRender.rejected.some(({ reason }) => reason === 'invalid_projection_cursor'), true);
+
   const { default: ActivityNavigation } = await server.ssrLoadModule('/src/lib/mission-canvas/ActivityNavigation.svelte');
   const { body: activityNavigation } = render(ActivityNavigation, {
     props: {
@@ -725,6 +857,26 @@ try {
   assert.match(productionProjection, /data-split-ratio="0.7"/);
   assert.equal((productionProjection.match(/class="split-child/g) ?? []).length, 2);
   assert.doesNotMatch(productionProjection, /Renderer unavailable/);
+
+  const { body: historyProductionProjection } = render(MissionCanvasRenderer, {
+    props: {
+      projection: historyProjection,
+      registry: DEFAULT_CONTRIBUTION_REGISTRY
+    }
+  });
+  assert.match(historyProductionProjection, /data-contribution-id="contribution:history"/);
+  assert.match(historyProductionProjection, /Workspace History/);
+  assert.doesNotMatch(historyProductionProjection, /Renderer unavailable/);
+
+  const { default: CanonicalEventHistoryContribution } = await server.ssrLoadModule('/src/lib/mission-canvas/contributions/CanonicalEventHistoryContribution.svelte');
+  const { body: blockedHistoryContribution } = render(CanonicalEventHistoryContribution, {
+    props: {
+      contribution: historyContribution,
+      projection: historyProjection
+    }
+  });
+  assert.match(blockedHistoryContribution, /data-history-status="blocked"/);
+  assert.match(blockedHistoryContribution, /History stream is not available\./);
 
   // The real MissionCanvasRenderer path must preserve the canonical split
   // without creating a client-local resize control or mutating projection

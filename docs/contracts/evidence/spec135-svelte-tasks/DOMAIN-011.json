@@ -1,0 +1,47 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "DOMAIN-011",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "result": "Desktop Mission Canvas binds a trusted History contribution renderer (renderer:history@v1/semantic:history) that renders only cursor-scoped canonical ProjectionLifecycleEvent rows for the exact Workstream, rejecting foreign or malformed stream events without local reconstruction. Orchestrator verified full Desktop suite and zero-error svelte-check.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/canonical-event-history.ts",
+    "apps/desktop/src/lib/mission-canvas/contributions/CanonicalEventHistoryContribution.svelte",
+    "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts",
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-011.json"
+  ],
+  "implementation": [
+    "Added CanonicalEventHistory.render as a pure seam to normalize and validate ProjectionLifecycleEvent candidates against exact Workstream authority and projection cursor/revision baselines.",
+    "Added CanonicalEventHistoryContribution.svelte to render canonical history rows in the trusted desktop contribution surface without inferring layout or deriving authority client-side.",
+    "Registered a history contribution renderer binding in DEFAULT_CONTRIBUTION_REGISTRY with renderer:history@v1 and semantic:history, using generated local component ownership.",
+    "Extended layout-renderer runtime coverage with history fixture projection and assertions for local, foreign, stale, malformed and missing-authority event handling through CanonicalEventHistory.render, and checked trusted history contribution rendering via the production MissionCanvasRenderer path."
+  ],
+  "checks": [
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "negative_cases": {
+    "foreign_event_scope": "CanonicalEventHistory.render rejects events from a different workstream and does not emit rows for them.",
+    "event_cursor_stale": "Events with cursor at or before projection.durable_event_cursor are rejected and do not appear in bounded rows.",
+    "projection_revision_stale": "Events with projection revision behind the current projection baseline are rejected as projection_revision_stale.",
+    "invalid_event_cursor": "Events with unparsable cursor values are rejected before row emission.",
+    "invalid_projection_authority": "Calling CanonicalEventHistory.render without a valid WorkstreamAuthorityContext returns invalid_projection_authority and emits no rows."
+  },
+  "acceptance": [
+    "History output is derived from ProjectionLifecycleEvent stream data and projection cursor context only.",
+    "Foreign-scope events do not appear in the rendered history dataset.",
+    "Trusted registry resolution is enforced for history through renderer_binding_id/semantic_binding_id, with no client-local contribution synthesis.",
+    "No placeholder synthetic layout path was introduced beyond rendering an empty state for missing rows."
+  ],
+  "status": "complete"
+}
