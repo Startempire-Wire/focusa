@@ -1,0 +1,60 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.20
+Title: 152F.02.07 Prove denial atomicity and no partial side effects
+Implementation commits: `6bba0419bd94426a6600c88543b390d196436101`
+
+Exact surfaces
+- crates/focusa-core/src/entitlement_denial_atomicity.rs (new test module)
+- crates/focusa-core/src/lib.rs (module declaration)
+
+Bounded result
+- Added `entitlement_denial_atomicity` test module with 13 tests covering all
+  required denial classes: missing snapshot, expired lease, refunded/revoked
+  (RecoveryOnly), wrong-feature (missing premium feature), limit-exhausted, and
+  unknown-policy (OperationClass::Unknown). Each denial class is injected before
+  the operation chokepoint and the side-effect counter is verified to stay at
+  zero.
+- `OperationSideEffectCounter` tracks five protected side-effect classes:
+  handler invocation, DB mutations, worker enqueues, external adapter calls,
+  and reservation settlements. All denial tests assert `counter.zero()`.
+- Recovery operations (AccountRecovery) and read projections (ReadProjection)
+  remain always-available regardless of entitlement state.
+- Active signed entitlement and Offline Grace with cached features correctly
+  allow operations with expected side effects recorded.
+- Temporary SQLite fixtures are created per-test via `SqlitePersistence::new()`
+  with UUID-named temp directories and verified to be fully isolated.
+- Idempotent limit reservation preserves atomicity: replay of the same
+  reservation returns `IdempotentReplay` and does not double-consume.
+- All denial classes produce deterministic recovery guidance with stable
+  error codes, messages, and required_feature/limit_bucket metadata.
+
+Exact verification (exit codes)
+1. `cargo test --workspace entitlement_denial_atomicity` — exit 0.
+   test result: ok. 13 passed; 0 failed.
+
+Regression checks (exit codes)
+- `cargo check -p focusa-core` — exit 0, finished cleanly.
+- `cargo test -p focusa-core` — exit 0 (889 passed; 1 pre-existing failure in
+  work_item::lifecycle unrelated to this atom).
+
+Tests added
+- entitlement_denial_atomicity::denial_missing_snapshot_produces_zero_side_effects
+- entitlement_denial_atomicity::denial_expired_lease_produces_zero_side_effects
+- entitlement_denial_atomicity::denial_refunded_revoked_produces_zero_side_effects
+- entitlement_denial_atomicity::denial_wrong_feature_produces_zero_side_effects
+- entitlement_denial_atomicity::denial_exhausted_limit_produces_zero_side_effects
+- entitlement_denial_atomicity::denial_unknown_policy_produces_zero_side_effects
+- entitlement_denial_atomicity::all_denial_classes_produce_deterministic_recovery_guidance
+- entitlement_denial_atomicity::recovery_operation_always_allows_regardless_of_entitlement
+- entitlement_denial_atomicity::read_projection_always_allows_without_side_effects
+- entitlement_denial_atomicity::active_signed_entitlement_allows_base_mutation_with_expected_side_effects
+- entitlement_denial_atomicity::offline_grace_allows_cached_features_without_new_side_effects
+- entitlement_denial_atomicity::idempotent_limit_reservation_preserves_atomicity
+- entitlement_denial_atomicity::temporary_sqlite_fixtures_are_isolated
+
+Rollback
+- Revert only this atom's implementation commit (and this evidence record if
+  required). Preserve customers, orders, refunds, licenses, nodes, sequences,
+  data, migration journals, and already accepted authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.
