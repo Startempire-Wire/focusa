@@ -1,0 +1,36 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CONTRACT-001",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Workstream-aware Mission Canvas JSON Schemas are current: deterministic regeneration produced no drift; composition-bundle and resolved projection schemas carry exact Workstream identity.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "CORE-009"
+    ]
+  },
+  "checks": [
+    {
+      "command": "python3 scripts/generate-spec135-mission-canvas-schemas.py",
+      "result": "pass (deterministic, no drift)"
+    },
+    {
+      "command": "python3 scripts/generate-spec135-mission-canvas-derived-contracts.py",
+      "result": "pass (deterministic, no drift)"
+    },
+    {
+      "command": "python3 tests/spec135_resolved_projection_contract_test.py",
+      "result": "pass"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
