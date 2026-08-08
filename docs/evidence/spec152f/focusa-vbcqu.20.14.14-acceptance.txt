@@ -5,18 +5,47 @@ Title: 152F.02.01 Implement non-HTTP core execution guard
 Implementation commit: this commit
 
 Exact touched surfaces
-- crates/focusa-core/src/lib.rs
-- crates/focusa-core/src/license.rs
 - crates/focusa-core/src/entitlement_execution_guard.rs
-- crates/focusa-license/src/lib.rs
+- crates/focusa-core/src/license.rs
+- crates/focusa-core/src/daemon_dispatch.rs
+- crates/focusa-core/src/silent_session_writer.rs
+- crates/focusa-core/src/silent_session_scheduler.rs
+- crates/focusa-core/src/silent_sessions/pi_rpc_adapter.rs
+- crates/pi-client-tool-gateway/Cargo.toml
+- crates/pi-client-tool-gateway/src/lib.rs
+- docs/evidence/spec152f/focusa-vbcqu.20.14.14-acceptance.txt
 
 Validation steps
 1) cargo test -p focusa-core entitlement_execution_guard
    - command exit code: 0
    - 6 tests passed, 0 failed in module `entitlement_execution_guard`
    - verified that recovery/read paths are available and value-mutation paths are blocked/feature-gated
-2) cargo test -p focusa-license --lib
+2) cargo test -p focusa-core --lib -- entitlement_execution_guard
    - command exit code: 0
-   - 49 tests passed, 0 failed; validates new focusa-license exports remain compatible
+   - 6 tests passed, 0 failed in module `entitlement_execution_guard`
+3) cargo test -p focusa-core --lib -- daemon_dispatch::tests::daemon_dispatch_rejects_unknown_mutation_operations_before_ledger_side_effect
+   - command exit code: 0
+   - 1 test passed
+   - confirms daemon-side dispatch uses canonical entitlement policy mapping and rejects unknown operations before ledger mutation
+4) cargo test -p focusa-core --lib -- silent_session_writer::tests::writer_lease_acquire_rejects_without_entitlement_snapshot
+   - command exit code: 0
+   - 1 test passed
+   - confirms silent-session writer lease acquisition is entitlement-gated before state changes
+5) cargo test -p focusa-core --lib -- silent_session_writer::tests::writer_lease_acquire_with_signed_base_snapshot_is_allowed
+   - command exit code: 0
+   - 1 test passed
+   - confirms premium feature-enabled snapshot can satisfy silent-session lease policy when base product is active
+6) cargo test -p focusa-core --lib -- silent_session_scheduler::tests
+   - command exit code: 0
+   - 5 tests passed, 0 failed
+   - confirms dispatcher entitlement wrapper enforces deny behavior and allows when policy is satisfied
+7) cargo test -p pi-client-tool-gateway --lib
+   - command exit code: 0
+   - 3 tests passed, 0 failed
+   - confirms tool gateway entitlement helper and optional runtime license guard integration
+8) python3 tests/spec152f_entitlement_policy_contract_test.py
+   - command exit code: 0
+   - passed with policy SHA dee9a8af1b79813d4d7a88becbc5c28b9500d3060f08f6711c5d31c27b034aff
+   - validates non-HTTP policy surface alignment assumptions
 
-Outcome: passed
+Outcome: passed (scope expansion complete)
