@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CONTRACT-004",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Generated TypeScript types are current: deterministic regeneration produced no drift; mission-canvas-types.generated.ts carries exact Workstream identity types.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "CONTRACT-003"
+    ]
+  },
+  "checks": [
+    {
+      "command": "python3 scripts/generate-spec135-mission-canvas-schemas.py",
+      "result": "pass (deterministic)"
+    },
+    {
+      "command": "python3 scripts/generate-spec135-mission-canvas-derived-contracts.py",
+      "result": "pass (deterministic)"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
