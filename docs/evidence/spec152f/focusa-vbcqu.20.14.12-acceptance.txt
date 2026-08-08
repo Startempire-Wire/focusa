@@ -1,0 +1,47 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.12
+Title: 152F.01.08 Canonical presenter-neutral entitlement decision projection
+Implementation commit: 186e8e98345e5454ac1dc7e01a9b297068dcc38b
+
+Exact surfaces
+- crates/focusa-license/src/entitlement_policy.rs
+- crates/focusa-license/src/lib.rs
+- crates/focusa-api/src/routes/license.rs
+- crates/focusa-cli/src/commands/license.rs
+
+Bounded result
+- Added canonical presenter-neutral `EntitlementDecisionProjection` and
+  `entitlement_decision_projection` in `focusa-license` with fields matching
+  `focusa.spec152f.canonical_output.fields` (`status`, `entitlement_state`,
+  `operation_id`, `operation_class`, `capability_family`,
+  `commercial_treatment`, `required_feature`, `limit_bucket`, `reason_code`,
+  `recovery_action`, `policy_digest`, `lease_sequence`).
+- Centralized stable enum serialization IDs through `label()` helpers:
+  `OperationClass`, `CapabilityFamily`, `CommercialTreatment`,
+  `PolicyEntitlementState`, `DecisionReason`, and `EntitlementPolicyPosture`.
+- Wired `/v1/license/status` API and `focusa license status` CLI payloads to
+  consume the canonical decision projection directly and render `status`,
+  `reason_code`, and `recovery_action` for presenters.
+- Kept projection redacted and bounded: no node id, lease id, lease digest,
+  raw keys, tokens, tokens hashes, identity, or customer PII are added to the
+  new decision projection.
+- Preserved existing failure semantics: missing snapshot still returns
+  `LicenseError::EntitlementSnapshotMissing` / `ENTITLEMENT_SNAPSHOT_MISSING`.
+
+Exact verification (exit codes)
+1. `cargo test -p focusa-license entitlement_decision_projection` — exit 0.
+   Output: 3 tests passed in `entitlement_decision_projection` filter.
+2. `python3 tests/spec152_entitlement_projection_test.py` — exit 0.
+   Output: `Spec152 canonical entitlement projection: PASS (golden vector + core/API/CLI parity)`
+3. `cargo check -p focusa-api -p focusa-cli` — exit 0.
+4. `git diff --check` — exit 0.
+
+Tests added
+- `entitlement_decision_projection_projects_status_read_envelope`
+- `entitlement_decision_projection_fails_closed_without_snapshot`
+- `entitlement_decision_projection_fails_closed_for_unactivated_snapshot`
+
+Rollback boundary
+- Revert this worktree commit only. Boundaries, existing recovery paths,
+  customer keys, license data, evidence journals, and install artifacts remain
+  unchanged.
