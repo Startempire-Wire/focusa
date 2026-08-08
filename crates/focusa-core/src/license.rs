@@ -389,6 +389,34 @@ pub fn require_release_proof() -> Result<(), LicenseError> {
     }
 }
 
+/// Require the export-packaged premium feature for value-added hosted
+/// packaging, transformation, and report formats (Spec 152F §3.3, §8).
+///
+/// Basic customer-data export (JSONL, Parquet, silent-session retention
+/// export) is always available through the CustomerDataExport recovery
+/// allowance. This function gates only the optional `focusa.export.packaged`
+/// additive premium feature. It does not require the base product gate
+/// because basic export always works.
+pub fn require_export_packaged() -> Result<(), LicenseError> {
+    let guard = focusa_license::resolve_license_guard();
+    let snapshot = guard
+        .entitlement
+        .as_ref()
+        .ok_or_else(|| LicenseError::FeatureRequiresLicense(
+            "focusa.export.packaged".to_string()
+        ))?;
+    match focusa_license::resolve_export_packaged(
+        snapshot,
+        "focusa.export.packaged",
+        chrono::Utc::now(),
+    ) {
+        focusa_license::PremiumFamilyDecision::Feature { .. } => Ok(()),
+        focusa_license::PremiumFamilyDecision::Denied(denial) => {
+            Err(LicenseError::FeatureRequiresLicense(format!("{denial:?}")))
+        }
+    }
+}
+
 /// Activate a license: validate with the registry, write the local file. Spec §5.2.
 /// Async because the registry call uses reqwest which needs a tokio runtime.
 pub async fn activate(

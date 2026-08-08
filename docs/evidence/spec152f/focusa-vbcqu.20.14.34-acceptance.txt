@@ -1,0 +1,93 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.34
+Title: 152F.04.05 Separate basic customer-data export from premium packaging
+Implementation commit: (see below — evidence written before commit)
+
+Exact surfaces
+- crates/focusa-license/src/entitlement_policy.rs
+- crates/focusa-license/src/lib.rs
+- crates/focusa-core/src/license.rs
+- crates/focusa-cli/src/commands/export.rs
+- crates/focusa-cli/src/commands/license.rs
+- crates/focusa-license/tests/spec152f_export_entitlement.rs
+- crates/focusa-license/tests/spec152f_automation_entitlement.rs
+- crates/focusa-license/tests/spec152f_release_proof_entitlement.rs
+
+Bounded result
+- Added CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS constant with
+  ["focusa.export.packaged"] — the single premium feature identifier for
+  value-added hosted packaging/transformation/report formats.
+- Updated premium_family_feature_ids() to return
+  CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS for CapabilityFamily::CustomerDataExport.
+- Added resolve_export_packaged(snapshot, feature, now) — resolves the
+  focusa.export.packaged premium feature against a signed authority snapshot
+  without requiring the base product gate (basic export is always available).
+  The function checks sequence, lease binding, expiry, and feature grant;
+  returns PremiumFamilyDecision::Feature or PremiumFamilyDecision::Denied.
+- Added require_export_packaged() in focusa-core::license — gates only the
+  additive premium packaging feature; basic export is never blocked.
+- Removed the hard require_feature("commercial_export") gate from the CLI
+  export command (crates/focusa-cli/src/commands/export.rs). Basic customer-data
+  export (JSONL, Parquet) is now always available to authenticated customers.
+- Updated the license doctor reference from "commercial_export" to
+  "focusa.export.packaged" with evidence pointing to
+  crates/focusa-core/src/license.rs:require_export_packaged.
+- Exported SecurityPrerequisite from focusa-license for external test use.
+- Updated spec152f_automation_entitlement and spec152f_release_proof_entitlement
+  tests: CustomerDataExport now carries a premium feature, so the
+  non-premium-families-empty assertion excludes it with an explanatory comment.
+- No caller-controlled product, price, grant, or feature input is accepted.
+  Basic export works in every blocked entitlement state; premium denial
+  affects only clearly additive packaging.
+
+Exact verification (exit codes)
+1. cargo test --workspace spec152f_export_entitlement — exit 0.
+   test result: ok. 29 passed; 0 failed.
+
+Regression checks (exit codes)
+- cargo test -p focusa-license — exit 0: all unit, authority-lease,
+  entitlement-grid, automation, release-proof, team-remote, export, and
+  family-inheritance tests passed.
+- cargo test -p focusa-core license — exit 0: 10 passed.
+- cargo test -p focusa-core entitlement_execution — exit 0: 6 passed.
+- cargo check -p focusa-license — exit 0, finished cleanly.
+- cargo check -p focusa-core — exit 0, finished cleanly.
+- cargo check -p focusa-cli — exit 0, finished cleanly.
+
+Tests added (29)
+- spec152f_export_entitlement_customer_data_export_has_exact_one_premium_feature
+- spec152f_export_entitlement_premium_family_feature_ids_returns_export_packaged
+- spec152f_export_entitlement_customer_data_export_is_not_optional_premium
+- spec152f_export_entitlement_basic_export_allowed_in_every_state
+- spec152f_export_entitlement_pending_unverified_export_is_existing_local_only
+- spec152f_export_entitlement_verified_no_license_export_is_allowed
+- spec152f_export_entitlement_active_paid_export_is_allowed
+- spec152f_export_entitlement_offline_grace_export_is_allowed
+- spec152f_export_entitlement_expired_export_is_allowed
+- spec152f_export_entitlement_refunded_or_revoked_export_is_allowed
+- spec152f_export_entitlement_missing_or_corrupt_export_is_allowed
+- spec152f_export_entitlement_export_packaged_requires_premium_feature_grant
+- spec152f_export_entitlement_export_packaged_denied_without_feature_grant
+- spec152f_export_entitlement_export_packaged_does_not_require_base_product
+- spec152f_export_entitlement_export_packaged_requires_non_zero_lease_sequence
+- spec152f_export_entitlement_export_packaged_requires_lease_binding
+- spec152f_export_entitlement_export_packaged_unqualified_identifier_is_rejected
+- spec152f_export_entitlement_export_packaged_wrong_feature_for_family_is_rejected
+- spec152f_export_entitlement_export_packaged_offline_grace_with_feature_is_cached
+- spec152f_export_entitlement_export_packaged_offline_grace_expired_is_denied
+- spec152f_export_entitlement_export_packaged_offline_grace_no_expiry_window_is_denied
+- spec152f_export_entitlement_export_packaged_active_lease_expired_is_denied
+- spec152f_export_entitlement_export_preserves_privacy_redaction_requirement
+- spec152f_export_entitlement_export_not_blocked_by_base_focusa_denial
+- spec152f_export_entitlement_export_not_blocked_by_automation_denial
+- spec152f_export_entitlement_export_not_blocked_by_team_remote_denial
+- spec152f_export_entitlement_export_not_blocked_by_release_proof_denial
+- spec152f_export_entitlement_export_not_blocked_by_premium_updates_denial
+- spec152f_export_entitlement_premium_packaging_denial_does_not_block_basic_export
+
+Rollback
+- Revert only the implementation commit recorded below. Preserve customers,
+  orders, refunds, licenses, nodes, sequences, customer data, migration
+  journals, and accepted authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.
