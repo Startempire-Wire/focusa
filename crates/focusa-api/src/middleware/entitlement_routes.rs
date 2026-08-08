@@ -9,6 +9,231 @@ pub(crate) struct RouteEntitlementRequirement {
 
 pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement] = &[
     RouteEntitlementRequirement {
+        template: "/connect",
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
+    },
+    RouteEntitlementRequirement {
+        template: "/connect/firstrun",
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
+    },
+    RouteEntitlementRequirement {
+        template: "/connect/room/{room_id}/scan",
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
+    },
+    RouteEntitlementRequirement {
+        template: "/connect/{room_id}",
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
+    },
+    RouteEntitlementRequirement {
+        template: "/mcp",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/proxy/acp",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/proxy/v1/chat/completions",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/proxy/v1/messages",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/amendments/activate",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/amendments/propose",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/compile/agents-md",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/compile/skills",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/compile/system-prompt",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/compile/target",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/constitutions/draft",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/constitutions/{id}",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/constitutions/{id}/activate",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/constitutions/{id}/approve",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/constitutions/{id}/preview",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/constitutions/{id}/revoke",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/constitutions/{id}/rollback",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/delivery/commit",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/delivery/preview",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/delivery/status",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/delivery/verify",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/doctor",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/evaluations",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/evaluations/{id}",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/headless/verify",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/instruction-integrity/evaluate",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/instruction-integrity/status",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/instructions/claims",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/instructions/conflicts",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/instructions/drift",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/instructions/effective",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/instructions/reconcile",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/instructions/scan",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/instructions/simulate",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/instructions/sources",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/migration/preview",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/studio",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent-runtime/variants/{id}",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent/adapter-capabilities",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent/capabilities",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent/card",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/agent/compatibility-lock",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
@@ -24,6 +249,46 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/agent/prompt",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent/schemas",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent/schemas/{schema_id}",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent/tool-bundles",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent/tool-changes",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent/tool-graph",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent/tools",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/agent/tools/{name}",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/agent/ui-action-bindings",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
@@ -34,7 +299,102 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/ascc/frame/{frame_id}",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ascc/state",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ascc/update-delta",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/attachments/attach",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/attachments/detach",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/attachments/list",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/awareness/card",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/awareness/packet",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/awareness/packet/{surface}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/domain/{name}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/gate-modes/mode/{name}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/gate-modes/report",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/optical/imaged-kinds",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/optical/ledger",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/optical/ledger/{provider}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/optical/never-imaged",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/optical/policy",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/optical/probe",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/profiles/profile/{name}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/profiles/report",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
     },
@@ -44,12 +404,172 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("evidence_records"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/rollout/report",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/routines/report",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/routines/routine/{name}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/tokenbloat/domain/{name}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/bloatgaurd/tokenbloat/report",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/browser/capabilities/intake",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/browser/webmcp/intake",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/browser/workflow/plan",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/call-stack/design",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/call-stack/list",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/call-stack/show",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/call-stack/verify",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/commands/log/{command_id}",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/commands/status/{command_id}",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/commands/submit",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/build",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/diff",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/evaluate",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/inspect/{packet_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/packet/{packet_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy/canary/enroll",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy/canary/pause",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy/candidates",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy/evidence",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy/observe",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy/override",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy/report",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy/resolve",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy/rollback",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/policy/status",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/prepare",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/replay",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/compaction/verify",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
     },
@@ -60,6 +580,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/room/create",
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/connect/room/firstrun",
         feature: "focusa.team.multi_operator",
         limit_bucket: Some("team_operators"),
     },
@@ -84,12 +609,97 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/connect/room/{room_id}/status",
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/connect/rooms",
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/connect/start",
         feature: "focusa.team.multi_operator",
         limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/connect/status",
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/constitution",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/constitution/active",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/constitution/diff",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/constitution/drafts",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/constitution/load",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/constitution/propose",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/constitution/versions",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/context-cognition",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/context-cognition/curate",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/context-cognition/curate/eval",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/context-cognition/curate/eval/runs",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/context-cognition/curate/optimize",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/context-cognition/optimizer/artifacts",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/context-cognition/proof",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/context-cognition/render",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
     },
@@ -129,7 +739,52 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("evidence_records"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/contribute/approve",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/contribute/enable",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/contribute/pause",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/contribute/policy",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/contribute/queue",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/contribute/status",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/contribute/submit",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/daemon-routing/resolve",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/device/pair/complete",
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/device/pair/list",
         feature: "focusa.team.multi_operator",
         limit_bucket: Some("team_operators"),
     },
@@ -149,9 +804,64 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/dxux/digest",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/dxux/explain/{failure}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/dxux/report",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/dxux/requirement/{id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ecs/content/{handle_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ecs/handles",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ecs/rehydrate/{handle_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ecs/resolve/{handle_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ecs/store",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/events/health",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/events/recall-trigger",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/events/recent",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
         template: "/v1/events/stream",
@@ -159,9 +869,149 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/events/{event_id}",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/export/run",
         feature: "focusa.export.packaged",
         limit_bucket: Some("export_jobs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus-gate/candidates",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus-gate/ingest-signal",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus-gate/pin",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus-gate/suppress",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus-gate/surface",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus/frame/current",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus/pop",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus/push",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus/set-active",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus/snapshots",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus/snapshots/diff",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus/snapshots/recent",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus/snapshots/restore",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus/stack",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focus/update",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/focusa/enabled",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/gate/explain",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/gate/policy",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/gate/scores",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/gate/signal",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/harnesses",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/harnesses/{harness}/capabilities",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/harnesses/{harness}/preflight",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/installations/convergence/plan",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/instances/connect",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/instances/disconnect",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/instances/list",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
     },
     RouteEntitlementRequirement {
         template: "/v1/interview/strategy/grill-with-docs/next-question",
@@ -179,7 +1029,47 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/intuition/patterns",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/intuition/signals",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/intuition/submit",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/lineage/children/{clt_node_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/lineage/head",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/lineage/neighborhood/{clt_node_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/lineage/node/{clt_node_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/lineage/path/{clt_node_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/lineage/summaries",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
     },
@@ -187,6 +1077,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         template: "/v1/lineage/tree",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/mcp",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
         template: "/v1/memory/procedural",
@@ -209,7 +1104,32 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("evidence_records"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/metacognition/adjust",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/metacognition/adjustments/recent",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/metacognition/capture",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/metacognition/captures/{capture_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/metacognition/evaluate",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/metacognition/evaluations/recent",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
     },
@@ -219,7 +1139,17 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("evidence_records"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/metacognition/reflections/recent",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/metacognition/retrieve",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/metacognition/status",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
     },
@@ -244,6 +1174,106 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/ontology/actions",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/adjacency",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/affordances",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/communities",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/context",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/contracts",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/domain-pack",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/execution-critic",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/intelligence-dashboard",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/memory-pipeline",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/primitives",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/reflection-synthesizer",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/retrieval-governor",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/scope-migrations",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/slices",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/tool-choreography",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/tool-contracts",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/tool-result-proposals",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/working-set",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/ontology/world",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/prediction-authority/events",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
@@ -254,9 +1284,74 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("evidence_records"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/predictions",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/predictions/capture-outcome",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/predictions/recent",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/predictions/stats",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/predictions/{prediction_id}/evaluate",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/preload/build",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/preload/doctor",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/preload/profiles",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/preload/receipt-commit",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/preload/receipt-preview",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/preload/render",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/preload/verify",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/preload/write",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/bind",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
         template: "/v1/project/bootstrap/apply",
@@ -275,6 +1370,26 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/project/bootstrap/status",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/card",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/card/outcome",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/current",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/discover",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
     },
@@ -304,9 +1419,84 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/project/list",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/new",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/remove",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/session-transfer",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/settings",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/status",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/switch",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/templates",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/trajectory-guard",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/use",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/project/verify",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/prompt/assemble",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/proposals",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/proposals/focus-frame",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/proposals/resolve",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/providers",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
         template: "/v1/providers/conformance",
@@ -317,6 +1507,46 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         template: "/v1/providers/contracts",
         feature: "focusa.agent.parallelism",
         limit_bucket: Some("parallel_agents"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/providers/{provider}/models",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/providers/{provider}/models/preflight",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/reflect/history",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/reflect/run",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/reflect/scheduler",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/reflect/scheduler/tick",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/reflect/status",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/release/proof/status",
+        feature: "focusa.release.proof",
+        limit_bucket: Some("release_proof_runs"),
     },
     RouteEntitlementRequirement {
         template: "/v1/resource/mode",
@@ -339,6 +1569,211 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/semantic-integrity/artifacts",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/semantic-integrity/artifacts/{artifact_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/semantic-integrity/operations",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/semantic-integrity/operations/{operation_id}",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/semantic-integrity/status",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/session/bind",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/session/close",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/session/discover",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/session/resume",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/session/start",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/capabilities",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/config/resolve",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/preflight",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/presets",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/profiles",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/adopt",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/artifacts",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/cancel",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/checkpoints",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/config/preview",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/config/revisions",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/config/rollback",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/events",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/evidence-hold",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/export",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/follow-up",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/input",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/interrupt",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/keys",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/output",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/pause",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/purge",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/receipts",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/restart",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/resume",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/start",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/status",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/steer",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/usage",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/spec-workbench/sessions",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
@@ -349,6 +1784,81 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/state/diff",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/state/dump",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/state/explain",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/state/history",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/state/stack",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/subagent/result",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sync/crdt/export",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sync/crdt/import",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sync/peers",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sync/peers/{peer_id}",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sync/pull/{peer_id}",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sync/push/{peer_id}",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sync/receive",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sync/status/{peer_id}",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sync/transfer",
+        feature: "focusa.remote.stream",
+        limit_bucket: Some("remote_stream_minutes"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/task-plans",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
@@ -357,6 +1867,111 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         template: "/v1/task-plans/materialize/beads",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/activity",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/autonomy",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/cache-metadata",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/cache-metadata/status",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/cost",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/event",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/events",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/memory",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/ops",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/process",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/productivity",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/snapshot",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/token-budget",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/token-budget/status",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/tokens",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/tool-usage",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/tools",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/trace",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/trace/batch",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/trace/stats",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/telemetry/ux",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
     },
     RouteEntitlementRequirement {
         template: "/v1/temporal/civil/resolve",
@@ -419,6 +2034,41 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/threads",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/threads/{id}",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/threads/{id}/fork",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/threads/{id}/transfer",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/tokens/create",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/tokens/list",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/tokens/revoke",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/trajectory/assess",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
@@ -434,7 +2084,17 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/trajectory/history",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/trajectory/propose-workpoint",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/trajectory/query",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
     },
@@ -452,6 +2112,16 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         template: "/v1/traverse",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/traverse/verify-tags",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/trust/metrics",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
         template: "/v1/turn/append",
@@ -479,9 +2149,24 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("update_runs"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/update/check",
+        feature: "focusa.update.apply",
+        limit_bucket: Some("update_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/update/history",
+        feature: "focusa.update.apply",
+        limit_bucket: Some("update_runs"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/update/notifications",
         feature: "focusa.update.unattended",
         limit_bucket: Some("unattended_update_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/update/plan",
+        feature: "focusa.update.apply",
+        limit_bucket: Some("update_runs"),
     },
     RouteEntitlementRequirement {
         template: "/v1/update/policy",
@@ -494,7 +2179,52 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("unattended_update_runs"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/update/status",
+        feature: "focusa.update.apply",
+        limit_bucket: Some("update_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/visual-workflow/evidence",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/visual-workflow/evidence/store",
+        feature: "focusa.core.evidence",
+        limit_bucket: Some("evidence_records"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-items/closure/prepare",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-items/closure/submit",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-items/closure/validate",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-items/providers",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/work-loop/checkpoint",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/checkpoints",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
     },
@@ -549,6 +2279,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/work-loop/health",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/work-loop/heartbeat",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
@@ -560,6 +2295,16 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/work-loop/pause-flags",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/replay/closure-bundle",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-loop/replay/closure-evidence",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
     },
@@ -589,6 +2334,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/work-loop/status/deep",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/work-loop/stop",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
@@ -599,12 +2349,42 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/workpoint/active-object/resolve",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/workpoint/checkpoint",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/workpoint/current",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/workpoint/drift-check",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/workpoint/evidence/link",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/workpoint/idempotency-cache",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/workpoint/resume",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/workpoint/rollover/target-materialize",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
     },

@@ -1,19 +1,18 @@
 {
   "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
   "baseline_counts": {
-    "covered": 569,
-    "total": 964,
-    "unmatched": 395
+    "covered": 592,
+    "total": 978,
+    "unmatched": 386
   },
   "baseline_coverage": "docs/contracts/spec152-entitlement-coverage.v1.json",
-  "coverage_canonical_sha256": "b42c1aab1296263e86ca3ded275b5682f5344df16266b8b79554c615f430edb4",
+  "coverage_canonical_sha256": "0b1e13ca86ff3728a942cbeae1cb18dd4fec2c2b4d86672ea7b6085e39a5bc87",
   "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
-  "policy_file_sha256": "90402e748d4e6e218db700c865af092861d82c560c3f292a5ccb7073d5fdf938",
+  "policy_file_sha256": "7aa11eae5eb360325b23441f9c67554604d476027a4a343e5d0fb263f4c4df87",
   "resolution_counts": {
-    "base_entitlement_candidate": 138,
-    "inherit_canonical_operation": 175,
-    "metadata_repair_required": 31,
-    "premium_family_candidate": 41,
+    "base_entitlement_candidate": 149,
+    "inherit_canonical_operation": 176,
+    "premium_family_candidate": 51,
     "recovery_or_read_allowance": 3,
     "scanner_exclusion_test_only": 7
   },
@@ -30,8 +29,8 @@
   "shards": {
     "cli": {
       "path": "docs/contracts/spec152f-surface-reconciliation/cli.v1.json",
-      "row_count": 86,
-      "sha256": "84f85683f2b2fc5040af3577c36af4151b513cfe141dc63e734fa1fc7b427fc7"
+      "row_count": 87,
+      "sha256": "64ca89308d40ba71a389887a5d0f9ef46d4ed48ab9c19ccee0ceb444ac8e3f77"
     },
     "menubar": {
       "path": "docs/contracts/spec152f-surface-reconciliation/menubar.v1.json",
@@ -40,8 +39,8 @@
     },
     "rest": {
       "path": "docs/contracts/spec152f-surface-reconciliation/rest.v1.json",
-      "row_count": 199,
-      "sha256": "16b2e822bd095e8e29392a73b1d52e8827a05d3ae5a6a3de4dc879592902f39e"
+      "row_count": 189,
+      "sha256": "fe1aa36874853d3a62f3257a91d8ae18008ad6097558f09fca63e3ebe2962728"
     },
     "runtime_files": {
       "path": "docs/contracts/spec152f-surface-reconciliation/runtime_files.v1.json",
@@ -50,19 +49,19 @@
     }
   },
   "source_digests": {
-    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "dbc025c7f77d0565a5d10de500d5f068ba0c317c4daf401acc09b831db95c449",
-    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "39e957bb1aeb645fd31b10465b5244a24bf1c7eee4424450c1c045564ec42ed9",
-    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "f0a4080284e42bc74cd36843d523343fdb71abfea3b797ec4e15d0014154d6c2"
+    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "e271c941e4fafebc344f9bdcca84eb6f3b0f094be10071dc36582a4aa69b357d",
+    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "9de2cf306b6e37252e07dea8f9d50bafc0d788f2040837fc903a21a91eda1395",
+    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "ab7e1bef639dc294f176bbc86076ec983a897dbc86d227c2d9068831d0e786fa"
   },
   "surface_counts": {
-    "cli": 86,
+    "cli": 87,
     "export": 3,
     "menubar": 83,
     "release": 17,
-    "rest": 199,
+    "rest": 189,
     "scheduler": 2,
     "update": 5
   },
   "test_only_scanner_exclusions": 7,
-  "unknown_method_routes": 31
+  "unknown_method_routes": 0
 }

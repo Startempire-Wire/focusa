@@ -12,39 +12,28 @@ ROUTES = ROOT / "docs/contracts/spec141/generated-capability-v2/route-classifica
 OPERATIONS = ROOT / "docs/contracts/spec135/generated-contract-v1/operation-registry.json"
 FEATURES = ROOT / "docs/contracts/spec152-feature-registry.v1.yaml"
 OUTPUT = ROOT / "crates/focusa-api/src/middleware/entitlement_routes.rs"
+# Explicit overrides only where segment-based family resolution gives a different feature.
+# Routes whose segment already maps to the correct feature are resolved by inheritance.
 EXPLICIT_ROUTE_FEATURES = {
-    "/v1/connect/approve": "focusa.team.multi_operator",
-    "/v1/connect/room/create": "focusa.team.multi_operator",
-    "/v1/connect/room/start": "focusa.team.multi_operator",
-    "/v1/connect/room/{room_id}/approve": "focusa.team.multi_operator",
-    "/v1/connect/room/{room_id}/join": "focusa.team.multi_operator",
-    "/v1/connect/room/{room_id}/mac-offer": "focusa.team.multi_operator",
-    "/v1/connect/start": "focusa.team.multi_operator",
-    "/v1/device/pair/complete": "focusa.team.multi_operator",
-    "/v1/device/pair/revoke": "focusa.team.multi_operator",
-    "/v1/device/pair/start": "focusa.team.multi_operator",
     "/v1/export/run": "focusa.export.packaged",
     "/v1/update/admin": "focusa.update.unattended",
     "/v1/update/apply": "focusa.update.apply",
     "/v1/update/notifications": "focusa.update.unattended",
     "/v1/update/policy": "focusa.update.unattended",
     "/v1/update/scheduler": "focusa.update.unattended",
-    "/v1/work-loop/checkpoint": "focusa.core.workpoint",
-    "/v1/work-loop/context": "focusa.core.workpoint",
-    "/v1/work-loop/degraded": "focusa.core.workpoint",
-    "/v1/work-loop/delegation/clear": "focusa.core.workpoint",
-    "/v1/work-loop/delegation/enable": "focusa.core.workpoint",
-    "/v1/work-loop/enable": "focusa.core.workpoint",
-    "/v1/work-loop/events": "focusa.core.workpoint",
-    "/v1/work-loop/heartbeat": "focusa.core.workpoint",
-    "/v1/work-loop/pause": "focusa.core.workpoint",
-    "/v1/work-loop/pause-flags": "focusa.core.workpoint",
-    "/v1/work-loop/resume": "focusa.core.workpoint",
-    "/v1/work-loop/select-next": "focusa.core.workpoint",
-    "/v1/work-loop/session/abort": "focusa.core.workpoint",
-    "/v1/work-loop/session/attach": "focusa.core.workpoint",
-    "/v1/work-loop/stop": "focusa.core.workpoint",
 }
+
+# Recovery-excluded paths: the middleware's route_recovery_allowance handles these
+# before the table is consulted; they must not appear as entitlement requirements.
+RECOVERY_PATHS = {
+    "/v1/update/rollback",
+}
+
+def _rest_segment(path):
+    """Extract the first /v1/ segment from a REST path, normalising hyphens to underscores."""
+    parts = path.strip("/").split("/")
+    segment = parts[1] if len(parts) > 1 and parts[0] == "v1" else parts[0]
+    return segment.replace("-", "_")
 
 spec = importlib.util.spec_from_file_location("coverage", ROOT / "scripts/generate-spec152-entitlement-coverage.py")
 coverage = importlib.util.module_from_spec(spec); assert spec.loader; spec.loader.exec_module(coverage)
@@ -57,16 +46,27 @@ def requirements():
     buckets = {item["key"]: item["limit_bucket"] for item in feature_registry}
     result = []
     for route in routes:
-        features = {
-            coverage.FAMILY_FEATURE.get(operations[ref].get("family"))
-            for ref in route.get("operation_refs", [])
-            if ref in operations
-        }
-        features.discard(None)
+        # Recovery paths are handled by the middleware's route_recovery_allowance
+        if route["path"] in RECOVERY_PATHS:
+            continue
+        features = set()
+        # 1) Canonical operation refs (exact family → feature)
+        for ref in route.get("operation_refs", []):
+            if ref in operations:
+                family_feature = coverage.FAMILY_FEATURE.get(operations[ref].get("family"))
+                if family_feature:
+                    features.add(family_feature)
+        # 2) Explicit override (route-specific)
+        if not features and route["path"] in EXPLICIT_ROUTE_FEATURES:
+            features.add(EXPLICIT_ROUTE_FEATURES[route["path"]])
+        # 3) Segment-based family inheritance (normalise hyphens → underscores)
+        if not features:
+            seg = _rest_segment(route["path"])
+            family_feature = coverage.FAMILY_FEATURE.get(seg)
+            if family_feature:
+                features.add(family_feature)
         if len(features) > 1:
             raise ValueError(f"conflicting entitlement features for {route['path']}: {sorted(features)}")
-        if not features and route["path"] in EXPLICIT_ROUTE_FEATURES:
-            features = {EXPLICIT_ROUTE_FEATURES[route["path"]]}
         if len(features) == 1:
             feature = next(iter(features))
             if feature not in buckets:
