@@ -3,7 +3,7 @@
     sameWorkstreamKey,
     validateMissionCanvasContract
   } from '../../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
-  import { exactScopeKey } from '../exact-scope';
+  import { exactScopeKey, sameWorkstreamAuthority } from '../exact-scope';
   import type {
     AttachmentKey,
     ExactWorkSurfaceIdentity,
@@ -16,13 +16,15 @@
   import { isExactWorkSurfaceIdentity } from '../types';
 
   type InventoryRowState = 'exact' | 'compatibility' | 'quarantined';
+  type InventoryScope = 'aggregate' | 'local';
 
-  type SessionInventoryRow = {
+  export type SessionInventoryRow = {
     key: string;
     state: InventoryRowState;
     reason?: string;
     sourceContributionId?: string;
     identity?: ExactWorkSurfaceIdentity;
+    inventoryScope: InventoryScope;
     label: string;
     kind: string;
     lifecycle: string;
@@ -35,6 +37,76 @@
     freshness: string;
     revision: string;
     bindings: OperationBinding[];
+  };
+
+  export interface SessionAttachmentIdentityRender {
+    authority: WorkstreamAuthorityContext | undefined;
+    identity: ExactWorkSurfaceIdentity | undefined;
+    inventoryScope: InventoryScope;
+    reason?: string;
+  }
+
+  export const SessionAttachmentIdentity = {
+    render(
+      value: unknown,
+      expectedScope?: WorkstreamAuthorityContext | null
+    ): SessionAttachmentIdentityRender {
+      const authority = authorityContext(value);
+      if (!authority) {
+        return {
+          authority: undefined,
+          identity: undefined,
+          inventoryScope: 'aggregate',
+          reason: 'invalid_identity'
+        };
+      }
+
+      const identity = exactIdentity(authority);
+      if (!identity) {
+        return {
+          authority,
+          identity: undefined,
+          inventoryScope: 'aggregate',
+          reason: 'missing_exact_identity'
+        };
+      }
+
+      if (expectedScope === null) {
+        return {
+          authority,
+          identity,
+          inventoryScope: 'aggregate',
+          reason: 'foreign_scope'
+        };
+      }
+
+      if (expectedScope !== undefined && !sameWorkstreamAuthority(authority, expectedScope)) {
+        return {
+          authority,
+          identity,
+          inventoryScope: 'aggregate',
+          reason: 'foreign_scope'
+        };
+      }
+
+      return {
+        authority,
+        identity,
+        inventoryScope: 'local'
+      };
+    }
+  };
+
+  function renderWorkSurfaceInventory(
+    projection: ResolvedWorkspaceProjection,
+    contribution: ResolvedContribution,
+    canonicalWorkSurfaces: readonly WorkSurfaceProjection[] = []
+  ): SessionInventoryRow[] {
+    return projectSessionInventory(projection, contribution, canonicalWorkSurfaces);
+  }
+
+  export const WorkSurfaceInventory = {
+    render: renderWorkSurfaceInventory
   };
 
   let {
@@ -58,7 +130,7 @@
   // canonical contribution/projection supplied by Core. Approved operation
   // bindings are still dispatched by the shared renderer host.
 
-  const inventoryRows = $derived(projectSessionInventory(projection, contribution, workSurfaces));
+  const inventoryRows = $derived(WorkSurfaceInventory.render(projection, contribution, workSurfaces));
 
   function actionable(row: SessionInventoryRow, binding: OperationBinding): boolean {
     return Boolean(
@@ -76,6 +148,10 @@
 
   function operationLabel(operationId: string): string {
     return operationId.split('.').at(-1) ?? operationId;
+  }
+
+  function inventoryModeLabel(scope: InventoryScope): string {
+    return scope === 'local' ? 'local inventory' : 'aggregate inventory';
   }
 
   function workstreamKeyLabel(identity: ExactWorkSurfaceIdentity): string {
@@ -190,7 +266,8 @@
       origin: text(source.data_ref.ref),
       freshness,
       revision: text(source.data_ref.revision),
-      bindings: bindingsFor(projection, source, Boolean(identity && watermarkValid), freshness)
+      bindings: bindingsFor(projection, source, Boolean(identity && watermarkValid), freshness),
+      inventoryScope: identity ? 'local' : 'aggregate'
     };
 
     if (!identity) {
@@ -239,7 +316,8 @@
       origin: text(surface?.workSurfaceId),
       freshness,
       revision: source ? text(source.data_ref.revision) : 'not reported',
-      bindings: bindingsFor(projection, source, Boolean(exact && watermarkValid), freshness)
+      bindings: bindingsFor(projection, source, Boolean(exact && watermarkValid), freshness),
+      inventoryScope: exact ? 'local' : 'aggregate'
     };
 
     if (!exact) {
@@ -318,6 +396,7 @@
 
     return quarantineDuplicates(rows);
   }
+
 </script>
 
 {#if inventoryRows.length > 0}
@@ -337,6 +416,7 @@
           <span>{contribution.accessibility.description}</span>
         {/if}
       </div>
+      <span class="focus-hint">Visual focus is local and not canonical activity.</span>
       <span class="freshness">{contribution.freshness.status}</span>
     </header>
 
@@ -349,6 +429,7 @@
           data-session-inventory-row={row.key}
           data-row-state={row.state}
           data-quarantine-reason={row.reason ?? undefined}
+          data-session-inventory-mode={row.inventoryScope}
           data-bindable={row.state === 'exact' && row.freshness !== 'stale' && row.freshness !== 'unknown' && row.freshness !== 'not_applicable' ? 'true' : 'false'}
           data-non-actionable={row.state === 'exact' && row.freshness !== 'stale' && row.freshness !== 'unknown' && row.freshness !== 'not_applicable' ? undefined : 'true'}
         >
@@ -357,6 +438,7 @@
               <strong>{row.label}</strong>
               <span>{row.kind} · {row.lifecycle} · {row.health}</span>
             </div>
+            <span class="inventory-scope" data-session-inventory-mode={row.inventoryScope}>{inventoryModeLabel(row.inventoryScope)}</span>
             <span class="row-status">{row.state === 'exact' ? row.freshness : 'compatibility'}</span>
           </div>
 
@@ -423,6 +505,8 @@
   .heading,.row-title{display:grid;gap:var(--space-1);min-width:0}
   strong{color:var(--color-text);font:var(--type-label)}
   header span,.row-title span,.metadata span,.compatibility-copy{color:var(--color-text-tertiary);font:var(--type-caption)}
+  .focus-hint{color:var(--color-text-tertiary);font:var(--type-caption)}
+  .inventory-scope{flex-shrink:0;padding:2px var(--space-2);border:1px solid var(--color-border);border-radius:999px;color:var(--color-text-tertiary);font:var(--type-caption);text-transform:lowercase}
   .freshness,.row-status{flex-shrink:0;padding:2px var(--space-2);border:1px solid var(--color-border);border-radius:999px;color:var(--color-success);font:var(--type-caption)}
   .rows{display:grid;gap:var(--space-2);margin:0;padding:0;list-style:none}
   .rows>li{display:grid;gap:var(--space-2);min-width:0;padding:var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-elevated)}
