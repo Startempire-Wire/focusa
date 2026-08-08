@@ -250,45 +250,61 @@ stable_update_and_export_exceptions:
     still_requires: [identity, authorization, scope, role, confirmation_when_applicable]
 future_dimensions:
   - id: capability_family
+    status: active
     commercial_activation: active
     missing_claim_effect: registered_family_policy
     authority: policy_registry
   - id: sub_capability
+    status: dormant
     commercial_activation: dormant
     missing_claim_effect: no_effect
     authority: future_operator_approved_policy
   - id: operation
+    status: dormant
     commercial_activation: dormant
     missing_claim_effect: no_effect
     authority: audit_only_until_activation
   - id: limit_bucket
+    status: active
     commercial_activation: active_only_when_declared
     missing_claim_effect: no_limit_unless_registered_policy_requires_one
     authority: server_owned_registry_and_lease
   - id: product_tier
+    dimension: plan
+    status: active
     commercial_activation: active
     missing_claim_effect: deny_base_for_missing_or_wrong_product
     authority: WPUIAI.com_EDD
   - id: role_permission
+    status: dormant
     commercial_activation: dormant_for_commerce
     missing_claim_effect: no_commercial_effect
     authority: security_authorization_only
   - id: node_device
+    status: active
     commercial_activation: active
     missing_claim_effect: deny_runtime_for_unbound_node
     authority: signed_lease_and_node_registry
   - id: channel
+    status: active
     commercial_activation: active_for_preview_nightly_and_unattended
     missing_claim_effect: stable_security_allowance_only
     authority: policy_registry_and_signed_lease
   - id: time_window
+    status: active
     commercial_activation: active
     missing_claim_effect: deny_runtime_without_usable_time_bounds
     authority: signed_lease
   - id: origin_facade
+    status: dormant
     commercial_activation: dormant_for_commerce
     missing_claim_effect: no_commercial_effect
     authority: routing_and_security_policy_only
+future_granularity_guard:
+  absent_dormant_claim_effect: no_effect
+  active_claim_requires: [registered_policy, authority_claim]
+  licensing_role_grant_forbidden: true
+  runtime_activation: embedded_policy_and_authority_guard
 future_activation_requirements:
   - business_justification
   - stable_family_boundary
@@ -308,6 +324,7 @@ invariants:
   - offline_grace_never_expands_features_or_limits
   - refund_revoke_or_higher_sequence_overrides_cached_grants
   - dormant_dimension_absence_never_denies_capability
+  - active_dimension_requires_registered_policy_and_authority_claim
   - licensing_never_grants_operator_role_cognitive_focus_trajectory_or_workpoint_authority
   - unknown_side_effect_fails_closed_before_execution
   - presenters_and_facades_never_own_commercial_truth
