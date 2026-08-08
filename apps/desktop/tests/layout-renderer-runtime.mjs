@@ -1478,7 +1478,11 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(disposedReloads, 0, 'disposed invalidations must not refresh');
 
-  const { default: SessionInventoryContribution } = await server.ssrLoadModule('/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte');
+  const {
+    WorkSurfaceInventory,
+    SessionAttachmentIdentity,
+    default: SessionInventoryContribution
+  } = await server.ssrLoadModule('/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte');
   const inventorySource = structuredClone(fixture.eligible_contributions.find(({ kind }) => kind === 'focused_work_surface'));
   inventorySource.operation_ids = ['focusa.mission_canvas.rich_host.focus'];
   const inventoryContribution = {
@@ -1543,6 +1547,18 @@ try {
   };
   const resolvedInventoryRenderer = DEFAULT_CONTRIBUTION_REGISTRY.resolve(inventoryContribution);
   assert.ok(resolvedInventoryRenderer, 'session inventory renderer must be registry-owned');
+  assert.equal(typeof WorkSurfaceInventory?.render, 'function', 'session inventory render seam exists');
+  assert.equal(typeof SessionAttachmentIdentity?.render, 'function', 'session attachment identity render seam exists');
+  assert.equal(
+    WorkSurfaceInventory.render(inventoryProjection, inventoryContribution, [exactInventorySurface])[0]?.inventoryScope,
+    'local',
+    'local inventory is labeled local when exact identity is available'
+  );
+  assert.equal(
+    SessionAttachmentIdentity.render(inventoryContribution.authority, inventoryProjection).inventoryScope,
+    'local',
+    'session attachment identity render reports local for exact authority'
+  );
   const { body: inventoryBody } = render(SessionInventoryContribution, {
     props: {
       contribution: inventoryContribution,
@@ -1559,6 +1575,8 @@ try {
   assert.match(inventoryBody, /data-work-surface-id="surface:pi"/);
   assert.match(inventoryBody, /data-bindable="true"/);
   assert.match(inventoryBody, /<button[^>]*>focus<\/button>/);
+  assert.match(inventoryBody, /data-session-inventory-mode="local"/);
+  assert.match(inventoryBody, /Visual focus is local and not canonical activity\./);
 
   const legacyInventorySurface = {
     ...structuredClone(exactInventorySurface),
@@ -1580,6 +1598,8 @@ try {
   assert.match(legacyInventoryBody, /data-row-state="compatibility"/);
   assert.match(legacyInventoryBody, /data-bindable="false"/);
   assert.match(legacyInventoryBody, /Compatibility data only/);
+  assert.match(legacyInventoryBody, /data-session-inventory-mode="aggregate"/);
+  assert.match(legacyInventoryBody, /aggregate inventory/);
   assert.doesNotMatch(legacyInventoryBody, /data-workstream-id=/);
   assert.doesNotMatch(legacyInventoryBody, /data-attachment-id=/);
   assert.doesNotMatch(legacyInventoryBody, /<button/);
@@ -1661,8 +1681,14 @@ try {
   });
   assert.match(aggregateInventoryBody, /data-row-state="compatibility"/);
   assert.match(aggregateInventoryBody, /data-bindable="false"/);
+  assert.match(aggregateInventoryBody, /data-session-inventory-mode="aggregate"/);
   assert.doesNotMatch(aggregateInventoryBody, /data-attachment-id=/);
   assert.doesNotMatch(aggregateInventoryBody, /<button/);
+  assert.equal(
+    SessionAttachmentIdentity.render(aggregateInventoryContribution.authority, aggregateInventoryProjection).inventoryScope,
+    'aggregate',
+    'aggregate authority renders as aggregate inventory mode'
+  );
 
   const emptyContribution = {
     ...structuredClone(aggregateInventoryContribution),
