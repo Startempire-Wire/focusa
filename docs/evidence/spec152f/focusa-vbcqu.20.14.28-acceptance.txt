@@ -1,0 +1,66 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.28
+Title: 152F.03.07 Classify the remaining 20 runtime file-derived entrypoints
+Implementation commit: (to be filled after commit)
+
+Exact surfaces
+- crates/focusa-core/src/runtime_entrypoint_classification.rs (new module)
+- crates/focusa-core/src/lib.rs (module registration)
+- docs/contracts/spec152f-runtime-entrypoint-map.v1.json (contract)
+- tests/spec152f_runtime_entrypoint_map_test.py (acceptance test)
+
+Bounded result
+- Created 20-entry runtime entrypoint map covering all production release/update/export/scheduler
+  runtime files in the Spec152F surface reconciliation manifest.
+- Classification is by callable operation metadata, not filename: no file is licensed
+  merely because its path contains "release", "update", "export", or "scheduler".
+- 2 export files → customer_data_export (always available basic; no commercial entitlement required).
+- 12 release files → release_proof (premium family; base read paths distinguished from
+  premium orchestration at the route/command level in atoms 03.03–03.05).
+- 2 scheduler files → internal_maintenance (inherit initiating operation authority at dispatch).
+- 4 update files → internal_maintenance (inherit initiating operation authority;
+  stable security updates inherit account_recovery allowance; premium channels
+  inherit premium_updates via the initiating operation).
+- 7 test-only scanner exclusions verified absent from the map.
+- Added `classify_runtime_entrypoint()`, `is_release_proof_surface()`,
+  `is_inheriting_entrypoint()`, `runtime_entrypoint_classifications()`,
+  and `runtime_entrypoint_summary()` for downstream consumption by the
+  entitlement coverage generator (atom 03.08) and the core guard.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_runtime_entrypoint_map_test.py` — exit 0.
+   result: passed; 18 assertion checks pass (schema, row count, uniqueness,
+   filename-policy rejection, valid enums, export/release/scheduler/update
+   classifications, test exclusion, reconciliation parity, resolution counts,
+   surface counts, disjoint surfaces).
+2. `cargo test --workspace runtime_entrypoint_entitlement` — exit 0.
+   test result: ok. 13 passed; 0 failed; 864 filtered out. All 13
+   `runtime_entrypoint_entitlement` tests in `focusa-core` pass:
+   - map_has_exactly_20_entries
+   - no_file_classified_by_filename_alone
+   - exports_are_always_available_basic
+   - release_modules_are_release_proof_not_base
+   - schedulers_inherit_initiating_operation
+   - updates_inherit_initiating_operation
+   - summary_matches_composition
+   - test_files_are_not_classified
+   - is_release_proof_surface_identifies_only_release
+   - is_inheriting_entrypoint_detects_schedulers_and_updates
+   - unknown_path_returns_none
+   - all_20_paths_are_unique
+   - disjoint_resolution_surfaces_dont_overlap
+
+Regression checks
+- Existing workspace tests remain clean: 0 unrelated failures.
+- No existing surface files were modified.
+
+Tests added
+- focusa-core: 13 runtime_entrypoint_entitlement tests (see above).
+- tests/spec152f_runtime_entrypoint_map_test.py: 18 contract validation checks.
+
+Rollback
+- Revert only this atom's code changes (the 4 files listed under Exact surfaces).
+  Preserve customers, orders, refunds, licenses, nodes, sequences, customer data,
+  migration journals, and accepted authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.
