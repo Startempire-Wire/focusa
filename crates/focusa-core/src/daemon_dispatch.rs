@@ -419,7 +419,7 @@ mod tests {
             writer_lease_id: "lease-1".into(),
             writer_lease_generation: 1,
             payload_digest: digest.into(),
-            operation: "workpoint.checkpoint".into(),
+            operation: "focusa.workpoint.checkpoint".into(),
         }
     }
 
