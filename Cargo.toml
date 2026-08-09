@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/focusa-pty",
     "crates/focusa-core",
     "crates/focusa-harness-adapters",
     "crates/focusa-session-runner",

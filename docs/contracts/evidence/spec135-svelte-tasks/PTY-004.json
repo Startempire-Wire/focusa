@@ -1,0 +1,34 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-004",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "New focusa-pty crate: governed Attachment identity (fail-closed project-scope validation) and PtyRegistry \u2014 one persistent Pi process per governed Attachment, duplicate attach idempotent (same Arc returned), detach keeps the live process (view switches never kill), close kills, restart respawns under a fresh generation. Registry outlives views. Real PTY library (portable-pty); no ordinary pipes. 19 unit tests pass.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-001",
+      "PTY-002",
+      "PTY-003"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo test -p focusa-pty",
+      "result": "pass: 19 tests"
+    },
+    {
+      "command": "cargo check -p focusa-pty",
+      "result": "pass: 0 warnings"
+    },
+    {
+      "command": "cargo check --workspace",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
