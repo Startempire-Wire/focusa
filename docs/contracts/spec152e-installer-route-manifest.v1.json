@@ -18,7 +18,7 @@
         "inventory_id": "installer.unix",
         "kind": "repository_verified",
         "repository_path": "scripts/install-focusa.sh",
-        "sha256": "54a0968bf6c111f9346843fb496ee243cfa76b1449cc52e4bc04301dba9c23e0"
+        "sha256": "b74e06f36176ad99ff96a355fe22c656b2ab42c482c9c893fc89fce9a77d6731"
       }
     },
     {
@@ -52,7 +52,7 @@
         "inventory_id": "installer.windows",
         "kind": "repository_verified",
         "repository_path": "scripts/install-focusa.ps1",
-        "sha256": "8a6e5ce4796dbf1279b3f0e6331c04b741d132c176c986e57c4425aeb71b61ae"
+        "sha256": "5e9b1fb740b5b28db1877288fe8eb0f392d20d52f2f4566dab131824b08440cf"
       }
     }
   ],

@@ -572,7 +572,7 @@
     "secret_material_absent": true,
     "card_data_never_collected": true,
     "reveal_policy": "full key output masked by default; explicit customer-controlled reveal requires both opt-in and confirmation",
-    "email_scan_note": "the only non-synthetic address allowed on presenter surfaces is the product-owned public support contact support@focusa.dev (help text); every other address must be a deterministic example-domain fixture"
+    "email_scan_note": "the only non-synthetic address allowed on presenter surfaces is the product-owned public support contact support@focusa[DOT]dev (help text); every other address must be a deterministic example-domain fixture"
   },
   "channel_neutrality": {
     "advisory_only": true,
