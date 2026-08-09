@@ -9,6 +9,7 @@
   import MissionCanvasRenderer from './MissionCanvasRenderer.svelte';
   import OperationConfirmationDialog from './OperationConfirmationDialog.svelte';
   import { capturePresentationState, restoreIfStillPresent, type PresentationStateSnapshot } from './presentation-state';
+  import { MissionCanvasRestorationController } from './restoration-controller';
   import { MissionCanvasProjectionController } from './projection-controller.svelte';
   import type { ActivityMode, OperationBinding, ResolvedWorkspaceProjection, WorkstreamAuthorityContext, WorkspaceProfile } from './types';
   import WorkspaceProfileSelector from './WorkspaceProfileSelector.svelte';
@@ -29,6 +30,9 @@
   const ACTIVITY_SELECT_OPERATION = 'focusa.mission_canvas.activity.select';
   const LAYOUT_MUTATE_OPERATION = 'focusa.mission_canvas.layout.mutate';
   const controller = new MissionCanvasProjectionController((boundAuthority) => client.projectionGet({ ...boundAuthority }));
+  const restoration = typeof localStorage !== 'undefined'
+    ? new MissionCanvasRestorationController(localStorage)
+    : undefined;
   let activities = $state<ActivityMode[]>([]);
   let profiles = $state<WorkspaceProfile[]>([]);
   let mutationInFlight = $state(false);
@@ -48,7 +52,24 @@
     const boundAuthority = authority;
     const generation = ++controlsGeneration;
     const snapshot = captureCurrentPresentation();
-    void controller.load(boundAuthority).then(() => restorePresentation(snapshot));
+    void controller.load(boundAuthority).then(() => {
+      const loaded = controller.state;
+      const projection = loaded.kind === 'ready' || loaded.kind === 'refreshing' || loaded.kind === 'stale'
+        ? loaded.projection
+        : undefined;
+      // Restart/reconnect: a persisted snapshot is advisory and only restores
+      // presentation for surfaces still present in the canonical projection.
+      if (restoration && projection) {
+        restoration.apply(boundAuthority, projection, (candidate) => {
+          if (candidate) restorePresentation(candidate);
+        });
+        const presentation = captureCurrentPresentation();
+        if (presentation) {
+          restoration.persist(boundAuthority, projection.projection_revision, presentation);
+        }
+      }
+      restorePresentation(snapshot);
+    });
     void Promise.all([
       client.activityList({ ...boundAuthority }),
       client.profileList({ ...boundAuthority })
