@@ -280,6 +280,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (operationId === 'focusa.mission_canvas.draft.sync') {
       validateDraftSyncResponse(operationId, response.status, value, authority);
     }
+    if (operationId === 'focusa.mission_canvas.pi_session.event.append') {
+      validatePiSessionEventReceiptResponse(operationId, response.status, value, authority);
+    }
     if (operationId === 'focusa.mission_canvas.recomposition.evidence.get') {
       validateRecompositionEvidenceResponse(operationId, response.status, value, authority);
     }
@@ -935,6 +938,40 @@ function validateRecompositionEvidenceResponse(
     && trigger !== 'preference_change' && trigger !== 'migration'
     && trigger !== 'explicit_resolve') {
     throw new MissionCanvasTransportError('invalid_response:invalid:trigger', operationId, status, value);
+  }
+}
+
+function validatePiSessionEventReceiptResponse(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext
+): void {
+  const receipt = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+  if (!receipt) {
+    throw new MissionCanvasTransportError('invalid_response:expected_receipt', operationId, status, value);
+  }
+  if (receipt.schema !== 'focusa.mission_canvas.pi_session_event_receipt.v1') {
+    throw new MissionCanvasTransportError('invalid_response:invalid:schema', operationId, status, value);
+  }
+  const responseAuthority = authorityFromRecord(receipt);
+  const authorityValidation = validateMissionCanvasContract('WorkstreamAuthorityContext', responseAuthority);
+  // PiSessionEventReceipt carries only the WorkstreamKey; compare Workstream
+  // identity (never tab/CWD/latest-record) instead of the full authority set.
+  const workstreamMatch = JSON.stringify(responseAuthority.workstream) === JSON.stringify(expectedAuthority.workstream);
+  if (!authorityValidation.valid || !workstreamMatch) {
+    throw new MissionCanvasTransportError('invalid_response:scope_mismatch', operationId, status, value);
+  }
+  if (typeof receipt.event_id !== 'string' || receipt.event_id.trim().length === 0) {
+    throw new MissionCanvasTransportError('invalid_response:missing:event_id', operationId, status, value);
+  }
+  if (typeof receipt.receipt_ref !== 'string' || receipt.receipt_ref.trim().length === 0) {
+    throw new MissionCanvasTransportError('invalid_response:missing:receipt_ref', operationId, status, value);
+  }
+  if (receipt.accepted !== true) {
+    throw new MissionCanvasTransportError('invalid_response:not_accepted', operationId, status, value);
   }
 }
 

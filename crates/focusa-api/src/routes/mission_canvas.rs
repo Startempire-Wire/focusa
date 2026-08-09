@@ -235,6 +235,7 @@ struct PiSessionEventRequest {
     layout_revision: u64,
     payload: Value,
     occurred_at: String,
+    idempotency_key: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2917,6 +2918,14 @@ async fn append_pi_session_event(
 ) -> ApiResult {
     require_permission(&headers, "mission_canvas:write")?;
     validate_authority(&request.scope)?;
+    exact_workstream_context(&request.scope, &headers).map_err(host_renderer_context_error)?;
+    if request.idempotency_key.trim().is_empty() {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "idempotency_key_missing",
+            "idempotency_key is required",
+        ));
+    }
     if !matches!(
         request.event_kind.as_str(),
         "pi_turn_started"
@@ -2931,20 +2940,39 @@ async fn append_pi_session_event(
             "Unknown Pi session event kind",
         ));
     }
+    let store = store(&state)?;
+    // Durable idempotency: the same key derives the same event id, so a replay
+    // returns the original Receipt without appending a second event.
+    let event_id = format!("pi-session-event:{}", request.idempotency_key);
+    let scope = request.scope;
+    let replay = store
+        .events_after(&scope, 0, 10_000)
+        .map_err(store_error)?
+        .into_iter()
+        .find(|(_, event)| event.event_id == event_id);
+    if let Some((sequence, existing)) = replay {
+        return Ok(Json(json!({
+            "schema": "focusa.mission_canvas.pi_session_event_receipt.v1",
+            "workstream": existing.scope.workstream,
+            "event_id": existing.event_id,
+            "accepted": true,
+            "receipt_ref": format!("receipt:pi-session:{}", sequence)
+        })));
+    }
     let event = CompositionEvent {
-        event_id: request.event_id,
+        event_id,
         event_kind: request.event_kind,
-        scope: request.scope,
+        scope,
         projection_revision: request.projection_revision,
         layout_revision: request.layout_revision,
-        causation_id: None,
+        causation_id: Some(request.idempotency_key),
         correlation_id: None,
         occurred_at: request.occurred_at,
         payload: request.payload,
         evidence_refs: vec![],
         receipt_refs: vec![],
     };
-    let sequence = store(&state)?.append_event(&event).map_err(store_error)?;
+    let sequence = store.append_event(&event).map_err(store_error)?;
     Ok(Json(json!({
         "schema": "focusa.mission_canvas.pi_session_event_receipt.v1",
         "workstream": event.scope.workstream,

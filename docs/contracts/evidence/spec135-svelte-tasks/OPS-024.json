@@ -1,0 +1,48 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-024",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "pi_session.event.append persists a governed Pi session event with exact Workstream context, event-kind whitelist, and durable idempotency (same key derives same event id and replays the original Receipt); validated PiSessionEventReceipt returned through generated pi_sessionEventAppend.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "LIVE-001"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo check -p focusa-core -p focusa-api",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-core mission_canvas",
+      "result": "pass"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.pi_session.event.append",
+      "result": "pass"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+      "result": "pass"
+    },
+    {
+      "command": "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.pi_session.event.append --client pi_sessionEventAppend",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
