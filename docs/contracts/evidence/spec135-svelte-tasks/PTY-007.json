@@ -1,0 +1,38 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-007",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "PTY write acknowledgement: PtyWriteAck with guarded write_input_guarded(identity, generation, data) \u2014 a foreign Attachment or a stale generation input is rejected BEFORE any byte reaches the PTY (ForeignAttachment/StaleGeneration/NotAttached reasons); accepted writes ack with the current monotonic sequence. Live streaming is best-effort while bounded event history stays the durable resync path.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-004",
+      "PTY-005",
+      "PTY-006"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo test -p focusa-pty write_ack_rejects_foreign_attachment_and_stale_generation",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-pty",
+      "result": "pass: 24 tests"
+    },
+    {
+      "command": "cargo check -p focusa-pty",
+      "result": "pass: 0 warnings"
+    },
+    {
+      "command": "cargo check --workspace",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}

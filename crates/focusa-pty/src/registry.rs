@@ -13,7 +13,7 @@ use crate::events::PtyGeometry;
 use crate::identity::PtyAttachmentIdentity;
 #[cfg(test)]
 use crate::process::PtyProcessError;
-use crate::process::{PtyCommandSpec, PtyProcess, PtyProcessResult};
+use crate::process::{InterruptAck, PtyCommandSpec, PtyProcess, PtyProcessResult};
 #[allow(unused_imports)]
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -98,6 +98,24 @@ impl PtyRegistry {
             process.close()?;
         }
         Ok(RegistryChange::Closed)
+    }
+
+    /// PTY-009: interrupt targets the ONE registered process for the exact
+    /// Attachment (never a broadcast, never a terminate). Returns the ack.
+    pub fn interrupt(&self, identity: &PtyAttachmentIdentity) -> PtyProcessResult<Option<InterruptAck>> {
+        match self.get(identity) {
+            Some(process) => process.interrupt().map(Some),
+            None => Ok(None),
+        }
+    }
+
+    /// PTY-010: reattached presentation resyncs subsequent output from the
+    /// SAME process generation via the process event history.
+    pub fn resync(&self, identity: &PtyAttachmentIdentity, since_sequence: u64) -> Vec<crate::events::PtyEventEnvelope> {
+        match self.get(identity) {
+            Some(process) => process.resync_events(since_sequence),
+            None => Vec::new(),
+        }
     }
 
     /// Kill + respawn under a fresh generation; the entry stays registered.
