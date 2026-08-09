@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-009",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Interrupt acknowledgement and event verified: registry.interrupt targets the ONE registered process for the exact Attachment (never a broadcast), writes ETX, returns InterruptAck with the run generation, and emits the Interrupted event. Interrupt (ETX signal) is distinct from terminate (kill): an INT-ignoring process survives interrupt but dies on terminate.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-007"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo test -p focusa-pty interrupt_targets_one_process_and_is_distinct_from_terminate",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-pty interrupt_targets_one_process",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-pty",
+      "result": "pass: 24 tests"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
