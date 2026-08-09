@@ -75,4 +75,4 @@ Likely next: `focusa_context_cognition`, `focusa_context_cognition_render`, `foc
 - CLI: `focusa context-cognition proof`.
 - REST: `GET /v1/context-cognition/proof`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:ee66276bc985c544e1d55036e1fec45ea884f9f07774d1ab9869975830fb675a`.
+- Descriptor digest: `sha256:412c9226852cb5b16e7ccf57870302c69feb7b47e714218ffef1de5ea1599f4f`.

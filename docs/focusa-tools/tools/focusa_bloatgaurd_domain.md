@@ -76,4 +76,4 @@ Likely next: `focusa_bloatgaurd_report`, `focusa_traverse`, `focusa_evidence_cap
 - CLI: `focusa bloatgaurd domain <name>`.
 - REST: `GET /v1/bloatgaurd/domain/{name}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:605a65f3ff289d2e6b519ff2149ea389e1e6a44eeb24864d9503e1fcc25603f1`.
+- Descriptor digest: `sha256:b053a358fb994a366ec883fe157126b17715598d710828a0a2fb92ea535eda25`.

@@ -97,4 +97,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_project_card`, `focusa_trajector
 - CLI: `focusa project session-transfer`.
 - REST: `POST /v1/project/session-transfer`, `GET /v1/project/card`, `POST /v1/workpoint/checkpoint`, `POST /v1/workpoint/resume`, `GET /v1/trajectory/view`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:b6863264f7a4c1ac5db4eccae32c31f1bd4d299c57b7405013cf1bd5924921f2`.
+- Descriptor digest: `sha256:3626ad5fb9f4729f3a4c5dd64dd79d6465bcb1be58317faec354c20bf852c0c1`.

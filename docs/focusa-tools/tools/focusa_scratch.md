@@ -77,4 +77,4 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 - CLI: none.
 - REST: Pi-local only.
 - Specification: contract registry.
-- Descriptor digest: `sha256:00d61290828a92ca1a3c40fb1a9847b22bb90336ba7f7cc9c9f040becf4f86f2`.
+- Descriptor digest: `sha256:b31bd585090d9340bb4ed5d95f123f5b7a0ff4307e6d6741a9cd39ff97019460`.

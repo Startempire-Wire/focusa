@@ -79,4 +79,4 @@ Likely next: `focusa_workpoint_checkpoint`, `focusa_active_object_resolve`, `foc
 - CLI: `focusa trajectory propose-workpoint`.
 - REST: `POST /v1/trajectory/propose-workpoint`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:fe4fda9222fd5e5a90f9934d94bd78f332c23df8283a774f3a8a840aa87f1492`.
+- Descriptor digest: `sha256:abaa2c8e9aba12e097b088320b0660f2439268421437358e3521464df03afc80`.

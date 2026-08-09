@@ -76,4 +76,4 @@ Likely next: `focusa_dxux_report`, `focusa_tool_doctor`, `focusa_evidence_captur
 - CLI: `focusa explain <failure>`.
 - REST: `GET /v1/dxux/explain/{failure}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9d2b1575d8d09f3aae770069945fb8e77cb8d7a44b8d0bf059e050c2be92ff3b`.
+- Descriptor digest: `sha256:6a9f364690be7f3300c7a95b1130bdcd03a100d542539820ea81f810a50a9886`.

@@ -74,4 +74,4 @@ Likely next: `focusa_context_cognition_curate_optimize`.
 - CLI: `focusa context-cognition optimizer artifacts`.
 - REST: `GET /v1/context-cognition/optimizer/artifacts`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:2363d1bddbddf0bcf148f124b79018d1722c528a90efd722399e494440fa46cc`.
+- Descriptor digest: `sha256:f5674ed8c0180cc1f6889cb3120212d41efbfa3b4803972fd2ab38139da82dca`.

@@ -85,4 +85,4 @@ Likely next: `focusa_context_cognition_optimizer_artifacts`, `focusa_predict_rec
 - CLI: `focusa context-cognition curate-optimize`.
 - REST: `POST /v1/context-cognition/curate/optimize`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:0154d0b597b3e70c1637308d0bff1a51b91020dbdc62e56038ea7200a06766f8`.
+- Descriptor digest: `sha256:35214c426e0204d87dd51f29d7dfcfe0ca811724f15f68789051221fe9e641f7`.

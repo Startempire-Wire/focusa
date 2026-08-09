@@ -230,6 +230,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -468,7 +469,7 @@
         "snippet": "Use before linking evidence or acting when target object/file/endpoint is ambiguous.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3c7fd9cab6610bbca99533a1ef8abea1d0fc060a5a1e6ec24ae30c07c1c523ee"
+      "descriptor_digest": "sha256:05251fd051f1998ff649341661985856d4d06731307966baaa2e1481c2508cae"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -681,6 +682,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -926,7 +928,7 @@
         "snippet": "Commit verified agent artifacts with explicit operator confirmation and a durable Receipt reference.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:34e09653383302dc3236912d6b696b722ebce5205f756f71dc343c89ad87fce7"
+      "descriptor_digest": "sha256:3ec967aba4ec11d7a0a35a83742cbc95571b004f447418a9c9f6e88aa0c5b16a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -1134,6 +1136,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -1375,7 +1378,7 @@
         "snippet": "Preview a Spec 140 artifact delivery manifest; never writes files.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:343d00c657d33d14e7b4e283ac473d518da8ca8f675f91074390ad5852f5729e"
+      "descriptor_digest": "sha256:9fc1f33e43355907044bd928d90cbd649fb34220021815861a1a3f9429b2fe46"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -1583,6 +1586,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -1824,7 +1828,7 @@
         "snippet": "Verify content hashes and evidence for a Runtime Constitution delivery manifest.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:8ca7e514612647cb2f4e23cbc428b9bb4123908c50c4e0deaef06523bff4721d"
+      "descriptor_digest": "sha256:f1800866c4d6c5fc9834bbe4243574affc02b2e9cdf32965110d3879b43f71e1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -2030,6 +2034,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -2270,7 +2275,7 @@
         "snippet": "Read a compact, versioned Focusa Agent Card for cross-harness discovery. Returns interfaces, auth methods, progressive-discovery entry points, capability families, registry digest guidance, and extended-card routes without loading full sche",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f94b40019077d252bf8dfd50b79f32a3d7ba8e101876c83ca789c19208cd8e2c"
+      "descriptor_digest": "sha256:42f2836c3b0bb03927f1ebae879964291ceb743b01b91769bb440be8ded49216"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -2471,6 +2476,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -2708,7 +2714,7 @@
         "snippet": "Use at session start or when tool routing drifts.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e631b7d6191b01268ef3b99ffdc1f64d90822096564e92118031e0228e07d6b6"
+      "descriptor_digest": "sha256:2a07462ccd20927f58d2fb56f34ce380e17a64c1cca64c0ac18e7d51c1ddd5ec"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -2909,6 +2915,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -3148,7 +3155,7 @@
         "snippet": "Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c8a4ad38c202dcebea44f75dc92c79025093868a29dd83440dd6aa793bd1a862"
+      "descriptor_digest": "sha256:c759c4fc3d96823e5aac932d403781db03a4751d4948cc1d2c1776cc976e7ea2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -3361,6 +3368,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -3607,7 +3615,7 @@
         "snippet": "Read effective project instruction claims and unresolved conflicts under Spec 140.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d4903f1a6561bd0a8ae91234c37b63be5ea4b25415b9d207d2c93d7824003a8a"
+      "descriptor_digest": "sha256:230ef1bacc6b2faf5d2dd2b895051e6ebad054f4d912dca2496149a418e1d605"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -3815,6 +3823,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -4059,7 +4068,7 @@
         "snippet": "Verify foundational runtime capability parity without Mission Canvas or generated UI availability.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b0f36d804121d74a15687b764dbe46d8b8f924379dedaf97611bbd3c004d251f"
+      "descriptor_digest": "sha256:1ebe07f939538be79ad4b7b1fb38638b1bb0f76c2c536b81af6e7ef23e102ff9"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -4340,6 +4349,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -4587,7 +4597,7 @@
         "snippet": "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools, including Spec 111 preload status surfaces.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:811065b712d89b33db366233377be76b8a34229b05e6a612bd681cc2af7d2e18"
+      "descriptor_digest": "sha256:7ebe6a4079ce737ce955e7b4c50c99f6f324461163dbac1d256484bd1080afea"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -4798,6 +4808,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -5039,7 +5050,7 @@
         "snippet": "Use when a gap maps to one budget domain such as output-firewall, docs-diet, or dead-code-safety.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:605a65f3ff289d2e6b519ff2149ea389e1e6a44eeb24864d9503e1fcc25603f1"
+      "descriptor_digest": "sha256:b053a358fb994a366ec883fe157126b17715598d710828a0a2fb92ea535eda25"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5250,6 +5261,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -5491,7 +5503,7 @@
         "snippet": "Use to inspect a gate mode such as A/advisory, B/warning, or C/fail-candidate before enforcing it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b03c98a4aaa3ad99ba3556984e6a34d9f2f4e9a08b60eb25d6157415fbd4daea"
+      "descriptor_digest": "sha256:bfedd9c66fb5b490db6ea32aafaad50c31a3ff16366c1a5f209bb3c4fd07efae"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5692,6 +5704,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -5932,7 +5945,7 @@
         "snippet": "Use before enabling warning/fail-candidate Bloatgaurd gates; this tool is read-only.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2c0d24c37fc0a3515649b4098ece8eff7688c60ce2b4ea489e8977ddd2854ede"
+      "descriptor_digest": "sha256:6f5f02420498b130cea0937c0fb6eb34e73a74b11ead9b4765366fdc2f4c28a8"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -6143,6 +6156,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -6383,7 +6397,7 @@
         "snippet": "Use to inspect a profile such as daily_driver or tightwad.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d0be9c67495d3c8f926fe4f9df0bc65df6b056990eb9ac6a9bfdcec526018ee5"
+      "descriptor_digest": "sha256:044300392cb78414409a1b93f0ffab7c2d0b8d3bd9c9842d2f03af4c050d9d1c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -6584,6 +6598,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -6823,7 +6838,7 @@
         "snippet": "Use to inspect Daily Driver, Beast Mode, Speedy, Neat Freak, and Tightwad profile settings.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:89389ebb1a779ec5e7608db4e706d8318cdc8f39e15c31851425495a36f82e21"
+      "descriptor_digest": "sha256:af8b0a5027c921be2925c7b4ec37bb64d8f5229a64adc4110da97cf39fcf8247"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -7024,6 +7039,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -7264,7 +7280,7 @@
         "snippet": "Use before cleanup or context-budget work to inspect Bloatgaurd budget domains and full-payload/deletion gates.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6ef15151ca078d78f8036ae64a919dd4901a88da9664958f3c5fd494da1aca73"
+      "descriptor_digest": "sha256:7b7ade471c14fa8be2e464ba18013744050645835c77e75d0afacf1c7b88ea1f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -7465,6 +7481,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -7703,7 +7720,7 @@
         "snippet": "Use to verify rollout hardening acceptance/proof for Bloatgaurd MVP.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:fa6196a50aaa92cbb12b5d533cf7a435bb3b6ab294df4741c66b337c000c4bf2"
+      "descriptor_digest": "sha256:ba3ef0ab7130f6d43e14b81a7b83fdf4953fe836c468771aee252934711b47f8"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -7914,6 +7931,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -8154,7 +8172,7 @@
         "snippet": "Use to inspect a routine such as patrol, gatekeeper, or scout.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:fa2b949fe624fe4c307c4734f858d8f5affb4849cc69965a3f7deec0d04e8bfe"
+      "descriptor_digest": "sha256:0dc7d682d1d3700b76462a0cb780e64630743700d46d9d3798d882632c9017a9"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -8355,6 +8373,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -8594,7 +8613,7 @@
         "snippet": "Use to inspect Patrol through Scout automation policy.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:31a66150533431f23a7b6b994442657e25d88b70831b03d9313173022e352df7"
+      "descriptor_digest": "sha256:ff80e2881a09ceb011017e2d1897b04c4964b40fbb49d194e6fd686b2e77cea1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -8805,6 +8824,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -9045,7 +9065,7 @@
         "snippet": "Use when a gap maps to tokenbloat-control or tool-call-history-elision.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5dd8b1f3c62f451266d0d68db9fdfc447693ee3339bff7fecce15aac79883b18"
+      "descriptor_digest": "sha256:eba2ba23b4c975f200a2a3ef190cb35c528368ccf371c6b670a4c428b32a4115"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -9246,6 +9266,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -9485,7 +9506,7 @@
         "snippet": "Use to inspect prompt/runtime tokenbloat controls before reducing context or eliding tool history.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1019a15c5d0ae6b00fd5f234309a7d98d74c579b67ba98dbef54c1aad76424b1"
+      "descriptor_digest": "sha256:16138b929321ae9d13b1c9028e8f4c42d3fa63feab537ef4e30f7b755e49fb60"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -9760,6 +9781,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -10008,7 +10030,7 @@
         "snippet": "Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability de",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a22694368089c7eb212cf761a09349c10ed6704b98ee0db49ba9ef291475b505"
+      "descriptor_digest": "sha256:9ef23526cefb2398bea8b7cb4b98c42e3d76d71b8e5a97483c2ed16faa1a836b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -10293,6 +10315,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -10555,7 +10578,7 @@
         "snippet": "Use after UIAI browser diagnostics/error envelopes to standardize evidence + learning intake before manual interpretation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:26c4ff29c9fb87baa9b8e302a16ef5cdf27c3f11f811bc944a56e7ccef1f66a6"
+      "descriptor_digest": "sha256:b4f946afea97e25f057849d0c3a21698c31ecb51c842c2f3962193480ac91af4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -10778,6 +10801,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -11022,7 +11046,7 @@
         "snippet": "Build the governed UIAI/WebMCP sequence for one browser operation before action. Returns health, read/source, diagnostics, snapshot refs, mutation confirmation, bound execution, evidence intake, Workpoint linkage, and session cleanup steps.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c168b991bceb76f8030e66174e3a659d23c15f277a56ab027421a9cb86ac444f"
+      "descriptor_digest": "sha256:744294e0ca3e2d391601b3df8040be79e00958234b2ccd422dbc9651dc3f86a3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -11292,6 +11316,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -11537,7 +11562,7 @@
         "snippet": "Use when designing a new feature or refactor that will be implemented by an AI agent. The design is a typed artifact, not free-form prose.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a051b9f7e0522b954fb012e0fc7100832823a20f14fdc65b4291581fecb21a9c"
+      "descriptor_digest": "sha256:3a5a1ac3766e01044f386cc50f4e25442831df350452fd5765f6e0af5bd96864"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -11799,6 +11824,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -12053,7 +12079,7 @@
         "snippet": "Use after focusa_call_stack_design or before implementation review to detect design-vs-code drift without mutating Focus State.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b3dd5aa1096eabd052ccc227407c0f423e5e2606eab91a4fb302644f4c2d1aab"
+      "descriptor_digest": "sha256:54b30436943857b07c378dcaeace4ebfe5e07052c2ef2cff4bf4aae1a3ba38b4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -12266,6 +12292,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -12512,7 +12539,7 @@
         "snippet": "Activate a separately operator-approved amendment only after its official documentation sweep is complete.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:31a17f72e9f28acbacc1b4b2145f41552532f5d795c21f58d7e7a45b6c84681a"
+      "descriptor_digest": "sha256:dc64276ee3739866c9b9bec0eb5c4113fe8db821d5ca718df92f8d109894843b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -12720,6 +12747,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -12965,7 +12993,7 @@
         "snippet": "Record an operator-originated canonical instruction amendment proposal without activating it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f053e2a4edd8fff8a16c9ee22ca2375cd2ece38cf094348eb8928f16c82671df"
+      "descriptor_digest": "sha256:39b9865e65b4b1e5d32d0f5b9540d0e8a2bbcb825473bee941bf3af40efc8e09"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -13178,6 +13206,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -13428,7 +13457,7 @@
           "Example INVALID: 'Need to fix the scratchpad path' (self-imposed task)"
         ]
       },
-      "descriptor_digest": "sha256:5454fad1eb7746c885b5f7d68c2cc49f472bc78fa019040f8635044df49aa9a2"
+      "descriptor_digest": "sha256:4366dc6413d08e1e4370b5c1530ac3d436292de681f76b0598252062e8b2769c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -13649,6 +13678,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -13890,7 +13920,7 @@
         "snippet": "Use when an operator or agent needs a structured, bounded view of the current project context before making decisions. The packet is advisory and never overrides Workpoint or Trajectory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:092c64b97bb83baa409f87b5516ebdaddfa375419a8001ad59e315d98069d44e"
+      "descriptor_digest": "sha256:a2f20e2d2dece3059f436b3a43c8efe72e0620575b68540642d0144a5348955a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -14154,6 +14184,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -14395,7 +14426,7 @@
         "snippet": "Use when the agent or operator has a candidate list (files, docs, diffs, evidence) and needs a token-budgeted selection that maximizes relevance to a target (workpoint next_slice, mission, or query).",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:78d82531151cb83733d9c81f1eab1362e1fa53da16f366e36472e6ea86594eb5"
+      "descriptor_digest": "sha256:c94350bd76d6f6dfdf59ba8498d112750acd279ca2287667b6b21440953f2127"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -14693,6 +14724,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -14943,7 +14975,7 @@
         "snippet": "Use when measuring whether the curator's selection matches an operator's expected selection. Captures the result as a focusa_metacog_capture lesson and a focusa_predict_record prediction.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ce30db7f6efc9a4f93ca1d24b80afa059e4b2ec0e6cbc24783f83d30739b41de"
+      "descriptor_digest": "sha256:4b203807748196b6982cd7ea945443918910ae5ad2419c2303f78cfe5f2e00e4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -15195,6 +15227,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -15441,7 +15474,7 @@
         "snippet": "Use after focusa_context_cognition_curate_eval when the operator has a candidate prompt/module artifact and wants the curator's promotion/rollback decision.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0154d0b597b3e70c1637308d0bff1a51b91020dbdc62e56038ea7200a06766f8"
+      "descriptor_digest": "sha256:35214c426e0204d87dd51f29d7dfcfe0ca811724f15f68789051221fe9e641f7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -15658,6 +15691,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -15888,7 +15922,7 @@
         "snippet": "Use when checking which Cognition Optimizer artifact is currently promoted for a project, or when reviewing the artifact history for rollback decisions.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2363d1bddbddf0bcf148f124b79018d1722c528a90efd722399e494440fa46cc"
+      "descriptor_digest": "sha256:f5674ed8c0180cc1f6889cb3120212d41efbfa3b4803972fd2ab38139da82dca"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -16100,6 +16134,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -16340,7 +16375,7 @@
         "snippet": "Use when an operator wants a one-shot proof bundle for the context cognition packet: curl health, project identity, trajectory, workpoint; focusa CLI; node audit scripts.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ee66276bc985c544e1d55036e1fec45ea884f9f07774d1ab9869975830fb675a"
+      "descriptor_digest": "sha256:412c9226852cb5b16e7ccf57870302c69feb7b47e714218ffef1de5ea1599f4f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -16552,6 +16587,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -16787,7 +16823,7 @@
         "snippet": "Use when an operator or agent needs a human-readable view of the context cognition packet without parsing JSON.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:770fee2b79c6a7230213550ea5111bc69a363e65f7daed9ca7a74fde38cf6a23"
+      "descriptor_digest": "sha256:10d38f3f92c386b795af457f3dc67dcc270325f5862c5213a1449471cfd5fc35"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -16996,6 +17032,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -17237,7 +17274,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2bcfde8f5baa7c3d256d1010843c66c508e3b594d9ca8a4a452ee0fd4fa0c9fa"
+      "descriptor_digest": "sha256:10df70fb49839caef401215ff88b4060dbd790ff636d8fbdddf85a38c03b9d92"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17461,6 +17498,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -17708,7 +17746,7 @@
         "snippet": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:732fbc5685a9c5b98b34a60141aba7f968530285fd97bcba95fbbd3e4a8e6e06"
+      "descriptor_digest": "sha256:c4f8c2ad033c6039b4bb51fd5b4be0ff9205009adc7161cfba74aa7005b6427c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17921,6 +17959,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -18170,7 +18209,7 @@
           "Example INVALID: 'Fix all pi-extension spec gaps in priority order...' (task list, not decision)"
         ]
       },
-      "descriptor_digest": "sha256:2ff4c040115d08310248e3239f8e2be821a99a3da3a184532dc024d0558cb174"
+      "descriptor_digest": "sha256:0d17e612eb2d79ac658d340004e8e8f15fbc93608c7ef68b0c5adb8fa26ed465"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -18391,6 +18430,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -18630,7 +18670,7 @@
         "snippet": "Use on the VPS side to complete a pending pairing initiated by focusa_device_pair_start. Returns the long-lived token that the Mac app will use for subsequent calls.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c4e132b0ebb25a03064fcc111f6ce592e0ee9727f011f9705462b547734adc3a"
+      "descriptor_digest": "sha256:fe12174495deeb12f347f02446c51fd420a8b3e320474004d0c354096e1175dc"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -18842,6 +18882,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -19075,7 +19116,7 @@
         "snippet": "Use to see which devices are currently paired with this Focusa daemon, and which have been revoked.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:78b70d81019fd00a89f8794361681787402f697182702bca7bfcb03e732316f8"
+      "descriptor_digest": "sha256:fd9851b716afae20ca5dd6df598944d675ad9b33acbff057ca2a17cd194f930d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -19297,6 +19338,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -19535,7 +19577,7 @@
         "snippet": "Use when the operator wants the Mac to display a QR for phone-based pairing. Requires FOCUSA_PAIRING_URL set on the VPS to a public URL, otherwise pair_url falls back to daemon_base_url (local-only).",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a0dd2904e0642a28a1be77beff3b0f77e73f9710b9c89b27b610b687bbdd73b6"
+      "descriptor_digest": "sha256:5c37197c028b7ecebaa569cd6e125c78db0aaeb776df7050d94c458b105627cd"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -19752,6 +19794,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -19988,7 +20031,7 @@
         "snippet": "Use to remove a paired device (lost laptop, rotation, security incident). The device will need to re-pair.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:99a0ca679105cb42d12a0a4eaffc36d69e71b5a381dccdd9b970c74010c97ba7"
+      "descriptor_digest": "sha256:f156e4cd0481c1690b4d84929afb5f519006504a37302a56802f5d835951f6e8"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -20211,6 +20254,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -20454,7 +20498,7 @@
         "snippet": "Use when the operator wants to connect the Focusa Mac menubar app to a remote Focusa daemon. Generates a pairing code; the operator runs the corresponding focusa device pair-complete on the VPS to mint a token.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7f788db3964950ddd764853a862c5102e43423badb5afc99c99176004c365ddd"
+      "descriptor_digest": "sha256:4b0b43fb2e949da5549abca4922b494feac4e4c6c5793494cfa5d19331d9891d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -20664,6 +20708,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -20898,7 +20943,7 @@
         "snippet": "Use to poll whether a focusa_device_pair_start code has been completed by the VPS, or to look up the long-lived token for a known device_id.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:308c6d07de659bdb31f5f80532d7f26c927215ede916c622d60d30aace1fcbf9"
+      "descriptor_digest": "sha256:3cde3f032693f4685496317d9c5c96923a0143ec680cfe3139d7ac0cf59fc078"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -21099,6 +21144,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -21337,7 +21383,7 @@
         "snippet": "Use before compaction/resume handoff to get status, authority, why, exact next action, evidence refs, and rehydrate refs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:85d1b87d828a6d900499809de16e0b8e0b2d130b1911054cceca3180574a9b2a"
+      "descriptor_digest": "sha256:b659044a72e57ab03663a64b9582038adc08412131f70de464d02f0b6cfea880"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -21548,6 +21594,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -21787,7 +21834,7 @@
         "snippet": "Use after CI, scope, daemon, or stale-state failures to get recovery commands.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9d2b1575d8d09f3aae770069945fb8e77cb8d7a44b8d0bf059e050c2be92ff3b"
+      "descriptor_digest": "sha256:6a9f364690be7f3300c7a95b1130bdcd03a100d542539820ea81f810a50a9886"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -21988,6 +22035,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -22226,7 +22274,7 @@
         "snippet": "Use to verify Spec105 reliability, continuation, recovery, evidence, and drift UX surfaces.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:11f5e2647a46af919e4917ee560785e0253d967b01adfbfa1abc1addb0e60c28"
+      "descriptor_digest": "sha256:5b223d7bb5af511c8aabc3792a4e446770727cf73e8d37ea975968405cbda7cf"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22437,6 +22485,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -22676,7 +22725,7 @@
         "snippet": "Use to inspect a requirement such as DXUX-004 or DXUX-012.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6b99e345b5ecd6ad0a2262c343ffe1497cb267133bafd8bb93ee80140bd9e831"
+      "descriptor_digest": "sha256:714595cee12a17ea96172427cb5f4e5c6571342c0472d656a9c335eb7a230999"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22915,6 +22964,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -23160,7 +23210,7 @@
         "snippet": "Use after tests, stress runs, or proof collection to keep handles instead of transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6d457a7005c1c46c20f9d410b5871e1eee125dc5c13f2c4ba4945a9eefef15af"
+      "descriptor_digest": "sha256:2f01c12a9ddaba1dcac088149b652697908f5b1aeae3ec4455d6cb459799e023"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -23373,6 +23423,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -23620,7 +23671,7 @@
           "recovery = what was done to fix or work around (optional)."
         ]
       },
-      "descriptor_digest": "sha256:475a7c0e9f7327694b6f1e49560c0d9a161ea065446edd8f73c7208990cf9aca"
+      "descriptor_digest": "sha256:215ebcad233305ce8a2e9539f72689a80cf1cfeb0bb0de962403a3edd4ee703c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -23852,6 +23903,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -24090,7 +24142,7 @@
         "snippet": "Use when reconstructing trajectory wording, checking previous-valid fallback, or verifying exact HLT history across sessions.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d24deb19637845b6823cb93d656467c875815506f504b27fe62033c88f94a4e2"
+      "descriptor_digest": "sha256:1986912d03ac093c233180ee34ed0ecd31065e9fc5ee5d9b1cb50de1b6f712da"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -24302,6 +24354,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -24548,7 +24601,7 @@
         "snippet": "Read deterministic instruction conflicts; unresolved equal-authority claims remain blocked.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f1c36523651b050a3b55446f00498208d6ea9a918c3129545f64d9a2761c0b76"
+      "descriptor_digest": "sha256:637fb614f4dc31bf40b27330f37d8884ec7b58cdfcc71d0f41bb50a7755d9c77"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -24764,6 +24817,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -25006,7 +25060,7 @@
         "snippet": "Explain one instruction claim from the current bounded source inventory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2267545e7b38d013d86d2ab2a21743663d5a33cf4d518b321a230842dc1d01a0"
+      "descriptor_digest": "sha256:91134ddb7b89bb0eb53aa70c3662293237aa8a26f114cf0d82062ee0e38678fb"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -25214,6 +25268,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -25459,7 +25514,7 @@
         "snippet": "Evaluate the foundational headless InstructionIntegrityGuard and durably record its fail-closed decision.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:88d73b00dd8eaf1b0adedf7e2eb3bcc7d13f6e4973564ebb068213facbfe9fdc"
+      "descriptor_digest": "sha256:cfcd397a777014e15919173788f0e45865ccfcfd0f81d3cde51ffa6f70e60a0a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -25660,6 +25715,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -25900,7 +25956,7 @@
         "snippet": "Read foundational guard availability, amendment authority, and outage posture.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:12b3308613bb0d00195db77da9826050caf748ee2c5b31e73670acf2db9c2825"
+      "descriptor_digest": "sha256:cca8009fc38ebb8642b4e33ac419ac5ffe1c473bff122cc2723540791d35c93d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -26121,6 +26177,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -26362,7 +26419,7 @@
         "snippet": "Preview path/profile/target-specific instruction behavior without committing changes.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f2d212cbb7b89bd1e4b67c09948433511f22e53e032816f4d99afb555dddd64c"
+      "descriptor_digest": "sha256:b92187058be247b73e8c81d71259dab78438ecc0ee6d9c8a517404c3cc1713bf"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -26574,6 +26631,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -26820,7 +26878,7 @@
         "snippet": "Discover bounded, registered project instruction sources with trust and authority metadata.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1c7927b067615c0b630d0bbd7cf046bb39ba1f01eaae3d8e18624d6d435f3666"
+      "descriptor_digest": "sha256:dc9bc8c1885fe6f9ba035f34601a79958978eb1031a5d8ef67e2dc3f7e3eb27a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -27029,6 +27087,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -27270,7 +27329,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2590b090de9aa270e1b1b0075ef0d18ca386352a0fc604d37f7764841acea490"
+      "descriptor_digest": "sha256:60b9a4c4a0cc39c2089f6706277dcc52dca26283398dcbefa61928df319c7e60"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -27480,6 +27539,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -27718,7 +27778,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:33fb15827a4bb4a713d6e1eee0aa1ee4caaa4fa6c58642787d853a3552cf696a"
+      "descriptor_digest": "sha256:b98f50928ebf01dac185687f5160d8ff4065d2bc8be311fe9059f9d32e1028c0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -27932,6 +27992,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -28170,7 +28231,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a6143b4433ff9058dadf6a99ed3eb3e24a6884942c4bbe301f77ea908ec384de"
+      "descriptor_digest": "sha256:2ef222f2362da1f16a0e168832f22e68eb7428aecde6c5be69f7b619bf4ece20"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -28411,6 +28472,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -28653,7 +28715,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1f1c930df6eb555562dd1a5afc91d3516d3f0f299fe6d15bf89aa0665ba5684e"
+      "descriptor_digest": "sha256:9ee7c7ad40803157a3ae0e3692997a3a385e950c616191724083c028ea26011b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -28896,6 +28958,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -29142,7 +29205,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:20dda4b3f769bfaa00ce2cc71f92236949b05525fa349dbeb6de14551c3ce904"
+      "descriptor_digest": "sha256:aa9e35fb6ca0859d227f096c7a43b9d26a5a1fac12627807672879bba616e35f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -29382,6 +29445,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -29631,7 +29695,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:04281fef94715fbe6cbda543c685a61935ee6bdd08a1ac85ff2c79eabe90da7d"
+      "descriptor_digest": "sha256:79743419b9d98f8d4ce2ec17a1ced5654689bdf6b2c609792a102408f7ddfb21"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -29986,6 +30050,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -30256,7 +30321,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:fb2abac8c2a3f443a5a336b4467fd0624fe83aa599d4e8adaf98b803d394fb62"
+      "descriptor_digest": "sha256:b290eaa7c819a05edfa10697adfcde00fff65bfc027a1ee43124048926fdcb21"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -30478,6 +30543,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -30719,7 +30785,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7091c781580cb539f7bb69a320c35142388c34dce69e8488e461c9a126f602ce"
+      "descriptor_digest": "sha256:b3d4244628e17a3889e0cae106596fa76bc9c2a67e4fff8c02d43071e694d7f8"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -30927,6 +30993,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -31164,7 +31231,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f773b9fd4a31be3fb237a008464bf52e984285527b37f4e973edaed9e733ff23"
+      "descriptor_digest": "sha256:1fb88e37bb458b8302448d0087c79c4b3d845a073192b66bb55cee9ba5be8bf5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31372,6 +31439,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -31609,7 +31677,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c324957d344ea9ccd9d4508286d893d837307e3ee1a1319a0f7f656e63946b4a"
+      "descriptor_digest": "sha256:9854e0089b55a5af3930c09385bd304f744e8445b53cb15bfd074d85f16f9bf1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31831,6 +31899,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -32072,7 +32141,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ef8764d1d076a9ed7393da002afc52a7c312cd4caf0fe9cebb6162c28a287cc2"
+      "descriptor_digest": "sha256:40a07531991b56e3f7be0aa19509980e7d177a172b2665bca0209aa967236a74"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -32299,6 +32368,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -32538,7 +32608,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1995c11a832e1d478ea0d110e0b615ab5e6a6f3489bd173ba0af688fea5cd045"
+      "descriptor_digest": "sha256:5c5cd449e122b3acadbf0db0f09393b201c59a4bd6ecd46c57c0916a7c867717"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -32747,6 +32817,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -32988,7 +33059,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:dd2647a0ae48ed9945dc9b73c62a7ceb5c72de56445be0591bc2007315e4a3ab"
+      "descriptor_digest": "sha256:ffa2a367f72ecdc2303225d979ae8aa70afecf670e91f13065632b1616e75cb9"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -33170,6 +33241,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -33403,7 +33475,7 @@
         "snippet": "Use before meaningful work and after session/compaction/model/project/provider/writer transitions; stale authority remains advisory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:28381e80c07ff1548c2a0e22ff0555ee536734ffb21f1738e73eb1c1151a21ff"
+      "descriptor_digest": "sha256:76b0f87bd4521121cbc7df5890a5e0998c4ae4b909adffe3d4007f0ef9931822"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -33612,6 +33684,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -33853,7 +33926,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b461be1663888f577dc031871836d7c0ee2846dfb5a233b1a2719d4b5fe0543a"
+      "descriptor_digest": "sha256:bf27f3b88f263d6b2a132cd11ff2719f70d7670c39163bfd983b2f357f9c3c99"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -34156,6 +34229,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -34402,7 +34476,7 @@
         "snippet": "Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b73a6ce85ca536ffbc121788108f038c5b833cafe04483bd04cf3f557ab37e57"
+      "descriptor_digest": "sha256:3747def6f68d29224e89b155fe7585907d2a93d7409aa15b987dcdcd446c6fe3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -34611,6 +34685,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -34852,7 +34927,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:100ae0be9076446eec1f1959f72fde166140c2054c135e55c2fe7b7d20d58edb"
+      "descriptor_digest": "sha256:9276a2d9248a7185e582927a543651284b665adee2ac1f1ef2615fb0617d1c6e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -35082,6 +35157,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -35326,7 +35402,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9ac6b1b79fee87f2042728ae71ccd9c82cf2e1e0d9bbe621b868a9a32e1e6189"
+      "descriptor_digest": "sha256:2f169eee16e58f770dc79793ad4f824f0efe489bec505a48b5deb367ecaf4f6a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -35540,6 +35616,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -35779,7 +35856,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:08221a145d041e12b9efe6fd8f4d64c4329f05157fb559b6c4e525e4488efc8b"
+      "descriptor_digest": "sha256:3865273eddeb8d09ab616a8495ca4ceaa4287f24278324bfe28c00d3c962c2a5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -36026,6 +36103,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -36273,7 +36351,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:828562c94a7e757678d3519bd467c4f06ce5bf27dd95933b2a8922e11f23ed1c"
+      "descriptor_digest": "sha256:f989b63532585de1626adaeb5c8748c13a24aafa8fdcb7497934bb06b7d53cd3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -36483,6 +36561,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -36722,7 +36801,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b44c9d6d61273d3ef985a05ed55b5c1255734d154d133a3e143ee31639230ea2"
+      "descriptor_digest": "sha256:b0cdcb828503cc1bbe5072b640f8ae41a349f60527236c8b556cfa50b8d44932"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -36987,6 +37066,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -37243,7 +37323,7 @@
         "snippet": "Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f7091f35c4a3e8b468799fb938fe5012cd445807ab1b1a760bda7d29ce6b6ffe"
+      "descriptor_digest": "sha256:b4072fc533d6ad12724653bcd38d3d49c2692d37e8c9705049a33ada9d33ff9a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -37476,6 +37556,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -37710,7 +37791,7 @@
         "snippet": "Build Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a01dd6f93b477aea68a622087bebf296efde9ec1aa2455447ca50d8655598e10"
+      "descriptor_digest": "sha256:39a384726a1365e2bc7e11c37492f05e137b83c27982e1a9d862838e0c37db6c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -37943,6 +38024,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -38177,7 +38259,7 @@
         "snippet": "Doctor Preload Scope through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a46258da16e1d13a336b72d65fac70e8a1b39efe79fa762b65e35c778ddcb6e2"
+      "descriptor_digest": "sha256:0b48e71286ad15384d293a1c7ae9e7515d8e1b397b3fd05ba1a9b69cc1c0ae44"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -38378,6 +38460,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -38612,7 +38695,7 @@
         "snippet": "List bounded Spec 111 agent bootstrap profiles.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d04c5179b83fa74a10992b2c6d6ec314e6249efd9531af8dfc50cfa8db4f4388"
+      "descriptor_digest": "sha256:e76a3349006288dc0621a4e9848e9f1849fa5c8cf24ab5c0bc0449f5bdb3e846"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -38843,6 +38926,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -39082,7 +39166,7 @@
         "snippet": "Commit an idempotent Spec 111 bootstrap delivery receipt.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a88340ff2d5694c21bec19f3da8f44b2e1def46061a914467cc9d888dc24878f"
+      "descriptor_digest": "sha256:17fa4427ec723178339ed08a476957b717ff58aa82182f437d691b4f388bd8e1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -39305,6 +39389,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -39539,7 +39624,7 @@
         "snippet": "Preview a Spec 111 bootstrap delivery receipt without committing it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e776da1fa7d7564f49b42541f6138a806d3f178cceaf017debb823f59a9c1e3e"
+      "descriptor_digest": "sha256:d5e349cf9d5a938a1f4f7661fd354c565501c222af33aa104cb2928173d9f5ae"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -39772,6 +39857,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -40006,7 +40092,7 @@
         "snippet": "Render Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5b7ea3caf33f90d8635a0862df3b18f160bccfa9a8351a122a7e908c642cf40c"
+      "descriptor_digest": "sha256:fb40a7b5efc548752c6fca847c79583f27a6ed9207f3f8806b25877e2da409b3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -40239,6 +40325,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -40473,7 +40560,7 @@
         "snippet": "Verify Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:91f009977146d870d0ed023878f7624acf6a9ad445fa459e0795199b543c7c55"
+      "descriptor_digest": "sha256:2ec2c3037887995f400969226683eeb49ca86ce9348dead7bd69d28c8eb83469"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -40713,6 +40800,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -40953,7 +41041,7 @@
         "snippet": "Write a Spec 111 preload packet to an allowlisted target with an idempotency key.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e72a487924b1f638e98b1a1017d353fc92af5e4cbdde52b27da8371594316abd"
+      "descriptor_digest": "sha256:ee4150e223c34a57553f9dd9d32df04cdf3a3bbc8a7e82964b13f3e7af99f2ef"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -41290,6 +41378,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -41559,7 +41648,7 @@
         "snippet": "Use for new/existing project onboarding; preview first, require confirm=true for apply/rollback, and never infer a remote, stack, deployment, domain, or secret.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7408e4a3954ffeb5600fafe18a0ce08226ea075571ba7f7af76405cbe602643f"
+      "descriptor_digest": "sha256:2c84b8714a3ecc0b1d97c9fcbe0acb9ce36865ff6cc44c6d4f8fc76ce13d49b1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -41801,6 +41890,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -42048,7 +42138,7 @@
         "snippet": "Use at bootstrap/re-bootstrap, project reviews, and next-step evaluation before refreshing trajectory hierarchy.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:dc947ec8a954f7f224c0cbbdcea8671f867cee93085ae77d8e02fd43c4ea7b06"
+      "descriptor_digest": "sha256:33409001f111e9ea86026f960dc846b4ec9612eac8dd115d5c3e890faf741335"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -42287,6 +42377,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -42533,7 +42624,7 @@
         "snippet": "Use after a project-card-guided action is verified, so future bootstrap/sequence planning learns from the result.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:15ac4df55d1870ea27802454f0d23aef9aeec98f98ac14f008c4fef21b1d8e85"
+      "descriptor_digest": "sha256:661955b51e88f777552c90d97957e38f4efa52da998eeff52bd0068b77d5d7c6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -42870,6 +42961,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -43138,7 +43230,7 @@
         "snippet": "Use after project verification when onboarding/readiness is incomplete; HLT Impasse asks at most one concise intent question, and commit requires confirm=true.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e6ef80028472a28b009f527f108e417a675b762aea8dee1b850e7fc9309aa4d4"
+      "descriptor_digest": "sha256:5c5dcde0c993f2e1a203d7ede8ce2148288665da62d224784b305fe5a91f06df"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -43380,6 +43472,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -43622,7 +43715,7 @@
         "snippet": "Use before trusting cross-project Workpoints, Trajectory packets, or project-sensitive context.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4c905f10afc477cdd94b2ac70bf3b3029ceebfc8f34c1135435f42e8e3f51521"
+      "descriptor_digest": "sha256:110e6646851b581449447c643a05bf620136c6185034d84c05f3aff3ae8775ef"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -43876,6 +43969,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -44123,7 +44217,7 @@
         "snippet": "Use when project folder or session identity is ambiguous before accepting a Workpoint/Trajectory packet as canonical.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a932759053c4a3b2850b240af071f315c4970dbd63db9cc1468cd44ff47cc408"
+      "descriptor_digest": "sha256:7e8768af7b7a107d286eb5a1a62b2234235504ff312bbe786a5137bd3cf12335"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -44310,6 +44404,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -44544,7 +44639,7 @@
         "snippet": "Compare two caller-supplied prompt variant projections without mutating Focusa state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0a64d36ebfde3c248204b0cbdfd13ef3ce39390262b20efa7186d39ca1604f35"
+      "descriptor_digest": "sha256:364ca41faafc6dfee8a3c782cebe643f89de82d85a7ec643547f0496385abdc4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -44752,6 +44847,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -44993,7 +45089,7 @@
         "snippet": "Compile and preview a target prompt variant without activation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:db09b32ae44ed87571fca22f69c0442dc435e8e3827c2f305c7b817559a00350"
+      "descriptor_digest": "sha256:859f14caf9cadcae34c6952cb1d016e425815126534e4915e7db3e5950af2b2f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -45202,6 +45298,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -45443,7 +45540,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c0af150dccfd94d0ea18fca421d8b9997d9534ba11b87f2e8ffaa55b4bbb9e04"
+      "descriptor_digest": "sha256:751e5b730f210ec2d4b148c524ee0899fb75033c5f70b7170fc0bd1b11d9b86b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -45662,6 +45759,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -45901,7 +45999,7 @@
         "snippet": "List bounded Spec97 Reflex Primitive summaries by family/query; read-only routing metadata, never mutation authority.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e4506ca9f313be084da66c565acbad92af2a686a95697cc7fe3bf156b4158722"
+      "descriptor_digest": "sha256:b4d93df854eb544f8c1d99d5de05b8904d103039dada16a78371863b91245b87"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -46189,6 +46287,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -46438,7 +46537,7 @@
         "snippet": "Use when resources are low, daemon hot paths risk timeouts, or operator says Activate/Deactivate LowMem mode.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:012f5d1c74cedaab865e32ff1d6f32fff9ad7308f0c7a88de1354a79763e5400"
+      "descriptor_digest": "sha256:2f3040711abf0303d0ca3d0e09588541d9855b512a3135edb049ab434e3bccef"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -46650,6 +46749,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -46892,7 +46992,7 @@
         "snippet": "Preview a compiled Runtime Constitution without activation or artifact delivery.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:afedcc923bdc02c71a27e95e8f9476ab7e74d87182163532d390d05e13b027e1"
+      "descriptor_digest": "sha256:658f660e5668fdc3b6e428275b581076b50412beb43db9efb9b5a670a349a1b4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -47081,6 +47181,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -47320,7 +47421,7 @@
           "Run: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt"
         ]
       },
-      "descriptor_digest": "sha256:00d61290828a92ca1a3c40fb1a9847b22bb90336ba7f7cc9c9f040becf4f86f2"
+      "descriptor_digest": "sha256:b31bd585090d9340bb4ed5d95f123f5b7a0ff4307e6d6741a9cd39ff97019460"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -47836,6 +47937,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -48109,7 +48211,7 @@
         "snippet": "Use when operator wants to save, continue, or roll over a long Focusa/Pi session with explicit source/target scope.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b6863264f7a4c1ac5db4eccae32c31f1bd4d299c57b7405013cf1bd5924921f2"
+      "descriptor_digest": "sha256:3626ad5fb9f4729f3a4c5dd64dd79d6465bcb1be58317faec354c20bf852c0c1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -48665,6 +48767,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -48999,7 +49102,7 @@
         "snippet": "Use as a thin daemon API client. Supply exact session_id/run_id/generation and durable approval/idempotency fields for mutations; the daemon remains canonical authority.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4ba6cf4719fdc668278a9e2b886882884c7f4629cd1dc972c38c86019a2ddbfa"
+      "descriptor_digest": "sha256:76e069bd2fdbaec227495751e9276ef4a14a1af900bf751c578958a24fdf7fed"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -49210,6 +49313,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -49451,7 +49555,7 @@
         "snippet": "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ed8b364eac2d022d89e5709aa6d1c704058133355ea7a0b938b3f0321875a542"
+      "descriptor_digest": "sha256:80c6186914a0f979d00639405f2a23042f22e8d3986131b9d38afc3bf70a980e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -49629,6 +49733,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -49858,7 +49963,7 @@
         "snippet": "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ecad90e497c4ff5ce8379d2d608e15c9121afe26d1023baf70cd1cd8e6a6c01e"
+      "descriptor_digest": "sha256:cf22c6f6bbe98f7fab4934afe0522bd6127682b99dc0572c147197698e88c57d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -50041,6 +50146,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -50270,7 +50376,7 @@
         "snippet": "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a41c4e56378f77e2c68aa9c900331cc231d1312a4a6d64ba71e856b984356d96"
+      "descriptor_digest": "sha256:b7c7ec2226610b139201dd67d75e110c9c6a915f24cb7bb7c41712317080f6a6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -50874,6 +50980,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -51154,7 +51261,7 @@
         "snippet": "Use status first; external commitments require explicit confirmation/evidence, forecasts remain non-canonical ranges, and scope mismatch fails closed.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:453a5f07a9c079125ef508cf3f0fe773df7c7baaab9c0be261ce51aa018ffe68"
+      "descriptor_digest": "sha256:9c66829f36481dd67cd96dcb3030a55b2b7ae7c08dd62103e1e58cbffa67955e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -51373,6 +51480,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -51614,7 +51722,7 @@
         "snippet": "Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2766a285a46bbe917ed73efc40a77181bac15a931650718120daf646080b2e29"
+      "descriptor_digest": "sha256:72396ee48772ae87ce3188d92529cbc5a5f3579221ee292cc5a6f7cb737f6c20"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -51827,6 +51935,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -52068,7 +52177,7 @@
         "snippet": "Cold-load one complete runtime Focusa tool definition after search. Returns strict input/output schemas, operational guidance, authority, side effects, failures, recovery, dependencies, skills, docs, and protocol bindings without loading un",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d6d689d2c622e4034d96094dd0ddd31e519075dfcf4225fe0ea17a7d14cafc89"
+      "descriptor_digest": "sha256:772ace59faf3a056e70a8302a4ae4f762b9d5d37ad12965fbfbb084ea0bff47b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -52309,6 +52418,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -52562,7 +52672,7 @@
         "snippet": "Use first when Focusa tools seem blocked, degraded, stale, or confusing.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:31dd63ab1e605797086b9fbb70cc4de54b8117aca18152bb285978f24aed876c"
+      "descriptor_digest": "sha256:8b5343b24728105636c0143e98737041d39edefde7fffca05226f6491052c96e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -52783,6 +52893,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -53025,7 +53136,7 @@
         "snippet": "Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:21a454ec6d877b3efecce04a6dad6f8ae693185b4933f08af835be14b6f08e0f"
+      "descriptor_digest": "sha256:6eda8519a39e370b38d189000304899b38139bb1e78412c82061778dad9639b5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -53244,6 +53355,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -53485,7 +53597,7 @@
         "snippet": "Search the bounded Focusa capability catalog before loading full schemas. Returns ranked metadata, scope, side-effect, skill, documentation, and discovery refs so agents can select the narrowest tool under token budget.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d6d2eef0c75d88a1ca89bc8207094025f67046e36e53e50cf55e1239aad230dc"
+      "descriptor_digest": "sha256:1ade41916f59ba64cdfb5a3a93239d9e9fb8ddc9a728fc853613b374af23f660"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -53712,6 +53824,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -53952,7 +54065,7 @@
         "snippet": "Use after trajectory view/define_goal or after verification evidence changes current state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:bdd3a218e131fbcb96a946105312cc8eccb449170c40473d2d61282c43139929"
+      "descriptor_digest": "sha256:7f80f412db3d199c7343f67823cf2026edfaf0e8fc41555dbeba57a661cb7a56"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -54176,6 +54289,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -54418,7 +54532,7 @@
         "snippet": "Use before compaction/model switch alongside focusa_workpoint_checkpoint; this does not replace Workpoint.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d0baa31367e4a6276eb2c178a30c7f8d3dadeffa1f6939e292277401bff6716f"
+      "descriptor_digest": "sha256:af4850ab36bee213358085878697992584ae50250885580f6e514598c408ea81"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -54720,6 +54834,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -54965,7 +55080,7 @@
         "snippet": "Use when the project trajectory is unclear or operator provides/changes the project goal.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5cb77714b42f8f7ccff7780ce8c3f6f291d22d67b53500e3be13c5cec63b77cc"
+      "descriptor_digest": "sha256:af2fb8612ecce461feb74ce7a2e3efdd71d470d4ebcbf1fe42bf036eefddd4f6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -55193,6 +55308,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -55435,7 +55551,7 @@
         "snippet": "Use after trajectory assess says propose_workpoint; pass candidate to focusa_workpoint_checkpoint only if accepted.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:fe4fda9222fd5e5a90f9934d94bd78f332c23df8283a774f3a8a840aa87f1492"
+      "descriptor_digest": "sha256:abaa2c8e9aba12e097b088320b0660f2439268421437358e3521464df03afc80"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -55664,6 +55780,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -55904,7 +56021,7 @@
         "snippet": "Use after compaction/resume before choosing action; inject with Workpoint resume.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d1c32bd4cd8f2d8616ea985c4aabd8df016cd243afb8675589876b1b0575448f"
+      "descriptor_digest": "sha256:1e12f7acc9c94e07f028bfa6b1561c14c4aa90dd77c2a6203e2e42d82299fedc"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -56137,6 +56254,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -56382,7 +56500,7 @@
         "snippet": "Use first on project start/resume or when goal/state/next action is unclear; Trajectory is advisory and per-project.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7668a96a8cf8d06c5654270a5b0a3c6eff6a22077ef4935ad30cc01b7c1b6a79"
+      "descriptor_digest": "sha256:899bfd0551eaff768bf9f7491fc0e7f2662f7c26f18106c899e51f8624d887f6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -56738,6 +56856,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -56988,7 +57107,7 @@
         "snippet": "Use bounded traversal/search with explicit limits; opt into large payloads only when needed.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:598aae1945977e17492b4b8f336f5d6f93c0be277e390478d16fbe1e6ffaaa48"
+      "descriptor_digest": "sha256:1b32ed95aa98b05f556ddaf1bc7139a367b333fb0a275592552b22ef471b35b0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -57208,6 +57327,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -57449,7 +57569,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a5c8e38573a96b549d575ac7587f0209ca0d335439585656b25aef10ea69efc9"
+      "descriptor_digest": "sha256:41e4e7c70763c732d697a176b3b220506f0c8089c42557edd833ca972e2ca361"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -57657,6 +57777,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -57895,7 +58016,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:56eef49e16c57dc57594b75b50dfab1d8c968fb562dc2733973abf6532957d34"
+      "descriptor_digest": "sha256:e3d63711f4a3bb58f5455a90df3cb14cb211e5653a1e84ec768e8d08a5500da3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -58107,6 +58228,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -58347,7 +58469,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:88951e853d26bb557b1bdfb6842bb716aee26ff9d61d65c961160f0c9ae4d243"
+      "descriptor_digest": "sha256:4dae5ccc1c794185fd6d9edfa5570cd7f6832f0daae6ebeb2031aac956030573"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -58555,6 +58677,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -58793,7 +58916,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0624295c5ae3d5e3770679d64626946cb37fadb03781e6da9ac4f9c96bda2c80"
+      "descriptor_digest": "sha256:998d7ea396a19b73484c6805618e5040f6cff61d2a5f5b4a8695a1c8eba93a94"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -59018,6 +59141,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -59262,7 +59386,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c346099bced402a1a8f75d04a000bf3f98ba5ce41341be616cfd659bdf03d17e"
+      "descriptor_digest": "sha256:731327943438d0ea3138b5595db7c75cedc885863ffcb33d371b087c1c17698d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -59511,6 +59635,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -59763,7 +59888,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:16b027a5b033264528d377a756beb75b31b8d0d2df6395adf8e2aebab46a3da5"
+      "descriptor_digest": "sha256:8333996626f792a814eae10c160b1047ce8df91a090861587c2692ac891a1952"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -59976,6 +60101,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -60214,7 +60340,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5d52abeab70d47da8be89ebb5a87f14ad162b0ed475d053b38a26c6399e93f9a"
+      "descriptor_digest": "sha256:5ca84115499b7d8da35a7e2b6bec35826d2cd0da485fe57147ae90ea1a25c828"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -60453,6 +60579,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -60710,7 +60837,7 @@
         "snippet": "Use at startup/resume for exact Focusa scope, recovery, and brevity rules.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:20dd3ceccd191b0804254a33a51650c3aad5e11c6dfffebdf99fdf21d669988a"
+      "descriptor_digest": "sha256:1e6d19ebbe360bdc4f2ad8d599dd3168dd9dacd8840dbc4da3965807d595e4f6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -60915,6 +61042,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -61154,7 +61282,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1522eb2aaec6e6c1820b4c5da09faaca48cb9d815f5b3c57082dd3d7b9062616"
+      "descriptor_digest": "sha256:156f536201f971700ed9d4ff5d996a76f25edd852f0b885d93225b39b8de4c3f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -61390,6 +61518,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -61631,7 +61760,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e9c33d1228d043e76c7b1209e7600a2ba646ef62a68080da5cba1c4b05bfc581"
+      "descriptor_digest": "sha256:8c5bf8363088ed5b17bb7f12487decb0e9a431ddb12ce618c61d01f9eb3481e8"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -61961,6 +62090,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -62223,7 +62353,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4a4980f1fe45f664ce67d83014b694aafd7434efea43d173e3adbbe706eb4dca"
+      "descriptor_digest": "sha256:6de03f69751301450ef40a1349a57883368d2597847a425b93bb602dc30a4f42"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -62428,6 +62558,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -62667,7 +62798,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4a8fffdeb22d3e7b5edf4ce8b03c1983516947231eac3b6e5111f990638a91eb"
+      "descriptor_digest": "sha256:db2e05bb6e547d19878212c893bd2f5d2abc3652020314eb826aeefc37930398"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -62867,6 +62998,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -63104,7 +63236,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1b39ef2043c86f5ae2a6226fb252aeb719ca5571f4a350f2fc53731d45f9c710"
+      "descriptor_digest": "sha256:8844bcdde57fa43fa64c274175403e9934e3f9c37ecd0750ec56f076e360b50b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -63304,6 +63436,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -63541,7 +63674,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a433808abd70b4d841971f4f50a047743cee056da3b8c2cc743bbf1bb8065bba"
+      "descriptor_digest": "sha256:42101c1edd4b2fbd4915f2005c47288fa95d1abbd69aa2471086a7467f400994"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -63819,6 +63952,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -64067,7 +64201,7 @@
           "If canonical=false, treat as degraded fallback and reconcile when Focusa is healthy."
         ]
       },
-      "descriptor_digest": "sha256:0ec2e5392696fa98e09a579de207bbbfe5094c3b92f0124ff6e2acd43ee74091"
+      "descriptor_digest": "sha256:bca46d1e9afe0f61199bb04e39c6350f3efd01160ed4308c8532619299a3ff0b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -64305,6 +64439,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -64549,7 +64684,7 @@
         "snippet": "Link proof/evidence to active Workpoint instead of keeping it only in transcript.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3f0d88e318b323c2d6a26521c744c1ef89121996d379b1e615b9c857e5a8bf25"
+      "descriptor_digest": "sha256:202814e26f79fa7c0c84d707cb47c523deffd2e31f0d0f68de785b874c30047e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -64775,6 +64910,7 @@
                       }
                     ]
                   },
+                  "entitlement_decision": {},
                   "canonical": {
                     "type": "boolean"
                   },
@@ -65017,8 +65153,8 @@
           "If canonical=false, state degraded status and avoid treating it as canonical truth."
         ]
       },
-      "descriptor_digest": "sha256:1370e32bc2897685fe1d60f69eb5cffea0df7579d4b3f3e685fbc8fd37d473fb"
+      "descriptor_digest": "sha256:89b987ae8ef2b4206a82f44c79c0ac40fc8ea51f46675d412fc3233472e52ae0"
     }
   ],
-  "registry_digest": "sha256:c04d88b1e4b291c6f4e50e436d2e37e240877ef5464214c094a66b77b8442031"
+  "registry_digest": "sha256:2519b77379d539a2e01863c4a315a27c113ce00f6142d12b9aba4c0f28bca25f"
 }

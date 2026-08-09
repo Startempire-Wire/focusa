@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:c04d88b1e4b291c6f4e50e436d2e37e240877ef5464214c094a66b77b8442031",
+  "registry_digest": "sha256:2519b77379d539a2e01863c4a315a27c113ce00f6142d12b9aba4c0f28bca25f",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",

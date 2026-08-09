@@ -78,4 +78,4 @@ Likely next: `focusa_metacog_capture`, `focusa_metacog_reflect`, `focusa_predict
 - CLI: `focusa metacognition retrieve`.
 - REST: `POST /v1/metacognition/retrieve`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:1995c11a832e1d478ea0d110e0b615ab5e6a6f3489bd173ba0af688fea5cd045`.
+- Descriptor digest: `sha256:5c5cd449e122b3acadbf0db0f09393b201c59a4bd6ecd46c57c0916a7c867717`.

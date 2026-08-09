@@ -77,4 +77,4 @@ Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`, `focusa_dev
 - CLI: `focusa device pair-start`, `focusa device pair-qr`.
 - REST: `POST /v1/device/pair/start`.
 - Specification: `docs/53-focusa-device-pairing-spec.md`.
-- Descriptor digest: `sha256:7f788db3964950ddd764853a862c5102e43423badb5afc99c99176004c365ddd`.
+- Descriptor digest: `sha256:4b0b43fb2e949da5549abca4922b494feac4e4c6c5793494cfa5d19331d9891d`.

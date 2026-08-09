@@ -73,4 +73,4 @@ Likely next: `focusa_preload_receipt_commit`, `focusa_preload_verify`.
 - CLI: `focusa preload receipt-preview`.
 - REST: `POST /v1/preload/receipt-preview`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:e776da1fa7d7564f49b42541f6138a806d3f178cceaf017debb823f59a9c1e3e`.
+- Descriptor digest: `sha256:d5e349cf9d5a938a1f4f7661fd354c565501c222af33aa104cb2928173d9f5ae`.

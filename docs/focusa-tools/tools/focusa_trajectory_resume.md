@@ -77,4 +77,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_tool_d
 - CLI: `focusa trajectory resume`.
 - REST: `POST /v1/trajectory/resume`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:d1c32bd4cd8f2d8616ea985c4aabd8df016cd243afb8675589876b1b0575448f`.
+- Descriptor digest: `sha256:1e12f7acc9c94e07f028bfa6b1561c14c4aa90dd77c2a6203e2e42d82299fedc`.

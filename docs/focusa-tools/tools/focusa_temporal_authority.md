@@ -98,4 +98,4 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_projec
 - CLI: `focusa temporal status|commit|revise|observe|forecast|preflight`.
 - REST: `GET /v1/temporal/status`, `POST /v1/temporal/commit`, `POST /v1/temporal/revise`, `POST /v1/temporal/observe`, `POST /v1/temporal/forecast`, `POST /v1/temporal/preflight`.
 - Specification: `docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md`.
-- Descriptor digest: `sha256:453a5f07a9c079125ef508cf3f0fe773df7c7baaab9c0be261ce51aa018ffe68`.
+- Descriptor digest: `sha256:9c66829f36481dd67cd96dcb3030a55b2b7ae7c08dd62103e1e58cbffa67955e`.

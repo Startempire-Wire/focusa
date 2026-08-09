@@ -74,4 +74,4 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 - CLI: none.
 - REST: Pi-local only.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:28381e80c07ff1548c2a0e22ff0555ee536734ffb21f1738e73eb1c1151a21ff`.
+- Descriptor digest: `sha256:76b0f87bd4521121cbc7df5890a5e0998c4ae4b909adffe3d4007f0ef9931822`.

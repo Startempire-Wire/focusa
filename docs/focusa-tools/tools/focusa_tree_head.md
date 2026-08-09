@@ -74,4 +74,4 @@ Likely next: `focusa_tree_path`, `focusa_tree_snapshot_state`, `focusa_lineage_t
 - CLI: `focusa lineage head`.
 - REST: `GET /v1/lineage/head`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:56eef49e16c57dc57594b75b50dfab1d8c968fb562dc2733973abf6532957d34`.
+- Descriptor digest: `sha256:e3d63711f4a3bb58f5455a90df3cb14cb211e5653a1e84ec768e8d08a5500da3`.

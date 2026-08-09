@@ -86,4 +86,4 @@ Likely next: `focusa_call_stack_verify`, `focusa_workpoint_link_evidence`, `focu
 - CLI: `focusa call-stack design`.
 - REST: `POST /v1/call-stack/design`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a051b9f7e0522b954fb012e0fc7100832823a20f14fdc65b4291581fecb21a9c`.
+- Descriptor digest: `sha256:3a5a1ac3766e01044f386cc50f4e25442831df350452fd5765f6e0af5bd96864`.

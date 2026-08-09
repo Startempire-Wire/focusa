@@ -90,4 +90,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_projec
 - CLI: `focusa project genesis start|resume|status|commit`.
 - REST: `POST /v1/project/genesis/start`, `POST /v1/project/genesis/resume`, `GET /v1/project/genesis/status`, `POST /v1/project/genesis/commit`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:e6ef80028472a28b009f527f108e417a675b762aea8dee1b850e7fc9309aa4d4`.
+- Descriptor digest: `sha256:5c5dcde0c993f2e1a203d7ede8ce2148288665da62d224784b305fe5a91f06df`.

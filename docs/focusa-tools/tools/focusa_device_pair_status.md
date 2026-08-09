@@ -74,4 +74,4 @@ Likely next: `focusa_device_pair_list`, `focusa_device_pair_revoke`.
 - CLI: `focusa device pair-status`.
 - REST: `GET /v1/device/pair/status`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:308c6d07de659bdb31f5f80532d7f26c927215ede916c622d60d30aace1fcbf9`.
+- Descriptor digest: `sha256:3cde3f032693f4685496317d9c5c96923a0143ec680cfe3139d7ac0cf59fc078`.

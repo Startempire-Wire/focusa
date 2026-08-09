@@ -74,4 +74,4 @@ Likely next: `focusa_tool_doctor`, `focusa_trajectory_view`, `focusa_project_ide
 - CLI: none.
 - REST: `GET /v1/agent/prompt`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:e631b7d6191b01268ef3b99ffdc1f64d90822096564e92118031e0228e07d6b6`.
+- Descriptor digest: `sha256:2a07462ccd20927f58d2fb56f34ce380e17a64c1cca64c0ac18e7d51c1ddd5ec`.

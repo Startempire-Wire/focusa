@@ -80,4 +80,4 @@ Likely next: `focusa_browser_capabilities_intake`, `focusa_browser_diagnostics_i
 - CLI: `focusa help all --json`.
 - REST: `POST /v1/browser/workflow/plan`.
 - Specification: `docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`.
-- Descriptor digest: `sha256:c168b991bceb76f8030e66174e3a659d23c15f277a56ab027421a9cb86ac444f`.
+- Descriptor digest: `sha256:744294e0ca3e2d391601b3df8040be79e00958234b2ccd422dbc9651dc3f86a3`.

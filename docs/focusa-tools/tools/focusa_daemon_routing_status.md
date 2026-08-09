@@ -84,4 +84,4 @@ Likely next: `focusa_project_identity`, `focusa_tool_doctor`, `focusa_workpoint_
 - CLI: `focusa daemon-routing status`.
 - REST: `POST /v1/daemon-routing/resolve`.
 - Specification: `docs/158-focusa-daemon-routing-surface-parity-spec.md`.
-- Descriptor digest: `sha256:732fbc5685a9c5b98b34a60141aba7f968530285fd97bcba95fbbd3e4a8e6e06`.
+- Descriptor digest: `sha256:c4f8c2ad033c6039b4bb51fd5b4be0ff9205009adc7161cfba74aa7005b6427c`.

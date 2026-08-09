@@ -76,4 +76,4 @@ Likely next: `focusa_bloatgaurd_gate_modes`, `focusa_traverse`, `focusa_evidence
 - CLI: `focusa bloatgaurd gate-mode <name>`.
 - REST: `GET /v1/bloatgaurd/gate-modes/mode/{name}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:b03c98a4aaa3ad99ba3556984e6a34d9f2f4e9a08b60eb25d6157415fbd4daea`.
+- Descriptor digest: `sha256:bfedd9c66fb5b490db6ea32aafaad50c31a3ff16366c1a5f209bb3c4fd07efae`.
