@@ -1,0 +1,133 @@
+{
+  "schema": "focusa.spec152e.website_paid_facade_fixture.v1",
+  "fixture_id": "focusa-vbcqu.20.13.56",
+  "fixture_kind": "public_synthetic_nonproduction",
+  "authority": {
+    "canonical": "WPUIAI.com EDD",
+    "new_issuance": "edd_authority_only",
+    "facade_role": "presenter_and_bounded_proxy_only",
+    "install_site_authority": "none",
+    "stripe_gateway": "edd_stripe_test_mode",
+    "spec158": "excluded",
+    "caller_controls_forbidden": [
+      "edd_download_id", "edd_price_id", "price", "amount", "total", "currency",
+      "tier", "features", "grants", "limits", "node_limit", "operator_seats",
+      "commercial", "license_type", "refund_policy", "upgrade_policy",
+      "redirect_url", "success_url", "cancel_url", "return_url"
+    ]
+  },
+  "redaction": {
+    "raw_email": "absent",
+    "raw_key": "absent",
+    "payment_id_stored": false,
+    "secret_material": "absent",
+    "receipt": "masked_email_and_key_mask_only"
+  },
+  "facade": {
+    "facade_id": "focusa_marketing_v1",
+    "origin": "https://focusa.dev",
+    "brand": "Focusa",
+    "role": "presenter_only",
+    "checkout_path": "/activate/checkout/",
+    "verification_path": "/activate/verify",
+    "manage_path": "/account",
+    "success_callback": "/activate/callback/success",
+    "cancel_callback": "/activate/callback/cancel"
+  },
+  "customer": {
+    "kind": "synthetic_test_mode",
+    "email_domain": "invalid.example",
+    "email_prefix_char": "s",
+    "email_digest": "44e8ddf6340dbba82441837315d7947e02c2d8eabcc027b97c825e2c49b0a746",
+    "invalid_email_digest": "3a68b73f6744fc5bf9b3073215ad34d549a02332f675b731977ae89ddfb198a6",
+    "verification_code": "483921",
+    "verification_ttl_minutes": 15,
+    "verification_max_attempts": 5,
+    "verification_method": "single_use_magic_code"
+  },
+  "product": {
+    "product_code": "focusa_operator_lifetime_v1",
+    "posture": "paid",
+    "edd_download_id": 4601,
+    "edd_price_id": "46011",
+    "price_usd": "697.00",
+    "node_limit": 3,
+    "operator_seats": 1,
+    "offline_grace_days": 120,
+    "features": ["base_focusa", "mission", "workpoint", "evidence", "team_remote", "release_proof"],
+    "commercial": {
+      "term": "lifetime",
+      "price_version": "v1",
+      "refund_policy": "whole_order_30_days",
+      "upgrade_policy": "explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved"
+    }
+  },
+  "edd": {
+    "customer_id": 1001,
+    "order_id": 9001,
+    "order_item_id": 90011,
+    "edd_license_id": 7001,
+    "payment_reference_digest": "a0d17e9a2be5d2257a0cbad114a07ff424d89fe655e9074630944f2d9d39a516",
+    "human_key_shape": "FOCUSA_4x4_hex_uppercase",
+    "human_key_mask": "FOCUSA-****-****-****-****"
+  },
+  "device": {
+    "node_id": "node-webpaid-0001",
+    "device_public_key_b64": "REREREREREREREREREREREREREREREREREREREREREQ=",
+    "node_binding": "account_and_edd_license"
+  },
+  "lease": {
+    "schema": "focusa.authority_lease.v1",
+    "domain": "FOCUSA-AUTHORITY-LEASE-V1\u0000",
+    "key_set_domain": "FOCUSA-AUTHORITY-KEY-SET-V1\u0000",
+    "root_key_id": "authority-root-2026-01",
+    "lease_key_id": "authority-lease-2026-01",
+    "root_public_key_b64": "IBLLkMpg6OXY2vZuInLSIz4EhtVX6MZhQe2JIBd9frc=",
+    "lease_public_key_b64": "knMI9T1nZVA9K2TBA6tapHIGqzlQLP6PmEQv21QxALc=",
+    "posture": "paid",
+    "sequence_after_lease": 1,
+    "sequence_after_refund": 2
+  },
+  "journey": {
+    "states": [
+      "attempt_created", "email_verified", "account_promoted", "checkout_pending",
+      "order_complete", "entitlement_issued", "delivered", "device_registered",
+      "lease_issued", "refunded"
+    ],
+    "expectations": {
+      "pending_email_never_promotes": true,
+      "no_unverified_email_promotion": true,
+      "no_local_self_issued_entitlement": true,
+      "no_independent_facade_authority": true,
+      "client_price_grant_rejected": true,
+      "checkout_email_mismatch_holds_fulfillment": true,
+      "payment_alone_never_verifies": true,
+      "one_account_one_order_one_license_one_node": true,
+      "same_canonical_key_email_and_account": true,
+      "signed_lease_verifies": true,
+      "refund_increments_sequence_and_preserves_truth": true,
+      "receipt_redacted": true,
+      "spec158_excluded": true
+    },
+    "journal_vectors": {
+      "registrations": 2,
+      "identities": 1,
+      "accounts": 1,
+      "orders": 1,
+      "order_items": 1,
+      "licenses": 1,
+      "deliveries": 2,
+      "nodes": 1,
+      "leases": 1,
+      "sequences": 1,
+      "refunds": 1,
+      "journal_events": 14
+    }
+  },
+  "receipt": {
+    "schema": "focusa.spec152e.website_paid_receipt.v1",
+    "install_site_authority": "none",
+    "spec158": "excluded",
+    "redaction_fields": ["raw_email", "raw_key", "payment_reference"]
+  }
+}
