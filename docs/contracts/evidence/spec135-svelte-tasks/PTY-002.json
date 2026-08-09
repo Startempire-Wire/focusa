@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-002",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Typed PtyCommand/PtyEvent contract with exact AttachmentKey, WorkSurfaceId, run generation, and monotonic sequence on every event. Full command surface attach/input/resize/interrupt/detach/close/restart; evaluatePtyOutput defines stale-output rejection (stale generation or non-monotonic sequence); monotonic factories. Store envelope now carries the full flat attachment key and converts PiNativeCommand to PtyCommand; Pi stays alive per PTY-001 singleton. Ordinary child-process pipes are never used.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-001"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/pty-contract-runtime.mjs",
+      "result": "pass: 4 scenario groups"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}

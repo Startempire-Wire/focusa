@@ -6,6 +6,7 @@ import {
   type PiNativeCommand,
   type PiTerminalGeometry
 } from './pi-attachment-contract';
+import { evaluatePtyOutput, type PtyCommand, type PtyRunGeneration } from './pty-contract';
 
 /**
  * PTY-001 frontend Pi attachment state machine.
@@ -19,11 +20,12 @@ import {
 
 export interface PiAttachmentEnvelope {
   schema: 'focusa.desktop.pi_attachment_envelope.v1';
+  attachment_key: PiAttachmentIdentity | null;
   attachment_id: PiAttachmentIdentity['attachment_id'] | null;
   work_surface_id: PiAttachmentIdentity['work_surface_id'] | null;
   generation: number;
   sequence: number;
-  command: PiNativeCommand;
+  command: PtyCommand;
 }
 
 export class PiAttachmentStore {
@@ -110,7 +112,29 @@ export class PiAttachmentStore {
    * dropped. The terminal must pass the generation it was bound with.
    */
   acceptsOutput(generation: number, sequence: number): boolean {
-    return generation === this.#generation && sequence >= 0 && sequence <= this.#sequence;
+    return evaluatePtyOutput(generation as PtyRunGeneration, this.#generation, sequence, this.#sequence).accepted;
+  }
+
+  private toPtyCommand(command: PiNativeCommand, identity: PiAttachmentIdentity | undefined): PtyCommand {
+    if (!identity) return command as unknown as PtyCommand;
+    if (command.kind === 'attach') {
+      return { kind: 'attach', identity, geometry: command.geometry };
+    }
+    const base = { attachment_key: identity, work_surface_id: identity.work_surface_id };
+    switch (command.kind) {
+      case 'input':
+        return { ...base, kind: 'input', data: command.data };
+      case 'resize':
+        return { ...base, kind: 'resize', geometry: command.geometry };
+      case 'interrupt':
+        return { ...base, kind: 'interrupt' };
+      case 'detach':
+        return { ...base, kind: 'detach' };
+      case 'close':
+        return { ...base, kind: 'close' };
+      case 'restart':
+        return { ...base, kind: 'restart' };
+    }
   }
 
   private dispatch(command: PiNativeCommand): void {
@@ -118,11 +142,12 @@ export class PiAttachmentStore {
     this.#sequence += 1;
     this.latestEnvelope = {
       schema: 'focusa.desktop.pi_attachment_envelope.v1',
+      attachment_key: identity ?? null,
       attachment_id: identity?.attachment_id ?? null,
       work_surface_id: identity?.work_surface_id ?? null,
       generation: this.#generation,
       sequence: this.#sequence,
-      command
+      command: this.toPtyCommand(command, identity)
     };
   }
 }
