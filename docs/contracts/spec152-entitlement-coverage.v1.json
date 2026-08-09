@@ -1,7 +1,7 @@
 {
   "counts": {
-    "covered": 971,
-    "total": 971,
+    "covered": 972,
+    "total": 972,
     "unmatched": 0
   },
   "coverage": [
@@ -3808,6 +3808,18 @@
       "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
       "surface": "pi_tool",
       "symbol_or_route": "focusa_current_focus"
+    },
+    {
+      "feature": "focusa.core.mission",
+      "gate_location": "Pi tool preflight",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_daemon_routing_status"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -12791,7 +12803,7 @@
   "schema": "focusa.entitlement_coverage.v1",
   "source_digests": {
     "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "d0ad2aa6cbd85cea96cea9f03165882dd57c310b8bd7f455a3efb2dc714169eb",
-    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "9de2cf306b6e37252e07dea8f9d50bafc0d788f2040837fc903a21a91eda1395",
+    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "215ec6bc5cc4f910c87c377c23cb7abae3d7ba09ba08f0bb7bca46e1d4e55822",
     "docs/contracts/spec141/generated-capability-v2/route-classification.json": "ab7e1bef639dc294f176bbc86076ec983a897dbc86d227c2d9068831d0e786fa"
   },
   "unmatched_surfaces": []
