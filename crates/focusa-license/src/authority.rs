@@ -96,6 +96,12 @@ pub struct EntitlementSnapshot {
     pub state: EntitlementState,
     pub product: String,
     pub node_id: String,
+    /// Account UUID the signed lease was issued to (Spec 152E §7.1 / §15
+    /// lease `subject_id`). Same-account UIAI activation routes the Focusa
+    /// parent and the independent UIAI grant through one EDD account; a
+    /// verified lease always carries it, synthetic snapshots may omit it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subject_id: Option<String>,
     pub lease_id: Option<String>,
     pub sequence: Option<u64>,
     pub lease_digest: Option<String>,
@@ -112,6 +118,7 @@ impl EntitlementSnapshot {
             state: EntitlementState::Unactivated,
             product: product.into(),
             node_id: node_id.into(),
+            subject_id: None,
             lease_id: None,
             sequence: None,
             lease_digest: None,
@@ -320,6 +327,7 @@ impl AuthorityLeaseVerifier {
             state,
             product: payload.product,
             node_id: payload.node_id,
+            subject_id: Some(payload.subject_id),
             lease_id: Some(payload.lease_id),
             sequence: Some(payload.sequence),
             lease_digest: Some(lease_digest),

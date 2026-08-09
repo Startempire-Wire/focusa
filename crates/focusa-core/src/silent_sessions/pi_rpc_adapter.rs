@@ -389,6 +389,7 @@ mod tests {
             state: EntitlementState::Active,
             product: "focusa".into(),
             node_id: "test-node".into(),
+            subject_id: None,
             lease_id: Some("lease-id".into()),
             sequence: Some(7),
             lease_digest: Some("lease-digest".into()),

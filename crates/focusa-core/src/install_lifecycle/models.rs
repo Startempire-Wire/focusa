@@ -340,6 +340,13 @@ pub struct AdapterEntitlementPosture {
     pub child_token_audience: Option<String>,
     pub child_token_expires_at: Option<DateTime<Utc>>,
     pub entitlement_digest: String,
+    /// Single verified EDD account the UIAI activation is bound to (Spec 152E
+    /// §7/§15). Present only on same-account UIAI postures; the installer
+    /// never creates a second customer identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub account_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edd_customer_id: Option<u64>,
 }
 
 impl AdapterEntitlementPosture {
@@ -412,6 +419,76 @@ impl AdapterEntitlementPosture {
             child_token_audience: Some(receipt.audience.clone()),
             child_token_expires_at: Some(receipt.expires_at),
             entitlement_digest: uiai_grant.lease_digest.clone().unwrap_or_default(),
+            account_id: None,
+            edd_customer_id: None,
+        };
+        posture.validate()?;
+        Ok(posture)
+    }
+
+    /// Same-EDD-account UIAI activation (Spec 152E §7, §8, §15, §21, §23
+    /// "UIAI purchase"): the UIAI adapter posture is built only when the
+    /// Focusa parent and the independent UIAI grant are issued to the SAME
+    /// verified EDD account (no duplicate customer identity), the requested
+    /// scope is an exact subset of the independent `uiai-engine` grant, and
+    /// the authority child-token receipt settles the same registration. The
+    /// posture carries the single account identity; product isolation is
+    /// preserved because grants come only from the UIAI projection.
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_same_edd_account_uiai_authority(
+        account: &focusa_license::uiai_activation::UiaiAccountIdentity,
+        projection: &focusa_license::uiai_activation::UiaiGrantProjection,
+        focusa_parent: &focusa_license::authority::EntitlementSnapshot,
+        uiai_grant: &focusa_license::authority::EntitlementSnapshot,
+        request: &focusa_license::uiai_child_token::UiaiChildTokenRequest,
+        receipt: &focusa_license::uiai_child_token::UiaiChildTokenReceipt,
+        now: DateTime<Utc>,
+    ) -> Result<Self, InstallLifecycleValidationError> {
+        // One verified EDD account, exactly: no duplicate customer identity.
+        if !account.valid()
+            || !focusa_license::uiai_activation::same_account_binding(
+                account,
+                focusa_parent,
+                uiai_grant,
+            )
+        {
+            return Err(InstallLifecycleValidationError::AdapterEntitlementPostureIncomplete);
+        }
+        // Independent UIAI grant: exact grants only from the UIAI projection.
+        if projection.product != "uiai-engine"
+            || projection.account != *account
+            || projection.node_id != uiai_grant.node_id
+            || projection.grant_lease_id != request.uiai_grant_lease_id
+            || projection.grant_sequence != request.uiai_grant_sequence
+            || !entitlement_snapshot_ready(uiai_grant, now)
+            || uiai_grant.product != "uiai-engine"
+        {
+            return Err(InstallLifecycleValidationError::AdapterEntitlementPostureIncomplete);
+        }
+        // The same registration settled the child token for the UIAI lease.
+        let child_ready = receipt.request_id == request.request_id
+            && receipt.parent_lease_sequence == request.parent_lease_sequence
+            && receipt.uiai_grant_sequence == request.uiai_grant_sequence
+            && receipt.feature_count == projection.features.len()
+            && receipt.limit_count == projection.limits.len()
+            && receipt.expires_at > now;
+        if !child_ready {
+            return Err(InstallLifecycleValidationError::AdapterEntitlementPostureIncomplete);
+        }
+        let posture = Self {
+            schema_version: adapter_entitlement_schema_v1(),
+            product: projection.product.clone(),
+            lease_id: projection.grant_lease_id.clone(),
+            lease_sequence: projection.grant_sequence,
+            product_granted: true,
+            required_features_granted: true,
+            parent_lease_digest: request.parent_lease_digest.clone(),
+            child_token_id: receipt.token_id.clone(),
+            child_token_audience: Some(receipt.audience.clone()),
+            child_token_expires_at: Some(receipt.expires_at),
+            entitlement_digest: uiai_grant.lease_digest.clone().unwrap_or_default(),
+            account_id: Some(account.account_id.clone()),
+            edd_customer_id: Some(account.edd_customer_id),
         };
         posture.validate()?;
         Ok(posture)

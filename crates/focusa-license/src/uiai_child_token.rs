@@ -80,6 +80,8 @@ pub enum UiaiChildTokenError {
     ParentEntitlementInvalid,
     #[error("independent UIAI product entitlement is not active and bound")]
     UiaiGrantInvalid,
+    #[error("Focusa parent and UIAI grant are not bound to the same EDD account")]
+    AccountMismatch,
     #[error("requested child scope is not an exact subset of the UIAI grant")]
     ScopeNotGranted,
     #[error("authority response does not match request/parent authority")]
@@ -118,6 +120,14 @@ impl UiaiChildTokenBroker {
             || uiai_grant.sequence != Some(request.uiai_grant_sequence)
         {
             return Err(UiaiChildTokenError::UiaiGrantInvalid);
+        }
+        // Same EDD account: the Focusa parent and the independent UIAI grant
+        // must be issued to the same account (Spec 152E §7/§15). Verified
+        // leases always carry the authority-issued subject; when one side
+        // proves an account and the other does not (or differs), the child
+        // token fails closed rather than bridging two customers.
+        if !same_evidence_account(focusa_parent, uiai_grant) {
+            return Err(UiaiChildTokenError::AccountMismatch);
         }
         if request.audience.trim().is_empty()
             || request.client_id.trim().is_empty()
@@ -217,6 +227,23 @@ impl UiaiChildTokenBroker {
         });
         before - self.cache.len()
     }
+
+    /// Strict same-account binding (Spec 152E §7 / §15): the Focusa parent
+    /// and the independent UIAI grant must both be issued to the single
+    /// verified EDD account. The same-EDD-account UIAI activation adapter
+    /// calls this before it accepts a child token; it fails closed unless
+    /// both lease subjects equal the account id.
+    pub fn validate_same_account_binding(
+        &self,
+        account: &crate::uiai_activation::UiaiAccountIdentity,
+        focusa_parent: &EntitlementSnapshot,
+        uiai_grant: &EntitlementSnapshot,
+    ) -> Result<(), UiaiChildTokenError> {
+        if !crate::uiai_activation::same_account_binding(account, focusa_parent, uiai_grant) {
+            return Err(UiaiChildTokenError::AccountMismatch);
+        }
+        Ok(())
+    }
 }
 
 fn entitlement_bound(snapshot: &EntitlementSnapshot) -> Option<DateTime<Utc>> {
@@ -224,6 +251,117 @@ fn entitlement_bound(snapshot: &EntitlementSnapshot) -> Option<DateTime<Utc>> {
         EntitlementState::Active => snapshot.expires_at,
         EntitlementState::OfflineGrace => snapshot.offline_grace_until,
         EntitlementState::Unactivated | EntitlementState::RecoveryOnly => None,
+    }
+}
+
+/// Same-account evidence check: when either snapshot carries a lease
+/// `subject_id` (account UUID), both must carry the SAME account. Synthetic
+/// snapshots without lease subjects cannot prove an account split and pass;
+/// verified leases always carry the authority-issued subject, so a mismatch
+/// or a missing subject on one side fails closed.
+fn same_evidence_account(parent: &EntitlementSnapshot, grant: &EntitlementSnapshot) -> bool {
+    match (&parent.subject_id, &grant.subject_id) {
+        (Some(parent_account), Some(grant_account)) => parent_account == grant_account,
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::uiai_activation::{PRODUCT_FOCUSA, PRODUCT_UIAI_ENGINE, UiaiAccountIdentity};
+
+    fn bound_snapshot(product: &str, subject: Option<&str>) -> EntitlementSnapshot {
+        let mut snapshot = EntitlementSnapshot::unactivated(product, "node-001");
+        snapshot.state = EntitlementState::Active;
+        snapshot.subject_id = subject.map(str::to_string);
+        snapshot.lease_id = Some(format!("lease-{product}"));
+        snapshot.sequence = Some(7);
+        snapshot.lease_digest = Some("sha256:bound-grant-digest".to_string());
+        snapshot.expires_at = Some(Utc::now() + Duration::hours(1));
+        snapshot
+            .features
+            .insert("uiai.engine.core".to_string(), true);
+        snapshot
+    }
+
+    fn request() -> UiaiChildTokenRequest {
+        UiaiChildTokenRequest {
+            request_id: Uuid::nil(),
+            audience: "aud-focusa".to_string(),
+            node_id: "node-001".to_string(),
+            client_id: "client-focusa".to_string(),
+            parent_lease_id: "lease-focusa".to_string(),
+            parent_lease_sequence: 7,
+            parent_lease_digest: "sha256:bound-grant-digest".to_string(),
+            uiai_grant_lease_id: "lease-uiai-engine".to_string(),
+            uiai_grant_sequence: 7,
+            requested_features: BTreeSet::from(["uiai.engine.core".to_string()]),
+            requested_limits: BTreeMap::new(),
+            nonce: "nonce-same-account".to_string(),
+        }
+    }
+
+    #[test]
+    fn same_account_leases_pass_and_different_accounts_fail_closed() {
+        let now = Utc::now();
+        let focusa = bound_snapshot(PRODUCT_FOCUSA, Some("account-001"));
+        let uiai = bound_snapshot(PRODUCT_UIAI_ENGINE, Some("account-001"));
+        let broker = UiaiChildTokenBroker::default();
+        assert_eq!(
+            broker.validate_request(&request(), &focusa, &uiai, now),
+            Ok(())
+        );
+        // A UIAI grant bound to a different EDD account fails closed.
+        let other_customer = bound_snapshot(PRODUCT_UIAI_ENGINE, Some("account-002"));
+        assert_eq!(
+            broker.validate_request(&request(), &focusa, &other_customer, now),
+            Err(UiaiChildTokenError::AccountMismatch)
+        );
+        // One side proving an account and the other not also fails closed.
+        let no_subject = bound_snapshot(PRODUCT_UIAI_ENGINE, None);
+        assert_eq!(
+            broker.validate_request(&request(), &focusa, &no_subject, now),
+            Err(UiaiChildTokenError::AccountMismatch)
+        );
+    }
+
+    #[test]
+    fn strict_same_account_binding_requires_the_single_verified_identity() {
+        let focusa = bound_snapshot(PRODUCT_FOCUSA, Some("account-001"));
+        let uiai = bound_snapshot(PRODUCT_UIAI_ENGINE, Some("account-001"));
+        let broker = UiaiChildTokenBroker::default();
+        let account = UiaiAccountIdentity {
+            account_id: "account-001".to_string(),
+            edd_customer_id: 1001,
+        };
+        assert!(
+            broker
+                .validate_same_account_binding(&account, &focusa, &uiai)
+                .is_ok()
+        );
+        // No duplicate customer identity: a second customer on either lease
+        // or an empty account identity is rejected.
+        let second_customer = UiaiAccountIdentity {
+            account_id: "account-002".to_string(),
+            edd_customer_id: 1002,
+        };
+        assert_eq!(
+            broker.validate_same_account_binding(&second_customer, &focusa, &uiai),
+            Err(UiaiChildTokenError::AccountMismatch)
+        );
+        assert_eq!(
+            broker.validate_same_account_binding(
+                &UiaiAccountIdentity {
+                    account_id: String::new(),
+                    edd_customer_id: 0,
+                },
+                &focusa,
+                &uiai,
+            ),
+            Err(UiaiChildTokenError::AccountMismatch)
+        );
     }
 }
 
