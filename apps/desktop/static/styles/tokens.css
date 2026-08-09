@@ -40,6 +40,9 @@
   --radius-pill: 999px;
   --shadow-card: 0 1px 0 rgb(255 255 255 / 3%), 0 14px 36px rgb(0 0 0 / 22%);
   --shadow-popover: 0 24px 70px rgb(0 0 0 / 42%);
+  --color-focus-ring: rgb(79 156 255 / 38%);
+  --color-selection: rgb(79 156 255 / 24%);
+  --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-focus-ring);
 
   --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, system-ui, sans-serif;
   --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
