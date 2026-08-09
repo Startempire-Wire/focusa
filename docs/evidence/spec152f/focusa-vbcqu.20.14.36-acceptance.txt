@@ -1,0 +1,119 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.36
+Title: 152F.04.07 Prove premium limit, idempotency, and grant isolation
+Implementation commit: `1e0118a72c19b3b7b0181d0364386c1a3caf267c`
+
+Exact surfaces
+- all four premium-family tests (crates/focusa-license/tests/spec152f_automation_entitlement.rs,
+  spec152f_team_remote_entitlement.rs, spec152f_release_proof_entitlement.rs,
+  spec152f_export_entitlement.rs)
+- feature/limit registry (declared server-owned limit buckets + premium-family
+  resolution in crates/focusa-license/src/limit_reservation.rs and
+  crates/focusa-license/src/entitlement_policy.rs)
+- reservation service (crates/focusa-license/src/limit_reservation.rs,
+  exported from crates/focusa-license/src/lib.rs)
+- product fixtures (crates/focusa-license/tests/fixtures/spec152f-premium-family-adversarial-fixtures.v1.json)
+- adversarial matrix (crates/focusa-license/tests/spec152f_premium_adversarial.rs,
+  tests/spec152f_premium_family_adversarial_test.py)
+- compile-required denial arm: crates/focusa-core/src/entitlement_execution_guard.rs
+
+Bounded result
+- Added `LimitReservationService` (Spec 152F §6 chokepoint 4): atomically
+  reserves limited premium operations before execution and settles them
+  afterward. Every reservation re-resolves the canonical premium family
+  decision (`resolve_premium_family` / `resolve_export_packaged`), reads
+  capacity only from authority-owned `snapshot.limits`, and binds each grant to
+  the lease identity (sequence + digest) and the issuing product/node/account
+  scope (`ReservationScope`).
+- Idempotency: replaying the same idempotency key returns the identical grant
+  without double-reserving; the same key with a different payload, bucket, or
+  scope is a typed conflict; replay against a superseded lease is stale.
+- Exhaustion and concurrency: capacity is checked against outstanding
+  reservations in the same scope at reserve time, so a race between arrivals
+  can never double-allocate; settlement releases capacity for later requests.
+- Stale state: expired leases, refunded/revoked postures, offline-grace closure,
+  and higher authority sequences (changed sequence/digest) fail closed at
+  reservation, revalidation, and settlement.
+- Feature/limit registry: `DECLARED_SERVER_OWNED_LIMIT_BUCKETS` (frozen, 8
+  buckets) plus `family_limit_buckets` map the four premium families (and
+  export packaging) to their declared server-owned limit buckets; caller-
+  invented features, caller-invented buckets, cross-family features, and wrong
+  products are rejected before any capacity is touched.
+- Product fixtures: deterministic authority-shaped fixtures for the four
+  premium families + export packaging, plus six adversarial cases (wrong
+  product, Evaluation omission, Offline Grace expansion, stale lease,
+  cross-account, caller feature). Synthetic identifiers only; no real
+  customers, keys, tokens, or PII.
+- Export packaging fail-closed hardening: `resolve_export_packaged` now denies
+  any snapshot whose entitlement state is not Active paid or valid Offline
+  Grace (new `EntitlementStateNotUsable` denial) — a stored packaged-export
+  claim or client metadata can never widen a pending, refunded/revoked, or
+  corrupt state. Basic customer-data export remains always available.
+- The four premium-family tests each gained an adversarial isolation case
+  (wrong product, Evaluation omission, Offline Grace expansion, caller
+  feature), and a dedicated 14-test adversarial matrix
+  (spec152f_premium_adversarial.rs) drives all ten required steps through the
+  reservation service and fixtures.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_premium_family_adversarial_test.py` — exit 0.
+   Output: "Spec152f premium family adversarial matrix gate: PASS (14 matrix
+   tests, 5 product fixtures, 6 adversarial cases)"
+2. `cargo test --workspace spec152f_premium_adversarial` — exit 0.
+   test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out.
+3. Combined `python3 tests/spec152f_premium_family_adversarial_test.py &&
+   cargo test --workspace spec152f_premium_adversarial` — exit 0.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0: 13 test binaries passed, 0 failed,
+  including 112 lib unit tests (4 new reservation-service unit tests) and the
+  integration suites: automation 35, team_remote 43, release_proof 33, export
+  30, premium_adversarial 14, grid 8, authority_lease 11, capsule_manifest 3,
+  activation_contract 5, dynamic_operation_manifest 12, family_inheritance 12.
+- `cargo test -p focusa-core` — exit 0 for all entitlement/guard tests. Two
+  unrelated bd-adapter tests failed in the full parallel suite:
+  `work_item::adapters::bd::tests::list_reads_complete_snapshot_without_n_plus_one_show_calls`
+  ("Text file busy" — transient parallel-execution race; passes in isolation:
+  `cargo test -p focusa-core work_item::adapters::bd` = 6/6 ok) and
+  `work_item::lifecycle::tests::spec79_canary_advances_ordered_bd_graph_without_manual_reprompt`
+  — confirmed failing identically on the pristine base commit 909edac7 before
+  this atom's changes (environmental, unrelated to entitlement policy).
+- `python3 tests/spec152f_entitlement_policy_contract_test.py` — exit 0.
+- `python3 tests/spec152f_entitlement_policy_vectors_test.py` — exit 0.
+- `python3 tests/spec152f_recovery_matrix_test.py` — exit 0.
+- `git diff --check` — exit 0.
+- rustfmt --edition 2024 --check on the two new Rust files
+  (limit_reservation.rs, spec152f_premium_adversarial.rs) — clean; the
+  new/edited regions in the four premium-family tests, entitlement_policy.rs,
+  lib.rs, and entitlement_execution_guard.rs are rustfmt-clean (remaining
+  crate-level diffs are pre-existing drift outside this atom's regions).
+
+Tests added
+- focusa-license (crates/focusa-license/src/limit_reservation.rs):
+  reservation_exhausts_authority_capacity_and_settles,
+  duplicate_request_replays_without_double_reserving,
+  stale_lease_cannot_revalidate_or_settle, cross_account_scope_is_isolated.
+- focusa-license (crates/focusa-license/tests/spec152f_premium_adversarial.rs):
+  14 adversarial-matrix tests covering wrong product, caller-supplied
+  feature/bucket, stale lease, duplicate request, exhausted limit, concurrent
+  reservation, Evaluation omission, Offline Grace expansion, cross-family,
+  cross-account, declared-bucket registry, and unknown/settled replay.
+- four premium-family tests: one adversarial isolation case each.
+- tests/spec152f_premium_family_adversarial_test.py: build-independent gate
+  cross-checking the reservation service surface, the four premium-family test
+  additions, the deterministic product fixtures, and the Spec 152F policy
+  contract (four premium families, server-owned limit-bucket authority,
+  premium-requires-base / offline-grace-no-expansion / refund-revoke invariants).
+
+Rollback
+- Revert this atom's implementation commit(s): the new reservation service
+  module and fixture, the entitlement-policy fail-closed additions, the
+  compile-required denial arm, the four premium-family test additions, the
+  adversarial matrix test and gate, and this evidence record if required.
+  Preserve customers, orders, refunds, licenses, nodes, sequences, customer
+  data, migration journals, and accepted authority/evidence state. Reverting
+  restores the prior premium boundary enforcement without touching EDD
+  identity/commerce, signed-lease, refund/revoke, node, sequence, or recovery
+  authority.
+
+No push, deploy, release, merge, or Beads mutation was performed.
