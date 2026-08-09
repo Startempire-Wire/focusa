@@ -1,0 +1,33 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CONTRACT-007",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "ONE package import path (@focusa/mission-canvas-contracts, packages/mission-canvas-contracts) re-exports the canonical generated Mission Canvas artifacts (client/types/validators) for Desktop AND Pi without copying DTO definitions. Identity probe proves the package exposes the SAME module instances as the generated files (zero copies); package index is pure re-export. Desktop probes + pi-extension adopt the package path.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "CONTRACT-005",
+      "CONTRACT-006"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/contract-package-runtime.mjs",
+      "result": "pass: re-export identity + no-copy checks"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
