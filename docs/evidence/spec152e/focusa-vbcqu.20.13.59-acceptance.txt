@@ -1,0 +1,170 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.59
+Title: 152E.07.05 Prove UIAI and bundle account/product isolation
+Implementation commit: `799f4678` (feat(spec152e): prove UIAI and bundle
+account/product isolation)
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (spec 152E §7 canonical account/data model, §8
+product and grant registry, §11 paid customer journey, §15 human key and
+signed lease separation, §16 dual-channel license delivery, §17 EDD lifecycle
+integration, §18 refund/revoke/recovery, §23 acceptance-matrix rows "UIAI
+purchase", "Bundle purchase", "Wrong product"); binding Spec 172 overlay
+(dedicated Downloads offer, UIAI local families, frozen hosted-resource
+exclusions); Specs 152, 150A, 152A-D; Spec 158 implementation excluded.
+Locked-release correction atom in the spec152f/spec172 async pipeline.
+Cargo/release builds remain deferred until the operator's 50% gate.
+
+Exact surfaces (this atom only)
+- UIAI and bundle EDD products + shared identity:
+  docs/contracts/spec152e-uiai-bundle-isolation.v1.php (startRegistration,
+  verifyEmail, promote, createCheckoutIntent, completePayment, issueLicense,
+  deliver, recoverDelivery, registerNode, issueLease, issueChildToken,
+  refund, reactivate, resolveProductGrants, receipt) + fixture
+  docs/contracts/spec152e-uiai-bundle-isolation-fixture.v1.json
+- Key/lease delivery: the canonical EDD human key through transactional email
+  AND the terminal-independent account channel with the same masked key; the
+  signed device-bound lease via the canonical Ed25519 authority key-set seam
+  from docs/contracts/spec152e-edd-bound-lease-issuer.v1.php (loaded first)
+  and the frozen UIAI hosted-resource exclusion registry from
+  docs/contracts/spec172-uiai-hosted-resource-exclusion-registry.v1.php
+  (projection-journal encodeCanonical loaded via
+  docs/contracts/spec172-edd-license-type-projector.v1.php).
+
+Exact surfaces (files)
+- tests/spec152e_uiai_bundle_e2e_test.py (new, exact verification)
+- docs/contracts/spec152e-uiai-bundle-isolation.v1.php (new journey contract)
+- docs/contracts/spec152e-uiai-bundle-isolation-fixture.v1.json (new
+  deterministic synthetic fixture)
+- docs/evidence/spec152e/focusa-vbcqu.20.13.59-acceptance.txt (this record)
+
+Bounded result
+- Seven deterministic sqlite PHP-harness journeys (fixed clock, canonical
+  Ed25519 key-set seam, frozen registry contracts loaded read-only) exercise
+  Focusa-only, UIAI-only, bundle, wrong-product, partial delivery, refund,
+  and reactivation; the harness runs twice and the stdout is byte-identical
+  (replayable from the pinned commit; harness source sha256
+  fbb79c12f8c00152b477eb320dca449c1672edefa5b86d21ab1c5763e51f4625, harness
+  output sha256
+  7d974cc0a7ca6d437bcf8168725300b7cfdd499f5fc050ff497cf8958670efa1).
+- Focusa-only (session A, customer 2409, order 9499, key 7211): verified
+  email -> EDD order -> EDD Software Licensing key -> dual-channel delivery
+  (email + account, same canonical key) -> node -> signed lease (sequence 1,
+  paid posture, grants exactly ['focusa_operator_lifetime_v1'], products
+  exactly ['focusa']) -> UIAI child token DENIED (CHILD_TOKEN_NOT_INCLUDED) ->
+  refund (sequence 2, recovery_only, refresh denied, truth preserved) ->
+  reactivation DENIED (REFUNDED_NEVER_REACTIVATES).
+- UIAI-only (session B, customer 2311, order 9672, key 7875): same flow ->
+  lease (grants exactly ['uiai_operator_lifetime_v1'], products exactly
+  ['uiai_engine']) -> bounded child token (focusa.uiai_child_token.v1,
+  15-minute maximum TTL, features exactly the seven UIAI local families,
+  frozen hosted-resource exclusion digest, one seat / three nodes,
+  token_digest-only at rest) -> refund.
+- Bundle (session C, customer 2442, order 9785, key 7789): ONE composite SKU
+  at the canonical 1254.60 -> ONE canonical human key (human_key_count=1,
+  duplicate_license=false) -> dual-channel delivery -> node -> signed lease
+  (sequence 1, posture bundle, grants exactly the exact union of both
+  Operator v1 records, 13-family DERIVED union via
+  bundleFeaturesDerived()=array_merge(FOCUSA_FEATURES, UIAI_FEATURES), never a
+  third hand-copied list, one seat / three nodes) -> bounded child token from
+  the bundle's UIAI grant -> refund. Exactly one verified account and one
+  human key for the bundle identity.
+- Shared identity (session D): the SAME verified email identity as the Bundle
+  customer buys Focusa; promotion REUSES the same authority account uuid and
+  the same EDD customer id 2442 (identity_reused=true, zero_new_rows=true)
+  with an independent per-product monotonic sequence ledger; exactly one
+  identity row and one account row exist for the shared email digest.
+- Partial delivery (session E, customer 2065, order 9896, key 7101): a
+  test-mode email-channel bounce marks delivery partial (email failed, account
+  sent) — node registration and lease issuance fail closed
+  (LICENSE_DELIVERY_PENDING / NODE_REQUIRED), a second deliver fails
+  DELIVERY_ALREADY_PARTIAL, recovery before partial fails
+  PARTIAL_DELIVERY_REQUIRED, recoverDelivery() retries ONLY the failed channel
+  (healthy account channel never re-delivered, no duplicate key, exactly two
+  delivery rows), then node/lease/refund proceed.
+- Reactivation (session G, customer 2762): refunded purchase 1 (order 9578,
+  key 7591, lease sequence 1, refund sequence 2) never reactivates
+  (REFUNDED_NEVER_REACTIVATES; a non-refunded registration fails with
+  REACTIVATION_REQUIRES_NEW_ORDER); purchase 2 by the same verified identity
+  is a NEW EDD order 9048 / key 7806 / lease at monotonic sequence 3 while
+  the refunded order/license/lease rows stay refunded and preserved.
+- Wrong product: caller product/price/grant fields fail closed
+  (CALLER_CONTROLLED_GRANT_DENIED), unknown codes fail
+  (PRODUCT_MAPPING_REQUIRED), resolveProductGrants() returns exact grants only
+  (focusa never contains uiai, uiai never contains focusa, bundle is the exact
+  two-record union), and every signed lease carries exactly its own purchase's
+  grants — no cross-product lease or downgrade.
+- No unverified-email promotion, no local/self-issued entitlement, no
+  independent facade authority, no client-controlled EDD price/grants, and no
+  secret or unmasked real-email evidence in any artifact. Child tokens are
+  digest-only at rest; receipts are masked (masked email + key mask) and carry
+  an immutable 64-hex receipt_sha256 handle; the rollback seam is
+  preservation-only. No cargo command was run: this atom adds no Rust surface
+  and the locked-release FORBIDDEN rule defers cargo/release builds to the
+  operator's 50% gate.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152e_uiai_bundle_e2e_test.py` — exit 0, run twice on
+   2026-08-09 with byte-identical harness output (harness source sha256
+   fbb79c12f8c00152b477eb320dca449c1672edefa5b86d21ab1c5763e51f4625; harness
+   output sha256
+   7d974cc0a7ca6d437bcf8168725300b7cfdd499f5fc050ff497cf8958670efa1).
+   Summary: positive_checks=162 negative_checks=19 gate_static_checks=114
+   journeys={bundle:11, focusa:10, partial:11, reactivation_first:10,
+   reactivation_second:9, shared:10, uiai:11} sequences={bundle:2, focusa:2,
+   partial:2, reactivation:3, shared:2, uiai:2}
+   shared_identity_account_reused=true bundle_one_key_one_account=true
+   lease_signature_verified=true child_token_ttl_bounded=true
+   child_token_digest_only=true key_masks_match_canonical=true
+   partial_delivery_never_silent=true partial_delivery_recovered=true
+   refunded_never_reactivates=true reactivation_new_lease_sequence=3
+   harness_replay_identical=true result=passed.
+
+Regression checks (exit codes)
+- `python3 tests/spec152e_complete_static_gate.py` — exit 0 (70/70 test gates
+  passed including the new UIAI/bundle e2e gate; 4/4 generators --check
+  current; php -l on 40 Spec 152E PHP contracts including the new journey
+  contract; JSON parse of 25 Spec 152E JSON contracts/fixtures including the
+  new fixture; redaction scan of 69 contract/fixture/generator sources: zero
+  email literals, zero secrets, zero raw-key evidence; deferred Cargo
+  enumeration unchanged at 23 surfaces / 148 test markers, none claimed
+  passed).
+- `php -l docs/contracts/spec152e-uiai-bundle-isolation.v1.php` — exit 0.
+- `git diff --check` for this atom — clean (no whitespace errors; all new
+  files carry no trailing whitespace, tabs, CRLF, or missing final newline).
+- No cargo command was run: this atom touches no Rust surface and the
+  locked-release FORBIDDEN rule defers cargo/release builds to the operator's
+  50% gate.
+
+Tests added
+- tests/spec152e_uiai_bundle_e2e_test.py — 162 positive / 19 negative harness
+  checks plus 114 gate static checks: Focusa-only / UIAI-only / Bundle /
+  shared-identity / partial-delivery / reactivation / wrong-product journeys
+  with real fail-closed codes; server-owned product/grant mapping
+  (downloads 4601/4602/4603, prices 697.00/697.00/1254.60, exact grants);
+  one-verified-account bundle and shared-identity account reuse with zero new
+  rows; one canonical human key per purchase with dual-channel (email +
+  account) same-key delivery; signed Ed25519 device-bound leases verified
+  independently with `cryptography` over the domain-separated payload with
+  exact per-product grants (no cross-product lease); bounded child tokens
+  (15-minute TTL, exact UIAI family subset, digest-only at rest) for UIAI and
+  Bundle, denied for Focusa-only; partial email-bounce delivery that blocks
+  node/lease until recovery retries only the failed channel; refund sequence
+  increment with recovery_only and refresh denial; refunded records never
+  reactivating while a new purchase reaches monotonic sequence 3 with the
+  refunded rows preserved; artifact hygiene (no email literal, secret, or
+  raw-key evidence in the fixture, contract, or harness output; masked email
+  and key masks only; immutable receipt handles).
+
+Rollback
+- Revert only this atom's commits (the implementation commit containing the
+  e2e gate plus the journey contract and fixture, and the evidence commit
+  containing this file). Preserve EDD customer/order/refund truth, verified
+  identities, licenses, nodes, sequences, credentials, Workpoints, Evidence,
+  and migration journals. The e2e gate is a self-contained synthetic-proof
+  harness on its own sqlite-only tables (prefix wp_wpuiai_ubi_); no production
+  authority, EDD, node, lease, or local install state is touched, and the
+  journey contract is a new standalone file with no dependency changes to any
+  existing contract (the frozen lease-signer, projector-journal, and
+  hosted-resource-exclusion contracts are loaded read-only and unchanged).
+
+No push, deploy, release, merge, or Beads mutation was performed.
