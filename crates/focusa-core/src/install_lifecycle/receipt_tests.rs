@@ -82,6 +82,25 @@ fn adapter() -> AdapterEntitlementPosture {
     }
 }
 
+fn binding_with(state: LifecycleEntitlementState, license_class: &str) -> LifecycleEntitlementBinding {
+    LifecycleEntitlementBinding {
+        schema_version: "focusa.lifecycle_entitlement_binding.v1".into(),
+        state,
+        lease_id: "lease:focusa:042".into(),
+        lease_sequence: 42,
+        lease_payload_digest: digest('a'),
+        product_grants_digest: digest('b'),
+        feature_grants_digest: digest('c'),
+        node_id: "node:focusa:042".into(),
+        license_class: license_class.into(),
+        refresh_after: time("2026-08-05T13:00:00Z"),
+        offline_valid_until: time("2026-08-06T12:00:00Z"),
+        expires_at: Some(time("2026-08-12T12:00:00Z")),
+        authority_key_id: "authority-lease-2026-01".into(),
+        signature_verified: true,
+    }
+}
+
 #[test]
 fn versioned_receipt_round_trips_without_account_or_credential_fields() {
     let receipt = LifecycleReceiptV1::from_acceptance(
@@ -296,4 +315,187 @@ fn receipt_presenter_posture_uses_shared_presenter_vocabulary() {
     assert!(!body.contains("email"));
     assert!(!body.contains("credential"));
     assert!(!body.contains("card"));
+}
+
+#[test]
+fn receipt_records_canonical_simple_policy_binding() {
+    let mut paid = acceptance(LifecycleEntitlementReceiptClass::PaidReady);
+    paid.entitlement_binding = Some(binding_with(LifecycleEntitlementState::ActivePaid, "focusa"));
+    let receipt = LifecycleReceiptV1::from_acceptance(
+        "receipt:policy-paid",
+        &paid,
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+    let binding = &receipt.policy_binding;
+    assert_eq!(binding.schema_version, "focusa.lifecycle_policy_binding.v1");
+    assert_eq!(
+        binding.policy_digest,
+        focusa_license::embedded_entitlement_policy_registry()
+            .expect("embedded registry")
+            .digest()
+    );
+    assert_eq!(binding.capability_family, "base_focusa");
+    assert_eq!(binding.entitlement_state, "active_paid");
+    assert_eq!(binding.lease_sequence, 42);
+    assert!(!binding.recovery_posture);
+    assert!(binding.product_ready);
+    assert!(receipt.product_ready());
+    assert_eq!(receipt.reconcile_policy(), Ok(()));
+    assert_eq!(receipt.presenter_posture().presenter_state, "activated");
+}
+
+#[test]
+fn receipt_recovery_posture_records_recovery_family_state_and_sequence() {
+    // Recovery-ready receipt still records the canonical policy digest and
+    // the lease sequence from the binding, but projects recovery posture and
+    // never claims product readiness.
+    let mut recovery = acceptance(LifecycleEntitlementReceiptClass::RecoveryReady);
+    recovery.entitlement_binding = Some(binding_with(
+        LifecycleEntitlementState::OfflineGrace,
+        "focusa_standard",
+    ));
+    let receipt = LifecycleReceiptV1::from_acceptance(
+        "receipt:policy-recovery",
+        &recovery,
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+    let binding = &receipt.policy_binding;
+    assert_eq!(binding.capability_family, "account_recovery");
+    assert_eq!(binding.entitlement_state, "offline_grace");
+    assert_eq!(binding.lease_sequence, 42);
+    assert!(binding.recovery_posture);
+    assert!(!binding.product_ready);
+    assert_eq!(receipt.reconcile_policy(), Ok(()));
+    assert_eq!(receipt.presenter_posture().presenter_state, "recovery_only");
+
+    // Blocked receipts record the recovery family with no binding claims.
+    let mut blocked = acceptance(LifecycleEntitlementReceiptClass::BlockedEntitlement);
+    blocked.final_state = LifecycleState::BlockedLicense;
+    blocked.closure_allowed = false;
+    blocked.entitlement_binding = None;
+    blocked.entitlement_evidence_refs.clear();
+    let blocked_receipt = LifecycleReceiptV1::from_acceptance(
+        "receipt:policy-blocked",
+        &blocked,
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+    let blocked_binding = &blocked_receipt.policy_binding;
+    assert_eq!(blocked_binding.capability_family, "account_recovery");
+    assert_eq!(blocked_binding.entitlement_state, "none");
+    assert_eq!(blocked_binding.lease_sequence, 0);
+    assert!(blocked_binding.recovery_posture);
+    assert!(!blocked_binding.product_ready);
+    assert_eq!(blocked_receipt.reconcile_policy(), Ok(()));
+    assert_eq!(blocked_receipt.presenter_posture().presenter_state, "denied");
+}
+
+#[test]
+fn receipt_tampered_policy_binding_fails_reconciliation() {
+    let mut paid = acceptance(LifecycleEntitlementReceiptClass::PaidReady);
+    paid.entitlement_binding = Some(binding_with(LifecycleEntitlementState::ActivePaid, "focusa"));
+    let mut receipt = LifecycleReceiptV1::from_acceptance(
+        "receipt:policy-tamper",
+        &paid,
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+
+    // A drifted or forged policy digest fails reconciliation even when it is
+    // a well-formed digest.
+    receipt.policy_binding.policy_digest = digest('0');
+    assert_eq!(
+        receipt.reconcile_policy(),
+        Err(LifecycleReceiptError::PolicyReconciliation)
+    );
+    assert_eq!(
+        receipt.verify(RECEIPT_GENESIS_HASH),
+        Err(LifecycleReceiptError::IntegrityFailure)
+    );
+
+    // A caller-invented family that is a canonical label elsewhere still
+    // fails reconciliation because the canonical policy recomputes base_focusa
+    // for an accepted paid install.
+    let mut swapped = LifecycleReceiptV1::from_acceptance(
+        "receipt:policy-swap",
+        &paid,
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+    swapped.policy_binding.capability_family = "automation".into();
+    assert_eq!(
+        swapped.reconcile_policy(),
+        Err(LifecycleReceiptError::PolicyReconciliation)
+    );
+
+    // A recovery/product inconsistency is structurally rejected.
+    let mut inconsistent = LifecycleReceiptV1::from_acceptance(
+        "receipt:policy-inconsistent",
+        &paid,
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+    inconsistent.policy_binding.recovery_posture = true;
+    inconsistent.policy_binding.product_ready = true;
+    assert_eq!(
+        inconsistent.reconcile_policy(),
+        Err(LifecycleReceiptError::PolicyReconciliation)
+    );
+}
+
+#[test]
+fn receipt_policy_binding_never_records_raw_key_material() {
+    let mut paid = acceptance(LifecycleEntitlementReceiptClass::PaidReady);
+    paid.entitlement_binding = Some(binding_with(LifecycleEntitlementState::ActivePaid, "focusa"));
+    let receipt = LifecycleReceiptV1::from_acceptance(
+        "receipt:policy-raw",
+        &paid,
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+    let body = serde_json::to_string(&receipt.policy_binding).unwrap();
+    for fragment in [
+        "license_key",
+        "private_key",
+        "secret_key",
+        "signing_key",
+        "credential",
+        "email",
+        "card",
+        "token_id",
+        "raw",
+    ] {
+        assert!(!body.contains(fragment), "raw material leaked: {fragment}");
+    }
+    assert_eq!(receipt.reconcile_policy(), Ok(()));
 }
