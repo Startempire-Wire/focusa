@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Focusa verified bootstrapper (Spec 112 §15A; Specs 150A/152). Product installation and entitlement authority
+# Focusa verified bootstrapper (Spec 112 §15A; Specs 150A/152, 152E). Product installation and entitlement authority
 # belong to the canonical Rust installer; this script only selects and verifies
-# that installer, then delegates.
+# that installer, then delegates. Activation intent (e.g. --eval) is forwarded
+# to the shared activation client and is never evaluated or issued locally.
 set -euo pipefail
 
 GITHUB_REPO="${FOCUSA_GITHUB_REPO:-Startempire-Wire/focusa}"
@@ -23,7 +24,8 @@ usage() {
 Usage: install-focusa.sh [options]
 
   --dry-run                show the delegation plan without writes or downloads
-  --eval                   request an authority-issued evaluation lease
+  --eval                   forward Evaluation intent to the shared activation
+                           client (authority-issued only; never local)
   --target=TARGET          auto|linux|darwin|windows-x64|windows-arm64
   --channel=CHANNEL        stable|preview|nightly
   --github-repo=OWNER/REPO override release repository
@@ -40,7 +42,8 @@ Usage: install-focusa.sh [options]
 
 Raw license keys and email addresses are intentionally not accepted. The Rust
 installer resolves or acquires a signed, node-bound authority lease and safely
-presents the device verification URL and user-code handle.
+presents the device verification URL and user-code handle. Evaluation is
+authority-issued only; the bootstrapper never creates local evaluation state.
 USAGE
 }
 
@@ -136,6 +139,9 @@ if [ "$DRY_RUN" = 1 ]; then
   printf '  channel: %s\n' "$CHANNEL"
   printf '  release: %s\n' "${RELEASE_TAG:-latest-complete}"
   printf '  entitlement: signed authority lease; device authorization if absent\n'
+  if [ "$EVAL" = 1 ]; then
+    printf '  evaluation: authority-issued only; intent forwarded to the shared activation client\n'
+  fi
   printf '  mutations: none\n'
   exit 0
 fi
@@ -215,6 +221,8 @@ else
 fi
 chmod 0755 "$BOOTSTRAP_BIN"
 
+# Presenter-safe handoff: allowlisted flags only; product/price/grant/feature
+# and Evaluation decisions stay inside the shared activation client.
 ARGS=(install --target="$RUST_TARGET" --channel="$CHANNEL" --github-repo="$GITHUB_REPO")
 [ "$EVAL" = 0 ] || ARGS+=(--eval)
 [ "$ACCEPT_LICENSE" = 0 ] || ARGS+=(--accept-license)
