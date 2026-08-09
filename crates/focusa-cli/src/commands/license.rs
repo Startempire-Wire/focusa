@@ -830,6 +830,249 @@ fn canonical_recovery_presenter(
     })
 }
 
+/// Spec 172 canonical presenter projection (Spec 172 §2.6, §4.1, §11, §21).
+///
+/// Renders the canonical posture, product, License Type, capability family,
+/// denial, retained access, and upgrade/recovery action for one family from
+/// the authority snapshot only. The CLI is a presenter surface: it never
+/// accepts a caller-selected product, price, License Type, family, feature,
+/// limit, node, or commercial right, never infers a grant from the installed
+/// client, pairing, tool discovery, or email, and executes through the core
+/// license guard (`focusa_license::resolve_license_guard`) that REST, TUI, Pi,
+/// and agents inherit. JSON stays stable and redacted: no raw email, key,
+/// token, or customer row.
+const SPEC172_PRESENTER_SCHEMA: &str = "focusa.spec172.presenter_projection.v1";
+
+/// Canonical Spec 172 postures (Spec 172 §4.1). `verified_no_license` is the
+/// explicit authority-issued limited-access posture; a presenter never
+/// synthesizes it from a paid-lease snapshot.
+const SPEC172_POSTURES: [&str; 7] = [
+    "unverified",
+    "verified_no_license",
+    "active_paid_operator",
+    "offline_grace",
+    "refunded_or_revoked",
+    "expired",
+    "missing_or_corrupt",
+];
+
+/// Canonical License Type codes and the composite Bundle SKU (Spec 172 §4.1).
+/// The presenter renders only the frozen code matching the snapshot's own
+/// product; it never selects, prices, or invents a License Type.
+const SPEC172_LICENSE_TYPE_CODES: [&str; 3] = [
+    "focusa_operator_lifetime_v1",
+    "uiai_operator_lifetime_v1",
+    "focusa_uiai_operator_bundle_lifetime_v1",
+];
+
+/// Stable error vocabulary (Spec 172 §21). Denials use only these codes.
+const SPEC172_STABLE_ERRORS: [&str; 13] = [
+    "EMAIL_VERIFICATION_REQUIRED",
+    "VERIFIED_LIMITED_ACCESS",
+    "LICENSE_TYPE_REQUIRED",
+    "LICENSE_TYPE_NOT_INCLUDED",
+    "PRODUCT_NOT_INCLUDED",
+    "CAPABILITY_FAMILY_NOT_INCLUDED",
+    "ENTITLEMENT_POLICY_UNKNOWN",
+    "ENTITLEMENT_PRODUCT_MISMATCH",
+    "NODE_LIMIT_REACHED",
+    "OPERATOR_SEAT_LIMIT_REACHED",
+    "HOSTED_RESOURCE_NOT_INCLUDED",
+    "UPGRADE_AVAILABLE",
+    "RECOVERY_ONLY",
+];
+
+/// Frozen retained-access set (Spec 172 §5.3/§17, Spec 152F P6): navigation,
+/// status, account, read, export, recovery, repair, update, and uninstall stay
+/// available regardless of commercial state. Byte-identical across CLI, Pi,
+/// and agent presenters.
+const SPEC172_RETAINED_ACCESS: [&str; 9] = [
+    "navigation",
+    "status",
+    "account",
+    "read",
+    "export",
+    "recovery",
+    "repair",
+    "update",
+    "uninstall",
+];
+
+/// Stable upgrade actions a denial may recommend (presentation vocabulary
+/// only; the action never grants or prices anything).
+const SPEC172_UPGRADE_ACTIONS: [&str; 4] = [
+    "none_required",
+    "verify_email_or_manage_entitlement",
+    "review_offer_or_manage_entitlement",
+    "purchase_or_manage_entitlement",
+];
+
+const SPEC172_RECOVERY_ACTION: &str =
+    "recovery, export, repair, and uninstall remain available when execution is locked";
+
+/// Canonical Spec 172 posture label derived ONLY from the authority snapshot
+/// state. A missing snapshot fails closed as `missing_or_corrupt`; the
+/// presenter never invents `verified_no_license`.
+fn spec172_posture(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+) -> &'static str {
+    use focusa_license::authority::EntitlementState;
+    match snapshot.map(|entry| entry.state) {
+        Some(EntitlementState::Active) => "active_paid_operator",
+        Some(EntitlementState::OfflineGrace) => "offline_grace",
+        Some(EntitlementState::Unactivated) => "unverified",
+        Some(EntitlementState::RecoveryOnly) => "refunded_or_revoked",
+        None => "missing_or_corrupt",
+    }
+}
+
+/// Canonical License Type code for the snapshot's own product (Spec 172 §4.1).
+/// Only usable authority states carry a License Type; the presenter renders
+/// the frozen code for the snapshot's product and never a caller-chosen code.
+fn spec172_license_type(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+) -> &'static str {
+    use focusa_license::authority::EntitlementState;
+    let Some(snapshot) = snapshot else {
+        return "none";
+    };
+    if !matches!(
+        snapshot.state,
+        EntitlementState::Active | EntitlementState::OfflineGrace
+    ) {
+        return "none";
+    }
+    match snapshot.product.as_str() {
+        "focusa" => "focusa_operator_lifetime_v1",
+        "uiai_engine" => "uiai_operator_lifetime_v1",
+        _ => "none",
+    }
+}
+
+/// Stable Spec 172 denial code and upgrade action for a denied base gate.
+fn spec172_base_denial(
+    posture: &str,
+    product: &str,
+) -> (Option<&'static str>, &'static str) {
+    match posture {
+        "unverified" => (
+            Some("EMAIL_VERIFICATION_REQUIRED"),
+            "verify_email_or_manage_entitlement",
+        ),
+        "refunded_or_revoked" => {
+            (Some("RECOVERY_ONLY"), "review_offer_or_manage_entitlement")
+        }
+        "expired" => (Some("LICENSE_TYPE_REQUIRED"), "purchase_or_manage_entitlement"),
+        "missing_or_corrupt" => (
+            Some("ENTITLEMENT_POLICY_UNKNOWN"),
+            "review_offer_or_manage_entitlement",
+        ),
+        _ if product != "focusa" => {
+            (Some("PRODUCT_NOT_INCLUDED"), "review_offer_or_manage_entitlement")
+        }
+        _ => (Some("LICENSE_TYPE_REQUIRED"), "purchase_or_manage_entitlement"),
+    }
+}
+
+/// Resolve one family's canonical Spec 172 denial + upgrade action from the
+/// same base/premium decisions the other presenters inherit. `None` denial
+/// means the family is usable. All vocabulary comes from the frozen constants
+/// above; no caller-supplied product, price, License Type, feature, limit,
+/// node, or commercial right is accepted.
+fn spec172_denial_and_upgrade(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+    family: &str,
+    posture: &str,
+    product: &str,
+) -> (Option<&'static str>, &'static str) {
+    let Some(snapshot) = snapshot else {
+        return (
+            Some("ENTITLEMENT_POLICY_UNKNOWN"),
+            "review_offer_or_manage_entitlement",
+        );
+    };
+    if family == "base_focusa" {
+        use focusa_license::BaseProductDecision;
+        return match focusa_license::resolve_base_focusa_product(
+            &snapshot.product,
+            focusa_license::authority_policy_state(snapshot),
+        ) {
+            BaseProductDecision::Entitled => (None, "none_required"),
+            BaseProductDecision::Limited => (
+                Some("VERIFIED_LIMITED_ACCESS"),
+                "review_offer_or_manage_entitlement",
+            ),
+            BaseProductDecision::Denied => spec172_base_denial(posture, product),
+        };
+    }
+    // Optional families re-resolve the exact registered feature identifier so
+    // the denial mirrors the canonical premium decision (never a stored claim).
+    let (family_enum, feature) = match family {
+        "automation" => (focusa_license::CapabilityFamily::Automation, "focusa.agent.silent_sessions"),
+        "team_remote" => (focusa_license::CapabilityFamily::TeamRemote, "focusa.team.multi_operator"),
+        "release_proof" => (focusa_license::CapabilityFamily::ReleaseProof, "focusa.release.proof"),
+        "premium_updates" => (focusa_license::CapabilityFamily::PremiumUpdates, "focusa.update.unattended"),
+        "customer_data_export" => (
+            focusa_license::CapabilityFamily::CustomerDataExport,
+            "focusa.export.packaged",
+        ),
+        _ => return (Some("CAPABILITY_FAMILY_NOT_INCLUDED"), "review_offer_or_manage_entitlement"),
+    };
+    let now = chrono::Utc::now();
+    let decision = if family == "customer_data_export" {
+        focusa_license::resolve_export_packaged(snapshot, feature, now)
+    } else {
+        focusa_license::resolve_premium_family(snapshot, family_enum, feature, now)
+    };
+    use focusa_license::PremiumFamilyDecision;
+    match decision {
+        PremiumFamilyDecision::Feature { .. } => (None, "none_required"),
+        PremiumFamilyDecision::Denied(_) => {
+            use focusa_license::BaseProductDecision;
+            let base = focusa_license::resolve_base_focusa_product(
+                &snapshot.product,
+                focusa_license::authority_policy_state(snapshot),
+            );
+            if !base.permits_base_mutations() {
+                spec172_base_denial(posture, product)
+            } else {
+                (
+                    Some("CAPABILITY_FAMILY_NOT_INCLUDED"),
+                    "review_offer_or_manage_entitlement",
+                )
+            }
+        }
+    }
+}
+
+/// Render the Spec 172 canonical presenter projection for one family. The
+/// envelope is byte-stable across CLI, Pi, and agent presenters and matches
+/// the committed parity fixtures (`crates/focusa-cli/tests/fixtures/`).
+fn spec172_projection(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+    family: &str,
+) -> Value {
+    let posture = spec172_posture(snapshot);
+    let license_type = spec172_license_type(snapshot);
+    let product = snapshot
+        .map(|entry| entry.product.as_str())
+        .unwrap_or("unknown");
+    let (denial, upgrade_action) =
+        spec172_denial_and_upgrade(snapshot, family, posture, product);
+    json!({
+        "schema": SPEC172_PRESENTER_SCHEMA,
+        "posture": posture,
+        "product": product,
+        "license_type": license_type,
+        "family": family,
+        "denial": denial,
+        "retained_access": SPEC172_RETAINED_ACCESS,
+        "upgrade_action": upgrade_action,
+        "recovery_action": SPEC172_RECOVERY_ACTION,
+        "grant_inferred_from_surface": false,
+    })
+}
+
 /// Fast preflight against the canonical entitlement decision (Spec 152F §6
 /// chokepoint 4). Renders the same base/premium/recovery envelope as `status`
 /// and exits nonzero when the target gate would deny, giving commands fast
@@ -841,6 +1084,7 @@ async fn run_preflight(json_output: bool, args: PreflightArgs) -> anyhow::Result
     let authority = focusa_license::entitlement_projection(snapshot)?;
     let entitlement_decision = focusa_license::entitlement_decision_projection(snapshot)?;
     let decision = canonical_decision_payload(snapshot);
+    let family = args.family.as_deref().unwrap_or("base_focusa");
     let payload = json!({
         "schema": "focusa.authority_preflight.v1",
         "authority": authority,
@@ -848,10 +1092,9 @@ async fn run_preflight(json_output: bool, args: PreflightArgs) -> anyhow::Result
         "base_product": decision["base_product"],
         "premium": decision["premium"],
         "recovery_allowance": decision["recovery_allowance"],
+        "spec172": spec172_projection(snapshot, family),
         "recovery_policy": "recovery, export, repair, and uninstall remain available when execution is locked",
     });
-
-    let family = args.family.as_deref().unwrap_or("base_focusa");
     let (decision_label, reason_code, next_action) = match family {
         "base_focusa" => {
             let label = decision["base_product"]["decision"]
@@ -900,9 +1143,20 @@ async fn run_preflight(json_output: bool, args: PreflightArgs) -> anyhow::Result
     } else {
         println!("Focusa entitlement preflight");
         println!("Family:         {family}");
+        println!(
+            "Posture:        {}",
+            payload["spec172"]["posture"].as_str().unwrap_or("unknown")
+        );
+        println!(
+            "License type:   {}",
+            payload["spec172"]["license_type"].as_str().unwrap_or("none")
+        );
         println!("Decision:       {decision_label}");
         println!("Reason:         {reason_code}");
         println!("Next action:    {next_action}");
+        if let Some(denial) = payload["spec172"]["denial"].as_str() {
+            println!("Denial:         {denial}");
+        }
         println!(
             "Recovery:       {}",
             decision["recovery_allowance"]["next_action"]
@@ -932,6 +1186,7 @@ async fn run_status(json_output: bool) -> anyhow::Result<()> {
         "base_product": decision["base_product"],
         "premium": decision["premium"],
         "recovery_allowance": decision["recovery_allowance"],
+        "spec172": spec172_projection(guard.entitlement.as_ref(), "base_focusa"),
         "recovery_policy": "recovery, export, repair, and uninstall remain available when execution is locked",
         "marketing_preference": "managed_separately"
     });
@@ -948,6 +1203,14 @@ async fn run_status(json_output: bool) -> anyhow::Result<()> {
         println!(
             "Product:        {}",
             payload["authority"]["product"].as_str().unwrap_or("focusa")
+        );
+        println!(
+            "Posture:        {}",
+            payload["spec172"]["posture"].as_str().unwrap_or("unknown")
+        );
+        println!(
+            "License type:   {}",
+            payload["spec172"]["license_type"].as_str().unwrap_or("none")
         );
         println!(
             "Decision:       {} ({})",
