@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-014",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Accepted current bytes / rejected stale events verified at the terminal surface: createAgentTuiBridge.subscribeOutput accepts output ONLY when the event identifies the exact current Attachment (attachment_id + work_surface_id), the current run generation, and a monotonic in-range sequence. Prior Attachment, prior generation, foreign surface, and non-monotonic sequence events are rejected and never reach the xterm surface.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-013"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/agent-tui-bridge-runtime.mjs",
+      "result": "pass: stale event scenario"
+    },
+    {
+      "command": "node apps/desktop/tests/surface-swap-runtime.mjs",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
