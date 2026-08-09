@@ -1,0 +1,184 @@
+Spec 152E delivery, node, lease, and recovery acceptance matrix — acceptance evidence
+Work item: focusa-vbcqu.20.13.38
+Title: 152E.04.07 Run delivery, node, lease, and recovery acceptance matrix
+Scope: cross-language build-independent acceptance suite exercising paid,
+Evaluation, bundle, wrong device/product, node limit/race, stale sequence,
+tamper, expiry, refund/revoke, delivery loss, authority outage, and recovery
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§5 universal registration state machine, §7
+authority data model, §8 product/grant registry, §9 branded facade registry,
+§15 human key and signed lease separation, §16 dual-channel license delivery,
+§17 EDD lifecycle integration, §18 refund/revoke/recovery, §20 stable failure
+semantics, §23 acceptance matrix, §24 completion gate); Specs 152, 150A,
+152A-D; Spec 158 implementation excluded.
+
+Exact surfaces (this atom only)
+- Terminal/email delivery fixtures (dual-delivery coordinator, terminal
+  delivery envelope, transactional mail adapter)
+- Node reservation fixtures (authority node repository: reserve/settle/
+  release, node-limit ledger)
+- Issuer fixtures (EDD-bound lease issuer, authority key set)
+- Refresh fixtures (lease refresh service: rotation, sequence, refund, revoke,
+  expiry)
+- Verifier fixtures (challenge service, verification-complete handler)
+- Denial and recovery fixtures (recovery-only surface contract, install
+  facade authority-outage surface)
+- Exact verification: python3 tests/spec152e_delivery_lease_acceptance_test.py;
+  php tests/spec152e_authority_lease_acceptance_test.php
+
+Implementation commit: `6d4df576` (acceptance matrix suite — Python matrix +
+PHP fixture matrix)
+
+Bounded result
+- tests/spec152e_delivery_lease_acceptance_test.py (Python, build-independent,
+  cross-language): binds all 23 §23 acceptance-matrix rows to the published
+  contract fixtures. Website/Terminal/Agent paid Focusa, source build, and
+  Evaluation prove their authority-only journey inside the registration state
+  machine (mailbox control precedes every account/order/license/lease state;
+  entitlement_issued → terminal_delivery_ready → device_registered →
+  lease_issued → delivered; recovery_only has no outgoing transitions).
+  Evaluation (expiry exactly now+30d, node_limit 1, no offline grace, bounded
+  features, never an EDD key), existing-key (the one existing-license route),
+  UIAI (uiai_engine grants only), bundle (exact focusa+uiai union at
+  1254.60), wrong product/device (server-owned PRODUCT_MAPPING_REQUIRED and
+  lease golden negatives wrong_product/wrong_node), invalid email (pending
+  attempt only; EMAIL_DELIVERY_FAILED → retry_or_use_recovery), changed
+  checkout email (EDD_ORDER_UNVERIFIED → verify_checkout_identity), duplicate
+  request (idempotency invariants), prior Evaluation / paid-requests-Eval
+  (EVALUATION_NOT_ELIGIBLE → select_paid_or_limited_access, paid records never
+  downgraded), node limit (NODE_LIMIT_EXHAUSTED → manage_nodes, node class),
+  refund/revocation (REFUNDED/REVOKED → recovery_only, license class, refunded
+  golden lease rejected as stale_sequence at refund_sequence 45), authority
+  outage (AUTHORITY_UNAVAILABLE → retry_or_use_recovery, lease class; the
+  install-facade outage body contains no local issuance), facade spoof
+  (FACADE_ORIGIN_DENIED/FACADE_PRODUCT_DENIED, proxy-only registry), terminal
+  delivery loss (LICENSE_DELIVERY_FAILED → authenticated_recovery, one-time
+  envelope), broken convenience URL (manifest 200 + sha256 pinned), legacy
+  install-site (exact migrate/quarantine/retire classification; email match
+  alone never transfers ownership), recovery posture (every denial binds one
+  recovery action; §18 surfaces preserved; recovery never grants
+  entitlement). Six true fail-closed verifier negatives run the existing
+  authority-lease rules (wrong node, wrong product, stale sequence, past
+  expiry+grace, unknown key, tampered payload → invalid_signature) with the
+  `cryptography` Ed25519 implementation. Cross-language pairing asserts the
+  PHP fixture surfaces exist and the paired PHP acceptance test requires
+  them; hygiene scans the contract fixtures, fixtures, and both test files for
+  unmasked real email, secret prefixes, synthetic keys, and private-key
+  material.
+- tests/spec152e_authority_lease_acceptance_test.php (PHP, fixture-level):
+  exercises the exact surfaces. Issuer+verifier: a paid lease issues at the
+  server sequence 42 and verifies Active; WRONG_NODE and WRONG_PRODUCT and a
+  tampered signature (INVALID_SIGNATURE) fail closed. Refresh: rotation is
+  strictly monotonic (42 → 43); stale sequence (account advance to 45),
+  refund, revoke, and evaluation expiry each settle the lease and deny refresh
+  with a SIGNED recovery-only refusal (STALE_SEQUENCE/REFUNDED/REVOKED/EXPIRED)
+  that verifies through verifyRefusal. Dual delivery: email + terminal resolve
+  ONE canonical key (same_key_confirmed, both_delivered, never a second EDD
+  license, recovery refused after full settlement); terminal delivery loss
+  recovers the SAME key through the device-encrypted recovery envelope and
+  never mints a second license. Node reservation: the atomic counter enforces
+  the server-owned limit (4th node → NODE_LIMIT_EXHAUSTED, no reservation
+  leak) and a reservation race cannot over-issue (limit 2: two reservations,
+  third denied, released slot re-reserved without drift). Verifier: a live OTP
+  validates against the stored hash; wrong/tampered OTP and tampered stored
+  hash fail; the verification-complete handler accepts only the live
+  challenge and denies tampered (EMAIL_VERIFICATION_FAILED) and expired
+  (EMAIL_VERIFICATION_EXPIRED) verifiers. Authority outage: the install facade
+  returns 503 recovery_only/AUTHORITY_UNAVAILABLE with retry_or_use_recovery
+  and no local license/lease/node; the recovery-only contract binds
+  REFUNDED/REVOKED (license) and AUTHORITY_UNAVAILABLE (lease) to
+  recovery_only and preserves exactly the §18 surfaces. Hygiene scans
+  confirm no unmasked email, license key, secret prefix, or refresh
+  credential in any result envelope or stored row (the one-time refresh
+  credential is returned exactly once and never stored).
+
+Exact verification (exit codes)
+1. python3 tests/spec152e_delivery_lease_acceptance_test.py — exit 0 (run
+   three times; deterministic, byte-identical output, sha256
+   0c202dd415026e5e9e6486da95a31e855a7bd47f080a9766e582c0fb84ea74bd).
+   Bounded result:
+   {"schema":"focusa.spec152e.delivery_lease_acceptance_matrix.v1",
+   "positive_checks":221,"negative_checks":6,
+   "matrix_rows_covered":["website_paid_focusa","terminal_paid_focusa",
+   "agent_paid_focusa","source_build","evaluation","existing_key",
+   "uiai_purchase","bundle_purchase","wrong_product",
+   "invalid_or_unreachable_email","changed_checkout_email",
+   "duplicate_request","prior_evaluation","paid_customer_requests_eval",
+   "node_limit","refund","revocation","authority_outage","facade_spoof",
+   "terminal_delivery_loss","broken_convenience_url",
+   "legacy_install_site","recovery_posture"],
+   "paired_php_surfaces":["denial","issuer","node_reservation","recovery",
+   "refresh","terminal_email_delivery","verifier"],
+   "result":"passed_fail_closed"}
+2. php tests/spec152e_authority_lease_acceptance_test.php — exit 0 (run
+   three times; deterministic, byte-identical output, sha256
+   0251e8c6578f8a740172a9c7baba44293966f14348b2fc25f39e3bfd9577fb43).
+   Bounded result:
+   {"schema":"focusa.spec152e.authority_lease_acceptance_matrix.v1",
+   "positive_checks":56,"negative_checks":6,
+   "matrix_rows_exercised":["paid_lease_issuer_verifier",
+   "wrong_device_product","tamper","refresh_rotation","stale_sequence",
+   "refund","revocation","expiry_evaluation","dual_delivery_one_key",
+   "terminal_delivery_loss","node_limit","node_race","email_verifier",
+   "authority_outage","recovery_only_denial"],
+   "settlements":["refunded","revoked","superseded_stale",
+   "superseded_expiry"],"rotations":1,"refusals":4,
+   "result":"passed_fail_closed"}
+
+Regression checks (exit codes)
+- python3 tests/spec152e_api_contract_test.py — exit 0 (generated activation
+  contracts are current; no public API surface changed).
+- python3 tests/spec152e_state_machine_contract_test.py — exit 0.
+- python3 tests/spec152e_product_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_lease_golden_vector_test.py — exit 0.
+- python3 tests/spec152e_terminal_envelope_vector_test.py — exit 0.
+- python3 tests/spec152e_recovery_only_surface_test.py — exit 0.
+- python3 tests/spec152e_migration_inventory_test.py — exit 0.
+- python3 tests/spec152e_deployed_surface_inventory_test.py — exit 0.
+- php tests/spec152e_dual_license_delivery_test.php — exit 0.
+- php tests/spec152e_authority_node_reservation_test.php — exit 0.
+- php tests/spec152e_edd_bound_lease_issuer_test.php — exit 0.
+- php tests/spec152e_lease_refresh_lifecycle_test.php — exit 0.
+- php tests/spec152e_terminal_envelope_test.php — exit 0.
+- php tests/spec152e_evaluation_issuance_test.php — exit 0.
+- php tests/spec152e_verification_complete_test.php — exit 0.
+- php tests/spec152e_install_facade_test.php — exit 0.
+
+Tests added
+- tests/spec152e_delivery_lease_acceptance_test.py (exact verification;
+  221 positive / 6 negative checks): the 23-row §23 matrix bound to contract
+  fixtures, six fail-closed verifier negatives, cross-language pairing, and
+  hygiene scans.
+- tests/spec152e_authority_lease_acceptance_test.php (exact verification;
+  56 positive / 6 negative checks): fixture-level issuer+verifier,
+  refresh rotation/stale/refund/revoke/expiry signed refusals, dual
+  delivery with delivery-loss recovery, node limit + reservation race,
+  email verifier, authority outage, and recovery-only denial.
+
+Acceptance criteria
+- All cases settle one canonical EDD entitlement and no delivery/lease/
+  recovery path creates independent authority: verified — every matrix row
+  settles through the authority state machine / server-owned registry /
+  signed lease; facades are proxy-only; delivery loss recovers the SAME key;
+  node limit/race is counter-authoritative; refund/revoke/expiry/stale settle
+  to signed recovery-only refusals; the outage path never issues locally;
+  recovery only preserves the §18 surfaces.
+- All named positive and negative checks pass (221/6 + 56/6, both exit 0,
+  byte-identical across runs); diff contains only the named surfaces (the two
+  acceptance test files + this evidence record); generated contracts are
+  current (api_contract_test.py and all golden-vector/registry checks exit 0);
+  secrets and unmasked real email are absent (hygiene scans pass; only
+  reserved @example.invalid fixture inputs, never in outputs); evidence is
+  replayable from the pinned commit (offline, deterministic, byte-identical
+  output, sha256 0c202dd4... / 0251e8c6...).
+
+Rollback
+- Revert only this atom's commits: the implementation commit (the two
+  acceptance test files) and the evidence commit containing this file.
+  Preserve EDD customer/order/refund truth, verified identities, licenses,
+  nodes, sequences, credentials, Workpoints, Evidence, and migration
+  journals; no delivery/lease/recovery fixture state is mutated outside the
+  in-memory acceptance runs.
+
+No push, deploy, release, merge, or Beads mutation was performed.
