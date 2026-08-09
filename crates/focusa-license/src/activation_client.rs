@@ -547,6 +547,14 @@ impl<A: ActivationAuthority> ActivationSession<A> {
         &self.registration
     }
 
+    /// The expiring registration poll credential, for presenters to store in
+    /// the protected store under the registration handle. Never serialized
+    /// into snapshots or envelopes; callers must treat it as sensitive and
+    /// re-supply it via [`Self::resume`].
+    pub fn poll_credential(&self) -> Option<&SensitiveCredential> {
+        self.poll_credential.as_ref()
+    }
+
     pub fn ledger(&self) -> &[ActivationLedgerEvent] {
         &self.ledger
     }
