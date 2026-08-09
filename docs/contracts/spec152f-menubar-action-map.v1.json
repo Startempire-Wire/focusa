@@ -247,5 +247,65 @@
     {"baseline_id":"menubar:0f74a306e1ec3c48","source":"apps/menubar/src/routes/+page.svelte","line":238,"handler":"tabSettings","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Settings tab; local UI."},
     {"baseline_id":"menubar:9e38907f3bbac4f2","source":"apps/menubar/src/routes/canvas/+page.svelte","line":47,"handler":"toggleAscc","action_class":"navigation_display","canonical_operation_id":null,"description":"Toggle ASCC panel visibility; local UI."},
     {"baseline_id":"menubar:159d405f12a567d9","source":"apps/menubar/src/routes/canvas/+page.svelte","line":56,"handler":"toggleTimeline","action_class":"navigation_display","canonical_operation_id":null,"description":"Toggle Timeline panel visibility; local UI."}
-  ]
+  ],
+  "spec172": {
+    "schema": "focusa.spec172.menubar_tui_presenter_parity.v1",
+    "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+    "presenter_not_product": true,
+    "invariants": [
+      "menubar and TUI are presenters, not products",
+      "every action maps to a canonical operation decision from core/API",
+      "read, export, and recovery controls are never disabled",
+      "disable only denied operations",
+      "clients on the same node do not consume separate nodes",
+      "no local commercial policy cache; no caller-supplied product, price, License Type, family, feature, limit, or node",
+      "no raw email, key, token, customer row, credential, or card data"
+    ],
+    "license_type_display": {
+      "codes": [
+        "focusa_operator_lifetime_v1",
+        "uiai_operator_lifetime_v1",
+        "focusa_uiai_operator_bundle_lifetime_v1"
+      ],
+      "labels": {
+        "focusa_operator_lifetime_v1": "Focusa Operator Lifetime v1",
+        "uiai_operator_lifetime_v1": "UIAI Engine Operator Lifetime v1",
+        "focusa_uiai_operator_bundle_lifetime_v1": "Focusa + UIAI Operator Lifetime Bundle"
+      },
+      "verified_no_license": "Verified no-license limited access (no automatic expiry)",
+      "no_prices": true,
+      "unknown_codes_fail_closed": true,
+      "caller_supplied_codes_never_project": true
+    },
+    "upgrade_display": {
+      "source": "daemon_presenter_allowed_actions_only",
+      "action": "activate_or_manage_entitlement",
+      "triggers": ["select_purchase", "open_checkout", "activate_or_manage_entitlement"],
+      "accurate_for": {
+        "verified_no_license": "Operator upgrade available",
+        "focusa_operator_lifetime_v1": "manage",
+        "uiai_operator_lifetime_v1": "manage",
+        "focusa_uiai_operator_bundle_lifetime_v1": "manage"
+      },
+      "presenter_never_invents_upgrade": true,
+      "no_price_or_sale_status_rendered": true
+    },
+    "node_semantics": "one verified operator seat; up to three registered operator nodes; CLI, TUI, Pi, menubar, Focusa Desktop, and Cockpit clients on the same node do not consume separate nodes; presenters never count apps as nodes",
+    "disable_policy": "disable only denied operations; never disable read, export, recovery, repair, update, or uninstall",
+    "local_commercial_policy": "forbidden",
+    "locked_state_fixtures": {
+      "schema": "focusa.spec172.locked_state_fixtures.v1",
+      "upgrade_action": "activate_or_manage_entitlement",
+      "always_reachable": [
+        "navigation", "status", "account", "read", "export",
+        "recovery", "repair", "update", "uninstall"
+      ],
+      "never_disabled": ["read", "export", "recovery", "repair", "update", "uninstall"],
+      "rules": [
+        "denied value actions carry an accessible explanation and an Operator/Bundle upgrade or recovery action",
+        "read, export, recovery, repair, update, and uninstall are never disabled by an entitlement decision",
+        "menubar and TUI decisions equal core/API output; presenters never own commercial policy"
+      ]
+    }
+  }
 }

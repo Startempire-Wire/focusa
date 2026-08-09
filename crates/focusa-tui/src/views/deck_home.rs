@@ -71,6 +71,20 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .as_ref()
         .map(|posture| format!("Entitlement   {}", posture.action_guide()))
         .unwrap_or_default();
+    // Spec 172 §11/§15 presenter projection: License Type display,
+    // Operator/Bundle upgrade accuracy, node semantics, and the frozen
+    // locked-state accessibility fixture. Fail closed: no signed posture
+    // snapshot renders as unavailable rather than an invented License Type.
+    let spec172_line = app
+        .spec172
+        .as_ref()
+        .map(|posture| format!("Spec 172      {}", posture.status_line()))
+        .unwrap_or_else(|| "Spec 172      unavailable (no canonical posture snapshot)".into());
+    let spec172_fixture_line = app
+        .spec172
+        .as_ref()
+        .map(|posture| format!("Spec 172      {}", posture.locked_state_fixture()))
+        .unwrap_or_default();
     let text = vec![
         Line::from(vec![
             Span::styled("Mission Deck", theme::title()),
@@ -81,6 +95,8 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         Line::from(activation_line),
         Line::from(entitlement_line),
         Line::from(entitlement_guide_line),
+        Line::from(spec172_line),
+        Line::from(spec172_fixture_line),
         Line::from(format!("Scope badge   {}  {}", scope.visual, scope.label)),
         Line::from(format!("Proof meter   {}  {}", proof.visual, proof.label)),
         Line::from(format!(
