@@ -4,16 +4,26 @@
   import PtyTerminal, { type PiTerminalBridge } from './PtyTerminal.svelte';
   import { hasExactPiAttachment, UNBOUND_PI_ATTACHMENT, type PiAttachmentProjection } from './pi-attachment-contract';
   import { readPiAttachmentStore } from './pi-attachment-store.svelte';
+  import { createAgentTuiBridge } from './agent-tui-bridge';
+  import type { PtyHandle } from './pty-handle';
 
   const store = readPiAttachmentStore();
 
   let {
     attachment,
-    bridge
+    bridge,
+    handle
   }: {
     attachment?: PiAttachmentProjection;
     bridge?: PiTerminalBridge;
+    handle?: PtyHandle;
   } = $props();
+
+  // PTY-013: when a platform-neutral handle is supplied (native Cargo runtime
+  // or honest virtual fallback), the bridge is derived from it — the renderer
+  // becomes an authentic live PTY stream with controls gated to the current
+  // run generation. No static terminal text exists.
+  const activeBridge = $derived(handle ? createAgentTuiBridge(handle, store) : bridge);
 
   // The store is the single source of truth: Mission Canvas and the Agent TUI
   // always show the same Pi session and Attachment, and the attachment state
@@ -22,8 +32,10 @@
 
   async function interrupt(): Promise<void> {
     const current = sharedAttachment;
-    if (!bridge || !current.canInterrupt || !hasExactPiAttachment(current)) return;
-    await bridge.send({ kind: 'interrupt', attachment_id: current.identity.attachment_id });
+    if (!activeBridge || !current.canInterrupt || !hasExactPiAttachment(current)) return;
+    // Controls activate only for the exact current run generation.
+    if (!store.acceptsOutput(store.generation, store.latestSequence)) return;
+    await activeBridge.send({ kind: 'interrupt', attachment_id: current.identity.attachment_id });
   }
 </script>
 
@@ -36,22 +48,22 @@
     </div>
     <div class="runtime-state">
       <StatusBadge tone={sharedAttachment.state === 'attached' ? 'ready' : sharedAttachment.state === 'error' ? 'error' : 'neutral'} label={sharedAttachment.state}/>
-      {#if sharedAttachment.canInterrupt && bridge && hasExactPiAttachment(sharedAttachment)}
+      {#if sharedAttachment.canInterrupt && activeBridge && hasExactPiAttachment(sharedAttachment) && store.acceptsOutput(store.generation, store.latestSequence)}
         <button type="button" onclick={() => void interrupt()} aria-label="Interrupt Pi session">Interrupt</button>
       {/if}
     </div>
   </header>
 
-  {#if hasExactPiAttachment(sharedAttachment) && bridge}
+  {#if hasExactPiAttachment(sharedAttachment) && activeBridge}
     <div class="terminal-frame">
-      <PtyTerminal attachment={sharedAttachment} {bridge}/>
+      <PtyTerminal attachment={sharedAttachment} bridge={activeBridge}/>
     </div>
   {:else}
     <div class="unavailable" role={sharedAttachment.state === 'error' ? 'alert' : 'status'}>
       <Icon name="terminal" size={20}/>
       <strong>{sharedAttachment.runtimeLabel}</strong>
       <span>{sharedAttachment.detail}</span>
-      {#if hasExactPiAttachment(sharedAttachment) && !bridge}
+      {#if hasExactPiAttachment(sharedAttachment) && !activeBridge}
         <span>The native PTY bridge is unavailable in this host.</span>
       {/if}
     </div>
