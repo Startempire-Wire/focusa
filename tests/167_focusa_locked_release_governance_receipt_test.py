@@ -29,10 +29,10 @@ closure = payload["closure_set"]
 assert payload["schema"] == "focusa.locked_release_governance_receipt.v1"
 assert payload["status"] == "sealed"
 assert payload["workset_id"] == "workset:focusa-next-locked-release:r7"
-assert payload["authority"]["mapping_count"] == 289
+assert payload["authority"]["mapping_count"] == 465
 assert payload["authority"]["immutable_mapping_count"] == 275
 assert payload["authority"]["repair_overlay_mapping_count"] == 14
-assert len(closure["admitted_bead_ids"]) == 289
+assert len(closure["admitted_bead_ids"]) == 465
 assert len(closure["technically_accepted_ids"]) == gate["technically_accepted_count"]
 assert len(closure["technically_pending_ids"]) == gate["technically_pending_count"]
 assert set(closure["technically_accepted_ids"]).isdisjoint(

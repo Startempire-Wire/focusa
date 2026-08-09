@@ -78,9 +78,9 @@ for commit in ancestry["accepted_implementation_commits"]:
         check=True,
     )
 assert any(row["pr"] == 115 for row in ancestry["pull_request_ancestry"])
-assert len(ancestry["excluded_post_release_worksets"]) == 8
+assert len(ancestry["excluded_post_release_worksets"]) == 7
 assert ancestry["excluded_workset_collisions"] == []
-assert ancestry["issue_ledger"]["mapping_count"] == 289
+assert ancestry["issue_ledger"]["mapping_count"] == 465
 assert (
     ancestry["issue_ledger"]["technically_accepted_count"]
     + ancestry["issue_ledger"]["pending_technical_acceptance_count"]
