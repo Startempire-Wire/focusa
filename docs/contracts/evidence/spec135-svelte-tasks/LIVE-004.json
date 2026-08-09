@@ -1,0 +1,33 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "LIVE-004",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "MissionCanvasRestorationController restores Canvas and Work Surfaces after Desktop restart/daemon reconnect: advisory localStorage snapshot keyed by exact Workstream, stale-revision and foreign-Workstream guards, truthful reconciliation (missing surfaces dropped and reported), and runtime persistence after every canonical load. Local snapshots never become canonical.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "LIVE-003",
+      "LIVE-005"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/restoration-runtime.mjs",
+      "result": "pass: 7 scenarios"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
