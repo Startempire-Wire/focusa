@@ -1,3 +1,10 @@
+import {
+  allowedActionsFor,
+  presenterNextAction,
+  presenterStateForEntitlementStatus,
+  type PresenterState,
+} from './activationPresenter.ts';
+
 export type EntitlementVisualState =
   | 'active'
   | 'offline_grace'
@@ -17,11 +24,20 @@ export interface LicenseStatusPayload {
     recovery_reason?: string | null;
     limits?: Record<string, number>;
   } | null;
-  capabilities?: Array<{ capability?: string; outcome?: string; reason?: string | null }>;
+  capabilities?: Array<{
+    capability?: string;
+    outcome?: string;
+    reason?: string | null;
+  }>;
 }
 
 export interface EntitlementPosture {
   state: EntitlementVisualState;
+  /** Shared Spec 152E presenter state (same vocabulary as TUI/REST/lifecycle
+   * receipts for the same entitlement — never a duplicate business decision). */
+  presenter_state: PresenterState;
+  next_action: string;
+  allowed_actions: string[];
   masked_identity?: string;
   expires_at?: string;
   offline_grace_until?: string;
@@ -32,14 +48,22 @@ export interface EntitlementPosture {
   marketing_preference: 'managed_separately';
 }
 
-export function projectEntitlementPosture(payload: LicenseStatusPayload): EntitlementPosture {
+export function projectEntitlementPosture(
+  payload: LicenseStatusPayload,
+): EntitlementPosture {
   const state = visualState(payload);
+  const presenter_state = presenterStateForEntitlementStatus(
+    String(payload.status ?? ''),
+  );
   const limits = Object.entries(payload.authority?.limits ?? {})
     .filter(([, value]) => Number.isSafeInteger(value) && value >= 0)
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([name, remaining]) => ({ name, remaining }));
   const locked_capabilities = (payload.capabilities ?? [])
-    .filter((capability) => capability.outcome === 'denied' && Boolean(capability.capability))
+    .filter(
+      (capability) =>
+        capability.outcome === 'denied' && Boolean(capability.capability),
+    )
     .map((capability) => ({
       name: capability.capability!,
       reason: boundedReason(capability.reason),
@@ -47,13 +71,17 @@ export function projectEntitlementPosture(payload: LicenseStatusPayload): Entitl
     .sort((left, right) => left.name.localeCompare(right.name));
   return {
     state,
+    presenter_state,
+    next_action: presenterNextAction(presenter_state),
+    allowed_actions: allowedActionsFor(presenter_state),
     masked_identity: safeMaskedIdentity(payload.masked_identity),
     expires_at: safeTime(payload.authority?.expires_at ?? payload.expires_at),
     offline_grace_until: safeTime(payload.authority?.offline_grace_until),
     limits,
     locked_capabilities,
     action: actionFor(state, locked_capabilities.length),
-    recovery_policy: 'Recovery, export, repair, and uninstall remain available when execution is locked.',
+    recovery_policy:
+      'Recovery, export, repair, and uninstall remain available when execution is locked.',
     marketing_preference: 'managed_separately',
   };
 }
@@ -65,7 +93,8 @@ function visualState(payload: LicenseStatusPayload): EntitlementVisualState {
   if (status === 'expired') return 'expired';
   const reason = String(payload.authority?.recovery_reason ?? '').toLowerCase();
   if (reason.includes('revok')) return 'revoked';
-  if (status === 'recovery_only') return reason.includes('expir') ? 'expired' : 'invalid';
+  if (status === 'recovery_only')
+    return reason.includes('expir') ? 'expired' : 'invalid';
   return 'unactivated';
 }
 
@@ -89,5 +118,7 @@ function safeTime(value?: string | null): string | undefined {
 }
 
 function boundedReason(value?: string | null): string {
-  return (value || 'not_granted').replace(/[^a-zA-Z0-9_.:-]/g, '_').slice(0, 120);
+  return (value || 'not_granted')
+    .replace(/[^a-zA-Z0-9_.:-]/g, '_')
+    .slice(0, 120);
 }

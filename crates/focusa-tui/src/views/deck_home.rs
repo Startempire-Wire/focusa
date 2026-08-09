@@ -49,6 +49,20 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .unwrap_or("no active frame");
     let proof = proof_status::proof_meter(app);
     let scope = proof_status::scope_badge(app);
+    // Spec 152E §21 shared presenter posture: the TUI renders the same
+    // activation/entitlement states and allowed actions as the menubar,
+    // the daemon REST license routes, and lifecycle receipts for the same
+    // canonical registration; it never re-decides a transition.
+    let activation_line = app
+        .activation
+        .as_ref()
+        .map(|view| format!("Activation    {}", view.status_line()))
+        .unwrap_or_else(|| "Activation    unavailable (no registration snapshot)".into());
+    let entitlement_line = app
+        .license
+        .as_ref()
+        .map(|posture| format!("Entitlement   {}", posture.status_line()))
+        .unwrap_or_else(|| "Entitlement   unavailable (no signed authority snapshot)".into());
     let text = vec![
         Line::from(vec![
             Span::styled("Mission Deck", theme::title()),
@@ -56,6 +70,8 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         ]),
         Line::from(format!("Session       {session}")),
         Line::from(format!("Active frame  {active_frame}")),
+        Line::from(activation_line),
+        Line::from(entitlement_line),
         Line::from(format!("Scope badge   {}  {}", scope.visual, scope.label)),
         Line::from(format!("Proof meter   {}  {}", proof.visual, proof.label)),
         Line::from(format!(

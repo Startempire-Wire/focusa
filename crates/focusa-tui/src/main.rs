@@ -4,6 +4,7 @@
 //! Read-only, event-driven, calm.
 //! Polls the Focusa API and renders live state.
 
+mod activation_presenter;
 mod api;
 mod app;
 mod beginner_mode;

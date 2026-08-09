@@ -34,6 +34,7 @@
   </div>
   {#if posture}
     <p><strong>{posture.state.replace('_', ' ')}</strong>{#if posture.masked_identity} · {posture.masked_identity}{/if}</p>
+    <p class="dim">Shared presenter state: <strong>{posture.presenter_state}</strong> · next: {posture.next_action} · allowed: {posture.allowed_actions.join(', ')}</p>
     {#if posture.expires_at}<p>Expires: <time datetime={posture.expires_at}>{posture.expires_at}</time></p>{/if}
     {#if posture.offline_grace_until}<p>Offline recovery window: <time datetime={posture.offline_grace_until}>{posture.offline_grace_until}</time></p>{/if}
     {#if posture.limits.length > 0}

@@ -118,6 +118,79 @@ impl LifecycleReceiptV1 {
             && self.signature_verified
     }
 
+    /// Presenter-safe lifecycle receipt posture (Spec 152E §21 surface
+    /// consolidation). Lifecycle receipts expose the same frozen presenter
+    /// state, next action, and allowed actions as the menubar, TUI, and
+    /// daemon REST license routes for the same entitlement posture, without
+    /// duplicating any business decision: the receipt class plus the
+    /// verified-signature flag project onto the shared vocabulary and
+    /// everything else fails closed.
+    pub fn presenter_posture(&self) -> LifecycleReceiptPresenterPosture {
+        if self.product_ready() {
+            return self.posture(
+                "activated",
+                "activated",
+                &["manage_nodes", "refresh_lease", "manage_account", "resume"],
+            );
+        }
+        match self.entitlement_receipt_class {
+            LifecycleEntitlementReceiptClass::RecoveryReady => self.posture(
+                "recovery_only",
+                "recovery",
+                &[
+                    "recovery",
+                    "repair",
+                    "export",
+                    "uninstall",
+                    "manage_nodes",
+                    "manage_account",
+                ],
+            ),
+            // Paid/Eval/Dev readiness claimed without a verified signature
+            // fails closed to recovery_only; it never renders as activated.
+            LifecycleEntitlementReceiptClass::EvaluationReady
+            | LifecycleEntitlementReceiptClass::PaidReady
+            | LifecycleEntitlementReceiptClass::DevelopmentReady => self.posture(
+                "recovery_only",
+                "recovery",
+                &[
+                    "recovery",
+                    "repair",
+                    "export",
+                    "uninstall",
+                    "manage_nodes",
+                    "manage_account",
+                ],
+            ),
+            LifecycleEntitlementReceiptClass::BlockedEntitlement => self.posture(
+                "denied",
+                "activate_or_manage_entitlement",
+                &["activate_or_manage_entitlement", "recovery"],
+            ),
+        }
+    }
+
+    fn posture(
+        &self,
+        presenter_state: &'static str,
+        next_action: &'static str,
+        allowed_actions: &'static [&'static str],
+    ) -> LifecycleReceiptPresenterPosture {
+        LifecycleReceiptPresenterPosture {
+            schema: "focusa.lifecycle_receipt_presenter_posture.v1".into(),
+            receipt_id: self.receipt_id.clone(),
+            receipt_class: self.entitlement_receipt_class.label().into(),
+            presenter_state: presenter_state.into(),
+            next_action: next_action.into(),
+            terminal: true,
+            product_ready: self.product_ready(),
+            allowed_actions: allowed_actions
+                .iter()
+                .map(|action| (*action).to_string())
+                .collect(),
+        }
+    }
+
     pub fn verify(&self, expected_previous_hash: &str) -> Result<(), LifecycleReceiptError> {
         self.validate_content()?;
         if self.previous_receipt_hash != expected_previous_hash
@@ -194,6 +267,34 @@ impl LifecycleReceiptV1 {
         unsigned.receipt_hash.clear();
         let bytes = serde_json::to_vec(&unsigned).expect("receipt is serializable");
         format!("sha256:{:x}", Sha256::digest(bytes))
+    }
+}
+
+/// Presenter-safe lifecycle receipt posture. Renders the same shared
+/// presenter state/actions as every other Spec 152E §21 surface for the same
+/// entitlement posture; never contains raw email, license key, credential,
+/// or card data by construction.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LifecycleReceiptPresenterPosture {
+    pub schema: String,
+    pub receipt_id: String,
+    pub receipt_class: String,
+    pub presenter_state: String,
+    pub next_action: String,
+    pub terminal: bool,
+    pub product_ready: bool,
+    pub allowed_actions: Vec<String>,
+}
+
+impl LifecycleEntitlementReceiptClass {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::RecoveryReady => "recovery_ready",
+            Self::EvaluationReady => "evaluation_ready",
+            Self::PaidReady => "paid_ready",
+            Self::DevelopmentReady => "development_ready",
+            Self::BlockedEntitlement => "blocked_entitlement",
+        }
     }
 }
 
