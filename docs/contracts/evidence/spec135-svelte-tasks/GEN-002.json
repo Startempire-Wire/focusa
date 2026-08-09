@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "GEN-001"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/generated-operations-runtime.mjs",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": [],
+  "task_id": "GEN-002",
+  "result": "Governed Result, Evidence, Receipt, and generated delta: resolveOperationPermission is the ONLY gate \u2014 components cannot call an unregistered operation (unregistered_operation), cannot bypass the permission projection (disabled_by_projection/missing_authority_ref/blocked_reason), and preview-confirmation operations never execute. GovernedResult/GovernedEvidence/GovernedReceipt envelopes + GeneratedDelta durable events; no transcript Markdown is relabeled as generated GUI."
+}
