@@ -55,13 +55,15 @@ pub fn validate_geometry(geometry: &PtyGeometry) -> Result<(), GeometryError> {
 }
 
 /// PTY-007: acknowledgement for a guarded input write.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum PtyWriteAck {
     Accepted { sequence: u64 },
     Rejected { reason: WriteRejectionReason },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum WriteRejectionReason {
     ForeignAttachment,
     StaleGeneration,

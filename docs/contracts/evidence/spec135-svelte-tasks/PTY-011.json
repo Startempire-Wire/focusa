@@ -1,0 +1,37 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-011",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Governed runtime termination: closing a view (detach/unmount) and terminating the canonical runtime (close) are separate operations \u2014 registry.detach keeps the process alive and registered while close explicitly kills + removes it. Typed invoke surface (PTY-012) exposes Close/Detach as distinct commands; the invoke handler holds the app-managed registry that outlives views.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-004",
+      "PTY-010"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo test -p focusa-pty closing_a_view_and_terminating_runtime_are_separate",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-pty",
+      "result": "pass: 28 tests"
+    },
+    {
+      "command": "cargo check -p focusa-pty",
+      "result": "pass: 0 warnings"
+    },
+    {
+      "command": "cargo check --workspace",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}

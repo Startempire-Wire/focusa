@@ -8,5 +8,6 @@
 
 pub mod events;
 pub mod identity;
+pub mod invoke;
 pub mod process;
 pub mod registry;

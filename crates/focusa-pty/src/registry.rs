@@ -16,7 +16,8 @@ use crate::process::PtyProcessError;
 use crate::process::{InterruptAck, PtyCommandSpec, PtyProcess, PtyProcessResult};
 #[allow(unused_imports)]
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum RegistryChange {
     Spawned,
     Reattached,
@@ -78,6 +79,24 @@ impl PtyRegistry {
             .lock()
             .unwrap()
             .get(&Self::key(identity))
+            .cloned()
+    }
+
+    /// Resolve by exact attachment id + work surface id (no partial
+    /// authority grants access).
+    pub fn find(
+        &self,
+        attachment_id: &str,
+        work_surface_id: &str,
+    ) -> Option<Arc<PtyProcess>> {
+        self.processes
+            .lock()
+            .unwrap()
+            .values()
+            .find(|process| {
+                process.identity().attachment_key.attachment_id == attachment_id
+                    && process.identity().work_surface_id == work_surface_id
+            })
             .cloned()
     }
 
@@ -236,6 +255,23 @@ mod tests {
         assert_eq!(restarted.generation(), generation_before + 1, "fresh run generation");
         assert!(restarted.is_alive());
         registry.close(&sample_identity()).expect("close");
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    #[test]
+    fn closing_a_view_and_terminating_runtime_are_separate() {
+        let registry = PtyRegistry::new();
+        let (process, _) = registry
+            .attach(sample_identity(), shell_spec(), geometry())
+            .expect("attach");
+        // View close (unmount/detach) must NOT terminate the canonical runtime.
+        registry.detach(&sample_identity()).expect("detach");
+        assert!(process.is_alive(), "closing a view never terminates the process");
+        assert_eq!(registry.len(), 1, "runtime stays registered");
+        // Runtime termination is a separate, explicit operation.
+        registry.close(&sample_identity()).expect("close");
+        assert!(!process.is_alive(), "explicit close terminates the runtime");
+        assert_eq!(registry.len(), 0);
     }
 
     #[test]
