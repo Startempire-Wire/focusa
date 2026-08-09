@@ -1,0 +1,149 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.45
+Title: 152F.06.03 Prove verified Evaluation reaches first useful value
+Implementation commit: `5d8459b5a8574a9da672e1921152fdfd34c7abc4`
+(feat(spec152f): prove verified Evaluation reaches first useful value E2E)
+
+Exact surfaces
+- verified-email Evaluation fixture:
+  tests/fixtures/spec172-limited-access-cases.v1.json (30 canonical vectors,
+  schema focusa.spec172.limited_access_cases.v1) replayed against
+  docs/contracts/spec172-verified-limited-access.v1.yaml and the Rust
+  classifier constants; the deterministic php/sqlite journey drives the
+  canonical contracts read-only (spec152e-activation-registration /
+  email-identity / authority-account / account-promotion /
+  edd-customer-adapter / spec172-verified-access-posture /
+  spec172-signed-access-assertion / spec152e-evaluation-issuance /
+  spec172-limited-access-assertion-service)
+- EDD-backed key/lease: docs/contracts/spec152e-evaluation-issuance.v1.php,
+  docs/contracts/spec172-limited-access-assertion-service.v1.php,
+  docs/contracts/spec152e-edd-bound-lease-issuer.v1.php (authority-owned
+  signed envelopes only; no EDD order, no EDD key, no caller-controlled grant)
+- installer/first-run: crates/focusa-cli/src/commands/install.rs,
+  crates/focusa-cli/src/commands/activation_flow.rs,
+  crates/focusa-license/src/authority_store.rs,
+  scripts/install-focusa.sh + scripts/install-focusa.ps1 (read-only checks)
+- base Focusa project/Workpoint operation:
+  crates/focusa-core/src/license.rs (require_base_product) +
+  crates/focusa-license/src/entitlement_policy.rs
+  (resolve_base_focusa_product, BaseProductDecision, Spec 172 family classifier)
+- new test: tests/spec152f_evaluation_first_value_e2e_test.py (the exact
+  verification surface; no production file was changed)
+
+Bounded result
+- The complete verified Evaluation journey reaches the first useful Focusa
+  outcome with no local issuance, no duplicate customer/key, and no 395-step
+  paywall friction. The php harness starts with zero customers/postures/
+  assertions/nodes/leases, verifies the mailbox (OTP), promotes to exactly one
+  authority-owned EDD customer, and issues the eligible EDD-backed Evaluation:
+  decision `limited_access_issued` binding one verified_no_license posture +
+  one signed limited-access assertion + one registered node, with
+  duration `no_automatic_expiry` (no countdown, no timed Evaluation),
+  edd_order_id/edd_license_id NULL, creates_edd_license_key false, grant
+  source authority_signed_limited_access_assertion, authority sequence 1.
+  Idempotent replays return the identical result, a facade-switched duplicate
+  is denied (EVALUATION_NOT_ELIGIBLE, journaled audit row only), and a
+  caller-supplied price is denied (CLIENT_COMMERCIAL_FIELDS_FORBIDDEN) before
+  any journal side effect.
+- Signed runtime credential is real RFC 8032 Ed25519: the limited-access
+  assertion service issues (sequence 2, continuing the evaluation-recorded
+  sequence), verifies at adoption time, and refresh rotates to monotonic
+  sequence 3 without widening the allowlist; a tampered signature fails closed
+  (SIGNATURE_INVALID), an allowlist widened with a premium family fails closed
+  even when re-signed (ASSERTION_TAMPERED on the stored binding, and the
+  policy layer itself returns CAPABILITY_FAMILY_NOT_INCLUDED), and the stale
+  sequence fails closed (ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED).
+- Install/resume adopts only signed authority material: a sealed device-bound
+  envelope over the canonical FOCUSA-AUTHORITY-LEASE-V1 domain verifies with
+  the authority lease key id, the bounded synthetic runtime authority-state
+  record stores only signed envelopes and opaque references (never raw email,
+  keys, or customer identifiers), and resume re-verifies the adopted signed
+  assertion.
+- First useful value loop completes WITHOUT a card: the canonical limited-mode
+  preflight permits exactly one mutable active project plus manual Mission,
+  Focus State, Workpoint, Trajectory, and basic Evidence (all six manual
+  families recorded); the loop creates no EDD order, no EDD key, and no second
+  customer or Evaluation; read projection and basic export remain permanent
+  allowances.
+- Second-project mutation blocked with upgrade guidance: mutable_project_count
+  2 denies manual_project with the canonical evaluate action + evaluation
+  link and retained read/export access (the retained project is never deleted
+  or paywalled). All four paid tool families (automation, team_remote,
+  release_proof, premium_updates) are blocked with canonical purchase guidance
+  (purchase action + checkout link + retained access) and zero partial side
+  effects — one small family boundary, not 395 paywalls.
+- No premium grant unless the authority includes it: the posture allowlist is
+  exactly the server-owned six-family list, every signed assertion is bound to
+  it, and no signed assertion ever carries a premium family.
+- Redaction: evaluation journal rows and runtime authority-state columns carry
+  no raw email, no FOCUSA- key shapes, and no customer references; harness
+  output is byte-identical across runs and the gate uses only synthetic
+  reserved-domain addresses.
+- Static surface cross-checks: all 30 Spec 172 limited-access vectors replay
+  against the canonical registry (first-project allow at count 1, all five
+  sibling manual families allow, second-project deny at count 2, four premium
+  families deny); Rust classifier constants and the one-mutable-project
+  boundary match; base product resolution maps verified_no_license to
+  BaseProductDecision::Limited (only Entitled permits base mutations); core
+  require_base_product fails closed with LicenseError::BaseProductRequired;
+  installer surfaces never persist or self-issue an Evaluation, adopt only
+  signed Active/OfflineGrace authority state, embed production trust roots
+  only, and expose no --price/--product/--grant/--plan selectors; the denial
+  UX catalog and frozen evaluate/purchase upgrade labels are present; the CLI
+  operation map and menubar action map carry no product/price/grant selectors;
+  the canonical policy grid cell for verified_no_license is
+  base_focusa=allow_manual_one_mutable_project with the four paid families
+  denied.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_evaluation_first_value_e2e_test.py` — exit 0.
+   PASS (positive=165 negative=2 harness; 132 positive / 175 negative static);
+   summary schema focusa.spec152f.evaluation_first_value_e2e_validation.v1,
+   result=passed; one posture, three assertions (evaluation + issue +
+   refresh), one node, one EDD customer, zero EDD orders, zero EDD license
+   keys; first_value_families=6, mutable_projects=1,
+   second_project_blocked=true, premium_families_blocked=4,
+   refresh_sequence=3, assertion/lease/resume signatures verified,
+   widened_family_denied=true; harness output byte-identical across two runs
+   (deterministic; harness_output_sha256
+   a2725c73c9a9d2498d9f0173d033e8d69518e22c78d722af10baf1b3ae6465ae).
+
+Regression checks (exit codes)
+- `python3 tests/spec152f_entitlement_policy_vectors_test.py` — exit 0.
+- `python3 tests/spec152f_cli_presenter_test.py` — exit 0.
+- `python3 tests/spec152f_lifecycle_policy_test.py` — exit 0.
+- `python3 tests/spec152f_denial_ux_parity_test.py` — exit 0.
+- `python3 tests/spec152f_cross_presenter_parity_test.py` — exit 0.
+- `python3 tests/spec172_limited_access_contract_test.py` — exit 0.
+- `python3 tests/spec152e_eval_existing_source_e2e_test.py` — exit 0.
+- `python3 tests/spec152e_cli_activation_test.py` — exit 0.
+- `python3 tests/spec152f_entitlement_policy_contract_test.py` — exit 0.
+- `node tests/spec152f_menubar_action_map_test.mjs` — exit 0.
+- Pre-existing (verified failing on clean HEAD before this atom, not touched
+  by it): tests/spec152f_surface_reconciliation_contract_test.py fails its
+  stale/nondeterministic index assertion; out of this atom's exact surfaces.
+
+Tests added
+- tests/spec152f_evaluation_first_value_e2e_test.py (single build-independent
+  gate): deterministic php/sqlite journey (165 positive / 2 negative harness
+  checks, replayable byte-identically) covering the zero-customer baseline,
+  mailbox verification, authority promotion, EDD-backed Evaluation issuance,
+  node binding, signed Ed25519 assertion issue/verify/refresh, signed
+  envelope adoption and resume, the complete six-family first value loop, the
+  second-project and four paid-family denials with canonical upgrade guidance,
+  no-premium-grant-without-authority checks, and redaction; plus static
+  cross-checks of the 30-case limited-access fixture, the Rust base-product/
+  family-classifier surfaces, core require_base_product, the installer/first-
+  run surfaces, the denial UX catalog, and the no-395-paywall selectors.
+
+Rollback
+- Revert only implementation commit `5d8459b5a8574a9da672e1921152fdfd34c7abc4`
+  (the new test file tests/spec152f_evaluation_first_value_e2e_test.py) and
+  this evidence record if required. That reverts only the acceptance gate; no
+  policy, resolver, guard, route, presenter, installer, fixture, or contract
+  behavior is reverted because none was changed. Preserve customers, orders,
+  refunds, licenses, nodes, sequences, customer data, migration journals,
+  evidence, and already accepted authority behavior. No other atom's files
+  were modified.
+
+No push, deploy, release, merge, or Beads mutation was performed.
