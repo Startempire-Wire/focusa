@@ -1,0 +1,283 @@
+{
+  "contract_version": 1,
+  "schema": "focusa.spec152e.recovery_only_surface.v1",
+  "authority": {
+    "canonical": "WPUIAI.com EDD",
+    "rule": "denials map to exact safe recovery action; recovery preserves customer control and never grants entitlement",
+    "spec158": "excluded"
+  },
+  "invariants": {
+    "recovery_never_grants_entitlement": true,
+    "denial_returns_safe_next_action_only": true,
+    "protected_mutation_denied_before_side_effect": true,
+    "no_raw_authority_email_payment_or_credential": true,
+    "no_unverified_email_promotion": true,
+    "no_local_or_self_issued_entitlement": true
+  },
+  "denial_bindings": [
+    {
+      "class": "email",
+      "recovery_action": "verify_email",
+      "posture": "recovery_only",
+      "safe_next_actions": [
+        "provide_email",
+        "verify_email",
+        "restart_verification",
+        "retry_verification_within_budget",
+        "retry_or_use_recovery"
+      ],
+      "codes": [
+        "EMAIL_REQUIRED",
+        "EMAIL_VERIFICATION_REQUIRED",
+        "EMAIL_VERIFICATION_EXPIRED",
+        "EMAIL_VERIFICATION_FAILED",
+        "EMAIL_DELIVERY_FAILED"
+      ]
+    },
+    {
+      "class": "account",
+      "recovery_action": "verify_account_ownership",
+      "posture": "recovery_only",
+      "safe_next_actions": [
+        "verify_account_email",
+        "contact_support",
+        "use_registered_facade"
+      ],
+      "codes": [
+        "ACCOUNT_EMAIL_MISMATCH",
+        "ACCOUNT_MERGE_REVIEW_REQUIRED",
+        "FACADE_ORIGIN_DENIED"
+      ]
+    },
+    {
+      "class": "payment",
+      "recovery_action": "complete_or_verify_checkout",
+      "posture": "recovery_only",
+      "safe_next_actions": [
+        "open_checkout",
+        "poll_after_retry_after",
+        "verify_checkout_identity",
+        "select_paid_or_limited_access",
+        "wait_for_product_mapping",
+        "select_supported_product"
+      ],
+      "codes": [
+        "EDD_CHECKOUT_REQUIRED",
+        "EDD_ORDER_PENDING",
+        "EDD_ORDER_UNVERIFIED",
+        "EVALUATION_NOT_ELIGIBLE",
+        "PRODUCT_MAPPING_REQUIRED",
+        "FACADE_PRODUCT_DENIED"
+      ]
+    },
+    {
+      "class": "license",
+      "recovery_action": "authenticated_recovery",
+      "posture": "recovery_only",
+      "safe_next_actions": [
+        "poll_after_retry_after",
+        "recovery_only",
+        "authenticated_recovery",
+        "verify_license_owner"
+      ],
+      "codes": [
+        "EDD_LICENSE_PENDING",
+        "EDD_LICENSE_UNUSABLE",
+        "LICENSE_DELIVERY_PENDING",
+        "LICENSE_DELIVERY_FAILED",
+        "LICENSE_ACCOUNT_MISMATCH",
+        "REFUNDED",
+        "REVOKED"
+      ]
+    },
+    {
+      "class": "node",
+      "recovery_action": "manage_nodes",
+      "posture": "recovery_only",
+      "safe_next_actions": [
+        "manage_nodes"
+      ],
+      "codes": [
+        "NODE_LIMIT_EXHAUSTED"
+      ]
+    },
+    {
+      "class": "lease",
+      "recovery_action": "refresh_or_reactivate_lease",
+      "posture": "recovery_only",
+      "safe_next_actions": [
+        "retry_or_use_recovery",
+        "activate_or_manage_license",
+        "manage_license",
+        "manage_limit"
+      ],
+      "codes": [
+        "EDD_CUSTOMER_RESOLUTION_FAILED",
+        "AUTHORITY_UNAVAILABLE",
+        "ENTITLEMENT_REQUIRED",
+        "ENTITLEMENT_FEATURE_REQUIRED",
+        "ENTITLEMENT_LIMIT_EXHAUSTED"
+      ]
+    },
+    {
+      "class": "activation_mechanics",
+      "recovery_action": "restart_or_recover_activation",
+      "posture": "recovery_only",
+      "safe_next_actions": [
+        "send_new_request_id",
+        "send_idempotency_key",
+        "use_original_request_or_new_key",
+        "retry_same_idempotency_key",
+        "restart_or_recover_activation"
+      ],
+      "codes": [
+        "REQUEST_ID_REQUIRED",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "IDEMPOTENCY_CONFLICT",
+        "REQUEST_IN_PROGRESS",
+        "POLL_CREDENTIAL_REQUIRED",
+        "POLL_CREDENTIAL_EXPIRED"
+      ]
+    }
+  ],
+  "runtime_denial_bindings": {
+    "ENTITLEMENT_BASE_REQUIRED": {
+      "class": "lease",
+      "recovery_action": "reactivate_or_repair_lease"
+    },
+    "ENTITLEMENT_REQUIRED": {
+      "class": "lease",
+      "recovery_action": "activate_or_manage_license"
+    },
+    "ENTITLEMENT_FEATURE_REQUIRED": {
+      "class": "lease",
+      "recovery_action": "manage_license"
+    },
+    "ENTITLEMENT_LIMIT_EXHAUSTED": {
+      "class": "lease",
+      "recovery_action": "manage_limit"
+    },
+    "ENTITLEMENT_IDEMPOTENCY_REQUIRED": {
+      "class": "activation_mechanics",
+      "recovery_action": "send_idempotency_key"
+    },
+    "ENTITLEMENT_RESERVATION_FAILED": {
+      "class": "lease",
+      "recovery_action": "retry_or_use_recovery"
+    },
+    "ENTITLEMENT_ROUTE_UNCLASSIFIED": {
+      "class": "lease",
+      "recovery_action": "recovery_only"
+    }
+  },
+  "default_runtime_denial": {
+    "class": "lease",
+    "recovery_action": "recovery_only"
+  },
+  "recovery_surfaces": [
+    {
+      "surface": "account_verification",
+      "action": "verify_email",
+      "allowance": "account_recovery",
+      "daemon_paths": [
+        "/v1/device/pair/status",
+        "/v1/device/pair/revoke"
+      ]
+    },
+    {
+      "surface": "license_status_management",
+      "action": "manage_license",
+      "allowance": "read_exempt",
+      "daemon_paths": [
+        "/v1/license/status"
+      ]
+    },
+    {
+      "surface": "export",
+      "action": "export_customer_data",
+      "allowance": "customer_data_export",
+      "daemon_paths": [
+        "/v1/export/run",
+        "/v1/export/status",
+        "/v1/export/history",
+        "/v1/export/manifest/{export_id}"
+      ]
+    },
+    {
+      "surface": "diagnostics",
+      "action": "run_diagnostics",
+      "allowance": "account_recovery",
+      "daemon_paths": [
+        "/v1/doctor",
+        "/v1/doctor/closure"
+      ]
+    },
+    {
+      "surface": "repair",
+      "action": "repair_rollback",
+      "allowance": "repair_rollback",
+      "daemon_paths": [
+        "/v1/project/bootstrap/repair",
+        "/v1/update/rollback"
+      ]
+    },
+    {
+      "surface": "update_for_recovery",
+      "action": "stable_security_update",
+      "allowance": "stable_security_update",
+      "daemon_paths": [
+        "/v1/update/apply",
+        "/v1/update/check",
+        "/v1/update/plan"
+      ]
+    },
+    {
+      "surface": "uninstall",
+      "action": "uninstall_preserving_user_data",
+      "allowance": "uninstall",
+      "daemon_paths": [],
+      "presenters": [
+        "cli",
+        "installer",
+        "agent"
+      ],
+      "note": "uninstall is a local lifecycle surface (RecoveryAllowance::Uninstall) that preserves user data; it never runs through the entitlement gate and never grants entitlement."
+    }
+  ],
+  "forbidden_protected_mutations": [
+    "/v1/workpoint/checkpoint",
+    "/v1/evidence/capture",
+    "/v1/turn/start",
+    "/v1/metacognition/capture",
+    "/v1/silent-sessions/session-1/start",
+    "/v1/project/new",
+    "/v1/connect/room/create",
+    "/v1/constitution/propose",
+    "/v1/project/bootstrap/apply",
+    "/v1/silent-sessions",
+    "/v1/device/pair/list",
+    "/v1/connect/rooms"
+  ],
+  "consistency": {
+    "surfaces": [
+      "api",
+      "cli",
+      "tui",
+      "menubar",
+      "agent"
+    ],
+    "status_path": "/v1/license/status",
+    "recovery_message": "recovery, export, repair, and uninstall remain available",
+    "envelope_allowed": [
+      "health",
+      "version",
+      "license_status",
+      "export",
+      "diagnostics",
+      "repair",
+      "update_for_recovery",
+      "uninstall",
+      "safe_read"
+    ]
+  }
+}

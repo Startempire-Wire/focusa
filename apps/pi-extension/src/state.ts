@@ -777,7 +777,18 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
               limit_bucket: blocked?.error?.limit_bucket || null,
               recovery: blocked?.error?.recovery || {
                 status_path: "/v1/license/status",
-                allowed: ["health", "version", "license_recovery", "safe_read"],
+                action: "recovery_only",
+                allowed: [
+                  "health",
+                  "version",
+                  "license_status",
+                  "export",
+                  "diagnostics",
+                  "repair",
+                  "update_for_recovery",
+                  "uninstall",
+                  "safe_read",
+                ],
               },
             },
           };
