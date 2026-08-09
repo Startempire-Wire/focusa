@@ -1,0 +1,95 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.38
+Title: 152F.05.02 Project canonical decisions through menubar and TUI
+Implementation commit: `7a4b22b8` (feat(spec152f): project canonical decisions through menubar and TUI)
+
+Exact surfaces
+- apps/menubar entitlement components/API: apps/menubar/src/lib/entitlementPosture.ts,
+  apps/menubar/src/lib/components/EntitlementPosture.svelte
+- crates/focusa-tui/src/api.rs (denial surface, unchanged) and views:
+  crates/focusa-tui/src/activation_presenter.rs, crates/focusa-tui/src/views/deck_home.rs
+- Action map: docs/contracts/spec152f-menubar-action-map.v1.json (accessibility fixtures)
+
+Bounded result
+- Menubar and TUI now project the same canonical entitlement decision, next
+  action, and recovery action for every entitlement state (active,
+  offline_grace, expired, revoked, invalid, unactivated) using the frozen
+  Spec 152E presenter vocabulary; neither presenter re-decides policy.
+- Added `ALWAYS_REACHABLE_ACTIONS` and an `action_guide` projection to
+  apps/menubar/src/lib/entitlementPosture.ts: navigation, status, account,
+  read, export, recovery, repair, update, and uninstall are never disabled by
+  a denied entitlement decision, and every denied/missing value action
+  carries an accessible explanation plus an Evaluation/purchase/recovery
+  action label. The menubar EntitlementPosture component renders an
+  accessible status region (role=status, aria-live=polite, aria-label) and
+  has no entitlement-dependent `disabled` control (the only `disabled`
+  binding is the busy state of the Refresh control).
+- crates/focusa-tui/src/activation_presenter.rs mirrors the same frozen
+  always-reachable set (`ALWAYS_REACHABLE`), extends the license posture
+  status line with the identical recovery sentence ("Recovery, export,
+  repair, and uninstall remain available when execution is locked"), and
+  adds `TuiLicensePosture::action_guide()` (next-action label +
+  always-reachable set). Deck Home renders the shared posture and the action
+  guide; the TUI API denial message keeps "recovery, export, repair, and
+  uninstall remain available".
+- docs/contracts/spec152f-menubar-action-map.v1.json gains frozen
+  accessibility fixtures (always-reachable set and rules: no disabled
+  control traps the customer away from data or purchase; denied value
+  actions carry an accessible explanation and an Evaluation/purchase/
+  recovery action; presenters never own component-local commercial policy).
+- No component-local policy was introduced or left behind: no pricing,
+  SKU, grant, Evaluation-issuance, lease-issuance, or caller-controlled
+  product/price/grant input on either presenter; the 83-action map is
+  unchanged in classification (48 navigation_display / 26 recovery_account /
+  9 canonical_operation) and no action is marked disabled.
+
+Exact verification (exit codes)
+1. `node apps/menubar/tests/entitlement-posture.mjs` — exit 0.
+   "menubar entitlement posture semantic tests passed" (unchanged test).
+2. `python3 tests/spec152_tui_entitlement_gate_test.py` — exit 0.
+   "Spec152 TUI entitlement gate: PASS" (unchanged test).
+3. `node tests/spec152f_presenter_accessibility_test.mjs` — exit 0.
+   "spec152f presenter parity and accessibility: PASS (300 assertions)"
+   New test: parity of menubar/TUI decision and recovery action across all
+   six entitlement states, recovery-policy parity, no-disabled-trap
+   accessibility fixtures, and absence of component-local commercial
+   policy on both presenters.
+
+Regression checks (exit codes)
+- `node tests/spec152f_menubar_action_map_test.mjs` — exit 0: 933 assertions
+  passed, 83/83 baseline actions mapped.
+- `node apps/menubar/tests/spec152e_activation.mjs` — exit 0.
+- `node apps/menubar/tests/first-run-entitlement.mjs` — exit 0.
+- `python3 tests/spec152e_tui_rest_activation_test.py` — exit 0
+  (positive=181 negative=13).
+- `python3 tests/spec152e_recovery_only_surface_test.py` — exit 0.
+- `python3 tests/spec152e_presenter_parity_test.py` — exit 0.
+- `python3 tests/spec152f_recovery_matrix_test.py` — exit 0.
+- `python3 tests/spec152f_operation_policy_metadata_test.py` — exit 0.
+- `cargo check -p focusa-tui` — exit 0, finished cleanly (OVH remote build).
+- `cargo test -p focusa-tui activation_presenter` — exit 0: 5 passed,
+  0 failed (45 filtered out).
+- Pre-existing, unrelated failure (reproduced identically at the base commit
+  in the sibling atom worktree focusa-vbcqu.20.14.37): 
+  `python3 tests/spec152f_cli_operation_map_test.py` fails its
+  CLI-map-vs-reconciliation-shard cross-reference. It compares CLI operation
+  map JSON to the CLI reconciliation shard (CLI surfaces, not this atom's
+  exact surfaces) and is untouched by this atom.
+
+Tests added
+- tests/spec152f_presenter_accessibility_test.mjs: 300 assertions covering
+  menubar/TUI decision+recovery parity for all six entitlement states, the
+  frozen always-reachable set on menubar posture, TUI presenter, TUI API
+  denial message, TUI Deck Home view, and the action map fixtures; the
+  no-disabled-trap accessibility rule (component level and action map);
+  and no-component-local-policy markers on both presenters.
+
+Rollback
+- Revert only this atom's implementation commit `7a4b22b8` (and this
+  evidence record if required). Preserve customers, orders, refunds,
+  licenses, nodes, sequences, customer data, migration journals, and
+  accepted authority/evidence state. Reverting restores the prior menubar/
+  TUI presenter projections without weakening EDD identity/commerce,
+  signed-lease, refund/revoke, node, sequence, or recovery authority.
+
+No push, deploy, release, merge, or Beads mutation was performed.
