@@ -1,0 +1,153 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.35
+Title: 172.05.04 Prove Bundle price, union, shared nodes, and whole refund
+Implementation commit: `a3dbd4ef` (E2E receipt gate; evidence record follows
+in this commit)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.15.35 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- Bundle EDD order/key/lease (dedicated download 460 ->
+  focusa_uiai_operator_bundle_lifetime_v1 at exactly $1,254.60 / 125460
+  minor; one composite SKU; one canonical EDD Software Licensing human key;
+  lifetime; one operator seat; three shared operator_shared_v1 nodes;
+  whole-order 30-day refund; Download 453 quarantined; test mode with
+  checkout disabled — no live charge)
+- Both product operations (Bundle order policy + activation: Focusa base
+  product gate and UIAI paid families resolve from the one Bundle on one
+  account; Cockpit exact-union resolution)
+- Shared node set (operator_shared_v1 three-node baseline; never six
+  unrelated activations)
+- Refund/outbox/reconciliation fixtures (whole-order 30-day refund truth
+  adapter; component refund rejection; settlement outbox exactly-once
+  dispatch; bounded reconciler; paid -> limited assertion transition
+  fixture)
+- tests/spec172_bundle_e2e_test.py (NEW — exact verification)
+
+Bounded result
+- Added `tests/spec172_bundle_e2e_test.py`: a cross-surface E2E receipt
+  (`focusa.spec172.bundle_e2e.v1`) that proves the required journey end to
+  end in seven stages with real exit codes and a single bounded, redacted
+  JSON line (193 positive checks, 0 negative, one JSON line).
+- Stage 1 — Bundle EDD order/key/lease (test-mode purchase, no live charge):
+  replays the accepted PHP gates `tests/spec172_edd_operator_products_test.php`,
+  `tests/spec172_edd_commerce_acceptance_test.php`, and
+  `tests/spec172_bundle_composition_test.php` (all exit 0) and binds the
+  frozen dedicated Downloads contract: download 460 -> the Bundle at
+  exactly 125460 minor units / $1,254.60, `composite_sku_ref` = the one
+  composite SKU, `grant_composition` exact_union with exactly the two
+  underlying Operator v1 License Types, lifetime, one operator seat, three
+  shared operator_shared_v1 nodes, `checkout_enabled=false` and
+  `approved_not_yet_enabled` (test mode — no live charge), whole-order
+  30-day refund, `component_refunds_allowed=false`, no future product or
+  future License Type, Download 453 quarantined (`forbidden_implicit_download`
+  453), frozen minor sum 69700+69700+125460=264860. The canonical License
+  Type registry and the public facade convergence fixture carry the same
+  $697.00/$697.00/$1,254.60 price set with the 10%-below-standalone math
+  (1394.00 -> 1254.60, 1000 basis points).
+- Stage 2 — One key / two grants / no extras / three shared nodes: the
+  Bundle is ONE composite SKU and ONE canonical EDD human key; the semantic
+  grants equal exactly the two underlying Operator v1 License Types; the
+  12-family union (5 Focusa + 7 UIAI) is DERIVED from the two frozen
+  records (`FocusaSpec172FocusaOperatorProjector::FROZEN_FAMILIES` +
+  `UiaiSpec172UiaiOperatorProjector::FROZEN_FAMILIES`), never a third
+  hand-copied list; future products and future License Types never enter;
+  the same three shared node identities serve both products (never six
+  unrelated activations); the composition gate proves exactly one
+  projection journal row with human_key_count 1.
+- Stage 3 — Union digest comparison: the frozen family digest
+  (`80d4034fc056b4bf930c33d6c71a8f93b291b5b330482f06f8fe531a0d1b7d2e`) is
+  recomputed independently in Python (sha256 over the ksort'ed canonical
+  JSON of sku / grant_composition / grants / family_sets / authority) from
+  the two underlying frozen family records and compared byte-for-byte with
+  the composition gate digest, the registry digest, and the projection
+  journal digest; a third grant provably changes the digest and the
+  non-exact-union offer fails closed with PRODUCT_MAPPING_REQUIRED.
+- Stage 4 — Both product operations: the live Rust vectors via `cargo`
+  prove the exact two-product union at the frozen price on one account
+  (bundle_activation: 5 passed; spec172: 16 passed plus the integration
+  suites, all exit 0); `resolve_bundle_order_policy` freezes 125460 minor /
+  1254.60 USD, one EDD order, one human key, three shared nodes,
+  whole-order refunds, no third feature catalog; activation requires BOTH
+  grants on one account (BundleGrantRequired / BundleAccountMismatch /
+  SharedNodeIdentityViolation / AccountIdentityRequired /
+  ProductMappingRequired fail closed); typed recoverable partial state
+  never duplicates payment/license; the Cockpit surface proves the Bundle
+  account resolves the exact union (`spec172_cockpit_bundle_account_resolves_exact_union`)
+  while hosted/private vectors stay denied; the base Focusa product gate
+  and the reducer's base-then-feature posture are unchanged.
+- Stage 5 — Reject component refund: the frozen Bundle offer is whole-order
+  only (`component_refunds_allowed=false`); the canonical refund truth
+  adapter derives scope exclusively from canonical EDD rows and fails closed
+  with COMPONENT_REFUND_UNSUPPORTED / REFUND_TRUTH_UNKNOWN /
+  REFUND_WINDOW_EXPIRED; caller-selected scope/amount/date/grants are
+  forbidden (CLIENT_COMMERCIAL_FIELDS_FORBIDDEN); a denied refund never
+  removes paid grants and never bumps the authority sequence. Replays
+  `tests/spec172_refund_downgrade_test.php` (exit 0).
+- Stage 6 — Refund whole order: the 30-day whole-order refund settles once
+  with scope=whole_order, grants_revoked=2, paid_grants_active=false, the
+  account's monotonic authority sequence advancing 1 -> 2, and the
+  still-mailbox-verified account returning to `verified_no_license` limited
+  mode; every customer/order/license/projection/account/registration row is
+  preserved (9 customers, 9 orders, 9 licenses, 6 refund rows, 9
+  projections, 9 accounts, 9 registrations — nothing deleted); stale
+  complete/unsuspend cache events fail closed with
+  LICENSE_TERMINAL_REACTIVATION_DENIED and out-of-order events with
+  ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED.
+- Stage 7 — Outbox/reconciliation fixtures and limited data remains: each
+  applied settlement appends one signed transactional outbox envelope
+  delivered exactly once through the unique delivery ledger (tampered
+  envelopes dead-letter with OUTBOX_DIGEST_INVALID); the bounded reconciler
+  repairs the missing settlement and converges (second apply run repairs
+  zero); the paid -> limited assertion transition fixture keeps ONLY the
+  frozen limited families plus permanent safety allowances
+  (read_projection, basic_customer_data_export, account_control,
+  device_control, license_status, diagnostics, repair, rollback,
+  stable_security_update, uninstall) and rejects stale paid credentials
+  (PAID_GRANT_REVOKED / STALE_CREDENTIAL_SUPERSEDED) and any limited-family
+  widening (LIMITED_FAMILY_WIDENING_DENIED); the policy reducer keeps the
+  read projection and account recovery/basic export available in
+  refunded/revoked posture and the limited project guard never deletes
+  data.
+
+Exact verification (exit codes)
+`python3 tests/spec172_bundle_e2e_test.py` — exit 0.
+  - Replay gates (all exit 0):
+    php tests/spec172_edd_operator_products_test.php
+    php tests/spec172_edd_commerce_acceptance_test.php
+    php tests/spec172_bundle_composition_test.php
+    php tests/spec172_refund_downgrade_test.php
+  - Cargo runs (all exit 0):
+    cargo test -p focusa-license bundle_activation — test result: ok.
+      5 passed; 0 failed (130 filtered out) + integration suites 0 failed.
+    cargo test -p focusa-license spec172 — test result: ok. 16 passed;
+      0 failed (119 filtered out) + integration suites 12/12/7/7 passed;
+      0 failed.
+  - Receipt: focusa.spec172.bundle_e2e.v1, positive_checks 193,
+    negative_checks 0, union_digest 80d4034fc056b4bf930c33d6c71a8f93b291b5b330482f06f8fe531a0d1b7d2e,
+    replay_gate_exit_codes_all_zero true, cargo_runs_all_zero true,
+    result passed_fail_closed.
+
+Regression checks (exit codes)
+- `php tests/spec172_bundle_composition_test.php` — exit 0 (replayed in-gate).
+- `php tests/spec172_refund_downgrade_test.php` — exit 0 (replayed in-gate).
+- No other source file was modified; no behavior change to any accepted
+  surface (the new test only reads contracts/sources and replays the
+  accepted gates).
+
+Tests added
+- tests/spec172_bundle_e2e_test.py — seven-stage cross-surface E2E receipt:
+  1_bundle_edd_order_key_lease, 2_one_key_two_grants_no_extras_three_shared_nodes,
+  3_union_digest_comparison, 4_both_product_operations,
+  5_reject_component_refund, 6_refund_whole_order,
+  7_outbox_reconciliation_limited_data.
+
+Rollback
+- Revert only this atom: `git revert a3dbd4ef` (the E2E receipt gate) and
+  drop `docs/evidence/spec172/focusa-vbcqu.20.15.35-acceptance.txt` if
+  required. Preserve verified identities, customers, orders, refunds,
+  License Types, keys, nodes, sequences, data, migration journals,
+  evidence, and accepted unrelated work (atoms 20.15.15/20.15.16/20.15.34
+  and all prior spec152/152E/152F work remain untouched).
+
+No push, deploy, release, merge, or Beads mutation was performed.
