@@ -16,11 +16,124 @@
 const KEYCHAIN_SERVICE: &str = "Focusa Menubar Device Token";
 const BRIDGE_CALLBACK_MAX_BODY: usize = 64 * 1024;
 
+/// Spec 172 Desktop command bridge and action registry: native/Tauri/local
+/// commands resolve through the frozen desktop action registry and are
+/// forwarded to the daemon core guard. The bridge never evaluates
+/// entitlement and never touches storage or reducers directly
+/// (docs/172-focusa-spec152-license-type-and-surface-entitlement-
+/// governance-addendum.md §11.4, §12, §15).
+mod spec172_desktop_bridge;
+
 use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream, UdpSocket};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
+/// Extract the typed Spec 172 desktop status envelope from the daemon
+/// `GET /v1/license/status` payload. Presenter-safe extraction only: no
+/// caller-supplied product, price, License Type, family, feature, limit, or
+/// node value is accepted.
+fn desktop_status_envelope(
+    payload: &serde_json::Value,
+) -> spec172_desktop_bridge::DesktopStatusEnvelope {
+    let get_str = |key: &str| -> String {
+        payload
+            .get(key)
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("")
+            .to_string()
+    };
+    let get_strs = |key: &str| -> Vec<String> {
+        payload
+            .get(key)
+            .and_then(serde_json::Value::as_array)
+            .map(|values| {
+                values
+                    .iter()
+                    .filter_map(serde_json::Value::as_str)
+                    .map(str::to_string)
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let allowed_actions = payload
+        .get("presenter")
+        .and_then(|presenter| presenter.get("allowed_actions"))
+        .and_then(serde_json::Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(serde_json::Value::as_str)
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default();
+    spec172_desktop_bridge::DesktopStatusEnvelope {
+        status: get_str("status"),
+        posture: get_str("posture"),
+        product: get_str("product"),
+        license_type: payload
+            .get("license_type")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string),
+        product_grants: get_strs("product_grants"),
+        family: get_str("family"),
+        allowed_actions,
+    }
+}
+
+/// Spec 172 Desktop command bridge: resolve a native/Tauri/local desktop
+/// action against the frozen registry and return the daemon route to call.
+/// Unknown actions fail closed; value-producing actions always forward to
+/// the shared core execution guard (the daemon), never to local storage or
+/// reducers. The bridge never evaluates entitlement itself.
+#[tauri::command]
+fn focusa_desktop_route_action(action_id: String) -> Result<serde_json::Value, String> {
+    let Some(resolution) = spec172_desktop_bridge::resolve_desktop_action(&action_id) else {
+        return Err(format!("unknown desktop action: {action_id}"));
+    };
+    Ok(serde_json::json!({
+        "schema": "focusa.spec172.desktop_action_resolution.v1",
+        "action_id": resolution.action_id,
+        "operation_id": resolution.operation_id,
+        "class": resolution.class,
+        "family": resolution.family,
+        "method": resolution.method,
+        "path": resolution.path,
+        "mutation": resolution.mutation,
+        "forwards_to_core_guard": resolution.forwards_to_core_guard,
+        "local_storage": resolution.local_storage,
+        "direct_storage": resolution.direct_storage,
+    }))
+}
+
+/// Spec 172 Desktop presenter projection: render the canonical posture
+/// envelope (focusa.spec172.presenter_projection.v1) from the daemon
+/// `GET /v1/license/status` payload so Desktop decisions are identical to
+/// CLI/API. Read-only; the bridge never mints a grant, License Type, or
+/// upgrade.
+#[tauri::command]
+fn focusa_desktop_spec172_posture(payload: serde_json::Value) -> Result<serde_json::Value, String> {
+    let envelope = desktop_status_envelope(&payload);
+    let posture = spec172_desktop_bridge::project_desktop_spec172_posture(&envelope);
+    // Build the canonical envelope explicitly: the bridge module is std-only
+    // (no serde) so it can be compiled standalone, and the envelope keys stay
+    // byte-identical to the CLI/API presenter projection.
+    Ok(serde_json::json!({
+        "schema": posture.schema,
+        "posture": posture.posture,
+        "product": posture.product,
+        "license_type": posture.license_type,
+        "family": posture.family,
+        "denial": posture.denial,
+        "retained_access": posture.retained_access.iter().copied().collect::<Vec<&'static str>>(),
+        "upgrade_action": posture.upgrade_action,
+        "recovery_action": posture.recovery_action,
+        "grant_inferred_from_surface": posture.grant_inferred_from_surface,
+        "same_node": posture.same_node,
+    }))
+}
 
 /// Spec104 MBN-01 typed scope envelope for bridge messages.
 #[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
@@ -489,6 +602,8 @@ fn main() {
             focusa_start_bridge_callback,
             focusa_take_bridge_completion,
             focusa_discover_via_bonjour,
+            focusa_desktop_route_action,
+            focusa_desktop_spec172_posture,
         ])
         .setup(|app| {
             // macOS: hide dock icon — menubar-only app
