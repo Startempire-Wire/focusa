@@ -1,0 +1,147 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.42
+Title: 152F.05.06 Standardize denial, purchase, and recovery UX
+
+Implementation commit: `8a880f30` (feat(spec152f): standardize denial,
+purchase, and recovery UX)
+
+Exact surfaces
+- stable error registry:
+  crates/focusa-license/src/denial_ux.rs (typed, fail-closed
+  DenialUxErrorCode / DenialUxErrorSpec / DenialUxMessage / DenialUxKind,
+  registered from crates/focusa-license/src/lib.rs) and
+  docs/contracts/spec152f-denial-ux-catalog.v1.json (the committed
+  cross-presenter artifact, embedded verbatim by the Rust contract via
+  include_str!)
+- CLI/desktop/TUI/Pi/facade message fixtures:
+  docs/contracts/spec152f-denial-ux-catalog.v1.json (canonical catalog with a
+  7-state x 9-family message grid, frozen rules, and presenter bindings),
+  public/activation/focusa-denial-ux-catalog.mjs (browser/Pi-importable JS
+  fixture, byte-identical to the JSON), and read-only parity cross-checks of
+  the existing presenter fixtures (CLI fixtures, menubar action map, TUI
+  activation presenter, Pi policy adapter, facade policy presenter)
+- account/evaluation/checkout/recovery links:
+  stable relative links /account, /activate/evaluate, /activate/checkout,
+  /activate/recovery shared by the Rust contract, the catalog artifact, and
+  the JS fixture; checkout/manage/recovery paths cross-checked against the
+  Spec 152E facade registry (read-only)
+- tests: tests/spec152f_denial_ux_parity_test.py
+
+Bounded result
+- Added the typed denial/purchase/recovery UX contract
+  (crates/focusa-license/src/denial_ux.rs). DenialUxErrorCode is a closed
+  enum of the 10 stable error codes (ENTITLEMENT_BASE_REQUIRED,
+  ENTITLEMENT_FEATURE_REQUIRED, ENTITLEMENT_REQUIRED,
+  ENTITLEMENT_LIMIT_EXHAUSTED, ENTITLEMENT_RECOVERY_ONLY,
+  ENTITLEMENT_SNAPSHOT_MISSING, ENTITLEMENT_ROUTE_UNCLASSIFIED,
+  ENTITLEMENT_POLICY_UNKNOWN, ENTITLEMENT_RESERVATION_FAILED,
+  ENTITLEMENT_IDEMPOTENCY_REQUIRED) with fail-closed label lookup;
+  DenialUxErrorSpec carries http status, retryable flag, plain-language
+  public message, one safe next action, its label, and a stable link.
+  DenialUxMessage derives the canonical grid message via
+  denial_ux_message_for(state, family) from the authority reducer
+  (reduce_entitlement_state) and denial_ux_message_for_code(code); unknown
+  codes, states, families, and links fail closed (never rendered). Every
+  message lists the frozen 9-entry retained-access set (navigation, status,
+  account, read, export, recovery, repair, update, uninstall) and exactly one
+  safe next action; preserves_route() proves every gated message keeps a
+  route to purchase or recovery.
+- Committed the cross-presenter message catalog
+  (docs/contracts/spec152f-denial-ux-catalog.v1.json, schema
+  focusa.spec152f.denial_ux_catalog.v1): 63 state/family cells, each with a
+  plain-language blocked action, reason, retained access, one safe next
+  action, and a link; the 10-entry stable error registry; the four stable
+  links; the frozen 9-entry always-reachable set; 7 public-message rules; and
+  presenter bindings for CLI, desktop/menubar, TUI, Pi/agent, and branded
+  facades. The Rust contract embeds the artifact bytes
+  (DENIAL_UX_CATALOG_JSON / embedded_denial_ux_catalog) and its unit tests
+  prove the typed derivation is identical to the artifact for all 63 cells.
+- Added the JS message fixture
+  (public/activation/focusa-denial-ux-catalog.mjs): projectDenialUxMessage
+  and messageForErrorCode return the canonical message and reject spoofed
+  input (unknown state/family/code, grid+code ambiguity, raw identities,
+  grants, prices, absolute redirect links, query-bearing links) by returning
+  null; denialUxLink resolves only the four stable relative paths.
+- No internal route/lease details, no false urgency, no account enumeration,
+  no raw email/key/token, and no dead-end paywalls: enforced by the generator
+  self-check and by the parity test's forbidden-substring/word scan over every
+  customer-facing message field. Account recovery, read, customer-data
+  export, repair, stable security update, rollback, and uninstall allowances
+  are never disabled by the catalog (all retained in every message).
+- No local/self-issued Evaluation; no caller-controlled product/price/grants;
+  no presenter-owned commercial decision; no raw keys/tokens/customer PII in
+  code, tests, or evidence; no 395 independent paywalls (one registry);
+  customer data export, account control, repair, stable security update,
+  rollback, and uninstall allowances untouched.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_denial_ux_parity_test.py` — exit 0.
+   "spec152f denial/purchase/recovery UX parity: PASS (positive=3032
+   negative=10)". Proves: (a) contract artifact presence (Rust module
+   registered and re-exported, catalog JSON schema, JS fixture exports); (b)
+   stable error registry with 10 codes, fail-closed label/link/action lookup
+   and no setters or grant/price fields on the message/spec structs; (c)
+   registry parity — Rust MSG_* constants, JSON artifact public_message, and
+   the JS runtime registry dump are identical; (d) message grid completeness
+   — all 63 state/family cells carry plain-language blocked action, reason,
+   retained access (subset of the 9-entry always-reachable set), exactly one
+   safe next action, and a stable link; (e) redaction — no internal
+   route/lease details, no false urgency, no account enumeration, no raw
+   email/key/token anywhere in customer-facing text; (f) no dead-end paywalls
+   — every gated cell preserves a route to purchase or recovery; (g) stable
+   account/evaluation/checkout/recovery links, cross-checked against the
+   Spec 152E facade registry (checkout /activate/checkout, manage /account,
+   recovery /activate/recovery); (h) cross-presenter fixture parity —
+   read-only checks that the CLI fixtures, menubar action map, TUI presenter,
+   Pi adapter, and facade presenter bind the catalog vocabulary and the
+   identical 9-entry always-reachable set; (i) runtime JS parity — all 63
+   cells and all 10 codes project byte-identical messages; (j) fail-closed
+   runtime behavior (10 negative checks).
+2. `cargo test -p focusa-license denial_ux` — exit 0.
+   "test result: ok. 5 passed; 0 failed; 0 ignored (120 filtered out)",
+   including derived_messages_are_identical_to_embedded_artifact,
+   embedded_catalog_is_loadable_and_complete,
+   denied_messages_always_preserve_a_route,
+   frozen_contract_surface_matches_catalog,
+   error_specs_are_stable_and_redacted (OVH remote build).
+
+Regression checks (exit codes)
+- `cargo check -p focusa-license` — exit 0, finished cleanly.
+- `cargo test -p focusa-license` — exit 0: 331 unit/integration tests passed,
+  0 failed (OVH remote build), including the 5 new denial_ux tests.
+- `python3 tests/spec152f_facade_policy_presenter_test.py` — exit 0
+  (positive=150 negative=18).
+- `node tests/spec152f_presenter_accessibility_test.mjs` — exit 0
+  (300 assertions; menubar/TUI parity unchanged).
+- `python3 tests/spec152f_lifecycle_policy_test.py` — exit 0 (4 reconcile
+  tests, 9 canonical families).
+
+Tests added
+- crates/focusa-license/src/denial_ux.rs unit tests (5):
+  frozen_contract_surface_matches_catalog (frozen sizes, fail-closed
+  lookups, label round-trips), embedded_catalog_is_loadable_and_complete
+  (63-cell grid, 10-code registry, artifact schema, links resolve),
+  derived_messages_are_identical_to_embedded_artifact (all 63 cells:
+  code/action/link/label/reason/blocked-action parity between the typed
+  derivation and the embedded artifact),
+  denied_messages_always_preserve_a_route (retained access always the frozen
+  set; gated messages carry a code and a route), and
+  error_specs_are_stable_and_redacted (http status bounds, stable links,
+  redaction spot-checks, recovery route /activate/recovery).
+- tests/spec152f_denial_ux_parity_test.py (exact verification):
+  3032 positive + 10 negative checks including the runtime node spoof
+  matrix (unknown state/family/code, ambiguity, raw identity, grants, price,
+  absolute redirect, query-bearing link).
+
+Rollback
+- Revert only this atom's implementation commit (the denial_ux Rust contract
+  and its lib.rs registration, the catalog artifact JSON, the JS fixture, and
+  the exact-verification test) and this evidence record if required. That
+  reverts the stable error registry, the cross-presenter message catalog, and
+  the account/evaluation/checkout/recovery link contract only. Preserve
+  customers, orders, refunds, licenses, nodes, sequences, customer data,
+  migration journals, evidence, and already accepted authority behavior. No
+  other atom's files (CLI fixtures, menubar action map, TUI presenter, Pi
+  adapter, facade presenter, lifecycle receipts) were modified.
+
+No push, deploy, release, merge, or Beads mutation was performed.
