@@ -1,0 +1,154 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.54
+Title: 152E.06.06 Run migration canary, reconciliation, and rollback-safety proof
+Implementation commit: `af39fc97` (code + fixture + test)
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§17 periodic reconciliation; §18 refund, revoke,
+and recovery; §22.1 inventory; §22.2 merge rules; §22.3 cutover steps 6-10;
+§22.4 rollback; §23 acceptance "Refund" and "Legacy install-site record"
+rows; §24 completion gate 11); Specs 152, 150A, 152A-D; Spec 158
+implementation excluded. Locked-release correction atom in the spec152f/spec172
+async pipeline.
+
+Exact surfaces (this atom only)
+- Canary cohort, migration journal, reconciler, cutover gates, rollback
+  procedure, EDD/refund/sequence truth:
+  docs/contracts/spec152e-migration-canary.v1.php
+  (FocusaSpec152eMigrationCanarySchema — wpuiai_canary_runs,
+  wpuiai_canary_cohort, wpuiai_canary_journal, wpuiai_canary_reconciliation,
+  wpuiai_canary_sequence_ledger, wpuiai_canary_rollback_proof, schema
+  migrations/events; FocusaSpec152eMigrationCanaryService — startCanary,
+  dryRunCanary, runCanaryEntry, reconcile, proveRollback, reactivate,
+  canarySummary, vectorDigest, journalChainValid, countRows)
+- Canary cohort + EDD/authority truth fixture:
+  docs/contracts/spec152e-migration-canary-fixture.v1.json
+  (deterministic, redacted; no raw email, raw key, payment id, or secret)
+- tests/spec152e_migration_canary_test.py (exact verification)
+- Cutover gate consumed (read-only dependency on the published authority
+  cutover state from atom focusa-vbcqu.20.13.53): the canary contract reads
+  wpuiai_cutover_state and enforces the published requirements.
+
+Bounded result
+- The migration canary runs ONLY after the authority cutover state is
+  published: before publish, startCanary / dryRunCanary / reconcile /
+  proveRollback all fail closed with CUTOVER_STATE_REQUIRED and write zero
+  rows. After publish, the canary binds to the published state digest and
+  asserts new_issuance=edd_authority_only, facade_role=
+  presenter_and_bounded_proxy_only, spec158=excluded with an intact digest.
+- Dry run first: dryRunCanary() computes per-cohort predicted decisions
+  (import / preserve_adverse_state / quarantine with typed reasons) with ZERO
+  writes and covers the whole bounded cohort (COHORT_BOUND=8).
+- Bounded canary apply: runCanaryEntry() applies ONE cohort entry at a time
+  and compares before/after COUNTS, DIGESTS, and STATUS against each entry's
+  pinned vectors — a before mismatch fails closed with CANARY_BEFORE_MISMATCH
+  and a divergent computed transition fails closed with CANARY_AFTER_MISMATCH
+  before any write. Each applied entry writes exactly one deterministic
+  sequence-ledger row (import_sequence / refund_sequence / revoke_sequence).
+- EDD/refund/sequence truth (Spec 152E §18): refunded and revoked cohort
+  entries end recovery_only with a monotonic sequence increment (refresh
+  denied); imports end active; reactivate() always fails closed with REFUNDED
+  or REVOKED — no code path can re-grant or resurrect an adverse record.
+- Failure injection + retry: an injected failure quarantines the entry with
+  zero writes (INJECTED_FAILURE_QUARANTINED); unresolved records are
+  quarantined (UNRESOLVED_QUARANTINED); a retry returns the stored quarantine
+  (replayed=true) and can never un-quarantine or grant the record. Replays of
+  applied entries return the stored outcome with zero new rows.
+- Reconciler (Spec 152E §17, §22.1): reconcile() recomputes EDD and authority
+  digests server-side, requires every EDD refunded/revoked record to map to
+  authority recovery_only/revoked (an authority lease still active for a
+  refunded/revoked EDD record — a missed callback leaving stale access — fails
+  closed with RECONCILIATION_MISMATCH), requires quarantined records to hold
+  no lease and the quarantined set to equal the cohort's quarantined entries,
+  and is idempotent via recon_handle. Pinned digests recompute identically.
+- Rollback-safety proof (Spec 152E §22.4): proveRollback() verifies rollback
+  cannot undo (a) verified identity (every verify_first cohort entry keeps its
+  pinned keyed identity digest), (b) EDD refund/revoke truth (adverse records
+  remain recovery_only), (c) monotonic sequence (each applied entry's ledger
+  sequence equals its pinned after sequence), and (d) audit truth (the
+  digest-chained journal validates from genesis); a failed check fails closed
+  with ROLLBACK_SAFETY_PROOF_FAILED. Schema rollback is preservation-only:
+  preserveForRollback() journals rollback_preserved and no DELETE/TRUNCATE/DROP
+  path exists anywhere in the contract.
+- The canary converged with zero customer/license loss and zero authority
+  rollback: 6 applied + 2 quarantined = 8 cohort entries, pending=0, 6 ledger
+  rows == expected 6, every applied entry's ledger status/sequence equals its
+  pinned after vector. Every unresolved record remained quarantined.
+- No unverified-email promotion, no local/self-issued entitlement, no
+  independent facade authority, no client-controlled EDD price/grants (the
+  decision signature has no price, grant, tier, limit, or feature inputs; the
+  product allowlist is server-owned), and no secret or unmasked real-email
+  evidence anywhere in the contract, fixtures, or test output. Cargo/release
+  builds remain deferred until the operator's 50% gate; this atom touches no
+  Rust surface, so no cargo build was run.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152e_migration_canary_test.py` — exit 0 (run four
+   times; deterministic, byte-identical harness output; harness sha256
+   1bbf136682bfb7cc1973e927d0291dadb7a10dab99c0c3eec3800b82abe5cd08).
+   Validation summary:
+   fixture_sha256=728a73209e28ee4639aeffe753223bd618d9161b00b8f4c400c055e06f2f68fd
+   contract_sha256=5d05cff62c78b198ee2378e9da673f5f8766a71788c66c3bbbeb27d42cb193a4
+   positive_checks=80  negative_checks=13  cohort_size=8  applied_entries=6
+   quarantined_entries=2  ledger_rows=6  reconciled_rows=1
+   rollback_proof_rows=1  dry_run_writes=0  replay_second_rows=0
+   journal_chain_valid=true  result=passed
+   The gate statically validates the fixture (bounded cohort, pinned
+   before/after vector digests that recompute identically, EDD/authority truth
+   digests, redaction, expectations) and the contract (server-owned allowlists,
+   fail-closed codes, cutover-gate coupling to wpuiai_cutover_state, replay-safe
+   journal chain, preservation-only rollback, no destructive statements, no raw
+   email/price/grant inputs), then executes the PHP adapter twice against sqlite
+   with byte-identical output: pre-publish CUTOVER_STATE_REQUIRED gates, exact
+   cutover publication through the atom 20.13.53 contract, one immutable bounded
+   run (replay-safe, RUN_ALREADY_STARTED on a different cohort, COHORT_BOUND
+   enforced), whole-cohort dry run with zero writes, per-entry before/after
+   counts/digests/status comparisons, verified-identity gating, refund/revoke
+   sequence+recovery_only transitions, unresolved + injected-failure quarantine
+   with idempotent retry, convergence summary (zero loss, zero authority
+   rollback), reconciliation with three fail-closed drift cases, rollback-safety
+   proof, reactivation denials, journal-chain validation, and preservation-only
+   rollback.
+
+Regression checks (exit codes)
+- `python3 tests/spec152e_paid_record_migration_test.py` — exit 0 (prior atom
+  20.13.50 migration contract untouched).
+- `python3 tests/spec152e_authority_cutover_test.py` — exit 0 (prior atom
+  20.13.53 cutover contract untouched; the canary consumed its published state
+  as the cutover gate).
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0 (prior atom
+  20.13.49 inventory contract untouched; physical_records=596).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0 (generated activation
+  contracts remain current; this atom adds a standalone contract and does not
+  touch the activation call-stack source/generator).
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0 (facade
+  registry intact).
+- `php tests/spec152e_key_quarantine_test.php` — exit 0 (prior atom 20.13.52
+  contract intact).
+- `php tests/spec152e_legacy_customer_migration_test.php` — exit 0 (prior atom
+  20.13.51 contract intact).
+- `php -l docs/contracts/spec152e-migration-canary.v1.php` — exit 0 (no
+  syntax errors).
+- No cargo command was run: this atom touches no Rust surface and the
+  locked-release FORBIDDEN rule defers cargo/release builds to the operator's
+  50% gate.
+
+Tests added
+- tests/spec152e_migration_canary_test.py — the exact verification gate
+  (80 positive / 13 negative checks): fixture structure and redaction; pinned
+  before/after vector digest recomputation; EDD/authority truth digest
+  recomputation; bounded cohort and expectations; static contract invariants
+  (cutover-gate coupling, server-owned allowlists, replay-safe journal chain,
+  preservation-only rollback, no destructive statements, no raw email/price/
+  grant inputs); and behavioral dry-run/apply/failure-injection/retry/
+  reconciliation/rollback-proof/replay execution of the PHP adapter with
+  byte-identical replayable output.
+
+Rollback
+- Revert only this atom's commits (implementation commit `af39fc97` plus the
+  evidence commit containing this file). Preserve EDD customer/order/refund
+  truth, verified identities, licenses, nodes, sequences, credentials,
+  Workpoints, Evidence, and migration journals; canary/journal/reconciliation/
+  ledger/rollback-proof state is preservation-only and no authority, EDD, node,
+  lease, or local install state is mutated by these proofs and replay tests.
+
+No push, deploy, release, merge, or Beads mutation was performed.
