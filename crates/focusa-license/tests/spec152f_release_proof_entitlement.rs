@@ -662,3 +662,56 @@ fn spec152f_release_proof_entitlement_recovery_paths_remain_available() {
     );
     assert_eq!(decision.posture(), Posture::Allow);
 }
+
+// ── Adversarial isolation (Spec 152F.04.07) ────────────────────────────────
+
+#[test]
+fn spec152f_release_proof_entitlement_wrong_product_and_omission_fail_closed() {
+    // A wrong product never widens release_proof, even with stored grants.
+    let mut wrong = active_snapshot();
+    wrong.product = "uiai_engine".to_string();
+    wrong
+        .features
+        .insert("focusa.release.proof".to_string(), true);
+    let decision = resolve_premium_family(
+        &wrong,
+        Family::ReleaseProof,
+        "focusa.release.proof",
+        Utc::now(),
+    );
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::BaseProductRequired { .. }
+    ));
+
+    // An Evaluation-issued lease that omits release.proof cannot widen.
+    let mut evaluation = active_snapshot();
+    evaluation.lease_id = Some("lease-eval-release".to_string());
+    evaluation.features.clear();
+    let decision = resolve_premium_family(
+        &evaluation,
+        Family::ReleaseProof,
+        "focusa.release.proof",
+        Utc::now(),
+    );
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::MissingFeature { .. }
+    ));
+
+    // Offline Grace cannot expand into release proof without the cached grant.
+    let mut grace = active_snapshot();
+    grace.state = EntitlementState::OfflineGrace;
+    grace.features.clear();
+    grace.offline_grace_until = Some(Utc::now() + Duration::minutes(5));
+    let decision = resolve_premium_family(
+        &grace,
+        Family::ReleaseProof,
+        "focusa.release.proof",
+        Utc::now(),
+    );
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::MissingFeature { .. }
+    ));
+}

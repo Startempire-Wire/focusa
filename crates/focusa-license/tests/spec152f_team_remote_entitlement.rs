@@ -816,3 +816,52 @@ fn spec152f_team_remote_entitlement_device_listing_is_base_not_premium() {
         reduce_entitlement_state(State::VerifiedNoLicense, Family::TeamRemote, None);
     assert_eq!(team_decision.posture(), Posture::Deny);
 }
+
+// ── Adversarial isolation (Spec 152F.04.07) ────────────────────────────────
+
+#[test]
+fn spec152f_team_remote_entitlement_wrong_product_and_omission_fail_closed() {
+    // A wrong product never widens team_remote, even with stored grants.
+    let mut wrong = active_snapshot();
+    wrong.product = "focusa-premium".to_string();
+    wrong
+        .features
+        .insert("focusa.team.multi_operator".to_string(), true);
+    let decision = resolve_premium_family(
+        &wrong,
+        Family::TeamRemote,
+        "focusa.team.multi_operator",
+        Utc::now(),
+    );
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::BaseProductRequired { .. }
+    ));
+
+    // An Evaluation-issued lease that omits team features cannot widen.
+    let mut evaluation = active_snapshot();
+    evaluation.lease_id = Some("lease-eval-team".to_string());
+    evaluation.features.clear();
+    let decision = resolve_premium_family(
+        &evaluation,
+        Family::TeamRemote,
+        "focusa.team.multi_operator",
+        Utc::now(),
+    );
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::MissingFeature { .. }
+    ));
+
+    // A caller-invented team feature is never registered.
+    let decision = resolve_premium_family(
+        &active_snapshot(),
+        Family::TeamRemote,
+        "focusa.team.caller_invented",
+        Utc::now(),
+    );
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::FeatureNotRegistered { .. }
+    ));
+}

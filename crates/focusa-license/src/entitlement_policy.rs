@@ -1717,6 +1717,11 @@ pub enum PremiumFamilyDenial {
     CachedGrantExpired,
     /// A directly supplied snapshot is stale even though it says Active.
     ActiveLeaseExpired,
+    /// The snapshot's entitlement state cannot carry a usable premium feature
+    /// (unactivated/pending, refunded/revoked, or corrupt). Only Active paid and
+    /// valid Offline Grace can resolve a premium feature; a stored claim or
+    /// client metadata can never widen a non-usable state (Spec 152F §4 grid).
+    EntitlementStateNotUsable { state: PolicyEntitlementState },
     /// Recovery, read, base, or maintenance policy is not an optional family.
     NotPremiumFamily { family: CapabilityFamily },
 }
@@ -1894,6 +1899,23 @@ where
     F: AsRef<str>,
 {
     let family = CapabilityFamily::CustomerDataExport;
+
+    // Fail closed on entitlement state: only an Active paid lease or a valid
+    // Offline Grace can carry the additive premium packaging feature. A
+    // pending/unactivated, refunded/revoked, or corrupt snapshot can never be
+    // widened by stored feature claims or client metadata (Spec 152F §4 grid:
+    // premium features are DENY outside Active/Offline Grace). Basic export is
+    // untouched: it remains always available through the CustomerDataExport
+    // recovery allowance.
+    let state = authority_policy_state(snapshot);
+    if !matches!(
+        state,
+        PolicyEntitlementState::ActivePaid | PolicyEntitlementState::OfflineGrace
+    ) {
+        return PremiumFamilyDecision::Denied(PremiumFamilyDenial::EntitlementStateNotUsable {
+            state,
+        });
+    }
 
     let feature_name = required_feature.as_ref().to_string();
     let Ok(feature) = RequiredFeature::new(feature_name.clone()) else {
