@@ -1,0 +1,86 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.8
+Title: 152.06.02 Define signed capsule manifest and provenance contract
+Implementation commit: `fdae75e5d8643cb37dd0b6191c2cca9569a58a1d`
+
+Exact surfaces
+- docs/contracts/spec152-capsule-manifest.v1.schema.json
+- docs/contracts/spec152-capsule-manifest-vectors.v1.json (synthetic vectors)
+- crates/focusa-license/src/capsule_manifest.rs (public verifier types)
+- crates/focusa-license/src/lib.rs (module + public re-exports only)
+- crates/focusa-license/tests/spec152_capsule_manifest.rs (vector replay)
+- tests/spec152_capsule_contract_test.py
+
+Bounded result
+- Added the versioned signed capsule manifest contract (schema
+  `focusa.capsule_manifest.v1`, manifest_version 1) binding capsule id and
+  version, product and feature namespace, platform/arch compatibility,
+  plaintext and ciphertext sha256 digests, the minimum compatible public-shell
+  contract, required lease features and limit policy version, release channel
+  and status, revocation state, provenance, and the node-bound key-envelope
+  reference (`focusa.node_capsule_key_envelope.v1`).
+- Added 26 synthetic manifest vectors (4 valid, 22 invalid) plus 4 forbidden
+  schema-negative documents. Every vector is signed with a fixed public
+  synthetic ed25519 signer key; deterministic canonicalization
+  (sorted keys, compact separators, signature envelope excluded) is stored and
+  replayed byte-for-byte by both the Python and Rust tests.
+- Added public verifier types: `CapsuleManifest`, `CapsuleVerificationFacts`,
+  `CapsuleVerificationDecision` (19 stable labels), `verify_capsule_manifest`,
+  `canonical_capsule_manifest_bytes`, `capsule_manifest_sha256`. The verifier
+  fails closed in fixed order on: unsigned/malformed signature envelope,
+  unknown signer, invalid signature, unknown manifest/version/version shape,
+  unknown product/platform/arch/channel/release status, unregistered required
+  feature, unknown limit policy, missing/unknown key-envelope reference,
+  revoked (manifest claim or authority facts), withdrawn, delivered-digest
+  mismatch (modified payload), mixed installed version set, downgraded
+  rollback, and incompatible runtime public-shell contract. Digest and
+  signature authority live only inside the signed manifest; the schema closes
+  the top level with `additionalProperties: false` so an unsigned sidecar
+  checksum, embedded global key, or decryption key is rejected.
+- Spec 158 implementation remains excluded; licensing can permit a capability
+  but never selects or creates cognitive/Workstream authority.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152_capsule_contract_test.py` — exit 0.
+   {"canonical_digests_replayed": 26, "invalid_vectors": 22, "manifest_schema":
+   "focusa.capsule_manifest.v1", "result": "passed",
+   "schema_negative_documents": 4, "valid_vectors": 4}
+2. `cargo test -p focusa-license capsule` — exit 0.
+   unit: 4 passed; 0 failed (52 filtered out), including
+   `spec152_capsule_manifest_signed_manifest_verifies_and_fails_closed`,
+   `spec152_capsule_manifest_canonicalization_is_deterministic`.
+   integration `spec152_capsule_manifest.rs`: 3 passed; 0 failed (0 filtered
+   out), including `spec152_capsule_manifest_vectors_fail_closed_exactly`
+   (all 26 vectors replay to their exact stable decision).
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0: 239 tests passed, 0 failed (56 unit
+  + 11 authority-lease + 8 entitlement-grid + 3 capsule + 34 + 29 + 32 + 42 +
+  12 + 12 integration).
+- `python3 tests/spec152_documentation_consistency_gate.py` — exit 0.
+- `python3 tests/spec152f_entitlement_policy_contract_test.py` — exit 0.
+- Note: `spec152f_surface_scanner_test.py`, `spec152f_surface_reconciliation_contract_test.py`,
+  and `spec152f_document_authority_test.py` fail identically on the base
+  commit before this atom (stale `spec152-final-audit-status.v1.yaml` tokens
+  and reconciliation baseline owned by other atoms); they are outside this
+  atom's exact surfaces and were not modified.
+
+Tests added
+- Python: `tests/spec152_capsule_contract_test.py` — schema conformance of all
+  26 vectors, deterministic canonicalization replay, ed25519 signature binding
+  over canonical bytes, forbidden-document rejection (unsigned, sidecar
+  checksum authority, embedded global key, embedded decryption key), and
+  absence of secrets/unmasked email in the fixture and output.
+- focusa-license unit tests: decision-label stability/uniqueness, registered
+  vocabulary exactness, canonicalization determinism, signed-verify + unsigned/
+  unknown-signer/invalid-signature/downgrade/shell/revoked fail-closed.
+- focusa-license integration tests: all 26 vectors fail closed with their exact
+  stable label, signature binds canonical bytes, and every stable rejection
+  label has a named vector.
+
+Rollback
+- Revert only implementation commit `fdae75e5d8643cb37dd0b6191c2cca9569a58a1d`
+  (and this evidence record if required). Preserve leases, credentials, user
+  data, Workpoints, Evidence, migration journals, and authority state.
+
+No push, deploy, release, merge, or Beads mutation was performed.
