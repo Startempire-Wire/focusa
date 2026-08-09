@@ -1,0 +1,36 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-005",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Persistent Pi PTY process verified in focusa-pty: PtyProcess::spawn validates the exact governed Attachment identity FIRST and fails before any process creation on scope mismatch (ScopeNotProject) or missing Attachment fields; one persistent process per Attachment with resize/input/output/interrupt (ETX)/detach/close/restart defined and implemented over a real PTY (portable-pty) \u2014 no ordinary child-process pipes. Stale-output rejection via generation-scoped sink.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-004"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo test -p focusa-pty spawn_fails",
+      "result": "pass: 2 tests"
+    },
+    {
+      "command": "cargo test -p focusa-pty process_emits_ordered_output_with_exact_identity",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-pty input_and_interrupt_are_defined_and_implemented",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-pty",
+      "result": "pass: 19 tests"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
