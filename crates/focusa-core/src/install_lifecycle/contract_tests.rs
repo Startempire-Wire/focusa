@@ -25,14 +25,14 @@ fn first_mission_entitlement() -> FirstMissionEntitlementReservation {
         entitlement: LifecycleEntitlementDecision {
             binding: LifecycleEntitlementBinding {
                 schema_version: "focusa.lifecycle_entitlement_binding.v1".into(),
-                state: LifecycleEntitlementState::ActiveEvaluation,
+                state: LifecycleEntitlementState::ActiveVerifiedLimited,
                 lease_id: "lease:first-mission".into(),
                 lease_sequence: 4,
                 lease_payload_digest: digest('a'),
                 product_grants_digest: digest('b'),
                 feature_grants_digest: digest('c'),
                 node_id: "node:first-mission".into(),
-                license_class: "evaluation".into(),
+                license_class: "verified_limited".into(),
                 refresh_after: now + chrono::Duration::hours(1),
                 offline_valid_until: now + chrono::Duration::days(1),
                 expires_at: Some(now + chrono::Duration::days(7)),
@@ -472,14 +472,14 @@ fn digest(byte: char) -> String {
 fn evaluation_entitlement() -> LifecycleEntitlementBinding {
     LifecycleEntitlementBinding {
         schema_version: "focusa.lifecycle_entitlement_binding.v1".into(),
-        state: LifecycleEntitlementState::ActiveEvaluation,
-        lease_id: "lease:evaluation:001".into(),
+        state: LifecycleEntitlementState::ActiveVerifiedLimited,
+        lease_id: "lease:limited:001".into(),
         lease_sequence: 7,
         lease_payload_digest: digest('a'),
         product_grants_digest: digest('b'),
         feature_grants_digest: digest('c'),
-        node_id: "node:evaluation:001".into(),
-        license_class: "evaluation".into(),
+        node_id: "node:limited:001".into(),
+        license_class: "verified_limited".into(),
         refresh_after: entitlement_time("2026-08-05T13:00:00Z"),
         offline_valid_until: entitlement_time("2026-08-06T12:00:00Z"),
         expires_at: Some(entitlement_time("2026-08-12T12:00:00Z")),
@@ -494,7 +494,7 @@ fn lifecycle_entitlement_binding_round_trips_with_versioned_authority_fields() {
     binding.validate().expect("valid signed binding");
     assert_eq!(
         binding.receipt_class(),
-        LifecycleEntitlementReceiptClass::EvaluationReady
+        LifecycleEntitlementReceiptClass::LimitedAccessReady
     );
 
     let encoded = serde_json::to_value(&binding).expect("serialize binding");
@@ -529,8 +529,8 @@ fn lifecycle_entitlement_receipt_classes_never_collapse_to_boolean_status() {
     let mut binding = evaluation_entitlement();
     let cases = [
         (
-            LifecycleEntitlementState::ActiveEvaluation,
-            LifecycleEntitlementReceiptClass::EvaluationReady,
+            LifecycleEntitlementState::ActiveVerifiedLimited,
+            LifecycleEntitlementReceiptClass::LimitedAccessReady,
         ),
         (
             LifecycleEntitlementState::ActivePaid,
@@ -555,7 +555,7 @@ fn lifecycle_entitlement_receipt_classes_never_collapse_to_boolean_status() {
     ];
     for (state, expected) in cases {
         binding.state = state;
-        binding.license_class = "evaluation".into();
+        binding.license_class = "verified_limited".into();
         assert_eq!(binding.receipt_class(), expected);
     }
     binding.state = LifecycleEntitlementState::OfflineGrace;
@@ -593,13 +593,13 @@ fn adapter_capability_or_health_cannot_imply_entitlement() {
     let mut posture = AdapterEntitlementPosture {
         schema_version: "focusa.adapter_entitlement_posture.v1".into(),
         product: "uiai-engine".into(),
-        lease_id: "lease:evaluation:001".into(),
+        lease_id: "lease:limited:001".into(),
         lease_sequence: 7,
         product_granted: true,
         required_features_granted: false,
         parent_lease_digest: digest('a'),
         child_token_id: "child-token:001".into(),
-        child_token_audience: Some("uiai-engine:node:evaluation:001".into()),
+        child_token_audience: Some("uiai-engine:node:limited:001".into()),
         child_token_expires_at: Some(entitlement_time("2026-08-05T12:15:00Z")),
         entitlement_digest: digest('d'),
         account_id: None,

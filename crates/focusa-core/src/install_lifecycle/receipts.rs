@@ -116,7 +116,7 @@ impl LifecycleReceiptV1 {
                 acceptance.final_state == LifecycleState::Accepted
                     && matches!(
                         acceptance.entitlement_receipt_class,
-                        LifecycleEntitlementReceiptClass::EvaluationReady
+                        LifecycleEntitlementReceiptClass::LimitedAccessReady
                             | LifecycleEntitlementReceiptClass::PaidReady
                             | LifecycleEntitlementReceiptClass::DevelopmentReady
                     )
@@ -132,7 +132,7 @@ impl LifecycleReceiptV1 {
         self.final_state == LifecycleState::Accepted
             && matches!(
                 self.entitlement_receipt_class,
-                LifecycleEntitlementReceiptClass::EvaluationReady
+                LifecycleEntitlementReceiptClass::LimitedAccessReady
                     | LifecycleEntitlementReceiptClass::PaidReady
                     | LifecycleEntitlementReceiptClass::DevelopmentReady
             )
@@ -167,9 +167,9 @@ impl LifecycleReceiptV1 {
                     "manage_account",
                 ],
             ),
-            // Paid/Eval/Dev readiness claimed without a verified signature
+            // Paid/LimitedAccess/Dev readiness claimed without a verified signature
             // fails closed to recovery_only; it never renders as activated.
-            LifecycleEntitlementReceiptClass::EvaluationReady
+            LifecycleEntitlementReceiptClass::LimitedAccessReady
             | LifecycleEntitlementReceiptClass::PaidReady
             | LifecycleEntitlementReceiptClass::DevelopmentReady => self.posture(
                 "recovery_only",
@@ -234,7 +234,7 @@ impl LifecycleReceiptV1 {
         }
         let claims_product_ready = matches!(
             self.entitlement_receipt_class,
-            LifecycleEntitlementReceiptClass::EvaluationReady
+            LifecycleEntitlementReceiptClass::LimitedAccessReady
                 | LifecycleEntitlementReceiptClass::PaidReady
                 | LifecycleEntitlementReceiptClass::DevelopmentReady
         );
@@ -356,7 +356,7 @@ impl LifecycleEntitlementReceiptClass {
     pub const fn label(self) -> &'static str {
         match self {
             Self::RecoveryReady => "recovery_ready",
-            Self::EvaluationReady => "evaluation_ready",
+            Self::LimitedAccessReady => "limited_access_ready",
             Self::PaidReady => "paid_ready",
             Self::DevelopmentReady => "development_ready",
             Self::BlockedEntitlement => "blocked_entitlement",
@@ -431,7 +431,7 @@ const LIFECYCLE_ENTITLEMENT_STATES: [&str; 10] = [
     "unactivated",
     "pending_identity",
     "pending_device_code",
-    "active_evaluation",
+    "active_verified_limited",
     "active_paid",
     "offline_grace",
     "expired",
@@ -533,7 +533,7 @@ fn lifecycle_entitlement_state_label(state: LifecycleEntitlementState) -> String
 /// or contradicting state claim.
 fn lifecycle_receipt_class_states(class: LifecycleEntitlementReceiptClass) -> &'static [&'static str] {
     match class {
-        LifecycleEntitlementReceiptClass::EvaluationReady => &["active_evaluation"],
+        LifecycleEntitlementReceiptClass::LimitedAccessReady => &["active_verified_limited"],
         LifecycleEntitlementReceiptClass::PaidReady => &["active_paid"],
         LifecycleEntitlementReceiptClass::DevelopmentReady => &["offline_grace"],
         LifecycleEntitlementReceiptClass::RecoveryReady => &["offline_grace", "none"],

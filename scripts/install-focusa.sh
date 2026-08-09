@@ -25,7 +25,9 @@ Usage: install-focusa.sh [options]
 
   --dry-run                show the delegation plan without writes or downloads
   --eval                   forward Evaluation intent to the shared activation
-                           client (authority-issued only; never local)
+                           client; maps to verified-email limited activation
+                           (Spec 172 limited-access overlay; authority-issued
+                           only, never local)
   --target=TARGET          auto|linux|darwin|windows-x64|windows-arm64
   --channel=CHANNEL        stable|preview|nightly
   --github-repo=OWNER/REPO override release repository
@@ -44,6 +46,9 @@ Raw license keys and email addresses are intentionally not accepted. The Rust
 installer resolves or acquires a signed, node-bound authority lease and safely
 presents the device verification URL and user-code handle. Evaluation is
 authority-issued only; the bootstrapper never creates local evaluation state.
+Spec 172 verified-email limited activation replaces local/self-issued grants:
+--eval requests the authority-signed limited-access overlay and no channel can
+issue or persist an Evaluation locally.
 USAGE
 }
 
@@ -140,7 +145,7 @@ if [ "$DRY_RUN" = 1 ]; then
   printf '  release: %s\n' "${RELEASE_TAG:-latest-complete}"
   printf '  entitlement: signed authority lease; device authorization if absent\n'
   if [ "$EVAL" = 1 ]; then
-    printf '  evaluation: authority-issued only; intent forwarded to the shared activation client\n'
+    printf '  evaluation: authority-issued only; --eval maps to verified-email limited activation (Spec 172)\n'
   fi
   printf '  mutations: none\n'
   exit 0

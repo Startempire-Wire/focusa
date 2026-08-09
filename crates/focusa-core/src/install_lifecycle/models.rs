@@ -46,7 +46,7 @@ pub enum InteractionSelection {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthorizationSelection {
-    Evaluation,
+    LimitedAccess,
     Commercial,
     AuthorizedDevelopment,
 }
@@ -188,7 +188,7 @@ pub enum LifecycleEntitlementState {
     Unactivated,
     PendingIdentity,
     PendingDeviceCode,
-    ActiveEvaluation,
+    ActiveVerifiedLimited,
     ActivePaid,
     OfflineGrace,
     Expired,
@@ -200,7 +200,7 @@ pub enum LifecycleEntitlementState {
 #[serde(rename_all = "snake_case")]
 pub enum LifecycleEntitlementReceiptClass {
     RecoveryReady,
-    EvaluationReady,
+    LimitedAccessReady,
     PaidReady,
     DevelopmentReady,
     BlockedEntitlement,
@@ -228,8 +228,8 @@ pub struct LifecycleEntitlementBinding {
 impl LifecycleEntitlementBinding {
     pub fn receipt_class(&self) -> LifecycleEntitlementReceiptClass {
         match self.state {
-            LifecycleEntitlementState::ActiveEvaluation => {
-                LifecycleEntitlementReceiptClass::EvaluationReady
+            LifecycleEntitlementState::ActiveVerifiedLimited => {
+                LifecycleEntitlementReceiptClass::LimitedAccessReady
             }
             LifecycleEntitlementState::ActivePaid => LifecycleEntitlementReceiptClass::PaidReady,
             LifecycleEntitlementState::OfflineGrace => {
@@ -255,9 +255,10 @@ impl LifecycleEntitlementBinding {
             return false;
         }
         match self.state {
-            LifecycleEntitlementState::ActiveEvaluation | LifecycleEntitlementState::ActivePaid => {
-                self.expires_at.is_some_and(|expires_at| now < expires_at)
-            }
+            LifecycleEntitlementState::ActiveVerifiedLimited
+            | LifecycleEntitlementState::ActivePaid => self
+                .expires_at
+                .is_some_and(|expires_at| now < expires_at),
             LifecycleEntitlementState::OfflineGrace => now < self.offline_valid_until,
             LifecycleEntitlementState::Unactivated
             | LifecycleEntitlementState::PendingIdentity
