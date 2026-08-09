@@ -27,6 +27,6 @@
     }
   ],
   "remaining_work": [],
-  "task_id": "DOMAIN-011",
-  "result": "Bounded Workstream history: surface:history:* renders only when emitted; history is bounded by the canonical projection."
+  "task_id": "DOMAIN-004",
+  "result": "Interview surface: one-question-at-a-time resumable contribution; eligibility is resolver-emitted only, resume via draft path (never a local snapshot)."
 }

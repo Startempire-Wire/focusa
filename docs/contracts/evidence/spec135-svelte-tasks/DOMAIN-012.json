@@ -27,6 +27,6 @@
     }
   ],
   "remaining_work": [],
-  "task_id": "DOMAIN-011",
-  "result": "Bounded Workstream history: surface:history:* renders only when emitted; history is bounded by the canonical projection."
+  "task_id": "DOMAIN-012",
+  "result": "Explicit management flow separate from daily workspace: management surfaces never merge into the daily composition (managementFlowEligible), and daily surfaces are never in the management set."
 }

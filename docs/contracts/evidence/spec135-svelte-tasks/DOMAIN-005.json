@@ -27,6 +27,6 @@
     }
   ],
   "remaining_work": [],
-  "task_id": "DOMAIN-011",
-  "result": "Bounded Workstream history: surface:history:* renders only when emitted; history is bounded by the canonical projection."
+  "task_id": "DOMAIN-005",
+  "result": "Spec workbench contribution: resolver-emitted only, canonical-operation governed; no hard-coded workbench screen."
 }
