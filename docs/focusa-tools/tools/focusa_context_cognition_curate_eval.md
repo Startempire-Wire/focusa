@@ -83,4 +83,4 @@ Likely next: `focusa_context_cognition_curate_optimize`, `focusa_metacog_capture
 - CLI: `focusa context-cognition curate-eval`, `focusa context-cognition curate-eval-runs`.
 - REST: `POST /v1/context-cognition/curate/eval`, `GET /v1/context-cognition/curate/eval/runs`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9cb886fe9af2d439604eb5c9c4b51fc876ffda5c187e3180320b8055592df4f1`.
+- Descriptor digest: `sha256:ce30db7f6efc9a4f93ca1d24b80afa059e4b2ec0e6cbc24783f83d30739b41de`.

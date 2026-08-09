@@ -74,4 +74,4 @@ Likely next: `focusa_metacog_plan_adjust`, `focusa_metacog_doctor`, `focusa_meta
 - CLI: `focusa metacognition recent-reflections`.
 - REST: `GET /v1/metacognition/reflections/recent`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:400329b1fb1c6a1e244a597d71fed8f8116c3642690ea05d16bfa9b8e0f7774c`.
+- Descriptor digest: `sha256:c324957d344ea9ccd9d4508286d893d837307e3ee1a1319a0f7f656e63946b4a`.

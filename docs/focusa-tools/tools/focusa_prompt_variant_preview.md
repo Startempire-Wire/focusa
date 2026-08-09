@@ -76,4 +76,4 @@ Likely next: `focusa_prompt_variant_diff`, `focusa_agent_artifact_preview`.
 - CLI: `focusa agent-runtime prompt preview`.
 - REST: `POST /v1/agent-runtime/compile/system-prompt`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:621c36572140d6d9259bc2de207cbfda6d25b96c0c2d9b9e5bdf9e8e86ba4d10`.
+- Descriptor digest: `sha256:db09b32ae44ed87571fca22f69c0442dc435e8e3827c2f305c7b817559a00350`.

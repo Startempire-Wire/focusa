@@ -10,7 +10,7 @@ Read, commit, revise, observe, forecast, or preflight project-scoped temporal cl
 
 ## Parameters and strict input schema
 
-- `action` (optional; string | string | string | string | string | string | string | string | string | string | string): Temporal operation; defaults to status.
+- `action` (optional; string | string | string | string | string | string | string | string | string | string | string | string): Temporal operation; defaults to status.
 - `project_root` (optional; string): See the strict descriptor schema.
 - `continuity_id` (optional; string): See the strict descriptor schema.
 - `host_id` (optional; string): See the strict descriptor schema.
@@ -29,6 +29,7 @@ Read, commit, revise, observe, forecast, or preflight project-scoped temporal cl
 - `high_consequence_packet` (optional; structured): See the strict descriptor schema.
 - `civil_time_packet` (optional; structured): See the strict descriptor schema.
 - `temporal_priority_packet` (optional; structured): See the strict descriptor schema.
+- `closure_packet` (optional; structured): See the strict descriptor schema.
 - `duration_ms` (optional; number): See the strict descriptor schema.
 - `outcome` (optional; string): See the strict descriptor schema.
 - `actual_ms` (optional; number): See the strict descriptor schema.
@@ -97,4 +98,4 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_projec
 - CLI: `focusa temporal status|commit|revise|observe|forecast|preflight`.
 - REST: `GET /v1/temporal/status`, `POST /v1/temporal/commit`, `POST /v1/temporal/revise`, `POST /v1/temporal/observe`, `POST /v1/temporal/forecast`, `POST /v1/temporal/preflight`.
 - Specification: `docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md`.
-- Descriptor digest: `sha256:4f2e69b1f1d685ff463e92bfef3ac4bb505117ebf96ac6e3d7cb4ba6235367e5`.
+- Descriptor digest: `sha256:453a5f07a9c079125ef508cf3f0fe773df7c7baaab9c0be261ce51aa018ffe68`.

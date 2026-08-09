@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:30eb029b1aec441bb874080b4381ad298fe1efb7bceac641ef7c24f260a6be52",
+  "registry_digest": "sha256:c04d88b1e4b291c6f4e50e436d2e37e240877ef5464214c094a66b77b8442031",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -1790,6 +1790,58 @@
           },
           "human_invocation": "focusa focus update --current-focus",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_current_focus.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa daemon-routing status",
+      "capability_id": "focusa.daemon.routing.status",
+      "summary": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "registry",
+          "project_root",
+          "continuity_id",
+          "working_subpath_id",
+          "native_session_id"
+        ],
+        "properties": {
+          "registry": {
+            "description": "Canonical daemon registry projection from the controller."
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "working_subpath_id": {
+            "type": "string"
+          },
+          "native_session_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "examples": [
+        {
+          "description": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
+          "arguments": {
+            "registry": {},
+            "project_root": "/tmp/focusa-project",
+            "continuity_id": "continuity-demo",
+            "working_subpath_id": "example",
+            "native_session_id": "example"
+          },
+          "human_invocation": "focusa daemon-routing status",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_daemon_routing_status.md"
         }
       ],
       "deprecation": null

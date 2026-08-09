@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 135,
+  "tool_count": 136,
   "contracts": [
     {
       "name": "focusa_agent_runtime_effective",
@@ -817,6 +817,39 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/preload/receipt-commit"
+      }
+    },
+    {
+      "name": "focusa_daemon_routing_status",
+      "label": "Daemon Routing Status",
+      "purpose": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
+      "family": "project_identity",
+      "ontology_action": "daemon_routing.resolve",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "DaemonRegistry"
+      ],
+      "api_routes": [
+        "POST /v1/daemon-routing/resolve"
+      ],
+      "cli_commands": [
+        "focusa daemon-routing status"
+      ],
+      "core_surface": "Explicit scoped daemon routing resolution",
+      "doc_path": "docs/focusa-tools/tools/focusa_daemon_routing_status.md",
+      "spec_path": "docs/158-focusa-daemon-routing-surface-parity-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus scoped daemon-routing resolve verification",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "daemon-routing"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/daemon-routing/resolve"
       }
     },
     {

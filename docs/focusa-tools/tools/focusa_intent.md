@@ -76,4 +76,4 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 - CLI: `focusa focus update --intent`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:1243fe45da378c3fe7a7896ce1112ff4b2803aca3edc7ad938f54b00bcefc734`.
+- Descriptor digest: `sha256:2590b090de9aa270e1b1b0075ef0d18ca386352a0fc604d37f7764841acea490`.

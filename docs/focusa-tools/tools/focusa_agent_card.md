@@ -74,4 +74,4 @@ Likely next: `focusa_tool_search`, `focusa_tool_bundle`, `focusa_project_identit
 - CLI: `focusa help all --json`.
 - REST: `GET /v1/agent/card`.
 - Specification: `docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`.
-- Descriptor digest: `sha256:bbd2202bb32c06119efe03a0da856be6e6f1825cc60e7d0dd1e1131132653755`.
+- Descriptor digest: `sha256:f94b40019077d252bf8dfd50b79f32a3d7ba8e101876c83ca789c19208cd8e2c`.

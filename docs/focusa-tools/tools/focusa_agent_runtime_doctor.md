@@ -74,4 +74,4 @@ Likely next: `focusa_agent_runtime_effective`, `focusa_instruction_integrity_sta
 - CLI: `focusa agent-runtime doctor`.
 - REST: `GET /v1/agent-runtime/doctor`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:76ce201fbc5d248cceb83cd55b50cd897c3140d8ccf8ceec59088e688bbee8f9`.
+- Descriptor digest: `sha256:c8a4ad38c202dcebea44f75dc92c79025093868a29dd83440dd6aa793bd1a862`.

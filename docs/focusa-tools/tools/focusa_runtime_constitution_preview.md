@@ -78,4 +78,4 @@ Likely next: `focusa_prompt_variant_preview`, `focusa_agent_artifact_preview`.
 - CLI: `focusa agent-runtime constitution preview`.
 - REST: `POST /v1/agent-runtime/constitutions/{id}/preview`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:0d9923106b9a57c7b40e7e82bdf909c82d50d07b809443e156f7bb4441d0ae66`.
+- Descriptor digest: `sha256:afedcc923bdc02c71a27e95e8f9476ab7e74d87182163532d390d05e13b027e1`.

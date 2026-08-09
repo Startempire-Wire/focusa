@@ -77,4 +77,4 @@ Likely next: `focusa_tool_doctor`, `focusa_workpoint_resume`, `focusa_metacog_ca
 - CLI: `focusa focus update --failure`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:7a5d058b8d3c776e3aa46336427258329c4ed4f446a81f6cacc111d4bc054c96`.
+- Descriptor digest: `sha256:475a7c0e9f7327694b6f1e49560c0d9a161ea065446edd8f73c7208990cf9aca`.

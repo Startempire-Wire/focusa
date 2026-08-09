@@ -75,4 +75,4 @@ Likely next: `focusa_preload_profiles`, `focusa_preload_build`.
 - CLI: `focusa preload doctor`.
 - REST: `POST /v1/preload/doctor`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:147f12eb29ba4380253b4a96566af22c37dea73a744ab2949625a59107409584`.
+- Descriptor digest: `sha256:a46258da16e1d13a336b72d65fac70e8a1b39efe79fa762b65e35c778ddcb6e2`.

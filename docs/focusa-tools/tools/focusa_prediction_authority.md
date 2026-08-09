@@ -79,4 +79,4 @@ Likely next: `focusa_predict_recent`, `focusa_evidence_capture`, `focusa_metacog
 - CLI: `focusa predict authority-append`, `focusa predict authority-projection`.
 - REST: `POST /v1/prediction-authority/events`, `POST /v1/prediction-authority/projection`, `GET /v1/prediction-authority/projection`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:dec93c4c58b677e29702553ff6d0dec24aa02d370aea226e5caea665111bc7e6`.
+- Descriptor digest: `sha256:f7091f35c4a3e8b468799fb938fe5012cd445807ab1b1a760bda7d29ce6b6ffe`.

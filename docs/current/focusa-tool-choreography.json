@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 135,
-  "edge_count": 381,
+  "tool_count": 136,
+  "edge_count": 384,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -221,6 +221,11 @@
     "focusa_preload_receipt_commit": [
       "focusa_preload_verify",
       "focusa_preload_doctor"
+    ],
+    "focusa_daemon_routing_status": [
+      "focusa_project_identity",
+      "focusa_tool_doctor",
+      "focusa_workpoint_resume"
     ],
     "focusa_project_identity": [
       "focusa_project_card",
@@ -1135,6 +1140,21 @@
     {
       "from": "focusa_preload_receipt_commit",
       "to": "focusa_preload_doctor",
+      "weight": 1
+    },
+    {
+      "from": "focusa_daemon_routing_status",
+      "to": "focusa_project_identity",
+      "weight": 1
+    },
+    {
+      "from": "focusa_daemon_routing_status",
+      "to": "focusa_tool_doctor",
+      "weight": 1
+    },
+    {
+      "from": "focusa_daemon_routing_status",
+      "to": "focusa_workpoint_resume",
       "weight": 1
     },
     {

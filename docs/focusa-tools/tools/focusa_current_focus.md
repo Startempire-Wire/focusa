@@ -76,4 +76,4 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_checkpoint`, `focusa_ev
 - CLI: `focusa focus update --current-focus`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:4326ee0d091dde7bf9fa330e7a61c5162bab2cbede858cf7028fade0fc723e93`.
+- Descriptor digest: `sha256:2bcfde8f5baa7c3d256d1010843c66c508e3b594d9ca8a4a452ee0fd4fa0c9fa`.

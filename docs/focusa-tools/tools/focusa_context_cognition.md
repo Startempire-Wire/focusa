@@ -77,4 +77,4 @@ Likely next: `focusa_active_object_resolve`, `focusa_workpoint_checkpoint`, `foc
 - CLI: `focusa context-cognition view`.
 - REST: `GET /v1/context-cognition`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:c3b10ce2b9449a33306b3f499902ea8c2fd77654d29832d0f32e636b7f5adf1c`.
+- Descriptor digest: `sha256:092c64b97bb83baa409f87b5516ebdaddfa375419a8001ad59e315d98069d44e`.

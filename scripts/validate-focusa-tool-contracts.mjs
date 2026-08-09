@@ -57,7 +57,7 @@ if (toolNames.length !== uniqueToolNames.length) {
 
 const preloadMatch = contractsSrc.match(/const PRELOAD_TOOL_CONTRACTS: FocusaToolContract\[] = (\[[\s\S]*?\])\.map/);
 const agentRuntimeMatch = contractsSrc.match(/const AGENT_RUNTIME_TOOL_CONTRACTS: FocusaToolContract\[] = (\[[\s\S]*?\])\.map/);
-const jsonMatch = contractsSrc.match(/export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract\[] = ([\s\S]*?)\n\];/);
+const jsonMatch = contractsSrc.match(/export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract\[] = ([\s\S]*?)\n\](?:\.map|\)|;)/);
 if (!preloadMatch) {
   fail('could not parse PRELOAD_TOOL_CONTRACTS registry');
 }

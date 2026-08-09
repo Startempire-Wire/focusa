@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:30eb029b1aec441bb874080b4381ad298fe1efb7bceac641ef7c24f260a6be52`
+Registry digest: `sha256:c04d88b1e4b291c6f4e50e436d2e37e240877ef5464214c094a66b77b8442031`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -420,6 +420,17 @@ Update current focus — what you are actively working on right now (1-3 sentenc
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_trajectory_view`, `focusa_workpoint_checkpoint`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_current_focus.md`
+
+## focusa_daemon_routing_status
+
+Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. Use it when Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.daemon.routing.status`
+- Family: `project_identity`
+- Side effects: `read_state`, `read_state`
+- Skills: `skill:focusa`, `skill:focusa-project-scope`
+- Dependencies/next: `focusa_project_identity`, `focusa_tool_doctor`, `focusa_workpoint_resume`
+- Documentation: `docs/focusa-tools/tools/focusa_daemon_routing_status.md`
 
 ## focusa_decide
 

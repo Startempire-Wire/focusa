@@ -91,4 +91,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_active_object_resolve`, `focusa_
 - CLI: `focusa workpoint checkpoint`.
 - REST: `POST /v1/workpoint/checkpoint`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:4584ec4b59431bf579bc76d8812fced77638c4e7e4d633e4cfd92b6b4813f19f`.
+- Descriptor digest: `sha256:0ec2e5392696fa98e09a579de207bbbfe5094c3b92f0124ff6e2acd43ee74091`.

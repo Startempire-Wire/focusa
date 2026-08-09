@@ -78,4 +78,4 @@ Likely next: `focusa_tree_restore_state`, `focusa_tree_path`, `focusa_metacog_ca
 - CLI: `focusa state snapshot diff`.
 - REST: `POST /v1/focus/snapshots/diff`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:340eab68ae74a0f92ea66be4997aacecfe8f95c187a6304ba6aa7c2375489b15`.
+- Descriptor digest: `sha256:a5c8e38573a96b549d575ac7587f0209ca0d335439585656b25aef10ea69efc9`.

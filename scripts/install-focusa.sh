@@ -78,17 +78,22 @@ case "$CHANNEL" in
   stable|preview|nightly) ;;
   *) die "unsupported channel: $CHANNEL" ;;
 esac
-[ "$PURGE_DATA" = 0 ] || [ "$UNINSTALL" = 1 ] || die "--purge-data requires --uninstall"
+[ "$PURGE_DATA" = 0 ] || [ "$UNINSTALL" = 1 ] || usage_die "--purge-data requires --uninstall"
 
 if [ "$UNINSTALL" = 1 ]; then
-  have focusa || die "focusa is not installed; recovery: reinstall or invoke the preserved binary directly"
-  uninstall_args=(uninstall)
-  if [ "$PURGE_DATA" = 1 ]; then
-    uninstall_args+=(--purge-data --confirm-purge)
-  else
+  # Prefer the canonical install location so delegated uninstall runs the
+  # preserved binary (Spec 132 public uninstall preservation test).
+  focusa_bin="$HOME/.focusa/bin/focusa"
+  if [ ! -x "$focusa_bin" ]; then
+    have focusa || die "focusa is not installed; recovery: reinstall or invoke the preserved binary directly"
+    focusa_bin="$(command -v focusa)"
+  fi
+  uninstall_args=(uninstall --yes)
+  if [ "$PURGE_DATA" = 0 ]; then
+    # Preserve by default: --keep-data is the safe posture (Spec 132).
     uninstall_args+=(--keep-data)
   fi
-  exec focusa "${uninstall_args[@]}"
+  exec "$focusa_bin" "${uninstall_args[@]}"
 fi
 
 OS="$(uname -s 2>/dev/null || printf unknown)"

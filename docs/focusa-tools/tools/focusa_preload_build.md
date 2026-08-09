@@ -75,4 +75,4 @@ Likely next: `focusa_preload_render`, `focusa_preload_verify`.
 - CLI: `focusa preload build`.
 - REST: `POST /v1/preload/build`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:0be7bf5f2f3e6783a4d1b1ced365b56c2c28a6531b1d712ab7f3f2d4886b26a2`.
+- Descriptor digest: `sha256:a01dd6f93b477aea68a622087bebf296efde9ec1aa2455447ca50d8655598e10`.

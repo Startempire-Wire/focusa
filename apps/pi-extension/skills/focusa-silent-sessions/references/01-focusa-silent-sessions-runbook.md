@@ -25,15 +25,6 @@
 1. Verify typed project/workstream scope before durable mutation.
 2. Return bounded evidence and executable recovery.
 
-## Temporal authority contract
-
-- Status returns bounded `focusa.silent_session_temporal_context.v1` for the exact session project and continuity scope.
-- Context includes run start/end/elapsed time, configured wall-clock ceiling, remaining budget, timeout state, event-count progress, cancellation state, deadline authority, forecast range, and bounded temporal warnings.
-- Start, pause, resume, interrupt, cancel, restart, text input, and key input return the same context plus the mutation-specific `focusa.silent_session_temporal_guard.v1` receipt.
-- Mutations fail closed when HumanCalendarContext, TemporalPriorityFrame, or TemporalExecutionGuard authority is missing, stale, scope-mismatched, or does not authorize the action.
-- Terminal lifecycle state remains `terminal_pending_receipt` until closure evidence and receipt references are durably settled; terminal state alone is not completion proof.
-- Resource timeout fields do not independently prove Spec 131 parent-budget propagation, paired-clock lineage, cancellation effectiveness, or possible-effect reconciliation; those obligations remain separately gated.
-
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.

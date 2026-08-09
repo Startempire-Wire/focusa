@@ -78,4 +78,4 @@ Likely next: `focusa_instruction_conflicts`, `focusa_instruction_explain`, `focu
 - CLI: `focusa agent-runtime sources`.
 - REST: `GET /v1/agent-runtime/instructions/sources`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:7df7cef536cc7fb1010c6f719c7565cffe32e3e0fd4c65fa5e1be537a4aa3493`.
+- Descriptor digest: `sha256:1c7927b067615c0b630d0bbd7cf046bb39ba1f01eaae3d8e18624d6d435f3666`.

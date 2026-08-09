@@ -74,4 +74,4 @@ Likely next: `focusa_bloatgaurd_tokenbloat_domain`, `focusa_bloatgaurd_report`, 
 - CLI: `focusa bloatgaurd tokenbloat`.
 - REST: `GET /v1/bloatgaurd/tokenbloat/report`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:653c307eeeb1c3d13877f69240dfee505f2c89b28fcfca1c9c9ee34d1417ae7a`.
+- Descriptor digest: `sha256:1019a15c5d0ae6b00fd5f234309a7d98d74c579b67ba98dbef54c1aad76424b1`.

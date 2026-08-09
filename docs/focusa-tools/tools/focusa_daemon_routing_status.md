@@ -1,26 +1,22 @@
-# `focusa_project_card`
+# `focusa_daemon_routing_status`
 
-Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals. Use it when Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. Use it when Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap.
+- Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.
 - Capability family: `project_identity`; namespace: `focusa.project_identity`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
 ## Parameters and strict input schema
 
-- `cwd` (optional; string): Optional cwd/project path hint; defaults to Pi session cwd.
-- `project_root` (optional; string): Optional expected project root folder.
-- `current_ask` (optional; string): Optional current ask used to seed bootstrap/re-bootstrap candidate.
-- `remote_host` (optional; string): Remote SSH host that contains the project root; caller supplies inspected evidence.
-- `remote_user` (optional; string): Remote SSH user, if known.
-- `remote_port` (optional; number; min=1, max=65535): Remote SSH port, if known.
-- `remote_repo_remote` (optional; string): Git origin/repo remote observed on the remote host.
-- `remote_workspace_kind` (optional; string): Workspace kind observed on the remote host.
-- `remote_deploy_root` (optional; string): Deployment/site root observed on the remote host.
+- `registry` (required; structured): Canonical daemon registry projection from the controller.
+- `project_root` (required; string): See the strict descriptor schema.
+- `continuity_id` (required; string): See the strict descriptor schema.
+- `working_subpath_id` (required; string): See the strict descriptor schema.
+- `native_session_id` (required; string): See the strict descriptor schema.
 
-Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_project_card`.
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_daemon_routing_status`.
 
 ## Output
 
@@ -29,10 +25,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 ## Example
 
 ```json
-{}
+{
+  "registry": {},
+  "project_root": "/tmp/focusa-project",
+  "continuity_id": "continuity-demo",
+  "working_subpath_id": "example",
+  "native_session_id": "example"
+}
 ```
 
-Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card.md
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_daemon_routing_status.md
 
 ## Operator alignment
 
@@ -51,11 +53,11 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Authority, permissions, and side effects
 
-- Scope: `{"kind":"read","route_family":"auto"}`
-- Authority: `{"kind":"advisory_only"}`
+- Scope: `{"kind":"write","route_family":"daemon-routing"}`
+- Authority: `{"kind":"canonical","path":"/v1/daemon-routing/resolve"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `false`; preview supported: `true`.
 
 ## Failure and recovery
 
@@ -67,20 +69,19 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
-- `focusa_project_card_outcome` (likely_next)
-- `focusa_traverse` (likely_next)
-- `focusa_trajectory_view` (likely_next)
-- `focusa_metacog_retrieve` (likely_next)
+- `focusa_project_identity` (likely_next)
+- `focusa_tool_doctor` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_project_card_outcome`, `focusa_traverse`, `focusa_trajectory_view`, `focusa_metacog_retrieve`.
+Likely next: `focusa_project_identity`, `focusa_tool_doctor`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
 
 - Skills: `skill:focusa`, `skill:focusa-project-scope`
 - Runbooks: `runbook:project_identity`
-- Pi: `focusa_project_card`; MCP: `focusa.project.card`; OpenAI: `focusa_project_card`.
-- CLI: `focusa project card`.
-- REST: `GET /v1/project/card`.
-- Specification: contract registry.
-- Descriptor digest: `sha256:dc947ec8a954f7f224c0cbbdcea8671f867cee93085ae77d8e02fd43c4ea7b06`.
+- Pi: `focusa_daemon_routing_status`; MCP: `focusa.daemon.routing.status`; OpenAI: `focusa_daemon_routing_status`.
+- CLI: `focusa daemon-routing status`.
+- REST: `POST /v1/daemon-routing/resolve`.
+- Specification: `docs/158-focusa-daemon-routing-surface-parity-spec.md`.
+- Descriptor digest: `sha256:732fbc5685a9c5b98b34a60141aba7f968530285fd97bcba95fbbd3e4a8e6e06`.

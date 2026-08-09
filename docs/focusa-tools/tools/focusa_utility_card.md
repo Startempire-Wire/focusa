@@ -75,4 +75,4 @@ Likely next: `focusa_agent_prompt`, `focusa_workpoint_resume`, `focusa_trajector
 - CLI: `focusa utility card`, `focusa utility bootstrap`, `focusa utility post-compaction`.
 - REST: `GET /v1/utility/card`, `GET /v1/utility/bootstrap`, `GET /v1/utility/post-compaction`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:587f713fcde69ed600287544387e0f6f343f897f65c94680734a0c2410aa9910`.
+- Descriptor digest: `sha256:20dd3ceccd191b0804254a33a51650c3aad5e11c6dfffebdf99fdf21d669988a`.

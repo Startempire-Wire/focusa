@@ -74,4 +74,4 @@ Likely next: `focusa_resource_mode`, `focusa_project_identity`, `focusa_workpoin
 - CLI: none.
 - REST: `GET /v1/health`, `GET /v1/workpoint/current`, `GET /v1/work-loop/status?summary_only=true`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:178c9975148bb47568eeefb9ce65b863af9fbddd1b617d9de48ebd3b38d56a2d`.
+- Descriptor digest: `sha256:31dd63ab1e605797086b9fbb70cc4de54b8117aca18152bb285978f24aed876c`.

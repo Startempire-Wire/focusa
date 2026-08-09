@@ -74,4 +74,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_dxux_report`, `focusa_evidence_c
 - CLI: `focusa dxux digest`.
 - REST: `GET /v1/dxux/digest`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:908ab568cb7e172cda2e46ff5c31eabc7bc9336a196922bffe26e17141509f20`.
+- Descriptor digest: `sha256:85d1b87d828a6d900499809de16e0b8e0b2d130b1911054cceca3180574a9b2a`.

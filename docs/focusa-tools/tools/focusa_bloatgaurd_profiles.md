@@ -74,4 +74,4 @@ Likely next: `focusa_bloatgaurd_profile`, `focusa_bloatgaurd_routines`, `focusa_
 - CLI: `focusa bloatgaurd profiles`.
 - REST: `GET /v1/bloatgaurd/profiles/report`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:e8ae2d5baefbce52c7e0e23742a9307ea7d9dad4c6bdc113a9d2f8fbe23b38f8`.
+- Descriptor digest: `sha256:89389ebb1a779ec5e7608db4e706d8318cdc8f39e15c31851425495a36f82e21`.
