@@ -1,0 +1,144 @@
+Spec 152E verified PowerShell delegation — acceptance evidence
+Work item: focusa-vbcqu.20.13.41
+Title: 152E.05.03 Replace PowerShell licensing with verified delegation
+Scope: scripts/install-focusa.ps1 (canonical Windows installer); argument/
+help/telemetry; Rust handoff
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§4 presenter topology, §12 Evaluation journey,
+§19 security/privacy, §21 surface consolidation, §22.3 cutover item 8);
+Specs 152, 150A, 152A-D. Spec 158 implementation is excluded.
+
+Implementation commit: `a56150a1` (feat(spec152e): replace PowerShell
+licensing with verified delegation)
+
+Exact surfaces (this atom only)
+- scripts/install-focusa.ps1 (modified): argument/help/telemetry and Rust
+  handoff alignment with the shared activation client (parity with the
+  verified Unix delegation from focusa-vbcqu.20.13.40)
+- tests/spec152e_installer_powershell_test.ps1 (new): exact verification
+  binding the positive and negative verified-delegation checks
+
+Bounded result
+- No PowerShell branch can issue Evaluation or entitlement: the bootstrapper
+  contains no local validation, no license/authority/receipt JSON issuance,
+  no self-Eval or installer grace license, no raw key/email parameter or
+  storage, and no legacy registry validation endpoint. Raw credentials
+  (`-LicenseKey`, `-Email`, `-Registry`, and any secret/token/credential-like
+  stray argument) are rejected by the presenter-safe argument gate with
+  `E_AUTHORITY_RAW_KEY_FORBIDDEN` before any state or network I/O; unknown
+  options fail closed.
+- Activation intent is collected or forwarded, never decided: `-Eval`
+  forwards intent to the shared activation client in the Rust installer;
+  help text, parameter docs, and dry-run telemetry now state explicitly that
+  Evaluation is authority-issued only and never local (`evaluation:
+  authority-issued only; intent forwarded to the shared activation client`
+  appears in the dry-run plan when `-Eval` is set). No-key Windows installs
+  enter the Rust authority activation journey, never local Evaluation.
+- Artifact verification, rollback, recovery, and uninstall are preserved:
+  SHA256SUMS verification with stable-only Cosign fail-closed, bounded temp
+  cleanup on interruption, `E_INSTALL_INTERRUPTED` recovery messaging, and
+  preserve-by-default delegated uninstall (`--keep-data` without explicit
+  `-PurgeData`) are intact; the install path converges on exactly one
+  fail-closed handoff (`& $Focusa @Args` occurs once) with allowlisted flags
+  only — no caller-controlled product/price/grant/feature/limits input.
+- Semantic parity with Unix: the PowerShell bootstrapper now rejects the
+  same raw credentials with the same `E_AUTHORITY_RAW_KEY_FORBIDDEN` code,
+  discloses the same authority-issued-only Evaluation wording, forwards
+  `--eval` intent the same way, and preserves the same rollback/uninstall
+  posture as scripts/install-focusa.sh (atom 20.13.40).
+
+Exact verification (exit codes; byte-identical across runs)
+1. `pwsh -NoProfile -File tests/spec152e_installer_powershell_test.ps1` —
+   exit 0 (two runs, sha256 of output
+   470e3f14a99f75ee1001027d4a1ce637e6a27b9166434a28322ba30a85cb4bb9).
+   56 named positive/negative checks pass:
+   - 15 forbids: no evaluation_receipt / eval_issued / self_eval /
+     E_EVAL_ISSUED / grace_license / license.json / write_license_json /
+     LICENSE_KEY= / CUSTOMER_EMAIL= / $LicenseKey / $CustomerEmail /
+     $RegistryKey / edd_sl_key / EDD_SL_KEY /
+     wpuiai-ai-cloud/v1/license/validate
+   - 14 requires: `& $Focusa @Args` single handoff, orchestrator failure
+     surfaced, allowlisted `$Args = @("install", "--target=...")`, `--keep-data`
+     preserve-by-default uninstall, `--eval` forwarding,
+     E_INSTALL_INTERRUPTED, E_AUTHORITY_RAW_KEY_FORBIDDEN, raw-credential
+     rejection wording, signed authority device authorization,
+     authority-issued-only Evaluation, Invoke-WebRequest download, SHA256SUMS
+     verification, Spec 112 citation
+   - 6 forbids: no caller-controlled --product=/--price=/--grant/--feature=/
+     --limits=/--commercial; no sc.exe service registration (delegated to Rust)
+   - 4 privacy forbids: no unmasked email, private key, sk- secret, or ghp_
+     token patterns
+   - Behavioral (executable, not source markers): unknown option fails closed
+     without mutation; raw `-LicenseKey` and `-Email` rejected before state
+     without echoing the secret/email; `-DryRun -Eval` discloses
+     authority-issued Evaluation, reports no mutations, and writes no state
+2. `bash tests/spec_focusa_112_shell_ps1_slim_static_test.sh` — exit 0 (two
+   runs, sha256 of output
+   1627fad27d97ec7599a6dbd29d9ddf3d7fb599a9f489fc91c20cc3a0605a86ec).
+   All 16 named Bash+PowerShell bootstrapper contract checks pass, including
+   line-count bound (install-focusa.ps1 now 194 lines, bounded 140–250),
+   verified Rust handoff, no sc.exe rendering, platform/arch detection,
+   Invoke-WebRequest download, SHA256SUMS verification, Spec 112 citation,
+   and invalid-option fail-closed behavior.
+
+Regression checks (exit codes)
+- `pwsh -NoProfile -File tests/spec152-installer-powershell-static-test.ps1`
+  — exit 0 (Spec 152 Windows authority contract unchanged).
+- `bash tests/spec152e_installer_shell_static_test.sh` — exit 0 (Unix
+  verified-delegation surface unchanged; parity counterpart).
+- `bash tests/spec152_installer_shell_static_test.sh` — exit 0 (Spec 152
+  shell authority contract unchanged).
+- `python3 tests/spec152_installer_presenter_parity_test.py` — exit 0
+  (Bash/PowerShell/Rust/menubar presenter parity incl. raw-credential
+  rejection and interruption rollback).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0 (generated
+  activation contracts current).
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0
+  (19 states / 48 transitions unchanged).
+- Note: `scripts/generate-spec152e-installer-route-manifest.py` fails at HEAD
+  (before this atom) with a pre-existing `repository digest drift for
+  installer.unix` — the Spec 152E installer route/inventory contracts
+  (spec152e-installer-route-manifest.v1.json,
+  spec152e-deployed-surface-inventory.v1.json) are owned by the
+  focusa-vbcqu.20.13.30/20.13.29 surfaces and were left unmodified here.
+
+Tests added
+- tests/spec152e_installer_powershell_test.ps1: exact verification — static
+  forbids for local validation/JSON issuance/self-Eval/raw key/email/legacy
+  registry/unmasked secret material and caller-controlled input; static
+  requires for raw-credential rejection, single shared-client handoff,
+  rollback/uninstall preservation, and allowlisted handoff args; behavioral
+  checks (executable, not source markers): unknown option fails closed
+  without mutation, raw `-LicenseKey`/`-Email` rejected before state without
+  echo of the secret, `-DryRun -Eval` discloses authority-issued Evaluation
+  and writes no local state.
+
+Acceptance criteria
+- No-key Windows install enters authority activation, not Evaluation, and
+  every semantic state matches Unix: verified — default handoff carries no
+  `--eval` flag (Rust authority activation journey); `-Eval` forwards intent
+  only; dry-run telemetry discloses authority-issued-only Evaluation;
+  raw-credential rejection code, Evaluation wording, --eval forwarding, and
+  preserve-by-default uninstall are byte-parity with the Unix bootstrapper.
+- All named positive and negative checks pass (56/56 spec152e + 16/16
+  spec112, both exit 0 and byte-identical across runs); diff contains only
+  the named surfaces (scripts/install-focusa.ps1 + this test + this evidence
+  record); generated activation/state-machine/parity contracts are current
+  (api, state-machine, and parity regression tests exit 0); secrets and
+  unmasked real email are absent (privacy forbids plus runtime rejection
+  prove no secret echo); evidence is replayable from the pinned commit
+  (offline, deterministic, byte-identical output with pinned sha256 hashes).
+- Deployed installer: the canonical script remains byte-synchronizable to
+  install.focusa.dev/installers/install-focusa.ps1 via
+  scripts/sync-install-bootstrapper-windows.sh; live deployment sync is
+  operator-side and was not performed (publication forbidden for this atom).
+
+Rollback
+- Revert only this atom's commits: the implementation commit `a56150a1` and
+  the evidence commit containing this file. Preserve EDD customer/order/
+  refund truth, verified identities, licenses, nodes, sequences,
+  credentials, Workpoints, Evidence, and migration journals; no authority,
+  EDD, node, lease, or local install state is mutated by these
+  build-independent PowerShell surfaces.
+
+No push, deploy, release, merge, or Beads mutation was performed.
