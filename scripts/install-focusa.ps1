@@ -5,11 +5,16 @@
   Selects a complete immutable Windows release, verifies the bootstrap binary,
   and delegates installation to the canonical Rust orchestrator. Entitlements,
   device authorization, asset activation, daemon health, and recovery remain
-  Rust-owned. This script never creates evaluation state or stores credentials.
+  Rust-owned. Raw license keys and email addresses are intentionally not
+  accepted: the Rust installer resolves or acquires a signed, node-bound
+  authority lease and safely presents the device verification URL and
+  user-code handle. Evaluation is authority-issued only; this bootstrapper
+  never creates local evaluation state or stores credentials.
 .PARAMETER DryRun
   Print a non-mutating delegation plan.
 .PARAMETER Eval
-  Request an authority-issued evaluation lease through device authorization.
+  Forward Evaluation intent to the shared activation client (authority-issued
+  only; never local).
 .PARAMETER Channel
   stable | preview | nightly.
 .PARAMETER Target
@@ -45,6 +50,19 @@ function Log([string]$Message) { Write-Host "[focusa-install] $Message" -Foregro
 function Warn([string]$Message) { Write-Warning "[focusa-install] $Message" }
 function Die([string]$Message) { throw "[focusa-install] $Message" }
 
+# Presenter-safe argument gate (Spec 152E §19.7 / Spec 112 §15A): raw
+# credentials and legacy registry overrides are rejected before any state or
+# network I/O; unknown options fail closed. Activation intent is forwarded
+# only — product/price/grant/feature and Evaluation decisions stay in the
+# shared activation client.
+if ($args.Count -gt 0) {
+  $RawCredentials = @($args | Where-Object { $_ -match '^-.*(license|key|email|mail|registry|pass|token|secret|credential)' })
+  if ($RawCredentials.Count -gt 0) {
+    Die "E_AUTHORITY_RAW_KEY_FORBIDDEN: raw credentials and legacy registry overrides are forbidden; use signed authority device authorization"
+  }
+  Die "unknown option(s): $($args -join ' ')"
+}
+
 if ($PurgeData -and -not $Uninstall) { Die "-PurgeData requires -Uninstall" }
 if ($Uninstall) {
   $Focusa = Get-Command focusa -ErrorAction SilentlyContinue
@@ -75,7 +93,7 @@ if ($Target -eq "auto") {
 $AssetName = "focusa-$Triple.exe"
 
 if ($DryRun) {
-  [ordered]@{
+  $Plan = [ordered]@{
     schema = "focusa.windows_verified_bootstrap_plan.v1"
     status = "planned"
     mutations_performed = $false
@@ -84,7 +102,9 @@ if ($DryRun) {
     channel = $Channel
     release = $(if ($ReleaseTag) { $ReleaseTag } else { "latest-complete" })
     entitlement = "signed authority lease; device authorization if absent"
-  } | ConvertTo-Json -Depth 4
+  }
+  if ($Eval) { $Plan.evaluation = "authority-issued only; intent forwarded to the shared activation client" }
+  $Plan | ConvertTo-Json -Depth 4
   exit 0
 }
 
