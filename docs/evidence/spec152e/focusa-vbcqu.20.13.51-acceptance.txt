@@ -1,0 +1,125 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.51
+Title: 152E.06.03 Migrate legacy customers through verified identity promotion
+Implementation commit: `5d8fda94446d31ef899ad713ce6bbd98c5c0ee95` (code + fixture + test)
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§6.3 atomic promotion, §7 canonical account/identity/
+registration model, §22.1 inventory, §22.2 merge rules, §22.3 cutover step 6,
+§22.4 rollback, §23 acceptance "Legacy install-site record" row); Specs 152,
+150A, 152A-D; Spec 158 implementation excluded.
+
+Exact surfaces (this atom only)
+- Legacy-customer migration workflow: docs/contracts/spec152e-legacy-customer-
+  migration.v1.php (FocusaSpec152eLegacyCustomerMigrationSchema +
+  FocusaSpec152eLegacyCustomerMigrationService)
+- Legacy EDD/install fixture: docs/contracts/spec152e-legacy-customer-fixture.v1.json
+  (redacted, deterministic; no raw email, no secret, no synthetic key material)
+- tests/spec152e_legacy_customer_migration_test.php (exact verification)
+
+Bounded result
+- Added the legacy-customer migration workflow: openChallenge() invites
+  (canonical / evidence_backed_import / verify_first) or challenges (duplicate /
+  synthetic_quarantine / refunded_revoked / unresolved) a legacy EDD/install
+  record by opaque inventory handle, storing only the keyed email lookup digest
+  and a pinned evidence digest — never the raw email. One challenge per record
+  handle; repeated opens replay or dedupe and never create a second challenge.
+- attachVerified() attaches a record ONLY after mailbox verification and
+  evidence-backed resolution: the verified registration email must equal the
+  challenge's keyed digest, and the EDD customer merge is delegated to the
+  promotion service's mergeLegacyVerified (verified identity -> authority
+  account -> existing EDD customer -> purchase links). Purchase/license history
+  is preserved: EDD customer/order/item/license rows are byte-identical before
+  and after migration, and order/license references are journaled on the
+  attachment. Verified legacy customers merge once: replays and repeated
+  canonical requests return the stored attachment (replayed=true / existing=true)
+  with exactly one attachment row.
+- Conflicts quarantine without entitlement loss: ACCOUNT_MERGE_REVIEW_REQUIRED,
+  EDD_ORDER_UNVERIFIED, EDD_LICENSE_UNVERIFIED, EDD_LICENSE_UNUSABLE, and
+  LICENSE_ACCOUNT_MISMATCH failures journal the record quarantined with the
+  fail-closed reason and write zero account/identity/customer/entitlement state;
+  EDD truth stays untouched. quarantine-only dispositions (synthetic_quarantine,
+  refunded_revoked, unresolved) can never attach even with a verified email.
+  quarantineRecord() quarantines unverified records explicitly; reopenQuarantined()
+  keeps every quarantined record recoverable, and a reopened record must again
+  pass verification, evidence, and the disposition gate. Quarantined or
+  never-attached records cannot activate new nodes (legacy activation adapter
+  still demands mailbox verification plus a usable owner license; revoked,
+  refunded, synthetic, and unverified records all fail closed).
+- The migration journal (wpuiai_legacy_customer_challenges / _attachments /
+  _journal) is append-audited and preservation-only on rollback. Results,
+  journals, and the fixture contain no raw email, no license key, no secret
+  prefix, and no synthetic focusa_live key material. No unverified-email
+  promotion, no local/self-issued entitlement, no independent facade authority,
+  and no client-controlled EDD price/grant exists in this surface; the exact
+  existing typed error codes are reused (no new error codes were registered).
+
+Exact verification (exit codes)
+1. `php tests/spec152e_legacy_customer_migration_test.php` — exit 0 (run three
+   times; deterministic, byte-identical output, sha256
+   7863af5269ab13db7db5740463ed881aeefa6a65fead9ff6418d8dec73af2b0e).
+   Bounded result:
+   {"schema":"focusa.spec152e.legacy_customer_migration_test.v1",
+   "positive_checks":151,"negative_checks":18,"accounts":4,"customers":6,
+   "identities":4,"purchase_links":4,"challenges":9,"attachments":4,
+   "quarantined_records":4,
+   "fixture_digest_sha256":"2335f9f688143dd4eef36729e723405ff101e5e05ae658846d0c0eb33908aa13",
+   "result":"passed_fail_closed"}
+   Positive: fixture redaction/determinism; invite vs challenge mode mapping;
+   one challenge per handle; verified alpha/echo/delta/dup customers merge once
+   (fresh, replay, and existing-dedupe all return the same attachment); EDD
+   order/license/customer truth preserved byte-identically; linked secondary
+   owner email migration; conflict -> quarantine -> reopen -> attach recovery;
+   synthetic-evidence quarantine; registration advance to account_promoted;
+   preservation-only rollback; and journal/hygiene checks.
+   Negative: unverified registration, unrelated verified email, missing key,
+   conflicting prior purchases, synthetic evidence, quarantine-only
+   dispositions, already-attached quarantine, reopening attached records,
+   unknown challenges, and node-activation denial for unverified/revoked/
+   refunded/synthetic records.
+
+Regression checks (exit codes)
+- All 32 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  migration test and all prior tests.
+- `python3 tests/spec152e_api_contract_test.py` — exit 0 (no new error codes;
+  generated activation contracts remain current).
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  ("Spec 152E activation contracts are current").
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0 (596-record
+  redacted inventory unchanged; its file was not touched).
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_golden_vector_test.py` — exit 0.
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom):
+  tests/spec152e_document_authority_test.py (exit 1, spec152-final-audit-status
+  publication_rule wording gated on focusa-vbcqu.20.13.63 / focusa-vbcqu.20.14.52)
+  and tests/spec152f_surface_reconciliation_contract_test.py (exit 1, Spec 152F
+  reconciliation index stale at the base commit).
+
+Tests added
+- spec152e_legacy_customer_migration_test.php: 151 positive + 18 negative checks
+  covering fixture redaction (no email/secret/synthetic-key material) and
+  determinism; invite/challenge mode mapping from the fixture; one-challenge
+  dedupe; verified alpha merge with fresh/replay/existing semantics (merged
+  exactly once); byte-identical EDD truth before/after each migration; linked
+  secondary-email migration for echo; delta and dup conflict quarantine with
+  reopen-recovery and correct-evidence attachment; synthetic-evidence quarantine;
+  operator quarantineRecord for unresolved records with reopen re-quarantine at
+  the disposition gate; pre-merge gates (EMAIL_VERIFICATION_REQUIRED,
+  ACCOUNT_EMAIL_MISMATCH, malformed input) leaving records open and recoverable
+  with zero state; quarantine-only disposition gates for synthetic/refunded/
+  revoked records; already-attached quarantine and attached-reopen denial; unknown
+  challenge fail-closed; node-activation denial via the legacy activation adapter
+  for unverified, revoked, refunded, and synthetic records; preservation-only
+  rollback journaling; and hygiene (no unmasked email, license key, or secret in
+  any envelope, challenge row, attachment row, or journal).
+
+Rollback
+- Revert only implementation commit `5d8fda94446d31ef899ad713ce6bbd98c5c0ee95`
+  (and this evidence record if required). Preserve EDD customer/order/refund
+  truth, verified identities, licenses, nodes, sequences, credentials,
+  Workpoints, Evidence, and migration journals; the legacy-customer challenge,
+  attachment, and journal tables are preservation-only.
+
+No push, deploy, release, merge, or Beads mutation was performed.
