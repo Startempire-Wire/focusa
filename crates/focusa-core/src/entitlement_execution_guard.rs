@@ -463,6 +463,14 @@ fn entitlement_execution_premium_denial(
             required_feature,
             limit_bucket,
         },
+        focusa_license::PremiumFamilyDenial::EntitlementStateNotUsable { state } => {
+            EntitlementExecutionFailure {
+                code: ENTITLEMENT_REQUIRED.to_string(),
+                message: format!("entitlement state {state:?} cannot carry a premium feature"),
+                required_feature,
+                limit_bucket,
+            }
+        }
         focusa_license::PremiumFamilyDenial::NotPremiumFamily { family } => EntitlementExecutionFailure {
             code: ENTITLEMENT_ROUTE_UNCLASSIFIED.to_string(),
             message: format!("{family:?} is not a premium family"),

@@ -413,3 +413,66 @@ fn spec152f_export_entitlement_premium_packaging_denial_does_not_block_basic_exp
         // never the basic export state grid cell.
     }
 }
+
+// ── Adversarial isolation (Spec 152F.04.07) ────────────────────────────────
+
+#[test]
+fn spec152f_export_entitlement_adversarial_isolation_fails_closed() {
+    // A caller-invented packaged-export identifier never resolves.
+    let snapshot = active_snapshot();
+    let decision = resolve_export_packaged(&snapshot, "focusa.export.packaged.plus", Utc::now());
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::FeatureNotRegistered {
+            family: Family::CustomerDataExport,
+            ..
+        }
+    ));
+
+    // An Evaluation-issued lease that omits focusa.export.packaged cannot widen:
+    // premium packaging resolves only when the grant includes it.
+    let mut evaluation = active_snapshot();
+    evaluation.lease_id = Some("lease-eval-export".to_string());
+    evaluation.features.clear();
+    let decision = resolve_export_packaged(&evaluation, "focusa.export.packaged", Utc::now());
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::MissingFeature { .. }
+    ));
+
+    // Offline Grace cannot expand into packaged export without the cached grant.
+    let mut grace = active_snapshot();
+    grace.state = EntitlementState::OfflineGrace;
+    grace.features.clear();
+    grace.offline_grace_until = Some(Utc::now() + Duration::minutes(5));
+    let decision = resolve_export_packaged(&grace, "focusa.export.packaged", Utc::now());
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::MissingFeature { .. }
+    ));
+
+    // An expired/revoked state can never be widened by a stored packaged claim.
+    let mut revoked = active_snapshot();
+    revoked.state = EntitlementState::RecoveryOnly;
+    revoked
+        .features
+        .insert("focusa.export.packaged".to_string(), true);
+    let decision = resolve_export_packaged(&revoked, "focusa.export.packaged", Utc::now());
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::EntitlementStateNotUsable {
+            state: State::RefundedOrRevoked
+        }
+    ));
+
+    // Wrong-product isolation for the four premium families is proven in their
+    // own adversarial cases; packaged export is deliberately additive and never
+    // base-gated, so a wrong product alone cannot widen it beyond the lease
+    // sequence/binding/state gates above.
+
+    // Basic export remains available for the same revoked snapshot (never
+    // paywalled by the packaged-export denial).
+    let basic =
+        reduce_entitlement_state(State::RefundedOrRevoked, Family::CustomerDataExport, None);
+    assert_eq!(basic.posture(), Posture::Allow);
+}

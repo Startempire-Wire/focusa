@@ -615,3 +615,57 @@ fn spec152f_automation_entitlement_all_premium_families_are_distinct() {
     assert!(all_team.is_disjoint(&all_updates));
     assert!(all_release.is_disjoint(&all_updates));
 }
+
+// ── Adversarial isolation (Spec 152F.04.07) ────────────────────────────────
+
+#[test]
+fn spec152f_automation_entitlement_wrong_product_evaluation_omission_and_grace_fail_closed() {
+    // A wrong product can never widen automation, even with a stored feature.
+    let mut wrong = active_snapshot();
+    wrong.product = "uiai_engine".to_string();
+    wrong
+        .features
+        .insert("focusa.agent.silent_sessions".to_string(), true);
+    let decision = resolve_premium_family(
+        &wrong,
+        Family::Automation,
+        "focusa.agent.silent_sessions",
+        Utc::now(),
+    );
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::BaseProductRequired { .. }
+    ));
+
+    // An Evaluation-issued lease that omits the premium feature cannot widen:
+    // premium resolves only when the grant includes it.
+    let mut evaluation = active_snapshot();
+    evaluation.lease_id = Some("lease-eval-automation".to_string());
+    evaluation.features.clear();
+    let decision = resolve_premium_family(
+        &evaluation,
+        Family::Automation,
+        "focusa.agent.silent_sessions",
+        Utc::now(),
+    );
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::MissingFeature { .. }
+    ));
+
+    // Offline Grace cannot expand grants: no feature -> missing feature.
+    let mut grace = active_snapshot();
+    grace.state = EntitlementState::OfflineGrace;
+    grace.features.clear();
+    grace.offline_grace_until = Some(Utc::now() + Duration::minutes(5));
+    let decision = resolve_premium_family(
+        &grace,
+        Family::Automation,
+        "focusa.agent.silent_sessions",
+        Utc::now(),
+    );
+    assert!(matches!(
+        decision.denial().unwrap(),
+        PremiumFamilyDenial::MissingFeature { .. }
+    ));
+}

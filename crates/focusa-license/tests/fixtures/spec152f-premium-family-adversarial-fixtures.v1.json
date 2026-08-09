@@ -1,0 +1,247 @@
+{
+  "schema": "focusa.spec152f.premium_family_adversarial_fixtures.v1",
+  "fixture_version": 1,
+  "note": "Deterministic, authority-shaped product fixtures for the Spec 152F.04.07 premium limit/idempotency/grant-isolation adversarial matrix. Synthetic identifiers only; no real customers, keys, tokens, or PII.",
+  "declared_limit_buckets": [
+    "concurrent_agents",
+    "scheduled_runs",
+    "nodes",
+    "team_operators",
+    "remote_stream_minutes",
+    "governed_proof_packets",
+    "managed_rollout_targets",
+    "packaged_export_bundles"
+  ],
+  "products": [
+    {
+      "id": "focusa-automation-operator",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-automation-001",
+        "subject_id": "account-automation-alpha",
+        "lease_id": "lease-automation-001",
+        "sequence": 11,
+        "lease_digest": "sha256:fixture-automation",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {
+          "focusa.agent.silent_sessions": true,
+          "focusa.agent.parallelism": true
+        },
+        "limits": {
+          "concurrent_agents": 4,
+          "scheduled_runs": 8
+        }
+      }
+    },
+    {
+      "id": "focusa-team-remote-operator",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-team-001",
+        "subject_id": "account-team-alpha",
+        "lease_id": "lease-team-001",
+        "sequence": 12,
+        "lease_digest": "sha256:fixture-team",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {
+          "focusa.team.multi_operator": true,
+          "focusa.remote.stream": true
+        },
+        "limits": {
+          "nodes": 3,
+          "team_operators": 3,
+          "remote_stream_minutes": 120
+        }
+      }
+    },
+    {
+      "id": "focusa-release-proof-operator",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-release-001",
+        "subject_id": "account-release-alpha",
+        "lease_id": "lease-release-001",
+        "sequence": 13,
+        "lease_digest": "sha256:fixture-release",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {
+          "focusa.release.proof": true
+        },
+        "limits": {
+          "governed_proof_packets": 2
+        }
+      }
+    },
+    {
+      "id": "focusa-premium-updates-operator",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-updates-001",
+        "subject_id": "account-updates-alpha",
+        "lease_id": "lease-updates-001",
+        "sequence": 14,
+        "lease_digest": "sha256:fixture-updates",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {
+          "focusa.update.unattended": true,
+          "focusa.install.channel.preview": true,
+          "focusa.install.channel.nightly": true
+        },
+        "limits": {
+          "managed_rollout_targets": 5
+        }
+      }
+    },
+    {
+      "id": "focusa-export-packaged-operator",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-export-001",
+        "subject_id": "account-export-alpha",
+        "lease_id": "lease-export-001",
+        "sequence": 15,
+        "lease_digest": "sha256:fixture-export",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {
+          "focusa.export.packaged": true
+        },
+        "limits": {
+          "packaged_export_bundles": 3
+        }
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "wrong-product",
+      "snapshot": {
+        "state": "active",
+        "product": "uiai_engine",
+        "node_id": "node-wrong-001",
+        "subject_id": "account-wrong-alpha",
+        "lease_id": "lease-wrong-001",
+        "sequence": 21,
+        "lease_digest": "sha256:fixture-wrong",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {
+          "focusa.agent.silent_sessions": true,
+          "focusa.team.multi_operator": true,
+          "focusa.release.proof": true
+        },
+        "limits": {
+          "concurrent_agents": 4,
+          "team_operators": 3
+        }
+      }
+    },
+    {
+      "id": "evaluation-omission",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-eval-001",
+        "subject_id": "account-eval-alpha",
+        "lease_id": "lease-eval-001",
+        "sequence": 22,
+        "lease_digest": "sha256:fixture-eval",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {},
+        "limits": {
+          "concurrent_agents": 1,
+          "scheduled_runs": 1
+        }
+      }
+    },
+    {
+      "id": "offline-grace-expansion",
+      "snapshot": {
+        "state": "offline_grace",
+        "product": "focusa",
+        "node_id": "node-grace-001",
+        "subject_id": "account-grace-alpha",
+        "lease_id": "lease-grace-001",
+        "sequence": 23,
+        "lease_digest": "sha256:fixture-grace",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {},
+        "limits": {
+          "concurrent_agents": 1
+        }
+      }
+    },
+    {
+      "id": "stale-lease",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-stale-001",
+        "subject_id": "account-stale-alpha",
+        "lease_id": "lease-stale-001",
+        "sequence": 24,
+        "lease_digest": "sha256:fixture-stale-old",
+        "expires_at": "2020-01-01T00:00:00Z",
+        "offline_grace_until": "2020-01-15T00:00:00Z",
+        "features": {
+          "focusa.release.proof": true
+        },
+        "limits": {
+          "governed_proof_packets": 2
+        }
+      }
+    },
+    {
+      "id": "cross-account",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-account-001",
+        "subject_id": "account-other-beta",
+        "lease_id": "lease-account-001",
+        "sequence": 25,
+        "lease_digest": "sha256:fixture-account",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {
+          "focusa.team.multi_operator": true
+        },
+        "limits": {
+          "nodes": 3,
+          "team_operators": 3
+        }
+      }
+    },
+    {
+      "id": "caller-feature",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-caller-001",
+        "subject_id": "account-caller-alpha",
+        "lease_id": "lease-caller-001",
+        "sequence": 26,
+        "lease_digest": "sha256:fixture-caller",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {
+          "focusa.agent.silent_sessions": true
+        },
+        "limits": {
+          "concurrent_agents": 4
+        }
+      }
+    }
+  ]
+}
