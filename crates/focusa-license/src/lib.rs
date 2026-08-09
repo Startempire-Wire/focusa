@@ -19,6 +19,7 @@ pub mod authority_store;
 pub mod capsule_manifest;
 pub mod dynamic_operation_manifest;
 mod entitlement_policy;
+pub mod denial_ux;
 pub mod facade_policy_presenter;
 pub mod feature_decision;
 pub mod license_migration;
@@ -95,6 +96,22 @@ pub use facade_policy_presenter::{
     FacadePolicyDecision, FacadePresenterError, FACADE_ALWAYS_REACHABLE,
     FACADE_PRESENTER_FIELDS, FACADE_PRESENTER_FORBIDDEN_FIELDS,
     FACADE_STATUS_ALLOWLIST,
+};
+pub use denial_ux::{
+    blocked_action_for_family, available_reason_for_family,
+    denial_ux_action_label, denial_ux_link,
+    denial_ux_message_for, denial_ux_message_for_code,
+    embedded_denial_ux_catalog,
+    ACTION_LABEL_MANAGE_CAPACITY, ACTION_LABEL_REFRESH_DIAGNOSTICS,
+    ACTION_LABEL_RETRY_DIAGNOSTICS, ACTION_LABEL_RETRY_IDENTIFIER,
+    ACTION_LABELS, DENIAL_UX_ACTIONS, DENIAL_UX_CATALOG_JSON,
+    DENIAL_UX_LINK_IDS, DENIAL_UX_SCHEMA, DenialUxError, DenialUxErrorCode,
+    DenialUxErrorSpec, DenialUxKind, DenialUxMessage, LINK_ACCOUNT,
+    LINK_CHECKOUT, LINK_EVALUATION, LINK_RECOVERY, MSG_BASE_REQUIRED,
+    MSG_FEATURE_REQUIRED, MSG_IDEMPOTENCY_REQUIRED, MSG_LIMIT_EXHAUSTED,
+    MSG_POLICY_UNKNOWN, MSG_RECOVERY_ONLY, MSG_REQUIRED,
+    MSG_RESERVATION_FAILED, MSG_ROUTE_UNCLASSIFIED, MSG_SNAPSHOT_MISSING,
+    PUBLIC_MESSAGE_RULES, RETAINED_ACCESS,
 };
 pub mod bundle_activation;
 pub mod uiai_activation;
