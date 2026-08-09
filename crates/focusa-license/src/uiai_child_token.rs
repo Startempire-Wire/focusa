@@ -8,6 +8,10 @@ use uuid::Uuid;
 use crate::{
     authority::{EntitlementSnapshot, EntitlementState},
     authority_client::SensitiveCredential,
+    entitlement_policy::{
+        SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
+        SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
+    },
 };
 
 pub const UIAI_CHILD_TOKEN_SCHEMA: &str = "focusa.uiai_child_token.v1";
@@ -52,11 +56,18 @@ pub struct AuthorityChildTokenEnvelope {
 pub struct CachedUiaiChildToken {
     pub token_id: String,
     pub credential: SensitiveCredential,
+    pub node_id: String,
     pub parent_lease_id: String,
     pub parent_lease_sequence: u64,
     pub parent_lease_digest: String,
     pub uiai_grant_lease_id: String,
     pub uiai_grant_sequence: u64,
+    /// The exact feature subset the authority issued this token with. Stored
+    /// so a later lookup can reject a WIDENED token: if the current grant no
+    /// longer contains every cached feature, the token is refused even though
+    /// it is still within its TTL.
+    pub features: BTreeSet<String>,
+    pub limits: BTreeMap<String, u64>,
     pub expires_at: DateTime<Utc>,
 }
 
@@ -203,11 +214,14 @@ impl UiaiChildTokenBroker {
             CachedUiaiChildToken {
                 token_id: envelope.token_id,
                 credential,
+                node_id: envelope.node_id.clone(),
                 parent_lease_id: request.parent_lease_id.clone(),
                 parent_lease_sequence: request.parent_lease_sequence,
                 parent_lease_digest: request.parent_lease_digest.clone(),
                 uiai_grant_lease_id: request.uiai_grant_lease_id.clone(),
                 uiai_grant_sequence: request.uiai_grant_sequence,
+                features: envelope.features.clone(),
+                limits: envelope.limits.clone(),
                 expires_at: envelope.expires_at,
             },
         );
@@ -243,6 +257,288 @@ impl UiaiChildTokenBroker {
             return Err(UiaiChildTokenError::AccountMismatch);
         }
         Ok(())
+    }
+
+    /// Revalidate a cached child token against the CURRENT authority
+    /// snapshots before a browser/proxy/MCP operation may use it (Spec 172
+    /// §20.9 stale-client bypass fail-closed; Spec 152F §7 UIAI/browser
+    /// adapter row). Rejects:
+    /// - stale parents: the cached parent lease id/sequence/digest must still
+    ///   equal the current Focusa parent, and the parent must remain
+    ///   active/bound to the same node;
+    /// - revoked or stale grants: the cached UIAI grant lease id/sequence must
+    ///   still equal the current grant, and the grant must remain active;
+    /// - widened tokens: every feature stored in the cached token must still
+    ///   be an exact subset of the current grant feature allowlist.
+    ///
+    /// Pairing/device proof never appears here: only authority snapshots and
+    /// the issued token can authorize a cached child token. The UIAI local
+    /// task system (UIAI issue #5 integration) and browser/proxy/MCP adapters
+    /// use this as the pre-execution gate.
+    pub fn authorized_cached_token(
+        &self,
+        audience: &str,
+        focusa_parent: &EntitlementSnapshot,
+        uiai_grant: &EntitlementSnapshot,
+        now: DateTime<Utc>,
+    ) -> Option<&CachedUiaiChildToken> {
+        let cached = self.cached(audience, now)?;
+        if cached.parent_lease_id != focusa_parent.lease_id.as_deref().unwrap_or_default()
+            || cached.parent_lease_sequence != focusa_parent.sequence.unwrap_or(0)
+            || cached.parent_lease_digest
+                != focusa_parent.lease_digest.as_deref().unwrap_or_default()
+            || !active_bound(
+                focusa_parent,
+                crate::uiai_activation::PRODUCT_FOCUSA,
+                &cached.node_id,
+                now,
+            )
+        {
+            return None;
+        }
+        if cached.uiai_grant_lease_id != uiai_grant.lease_id.as_deref().unwrap_or_default()
+            || cached.uiai_grant_sequence != uiai_grant.sequence.unwrap_or(0)
+            || !active_bound(
+                uiai_grant,
+                crate::uiai_activation::PRODUCT_UIAI_ENGINE,
+                &cached.node_id,
+                now,
+            )
+        {
+            return None;
+        }
+        if !cached
+            .features
+            .iter()
+            .all(|feature| uiai_grant.features.get(feature).copied().unwrap_or(false))
+        {
+            return None;
+        }
+        Some(cached)
+    }
+}
+
+/// Canonical Spec 172 UIAI operation classification (Section 6.3).
+///
+/// Classifies a UIAI/browser operation as local base integration
+/// (`PublicObservation`: provider-neutral public-web observation with bounded
+/// local/approved capacity) versus remote/premium capability (`RemotePremium`:
+/// click/fill/type/select/press browser mutation, persistence, unattended or
+/// batch/scheduled automation, authenticated/private targets, and metered
+/// hosted resources). The classification is authority metadata supplied by the
+/// operation registry; it is never caller-selected and never grants capability
+/// by itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiaiOperationClass {
+    PublicObservation,
+    RemotePremium,
+}
+
+impl UiaiOperationClass {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::PublicObservation => "public_observation",
+            Self::RemotePremium => "remote_premium",
+        }
+    }
+}
+
+/// Canonical paid UIAI Operator v1 family features (Spec 172 §7.2; frozen
+/// UIAI local/product families from the EDD bundle-isolation contract). These
+/// are the only feature identifiers a paid `uiai-engine` grant may bind to a
+/// UIAI/browser child-token decision. Callers can neither extend nor rename
+/// this set, and no Focusa feature satisfies a UIAI family.
+pub const SPEC172_UIAI_PAID_FAMILY_FEATURES: [&str; 7] = [
+    "uiai_public_observation",
+    "uiai_browser_action",
+    "uiai_persistence",
+    "uiai_diagnostics",
+    "uiai_proof_packets",
+    "uiai_batch_responsive",
+    "uiai_supported_integrations",
+];
+
+/// Typed denial reasons for the parent-policy UIAI capability decision.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "reason", rename_all = "snake_case")]
+pub enum UiaiCapabilityDenial {
+    /// No verified posture (and no paid grant) is present at all.
+    MissingPosture,
+    /// A Focusa-only paid entitlement can never grant UIAI capability
+    /// (Spec 172 §3.7 / §20.5: "Focusa-only entitlement cannot execute UIAI
+    /// paid operations").
+    FocusaOnlyCannotGrantUiai,
+    /// Remote/premium UIAI capability requires an active paid UIAI grant;
+    /// verified no-license limited mode never provides it.
+    UiaiGrantRequired,
+    /// Verified no-license limited mode is restricted to ONE foreground,
+    /// ephemeral, public-web observation session (Spec 172 §6.3).
+    LimitedModeRestricted,
+    /// The `uiai-engine` grant is not active, sequence-bound, or bound to the
+    /// parent node.
+    UiaiGrantInvalid,
+    /// The Focusa parent and UIAI grant are not bound to the same EDD
+    /// account (Spec 152E §7 / §15).
+    AccountMismatch,
+    /// The operation's paid UIAI family feature is not granted by the
+    /// authority grant.
+    FamilyNotGranted,
+}
+
+/// Canonical parent-policy UIAI/browser capability decision (Spec 152F §7
+/// UIAI/browser adapter row; Spec 172 §6.3 / §7.2).
+///
+/// Every UIAI/browser/proxy/MCP operation resolves its entitlement through
+/// this decision BEFORE any child token is minted or presented:
+/// - verified no-license: exactly one ephemeral public-observe session;
+/// - paid UIAI Operator/Bundle: the granted paid UIAI family, bound to the
+///   current parent Focusa lease and UIAI grant sequence;
+/// - Focusa-only paid entitlement: denied — it never grants UIAI.
+///
+/// Only authority snapshots and operation metadata are consumed; pairing,
+/// device proof, authentication state, and caller-selected products/prices/
+/// grants never influence the decision.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "decision", rename_all = "snake_case")]
+pub enum UiaiCapabilityDecision {
+    /// Verified no-license: exactly one foreground, ephemeral, public-web
+    /// observation session with bounded local/approved capacity.
+    VerifiedNoLicensePublicObservation {
+        session_quota: u32,
+    },
+    /// Paid UIAI family from an active, bound `uiai-engine` grant. The parent
+    /// Focusa lease (when the account holds one) and the UIAI grant sequence
+    /// are returned so the child token can never outlive or widen them.
+    PaidFamily {
+        family: String,
+        parent_lease_id: String,
+        parent_sequence: u64,
+        uiai_grant_sequence: u64,
+    },
+    Denied(UiaiCapabilityDenial),
+}
+
+impl UiaiCapabilityDecision {
+    pub fn is_allowed(&self) -> bool {
+        matches!(
+            self,
+            Self::VerifiedNoLicensePublicObservation { .. } | Self::PaidFamily { .. }
+        )
+    }
+
+    pub fn denial(&self) -> Option<&UiaiCapabilityDenial> {
+        match self {
+            Self::Denied(denial) => Some(denial),
+            _ => None,
+        }
+    }
+}
+
+/// True when the snapshot is an authority-signed verified no-license limited
+/// posture: no paid lease identity, sequence, or digest is present. Such a
+/// posture is a permanent limited-access assertion, not a license.
+fn is_limited_posture(snapshot: &EntitlementSnapshot) -> bool {
+    snapshot.lease_id.as_deref().is_none_or(str::is_empty)
+        && snapshot.sequence.is_none_or(|sequence| sequence == 0)
+        && snapshot.lease_digest.as_deref().is_none_or(str::is_empty)
+}
+
+/// Resolve the canonical UIAI/browser capability for one operation against
+/// the parent policy (Spec 152F §7 UIAI/browser adapter row; Spec 172 §6.3,
+/// §7.2, §20.5).
+///
+/// - `focusa_parent`: the current Focusa snapshot for this node/account
+///   (`None` when the account holds no Focusa lease/posture, e.g. a UIAI-only
+///   purchase).
+/// - `uiai_grant`: the independent `uiai-engine` grant (`None` when the
+///   account has no paid UIAI grant).
+/// - `operation_class`: the canonical operation classification.
+/// - `limited_family`: the verified-no-license family label for this
+///   operation (e.g. `public_search`, `browser_action`).
+/// - `paid_feature`: the paid UIAI Operator family feature for this operation
+///   (e.g. `uiai_public_observation`, `uiai_browser_action`).
+/// - `active_session_count`: currently active UIAI sessions (resource gate).
+///
+/// Fail-closed rules:
+/// 1. verified no-license -> one foreground ephemeral public-observe session;
+/// 2. Focusa-only paid entitlement -> never UIAI;
+/// 3. paid UIAI grant -> the granted paid family, bound to the parent lease
+///    and the grant sequence, with same-account and same-node binding;
+/// 4. unknown postures, unknown families, and ungranted features deny.
+pub fn resolve_uiai_capability(
+    focusa_parent: Option<&EntitlementSnapshot>,
+    uiai_grant: Option<&EntitlementSnapshot>,
+    operation_class: UiaiOperationClass,
+    limited_family: &str,
+    paid_feature: &str,
+    active_session_count: u32,
+    now: DateTime<Utc>,
+) -> UiaiCapabilityDecision {
+    let Some(grant) = uiai_grant else {
+        // No paid UIAI grant. Only a verified no-license posture may observe.
+        return match focusa_parent {
+            Some(parent) if is_limited_posture(parent) => {
+                if operation_class != UiaiOperationClass::PublicObservation {
+                    return UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::UiaiGrantRequired);
+                }
+                if !SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES.contains(&limited_family)
+                    || SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES.contains(&limited_family)
+                    || active_session_count >= 1
+                {
+                    return UiaiCapabilityDecision::Denied(
+                        UiaiCapabilityDenial::LimitedModeRestricted,
+                    );
+                }
+                UiaiCapabilityDecision::VerifiedNoLicensePublicObservation { session_quota: 1 }
+            }
+            Some(_) => {
+                // Paid Focusa entitlement without a UIAI grant: never UIAI.
+                UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FocusaOnlyCannotGrantUiai)
+            }
+            None => UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::MissingPosture),
+        };
+    };
+
+    // Paid UIAI grant path (Operator or Bundle). The grant must be active,
+    // sequence-bound, and bound to the same node as the parent.
+    if !active_bound(
+        grant,
+        crate::uiai_activation::PRODUCT_UIAI_ENGINE,
+        &grant.node_id,
+        now,
+    ) {
+        return UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::UiaiGrantInvalid);
+    }
+    let Some(grant_sequence) = grant.sequence.filter(|sequence| *sequence > 0) else {
+        return UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::UiaiGrantInvalid);
+    };
+    if let Some(parent) = focusa_parent {
+        if parent.node_id != grant.node_id {
+            return UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::UiaiGrantInvalid);
+        }
+        if !same_evidence_account(parent, grant) {
+            return UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::AccountMismatch);
+        }
+    }
+    if !SPEC172_UIAI_PAID_FAMILY_FEATURES.contains(&paid_feature)
+        || !grant.features.get(paid_feature).copied().unwrap_or(false)
+    {
+        return UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FamilyNotGranted);
+    }
+
+    let (parent_lease_id, parent_sequence) = match focusa_parent {
+        Some(parent) if !is_limited_posture(parent) => (
+            parent.lease_id.clone().unwrap_or_default(),
+            parent.sequence.unwrap_or(0),
+        ),
+        _ => (String::new(), 0),
+    };
+    UiaiCapabilityDecision::PaidFamily {
+        family: paid_feature.to_string(),
+        parent_lease_id,
+        parent_sequence,
+        uiai_grant_sequence: grant_sequence,
     }
 }
 
@@ -361,6 +657,276 @@ mod tests {
                 &uiai,
             ),
             Err(UiaiChildTokenError::AccountMismatch)
+        );
+    }
+
+    fn limited_posture() -> EntitlementSnapshot {
+        EntitlementSnapshot::unactivated(PRODUCT_FOCUSA, "node-001")
+    }
+
+    fn paid_uiai_grant() -> EntitlementSnapshot {
+        let mut grant = bound_snapshot(PRODUCT_UIAI_ENGINE, Some("account-001"));
+        grant
+            .features
+            .insert("uiai_browser_action".to_string(), true);
+        grant
+    }
+
+    #[test]
+    fn uiai_capability_limited_mode_is_one_foreground_ephemeral_public_observe_session() {
+        let now = Utc::now();
+        let limited = limited_posture();
+        // Exactly one foreground ephemeral public-observe session.
+        assert_eq!(
+            resolve_uiai_capability(
+                Some(&limited),
+                None,
+                UiaiOperationClass::PublicObservation,
+                "public_search",
+                "uiai_public_observation",
+                0,
+                now,
+            ),
+            UiaiCapabilityDecision::VerifiedNoLicensePublicObservation { session_quota: 1 }
+        );
+        // A second concurrent session is denied (resource gate).
+        assert_eq!(
+            resolve_uiai_capability(
+                Some(&limited),
+                None,
+                UiaiOperationClass::PublicObservation,
+                "public_search",
+                "uiai_public_observation",
+                1,
+                now,
+            ),
+            UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::LimitedModeRestricted)
+        );
+        // Remote/premium capability is never available without a paid grant.
+        assert_eq!(
+            resolve_uiai_capability(
+                Some(&limited),
+                None,
+                UiaiOperationClass::RemotePremium,
+                "browser_action",
+                "uiai_browser_action",
+                0,
+                now,
+            ),
+            UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::UiaiGrantRequired)
+        );
+        // A blocked limited-mode family is denied even for observation.
+        assert_eq!(
+            resolve_uiai_capability(
+                Some(&limited),
+                None,
+                UiaiOperationClass::PublicObservation,
+                "browser_action",
+                "uiai_browser_action",
+                0,
+                now,
+            ),
+            UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::LimitedModeRestricted)
+        );
+        // No verified posture at all fails closed.
+        assert_eq!(
+            resolve_uiai_capability(
+                None,
+                None,
+                UiaiOperationClass::PublicObservation,
+                "public_search",
+                "uiai_public_observation",
+                0,
+                now,
+            ),
+            UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::MissingPosture)
+        );
+    }
+
+    #[test]
+    fn uiai_capability_focusa_only_never_grants_uiai() {
+        let now = Utc::now();
+        let focusa_paid = bound_snapshot(PRODUCT_FOCUSA, Some("account-001"));
+        for operation_class in [
+            UiaiOperationClass::PublicObservation,
+            UiaiOperationClass::RemotePremium,
+        ] {
+            assert_eq!(
+                resolve_uiai_capability(
+                    Some(&focusa_paid),
+                    None,
+                    operation_class,
+                    "public_search",
+                    "uiai_public_observation",
+                    0,
+                    now,
+                ),
+                UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FocusaOnlyCannotGrantUiai),
+                "Focusa-only paid entitlement must never grant UIAI: {operation_class:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn uiai_capability_paid_grant_binds_paid_families_to_parent_and_grant_sequence() {
+        let now = Utc::now();
+        let focusa_paid = bound_snapshot(PRODUCT_FOCUSA, Some("account-001"));
+        let grant = paid_uiai_grant();
+        assert_eq!(
+            resolve_uiai_capability(
+                Some(&focusa_paid),
+                Some(&grant),
+                UiaiOperationClass::RemotePremium,
+                "browser_action",
+                "uiai_browser_action",
+                0,
+                now,
+            ),
+            UiaiCapabilityDecision::PaidFamily {
+                family: "uiai_browser_action".to_string(),
+                parent_lease_id: "lease-focusa".to_string(),
+                parent_sequence: 7,
+                uiai_grant_sequence: 7,
+            }
+        );
+        // UIAI-only purchase (no Focusa parent) still resolves paid families.
+        assert_eq!(
+            resolve_uiai_capability(
+                None,
+                Some(&grant),
+                UiaiOperationClass::RemotePremium,
+                "browser_action",
+                "uiai_browser_action",
+                0,
+                now,
+            ),
+            UiaiCapabilityDecision::PaidFamily {
+                family: "uiai_browser_action".to_string(),
+                parent_lease_id: String::new(),
+                parent_sequence: 0,
+                uiai_grant_sequence: 7,
+            }
+        );
+        // An ungranted family feature fails closed.
+        let ungranted = bound_snapshot(PRODUCT_UIAI_ENGINE, Some("account-001"));
+        assert_eq!(
+            resolve_uiai_capability(
+                Some(&focusa_paid),
+                Some(&ungranted),
+                UiaiOperationClass::RemotePremium,
+                "browser_action",
+                "uiai_browser_action",
+                0,
+                now,
+            ),
+            UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FamilyNotGranted)
+        );
+        // A caller-invented feature identifier is never accepted.
+        assert_eq!(
+            resolve_uiai_capability(
+                Some(&focusa_paid),
+                Some(&grant),
+                UiaiOperationClass::RemotePremium,
+                "browser_action",
+                "uiai_caller_invented_feature",
+                0,
+                now,
+            ),
+            UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FamilyNotGranted)
+        );
+        // A grant bound to a different EDD account fails closed.
+        let other_customer = bound_snapshot(PRODUCT_UIAI_ENGINE, Some("account-002"));
+        assert_eq!(
+            resolve_uiai_capability(
+                Some(&focusa_paid),
+                Some(&other_customer),
+                UiaiOperationClass::RemotePremium,
+                "browser_action",
+                "uiai_browser_action",
+                0,
+                now,
+            ),
+            UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::AccountMismatch)
+        );
+    }
+
+    #[test]
+    fn cached_child_tokens_reject_stale_parents_and_widened_grants() {
+        let now = Utc::now();
+        let focusa = bound_snapshot(PRODUCT_FOCUSA, Some("account-001"));
+        let grant = bound_snapshot(PRODUCT_UIAI_ENGINE, Some("account-001"));
+        let mut broker = UiaiChildTokenBroker::default();
+        let request = request();
+        let envelope = AuthorityChildTokenEnvelope {
+            schema: UIAI_CHILD_TOKEN_SCHEMA.to_string(),
+            token: "tok-authority-issued".to_string(),
+            token_id: "ct-001".to_string(),
+            audience: request.audience.clone(),
+            node_id: request.node_id.clone(),
+            client_id: request.client_id.clone(),
+            parent_lease_id: request.parent_lease_id.clone(),
+            parent_lease_sequence: request.parent_lease_sequence,
+            parent_lease_digest: request.parent_lease_digest.clone(),
+            uiai_grant_lease_id: request.uiai_grant_lease_id.clone(),
+            uiai_grant_sequence: request.uiai_grant_sequence,
+            features: request.requested_features.clone(),
+            limits: request.requested_limits.clone(),
+            nonce: request.nonce.clone(),
+            issued_at: now,
+            expires_at: now + Duration::minutes(UIAI_CHILD_TOKEN_MAX_TTL_MINUTES),
+        };
+        let receipt = broker
+            .accept_authority_token(&request, &focusa, &grant, envelope, now)
+            .expect("authority token accepted");
+        assert_eq!(receipt.feature_count, 1);
+
+        // Current parent and grant: cached token remains authorized.
+        assert!(
+            broker
+                .authorized_cached_token("aud-focusa", &focusa, &grant, now)
+                .is_some()
+        );
+
+        // Stale parent (sequence advanced): cached token is rejected.
+        let mut advanced = focusa.clone();
+        advanced.sequence = Some(8);
+        assert!(
+            broker
+                .authorized_cached_token("aud-focusa", &advanced, &grant, now)
+                .is_none(),
+            "stale parent sequence must reject the cached token"
+        );
+
+        // Revoked grant: cached token is rejected.
+        let mut revoked = grant.clone();
+        revoked.state = EntitlementState::RecoveryOnly;
+        assert!(
+            broker
+                .authorized_cached_token("aud-focusa", &focusa, &revoked, now)
+                .is_none(),
+            "revoked grant must reject the cached token"
+        );
+
+        // Widened token: the grant no longer contains the cached feature.
+        let mut narrowed = grant.clone();
+        narrowed.features.remove("uiai.engine.core");
+        assert!(
+            broker
+                .authorized_cached_token("aud-focusa", &focusa, &narrowed, now)
+                .is_none(),
+            "widened cached token must be rejected when the grant narrows"
+        );
+
+        // Expired token is rejected by the underlying TTL filter.
+        assert!(
+            broker
+                .authorized_cached_token(
+                    "aud-focusa",
+                    &focusa,
+                    &grant,
+                    now + Duration::minutes(UIAI_CHILD_TOKEN_MAX_TTL_MINUTES + 1),
+                )
+                .is_none()
         );
     }
 }
