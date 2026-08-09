@@ -602,6 +602,8 @@ fn adapter_capability_or_health_cannot_imply_entitlement() {
         child_token_audience: Some("uiai-engine:node:evaluation:001".into()),
         child_token_expires_at: Some(entitlement_time("2026-08-05T12:15:00Z")),
         entitlement_digest: digest('d'),
+        account_id: None,
+        edd_customer_id: None,
     };
     posture.validate().expect("typed adapter posture");
     assert!(!posture.is_entitled());

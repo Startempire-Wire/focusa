@@ -77,6 +77,8 @@ fn adapter() -> AdapterEntitlementPosture {
         child_token_audience: Some("uiai-engine:node:evaluation:001".into()),
         child_token_expires_at: Some(time("2026-08-05T12:15:00Z")),
         entitlement_digest: digest('f'),
+        account_id: None,
+        edd_customer_id: None,
     }
 }
 
