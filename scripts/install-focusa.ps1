@@ -14,7 +14,9 @@
   Print a non-mutating delegation plan.
 .PARAMETER Eval
   Forward Evaluation intent to the shared activation client (authority-issued
-  only; never local).
+  only; never local). Maps to verified-email limited activation (Spec 172
+  limited-access overlay); the bootstrapper never creates local evaluation
+  state or stores credentials.
 .PARAMETER Channel
   stable | preview | nightly.
 .PARAMETER Target
@@ -103,7 +105,7 @@ if ($DryRun) {
     release = $(if ($ReleaseTag) { $ReleaseTag } else { "latest-complete" })
     entitlement = "signed authority lease; device authorization if absent"
   }
-  if ($Eval) { $Plan.evaluation = "authority-issued only; intent forwarded to the shared activation client" }
+  if ($Eval) { $Plan.evaluation = "authority-issued only; maps to verified-email limited activation (Spec 172)" }
   $Plan | ConvertTo-Json -Depth 4
   exit 0
 }

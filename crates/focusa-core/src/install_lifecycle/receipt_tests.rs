@@ -20,14 +20,14 @@ fn digest(byte: char) -> String {
 fn acceptance(class: LifecycleEntitlementReceiptClass) -> LifecycleAcceptanceReceipt {
     let binding = LifecycleEntitlementBinding {
         schema_version: "focusa.lifecycle_entitlement_binding.v1".into(),
-        state: LifecycleEntitlementState::ActiveEvaluation,
-        lease_id: "lease:evaluation:001".into(),
+        state: LifecycleEntitlementState::ActiveVerifiedLimited,
+        lease_id: "lease:limited:001".into(),
         lease_sequence: 11,
         lease_payload_digest: digest('a'),
         product_grants_digest: digest('b'),
         feature_grants_digest: digest('c'),
-        node_id: "node:evaluation:001".into(),
-        license_class: "evaluation".into(),
+        node_id: "node:limited:001".into(),
+        license_class: "verified_limited".into(),
         refresh_after: time("2026-08-05T13:00:00Z"),
         offline_valid_until: time("2026-08-06T12:00:00Z"),
         expires_at: Some(time("2026-08-12T12:00:00Z")),
@@ -59,7 +59,7 @@ fn acceptance(class: LifecycleEntitlementReceiptClass) -> LifecycleAcceptanceRec
         preserved_data_classes: BTreeSet::from(["FocusaState".into(), "ProjectFiles".into()]),
         entitlement_receipt_class: class,
         entitlement_binding: Some(binding),
-        entitlement_evidence_refs: vec!["evidence:signed-evaluation-lease".into()],
+        entitlement_evidence_refs: vec!["evidence:signed-limited-access-lease".into()],
         closure_allowed: true,
     }
 }
@@ -74,7 +74,7 @@ fn adapter() -> AdapterEntitlementPosture {
         required_features_granted: true,
         parent_lease_digest: digest('a'),
         child_token_id: "child-token:001".into(),
-        child_token_audience: Some("uiai-engine:node:evaluation:001".into()),
+        child_token_audience: Some("uiai-engine:node:limited:001".into()),
         child_token_expires_at: Some(time("2026-08-05T12:15:00Z")),
         entitlement_digest: digest('f'),
         account_id: None,
@@ -105,7 +105,7 @@ fn binding_with(state: LifecycleEntitlementState, license_class: &str) -> Lifecy
 fn versioned_receipt_round_trips_without_account_or_credential_fields() {
     let receipt = LifecycleReceiptV1::from_acceptance(
         "receipt:001",
-        &acceptance(LifecycleEntitlementReceiptClass::EvaluationReady),
+        &acceptance(LifecycleEntitlementReceiptClass::LimitedAccessReady),
         time("2026-08-05T12:10:00Z"),
         digest('e'),
         Some(digest('f')),
@@ -129,7 +129,7 @@ fn versioned_receipt_round_trips_without_account_or_credential_fields() {
 fn receipt_chain_is_tamper_evident_and_replay_is_idempotent() {
     let first = LifecycleReceiptV1::from_acceptance(
         "receipt:001",
-        &acceptance(LifecycleEntitlementReceiptClass::EvaluationReady),
+        &acceptance(LifecycleEntitlementReceiptClass::LimitedAccessReady),
         time("2026-08-05T12:10:00Z"),
         digest('e'),
         None,
@@ -139,7 +139,7 @@ fn receipt_chain_is_tamper_evident_and_replay_is_idempotent() {
     .unwrap();
     let second = LifecycleReceiptV1::from_acceptance(
         "receipt:002",
-        &acceptance(LifecycleEntitlementReceiptClass::EvaluationReady),
+        &acceptance(LifecycleEntitlementReceiptClass::LimitedAccessReady),
         time("2026-08-05T12:11:00Z"),
         digest('f'),
         None,
@@ -200,7 +200,7 @@ fn adapter_posture_must_match_parent_authority_digest() {
     assert_eq!(
         LifecycleReceiptV1::from_acceptance(
             "receipt:mismatch",
-            &acceptance(LifecycleEntitlementReceiptClass::EvaluationReady),
+            &acceptance(LifecycleEntitlementReceiptClass::LimitedAccessReady),
             time("2026-08-05T12:10:00Z"),
             digest('e'),
             None,

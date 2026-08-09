@@ -208,7 +208,9 @@ pub struct InstallArgs {
     #[arg(long, value_name = "KEY")]
     pub license_key: Option<String>,
 
-    /// Request an authority-issued evaluation lease through verified-email device authorization.
+    /// Request verified-email limited activation (Spec 172 verified_no_license):
+    /// the authority issues a signed limited-access assertion and no local
+    /// Evaluation grant is ever created.
     #[arg(long)]
     pub eval: bool,
 
@@ -1079,7 +1081,7 @@ fn detect_license_override(args: &InstallArgs) -> LicenseOverrideInventory {
         .unwrap_or_else(|_| "unknown".into());
     let override_active = args.license_key.is_some() || dev_mode_requested;
     let effective_mode = if args.eval {
-        "authority_evaluation_request".into()
+        "authority_limited_access_request".into()
     } else if args.accept_license || args.license_key.is_some() {
         "unsupported_legacy_input".into()
     } else if dev_mode_requested {
@@ -2322,7 +2324,7 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
         .is_some_and(|legacy| legacy.commercial_use && legacy.status == "active")
     {
         bail!(
-            "E_AUTHORITY_PAID_MIGRATION_REQUIRED: an active paid legacy entitlement was found; preserve it and complete authority migration without repurchase before installing evaluation assets"
+            "E_AUTHORITY_PAID_MIGRATION_REQUIRED: an active paid legacy entitlement was found; preserve it and complete authority migration without repurchase before installing any runnable assets"
         );
     }
     if args
@@ -2612,15 +2614,16 @@ async fn acquire_installer_entitlement(
     Ok(())
 }
 
-/// Spec 152E §21: the Rust installer renders the universal activation flow
-/// (email → verify → offer → checkout/poll → key/lease, existing key,
-/// Evaluation via the Spec 172 limited-access overlay, resume, cancel,
-/// timeout, recovery) through the shared activation client when an
-/// interactive terminal is available. `--eval` maps to Evaluation intent;
-/// the authority decides eligibility and no client-side Evaluation exists.
-/// Terminal delivery persists the verified signed lease through the
-/// canonical authority store and the poll credential through the protected
-/// store. Card data is never accepted and nothing is self-issued.
+/// Spec 152E §21 + Spec 172 §2.7: the Rust installer renders the universal
+/// activation flow (email → verify → offer → checkout/poll → key/lease,
+/// existing key, verified-email limited access via the Spec 172
+/// limited-access overlay, resume, cancel, timeout, recovery) through the
+/// shared activation client when an interactive terminal is available.
+/// `--eval` maps to limited-access intent; the authority decides eligibility
+/// and no client-side Evaluation or local grant exists. Terminal delivery
+/// persists the verified signed lease through the canonical authority store
+/// and the poll credential through the protected store. Card data is never
+/// accepted and nothing is self-issued.
 async fn authorize_installer_activation_flow(
     config_dir: &std::path::Path,
     args: &InstallArgs,
@@ -4479,9 +4482,9 @@ fn build_plan(
         license_mode: if args.license_key.is_some() {
             "unsupported_raw_key".to_string()
         } else if args.eval {
-            "authority_evaluation".to_string()
+            "authority_limited_access".to_string()
         } else {
-            "authority_existing_or_evaluation".to_string()
+            "authority_existing_or_limited_access".to_string()
         },
         notes: vec![
             "--target auto-detected from uname / GetSystemInfo".to_string(),
@@ -4670,11 +4673,14 @@ mod tests {
                 .iter()
                 .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
         );
-        assert_eq!(plan.license_mode, "authority_existing_or_evaluation");
+        assert_eq!(
+            plan.license_mode,
+            "authority_existing_or_limited_access"
+        );
     }
 
     #[test]
-    fn dry_run_plan_with_eval_flag_marks_eval_license() {
+    fn dry_run_plan_with_eval_flag_marks_limited_access_license() {
         let args = InstallArgs {
             target: InstallTarget::Darwin,
             channel: Channel::Stable,
@@ -4702,7 +4708,7 @@ mod tests {
             std::path::Path::new("/tmp/.focusa"),
         )
         .unwrap();
-        assert_eq!(plan.license_mode, "authority_evaluation");
+        assert_eq!(plan.license_mode, "authority_limited_access");
         assert!(plan.service_manager_planned.contains("launchd"));
     }
 
