@@ -1,0 +1,141 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.32
+Title: 172.05.01 Execute no-sales clean cutover and quarantine legacy products
+Implementation commit: (see git log for this atom; single commit)
+Base: branch atom/focusa-vbcqu.20.15.32 on local/luna-152f-reducer
+
+Exact surfaces
+- WPUIAI EDD mappings: cross-checked read-only against
+  docs/contracts/spec172-edd-operator-v1-downloads.v1.json (dedicated Operator
+  v1 Downloads 458/459/460, checkout disabled, sale_status
+  approved_not_yet_enabled, legacy_download_ids incl. forbidden Download 453)
+  and docs/contracts/spec152e-edd-product-registry.v1.php (three protected
+  offers with mapping_status approved_policy_blocked_edd_mapping)
+- install-site issuer disablement: cross-checked read-only against
+  docs/contracts/spec152e-authority-cutover-fixture.v1.json (six denied
+  issuance surfaces, nine retained validation/recovery surfaces that never
+  grant) and docs/contracts/spec152e-install-facade-routes.v1.php (no local
+  issuance route; every activation surface is an authority proxy)
+- legacy disposition registry: cross-checked read-only against
+  docs/contracts/spec152e-edd-product-registry.v1.php (14 legacy catalog
+  entries with quarantine/retire dispositions and Download 453 quarantined
+  with implicit_focusa_mapping_forbidden; 10 legacy record classes incl.
+  synthetic, migration, and refunded/revoked classes)
+- cutover/rollback/reconciliation receipts: NEW
+  docs/contracts/spec172-no-sales-cutover.v1.php
+- tests/spec172_no_sales_cutover_test.php (NEW — exact verification)
+
+Bounded result
+- Added the Spec 172 no-sales cutover canary
+  (docs/contracts/spec172-no-sales-cutover.v1.php, schema
+  focusa.spec172.no_sales_cutover.v1): the idempotent, fail-closed cutover
+  gate that REQUIRES the accepted zero-sales inventory decision
+  (docs/contracts/spec172-no-sales-inventory.v1.json; missing or malformed
+  proof fails closed with ZERO_SALES_PROOF_REQUIRED and writes nothing; clean
+  cutover is blocked while zero_sales_proven=false with the same code). The
+  current accepted state (inventory decision
+  migration_preserving_path_selected, zero_sales_proven=false,
+  clean_cutover_allowed=false) executes the migration-preserving cutover:
+  dedicated EDD mappings stay approved_policy_blocked_edd_mapping (checkout
+  disabled, sale_status approved_not_yet_enabled), all six direct
+  install-site/Gravity/Stripe/local-eval issuance surfaces are disabled with
+  the exact authority denial codes (INSTALL_SITE_ISSUANCE_DISABLED /
+  STRIPE_DIRECT_FLOW_DENIED / LOCAL_EVALUATION_DENIED) and audited once per
+  run, and 19 legacy WPUIAI/Download 453/credit-pack/synthetic/refunded/
+  revoked/migration records are quarantined, retired, or preserved in a
+  durable quarantine ledger — quarantine/retire records never grant an
+  Operator v1 License Type, Download 453 stays quarantined with the explicit
+  forbidden reason, refunded/revoked records stay retired terminal, and the
+  migration-class record is preserved evidence-backed without being granted
+  here.
+- Accepted-proof branch: when zero-sales proof is accepted
+  (zero_sales_proven=true, clean_cutover_allowed=true) the canary executes
+  clean_cutover_executed and enables the three dedicated mappings ONLY after
+  validation (approved_mapping_enabled_after_validation) while checkout stays
+  disabled (approved_not_yet_enabled) — one canonical paid authority
+  (WPUIAI.com EDD), zero split issuance.
+- Genuine-sale branch: a genuine sale observed stops the cutover with
+  stopped_requiring_customer_rights_mapping and
+  GENUINE_SALE_REQUIRES_CUSTOMER_RIGHTS_MAPPING (Spec 172 §19) while legacy
+  preservation continues.
+- Idempotency: a replay of an identical run returns the byte-identical stored
+  receipt with zero writes (runs/mappings/issuer/legacy/quarantine/journal);
+  a changed payload on an existing run_handle fails closed with
+  RUN_ALREADY_STARTED; dry runs write zero rows; failed proofs write zero
+  rows; caller-supplied commercial fields fail closed with
+  CLIENT_COMMERCIAL_FIELDS_FORBIDDEN.
+- Rollback-safe reconciliation receipt
+  (focusa.spec172.no_sales_reconciliation_receipt.v1): proves receipt intact,
+  one canonical paid authority (zero non-dedicated mappings, zero granting
+  surfaces), checkout still disabled, zero legacy grants, migration-class
+  records preserved not granted, refund/revoke truth preserved (no stale
+  refund truth), and a valid digest-chained journal; any drift fails closed
+  with RECONCILIATION_MISMATCH and writes nothing.
+- Rollback-safe proof (focusa.spec172.no_sales_rollback_proof.v1): verdict
+  preservation_only_no_split_issuance_no_stale_refund — the schema is
+  preservation-only (no DELETE/TRUNCATE/DROP/UPDATE DDL), there is no
+  issuance enable path (any enable attempt fails closed with
+  ISSUANCE_SURFACE_ENABLE_DENIED), and verified identity, customers, orders,
+  refunds, License Types, keys, nodes, sequences, customer data, migration
+  journals, and evidence are preserved.
+- Redaction: receipts and journals carry only 64-hex digests and redacted
+  dispositions; no raw email, license key, payment key, token, customer row,
+  credential, or card data is accepted, stored, or returned.
+
+Exact verification (exit codes)
+1. `php tests/spec172_no_sales_cutover_test.php` — exit 0.
+   result: passed_fail_closed; positive_checks=218, negative_checks=7.
+   Bounded result: decision_current_state=migration_preserving_path_selected,
+   clean_cutover_blocked_reason=ZERO_SALES_PROOF_REQUIRED, dedicated_mappings=3,
+   mappings_enabled=0, checkout_enabled=0, issuance_surfaces_disabled=6,
+   retained_recovery_surfaces=9, download_453=quarantined_never_grants,
+   legacy_quarantined=13, legacy_retired=5, legacy_preserved=1,
+   legacy_never_grant=18, genuine_sale_stops_cutover=true,
+   clean_cutover_canary_mappings_enabled_after_validation=3,
+   clean_cutover_canary_checkout_disabled=true,
+   reconciliation_passed_fail_closed=true, rollback_preservation_only=true,
+   idempotent_replays=true, journal_chain_valid=true, redacted=true.
+2. Re-run of the exact command — exit 0, byte-identical JSON summary
+   (deterministic, no state).
+
+Regression checks (exit codes)
+- `python3 tests/spec172_no_sales_inventory_test.py` — exit 0
+  (accepted no-sales inventory contract unchanged).
+- `php tests/spec172_edd_operator_products_test.php` — exit 0.
+- `python3 tests/spec172_public_facade_convergence_test.py` — exit 0.
+- `python3 tests/spec152e_final_cutover_canary_test.py` — exit 0.
+- `git diff --check` — exit 0 (no whitespace errors).
+
+Tests added
+- tests/spec172_no_sales_cutover_test.php: 218 positive + 7 negative checks
+  covering the migration-preserving real-state cutover, the blocked clean
+  cutover, dedicated mapping validation (server-owned fields only, checkout
+  stays disabled), install-site/Gravity issuer disablement with exact denial
+  codes, retained recovery surfaces that never grant, the legacy disposition
+  registry (Download 453, credit packs, synthetic, refunded/revoked, and
+  migration classes), missing/unaccepted/contradictory proof fail-closed,
+  caller commercial field rejection, genuine-sale stop, accepted-proof clean
+  cutover canary, dry-run zero writes, idempotent replays of run/reconcile/
+  rollback, reconciliation mismatch on drift, rollback preservation proof,
+  no-enable-path, preservation-only schema, journal chain validity, and
+  redaction hygiene.
+
+Remaining blockers
+- None for this atom. The clean cutover itself remains blocked on an accepted
+  zero-sales proof (current inventory: zero_sales_proven=false,
+  clean_cutover_allowed=false, migration-preserving path selected); the
+  canary encodes that block fail-closed and the migration-preserving safe
+  steps (issuer disablement, legacy quarantine, receipt journaling) are
+  executed and proven idempotent. Public checkout for the three offers stays
+  disabled everywhere.
+
+Rollback
+- Revert only this atom's files: docs/contracts/spec172-no-sales-cutover.v1.php,
+  tests/spec172_no_sales_cutover_test.php, and
+  docs/evidence/spec172/focusa-vbcqu.20.15.32-acceptance.txt. Preserve
+  verified identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, customer data, migration journals, evidence, and accepted
+  unrelated work. No data deletion is performed by this atom or its rollback;
+  rollback can never restore split issuance or stale refund truth.
+
+No push, deploy, release, merge, or Beads mutation was performed.
