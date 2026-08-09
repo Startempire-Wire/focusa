@@ -344,6 +344,271 @@ impl UiaiOperationClass {
     }
 }
 
+/// Canonical Spec 172 UIAI public-observe/action/persistence classification
+/// (Section 6.3).
+///
+/// Finer-grained than [`UiaiOperationClass`]: classifies what a UIAI/browser
+/// operation does to the web surface:
+/// - `PublicObserve` — provider-neutral public-web observation (public search,
+///   Source-to-Markdown, public page read, accessibility snapshot, screenshot,
+///   basic diagnostics);
+/// - `Action` — browser mutation (click, fill, type, select, press, submit),
+///   authenticated/private-target workflows, unattended/batch automation, and
+///   metered hosted/premium resources;
+/// - `Persistence` — cookie, authentication-state, or long-lived session
+///   persistence.
+///
+/// The classification is canonical authority metadata owned by the operation
+/// map; it is never caller-selected and never grants capability by itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiaiActionPersistenceClass {
+    PublicObserve,
+    Action,
+    Persistence,
+}
+
+impl UiaiActionPersistenceClass {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::PublicObserve => "public_observe",
+            Self::Action => "action",
+            Self::Persistence => "persistence",
+        }
+    }
+
+    /// Coarse capability-class projection used by the parent-policy resolver:
+    /// only public observation is local base integration; action and
+    /// persistence always resolve as remote/premium capability.
+    pub const fn operation_class(self) -> UiaiOperationClass {
+        match self {
+            Self::PublicObserve => UiaiOperationClass::PublicObservation,
+            Self::Action | Self::Persistence => UiaiOperationClass::RemotePremium,
+        }
+    }
+}
+
+/// One canonical Focusa UIAI operation-map row (Spec 172 §6.3; Spec 152F §7
+/// UIAI/browser adapter row).
+///
+/// Every field is server-owned constant metadata:
+/// - `operation_id` is the shared Focusa/UIAI vector identifier;
+/// - `class` is the public-observe/action/persistence classification;
+/// - `limited_family` is the verified-no-license family label for this
+///   operation (allowlisted or blocked);
+/// - `paid_feature` is the paid UIAI Operator v1 family feature this
+///   operation may resolve under a paid grant. Metered/hosted/private-right
+///   operations carry features outside [`SPEC172_UIAI_PAID_FAMILY_FEATURES`]
+///   so they fail closed even for paid grants (Spec 172 §7.2: paid UIAI never
+///   includes paid proxies, hosted compute, paid model usage, or
+///   authenticated/private targets unless explicitly listed).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UiaiOperationMapEntry {
+    pub operation_id: &'static str,
+    pub class: UiaiActionPersistenceClass,
+    pub limited_family: &'static str,
+    pub paid_feature: &'static str,
+}
+
+/// Canonical Focusa UIAI operation map (Spec 172 §6.3).
+///
+/// Shared Focusa/UIAI vectors: the six verified-no-license public-observe
+/// operations, the six §6.3 blocked families (browser action, persistence,
+/// authenticated/private targets, unattended automation, scheduled/batch QA,
+/// premium hosted resources), each with its paid UIAI Operator v1 family
+/// feature. Unknown operation ids fail closed in the resolver; no caller can
+/// extend, rename, or reclassify a row.
+pub const SPEC172_UIAI_OPERATION_MAP: &[UiaiOperationMapEntry] = &[
+    // Public observation — verified-no-license allowlist (§6.3 first block).
+    UiaiOperationMapEntry {
+        operation_id: "public_search",
+        class: UiaiActionPersistenceClass::PublicObserve,
+        limited_family: "public_search",
+        paid_feature: "uiai_public_observation",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "source_to_markdown",
+        class: UiaiActionPersistenceClass::PublicObserve,
+        limited_family: "source_to_markdown",
+        paid_feature: "uiai_public_observation",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "public_page_read",
+        class: UiaiActionPersistenceClass::PublicObserve,
+        limited_family: "public_page_read",
+        paid_feature: "uiai_public_observation",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "accessibility_snapshot",
+        class: UiaiActionPersistenceClass::PublicObserve,
+        limited_family: "accessibility_snapshot",
+        paid_feature: "uiai_public_observation",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "screenshot",
+        class: UiaiActionPersistenceClass::PublicObserve,
+        limited_family: "screenshot",
+        paid_feature: "uiai_public_observation",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "basic_diagnostics",
+        class: UiaiActionPersistenceClass::PublicObserve,
+        limited_family: "basic_diagnostics",
+        paid_feature: "uiai_diagnostics",
+    },
+    // Browser mutation — action class, blocked in limited mode, paid action
+    // family under an active `uiai-engine` grant.
+    UiaiOperationMapEntry {
+        operation_id: "browser_click",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "browser_action",
+        paid_feature: "uiai_browser_action",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "browser_fill",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "browser_action",
+        paid_feature: "uiai_browser_action",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "browser_type",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "browser_action",
+        paid_feature: "uiai_browser_action",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "browser_select",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "browser_action",
+        paid_feature: "uiai_browser_action",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "browser_press",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "browser_action",
+        paid_feature: "uiai_browser_action",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "browser_submit",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "browser_action",
+        paid_feature: "uiai_browser_action",
+    },
+    // Persistence — persistence class, blocked in limited mode, paid
+    // persistence family under an active grant.
+    UiaiOperationMapEntry {
+        operation_id: "cookie_persistence",
+        class: UiaiActionPersistenceClass::Persistence,
+        limited_family: "browser_persistence",
+        paid_feature: "uiai_persistence",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "auth_state_persistence",
+        class: UiaiActionPersistenceClass::Persistence,
+        limited_family: "browser_persistence",
+        paid_feature: "uiai_persistence",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "session_persistence",
+        class: UiaiActionPersistenceClass::Persistence,
+        limited_family: "browser_persistence",
+        paid_feature: "uiai_persistence",
+    },
+    // Authenticated/private targets: blocked in limited mode and never in the
+    // paid Operator v1 families (no canonical paid feature -> fail closed).
+    UiaiOperationMapEntry {
+        operation_id: "authenticated_private_dashboard",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "authenticated_private_targets",
+        paid_feature: "uiai_authenticated_private_targets",
+    },
+    // Unattended browser automation: blocked in limited mode and not included
+    // in paid Operator v1 (no canonical paid feature -> fail closed).
+    UiaiOperationMapEntry {
+        operation_id: "unattended_browser_automation",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "unattended_browser_automation",
+        paid_feature: "uiai_unattended_automation",
+    },
+    // Scheduled/batch responsive QA: blocked in limited mode; paid batch
+    // family under an active grant (Spec 172 §7.2 batch/responsive).
+    UiaiOperationMapEntry {
+        operation_id: "scheduled_batch_qa",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "scheduled_batch_qa",
+        paid_feature: "uiai_batch_responsive",
+    },
+    // Metered hosted/premium resources: blocked in limited mode and never in
+    // the paid Operator v1 families (no canonical paid feature -> fail closed
+    // for every grant; Spec 172 §7.2).
+    UiaiOperationMapEntry {
+        operation_id: "premium_proxy",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "premium_hosted_resources",
+        paid_feature: "uiai_premium_proxy",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "hosted_capacity",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "premium_hosted_resources",
+        paid_feature: "uiai_hosted_capacity",
+    },
+    UiaiOperationMapEntry {
+        operation_id: "paid_model_calls",
+        class: UiaiActionPersistenceClass::Action,
+        limited_family: "premium_hosted_resources",
+        paid_feature: "uiai_paid_model_calls",
+    },
+];
+
+/// Typed failure for operation-map resolution. Unknown operation ids fail
+/// closed before any entitlement decision or UI side effect.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "reason", rename_all = "snake_case")]
+pub enum UiaiOperationError {
+    UnknownOperation,
+}
+
+/// Look up the canonical map row for a UIAI/browser operation id.
+///
+/// `None` for any unknown, prefixed, aliased, or caller-invented id: the map
+/// is the single authority for UIAI operation vectors.
+pub fn classify_uiai_operation(operation_id: &str) -> Option<&'static UiaiOperationMapEntry> {
+    SPEC172_UIAI_OPERATION_MAP
+        .iter()
+        .find(|entry| entry.operation_id == operation_id)
+}
+
+/// Product-isolation adapter: resolve a canonical UIAI/browser operation
+/// vector against the parent policy and the independent `uiai-engine` grant
+/// (Spec 152F §7 UIAI/browser adapter row; Spec 172 §6.3 / §7.2).
+///
+/// This is the shared Focusa/UIAI entry point browser, proxy, MCP, and
+/// taskgraph adapters call BEFORE any child token is minted or any UI side
+/// effect runs. Only the operation id (a canonical shared vector) and
+/// authority snapshots are consumed: product, price, License Type, family,
+/// feature, limit, node, and commercial rights are never caller-controlled.
+/// Unknown operation ids fail closed with [`UiaiOperationError`].
+pub fn resolve_uiai_operation_capability(
+    operation_id: &str,
+    focusa_parent: Option<&EntitlementSnapshot>,
+    uiai_grant: Option<&EntitlementSnapshot>,
+    active_session_count: u32,
+    now: DateTime<Utc>,
+) -> Result<UiaiCapabilityDecision, UiaiOperationError> {
+    let entry =
+        classify_uiai_operation(operation_id).ok_or(UiaiOperationError::UnknownOperation)?;
+    Ok(resolve_uiai_capability(
+        focusa_parent,
+        uiai_grant,
+        entry.class.operation_class(),
+        entry.limited_family,
+        entry.paid_feature,
+        active_session_count,
+        now,
+    ))
+}
+
 /// Canonical paid UIAI Operator v1 family features (Spec 172 §7.2; frozen
 /// UIAI local/product families from the EDD bundle-isolation contract). These
 /// are the only feature identifiers a paid `uiai-engine` grant may bind to a
@@ -664,6 +929,14 @@ mod tests {
         EntitlementSnapshot::unactivated(PRODUCT_FOCUSA, "node-001")
     }
 
+    fn grant_with_features(features: &[&str]) -> EntitlementSnapshot {
+        let mut grant = bound_snapshot(PRODUCT_UIAI_ENGINE, Some("account-001"));
+        for feature in features {
+            grant.features.insert(feature.to_string(), true);
+        }
+        grant
+    }
+
     fn paid_uiai_grant() -> EntitlementSnapshot {
         let mut grant = bound_snapshot(PRODUCT_UIAI_ENGINE, Some("account-001"));
         grant
@@ -847,6 +1120,229 @@ mod tests {
                 now,
             ),
             UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::AccountMismatch)
+        );
+    }
+
+    #[test]
+    fn spec172_operation_map_classifies_observe_action_and_persistence() {
+        // Every verified-no-license allowlisted family is PublicObserve and
+        // every one of its operations resolves as local base integration.
+        for operation_id in [
+            "public_search",
+            "source_to_markdown",
+            "public_page_read",
+            "accessibility_snapshot",
+            "screenshot",
+            "basic_diagnostics",
+        ] {
+            let entry = classify_uiai_operation(operation_id).expect(operation_id);
+            assert_eq!(entry.class, UiaiActionPersistenceClass::PublicObserve, "{operation_id}");
+            assert_eq!(
+                entry.class.operation_class(),
+                UiaiOperationClass::PublicObservation,
+                "{operation_id}"
+            );
+            assert!(
+                SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES.contains(&entry.limited_family),
+                "{operation_id} limited family must be allowlisted"
+            );
+        }
+        // Browser mutation is the action class and binds the paid action family.
+        for operation_id in [
+            "browser_click",
+            "browser_fill",
+            "browser_type",
+            "browser_select",
+            "browser_press",
+            "browser_submit",
+        ] {
+            let entry = classify_uiai_operation(operation_id).expect(operation_id);
+            assert_eq!(entry.class, UiaiActionPersistenceClass::Action, "{operation_id}");
+            assert_eq!(entry.limited_family, "browser_action", "{operation_id}");
+            assert_eq!(entry.paid_feature, "uiai_browser_action", "{operation_id}");
+        }
+        // Persistence is its own class and binds the paid persistence family.
+        for operation_id in ["cookie_persistence", "auth_state_persistence", "session_persistence"] {
+            let entry = classify_uiai_operation(operation_id).expect(operation_id);
+            assert_eq!(entry.class, UiaiActionPersistenceClass::Persistence, "{operation_id}");
+            assert_eq!(entry.limited_family, "browser_persistence", "{operation_id}");
+            assert_eq!(entry.paid_feature, "uiai_persistence", "{operation_id}");
+        }
+        // Authenticated/private, unattended, and hosted rights carry NO
+        // canonical paid Operator v1 feature: they fail closed even for paid
+        // grants (Spec 172 §7.2).
+        for operation_id in [
+            "authenticated_private_dashboard",
+            "unattended_browser_automation",
+            "premium_proxy",
+            "hosted_capacity",
+            "paid_model_calls",
+        ] {
+            let entry = classify_uiai_operation(operation_id).expect(operation_id);
+            assert!(
+                !SPEC172_UIAI_PAID_FAMILY_FEATURES.contains(&entry.paid_feature),
+                "{operation_id} must carry no canonical paid feature"
+            );
+            assert_eq!(entry.class.operation_class(), UiaiOperationClass::RemotePremium);
+        }
+        // Unknown, prefixed, and aliased ids never resolve.
+        assert_eq!(classify_uiai_operation("caller_invented_operation"), None);
+        assert_eq!(classify_uiai_operation("screenshot2"), None);
+        assert_eq!(classify_uiai_operation(""), None);
+        // Every map row is unique and every limited family label is canonical.
+        let mut ids: Vec<&str> = SPEC172_UIAI_OPERATION_MAP
+            .iter()
+            .map(|entry| entry.operation_id)
+            .collect();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), SPEC172_UIAI_OPERATION_MAP.len());
+        for entry in SPEC172_UIAI_OPERATION_MAP {
+            assert!(
+                SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES.contains(&entry.limited_family)
+                    || SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES
+                        .contains(&entry.limited_family),
+                "{} limited family must be canonical",
+                entry.operation_id
+            );
+        }
+    }
+
+    #[test]
+    fn spec172_limited_mode_allows_only_one_foreground_public_observe_session() {
+        let now = Utc::now();
+        let limited = limited_posture();
+        // Exactly one foreground ephemeral public-observe session.
+        for operation_id in [
+            "public_search",
+            "source_to_markdown",
+            "public_page_read",
+            "accessibility_snapshot",
+            "screenshot",
+            "basic_diagnostics",
+        ] {
+            assert_eq!(
+                resolve_uiai_operation_capability(operation_id, Some(&limited), None, 0, now),
+                Ok(UiaiCapabilityDecision::VerifiedNoLicensePublicObservation {
+                    session_quota: 1
+                }),
+                "{operation_id} must be allowed once in limited mode"
+            );
+        }
+        // A second concurrent session is denied before any side effect.
+        assert_eq!(
+            resolve_uiai_operation_capability("public_search", Some(&limited), None, 1, now),
+            Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::LimitedModeRestricted))
+        );
+        // Every action/persistence/hosted operation fails closed in limited mode.
+        for operation_id in [
+            "browser_click",
+            "browser_fill",
+            "browser_type",
+            "browser_select",
+            "browser_press",
+            "browser_submit",
+            "cookie_persistence",
+            "auth_state_persistence",
+            "session_persistence",
+            "authenticated_private_dashboard",
+            "unattended_browser_automation",
+            "scheduled_batch_qa",
+            "premium_proxy",
+            "hosted_capacity",
+            "paid_model_calls",
+        ] {
+            assert_eq!(
+                resolve_uiai_operation_capability(operation_id, Some(&limited), None, 0, now),
+                Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::UiaiGrantRequired)),
+                "{operation_id} must fail closed in limited mode"
+            );
+        }
+        // Unknown operations fail before any decision.
+        assert_eq!(
+            resolve_uiai_operation_capability("caller_invented_operation", Some(&limited), None, 0, now),
+            Err(UiaiOperationError::UnknownOperation)
+        );
+    }
+
+    #[test]
+    fn spec172_paid_boundary_requires_granted_family_and_denies_hosted_rights() {
+        let now = Utc::now();
+        let focusa_paid = bound_snapshot(PRODUCT_FOCUSA, Some("account-001"));
+        let action_grant = grant_with_features(&["uiai_browser_action"]);
+        // Paid browser action proceeds bound to the parent lease and grant sequence.
+        assert_eq!(
+            resolve_uiai_operation_capability(
+                "browser_click",
+                Some(&focusa_paid),
+                Some(&action_grant),
+                0,
+                now,
+            ),
+            Ok(UiaiCapabilityDecision::PaidFamily {
+                family: "uiai_browser_action".to_string(),
+                parent_lease_id: "lease-focusa".to_string(),
+                parent_sequence: 7,
+                uiai_grant_sequence: 7,
+            })
+        );
+        // Persistence requires the paid uiai_persistence grant feature.
+        assert_eq!(
+            resolve_uiai_operation_capability(
+                "cookie_persistence",
+                Some(&focusa_paid),
+                Some(&action_grant),
+                0,
+                now,
+            ),
+            Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FamilyNotGranted))
+        );
+        let persistence_grant = grant_with_features(&["uiai_persistence"]);
+        assert_eq!(
+            resolve_uiai_operation_capability(
+                "cookie_persistence",
+                Some(&focusa_paid),
+                Some(&persistence_grant),
+                0,
+                now,
+            ),
+            Ok(UiaiCapabilityDecision::PaidFamily {
+                family: "uiai_persistence".to_string(),
+                parent_lease_id: "lease-focusa".to_string(),
+                parent_sequence: 7,
+                uiai_grant_sequence: 7,
+            })
+        );
+        // Hosted/private rights are denied even for paid grants (no canonical
+        // paid feature; Spec 172 §7.2 never includes them).
+        for operation_id in [
+            "authenticated_private_dashboard",
+            "unattended_browser_automation",
+            "premium_proxy",
+            "hosted_capacity",
+            "paid_model_calls",
+        ] {
+            assert_eq!(
+                resolve_uiai_operation_capability(
+                    operation_id,
+                    Some(&focusa_paid),
+                    Some(&action_grant),
+                    0,
+                    now,
+                ),
+                Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FamilyNotGranted)),
+                "{operation_id} must deny even for paid grants"
+            );
+        }
+        // Focusa-only paid entitlement never grants UIAI — even observation.
+        assert_eq!(
+            resolve_uiai_operation_capability("public_search", Some(&focusa_paid), None, 0, now),
+            Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FocusaOnlyCannotGrantUiai))
+        );
+        // No posture at all fails closed.
+        assert_eq!(
+            resolve_uiai_operation_capability("public_search", None, None, 0, now),
+            Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::MissingPosture))
         );
     }
 
