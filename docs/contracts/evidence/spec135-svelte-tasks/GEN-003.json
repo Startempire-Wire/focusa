@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "GEN-001"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/generated-operations-runtime.mjs",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": [],
+  "task_id": "GEN-003",
+  "result": "Five resumable generated C.R.I.S.T. stage surfaces (context\u2192role\u2192interview\u2192spec\u2192tasks): each has a primary canonical action (operation:genesis.*), autosave/resume via draft:genesis:* id, explicit recovery states (error/retry/resume), and terminal fallback truth = canonical_projection (surface is presentation-only; UXP/UFI never alters authority, required proof, or safety). Unknown stages fail closed; primary actions resolve only through the permission projection."
+}
