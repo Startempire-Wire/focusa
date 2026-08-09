@@ -1,0 +1,162 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.51
+Title: 152F.06.09 Seal Spec 152F technical closure
+Implementation commit: `e2e366cb` (feat(spec152f): seal Spec 152F
+technical closure with final closure receipt test; see git log for this atom)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.14.51 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- tests/spec152f_final_closure_test.py (NEW — the Spec 152F final technical
+  closure receipt test, i.e. the exact verification for 152F.06.09)
+- tests/spec152f_build_independent_gate.sh (one-line inventory sync: the
+  gate's documented fail-closed mechanism requires every new Spec 152F test
+  to be explicitly inventoried; spec152f_final_closure_test.py is now pinned
+  between spec152f_facade_policy_presenter_test.py and
+  spec152f_installed_acceptance_receipt_test.py so it can never be silently
+  skipped)
+- docs/evidence/spec152f/focusa-vbcqu.20.14.51-acceptance.txt (this record)
+- No contract, generator, source, or other test file was modified by this
+  atom.
+
+Bounded result
+- Added tests/spec152f_final_closure_test.py: one deterministic, stdlib-only,
+  fail-closed technical closure receipt test for the Spec 152F child series.
+  It cannot pass with a missing child record, stale coverage ledger, unmatched
+  surface, weakened recovery/simple-commercial proof, stale taskgraph, or
+  invalid governance closure, and it exits 0 only when the complete closure
+  chain is present in the committed tree:
+  * Zero unmatched surfaces (policy/coverage ledgers): the committed Spec 152
+    entitlement-coverage contract regenerates byte-identically
+    (scripts/generate-spec152-entitlement-coverage.py --check) and reports
+    covered=974 total=974 unmatched=0 exclusions=9; the surface-reconciliation
+    contract reports unknown_method_routes=0 and
+    scanner_exclusion_test_only=9.
+  * Taskgraph closure contract: index schema, task_count=52,
+    first_task=focusa-vbcqu.20.14.1, final_task=focusa-vbcqu.20.14.52,
+    phase_counts 00:4 01:9 02:8 03:8 04:7 05:6 06:10, the downstream release
+    edge (focusa-vbcqu.20.13.63 blocked by focusa-vbcqu.20.14.52), the
+    weaker-model contract (before_close/before_start), and per-phase sha256
+    zero-diff against the committed phase shards.
+  * Child-atom audit (all 52 tasks against done condition and evidence):
+    every taskgraph evidence path exists under docs/evidence/spec152f/ except
+    the seal task itself (focusa-vbcqu.20.14.51), its downstream wiring
+    successor (focusa-vbcqu.20.14.52), and the deterministic operation-policy
+    registry loader (focusa-vbcqu.20.14.6) whose parallel-branch record cites
+    commits outside this tree and is therefore refused as external evidence;
+    the 01.02 registry-loader surface is implemented in-tree at d203e08c (an
+    ancestor of HEAD) and verified by the in-tree Spec 152F suite. Every
+    existing child record is git-tracked, contains a verification/validation
+    section, and names no unfinished acceptance marker; every record that
+    names an implementation commit in the phase-06 series resolves to a real
+    commit object. The phase-06 acceptance records (20.14.43..20.14.50) all
+    satisfy the strict receipt template (Implementation commit / Bounded
+    result / Exact verification (exit codes) / Rollback / "No push, deploy,
+    release, merge, or Beads mutation was performed.").
+  * Recovery and simple commercial model proven: the recovery matrix, paid
+    lifecycle, first-value Evaluation, and offline adversarial tests are
+    re-executed inside the closure receipt and each exits 0, and the
+    phase-06 receipts 20.14.43..20.14.50 are all present (state grid,
+    cross-presenter parity, Evaluation first-value E2E, paid lifecycle,
+    offline adversarial, performance, build-independent gate, installed
+    exact-SHA acceptance).
+  * Zero-invalid-closure governance result: scripts/
+    reduce-locked-release-technical-closure.py --check re-derives the gate
+    byte-identically from the committed governance ledger, and the committed
+    gate shows status=verified, invalid_closed_count=0, invalid_closed_ids=[],
+    mapping_count=465, technically_pending_count=255; no focusa-vbcqu.20.14.*
+    bead is invalid-closed, and focusa-vbcqu.20.14.51/.52 remain technically
+    pending (no false completion: the seal and its wiring successor are not
+    claimed closed before they run).
+  * Exact-SHA closure receipt: the test prints sha256 of HEAD, of the
+    committed entitlement-coverage contract, and of the committed technical
+    closure gate, plus the task/evidence/coverage/governance counts, and the
+    final line `✓ spec152f_final_closure PASS`.
+- The Spec 152F build-independent gate inventory was synchronized by exactly
+  one addition (the final closure test), which is the gate's own documented
+  mechanism for new tests; the gate re-runs the full Spec 152F surface with
+  zero hidden skips (26 Python + 2 Node tests, 75 runs total).
+- The governance reconciliation ledger, the technical closure gate, and all
+  other release-governance artifacts were consumed read-only: regeneration
+  of the reconciliation ledger is not possible from this worktree because the
+  committed governance evidence-links document references beads
+  (focusa-vbcqu.14.*) that are no longer admitted by the live provider
+  snapshot, so "regenerate governance" was honored as byte-identical
+  re-derivation of the technical closure gate from the committed ledger via
+  the reducer --check (exit 0). No Beads state, ledger, or other atom's
+  evidence was mutated.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_final_closure_test.py` (from the committed
+   implementation state) — exit 0.
+   Receipt: sha256 head=5fd595ff845c247cafaf60252cf010af8f28ded8;
+   coverage=covered:974 unmatched:0 exclusions:9; tasks=52 evidenced=49
+   (seal set focusa-vbcqu.20.14.6/.51/.52 documented); governance=verified
+   invalid_closed:0 pending:255; recovery/simple-commercial tests
+   re-executed: recovery_matrix, paid_lifecycle, evaluation_first_value,
+   offline_adversarial all exit 0.
+   Final line: `✓ spec152f_final_closure PASS`.
+2. `python3 tests/165_focusa_locked_release_technical_closure_reducer_test.py`
+   — exit 0. Final line: `GH#106.3 technical closure reducer: PASS`
+   (gate status=verified, invalid_closed_count=0, mapping_count=465,
+   technically_pending_count=255, replay-safe allow/block decisions).
+3. Re-run of the exact verification after this evidence file is in place —
+   exit 0 both commands (the child-atom audit then covers this record too).
+
+Regression checks (exit codes)
+- `bash tests/spec152f_build_independent_gate.sh` (the complete
+  build-independent Spec 152F gate, now including the final closure test) —
+  exit 0. Receipt: sha256 head=5fd595ff...; runs=75 passed=75 failed=0;
+  tests=py:26 node:2 sh:0; contracts=json:16 yaml:2; coverage
+  covered=974 unmatched=0 exclusions=9; evidence records=69; final line
+  `✓ spec152f_build_independent_gate PASS (zero hidden skips)`.
+- `bash -n tests/spec152f_build_independent_gate.sh` — exit 0 (script syntax
+  valid).
+- `git diff --check` — exit 0, no whitespace errors.
+- `python3 tests/spec152f_final_closure_test.py` twice in a row from a clean
+  tree — exit 0 both times (deterministic, no state mutation; the redaction
+  scan then covers this acceptance record too).
+- Fail-closed negative verification (the closure receipt cannot pass with a
+  weakened closure surface):
+  a. Tampering with the committed coverage counts (unmatched 0 -> 1) in a
+     scratch copy — closure test exit 1 ("unmatched surfaces remain");
+     scratch discarded, committed contract untouched.
+  b. Removing a phase-06 evidence record's "No push, deploy, release, merge,
+     or Beads mutation was performed." line in a scratch copy — closure test
+     exit 1 (phase-06 template violation); scratch discarded, committed
+     record untouched.
+
+Tests added
+- tests/spec152f_final_closure_test.py — the Spec 152F final technical
+  closure receipt test: zero-unmatched-surface coverage ledger (generator
+  --check + counts + reconciliation unknown_method_routes=0); taskgraph
+  closure contract (52 tasks, first/final pins, phase counts, downstream
+  release edge, weaker-model contract, per-phase sha256 zero-diff); child-atom
+  audit of all 52 taskgraph evidence paths (missing set exactly
+  {20.14.6, 20.14.51, 20.14.52}, git-tracked records, verification sections,
+  no unfinished-acceptance markers, phase-06 strict receipt template incl.
+  exact-SHA binding and the no-push final line); re-executed recovery and
+  simple-commercial proof (recovery matrix, paid lifecycle, first-value
+  Evaluation, offline adversarial); zero-invalid-closure governance result
+  (reducer --check byte-identical re-derivation, gate status=verified,
+  invalid_closed=0, no invalid Spec 152F closures, seal+wiring successor
+  remain technically pending); exact-SHA closure receipt. Fails closed
+  (exit 1) on any missing child record, stale ledger, unmatched surface,
+  weakened proof, or false closure claim.
+
+Rollback
+- Revert only this atom: `git revert e2e366cb` (drop
+  tests/spec152f_final_closure_test.py, the single inventory line added to
+  tests/spec152f_build_independent_gate.sh, and
+  docs/evidence/spec152f/focusa-vbcqu.20.14.51-acceptance.txt if required).
+  Reverting restores the previous 25-test gate inventory; no contract,
+  generator, source, or other test file was modified by this atom. Verified
+  identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, data, migration journals, evidence, and accepted unrelated work
+  are preserved untouched. This atom seals technical closure only; it does
+  not weaken EDD identity/commerce, signed-lease, refund/revoke, node,
+  sequence, or recovery authority, and it records no false completion (the
+  seal task and the 152F.06.10 wiring successor remain technically pending in
+  the governance gate).
+
+No push, deploy, release, merge, or Beads mutation was performed.
