@@ -1,0 +1,87 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.35
+Title: 152F.04.06 Bind UIAI/browser integrations to parent policy and child tokens
+Implementation commit: `1ecb8e56d19b46a53ef3bd84a00ea6a3dcab18c0`
+
+Exact surfaces
+- crates/focusa-license/src/uiai_child_token.rs
+- browser/proxy/MCP/UIAI operations (parent-policy binding contract consumed by
+  the browser/proxy/MCP adapters and the UIAI issue #5 local task system
+  integration)
+- tests/spec152f_uiai_policy_test.py (exact-verification gate)
+
+Bounded result
+- Added the canonical Spec 172 UIAI operation classification
+  (`UiaiOperationClass`): local base integration (`PublicObservation`) versus
+  remote/premium capability (`RemotePremium`). The classification is authority
+  metadata; it is never caller-selected and never grants capability alone.
+- Added `resolve_uiai_capability(...)`, the one parent-policy decision every
+  UIAI/browser/proxy/MCP operation resolves before any child token is minted
+  or presented:
+  - verified no-license -> exactly ONE foreground, ephemeral, public-web
+    observation session (`VerifiedNoLicensePublicObservation{session_quota:1}`);
+  - paid UIAI Operator/Bundle -> the granted paid UIAI family
+    (`PaidFamily{family, parent_lease_id, parent_sequence, uiai_grant_sequence}`)
+    bound to the current parent Focusa lease and the UIAI grant sequence;
+  - Focusa-only paid entitlement -> `FocusaOnlyCannotGrantUiai` (Spec 172
+    section 3 item 7 / section 20 gate 5: Focusa-only never grants UIAI);
+  - unknown postures, blocked/unknown limited families, ungranted paid
+    features, caller-invented feature identifiers, different EDD accounts, and
+    unbound grants fail closed with typed denials.
+- Added `SPEC172_UIAI_PAID_FAMILY_FEATURES`, the frozen authority-owned set of
+  seven UIAI Operator v1 family features (uiai_public_observation,
+  uiai_browser_action, uiai_persistence, uiai_diagnostics, uiai_proof_packets,
+  uiai_batch_responsive, uiai_supported_integrations) matching the EDD
+  bundle-isolation contract. No Focusa feature satisfies a UIAI family.
+- Added `authorized_cached_token(...)` on the broker: a cached child token is
+  revalidated against the CURRENT authority snapshots before execution and is
+  rejected when the parent lease id/sequence/digest is stale, the UIAI grant
+  is revoked/stale, the token is expired, or the token's stored feature set is
+  no longer an exact subset of the current grant (widened tokens fail closed).
+  Cached tokens now also store node, features, and limits from the envelope.
+- Independence from pairing/auth authority: the decision and revalidation
+  consume only authority snapshots and operation metadata; pairing, device
+  proof, authentication state, and caller-selected products/prices/grants
+  never appear in the decision path. The UIAI issue #5 local task system and
+  browser/proxy/MCP adapters use `resolve_uiai_capability` +
+  `authorized_cached_token` as the pre-execution gate.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152_uiai_child_token_broker_test.py` — exit 0.
+   Output: "Spec152 UIAI authority child-token broker gate: PASS"
+2. `python3 tests/spec152f_uiai_policy_test.py` — exit 0.
+   Output: "Spec152f UIAI parent-policy binding gate: PASS"
+3. `python3 tests/spec152_uiai_child_token_broker_test.py && python3 tests/spec152f_uiai_policy_test.py` — exit 0.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0: 108 lib unit tests (12 in the UIAI
+  child-token module, including 4 new) plus 11 + 8 + 3 + 5 + 34 + 29 + 32 +
+  42 + 12 + 12 integration tests passed; 0 failed; 0 ignored.
+- `python3 tests/spec152_uiai_adapter_posture_test.py` — exit 0.
+- `python3 tests/spec172_limited_access_contract_test.py` — exit 0.
+- `python3 tests/spec152f_entitlement_policy_contract_test.py` — exit 0.
+- `python3 tests/spec152f_entitlement_policy_vectors_test.py` — exit 0.
+- `git diff --check` — exit 0.
+- rustfmt --edition 2024 --check on crates/focusa-license/src/uiai_child_token.rs — clean.
+
+Tests added
+- focusa-license (crates/focusa-license/src/uiai_child_token.rs):
+  uiai_capability_limited_mode_is_one_foreground_ephemeral_public_observe_session,
+  uiai_capability_focusa_only_never_grants_uiai,
+  uiai_capability_paid_grant_binds_paid_families_to_parent_and_grant_sequence,
+  cached_child_tokens_reject_stale_parents_and_widened_grants.
+- tests/spec152f_uiai_policy_test.py: build-independent gate that cross-checks
+  the Rust binding surface against the canonical Spec 172 limited-access
+  contract and the Spec 152F policy grid golden vectors (one foreground
+  ephemeral public-observe session, Focusa-only denial, paid-family binding,
+  stale/widened rejection, pairing/auth independence).
+
+Rollback
+- Revert implementation commit `50994129fe480a402a92ff9e44ef9d7b5a80e230` (and
+  this evidence record if required). Preserve customers, orders, refunds,
+  licenses, nodes, sequences, customer data, migration journals, and accepted
+  authority/evidence state. Reverting restores the prior child-token broker
+  without touching EDD identity/commerce, signed-lease, refund/revoke, node,
+  sequence, or recovery authority.
+
+No push, deploy, release, merge, or Beads mutation was performed.
