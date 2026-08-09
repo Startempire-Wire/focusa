@@ -118,6 +118,7 @@ pub mod bundle_activation;
 pub mod uiai_activation;
 pub mod uiai_child_token;
 pub mod limit_reservation;
+pub mod lifetime_entitlement;
 
 pub use limit_reservation::{
     declared_server_owned_limit_buckets, family_limit_buckets,
@@ -125,6 +126,15 @@ pub use limit_reservation::{
     DECLARED_SERVER_OWNED_LIMIT_BUCKETS, PREMIUM_UPDATES_LIMIT_BUCKETS,
     RELEASE_PROOF_LIMIT_BUCKETS, TEAM_REMOTE_LIMIT_BUCKETS,
     LimitReservationService, ReservationError, ReservationGrant, ReservationScope,
+};
+
+pub use lifetime_entitlement::{
+    DeviceCredentialStatus, DeviceCredentialWindow, LifetimeCredentialError,
+    LifetimeCredentialMachine, LifetimeCredentialState, LifetimeEntitlement,
+    LifetimeEntitlementStatus, PersistedLifetimeState, REFRESH_WINDOW_DAYS,
+    OFFLINE_GRACE_DAYS, DEVICE_CREDENTIAL_SCHEMA, LIFETIME_ENTITLEMENT_SCHEMA,
+    LIFETIME_STATE_SCHEMA, LIFETIME_TERM, LICENSE_TYPE_FOCUSA_OPERATOR_LIFETIME_V1,
+    LICENSE_TYPE_UIAI_OPERATOR_LIFETIME_V1, PRODUCT_FOCUSA, PRODUCT_UIAI_ENGINE,
 };
 
 pub use observability::EntitlementDecisionCounters;
