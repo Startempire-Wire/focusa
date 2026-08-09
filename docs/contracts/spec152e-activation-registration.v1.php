@@ -428,6 +428,7 @@ final class FocusaSpec152eActivationRegistrationRepository
     public const VERIFICATION_TTL_SECONDS = 900;
     public const POLL_TTL_SECONDS = 1800;
     public const RETENTION_SECONDS = 2592000;
+    public const DEVICE_PUBLIC_KEY_PATTERN = '/^[A-Za-z0-9_-]{43}$/D';
 
     /** @var Closure(): string */
     private Closure $clock;
@@ -749,6 +750,100 @@ final class FocusaSpec152eActivationRegistrationRepository
             $updated = $this->findByUuid($registrationUuid);
             $this->recordIdempotency('issue_poll_credential', $idempotencyKey, $digest, $registrationUuid, $requestId, $updated, $now);
             return ['registration' => $updated, 'poll_credential' => $credential, 'replayed' => false];
+        });
+    }
+
+    /**
+     * Bind the registration's device public key (authority-recorded) and, when
+     * terminal delivery is handed out, mark the one-time envelope as delivered
+     * in the same compare-and-set update. Re-binding to a different device key
+     * fails closed; replays are idempotent; the plaintext credential is never
+     * persisted. Allowed context fields: terminal_delivery_status,
+     * delivered_at, delivery_failure_reason.
+     */
+    public function bindDevicePublicKey(
+        string $registrationUuid,
+        string $devicePublicKey,
+        string $requestId,
+        string $idempotencyKey,
+        array $context = [],
+    ): array {
+        $this->assertUuid($registrationUuid, 'registration');
+        $this->assertRequestId($requestId);
+        $this->assertIdempotencyKey($idempotencyKey);
+        if (preg_match(self::DEVICE_PUBLIC_KEY_PATTERN, $devicePublicKey) !== 1) {
+            throw new DomainException('NODE_PUBLIC_KEY_REQUIRED');
+        }
+        $allowed = ['terminal_delivery_status', 'delivered_at', 'delivery_failure_reason'];
+        if (array_diff(array_keys($context), $allowed) !== []) {
+            throw new DomainException('PENDING_AUTHORITY_FIELD_DENIED');
+        }
+        $markDelivered = ($context['terminal_delivery_status'] ?? null) === 'delivered';
+        if (array_key_exists('delivered_at', $context)) {
+            FocusaSpec152eActivationRegistrationMigration::assertTimestamp((string) $context['delivered_at']);
+        }
+        $digest = $this->requestDigest([
+            'operation' => 'bind_device_public_key',
+            'registration_uuid' => $registrationUuid,
+            'device_public_key' => $devicePublicKey,
+            'request_id' => $requestId,
+        ]);
+        return $this->transaction(function () use ($registrationUuid, $devicePublicKey, $requestId, $idempotencyKey, $context, $markDelivered, $digest): array {
+            $replay = $this->replay('bind_device_public_key', $idempotencyKey, $digest);
+            if ($replay !== null) {
+                return ['registration' => $this->findByUuid($registrationUuid), 'replayed' => true];
+            }
+            $row = $this->findByUuid($registrationUuid);
+            $this->assertNotExpired($row, false);
+            if (!in_array((string) $row['state'], [
+                FocusaSpec152eActivationRegistrationState::ENTITLEMENT_ISSUED,
+                FocusaSpec152eActivationRegistrationState::TERMINAL_DELIVERY_READY,
+                FocusaSpec152eActivationRegistrationState::DEVICE_REGISTERED,
+                FocusaSpec152eActivationRegistrationState::LEASE_ISSUED,
+            ], true)) {
+                throw new DomainException('LICENSE_DELIVERY_PENDING');
+            }
+            if ($row['device_public_key'] !== null
+                && !hash_equals((string) $row['device_public_key'], $devicePublicKey)) {
+                throw new DomainException('NODE_KEY_MISMATCH');
+            }
+            $now = $this->now();
+            $set = ['device_public_key = :device_key', 'updated_at = :updated'];
+            $params = [
+                ':device_key' => $devicePublicKey,
+                ':updated' => $now,
+                ':registration' => $registrationUuid,
+                ':state' => $row['state'],
+                ':version' => $row['state_version'],
+            ];
+            if (array_key_exists('terminal_delivery_status', $context)) {
+                $set[] = 'terminal_delivery_status = :terminal_status';
+                $params[':terminal_status'] = $context['terminal_delivery_status'];
+            }
+            if ($markDelivered) {
+                $set[] = 'delivered_at = :delivered_at';
+                $set[] = 'delivery_attempts = delivery_attempts + 1';
+                $params[':delivered_at'] = $context['delivered_at'] ?? $now;
+            }
+            if (array_key_exists('delivery_failure_reason', $context)) {
+                $set[] = 'delivery_failure_reason = :failure_reason';
+                $params[':failure_reason'] = $context['delivery_failure_reason'];
+            }
+            $set[] = 'state_version = state_version + 1';
+            $table = $this->schema->table('wpuiai_activation_registrations');
+            $sql = "UPDATE {$table} SET " . implode(', ', $set) . "
+                WHERE registration_uuid = :registration AND state = :state AND state_version = :version";
+            if ($markDelivered) {
+                $sql .= " AND terminal_delivery_status IN ('ready', 'pending')";
+            }
+            $statement = $this->db->prepare($sql);
+            $statement->execute($params);
+            if ($statement->rowCount() !== 1) {
+                throw new DomainException('REGISTRATION_STATE_CONFLICT');
+            }
+            $updated = $this->findByUuid($registrationUuid);
+            $this->recordIdempotency('bind_device_public_key', $idempotencyKey, $digest, $registrationUuid, $requestId, $updated, $now);
+            return ['registration' => $updated, 'replayed' => false];
         });
     }
 
@@ -1164,6 +1259,9 @@ final class FocusaSpec152eActivationRegistrationRepository
 
     private function transaction(callable $callback): mixed
     {
+        if ($this->db->inTransaction()) {
+            return $callback();
+        }
         $this->db->beginTransaction();
         try {
             $result = $callback();
