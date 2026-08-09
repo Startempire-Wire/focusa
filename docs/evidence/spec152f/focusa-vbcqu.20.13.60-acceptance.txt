@@ -1,0 +1,117 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.60
+Title: 152E.07.06 Run unverified-email, facade, checkout, and credential adversarial matrix
+Implementation commit: ee14268a (feat(spec152e): run unverified-email, facade, checkout,
+and credential adversarial matrix); this evidence record is committed separately.
+
+Exact surfaces
+- Verification (activation start/complete, challenge service, email identity/rate limits)
+- Facade (registry, protocol, security, install routes, browser security)
+- Checkout (checkout-email integrity, EDD checkout intent, cart sessions, return handles)
+- Agent (agent JSON activation contract and Pi/CLI/daemon agent surfaces)
+- Terminal (terminal delivery envelope, key boundaries)
+- Logs (terminal/CLI presenter output, daemon identity masking, agent protocol module)
+- Redirect/origin/token/product/key boundaries (facade registry request contract,
+  verified-registration gate token, EDD product registry, envelope key handling)
+
+Bounded result
+- Added tests/spec152e_adversarial_identity_facade_test.py: a build-independent,
+  offline, deterministic adversarial matrix over every named surface. It re-runs the
+  ten existing PHP adversarial suites (verification start/complete, checkout-email
+  integrity, checkout intent, facade security/protocol, terminal envelope, email
+  identity schema, EDD product gate, EDD commerce acceptance) and the agent JSON
+  contract Python suite, then probes the executable PHP contracts through the CLI with
+  the frozen registries (6 probes / 61 adversarial cases), then statically binds the
+  frozen contracts and scans 72 surface files for leakage.
+- Attack coverage and safe expected errors, all fail closed with zero entitlement,
+  fulfillment, key, node, lease, or secret disclosure:
+  - invalid/unreachable/disposable-policy email: provider-neutral normalization keeps
+    dot and plus aliases distinct (never merged), control chars/oversize/no-at rejected,
+    digests distinct, ciphertext never plaintext, tampered envelopes denied; pending-only
+    start returns the enumeration-safe ACTIVATION_REQUEST_ACCEPTED for valid, invalid,
+    unknown-facade, and unknown-product cases alike (no customer/order/license created).
+  - wrong/expired/replayed code: OTP is 6 digits, hashed at rest, wrong/CRLF-injected/
+    oversized verifiers and tampered stored hashes fail; magic-link verifier is bounded
+    url-safe and binds registration + origin; challenge inputs with CRLF facade, non-UUID,
+    http origin, or malformed timestamps are rejected. The replayed verification suites
+    additionally prove expired challenges (EMAIL_VERIFICATION_EXPIRED), max-attempt
+    exhaustion, rate limiting without disclosure, and cross-facade/unknown-UUID error
+    indistinguishability (enumeration resistance).
+  - changed checkout email: fulfillment is held (ACCOUNT_EMAIL_MISMATCH /
+    EDD_ORDER_UNVERIFIED / ACCOUNT_MERGE_REVIEW_REQUIRED) until a verified-link review
+    releases it; payment evidence alone can never release a hold (replayed suite,
+    7 holds journaled, 0 licenses created).
+  - raw cart: cart sessions and checkout intents reject every client-controlled grant,
+    price, download, limit, and redirect field (CLIENT_COMMERCIAL_FIELDS_FORBIDDEN /
+    FACADE_REDIRECT_DENIED) at both layers; unknown raw cart/intent references resolve
+    nowhere; the frozen registry has zero checkout-enabled and zero assigned downloads.
+  - spoofed facade/origin/redirect: forged-session, cross-facade, expired-session,
+    expired-CSRF, CSRF-replay, wrong/suffix origin, unknown product, absolute/unknown
+    redirect handle, and missing-session cases all fail closed (FACADE_SESSION_DENIED /
+    FACADE_CSRF_DENIED / FACADE_ORIGIN_DENIED / FACADE_PRODUCT_DENIED /
+    FACADE_REDIRECT_DENIED / FACADE_REQUEST_DENIED); safe redirects stay bounded to
+    registered callback handles.
+  - arbitrary grants: agent envelope forbids email/key/lease/credential fields; the
+    facade request contract forbids grants/features/limits/price/download/sender/redirect
+    fields; the product registry offers are policy-blocked and unassigned; Spec 158
+    remains excluded; no issuance route exists on any facade.
+  - token/key/log leakage: verified-registration gate tokens are opaque (rg_), issued
+    only from mailbox-verified non-terminal registrations, single-use consumed, wrong
+    token/product denied, and issue/validate replays never re-return the raw token;
+    terminal envelopes accept only the canonical EDD SL key pattern (synthetic
+    focusa_live_* and lowercase keys denied as EDD_LICENSE_UNUSABLE), mask keys
+    (********-********-********-EFAB), store 64-hex digests, and reject forged schema,
+    non-one-time, binding-mismatch, and expired envelopes; the terminal/CLI presenter
+    prints masked email only and never a raw key, the agent protocol module never
+    prints, and the daemon masks customer identity. The leakage scan found no unmasked
+    email (only reserved @example.com/@example.invalid fixtures and the public
+    support@focusa.dev), no stripe-shaped secret, no synthetic live key, and no full
+    license key outside the single bounded terminal-envelope golden-vector fixture.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152e_adversarial_identity_facade_test.py` — exit 0 (run three
+   times; deterministic, byte-identical output).
+   {"schema":"focusa.spec152e.adversarial_identity_facade_matrix.v1","positive_checks":997,"negative_checks":623,"replayed_php_suites":10,"replayed_python_suites":1,"php_probes":6,"probe_cases":61,"leakage_scanned_surfaces":72,"internal_fail_closed_codes":["ACTIVATION_REQUEST_ACCEPTED","CLIENT_COMMERCIAL_FIELDS_FORBIDDEN","EMAIL_IDENTITY_DECRYPTION_FAILED","ENVELOPE_BINDING_MISMATCH","ENVELOPE_EXPIRED","ENVELOPE_FORMAT_DENIED","FACADE_CALLBACK_DENIED","FACADE_CSRF_DENIED","FACADE_LOCALE_DENIED","FACADE_METHOD_DENIED","FACADE_REDIRECT_DENIED","FACADE_REQUEST_DENIED","FACADE_ROUTE_DENIED","FACADE_SENDER_DENIED","FACADE_SESSION_DENIED","FACADE_TIMESTAMP_DENIED"],"result":"passed_fail_closed"}
+   Bounded immutable result handle (SHA-256 of the exact output above):
+   b947acf6aee6e9179947f094aea33f0e00799b81ab4ea0d025a00cc515edbd3d
+
+Regression checks (exit codes)
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (0 assigned downloads, 0 checkout-enabled; frozen registry current, untouched).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0
+  (six facades, six exact origins, fourteen product bindings; registry current).
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  ("Spec 152E activation contracts are current"; no contract regeneration needed).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_golden_vector_test.py` — exit 0.
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_acceptance_test.py` — exit 0.
+- All ten replayed PHP suites and the agent JSON contract suite pass with exit 0 as
+  part of the exact verification. No pre-existing unrelated failures were introduced;
+  the diff contains only this atom's test surface (no contract, source, or other
+  atom's files were modified).
+
+Tests added
+- tests/spec152e_adversarial_identity_facade_test.py: 997 positive + 623 negative
+  checks covering the full adversarial matrix described above — the ten replayed PHP
+  suites (verification start: 30/12, verification complete: 22/18, checkout-email
+  integrity: 128/30, checkout intent: 87/38, facade security: 16/19, facade protocol:
+  1/11, terminal envelope: 71/19, email identity schema: 12 assertion groups,
+  EDD product gate: 110/43, EDD commerce acceptance: 284/32) and the agent JSON
+  contract Python suite, plus 61 targeted PHP probe cases (email policy 15,
+  challenge codes 12, facade spoof 14, checkout raw-cart/grants 10, gate token 8,
+  terminal envelope keys 13 minus envelope fixture handling), plus static binding of
+  the frozen public error registry (33 stable codes; internal fail-closed codes stay
+  internal), the facade/product authority posture, the agent envelope forbidden
+  fields, and the leakage scan across 72 surface files.
+
+Rollback
+- Revert only this atom's implementation commit (tests/spec152e_adversarial_identity_facade_test.py)
+  and this evidence record if required. Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence,
+  and migration journals; no contract, source, or other atom's file was changed, so
+  rollback touches no canonical state.
+
+No push, deploy, release, merge, or Beads mutation was performed.
