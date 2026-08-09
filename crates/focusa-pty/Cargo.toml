@@ -1,0 +1,16 @@
+[package]
+name = "focusa-pty"
+description = "Focusa governed persistent Pi PTY runtime — one real PTY process per governed Attachment, no ordinary pipes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+
+[dependencies]
+portable-pty = "0.8"
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
