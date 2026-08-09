@@ -1,0 +1,29 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-006",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Ordered output events verified in focusa-pty: GenerationReader preserves partial reads (split writes merged, no byte loss or reorder), every envelope carries the exact AttachmentKey, WorkSurfaceId, run generation, and monotonic sequence; stale generations cannot impersonate the current process (accepts_output generation + sequence gate); OutputAccumulator merges split writes. Process reader thread emits newline-terminated lines in order and flushes unterminated tails.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-004",
+      "PTY-005"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo test -p focusa-pty events::tests",
+      "result": "pass: 5 tests"
+    },
+    {
+      "command": "cargo test -p focusa-pty",
+      "result": "pass: 19 tests"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
