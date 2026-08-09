@@ -10,6 +10,7 @@ mod app;
 mod beginner_mode;
 mod mission_control;
 mod next_safe_action;
+mod spec172_presenter;
 mod startup_perf;
 mod theme;
 mod views;

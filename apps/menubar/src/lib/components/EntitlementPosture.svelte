@@ -6,8 +6,15 @@
     type EntitlementPosture,
     type LicenseStatusPayload,
   } from '$lib/entitlementPosture';
+  import {
+    LICENSE_TYPE_LABELS,
+    SPEC172_PRESENTER_NOT_PRODUCT,
+    projectSpec172Posture,
+    type Spec172Posture,
+  } from '$lib/spec172Posture';
 
   let posture = $state<EntitlementPosture | null>(null);
+  let spec172 = $state<Spec172Posture | null>(null);
   let error = $state('');
   let loading = $state(true);
 
@@ -15,9 +22,15 @@
     loading = true;
     error = '';
     try {
-      posture = projectEntitlementPosture(await fetchJson<LicenseStatusPayload>('/v1/license/status', 5000));
+      const payload = await fetchJson<LicenseStatusPayload>('/v1/license/status', 5000);
+      posture = projectEntitlementPosture(payload);
+      // Spec 172 presenter projection: License Type, Operator/Bundle upgrade
+      // accuracy, node semantics, and retained controls — all derived from
+      // the same daemon payload, never from local commercial policy.
+      spec172 = projectSpec172Posture(payload);
     } catch {
       posture = projectEntitlementPosture({ status: 'recovery_only', authority: { recovery_reason: 'status_unavailable' } });
+      spec172 = projectSpec172Posture({ status: 'recovery_only', authority: { recovery_reason: 'status_unavailable' } });
       error = 'Entitlement status unavailable. Execution remains locked.';
     } finally {
       loading = false;
@@ -47,6 +60,14 @@
     {/if}
     <p>{posture.recovery_policy}</p>
     <p class="dim">Marketing preference: managed separately from terms and entitlement.</p>
+    {#if spec172}
+      {#if spec172.verified_no_license}<p class="dim">Verified no-license limited access (no automatic expiry).</p>{/if}
+      {#if spec172.license_type}<p>License type: <strong>{LICENSE_TYPE_LABELS[spec172.license_type]}</strong>{#if spec172.product_grants.length > 0} · grants: {spec172.product_grants.join(', ')}{/if}</p>{/if}
+      <p>Upgrade: <strong>{spec172.upgrade.label}</strong></p>
+      <p class="dim">{spec172.upgrade.explanation}</p>
+      <p class="dim">{spec172.node_semantics}</p>
+      <p class="dim">{spec172.presenter_not_product}</p>
+    {/if}
     <div class="action" role="group" aria-label="Next entitlement action">
       <p class="action-line">Next action: <strong>{posture.action_guide.label}</strong></p>
       <p class="dim">{posture.action_guide.explanation}</p>

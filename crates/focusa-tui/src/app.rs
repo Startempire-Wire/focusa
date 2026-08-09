@@ -3,6 +3,7 @@
 use crate::activation_presenter::{
     TuiActivationView, TuiLicensePosture, project_activation_status, project_license_status,
 };
+use crate::spec172_presenter::{Spec172Posture, project_spec172_posture};
 use crate::api::ApiClient;
 use chrono::{DateTime, Local};
 use serde::Deserialize;
@@ -262,6 +263,11 @@ pub struct App {
     pub activation: Option<TuiActivationView>,
     /// Presenter-safe entitlement posture from `GET /v1/license/status`.
     pub license: Option<TuiLicensePosture>,
+    /// Presenter-safe Spec 172 posture (License Type / Operator + Bundle
+    /// upgrade accuracy / node semantics / retained controls) from the same
+    /// `GET /v1/license/status` payload (Spec 172 §11, §15). The TUI renders
+    /// the canonical projection and never owns commercial policy.
+    pub spec172: Option<Spec172Posture>,
     client: ApiClient,
 }
 
@@ -319,6 +325,7 @@ impl App {
             last_refresh_at: None,
             activation: None,
             license: None,
+            spec172: None,
             client: ApiClient::new(api_url),
         }
     }
@@ -388,6 +395,11 @@ impl App {
             .and_then(project_activation_status);
         let license_status = self.client.fetch_json("/v1/license/status").await.ok();
         self.license = license_status.as_ref().and_then(project_license_status);
+        // Spec 172 presenter projection from the same payload: License Type,
+        // Operator/Bundle upgrade accuracy, node semantics, and retained
+        // controls. Fails closed to `None` (posture unavailable) rather than
+        // inventing a License Type or upgrade.
+        self.spec172 = license_status.as_ref().and_then(project_spec172_posture);
         let authority_scope = self
             .extra_data
             .get("workpoint_resume")
