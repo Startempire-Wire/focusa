@@ -1,0 +1,74 @@
+name: Desktop Spec 172 entitlement gate (release artifacts)
+
+# Gates the Focusa Desktop release artifacts (the Tauri bundles produced by
+# .github/workflows/locked-release-candidate-artifacts.yml desktop-artifacts
+# job, plus the first-run/locked-state fixtures shipped with the app) on
+# Spec 172 Desktop entitlement conformance
+# (docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-
+# addendum.md §11.4 no direct-core bypass, §12 dynamic operations, §15
+# presenters are not products).
+#
+# The Desktop surface must ship with zero local entitlement authority, zero
+# direct-storage mutation bypass, and decisions identical to CLI/API. This
+# workflow is a gate only: it never builds, signs, deploys, or releases artifacts.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/menubar/src-tauri/src/spec172_desktop_bridge.rs'
+      - 'apps/menubar/src-tauri/src/main.rs'
+      - 'docs/contracts/spec152f-desktop-action-map.v1.json'
+      - 'tests/spec172_focusa_desktop_entitlement_test.py'
+      - 'tests/spec172_menubar_tui_presenter_test.mjs'
+      - '.github/workflows/desktop-spec172-entitlement-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  entitlement-gate:
+    name: Desktop Spec 172 entitlement gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Run the exact Spec 172 desktop entitlement verification
+        run: python3 tests/spec172_focusa_desktop_entitlement_test.py
+      - name: Menubar/TUI presenter parity still green
+        run: node tests/spec172_menubar_tui_presenter_test.mjs
+      - name: Desktop action map contract is schema-stable and valid JSON
+        run: |
+          python3 - <<'EOF'
+          import json
+          with open('docs/contracts/spec152f-desktop-action-map.v1.json') as f:
+              contract = json.load(f)
+          assert contract['schema'] == 'focusa.spec152f.desktop_action_map.v1'
+          assert contract['spec172']['presenter_not_product'] is True
+          assert contract['spec172']['no_direct_core_bypass']['direct_storage'] == 'forbidden'
+          actions = contract['actions']
+          assert len(actions) == len({a['desktop_action_id'] for a in actions})
+          print(f'desktop action map contract OK (actions={len(actions)})')
+          EOF
+      - name: Desktop bridge compiles standalone (std-only, no Tauri deps)
+        run: |
+          rustc --edition 2021 --test apps/menubar/src-tauri/src/spec172_desktop_bridge.rs -o /tmp/desktop-bridge-test
+          /tmp/desktop-bridge-test
+      - name: Desktop bridge and fixtures ship in the release artifact tree
+        run: |
+          set -euo pipefail
+          test -s apps/menubar/src-tauri/src/spec172_desktop_bridge.rs
+          test -s docs/contracts/spec152f-desktop-action-map.v1.json
+          test -s tests/spec172_focusa_desktop_entitlement_test.py
+          grep -q 'mod spec172_desktop_bridge;' apps/menubar/src-tauri/src/main.rs
+          grep -q 'focusa_desktop_route_action' apps/menubar/src-tauri/src/main.rs
+          grep -q 'focusa_desktop_spec172_posture' apps/menubar/src-tauri/src/main.rs
+          grep -q 'focusa_desktop_route_action,' apps/menubar/src-tauri/src/main.rs
+          echo 'Desktop Spec 172 gate: PASS'
