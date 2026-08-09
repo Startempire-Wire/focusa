@@ -1,0 +1,36 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CONTRACT-005",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Generated MissionCanvasClient exposes methods for all 25 operations (verified by deterministic regeneration, no drift); each method carries exact Workstream authority and generated request validation.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "CONTRACT-004"
+    ]
+  },
+  "checks": [
+    {
+      "command": "python3 scripts/generate-spec135-mission-canvas-schemas.py",
+      "result": "pass (deterministic)"
+    },
+    {
+      "command": "python3 scripts/generate-spec135-mission-canvas-derived-contracts.py",
+      "result": "pass (deterministic)"
+    },
+    {
+      "command": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+      "result": "pass"
+    },
+    {
+      "command": "operation-registry client method coverage scan (25/25)",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
