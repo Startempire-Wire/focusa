@@ -21,6 +21,9 @@ spec152f_task_count: 52
 spec152f_closure_status: accepted_with_receipts
 spec152f_closure_receipt: docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt
 spec152e_final_closure_dependency: focusa-vbcqu.20.14.52
+spec152e_closure_status: closed_with_receipts
+spec152e_closure_receipt: docs/evidence/spec152f/focusa-vbcqu.20.13.63-acceptance.txt
+spec152e_closure_atom: focusa-vbcqu.20.13.63
 rel_gates:
   - REL.4
   - REL.5
@@ -42,5 +45,11 @@ edd_centered_identity_checkout_delivery_implemented: false
 migration_cutover_accepted: false
 all_platform_final_candidate_verified: false
 distribution_status: blocked
-next_action: Spec 152F closure accepted with receipts; complete the Spec 152E final release milestone (focusa-vbcqu.20.13.63) and REL.4-REL.7 acceptance at the final exact SHA; keep publication forbidden until those close
+next_action: >-
+  Spec 152F closure accepted with receipts and Spec 152E correction closure
+  sealed with receipts (focusa-vbcqu.20.13.63,
+  docs/evidence/spec152f/focusa-vbcqu.20.13.63-acceptance.txt). The remaining
+  release-blocking commands are REL.4-REL.7 governance acceptance and live-server
+  deployment verification at the final exact SHA; keep publication forbidden
+  until those close
 publication_rule: forbidden until focusa-vbcqu.20.13.63 and focusa-vbcqu.20.14.52 close with linked acceptance evidence; the Spec 172 final acceptance work item must also close
