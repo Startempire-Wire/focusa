@@ -1,0 +1,28 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-012",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Invoke handlers + lifecycle events: PtyInvokeCommand exposes ONLY typed PTY operations (attach/input/resize/interrupt/detach/close/restart/resync) with no free-form command strings; PtyInvokeResult returns typed acks/events; the handler holds an Arc<PtyRegistry> so registry lifecycle is app-managed and outlives views. Unknown attachments fail closed; detach and close are distinct lifecycle events.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-011"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo test -p focusa-pty invoke::tests",
+      "result": "pass: 3 tests"
+    },
+    {
+      "command": "cargo test -p focusa-pty",
+      "result": "pass: 28 tests"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
