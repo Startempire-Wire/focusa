@@ -1,0 +1,188 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.15.17
+Title: 172.02.08 Run complete Spec 172 EDD commerce matrix
+Implementation commit: `21056f6a` (base HEAD `a0c688b5`, branch
+atom/focusa-vbcqu.20.15.17, based on local/luna-152f-reducer)
+Recorded at: 2026-08-06 (worktree execution)
+
+Exact surfaces
+- Spec172 identity/assertion/product/issuance/Bundle/refund services and synthetic EDD
+  fixtures (all read-only consumption of the accepted contracts):
+  `docs/contracts/spec152e-activation-registration.v1.php`,
+  `docs/contracts/spec152e-email-identity.v1.php`,
+  `docs/contracts/spec152e-authority-account.v1.php`,
+  `docs/contracts/spec152e-account-promotion.v1.php`,
+  `docs/contracts/spec152e-edd-customer-adapter.v1.php`,
+  `docs/contracts/spec152e-edd-product-registry.v1.php`,
+  `docs/contracts/spec152e-facade-registry.v1.php`,
+  `docs/contracts/spec152e-edd-order-binding.v1.php`,
+  `docs/contracts/spec152e-edd-license-issuance.v1.php`,
+  `docs/contracts/spec172-edd-operator-v1-downloads.v1.php`,
+  `docs/contracts/spec172-edd-license-type-projector.v1.php` (License Type registry +
+  Focusa projector + Focusa paid lease fixture),
+  `docs/contracts/spec172-uiai-edd-license-type-projector.v1.php`,
+  `docs/contracts/spec172-uiai-hosted-resource-exclusion-registry.v1.php`,
+  `docs/contracts/spec172-bundle-edd-license-type-projector.v1.php` (Bundle SL adapter +
+  Bundle projector),
+  `docs/contracts/spec172-bundle-signed-lease-fixture.v1.php`,
+  `docs/contracts/spec172-refund-downgrade-settlement.v1.php` (settler/dispatcher/
+  reconciler),
+  `docs/contracts/spec172-assertion-transition-fixture.v1.php`,
+  `docs/contracts/spec172-verified-access-posture.v1.php`,
+  `docs/contracts/spec172-signed-access-assertion.v1.php`,
+  `docs/contracts/spec172-limited-access-assertion-service.v1.php`
+  — exercised together as ONE EDD authority in `tests/spec172_edd_commerce_acceptance_test.php`
+  (the exact verification).
+
+Bounded result
+- Complete Spec 172 EDD commerce matrix through one WPUIAI EDD authority with no live
+  charge: 252 checks (217 positive + 35 negative), exit 0. Every case produced exactly
+  the canonical posture and no direct Stripe/facade/install-site path created
+  entitlement.
+- No-license: a verified mailbox -> canonical account -> exactly one
+  `verified_no_license` limited posture + one signed limited-access assertion
+  (Ed25519-verifiable, bounded refresh window, frozen Focusa limited allowlist, paid
+  families excluded, zero EDD license keys). Unverified input can never record a
+  posture (EMAIL_VERIFICATION_REQUIRED): no anonymous product capability.
+- Paid Focusa: one verified $697.00 order -> one canonical EDD Software Licensing key
+  -> `focusa_operator_lifetime_v1` projection (5 frozen families, one seat, three
+  shared operator nodes, price version `focusa_operator_lifetime_v1.697.00.v1`,
+  sequence 1) -> bounded Focusa paid lease fixture (whole-order 30-day refund policy).
+- Paid UIAI: one verified $697.00 order -> one canonical key ->
+  `uiai_operator_lifetime_v1` projection with the frozen hosted-resource exclusion
+  digest and zero hosted resources (sequence 1). All eight hosted/metered exclusions
+  and unknown resources deny with HOSTED_RESOURCE_NOT_INCLUDED; the UIAI projection and
+  the limited allowlist never include a hosted resource.
+- Bundle: ONE SKU (`focusa_uiai_operator_bundle_lifetime_v1`), ONE order, ONE canonical
+  human key, exact union of the two underlying Operator v1 grants, derived twelve-family
+  digest, one seat and the SAME three shared nodes (never six), price version
+  `focusa_uiai_operator_bundle_lifetime_v1.1254.60.v1`, one human key, whole-order
+  refunds only, zero future products. The Bundle signed lease fixture carries both
+  grants and validates.
+- Wrong price / product / account: a wrong price (binding or post-issuance mutation)
+  fails PRODUCT_MAPPING_REQUIRED; a UIAI license can never project Focusa and a Focusa
+  license can never project UIAI or the Bundle (LICENSE_TYPE_NOT_INCLUDED); a changed
+  order customer fails EDD_ORDER_UNVERIFIED. All create zero projections and never
+  bump any account sequence.
+- Download 453 and legacy credit packs: 453 stays quarantined
+  (`implicit_focusa_mapping_forbidden`, the explicit forbidden implicit mapping in the
+  dedicated Downloads contract); credit packs 455/456/457 stay retired
+  (`credit_pack_excluded_from_entitlement_registry`); no protected offer maps 453;
+  grant resolution fails PRODUCT_MAPPING_REQUIRED; complete 453/credit-pack orders bind
+  as proven non-entitlement with zero protected items and zero licenses; the Bundle
+  adapter rejects Download 453.
+- Duplicate order: the first completion settles exactly one issuance request; the
+  idempotency replay returns the byte-identical decision and a duplicate event settles
+  nothing new; issuance retry returns the identical key with zero keys created; exactly
+  one canonical license row per order (verified for every order_id in the matrix).
+- Caller grants: caller-supplied grants, price, License Type, node limits, amounts, and
+  refund scope fail CLIENT_COMMERCIAL_FIELDS_FORBIDDEN on binding, issuance, Focusa/
+  Bundle projection, the Bundle adapter, and settlement (zero sequence bump).
+- Partial Bundle refund: a component-level (item-scoped) refund is denied
+  COMPONENT_REFUND_UNSUPPORTED, paid grants stay active, sequence stays 1.
+- Chargeback: a lost Stripe dispute settles the whole Bundle to `refunded`
+  (grants_revoked=2, paid_grants_active=false, authority sequence 1 -> 2), appends one
+  signed outbox envelope dispatched exactly once, and returns the still-verified account
+  to `verified_no_license` with the 10 permanent safety allowances. A stale paid
+  credential can never reactivate (PAID_GRANT_REVOKED); the paid credential derives only
+  from the ACTIVE projection. The reconciler converges (second apply run repairs zero).
+- Future type: `focusa_navigator_lifetime_v1` is not an approved grant; a future
+  License Type in the Bundle grants fails PRODUCT_MAPPING_REQUIRED, a future product in
+  the offer fails PRODUCT_NOT_INCLUDED, a future grant/family/product in the Bundle
+  lease fails FIXTURE_GRANT_UNION_MISMATCH / FIXTURE_FAMILY_MISMATCH /
+  FIXTURE_FUTURE_PRODUCT_MISMATCH, and caller future-type metadata fails closed with
+  CLIENT_COMMERCIAL_FIELDS_FORBIDDEN (zero projections created).
+- Hosted-resource attempts: all eight exclusions and unknown resources deny
+  HOSTED_RESOURCE_NOT_INCLUDED; the UIAI projection carries zero hosted resources and
+  the frozen exclusion digest; the no-license allowlist never contains a metered
+  resource.
+- No direct Stripe/facade/install-site path creates entitlement: the frozen
+  checkout-disabled registry fails closed at the binding boundary
+  (PRODUCT_MAPPING_REQUIRED); a raw Stripe transaction row with no verified binding
+  creates zero issuance requests and zero licenses; an unverified registration can never
+  bind a paid order (EMAIL_VERIFICATION_REQUIRED). No live charge was made: all
+  transactions are synthetic fixture rows with opaque bounded ids (no `ch_`/`pi_`
+  real Stripe ids, no card data).
+- Preservation and redaction: 15 customers, 16 orders, 10 canonical licenses (one per
+  issued order, zero duplicates), 5 projections (focusa + uiai + bundle + partial +
+  chargeback), 15 accounts, 16 registrations, and 2 refund rows all preserved; no raw
+  email, full license key, payment key, card data, or transaction id appears in any
+  decision, projection journal, or evidence; rollback contracts are preservation-only.
+
+Exact verification (exit codes)
+Command (run literally from the canonical project root):
+  php tests/spec172_edd_commerce_acceptance_test.php
+Exit code: 0
+  schema=focusa.spec172.edd_commerce_acceptance_test.v1
+  positive_checks=217 negative_checks=35
+  matrix_rows=[no_license, paid_focusa, paid_uiai, bundle_exact_union, wrong_price,
+               wrong_product, wrong_account, download_453, credit_pack,
+               duplicate_order, caller_grants, partial_bundle_refund, chargeback,
+               future_type, hosted_resource_attempts, no_direct_stripe_facade_path]
+  canonical_licenses_created=10 projections_created=5
+  paid_projection_orders={focusa:7001, uiai:7002, bundle:7003}
+  license_types=["focusa_operator_lifetime_v1","uiai_operator_lifetime_v1"]
+  bundle_grants=["focusa_operator_lifetime_v1","uiai_operator_lifetime_v1"]
+  prices_usd=["697.00","697.00","1254.60"]
+  operator_seats=1 node_limit=3 node_set=operator_shared_v1
+  refund_policy=whole_order_30_days component_refunds_allowed=false
+  future_products_included=false future_license_types_included=false
+  hosted_resources_granted=0
+  download_453=quarantined_never_grants credit_packs=retired_never_grant
+  limited_posture=verified_no_license chargeback_settled=refunded
+  outbox_deliveries=1 reconciliation_converged=true
+  preserved={customers:15, orders:16, licenses:10, refunds:2, projections:5,
+             accounts:15, registrations:16}
+  live_charge=false result=passed_fail_closed
+No cargo build was required: this atom's exact surfaces are PHP contracts (read-only)
+plus the PHP commerce acceptance test; the exact verification command is the PHP test
+above (PHP-only worktree, matching the prior 172.02.02-172.02.07 atoms).
+
+Regression checks (exit codes)
+- php tests/spec172_refund_downgrade_test.php — exit 0 (prior atom 172.02.07).
+- php tests/spec172_bundle_composition_test.php — exit 0 (172.02.06).
+- php tests/spec172_uiai_operator_issuance_test.php — exit 0 (172.02.05).
+- php tests/spec172_focusa_operator_issuance_test.php — exit 0 (172.02.04).
+- php tests/spec172_edd_operator_products_test.php — exit 0 (172.02.03).
+- php tests/spec172_limited_assertion_test.php — exit 0 (172.02.02).
+- php tests/spec172_verified_access_schema_test.php — exit 0.
+- Full sweep of tests/spec172_*.php and tests/spec152e_*.php — all exit 0.
+- python3 tests/spec172_*.py (call_stack_contract, document_authority,
+  dynamic_operation_manifest, family_inheritance, focusa_limited_project,
+  license_type_contract, license_type_lifecycle, limited_access_contract,
+  limited_assertion_vector, no_sales_inventory, public_commerce_baseline,
+  taskgraph_contract) — all exit 0.
+
+Tests added
+- tests/spec172_edd_commerce_acceptance_test.php (252 checks: 217 positive + 35
+  negative): one-authority frozen-contract invariants; no-license verified_no_license
+  posture + signed bounded assertion (zero EDD key, unverified input denied); paid
+  Focusa (key + projection + lease fixture, sequence 1); paid UIAI (projection +
+  hosted-resource exclusions); Bundle (one SKU/key, exact union, shared nodes,
+  1254.60, whole-order refunds); wrong price/product/account denials (zero
+  projections, zero sequence); Download 453 and credit-pack non-entitlement; duplicate
+  order settle-once; caller grants / commerce fields forbidden on every surface;
+  partial Bundle refund (COMPONENT_REFUND_UNSUPPORTED); chargeback settlement
+  (both grants revoked, sequence 1->2, verified_no_license, exactly-once outbox,
+  reconciler convergence); future-type exclusions (Navigator, future products,
+  fixture widening); hosted-resource attempts; no direct Stripe/facade/install-site
+  entitlement (frozen registry, raw Stripe rows, unverified binding); preservation,
+  redaction, rollback preservation, and no-live-charge proof.
+
+Remaining blockers
+- None for this atom. Downstream approved atoms remain: no-sales clean cutover and
+  quarantine (172.05.01), facade/public commerce convergence (172.04.07), paid
+  upgrade limited-state data preservation proof (172.05.03), and local Evaluation
+  removal (172.04.06).
+
+Rollback
+- Revert only this atom's commit (the commerce acceptance test and this evidence file).
+  Preserve verified identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, customer data, migration journals, evidence, and accepted unrelated work
+  (including the prior atoms' contracts, fixtures, tests, and evidence).
+- Rollback must not delete any customer/order/license/refund/projection/assertion
+  journal row (preservation-only), must not invent an implicit mapping for Download
+  453 or credit packs, must not re-enable component refunds or reactivate a settled
+  Bundle, and must not create any live charge.
+
+No push, deploy, release, merge, or Beads mutation was performed.
