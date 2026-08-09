@@ -1,0 +1,140 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.44
+Title: 152F.06.02 Run complete cross-presenter parity acceptance
+
+Implementation commit: `9810a2f7` (feat(spec152f): add complete
+cross-presenter parity acceptance)
+
+Exact surfaces
+- canonical decision vectors:
+  tests/fixtures/spec152f-entitlement-policy-cases.v1.json (63 grid cells,
+  case_id `state::family`, schema focusa.spec152f.entitlement_policy_cases.v1)
+  cross-checked against docs/contracts/spec152f-entitlement-policy.v1.yaml
+  `state_grid` (read-only replay)
+- CLI presenter:
+  crates/focusa-cli/src/commands/license.rs (canonical decision presenter
+  region), crates/focusa-cli/tests/fixtures/spec152f-cli-presenter-fixtures.v1.json,
+  docs/contracts/spec152f-cli-operation-map.v1.json (read-only)
+- menubar presenter: docs/contracts/spec152f-menubar-action-map.v1.json (read-only)
+- TUI presenter: crates/focusa-tui/src/activation_presenter.rs (read-only)
+- Pi/agent presenter:
+  apps/pi-extension/src/entitlement-policy-adapter.ts,
+  docs/contracts/spec141/generated-capability-v2/pi-tools.json and
+  agent-capability-descriptors.json (read-only)
+- installer/lifecycle presenter:
+  crates/focusa-core/src/install_lifecycle/receipts.rs,
+  scripts/install-focusa.sh, scripts/install-focusa.ps1 (read-only)
+- facade fixtures: public/activation/focusa-facade-policy-presenter.mjs
+  (runtime node replay over all 63 vectors)
+- new test: tests/spec152f_cross_presenter_parity_test.py (the exact
+  verification surface; no production file was changed)
+
+Bounded result
+- Canonical vectors replayed: all 63 grid cells (`state::family`) validated
+  for uniqueness, frozen vocabulary, and YAML `state_grid` agreement at the
+  decision-class level (allow / read / base / feature / deny / inherit),
+  including the Spec 172 verified_no_license row (base = limited
+  allow_verified_limited, premium = deny, UIAI observation rows present) and
+  the pending_unverified internal_maintenance deny-default.
+- CLI parity: all six CLI fixtures replay their grid state with matching base
+  decision (denied for deny cells, entitled for require_base cells), premium
+  decisions track the snapshot's exact authority-owned feature grants
+  (grant isolation: no feature, no grant; wrong product denies everything,
+  P9), and recovery_available is true in every blocked state. The presenter
+  binds the canonical DecisionReason labels/recovery actions
+  (activate_evaluation_purchase_or_manage_entitlement /
+  review_offer_or_manage_entitlement / license_status), fails closed on
+  denied/limited gates (E_AUTHORITY_ENTITLEMENT_REQUIRED,
+  E_AUTHORITY_UNKNOWN_PREFLIGHT_FAMILY), and the 86-command operation map
+  carries no product/price/grant selector.
+- Menubar parity: 83 actions in the frozen 48/26/9 class split, all 17
+  canonical operations inherit the policy family treatment (base_entitlement,
+  optional_premium, always_available / stable_security_allowance), action
+  rows carry no per-button decision field, every class declares
+  presenter_must_not evaluate_entitlement / reject_before_daemon_call /
+  mint_grants / interpret_policy, the always-reachable set is the frozen 9,
+  and canonical_operation actions must preserve recovery paths.
+- TUI parity: presenter_state_for_entitlement_status maps active/offline_grace
+  to Activated, recovery_only to RecoveryOnly, expired/revoked to Denied and
+  fails closed to EmailRequired otherwise; every base-denied grid state is
+  never rendered usable; Denied keeps ["activate_or_manage_entitlement",
+  "recovery"] and RecoveryOnly keeps recovery/repair/export/uninstall; the
+  always-reachable set and the recovery sentence are identical to menubar.
+- Pi/agent parity: all 136 tools/descriptors inherit the canonical family
+  treatment from the entitlement_policy_resolver (policy_owner) with active
+  policy; preflightAuthority allows base/premium value mutations only for
+  usable authority, which matches the grid cell by cell (require_base rows
+  allow, deny and the verified_no_license limited subset block, premium
+  requires fully usable base first, daemon enforces feature grants);
+  account/recovery/read/export allowances stay reachable at the tool layer;
+  recoveryActionsFor has no empty branch and every decision JSON carries
+  canonical family/treatment/recovery only, licensing_grants_capability_only,
+  and no operator/cognitive authority or approval inference; discovery
+  payloads carry no grant fields.
+- Installer/lifecycle parity: LifecyclePolicyBinding records policy_digest /
+  capability_family / entitlement_state / lease_sequence / recovery_posture /
+  product_ready over the frozen canonical nine-family vocabulary, validates
+  against the embedded registry, reconciles the recorded binding, and never
+  records raw key material; both official installers declare
+  authority-issued-only entitlement, never create local Evaluation, and
+  expose no --price/--product/--grant/--plan flags.
+- Facade parity (runtime node): all 63 vectors replayed through every
+  registered facade; every facade projects the identical decision for the
+  same envelope; deny postures project the evaluate action (base denials
+  route to Evaluation/purchase), feature postures project purchase, other
+  postures project manage; recovery_only always projects the recovery
+  action; internal_maintenance fails closed (FACADE_POLICY_DENIED, not
+  presentable); read_projection and customer_data_export present under the
+  always_reachable family; spoofed postures/grants/prices fail closed.
+- Cross-presenter parity ledger: all 63 vector IDs reported with per-presenter
+  agreement; 257/257 expressible presenter cells agree with canonical
+  authority, every vector is expressed by at least one presenter, and every
+  value-family vector (base + four premium) is expressed by at least four
+  presenters.
+- Side-effect counters and redaction: zero independent-grant patterns
+  (grant_entitlement/issue_lease/create_customer/mint_grants(/
+  persist_eval_license/self_issue/price_operation(/new_evaluation(
+  local-eval issuance) across CLI presenter, fixtures, menubar map, TUI,
+  Pi adapter, lifecycle receipts, and both installers; zero raw
+  key/token/credential/PII fragments; zero dead-end recovery patterns; zero
+  product/price/grant selector fields (no 395 independent paywalls).
+- No policy, resolver, guard, route, presenter, or fixture behavior was
+  changed — the atom adds only the replayable cross-presenter acceptance
+  receipt.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_cross_presenter_parity_test.py` — exit 0.
+   PASS (positive=2634 negative=0); vectors: 63 canonical cells replayed
+   through CLI/menubar/TUI/Pi/lifecycle/facade; agreement: 257/257
+   expressible presenter cells agree with canonical authority; no
+   independent grants, no dead-end recovery, no raw material, no 395
+   paywalls. Rerun twice with byte-identical tail output (deterministic).
+
+Regression checks (exit codes)
+- `python3 tests/spec152f_entitlement_policy_vectors_test.py` — exit 0.
+- `python3 tests/spec152f_cli_presenter_test.py` — exit 0.
+- `python3 tests/spec152f_agent_presenter_test.py` — exit 0.
+- `python3 tests/spec152f_lifecycle_policy_test.py` — exit 0.
+- `python3 tests/spec152f_denial_ux_parity_test.py` — exit 0.
+- `python3 tests/spec152f_facade_policy_presenter_test.py` — exit 0.
+- `node tests/spec152f_menubar_action_map_test.mjs` — exit 0.
+- `node tests/spec152f_presenter_accessibility_test.mjs` — exit 0.
+
+Tests added
+- tests/spec152f_cross_presenter_parity_test.py (single build-independent
+  gate, 2634 positive assertions): canonical vector replay, CLI/menubar/
+  TUI/Pi/lifecycle/facade parity sections, the 63-vector cross-presenter
+  parity ledger (printed with exact vector IDs), and side-effect/redaction/
+  paywall counters.
+
+Rollback
+- Revert only implementation commit `9810a2f7` (the new test file
+  tests/spec152f_cross_presenter_parity_test.py) and this evidence record
+  if required. That reverts only the replayable cross-presenter acceptance
+  receipt; no policy, resolver, guard, route, presenter, fixture, or
+  installer behavior is reverted because none was changed. Preserve
+  customers, orders, refunds, licenses, nodes, sequences, customer data,
+  migration journals, evidence, and already accepted authority behavior.
+  No other atom's files were modified.
+
+No push, deploy, release, merge, or Beads mutation was performed.
