@@ -269,3 +269,201 @@ export function discoveryGrantsNothing(): {
     visibility: "advisory",
   };
 }
+
+// ── Spec 172 canonical presenter projection (Spec 172 §2.6, §4.1, §11, §21) ──
+//
+// The Pi/agent surface renders the same canonical posture, product, License
+// Type, capability family, denial, retained access, and upgrade/recovery
+// action the CLI and agent descriptors inherit. The adapter never accepts a
+// caller-selected product, price, License Type, family, feature, limit, node,
+// or commercial right, never infers a grant from the installed client,
+// pairing, tool discovery, or email, and only ever mirrors what the daemon
+// authority already decided.
+
+export const SPEC172_PRESENTER_SCHEMA = "focusa.spec172.presenter_projection.v1";
+
+/** Canonical Spec 172 postures (Spec 172 §4.1). `verified_no_license` is the
+ * explicit authority-issued limited-access posture; presenters never
+ * synthesize it from a paid-lease snapshot. */
+export const SPEC172_POSTURES = [
+  "unverified",
+  "verified_no_license",
+  "active_paid_operator",
+  "offline_grace",
+  "refunded_or_revoked",
+  "expired",
+  "missing_or_corrupt",
+] as const;
+
+export type Spec172Posture = (typeof SPEC172_POSTURES)[number];
+
+/** Canonical License Type codes and the composite Bundle SKU (Spec 172 §4.1).
+ * Presenters render only frozen codes for the surface's own product; they
+ * never select, price, or invent a License Type. */
+export const SPEC172_LICENSE_TYPE_CODES = [
+  "focusa_operator_lifetime_v1",
+  "uiai_operator_lifetime_v1",
+  "focusa_uiai_operator_bundle_lifetime_v1",
+] as const;
+
+/** Stable error vocabulary (Spec 172 §21). Denials use only these codes. */
+export const SPEC172_STABLE_ERRORS = [
+  "EMAIL_VERIFICATION_REQUIRED",
+  "VERIFIED_LIMITED_ACCESS",
+  "LICENSE_TYPE_REQUIRED",
+  "LICENSE_TYPE_NOT_INCLUDED",
+  "PRODUCT_NOT_INCLUDED",
+  "CAPABILITY_FAMILY_NOT_INCLUDED",
+  "ENTITLEMENT_POLICY_UNKNOWN",
+  "ENTITLEMENT_PRODUCT_MISMATCH",
+  "NODE_LIMIT_REACHED",
+  "OPERATOR_SEAT_LIMIT_REACHED",
+  "HOSTED_RESOURCE_NOT_INCLUDED",
+  "UPGRADE_AVAILABLE",
+  "RECOVERY_ONLY",
+] as const;
+
+/** Frozen retained-access set (Spec 172 §5.3/§17, Spec 152F P6): navigation,
+ * status, account, read, export, recovery, repair, update, and uninstall stay
+ * available regardless of commercial state. Byte-identical across CLI, Pi,
+ * and agent presenters. */
+export const SPEC172_RETAINED_ACCESS = [
+  "navigation",
+  "status",
+  "account",
+  "read",
+  "export",
+  "recovery",
+  "repair",
+  "update",
+  "uninstall",
+] as const;
+
+/** Stable upgrade actions a denial may recommend (presentation vocabulary
+ * only; the action never grants or prices anything). */
+export const SPEC172_UPGRADE_ACTIONS = [
+  "none_required",
+  "verify_email_or_manage_entitlement",
+  "review_offer_or_manage_entitlement",
+  "purchase_or_manage_entitlement",
+] as const;
+
+export const SPEC172_RECOVERY_ACTION =
+  "recovery, export, repair, and uninstall remain available when execution is locked";
+
+/** The Focusa Pi extension is the Focusa presenter surface. The product is
+ * surface identity, never caller-selected and never a grant source. */
+export const SPEC172_SURFACE_PRODUCT = "focusa";
+
+/** Canonical Spec 172 presenter envelope projected into every Pi tool. */
+export interface Spec172PresenterV1 {
+  schema: string;
+  posture: Spec172Posture;
+  product: string;
+  license_type: string;
+  family: string;
+  denial: string | null;
+  retained_access: readonly string[];
+  upgrade_action: string;
+  recovery_action: string;
+  /** Presenters never infer grants from client, pairing, discovery, or email. */
+  grant_inferred_from_surface: false;
+}
+
+/** Map the daemon authority posture to the canonical Spec 172 posture.
+ * Unknown/missing authority fails closed as `missing_or_corrupt`. */
+export function spec172PostureForAuthority(posture: AuthorityPosture): Spec172Posture {
+  switch (posture) {
+    case "usable":
+      return "active_paid_operator";
+    case "recovery_only":
+    case "revoked":
+      return "refunded_or_revoked";
+    case "unverified":
+      return "unverified";
+    case "expired":
+      return "expired";
+    case "unknown":
+      return "missing_or_corrupt";
+  }
+}
+
+/** Stable Spec 172 denial + upgrade action for one preflight outcome. The
+ * denial is always one of the frozen Spec 172 §21 stable errors. */
+export function spec172DenialAndUpgrade(
+  toolName: string,
+  preflight: PreflightResult,
+  canonicalPosture: Spec172Posture
+): { denial: string | null; upgrade_action: string } {
+  if (preflight.decision === "allow") {
+    return { denial: null, upgrade_action: "none_required" };
+  }
+  if (!resolveOperationPolicyForTool(toolName)) {
+    return {
+      denial: "ENTITLEMENT_POLICY_UNKNOWN",
+      upgrade_action: "review_offer_or_manage_entitlement",
+    };
+  }
+  switch (canonicalPosture) {
+    case "unverified":
+      return {
+        denial: "EMAIL_VERIFICATION_REQUIRED",
+        upgrade_action: "verify_email_or_manage_entitlement",
+      };
+    case "refunded_or_revoked":
+      return {
+        denial: "RECOVERY_ONLY",
+        upgrade_action: "review_offer_or_manage_entitlement",
+      };
+    case "expired":
+      return {
+        denial: "LICENSE_TYPE_REQUIRED",
+        upgrade_action: "purchase_or_manage_entitlement",
+      };
+    case "missing_or_corrupt":
+      return {
+        denial: "ENTITLEMENT_POLICY_UNKNOWN",
+        upgrade_action: "review_offer_or_manage_entitlement",
+      };
+    default:
+      return {
+        denial: "CAPABILITY_FAMILY_NOT_INCLUDED",
+        upgrade_action: "review_offer_or_manage_entitlement",
+      };
+  }
+}
+
+/** Project the Spec 172 canonical presenter envelope for one Pi tool. The
+ * family comes from the canonical tool contract; the posture comes from the
+ * daemon authority; product/license type are frozen surface vocabulary. No
+ * caller-controlled commercial field is accepted. */
+export function projectSpec172PresenterV1(
+  toolName: string,
+  posture: AuthorityPosture
+): Spec172PresenterV1 {
+  const policy = resolveOperationPolicyForTool(toolName);
+  const preflight = preflightAuthority(toolName, posture);
+  const canonicalPosture = spec172PostureForAuthority(posture);
+  const family = policy?.capability_family ?? "unknown";
+  const licenseType =
+    canonicalPosture === "active_paid_operator" || canonicalPosture === "offline_grace"
+      ? SPEC172_LICENSE_TYPE_CODES[0]
+      : "none";
+  const { denial, upgrade_action } = spec172DenialAndUpgrade(
+    toolName,
+    preflight,
+    canonicalPosture
+  );
+  return {
+    schema: SPEC172_PRESENTER_SCHEMA,
+    posture: canonicalPosture,
+    product: SPEC172_SURFACE_PRODUCT,
+    license_type: licenseType,
+    family,
+    denial,
+    retained_access: SPEC172_RETAINED_ACCESS,
+    upgrade_action,
+    recovery_action: SPEC172_RECOVERY_ACTION,
+    grant_inferred_from_surface: false,
+  };
+}
