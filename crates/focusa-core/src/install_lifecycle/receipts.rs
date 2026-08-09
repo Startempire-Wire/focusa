@@ -1,6 +1,7 @@
 use super::{
-    AdapterEntitlementPosture, LifecycleAcceptanceReceipt, LifecycleEntitlementReceiptClass,
-    LifecycleOperation, LifecycleState,
+    AdapterEntitlementPosture, LifecycleAcceptanceReceipt, LifecycleEntitlementBinding,
+    LifecycleEntitlementReceiptClass, LifecycleEntitlementState, LifecycleOperation,
+    LifecycleState,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -41,6 +42,11 @@ pub struct LifecycleReceiptV1 {
     pub journal_head_hash: String,
     pub previous_receipt_hash: String,
     pub receipt_hash: String,
+    /// Canonical Spec 152F simple-policy binding (policy digest, capability
+    /// family, entitlement state, lease sequence, recovery posture, and the
+    /// reconciled product-ready flag). Never records raw keys, tokens,
+    /// credentials, or customer PII.
+    pub policy_binding: LifecyclePolicyBinding,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,6 +67,8 @@ pub enum LifecycleReceiptError {
     IntegrityFailure,
     #[error("receipt id was replayed with different content")]
     IdempotencyConflict,
+    #[error("lifecycle receipt policy binding does not reconcile with the canonical entitlement policy")]
+    PolicyReconciliation,
 }
 
 impl LifecycleReceiptV1 {
@@ -101,6 +109,19 @@ impl LifecycleReceiptV1 {
             previous_receipt_hash: previous_receipt_hash
                 .unwrap_or_else(|| RECEIPT_GENESIS_HASH.into()),
             receipt_hash: String::new(),
+            policy_binding: LifecyclePolicyBinding::from_acceptance(
+                acceptance.operation,
+                acceptance.entitlement_receipt_class,
+                binding,
+                acceptance.final_state == LifecycleState::Accepted
+                    && matches!(
+                        acceptance.entitlement_receipt_class,
+                        LifecycleEntitlementReceiptClass::EvaluationReady
+                            | LifecycleEntitlementReceiptClass::PaidReady
+                            | LifecycleEntitlementReceiptClass::DevelopmentReady
+                    )
+                    && binding.is_some_and(|value| value.signature_verified),
+            ),
         };
         receipt.validate_content()?;
         receipt.receipt_hash = receipt.compute_hash();
@@ -259,6 +280,51 @@ impl LifecycleReceiptV1 {
                 return Err(LifecycleReceiptError::AdapterMismatch);
             }
         }
+        // Spec 152F simple-policy binding: the receipt must record the exact
+        // canonical policy digest, capability family, entitlement state,
+        // lease sequence, and recovery posture. The binding is derived from
+        // the canonical policy and this receipt's own authority fields, never
+        // from caller input, and never contains raw key material.
+        if self.policy_binding.schema_version != "focusa.lifecycle_policy_binding.v1"
+            || !valid_digest(&self.policy_binding.policy_digest)
+            || !LIFECYCLE_CAPABILITY_FAMILIES.contains(&self.policy_binding.capability_family.as_str())
+            || !LIFECYCLE_ENTITLEMENT_STATES.contains(&self.policy_binding.entitlement_state.as_str())
+            || self.policy_binding.recovery_posture == self.policy_binding.product_ready
+            || self.policy_binding.product_ready != self.product_ready()
+            || self.policy_binding.lease_sequence != self.lease_sequence.unwrap_or_default()
+        {
+            return Err(LifecycleReceiptError::PolicyReconciliation);
+        }
+        Ok(())
+    }
+
+    /// Reconcile the recorded simple-policy binding with the canonical
+    /// embedded entitlement policy (Spec 152F §1, P2, P5, P9): the recorded
+    /// policy digest must equal the registry digest, and the capability
+    /// family / entitlement state / lease sequence / recovery posture must
+    /// match what the canonical policy recomputes from this receipt's own
+    /// authority fields. Receipts never carry caller-supplied policy identity
+    /// and never record raw keys.
+    pub fn reconcile_policy(&self) -> Result<(), LifecycleReceiptError> {
+        self.validate_content()?;
+        let registry = focusa_license::embedded_entitlement_policy_registry()
+            .map_err(|_| LifecycleReceiptError::PolicyReconciliation)?;
+        if self.policy_binding.policy_digest != registry.digest() {
+            return Err(LifecycleReceiptError::PolicyReconciliation);
+        }
+        let expected_family = lifecycle_policy_family(
+            self.operation,
+            self.entitlement_receipt_class,
+            self.product_ready(),
+        );
+        if self.policy_binding.capability_family != expected_family {
+            return Err(LifecycleReceiptError::PolicyReconciliation);
+        }
+        if !lifecycle_receipt_class_states(self.entitlement_receipt_class)
+            .contains(&self.policy_binding.entitlement_state.as_str())
+        {
+            return Err(LifecycleReceiptError::PolicyReconciliation);
+        }
         Ok(())
     }
 
@@ -336,6 +402,151 @@ fn valid_digest(value: &str) -> bool {
     value.len() == 71
         && value.starts_with("sha256:")
         && value[7..].bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn lifecycle_policy_binding_schema_v1() -> String {
+    "focusa.lifecycle_policy_binding.v1".into()
+}
+
+/// Canonical Spec 152F capability-family labels a lifecycle receipt may
+/// record. The family is derived from the canonical policy (base product for
+/// value-producing lifecycle mutations, recovery/read allowances for
+/// customer-control and inspection flows, `premium_updates` for update
+/// operations); receipts never invent a family.
+const LIFECYCLE_CAPABILITY_FAMILIES: [&str; 9] = [
+    "account_recovery",
+    "read_projection",
+    "base_focusa",
+    "automation",
+    "team_remote",
+    "release_proof",
+    "premium_updates",
+    "customer_data_export",
+    "internal_maintenance",
+];
+
+/// Lifecycle entitlement-state labels a receipt may record (the serialized
+/// `LifecycleEntitlementState` vocabulary plus `none` when no binding exists).
+const LIFECYCLE_ENTITLEMENT_STATES: [&str; 10] = [
+    "unactivated",
+    "pending_identity",
+    "pending_device_code",
+    "active_evaluation",
+    "active_paid",
+    "offline_grace",
+    "expired",
+    "revoked",
+    "invalid",
+    "none",
+];
+
+/// Simple-policy binding recorded on every lifecycle acceptance receipt
+/// (Spec 152F §1, P2, P5, P9): the digest of the single embedded entitlement
+/// policy, the canonical capability family, the entitlement state, the lease
+/// sequence, the recovery posture, and the reconciled product-ready flag.
+/// The binding is derived only from the canonical registry and the receipt's
+/// own authority fields; receipts never record raw keys, tokens, credentials,
+/// or customer PII.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LifecyclePolicyBinding {
+    #[serde(default = "lifecycle_policy_binding_schema_v1")]
+    pub schema_version: String,
+    pub policy_digest: String,
+    pub capability_family: String,
+    pub entitlement_state: String,
+    pub lease_sequence: u64,
+    pub recovery_posture: bool,
+    pub product_ready: bool,
+}
+
+impl LifecyclePolicyBinding {
+    /// Derive the binding from the canonical embedded policy and the
+    /// acceptance's own authority fields. No caller-controlled product,
+    /// price, grant, family, or policy identity is accepted.
+    pub fn from_acceptance(
+        operation: LifecycleOperation,
+        class: LifecycleEntitlementReceiptClass,
+        binding: Option<&LifecycleEntitlementBinding>,
+        product_ready: bool,
+    ) -> Self {
+        let (entitlement_state, lease_sequence) = binding
+            .map(|value| (lifecycle_entitlement_state_label(value.state), value.lease_sequence))
+            .unwrap_or_else(|| ("none".to_string(), 0));
+        Self {
+            schema_version: lifecycle_policy_binding_schema_v1(),
+            policy_digest: focusa_license::embedded_entitlement_policy_registry()
+                .expect("embedded entitlement policy registry")
+                .digest()
+                .to_string(),
+            capability_family: lifecycle_policy_family(operation, class, product_ready),
+            entitlement_state,
+            lease_sequence,
+            recovery_posture: !product_ready,
+            product_ready,
+        }
+    }
+}
+
+/// Canonical family for a lifecycle operation under the simple policy:
+/// value-producing lifecycle mutations record the base product family when
+/// the decision is product-ready; update receipts record the premium update
+/// family; inspection records the read allowance; and uninstall/purge/
+/// rollback plus every recovery or denied posture record the recovery
+/// allowance family.
+fn lifecycle_policy_family(
+    operation: LifecycleOperation,
+    class: LifecycleEntitlementReceiptClass,
+    product_ready: bool,
+) -> String {
+    if !product_ready
+        || matches!(class, LifecycleEntitlementReceiptClass::RecoveryReady)
+    {
+        return focusa_license::CapabilityFamily::AccountRecovery.label().to_string();
+    }
+    match operation {
+        LifecycleOperation::Update => focusa_license::CapabilityFamily::PremiumUpdates
+            .label()
+            .to_string(),
+        LifecycleOperation::Inspect => {
+            focusa_license::CapabilityFamily::ReadProjection.label().to_string()
+        }
+        LifecycleOperation::Uninstall
+        | LifecycleOperation::Purge
+        | LifecycleOperation::Rollback => {
+            focusa_license::CapabilityFamily::AccountRecovery.label().to_string()
+        }
+        LifecycleOperation::Install | LifecycleOperation::Repair | LifecycleOperation::Rerun => {
+            focusa_license::CapabilityFamily::BaseFocusa.label().to_string()
+        }
+    }
+}
+
+fn lifecycle_entitlement_state_label(state: LifecycleEntitlementState) -> String {
+    serde_json::to_value(state)
+        .ok()
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .unwrap_or_else(|| "unknown".into())
+}
+
+/// Entitlement-state labels consistent with each receipt class. The recorded
+/// state must be one of these so reconciliation cannot drift into an invented
+/// or contradicting state claim.
+fn lifecycle_receipt_class_states(class: LifecycleEntitlementReceiptClass) -> &'static [&'static str] {
+    match class {
+        LifecycleEntitlementReceiptClass::EvaluationReady => &["active_evaluation"],
+        LifecycleEntitlementReceiptClass::PaidReady => &["active_paid"],
+        LifecycleEntitlementReceiptClass::DevelopmentReady => &["offline_grace"],
+        LifecycleEntitlementReceiptClass::RecoveryReady => &["offline_grace", "none"],
+        LifecycleEntitlementReceiptClass::BlockedEntitlement => &[
+            "unactivated",
+            "pending_identity",
+            "pending_device_code",
+            "expired",
+            "revoked",
+            "invalid",
+            "none",
+        ],
+    }
 }
 
 #[cfg(test)]
