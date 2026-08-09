@@ -1,0 +1,197 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.58
+Title: 152E.07.04 Prove Evaluation, existing key, and source-build activation
+Implementation commit: `1084f9cf` (feat(spec152e): prove evaluation eligibility,
+existing key, and source-build activation)
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (spec 152E §12 Evaluation journey, §13
+existing-license journey, §14.3 source and unofficial builds, §15 human key
+and signed lease separation, §18 refund/revoke/recovery, §23 acceptance-matrix
+rows); binding Spec 172 overlay (verified no-license PERMANENT limited access;
+no timed/local Evaluation is created or tested); Specs 152, 150A, 152A-D;
+Spec 158 implementation excluded. Locked-release correction atom in the
+spec152f/spec172 async pipeline. Cargo/release builds remain deferred until
+the operator's 50% gate.
+
+Exact surfaces (this atom only)
+- Evaluation eligibility (spec 152E §12 + Spec 172 overlay): the canonical
+  eligibility matrix (docs/contracts/spec152e-evaluation-issuance.v1.php
+  FocusaSpec152eEvaluationEligibilityState) is asserted verbatim, and the
+  acceptance rows eligible / ineligible / repeat / paid-downgrade are
+  exercised through FocusaSpec152eEvaluationIssuanceService on sqlite:
+  eligible verified customer issues exactly ONE verified_no_license posture
+  and ONE signed limited-access assertion (duration=no_automatic_expiry,
+  edd_order_id/edd_license_id NULL, creates_edd_license_key=false, sequence 1,
+  idempotent replay with zero new rows); terminal refunded history is
+  preserved and never reactivated; unverified email and missing verification
+  proof fail closed with EMAIL_VERIFICATION_REQUIRED and create nothing;
+  caller-supplied EDD download/price fail closed with
+  CLIENT_COMMERCIAL_FIELDS_FORBIDDEN; unknown product codes fail closed with
+  PRODUCT_MAPPING_REQUIRED; an active paid customer is never downgraded
+  (PAID_POSTURE_PRESERVED, license stays active, decision journaled); a
+  repeat/facade-switched request is denied (EVALUATION_NOT_ELIGIBLE) with no
+  duplicate posture or assertion. Every journal row is permanent
+  (no_automatic_expiry) and EDD-free; the posture/assertion schemas remain
+  EDD-free; no zero-dollar fake license and no timed Evaluation is ever
+  created.
+- Legacy/existing EDD key (spec 152E §13): FocusaSpec152eLegacyActivationAdapter
+  proves a matching verified owner email plus evidence-backed license resolves
+  node activation (owner_match=true, node_activation_allowed=true, bounded
+  evidence digest, canonical EDD references); an unrelated verified email
+  fails closed with LICENSE_ACCOUNT_MISMATCH (a key and an unrelated verified
+  email cannot activate a node); an unverified email fails with
+  EMAIL_VERIFICATION_REQUIRED; an unknown key with EDD_LICENSE_UNVERIFIED; a
+  revoked license with EDD_LICENSE_UNUSABLE; and missing evidence with
+  EDD_ORDER_UNVERIFIED. EDD order/license truth is preserved untouched.
+- Node/lease/recovery (spec 152E §15, §18): the existing-key owner's node
+  registers through the canonical authority node repository (atomic
+  reservation + settlement, node-limit ledger 1); a second node fails closed
+  with NODE_LIMIT_EXHAUSTED; a signed device-bound lease is sealed by the
+  canonical Ed25519 authority key-set seam over FOCUSA-AUTHORITY-LEASE-V1
+  (sequence 1, paid posture, authority lease key) and independently verified
+  with FocusaSpec152eEd25519Signer::verify; refund/revoke deactivates the
+  node (slot released, reserved_count 0), settles the lease recovery_only
+  with a monotonic sequence increment to 2, and denies refresh
+  (LEASE_REFRESH_DENIED); on the limited-access path revokePosture flips the
+  posture to revoked (row preserved) and advanceSequence denies refresh with
+  VERIFIED_LIMITED_ACCESS.
+- Source-built binary (spec 152E §14.3): the gate statically binds the
+  source-build run path (CLI_FLOW presenter=cli, install_channel=source_build
+  advisory-only telemetry recorded in registration/context/HTTP payload and
+  never read by the reducer, authority store, entitlement policy, core base
+  gate, or daemon middleware; installer markers never consulted), the
+  direct-binary first protected action (require_base_product ->
+  BaseProductRequired / ENTITLEMENT_BASE_REQUIRED), missing-installer-state
+  resolution (unactivated with authority_lease_missing; corrupt state
+  recovery_only; embedded production trust roots only; test/local roots
+  forbidden), the frozen non-grant matrix (8 rows) and deletion matrix (4
+  rows), the no-local-Evaluation pins (no persist_eval_license anywhere in the
+  run path, no LicenseGuard::eval in CLI surfaces, plaintext activation
+  retired with E_AUTHORITY_COMMAND_RETIRED), and the Rust transcript replays
+  that settle paid terminal / existing key / limited-access overlay /
+  timeout-recovery journeys through the shared ActivationSession from this
+  pinned commit.
+- docs/contracts/spec172-verified-access-posture.v1.php — minimal recovery
+  correction surfaced by this atom: FocusaSpec172VerifiedAccessPostureRepository
+  referenced self::SCHEMA/self::VERSION in recordEvent (called by
+  revokePosture, the recovery surface) but never defined them, so recovery
+  failed at runtime; the repository now mirrors its sibling
+  FocusaSpec172SignedAccessAssertionRepository with
+  `public const SCHEMA = FocusaSpec172VerifiedAccessPostureMigration::SCHEMA;`
+  and the matching VERSION constant (2 lines; no behavior change).
+
+Exact surfaces (files)
+- tests/spec152e_eval_existing_source_e2e_test.py (new, exact verification)
+- docs/contracts/spec172-verified-access-posture.v1.php (minimal recovery
+  constant fix, required by this atom's node/lease/recovery surface)
+- docs/evidence/spec152e/focusa-vbcqu.20.13.58-acceptance.txt (this record)
+
+Bounded result
+- The deterministic sqlite PHP harness (fixed clock, synthetic EDD fixture
+  tables, canonical contracts loaded read-only) exercises all three named
+  journeys together and emits a redacted deterministic summary; the harness
+  runs twice and the stdout is byte-identical (replayable from the pinned
+  commit).
+- Evaluation eligibility: 7-row canonical matrix asserted; mapping
+  focusa_evaluation -> focusa scope / verified_no_license posture / no EDD
+  download / no EDD price / no EDD Software Licensing key /
+  no_automatic_expiry / authority_signed_limited_access_assertion; eligible +
+  terminal-history + repeat-free customers issue exactly 3 postures, 3
+  assertions, 3 device nodes; 1 paid-posture-preserved and 1
+  evaluation-not-eligible decision journaled; unverified / missing-proof /
+  caller-mapping / unknown-product attempts create zero posture/assertion/
+  journal rows; 5 journal rows total, all permanent and EDD-free; exactly 3
+  seeded EDD licenses and 1 seeded EDD order remain (the evaluation path
+  created none).
+- Existing key: matching verified owner email resolves node activation with a
+  bounded evidence digest; mismatched verified email (LICENSE_ACCOUNT_MISMATCH),
+  unverified (EMAIL_VERIFICATION_REQUIRED), unknown key (EDD_LICENSE_UNVERIFIED),
+  revoked license (EDD_LICENSE_UNUSABLE), and missing evidence
+  (EDD_ORDER_UNVERIFIED) all fail closed; EDD truth preserved.
+- Node/lease/recovery: 1 node registered (limit ledger 1), second node
+  NODE_LIMIT_EXHAUSTED, signed device-bound lease verified over
+  FOCUSA-AUTHORITY-LEASE-V1 with the authority lease key, refund/revoke
+  deactivates the node (slot released) and settles the lease recovery_only
+  with sequence increment and LEASE_REFRESH_DENIED; limited-access revoke
+  denies refresh (VERIFIED_LIMITED_ACCESS) and preserves the row.
+- Source build: static bindings prove the source-built binary follows the SAME
+  universal authority flow with no installer dependency; missing installer
+  state never creates entitlement (unactivated/authority_lease_missing), and
+  the five frozen Rust transcript replays (existing key, limited access,
+  paid terminal, timeout recovery, recovery resume) exist in this pinned
+  commit.
+- No unverified-email promotion, no local/self-issued entitlement, no
+  independent facade authority, no client-controlled EDD price/grants, no
+  timed/local Evaluation, and no secret or unmasked real-email evidence in
+  any artifact. No cargo command was run: this atom adds no Rust surface and
+  the locked-release FORBIDDEN rule defers cargo/release builds to the
+  operator's 50% gate.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152e_eval_existing_source_e2e_test.py` — exit 0, run
+   twice on 2026-08-09 with byte-identical harness output (harness sha256
+   281c65407578608dc3aba48a96de2c5f0db8d56673089b3614f8cd7a2a75089a;
+   harness output sha256
+   ddd8a972977afa997f459ff374cbdb033ec47bc04a4c9724982abe848af477b4).
+   Summary: harness_positive_checks=190 harness_negative_checks=15
+   static_positive_checks=74 static_negative_checks=23
+   decision_counts={limited_access_issued:3, paid_posture_preserved:1,
+   evaluation_not_eligible:1} postures=3 assertions=3 evaluation_nodes=3
+   edd_licenses_total=3 edd_orders_total=1 duration=no_automatic_expiry
+   existing_key_owner_match=true existing_key_mismatch_denied=true
+   node_registered=true node_limit_exhausted=true lease_sequence=1
+   lease_signature_verified=true recovery_posture=recovery_only
+   recovery_refresh_denied=true harness_replay_identical=true
+   source_build_channel_advisory_only=true no_timed_evaluation=true
+   result=passed.
+
+Regression checks (exit codes)
+- `python3 tests/spec152e_complete_static_gate.py` — exit 0 (69/69 test gates
+  passed, including the new e2e gate; 4/4 generators --check current;
+  php -l on all 39 Spec 152E PHP contracts including the corrected posture
+  contract; JSON parse of 24 Spec 152E JSON contracts/fixtures; redaction
+  scan of 67 contract/fixture/generator sources: zero email literals, zero
+  secrets, zero raw-key evidence; deferred Cargo enumeration unchanged at 23
+  surfaces / 148 test markers, none claimed passed).
+- `php -l docs/contracts/spec172-verified-access-posture.v1.php` — exit 0.
+- `git diff --check` for this atom — clean (no whitespace errors; the new
+  gate and corrected contract carry no trailing whitespace, tabs, CRLF, or
+  missing final newline).
+- No cargo command was run: this atom touches no Rust surface and the
+  locked-release FORBIDDEN rule defers cargo/release builds to the
+  operator's 50% gate.
+
+Tests added
+- tests/spec152e_eval_existing_source_e2e_test.py — 190 positive / 15
+  negative harness checks plus 74 positive / 23 negative static checks:
+  Evaluation eligibility matrix + product mapping; eligible / terminal-history
+  / unverified / missing-proof / caller-mapping / unknown-product / active-
+  paid / repeat-facade-switch rows with real fail-closed codes; permanent
+  no_automatic_expiry journal with zero EDD order/key and EDD-free schemas;
+  idempotent replay; existing-key matching/mismatched/unverified/unknown/
+  revoked/missing-evidence rows with truth preservation; node registration,
+  node-limit exhaustion, signed-lease Ed25519 verification, node deactivation
+  + recovery_only lease with refresh denied, limited-access revoke with
+  refresh denied and row preservation; source-build static bindings
+  (CLI_FLOW source_build advisory channel, first protected action fail-closed,
+  unactivated/recovery_only resolution, embedded trust roots, non-grant and
+  deletion matrices, no persist_eval_license / LicenseGuard::eval in the CLI
+  run path, decision surfaces never read install_channel or installer state,
+  five Rust transcript replays present); artifact hygiene (no email literal,
+  secret, or raw-key evidence in harness output; gate uses only synthetic
+  reserved-domain addresses).
+
+Rollback
+- Revert only this atom's commits (the implementation commit containing the
+  e2e gate plus the two-constant posture-recovery fix, and the evidence
+  commit containing this file). Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals. The e2e gate is a self-contained
+  synthetic-proof harness on its own sqlite-only tables; no production
+  authority, EDD, node, lease, or local install state is touched. The posture
+  contract fix only adds the two schema constants the repository already
+  referenced (mirroring its sibling repository) and changes no behavior; if
+  the fix itself must be rolled back, revert it together with this atom and
+  the recovery row of this atom's proof.
+
+No push, deploy, release, merge, or Beads mutation was performed.

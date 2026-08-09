@@ -212,6 +212,9 @@ final class FocusaSpec172VerifiedAccessPostureMigration
 
 final class FocusaSpec172VerifiedAccessPostureRepository
 {
+    public const SCHEMA = FocusaSpec172VerifiedAccessPostureMigration::SCHEMA;
+    public const VERSION = FocusaSpec172VerifiedAccessPostureMigration::VERSION;
+
     /** @var Closure(): string */
     private Closure $clock;
 
