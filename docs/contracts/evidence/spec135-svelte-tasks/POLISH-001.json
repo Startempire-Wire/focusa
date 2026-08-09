@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "POLISH-001",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Finishing visual quality without semantic changes: presentation-only focus-visible rings, selection tint, and quiet scrollbars added to tokens/primitives. The diff touches ONLY presentation files (static styles); the full 24-suite battery and zero-error svelte-check prove projection, authority, operation, and lifecycle behavior are unchanged.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "ACCEPT-005"
+    ]
+  },
+  "checks": [
+    {
+      "command": "git diff --name-only",
+      "result": "pass: only static/styles presentation files"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass: 24 suites"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}

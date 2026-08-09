@@ -15,3 +15,17 @@
   :root:not([data-motion='full']) .view-scene { transform: none !important; }
 }
 :root[data-motion='reduced'] .view-scene { transform: none !important; }
+
+/* POLISH-001 — presentation-only finishing layer: keyboard focus rings,
+   selection tint, and quiet scrollbars. No layout, eligibility, or
+   authority semantics are touched. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-control);
+}
+::selection { background: var(--color-selection); }
+* { scrollbar-color: var(--color-border-strong) transparent; scrollbar-width: thin; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: var(--radius-pill); border: 2px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-track { background: transparent; }
