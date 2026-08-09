@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { MissionCanvasClient } from '../../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
-  import { MissionCanvasDraftController } from '../draft-controller.svelte';
+  import { MissionCanvasDraftController, sameWorkstreamAttachment } from '../draft-controller.svelte';
   import { GeneratedDraftTransport, resolveRecipient } from '../generated-draft-transport';
-  import type { AttachmentKey, OperationBinding, ResolvedContribution, ResolvedWorkspaceProjection } from '../types';
+  import type { AttachmentKey, OperationBinding, ResolvedContribution, ResolvedWorkspaceProjection, RuntimeObjectRef } from '../types';
 
   let {
     contribution,
@@ -19,6 +19,16 @@
   let localContent = $state('');
   let loadedRevision = $state<number>();
   let sending = $state(false);
+  let lastBinding: {
+    workstream: typeof projection.workstream;
+    continuity_id: string | null;
+    attachment: AttachmentKey;
+    workspace_binding_id: string | null;
+    runtime_object: RuntimeObjectRef | null | undefined;
+    work_surface_id: string | null;
+    draftId: string;
+    recipientRef: string;
+  } | undefined = $state();
   let sendError = $state('');
   let sendNotice = $state('');
   const controller = $derived(client ? new MissionCanvasDraftController(new GeneratedDraftTransport(client)) : undefined);
@@ -33,12 +43,15 @@
     binding.enabled && Boolean(binding.authority_ref) && !binding.disabled_reason_ref
   ));
   const draftReady = $derived(controller?.state.kind === 'ready' || controller?.state.kind === 'conflict');
-  const sendEnabled = $derived(Boolean(client && controller && draftId && recipientRef && attachment && draftReady && sendBinding && onOperation && localContent.trim() && !sending));
+  // UI-020: the send control is actionable only when the exact recipient is
+  // resolved AND authorized — the controller's canSend gate requires the
+  // binding recipient to agree with the loaded draft, never a surface/CWD guess.
+  const sendEnabled = $derived(Boolean(client && controller && controller.canSend && draftId && attachment && draftReady && sendBinding && onOperation && localContent.trim() && !sending));
 
   $effect(() => {
     if (!controller || !draftId || !recipientRef || !attachment) return;
     const exactAttachment: AttachmentKey = attachment;
-    void controller.load({
+    const nextBinding = {
       workstream: projection.workstream,
       continuity_id: projection.continuity_id ?? exactAttachment.continuity_id ?? null,
       attachment: exactAttachment,
@@ -47,7 +60,15 @@
       work_surface_id: projection.work_surface_id ?? projection.focused_work_surface_id ?? null,
       draftId,
       recipientRef
-    });
+    };
+    const previous = lastBinding;
+    if (previous && sameWorkstreamAttachment(previous, nextBinding)) {
+      // Activity/profile/surface changes preserve the draft: rebind instead of refetch.
+      void controller.rebind(nextBinding);
+    } else {
+      void controller.load(nextBinding);
+    }
+    lastBinding = nextBinding;
   });
 
   $effect(() => {
