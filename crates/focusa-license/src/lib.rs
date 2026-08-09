@@ -19,6 +19,7 @@ pub mod authority_store;
 pub mod capsule_manifest;
 pub mod dynamic_operation_manifest;
 mod entitlement_policy;
+pub mod facade_policy_presenter;
 pub mod feature_decision;
 pub mod license_migration;
 
@@ -87,6 +88,13 @@ pub use dynamic_operation_manifest::{
     ENTITLEMENT_POLICY_UNKNOWN, FORBIDDEN_CLIENT_POLICY_FIELDS,
     REGISTERED_OPERATION_CLASSES, REGISTERED_PRODUCT_OWNERS,
     REGISTERED_SIDE_EFFECT_CLASSES,
+};
+pub use facade_policy_presenter::{
+    facade_family, facade_next_action_for_posture, facade_next_action_for_status,
+    safe_masked_status, FacadeFamily, FacadeMaskedStatus, FacadeNextAction,
+    FacadePolicyDecision, FacadePresenterError, FACADE_ALWAYS_REACHABLE,
+    FACADE_PRESENTER_FIELDS, FACADE_PRESENTER_FORBIDDEN_FIELDS,
+    FACADE_STATUS_ALLOWLIST,
 };
 pub mod bundle_activation;
 pub mod uiai_activation;

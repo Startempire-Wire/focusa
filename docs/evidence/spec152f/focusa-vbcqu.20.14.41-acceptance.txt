@@ -1,0 +1,114 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.41
+Title: 152F.05.05 Bind branded facades to policy explanation only
+Implementation commit: `ba8f7e0b` (feat(spec152f): bind branded facades to policy explanation only)
+
+Exact surfaces
+- registered facade descriptors/pages: cross-checked read-only against
+  docs/contracts/spec152e-facade-registry.v1.json (all six registered
+  facades); branded-page binding added as
+  public/activation/focusa-facade-policy-presenter.mjs
+- authority denial/recovery envelopes: the facade presenter consumes only the
+  safe envelope fields (state, next_action, masked identity) and never reads
+  lease, credential, or key material
+- Focusa website presenters: public/activation/focusa-facade-security.mjs,
+  focusa-registration.mjs, page.html remain presenter-only (untouched);
+  the new policy presenter binds the same decision everywhere
+- contract types: crates/focusa-license/src/facade_policy_presenter.rs
+  (registered from crates/focusa-license/src/lib.rs)
+- tests: tests/spec152f_facade_policy_presenter_test.py
+
+Bounded result
+- Added the facade policy presenter contract: branded facades and Focusa
+  website presenters display the SAME canonical authority decision for every
+  registered facade — capability family (base product or one of the four
+  premium families: automation, team_remote, release_proof, premium_updates),
+  the Evaluation/purchase/recovery action, and a safe masked status from
+  authority output. They cannot select grants, prices, feature activation, or
+  runtime policy, and they cannot turn dormant future-granularity or premium
+  dimensions on or off.
+- Rust contract (crates/focusa-license/src/facade_policy_presenter.rs):
+  `FacadeFamily` (base/premium/always-reachable), `FacadeNextAction`
+  (evaluate/purchase/recovery/manage), `FacadePolicyDecision::project`
+  deriving only from the canonical `EntitlementStateDecision` +
+  `CapabilityFamily` + authority status label, `facade_family`,
+  `facade_next_action_for_posture`, `facade_next_action_for_status`, and
+  `safe_masked_status` (frozen `FACADE_STATUS_ALLOWLIST`, masked pattern
+  `^[^@]*\*[^@]*@[^@]+$`). Internal maintenance is not facade-presentable
+  (fail closed). Frozen `FACADE_PRESENTER_FIELDS` (8 fields), 
+  `FACADE_PRESENTER_FORBIDDEN_FIELDS` (16 fields), and
+  `FACADE_ALWAYS_REACHABLE` (9 families, shared with menubar/TUI). The
+  struct exposes no booleans, no setters, and no grant/price/feature/
+  runtime-policy fields.
+- Website presenter (public/activation/focusa-facade-policy-presenter.mjs):
+  `projectFacadePolicyDecision(facadeId, envelope)` binds all six registered
+  facades to the identical facade-independent projection (origin gate only);
+  spoofed envelopes fail closed with FACADE_ORIGIN_DENIED /
+  FACADE_POLICY_DENIED (unknown origin/family/posture, grants, prices,
+  feature_activation, runtime_policy, dormant/premium toggles,
+  product_code, limits, lease injection, raw email, redirect hijack,
+  unknown extra fields). Unknown statuses never render (masked_status
+  dropped); recovery_only always shows the recovery action. Frozen
+  `facadePolicyContract` (schema focusa.spec152f.facade_policy_presenter.v1)
+  mirrors the Rust field lists; no per-facade commercial override exists.
+- Exact-origin/session/redirect rules remain Spec 152E-owned (facade
+  registry, facade security, activation call stack untouched).
+- No local/self-issued Evaluation, no caller-controlled product/price/
+  grants, no presenter-owned commercial decision, no raw keys/tokens/
+  customer PII in code, tests, or evidence; no 395 independent paywalls;
+  customer data export, account control, repair, stable security update,
+  rollback, and uninstall allowances untouched.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_facade_policy_presenter_test.py` — exit 0.
+   "spec152f facade policy presenter: PASS (positive=150 negative=18)".
+   Proves: (a) contract artifact presence and exact Rust/website vocabulary
+   parity; (b) all six registered facades project the identical decision for
+   the same envelope (output keys are exactly the frozen presenter fields);
+   (c) 17 spoof envelopes rejected (unknown origin/family/posture, grants,
+   prices, feature activation, runtime policy, dormant toggle, product
+   selection, limits, lease injection, raw email, redirect hijack, premium
+   toggle, unknown extra field); (d) output carries no premium/dormant/
+   feature/grant/price key; (e) spoofed statuses never render; (f)
+   recovery_only shows the recovery action on every facade; (g) website
+   presenters stay presenter-only and registry descriptors carry no
+   presenter-owned commercial fields.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license facade_policy_presenter` — exit 0:
+  "test result: ok. 8 passed; 0 failed (112 filtered out)".
+- `cargo test -p focusa-license` — exit 0: 120 lib unit tests (including the
+  8 new facade presenter tests) + 11 + 8 + 3 + 5 + 35 + 30 + 14 + 33 + 43 +
+  12 + 12 integration tests, 0 failed (OVH remote build).
+- `node tests/spec152f_presenter_accessibility_test.mjs` — exit 0 (menubar/
+  TUI parity, unchanged).
+- `node tests/spec152e_website_registration_test.mjs` — exit 0
+  (passed_identical_semantics_brand_only).
+- `node tests/spec152e_facade_browser_security_test.mjs` — exit 0
+  (passed_fail_closed, 17 positive / 34 negative).
+- `python3 tests/spec152e_facade_acceptance_test.py` — exit 0
+  (449 positive / 40 negative, 6 facades, 11 proxy routes).
+- `node tests/spec152e_facade_acceptance_test.mjs` — exit 0
+  (797 positive / 61 negative, passed_fail_closed).
+
+Tests added
+- crates/focusa-license/src/facade_policy_presenter.rs unit tests (8):
+  base family projects the canonical base decision; denied base decision
+  projects the evaluate action; premium family projects purchase/deny and is
+  premium; always-reachable families never sell or pitch premium; recovery_only
+  status always shows the recovery action; internal maintenance is not
+  facade-presentable; masked status accepts only authority labels and masked
+  identities; presenter field contract is frozen and forbids commercial
+  selectors.
+- tests/spec152f_facade_policy_presenter_test.py (exact verification):
+  150 positive + 18 negative checks including runtime node spoof matrix.
+
+Rollback
+- Revert only implementation commit `ba8f7e0b` (and this evidence record if
+  required). That reverts the facade policy presenter contract, the website
+  presenter binding, and the exact-verification test only. Preserve customers,
+  orders, refunds, licenses, nodes, sequences, customer data, migration
+  journals, evidence, and already accepted authority behavior. No 152E facade
+  registry, security, or call-stack file was modified.
+
+No push, deploy, release, merge, or Beads mutation was performed.
