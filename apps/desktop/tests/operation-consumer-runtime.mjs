@@ -86,6 +86,8 @@ try {
     await exerciseDraftGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.draft.sync') {
     await exerciseDraftSync({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.pi_session.event.append') {
+    await exercisePiSessionEventAppend({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.recomposition.evidence.get') {
     await exerciseRecompositionEvidenceGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.recipient.resolve') {
@@ -2923,6 +2925,66 @@ async function exerciseRecompositionEvidenceGet({ MissionCanvasClient, MissionCa
   await assert.rejects(
     () => client.recompositionEvidenceGet({ ...structuredClone(authority), revision: 11 }),
     (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:trigger'
+  );
+}
+
+async function exercisePiSessionEventAppend({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  const receipt = {
+    schema: 'focusa.mission_canvas.pi_session_event_receipt.v1',
+    workstream: structuredClone(authority.workstream),
+    accepted: true,
+    event_id: 'pi-session-event:idem:append:1',
+    receipt_ref: 'receipt:pi-session:9'
+  };
+  let responseBody = structuredClone(receipt);
+  const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(responseBody), { status: 200 })
+  );
+  const client = new MissionCanvasClient(transport);
+  const input = {
+    ...structuredClone(authority),
+    event_id: 'client-event:1',
+    event_kind: 'pi_turn_started',
+    projection_revision: 7,
+    layout_revision: 4,
+    payload: { turn: 1 },
+    occurred_at: new Date().toISOString(),
+    idempotency_key: 'idem:append:1'
+  };
+  const result = await client.pi_sessionEventAppend(input);
+  assert.equal(result.accepted, true);
+  assert.equal(result.event_id, 'pi-session-event:idem:append:1');
+  assert.equal(result.schema, 'focusa.mission_canvas.pi_session_event_receipt.v1');
+
+  responseBody = structuredClone(receipt);
+  responseBody.workstream.workstream_id = 'ws:foreign';
+  await assert.rejects(
+    () => client.pi_sessionEventAppend(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:scope_mismatch'
+  );
+
+  responseBody = { ...structuredClone(receipt), schema: 'invented' };
+  await assert.rejects(
+    () => client.pi_sessionEventAppend(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:schema'
+  );
+
+  responseBody = { ...structuredClone(receipt), event_id: '' };
+  await assert.rejects(
+    () => client.pi_sessionEventAppend(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:missing:event_id'
+  );
+
+  responseBody = { ...structuredClone(receipt), receipt_ref: '' };
+  await assert.rejects(
+    () => client.pi_sessionEventAppend(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:missing:receipt_ref'
+  );
+
+  responseBody = { ...structuredClone(receipt), accepted: false };
+  await assert.rejects(
+    () => client.pi_sessionEventAppend(input),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:not_accepted'
   );
 }
 
