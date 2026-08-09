@@ -1,0 +1,170 @@
+{
+  "schema": "focusa.spec152e.migration_canary_fixture.v1",
+  "fixture_id": "focusa-vbcqu.20.13.54",
+  "authority": {
+    "canonical": "WPUIAI.com EDD",
+    "new_issuance": "edd_authority_only",
+    "facade_role": "presenter_and_bounded_proxy_only",
+    "install_site_role": "noncanonical migration input",
+    "spec158": "excluded"
+  },
+  "canary": {
+    "policy": "dry_run_then_bounded_canary",
+    "cohort_bound": 8,
+    "run_handle": "run_cn_0001",
+    "spec_section": "152E \u00a717 reconciliation, \u00a718 refund/revoke/recovery, \u00a722.1 inventory, \u00a722.3 cutover steps 6-10, \u00a722.4 rollback, \u00a724 completion gate 11"
+  },
+  "redaction": {
+    "raw_email": "absent",
+    "raw_key": "absent",
+    "payment_id_stored": false,
+    "secret_material": "absent"
+  },
+  "cohort": [
+    {
+      "handle": "rec_cn_imp_0001",
+      "surface": "edd_license",
+      "disposition": "evidence_backed_import",
+      "product_code": "focusa_operator",
+      "record_status": "active",
+      "verified_identity_required": false,
+      "identity_digest": "",
+      "inject_failure": false,
+      "before": {"counts": {"sequence_ledger": 0}, "sequence": 0, "status": "none", "digest": "2aad27311a5b34e67c765c70d1c93fd67d976659cc324d7410e7fc7f0e6b34eb"},
+      "after": {"counts": {"sequence_ledger": 1}, "sequence": 1, "status": "active", "digest": "bd36aefd10103faaff0652bc57b6d645ea84a6ded2a32df048ddd82c88c7fbe7"},
+      "migration_provenance": {"run": "focusa-vbcqu.20.13.54-canary", "source": "migration_canary_fixture"}
+    },
+    {
+      "handle": "rec_cn_imp_0002",
+      "surface": "edd_license",
+      "disposition": "evidence_backed_import",
+      "product_code": "uiai_engine_operator",
+      "record_status": "active",
+      "verified_identity_required": false,
+      "identity_digest": "",
+      "inject_failure": false,
+      "before": {"counts": {"sequence_ledger": 0}, "sequence": 0, "status": "none", "digest": "2aad27311a5b34e67c765c70d1c93fd67d976659cc324d7410e7fc7f0e6b34eb"},
+      "after": {"counts": {"sequence_ledger": 1}, "sequence": 1, "status": "active", "digest": "bd36aefd10103faaff0652bc57b6d645ea84a6ded2a32df048ddd82c88c7fbe7"},
+      "migration_provenance": {"run": "focusa-vbcqu.20.13.54-canary", "source": "migration_canary_fixture"}
+    },
+    {
+      "handle": "rec_cn_imp_0003",
+      "surface": "edd_order_item",
+      "disposition": "evidence_backed_import",
+      "product_code": "focusa_uiai_bundle",
+      "record_status": "active",
+      "verified_identity_required": false,
+      "identity_digest": "",
+      "inject_failure": false,
+      "before": {"counts": {"sequence_ledger": 0}, "sequence": 0, "status": "none", "digest": "2aad27311a5b34e67c765c70d1c93fd67d976659cc324d7410e7fc7f0e6b34eb"},
+      "after": {"counts": {"sequence_ledger": 1}, "sequence": 1, "status": "active", "digest": "bd36aefd10103faaff0652bc57b6d645ea84a6ded2a32df048ddd82c88c7fbe7"},
+      "migration_provenance": {"run": "focusa-vbcqu.20.13.54-canary", "source": "migration_canary_fixture"}
+    },
+    {
+      "handle": "rec_cn_vfy_0001",
+      "surface": "authority_account",
+      "disposition": "verify_first",
+      "product_code": "focusa_operator",
+      "record_status": "active",
+      "verified_identity_required": true,
+      "identity_digest": "804ca0667c3c1c83eab8342b91d04918a7fdbbf20b67da6080fd3268bd9cbcba",
+      "inject_failure": false,
+      "before": {"counts": {"sequence_ledger": 0}, "sequence": 0, "status": "none", "digest": "2aad27311a5b34e67c765c70d1c93fd67d976659cc324d7410e7fc7f0e6b34eb"},
+      "after": {"counts": {"sequence_ledger": 1}, "sequence": 1, "status": "active", "digest": "bd36aefd10103faaff0652bc57b6d645ea84a6ded2a32df048ddd82c88c7fbe7"},
+      "migration_provenance": {"run": "focusa-vbcqu.20.13.54-canary", "source": "migration_canary_fixture"}
+    },
+    {
+      "handle": "rec_cn_ref_0001",
+      "surface": "edd_license",
+      "disposition": "refunded_revoked",
+      "product_code": "focusa_operator",
+      "record_status": "refunded",
+      "verified_identity_required": false,
+      "identity_digest": "",
+      "inject_failure": false,
+      "before": {"counts": {"sequence_ledger": 0}, "sequence": 0, "status": "none", "digest": "2aad27311a5b34e67c765c70d1c93fd67d976659cc324d7410e7fc7f0e6b34eb"},
+      "after": {"counts": {"sequence_ledger": 1}, "sequence": 1, "status": "recovery_only", "digest": "621eadb4fda32d0959cf59d984316ab5ebccb463a139e1f3337b57c317065782"},
+      "migration_provenance": {"run": "focusa-vbcqu.20.13.54-canary", "source": "migration_canary_fixture"}
+    },
+    {
+      "handle": "rec_cn_rev_0001",
+      "surface": "edd_license",
+      "disposition": "refunded_revoked",
+      "product_code": "uiai_engine_operator",
+      "record_status": "revoked",
+      "verified_identity_required": false,
+      "identity_digest": "",
+      "inject_failure": false,
+      "before": {"counts": {"sequence_ledger": 0}, "sequence": 0, "status": "none", "digest": "2aad27311a5b34e67c765c70d1c93fd67d976659cc324d7410e7fc7f0e6b34eb"},
+      "after": {"counts": {"sequence_ledger": 1}, "sequence": 1, "status": "recovery_only", "digest": "621eadb4fda32d0959cf59d984316ab5ebccb463a139e1f3337b57c317065782"},
+      "migration_provenance": {"run": "focusa-vbcqu.20.13.54-canary", "source": "migration_canary_fixture"}
+    },
+    {
+      "handle": "rec_cn_unr_0001",
+      "surface": "edd_license",
+      "disposition": "unresolved",
+      "product_code": "focusa_operator",
+      "record_status": "unresolved",
+      "verified_identity_required": false,
+      "identity_digest": "",
+      "inject_failure": false,
+      "before": {"counts": {"sequence_ledger": 0}, "sequence": 0, "status": "none", "digest": "2aad27311a5b34e67c765c70d1c93fd67d976659cc324d7410e7fc7f0e6b34eb"},
+      "after": {"counts": {"sequence_ledger": 0}, "sequence": 0, "status": "none", "digest": "2aad27311a5b34e67c765c70d1c93fd67d976659cc324d7410e7fc7f0e6b34eb"},
+      "migration_provenance": {"run": "focusa-vbcqu.20.13.54-canary", "source": "migration_canary_fixture"}
+    },
+    {
+      "handle": "rec_cn_fail_0001",
+      "surface": "edd_license",
+      "disposition": "evidence_backed_import",
+      "product_code": "focusa_operator",
+      "record_status": "active",
+      "verified_identity_required": false,
+      "identity_digest": "",
+      "inject_failure": true,
+      "before": {"counts": {"sequence_ledger": 0}, "sequence": 0, "status": "none", "digest": "2aad27311a5b34e67c765c70d1c93fd67d976659cc324d7410e7fc7f0e6b34eb"},
+      "after": {"counts": {"sequence_ledger": 0}, "sequence": 0, "status": "none", "digest": "2aad27311a5b34e67c765c70d1c93fd67d976659cc324d7410e7fc7f0e6b34eb"},
+      "migration_provenance": {"run": "focusa-vbcqu.20.13.54-canary", "source": "migration_canary_fixture"}
+    }
+  ],
+  "edd_truth": [
+    {"record_handle": "rec_cn_ref_0001", "adverse_state": "refunded"},
+    {"record_handle": "rec_cn_rev_0001", "adverse_state": "revoked"}
+  ],
+  "authority_leases": [
+    {"record_handle": "rec_cn_imp_0001", "status": "active"},
+    {"record_handle": "rec_cn_imp_0002", "status": "active"},
+    {"record_handle": "rec_cn_imp_0003", "status": "active"},
+    {"record_handle": "rec_cn_vfy_0001", "status": "active"},
+    {"record_handle": "rec_cn_ref_0001", "status": "recovery_only"},
+    {"record_handle": "rec_cn_rev_0001", "status": "recovery_only"}
+  ],
+  "reconciliation": {
+    "expected_matching": true,
+    "quarantined_count": 2,
+    "edd_digest": "39308667a37d8a05c960b20b3af857783876a85bc63b2b125c69f28c2e273fac",
+    "authority_digest": "5e1946ab53482e065e72b0e0020bee27e692a913363124c4125152080066bc67"
+  },
+  "expectations": {
+    "dry_run_zero_writes": true,
+    "bounded_canary_converges_zero_loss": true,
+    "before_after_counts_digests_status_compared": true,
+    "injected_failure_quarantined": true,
+    "retry_idempotent_and_cannot_unquarantine": true,
+    "unresolved_remain_quarantined": true,
+    "cutover_gate_required": true,
+    "refund_sequence_increments_and_recovery_only": true,
+    "rollback_cannot_undo_verified_identity": true,
+    "rollback_cannot_undo_edd_refund_revoke": true,
+    "rollback_cannot_undo_sequence": true,
+    "rollback_cannot_undo_audit_truth": true
+  },
+  "journal_vectors": {
+    "cohort_size": 8,
+    "applied_entries": 6,
+    "quarantined_entries": 2,
+    "ledger_rows": 6,
+    "reconciled_rows": 1,
+    "rollback_proof_rows": 1,
+    "second_run_rows": 0
+  }
+}
