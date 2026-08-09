@@ -1,5 +1,9 @@
 import { sameWorkstreamAuthority as sameScope } from './exact-scope';
-import type { AttachmentKey, CanvasDraftState, WorkstreamAuthorityContext } from './types';
+import type {
+  AttachmentKey,
+  CanvasDraftState,
+  WorkstreamAuthorityContext
+} from './types';
 
 export type DraftBinding = Omit<WorkstreamAuthorityContext, 'attachment'> & {
   attachment: AttachmentKey;
@@ -98,6 +102,57 @@ export class MissionCanvasDraftController {
     this.#generation += 1;
     this.state = { kind: 'unbound' };
   }
+
+  /**
+   * Preserve the draft across activity/profile/surface context changes that
+   * keep the same Workstream + Attachment identity. A Workstream-level change
+   * rebinds and reloads; a presentation-only change keeps the current draft
+   * and local content untouched.
+   */
+  async rebind(nextBinding: DraftBinding): Promise<void> {
+    const current = this.state;
+    if (current.kind === 'unbound' || current.kind === 'error' || current.kind === 'loading') {
+      await this.load(nextBinding);
+      return;
+    }
+    if (sameWorkstreamAttachment(current.binding, nextBinding)) {
+      this.#generation += 1;
+      this.state = { kind: 'ready', binding: nextBinding, draft: current.draft };
+      return;
+    }
+    await this.load(nextBinding);
+  }
+
+  /**
+   * No send control is available without a resolved authorized recipient:
+   * the binding must carry a non-empty recipientRef that the loaded draft
+   * agrees on, and the controller must not be unbound/loading/errored.
+   */
+  get canSend(): boolean {
+    const current = this.state;
+    if (current.kind !== 'ready' && current.kind !== 'conflict' && current.kind !== 'saving') {
+      return false;
+    }
+    const recipient = current.binding.recipientRef.trim();
+    if (!recipient) return false;
+    return current.draft.recipient_ref === recipient;
+  }
+}
+
+/** Authority-bearing identity: Workstream + Continuity + Attachment only. */
+export function sameWorkstreamAttachment(
+  left: WorkstreamAuthorityContext,
+  right: WorkstreamAuthorityContext
+): boolean {
+  const leftWorkstream = JSON.stringify(left.workstream);
+  const rightWorkstream = JSON.stringify(right.workstream);
+  if (leftWorkstream !== rightWorkstream) return false;
+  const leftContinuity = left.continuity_id ?? null;
+  const rightContinuity = right.continuity_id ?? null;
+  if (leftContinuity !== rightContinuity) return false;
+  const leftAttachment = left.attachment ? JSON.stringify(left.attachment) : null;
+  const rightAttachment = right.attachment ? JSON.stringify(right.attachment) : null;
+  return leftAttachment === rightAttachment;
 }
 
 function errorMessage(error: unknown): string {
