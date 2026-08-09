@@ -1,0 +1,94 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.37
+Title: 152F.05.01 Project canonical decisions through CLI
+Implementation commit: `f3de83c9` (feat(spec152f): project canonical decisions through CLI)
+
+Exact surfaces
+- crates/focusa-cli/src/commands/license.rs
+- command dispatcher/preflight (LicenseCmd dispatch in license.rs routing to
+  `run_preflight`; top-level dispatcher in crates/focusa-cli/src/main.rs
+  verified to route the license surface through this presenter)
+- JSON output fixtures (crates/focusa-cli/tests/fixtures/spec152f-cli-presenter-fixtures.v1.json)
+  plus the build-independent gate tests/spec152f_cli_presenter_test.py
+
+Bounded result
+- Added the canonical CLI decision presenter (Spec 152F §5 decision order,
+  §6 chokepoints, P5 presenters never invent entitlement, P9 server-owned
+  grants). `focusa license status` now renders, from the one signed authority
+  snapshot only, the canonical `authority` projection, the canonical
+  `entitlement_decision` projection (status, reason_code, recovery_action),
+  the canonical `base_product` projection (entitled/limited/denied via
+  `base_product_projection`), the five optional premium-family decisions
+  (`premium` rows for automation, team_remote, release_proof,
+  premium_updates, customer_data_export re-resolved via
+  `resolve_premium_family`/`resolve_export_packaged` against the exact
+  registered feature identifiers, with stable reason_code and recovery_action
+  per decision), and the permanent `recovery_allowance` (reason + next action;
+  always available). Stable schema'd JSON, human table for interactive use,
+  secret redaction (no raw keys, tokens, or customer identity in the
+  presenter), and no local grant fallback.
+- Added `focusa license preflight` (Spec 152F §6 chokepoint 4 fast preflight):
+  re-resolves the canonical decision, renders base/premium reason and next
+  action, and exits nonzero (E_AUTHORITY_ENTITLEMENT_REQUIRED) when the target
+  gate (base_focusa by default, or one of the five optional families) would
+  deny; unknown families fail closed. Preflight never self-issues an
+  Evaluation, never writes a license, and never returns an invented grant.
+- All 86 CLI commands continue to inherit policy through their underlying
+  core/API operations and this presenter; the CLI never becomes an independent
+  authority and never blocks recovery commands (recovery, read, export,
+  repair, stable security update, rollback, and uninstall remain available in
+  every state). The retired plaintext activation/deactivation/devmode/
+  refresh/watch arms remain fail-closed with E_AUTHORITY_COMMAND_RETIRED.
+- JSON output fixtures: deterministic, authority-shaped snapshots for the six
+  canonical presenter states (active-paid, offline-grace-cached,
+  active-partial-premium, unactivated, recovery-only, wrong-product) with
+  expected base/premium decisions, base-first invariant, recovery availability,
+  and preflight base decisions. Synthetic identifiers only; no real customers,
+  keys, tokens, or PII.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152_cli_entitlement_gate_test.py` — exit 0.
+   Output: "Spec152 CLI authority gate: PASS".
+2. `python3 tests/spec152f_cli_presenter_test.py` — exit 0.
+   Output: "Spec152f CLI presenter parity: PASS (fixtures=6
+   sha256=dd9935e76e92fae6 positive=110 negative=0)".
+
+Regression checks (exit codes)
+- `cargo check -p focusa-cli` — exit 0; finished cleanly.
+- `python3 tests/spec152e_presenter_parity_test.py` — exit 0
+  (positive=331 negative=294); the frozen Spec 152E presenter-parity matrix
+  stays current (the new presenter key `recovery_allowance` intentionally
+  avoids the frozen next-action vocabulary so no contract file changes).
+- `python3 tests/spec152_entitlement_projection_test.py` — exit 0.
+- `python3 tests/spec152e_recovery_only_surface_test.py` — exit 0.
+- `python3 tests/spec152f_entitlement_policy_contract_test.py` — exit 0.
+- `python3 tests/spec152f_rest_entitlement_inheritance_test.py` — exit 0.
+- `python3 tests/spec152f_operation_policy_metadata_test.py` — exit 0.
+- `python3 tests/spec152f_recovery_matrix_test.py` — exit 0.
+- `git diff --check` — exit 0.
+- `cargo clippy -p focusa-cli -- -D warnings` — exit 101, but all six errors
+  are pre-existing in crates/focusa-license (activation_reducer.rs:380,
+  bundle_activation.rs:198, entitlement_policy.rs:1480/1485/1488,
+  limit_reservation.rs:189) from prior atoms; zero clippy findings in
+  focusa-cli. Out of this atom's exact surfaces; not modified.
+- Pre-existing failures (verified byte-identical on the unmodified baseline,
+  not caused by this atom): tests/spec152f_cli_operation_map_test.py (exit 1,
+  CLI map vs reconciliation shard drift — 20.14.25 contract),
+  tests/spec152_entitlement_coverage_test.py (exit 1, generated coverage stale —
+  another atom's artifact), tests/spec152f_runtime_entrypoint_map_test.py
+  (exit 1, recon/map drift for 20.14.36 test files).
+
+Tests added
+- tests/spec152f_cli_presenter_test.py: build-independent presenter parity
+  gate — CLI renders the canonical authority/decision/base/premium/recovery
+  projections; preflight exists with nonzero exit semantics and no local grant
+  fallback; fixtures are deterministic, base-first, redacted, and cover the
+  six canonical presenter states; dispatcher inheritance is asserted.
+- JSON output fixtures: spec152f-cli-presenter-fixtures.v1.json (6 fixtures).
+
+Rollback
+- Revert only implementation commit `f3de83c9` (and this evidence record if
+  required). Preserve customers, orders, refunds, licenses, nodes, sequences,
+  customer data, migration journals, and accepted authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.
