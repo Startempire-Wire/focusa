@@ -32,7 +32,7 @@ use focusa_core::workstream_context::{
 use focusa_core::workstream_identity::{
     AttachmentKey, RuntimeObjectRef, WorkSurfaceId, WorkstreamKey,
 };
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::routes::permissions::permission_context;
@@ -156,6 +156,24 @@ fn validate_authority(scope: &MissionCanvasScope) -> Result<(), (StatusCode, Jso
     scope
         .validate()
         .map_err(|reason| error(StatusCode::CONFLICT, "workstream_identity_mismatch", reason))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CanvasDraftSyncRequest {
+    #[serde(flatten)]
+    scope: MissionCanvasScope,
+    draft_id: String,
+    draft_revision: u64,
+    content: String,
+    content_sha256: String,
+    idempotency_key: String,
+    owner: String,
+    recipient_ref: String,
+    selection_start: Option<u64>,
+    selection_end: Option<u64>,
+    sync_state: String,
+    conflict_ref: Option<String>,
+    updated_at: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2534,16 +2552,98 @@ async fn get_draft(
 async fn sync_draft(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Json(request): Json<DocumentWriteRequest>,
+    Json(request): Json<CanvasDraftSyncRequest>,
 ) -> ApiResult {
-    write_document(
-        &state,
-        &headers,
-        "mission_canvas_drafts",
-        request,
-        "draft_synchronized",
-        "mission_canvas:draft",
-    )
+    require_permission(&headers, "mission_canvas:draft")?;
+    validate_authority(&request.scope)?;
+    exact_workstream_context(&request.scope, &headers).map_err(host_renderer_context_error)?;
+    if request.idempotency_key.trim().is_empty() {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "idempotency_key_missing",
+            "idempotency_key is required",
+        ));
+    }
+    if request.draft_id.trim().is_empty() || request.content.trim().is_empty() {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "draft_invalid",
+            "draft_id and content are required",
+        ));
+    }
+    if !matches!(
+        request.sync_state.as_str(),
+        "synchronized" | "pi_newer" | "canvas_newer" | "conflict" | "offline"
+    ) {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "draft_sync_state_invalid",
+            "sync_state must be synchronized|pi_newer|canvas_newer|conflict|offline",
+        ));
+    }
+    let store = store(&state)?;
+    let document_id = format!("draft:{}", request.draft_id);
+    let existing = store
+        .get_document("mission_canvas_drafts", &request.scope, &document_id)
+        .map_err(store_error)?;
+    if let Some(stored) = existing.as_ref() {
+        let stored_idempotency = stored
+            .payload
+            .get("idempotency_key")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        // Idempotent replay: the same key and revision return the stored state
+        // unchanged; no second event is appended.
+        if stored_idempotency == request.idempotency_key && stored.revision == request.draft_revision
+        {
+            return Ok(Json(stored.payload.clone()));
+        }
+        // Stale rejection: a sync must advance the draft revision monotonically.
+        if stored.revision >= request.draft_revision {
+            return Err(error(
+                StatusCode::CONFLICT,
+                "draft_stale_revision",
+                &format!(
+                    "stored revision {} is not older than sync revision {}",
+                    stored.revision, request.draft_revision
+                ),
+            ));
+        }
+    }
+    let now = Utc::now().to_rfc3339();
+    let document = StoredDocument {
+        document_id: document_id.clone(),
+        scope: request.scope.clone(),
+        revision: request.draft_revision,
+        payload: serde_json::to_value(&request).map_err(json_error)?,
+        updated_at: now.clone(),
+    };
+    let event = CompositionEvent {
+        event_id: format!(
+            "projection-event:draft_synchronized:{}",
+            request.idempotency_key
+        ),
+        event_kind: "draft_synchronized".into(),
+        scope: request.scope.clone(),
+        projection_revision: request.draft_revision,
+        layout_revision: request.draft_revision,
+        causation_id: Some(request.idempotency_key.clone()),
+        correlation_id: None,
+        occurred_at: now,
+        payload: json!({"draft_id": request.draft_id, "revision": request.draft_revision}),
+        evidence_refs: vec![],
+        receipt_refs: vec![format!("receipt:draft_synchronized:{}", request.draft_revision)],
+    };
+    let expected_revision = existing.as_ref().map(|document| document.revision);
+    store
+        .put_document(
+            "mission_canvas_drafts",
+            &document,
+            expected_revision,
+            &event,
+        )
+        .map_err(store_error)?;
+    Ok(Json(serde_json::to_value(&request).map_err(json_error)?))
 }
 
 async fn resolve_recipient(

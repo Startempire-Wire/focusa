@@ -84,6 +84,8 @@ try {
     await exerciseDomainPackInstall({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.draft.get') {
     await exerciseDraftGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
+  } else if (operationId === 'focusa.mission_canvas.draft.sync') {
+    await exerciseDraftSync({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.recomposition.evidence.get') {
     await exerciseRecompositionEvidenceGet({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority });
   } else if (operationId === 'focusa.mission_canvas.recipient.resolve') {
@@ -2921,6 +2923,71 @@ async function exerciseRecompositionEvidenceGet({ MissionCanvasClient, MissionCa
   await assert.rejects(
     () => client.recompositionEvidenceGet({ ...structuredClone(authority), revision: 11 }),
     (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:trigger'
+  );
+}
+
+async function exerciseDraftSync({ MissionCanvasClient, MissionCanvasHttpTransport, MissionCanvasTransportError, authority }) {
+  assert.ok(authority.attachment, 'draft.sync fixture requires exact attachment authority');
+  const draft = {
+    ...structuredClone(authority),
+    attachment: structuredClone(authority.attachment),
+    content: '# Draft\nCanonical draft content',
+    content_sha256: `sha256:${'d'.repeat(64)}`,
+    draft_id: 'draft:prompt',
+    draft_revision: 4,
+    idempotency_key: 'idem:draft:sync:1',
+    owner: 'canvas_prompt_editor',
+    recipient_ref: 'recipient:pi-session',
+    selection_start: 2,
+    selection_end: 5,
+    sync_state: 'synchronized',
+    updated_at: new Date().toISOString()
+  };
+  let responseBody = structuredClone(draft);
+  const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response(JSON.stringify(responseBody), { status: 200 })
+  );
+  const client = new MissionCanvasClient(transport);
+  const result = await client.draftSync(structuredClone(draft));
+  assert.equal(result.draft_id, 'draft:prompt');
+  assert.equal(result.draft_revision, 4);
+  assert.equal(result.sync_state, 'synchronized');
+  assert.equal(result.idempotency_key, 'idem:draft:sync:1');
+
+  responseBody = structuredClone(draft);
+  responseBody.workstream.workstream_id = 'ws:foreign';
+  if (responseBody.attachment) responseBody.attachment.workstream.workstream_id = 'ws:foreign';
+  await assert.rejects(
+    () => client.draftSync(structuredClone(draft)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:scope_mismatch'
+  );
+
+  responseBody = { ...structuredClone(draft), draft_id: '' };
+  await assert.rejects(
+    () => client.draftSync({ ...structuredClone(draft), draft_id: '' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:missing:draft_id'
+  );
+
+  await assert.rejects(
+    () => client.draftSync({ ...structuredClone(draft), draft_revision: -1 }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'if_match_revision_required'
+  );
+
+  responseBody = { ...structuredClone(draft), draft_revision: -1 };
+  await assert.rejects(
+    () => client.draftSync(structuredClone(draft)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:draft_revision'
+  );
+
+  await assert.rejects(
+    () => client.draftSync({ ...structuredClone(draft), sync_state: 'invented' }),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_request:invalid:sync_state'
+  );
+
+  responseBody = { ...structuredClone(draft), sync_state: 'invented' };
+  await assert.rejects(
+    () => client.draftSync(structuredClone(draft)),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'invalid_response:invalid:sync_state'
   );
 }
 
