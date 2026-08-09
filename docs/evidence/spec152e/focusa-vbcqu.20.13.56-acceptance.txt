@@ -1,0 +1,120 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.56
+Title: 152E.07.02 Prove website paid Focusa through branded EDD facade
+Implementation commit: `3831db9a` (journey contract + pinned fixture + e2e
+gate)
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (spec 152E §11 paid customer journey, §23
+acceptance-matrix row "Website paid Focusa"); Specs 152, 150A, 152A-D; Spec
+158 implementation excluded. Locked-release correction atom in the
+spec152f/spec172 async pipeline. Cargo/release builds remain deferred until
+the operator's 50% gate.
+
+Exact surfaces (this atom only)
+- docs/contracts/spec152e-website-paid-facade.v1.php — the branded website
+  paid-Focusa journey authority kernel: website registration/verification
+  (startRegistration, verifyEmail, promote), EDD checkout/order/key/email
+  (createCheckoutIntent, completePayment, issueLicense, deliver),
+  terminal-independent account delivery (deliver account channel + receipt),
+  and the signed device-bound lease (issueLease via the canonical pure-PHP
+  Ed25519 signer from docs/contracts/spec152e-edd-bound-lease-issuer.v1.php),
+  plus EDD refund cleanup (refund).
+- docs/contracts/spec152e-website-paid-facade-fixture.v1.json — pinned
+  public-synthetic non-production journey vectors: verified identity digest,
+  one-time verification code, server-owned product/price mapping, EDD
+  customer/order/license ids, device key, authority lease keys, journey
+  state machine, expectations, and journal row vectors.
+- tests/spec152e_paid_website_e2e_test.py — the exact verification gate:
+  deterministic sqlite PHP harness executed twice with byte-identical output,
+  independent Ed25519 lease-signature verification with `cryptography`, and
+  static fixture/contract/redaction invariants.
+- Evidence: docs/evidence/spec152e/focusa-vbcqu.20.13.56-acceptance.txt.
+
+Bounded result
+- One synthetic test-mode customer ran the complete website paid row under
+  facade branding (focusa_marketing_v1 / https://focusa.dev) with
+  install_site_authority=none: pending registration attempt -> single-use
+  483921 mailbox verification -> authority account + EDD customer 1001
+  promotion -> server-owned checkout intent (download 4601 / price 46011 /
+  697.00) on the branded facade URL -> test-mode EDD Stripe payment -> EDD
+  order 9001 + order item 90011 -> EDD Software Licensing human key
+  FOCUSA-B031-****-****-**** -> transactional email + terminal-independent
+  account delivery (same canonical key, masked FOCUSA-B031-****-****-****) ->
+  node node-webpaid-0001 registration -> signed device-bound lease
+  (sequence 1, paid posture, authority-lease-2026-01, Ed25519 over
+  FOCUSA-AUTHORITY-LEASE-V1) -> EDD refund cleanup: sequence increments to 2,
+  order/license/lease flip to refunded, refresh denied with recovery_only
+  posture, and account/identity/order/delivery/node/evidence rows preserved
+  (rollback is preservation-only).
+- Fail-closed proof: an invalid/unreachable email created only a pending
+  attempt with zero identity/account/order/license/node/lease/refund rows;
+  verification codes are single-use and attempt-bounded; promotion without
+  verification fails (EMAIL_VERIFICATION_REQUIRED); payment success alone
+  never verifies or issues; a different checkout email holds fulfillment
+  (EDD_ORDER_UNVERIFIED) until the verified identity matches; caller-supplied
+  product/price/grant/redirect fields fail closed
+  (CALLER_CONTROLLED_GRANT_DENIED); facade spoof fails
+  (FACADE_ORIGIN_DENIED); idempotency replay returns the stored outcome with
+  zero new rows and idempotency-key reuse with a different request fails
+  (IDEMPOTENCY_CONFLICT); the contract contains no destructive SQL and no
+  raw-email/raw-key/payment-id storage; spec 158 is excluded.
+- The signed lease is independently re-verified in Python with
+  `cryptography` Ed25519PublicKey over the domain-separated payload
+  (FOCUSA-AUTHORITY-LEASE-V1), byte-compatible with the Rust verifier; the
+  payload binds account/customer/order/item/license/product/features/limits/
+  commercial/node/device/sequence/time claims.
+- Redacted receipt (focusa.spec152e.website_paid_receipt.v1) carries only
+  masked email and masked key plus an immutable sha256 handle; no raw email,
+  raw human key, payment reference, or secret material appears in any
+  artifact (contract, fixture, harness output, or evidence).
+
+Exact verification (exit codes)
+1. `python3 tests/spec152e_paid_website_e2e_test.py` — exit 0, run twice on
+   2026-08-09 with byte-identical harness output (harness sha256
+   1ba0f2cc88c556b28b290e13a25d1bf84a2e7895a1869d778daa2685baf88c9e; contract
+   sha256 69d283bb42f6822e4ca77888ddeaf41660d712209895180d6a4a10fb3e046f58;
+   fixture sha256 f98f40b2d07679365cedb29655fdacc0c87874bc5cb3e570c8286a1e99c4aba3).
+   Summary: positive_checks=65 negative_checks=23 journey_states=10
+   sequence_after_refund=2 receipt_sha256=
+   0b7633998131a34f5664efe8da8079f15fc6e066067af81f9017f9696aff4e13
+   lease_signature_verified=true harness_replay_identical=true result=passed.
+
+Regression checks (exit codes)
+- `python3 tests/spec152e_complete_static_gate.py` — exit 0 (the atom
+  20.13.55 build-independent gate now discovers 67 test gates, 67/67 passed;
+  4/4 generators --check current; php -l on all 38 Spec 152E PHP contracts
+  including the new journey contract; JSON parse of 23 Spec 152E JSON
+  contracts/fixtures including the new fixture; redaction scan of 65
+  contract/fixture/generator sources: zero email literals, zero secrets,
+  zero raw-key evidence; deferred Cargo enumeration unchanged at 23 surfaces
+  / 148 test markers, none claimed passed).
+- `php -l docs/contracts/spec152e-website-paid-facade.v1.php` — exit 0.
+- `git diff` for this atom contains only the three exact-surface files
+  (journey contract + fixture + e2e gate) plus this evidence record.
+- No cargo command was run: this atom touches no Rust surface and the
+  locked-release FORBIDDEN rule defers cargo/release builds to the
+  operator's 50% gate.
+
+Tests added
+- tests/spec152e_paid_website_e2e_test.py — 65 positive / 23 negative
+  checks: full journey execution on sqlite; pending-email-only negative
+  path; verification single-use and attempt-bounded; promotion/checkout/
+  issuance/delivery/node/lease/refund state gates; checkout-email integrity;
+  caller price/product/grant rejection; facade-origin denial; idempotent
+  replay with zero new rows and IDEMPOTENCY_CONFLICT; signed-lease Ed25519
+  verification; masked receipt with immutable handle; pinned row counts;
+  contract static invariants (schema, tables, methods, fail-closed codes,
+  server-owned mapping, allowlist, preservation-only, no destructive SQL,
+  no raw email/payment storage); artifact redaction scans.
+
+Rollback
+- Revert only this atom's commits (implementation `3831db9a` and the
+  evidence commit containing this file). Preserve EDD customer/order/refund
+  truth, verified identities, licenses, nodes, sequences, credentials,
+  Workpoints, Evidence, and migration journals. The journey contract is a
+  self-contained synthetic-proof kernel with its own sqlite-only tables; no
+  production authority, EDD, node, lease, or local install state is touched.
+  The canonical lease signer (spec152e-edd-bound-lease-issuer.v1.php) is
+  loaded read-only at test runtime and is not modified.
+
+No push, deploy, release, merge, or Beads mutation was performed.
