@@ -80,6 +80,7 @@ pub mod expression;
 pub mod focus;
 pub mod gate;
 pub mod google_drive_connector;
+pub mod guarded_mutation;
 pub mod install_lifecycle;
 pub mod installation_convergence;
 pub mod intuition;
