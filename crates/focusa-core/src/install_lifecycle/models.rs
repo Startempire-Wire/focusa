@@ -494,3 +494,121 @@ impl AdapterEntitlementPosture {
         Ok(posture)
     }
 }
+
+fn bundle_adapter_schema_v1() -> String {
+    "focusa.bundle_adapter_posture.v1".into()
+}
+
+/// Bundle adapter posture (Spec 172 §9.2; Spec 152E §23 "Bundle purchase"):
+/// one verified account, one EDD order, one canonical human key. The bundle
+/// projection carries explicit Focusa and UIAI product grants on the SAME
+/// shared operator node identities (three shared nodes — never six unrelated
+/// activations). The posture exists only when both exact grants are active
+/// and bound to the one verified EDD account; the bundle decision returns a
+/// typed recoverable partial state instead of a silent half-grant.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BundleAdapterPosture {
+    #[serde(default = "bundle_adapter_schema_v1")]
+    pub schema_version: String,
+    pub public_code: String,
+    pub account_id: String,
+    pub edd_customer_id: u64,
+    pub order_handle: String,
+    pub node_id: String,
+    pub shared_node_identities: Vec<String>,
+    pub focusa_lease_id: String,
+    pub focusa_lease_sequence: u64,
+    pub focusa_lease_digest: String,
+    pub uiai_lease_id: String,
+    pub uiai_lease_sequence: u64,
+    pub uiai_lease_digest: String,
+    pub both_grants_active: bool,
+}
+
+impl BundleAdapterPosture {
+    pub fn validate(&self) -> Result<(), InstallLifecycleValidationError> {
+        let digests = [&self.focusa_lease_digest, &self.uiai_lease_digest];
+        if self.schema_version.trim().is_empty()
+            || self.public_code.trim().is_empty()
+            || self.account_id.trim().is_empty()
+            || self.edd_customer_id == 0
+            || self.order_handle.trim().is_empty()
+            || self.node_id.trim().is_empty()
+            || self.shared_node_identities.is_empty()
+            || !self
+                .shared_node_identities
+                .iter()
+                .all(|identity| identity == &self.node_id)
+            || self.focusa_lease_id.trim().is_empty()
+            || self.focusa_lease_sequence == 0
+            || self.uiai_lease_id.trim().is_empty()
+            || self.uiai_lease_sequence == 0
+            || digests
+                .iter()
+                .any(|value| !value.starts_with("sha256:") || value.len() != 71)
+            || !self.both_grants_active
+        {
+            return Err(InstallLifecycleValidationError::AdapterEntitlementPostureIncomplete);
+        }
+        Ok(())
+    }
+
+    /// Build the bundle adapter posture from the bundle authority projection
+    /// (Spec 172 §9.2): both exact grants are active and bound to the SAME
+    /// verified EDD account and the SAME shared operator node; the signed
+    /// lease pair carries explicit Focusa and UIAI product grants; the
+    /// projection is the only source of grants (no third feature list).
+    pub fn from_bundle_authority(
+        account: &focusa_license::uiai_activation::UiaiAccountIdentity,
+        projection: &focusa_license::bundle_activation::BundleActivationProjection,
+        focusa_grant: &focusa_license::authority::EntitlementSnapshot,
+        uiai_grant: &focusa_license::authority::EntitlementSnapshot,
+        now: DateTime<Utc>,
+    ) -> Result<Self, InstallLifecycleValidationError> {
+        // One verified EDD account, exactly: no duplicate customer identity.
+        if !account.valid()
+            || !focusa_license::uiai_activation::same_account_binding(
+                account,
+                focusa_grant,
+                uiai_grant,
+            )
+        {
+            return Err(InstallLifecycleValidationError::AdapterEntitlementPostureIncomplete);
+        }
+        // Exact two-product grants from the bundle projection; the shared
+        // operator node identity binds both products (never six unrelated
+        // activations).
+        if projection.account != *account
+            || projection.focusa.product != "focusa"
+            || projection.uiai_engine.product != "uiai-engine"
+            || projection.focusa.grant_lease_id
+                != focusa_grant.lease_id.as_deref().unwrap_or_default()
+            || projection.uiai_engine.grant_lease_id
+                != uiai_grant.lease_id.as_deref().unwrap_or_default()
+            || projection.focusa.node_id != projection.node_id
+            || projection.uiai_engine.node_id != projection.node_id
+            || !entitlement_snapshot_ready(focusa_grant, now)
+            || !entitlement_snapshot_ready(uiai_grant, now)
+        {
+            return Err(InstallLifecycleValidationError::AdapterEntitlementPostureIncomplete);
+        }
+        let posture = Self {
+            schema_version: bundle_adapter_schema_v1(),
+            public_code: projection.public_code.clone(),
+            account_id: account.account_id.clone(),
+            edd_customer_id: account.edd_customer_id,
+            order_handle: projection.order_handle.clone(),
+            node_id: projection.node_id.clone(),
+            shared_node_identities: projection.shared_node_identities.clone(),
+            focusa_lease_id: projection.focusa.grant_lease_id.clone(),
+            focusa_lease_sequence: projection.focusa.grant_sequence,
+            focusa_lease_digest: focusa_grant.lease_digest.clone().unwrap_or_default(),
+            uiai_lease_id: projection.uiai_engine.grant_lease_id.clone(),
+            uiai_lease_sequence: projection.uiai_engine.grant_sequence,
+            uiai_lease_digest: uiai_grant.lease_digest.clone().unwrap_or_default(),
+            both_grants_active: true,
+        };
+        posture.validate()?;
+        Ok(posture)
+    }
+}
