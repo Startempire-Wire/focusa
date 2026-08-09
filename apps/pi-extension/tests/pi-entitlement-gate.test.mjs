@@ -15,7 +15,10 @@ assert.match(helper, /code\.startsWith\("ENTITLEMENT_"\)/);
 assert.match(helper, /failure_class: "entitlement_blocked"/);
 assert.match(helper, /required_feature/);
 assert.match(helper, /limit_bucket/);
-assert.match(helper, /license_recovery/);
+assert.match(helper, /update_for_recovery/);
+assert.match(helper, /\"uninstall\"/);
+assert.match(helper, /safe_read/);
+assert.match(helper, /status_path/);
 assert.ok(helper.indexOf('r.status === 403') < helper.indexOf('return null;'), 'entitlement denial is discarded before projection');
 
 assert.match(tools, /focusaFetch\(/, 'Pi tools do not use the governed daemon client');

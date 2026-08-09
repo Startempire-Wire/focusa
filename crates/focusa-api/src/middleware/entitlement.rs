@@ -84,6 +84,9 @@ const ROUTE_CLASSIFICATION_JSON: &str = include_str!(
 const OPERATION_REGISTRY_JSON: &str = include_str!(
     "../../../../docs/contracts/spec135/generated-contract-v1/operation-registry.json"
 );
+const RECOVERY_ONLY_SURFACE_JSON: &str = include_str!(
+    "../../../../docs/contracts/spec152e-recovery-only-surface.v1.json"
+);
 const ROUTE_UNCLASSIFIED_ERROR: &str =
     "This mutation route has no exact entitlement descriptor and is blocked fail-closed.";
 
@@ -119,6 +122,116 @@ fn route_unclassified_denial() -> RouteEntitlementDenial {
         required_feature: None,
         limit_bucket: None,
     }
+}
+
+/// Runtime denial code -> exact safe recovery action from the cross-surface
+/// recovery-only contract (Spec 152E §18/§20). Every denial envelope carries
+/// the bound action so API/CLI/TUI/menubar/agent present the same recovery
+/// posture. Unknown codes fail closed to the contract's default action.
+#[derive(Debug, Clone, Copy)]
+struct RecoveryGuidance {
+    action: &'static str,
+    allowed: &'static [&'static str],
+}
+
+const DEFAULT_RECOVERY_GUIDANCE: RecoveryGuidance = RecoveryGuidance {
+    action: "recovery_only",
+    allowed: &[
+        "health",
+        "version",
+        "license_status",
+        "export",
+        "diagnostics",
+        "repair",
+        "update_for_recovery",
+        "uninstall",
+        "safe_read",
+    ],
+};
+
+fn recovery_guidance_for_code(code: &str) -> RecoveryGuidance {
+    static GUIDANCE: OnceLock<BTreeMap<&'static str, RecoveryGuidance>> = OnceLock::new();
+    let guidance = GUIDANCE.get_or_init(|| {
+        let mut map = BTreeMap::new();
+        // Fail closed: an unparseable embedded contract yields the default
+        // guidance for every code rather than an envelope without recovery.
+        let Ok(contract) =
+            serde_json::from_str::<serde_json::Value>(RECOVERY_ONLY_SURFACE_JSON)
+        else {
+            return map;
+        };
+        let allowed: &'static [&'static str] = Box::leak(
+            contract
+                .get("consistency")
+                .and_then(|c| c.get("envelope_allowed"))
+                .and_then(|list| list.as_array())
+                .map(|list| {
+                    list.iter()
+                        .filter_map(|value| value.as_str())
+                        .map(|s| Box::leak(s.to_string().into_boxed_str()) as &'static str)
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| DEFAULT_RECOVERY_GUIDANCE.allowed.to_vec())
+                .into_boxed_slice(),
+        );
+        let default_action: &'static str = contract
+            .get("default_runtime_denial")
+            .and_then(|d| d.get("recovery_action"))
+            .and_then(|value| value.as_str())
+            .map(|s| Box::leak(s.to_string().into_boxed_str()) as &'static str)
+            .unwrap_or(DEFAULT_RECOVERY_GUIDANCE.action);
+        if let Some(bindings) = contract
+            .get("runtime_denial_bindings")
+            .and_then(|bindings| bindings.as_object())
+        {
+            for (code_value, binding) in bindings {
+                let action: &'static str = binding
+                    .get("recovery_action")
+                    .and_then(|value| value.as_str())
+                    .map(|s| Box::leak(s.to_string().into_boxed_str()) as &'static str)
+                    .unwrap_or(default_action);
+                let code: &'static str =
+                    Box::leak(code_value.clone().into_boxed_str()) as &'static str;
+                map.insert(code, RecoveryGuidance { action, allowed });
+            }
+        }
+        map
+    });
+    guidance
+        .get(code)
+        .copied()
+        .unwrap_or(DEFAULT_RECOVERY_GUIDANCE)
+}
+
+#[test]
+fn recovery_guidance_is_contract_bound() {
+    let guidance = recovery_guidance_for_code("ENTITLEMENT_BASE_REQUIRED");
+    assert_eq!(guidance.action, "reactivate_or_repair_lease");
+    assert!(guidance.allowed.contains(&"export"));
+    assert!(guidance.allowed.contains(&"diagnostics"));
+    assert!(guidance.allowed.contains(&"repair"));
+    assert!(guidance.allowed.contains(&"update_for_recovery"));
+    assert!(guidance.allowed.contains(&"uninstall"));
+    assert!(guidance.allowed.contains(&"license_status"));
+
+    assert_eq!(
+        recovery_guidance_for_code("ENTITLEMENT_FEATURE_REQUIRED").action,
+        "manage_license"
+    );
+    assert_eq!(
+        recovery_guidance_for_code("ENTITLEMENT_LIMIT_EXHAUSTED").action,
+        "manage_limit"
+    );
+    assert_eq!(
+        recovery_guidance_for_code("ENTITLEMENT_ROUTE_UNCLASSIFIED").action,
+        "recovery_only"
+    );
+
+    // Unknown codes fail closed to the contract default.
+    assert_eq!(
+        recovery_guidance_for_code("UNKNOWN_RUNTIME_CODE").action,
+        "recovery_only"
+    );
 }
 
 pub async fn entitlement_gate_layer(
@@ -174,6 +287,7 @@ fn denial_response(state: &AppState, denial: RouteEntitlementDenial) -> Response
         EntitlementState::Active => "active",
         EntitlementState::OfflineGrace => "offline_grace",
     };
+    let guidance = recovery_guidance_for_code(&denial.code);
     (
         axum::http::StatusCode::FORBIDDEN,
         Json(serde_json::json!({
@@ -186,7 +300,8 @@ fn denial_response(state: &AppState, denial: RouteEntitlementDenial) -> Response
                 "limit_bucket": denial.limit_bucket,
                 "recovery": {
                     "status_path": "/v1/license/status",
-                    "allowed": ["health", "version", "license_recovery", "safe_read"]
+                    "action": guidance.action,
+                    "allowed": guidance.allowed
                 }
             }
         })),
@@ -952,6 +1067,11 @@ mod tests {
                 "/v1/workpoint/checkpoint",
             ),
             (
+                "evidence_capture",
+                &Method::POST,
+                "/v1/evidence/capture",
+            ),
+            (
                 "metacog_capture",
                 &Method::POST,
                 "/v1/metacognition/capture",
@@ -1117,6 +1237,11 @@ mod tests {
                 "workpoint_checkpoint",
                 &Method::POST,
                 "/v1/workpoint/checkpoint",
+            ),
+            (
+                "evidence_capture",
+                &Method::POST,
+                "/v1/evidence/capture",
             ),
             (
                 "metacog_capture",
