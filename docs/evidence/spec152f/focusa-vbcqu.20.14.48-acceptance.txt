@@ -1,0 +1,91 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.48
+Title: 152F.06.06 Measure resolver and middleware overhead
+Implementation commit: `1434d46e` (feat(spec152f): measure resolver and middleware overhead with bounded observability)
+
+Exact surfaces
+- focusa-license resolver benchmark (`crates/focusa-license/benches/entitlement_policy.rs`)
+- API middleware benchmark (resolver sequence measured in the license bench; middleware
+  classification proven cached/deterministic/IO-free by focusa-api observability tests)
+- policy registry load path (`embedded_entitlement_policy_registry` cold load + warm lookups)
+- scheduler revalidation metrics (`crates/focusa-core/src/silent_session_scheduler.rs`)
+
+Bounded result
+- Added `EntitlementDecisionCounters` (crates/focusa-license/src/observability.rs):
+  fixed-capacity (9 family + 13 reason + 5 posture slots) atomic counters keyed only by
+  canonical enum labels. `snapshot()` is label-only and can never carry lease ids,
+  digests, customer identifiers, paths, keys, or tokens; caller-supplied strings cannot
+  grow the counter set. Recording touches only enum discriminants.
+- Added the `entitlement_policy` bench target (harness=false) covering exactly the
+  required decision paths: hot cached decision (state-grid reduction), cold validation
+  (full `ResolvedEntitlementPolicy` invariant checks), premium+limit decision (registered
+  feature resolution plus signed limit reservation — the API middleware/scheduler
+  revalidation resolver path), denial (base-product and premium missing-feature), and the
+  policy registry load path (one validated schema+digest load plus warm cached lookups).
+  All scenarios are deterministic, in-memory, and secret-free: no per-request file
+  parsing and no network dependency.
+- Added `SilentSessionDispatchMetrics` (focusa-core): bounded, label-only scheduler
+  revalidation metrics derived from dispatch decisions, counting selections and the
+  fixed deferral-reason set (including `EntitlementDenied`).
+- API middleware observability tests (focusa-api) prove the route/operation registries are
+  compiled in via include_str!, loaded exactly once through a OnceLock (pointer-identical
+  across calls), resolve deterministically with no I/O, and that denial envelopes are
+  bounded/static and secret-free.
+- No enforcement was weakened: the state grid reducer, base-product gate, signed-lease
+  binding, refund/revoke, node/sequence, recovery allowances, and EDD identity/commerce
+  authority are untouched by this atom.
+
+Performance budget and benchmark receipt (real run, release profile, remote OVH build)
+- `cargo bench -p focusa-license entitlement_policy` — exit 0.
+  Receipt (300,000 iterations each, deterministic in-memory fixtures):
+  - hot_cached_decision:            0.4 ns/op
+  - cold_validation:               19.3 ns/op
+  - premium_plus_limit_decision:  977.7 ns/op
+  - denial_decision:              139.0 ns/op
+  - policy_registry_cold_load:    829,179 ns (one validated schema+digest load)
+  - policy_registry_warm_lookup:   88.3 ns/op
+  Budget: every per-request resolver/middleware decision is sub-microsecond on a hot
+  cache, the coldest full validation is tens of ns, the registry loads once at process
+  start (cached thereafter), and no path performs per-request file parsing or network I/O.
+
+Exact verification (exit codes)
+1. `cargo bench -p focusa-license entitlement_policy --no-run` — exit 0.
+   Built `entitlement_policy` bench target in `bench` profile (optimized).
+2. `cargo test --workspace spec152f_observability` — exit 0.
+   All 10 `spec152f_observability` tests passed, 0 failed, across focusa-api (3),
+   focusa-core (2), and focusa-license (5); every other workspace test binary reported
+   `test result: ok` with the filter applied (54 ok results, 0 failures).
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0: 125 lib + 11 + 8 + 3 + 5 + 35 + 30 + 5 + 14 +
+  33 + 43 + 12 + 12 unit/integration tests passed, 0 failed (includes all prior
+  base-product, premium, grid, and authority-lease tests).
+- `cargo test -p focusa-core --lib silent_session_scheduler` — exit 0: 10 passed, 0 failed,
+  including the two prior `scheduler_entitlement_revalidation_*` dispatch tests.
+- `cargo test -p focusa-api --bin focusa-daemon middleware` — exit 0: 40 passed, 0 failed.
+- `cargo check -p focusa-license --benches --tests` and
+  `cargo check -p focusa-core -p focusa-api --tests` — exit 0.
+
+Tests added
+- focusa-license (tests/spec152f_observability.rs):
+  spec152f_observability_counters_are_bounded_label_only_and_secret_free,
+  spec152f_observability_counters_record_by_family_reason_and_posture,
+  spec152f_observability_policy_registry_load_is_cached_and_deterministic,
+  spec152f_observability_resolver_hot_path_is_deterministic_and_bounded,
+  spec152f_observability_middleware_resolver_sequence_is_bounded_and_records.
+- focusa-core (silent_session_scheduler.rs):
+  spec152f_observability_scheduler_revalidation_metrics_count_by_reason,
+  spec152f_observability_scheduler_revalidation_metrics_are_label_only_and_bounded.
+- focusa-api (middleware/entitlement.rs):
+  spec152f_observability_middleware_metadata_is_cached_not_reparsed_per_request,
+  spec152f_observability_middleware_classification_is_deterministic_and_io_free,
+  spec152f_observability_middleware_denial_envelope_is_bounded_and_secret_free.
+
+Rollback
+- Revert only implementation commit `1434d46e` (and this evidence record if required).
+  Preserve customers, orders, refunds, licenses, nodes, sequences, customer data,
+  migration journals, and already accepted authority behavior. The atom only added
+  measurement surfaces and bounded counters; no policy, gate, or enforcement path was
+  changed, so reverting restores the pre-atom behavior exactly.
+
+No push, deploy, release, merge, or Beads mutation was performed.
