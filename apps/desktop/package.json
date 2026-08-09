@@ -11,7 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test": "node tests/shell-contract.mjs && node tests/context-runtime.mjs && node tests/layout-renderer-runtime.mjs && node tests/projection-controller-runtime.mjs && node tests/presentation-state-runtime.mjs && node tests/capability-loss-runtime.mjs && node tests/draft-controller-runtime.mjs && node tests/pi-attachment-store-runtime.mjs && node tests/prompt-editor-runtime.mjs && node tests/restoration-runtime.mjs && node tests/pty-contract-runtime.mjs && node tests/pty-handle-runtime.mjs && node tests/agent-tui-bridge-runtime.mjs && node tests/surface-swap-runtime.mjs && node tests/contract-package-runtime.mjs",
+    "test": "node tests/shell-contract.mjs && node tests/context-runtime.mjs && node tests/layout-renderer-runtime.mjs && node tests/projection-controller-runtime.mjs && node tests/presentation-state-runtime.mjs && node tests/capability-loss-runtime.mjs && node tests/draft-controller-runtime.mjs && node tests/pi-attachment-store-runtime.mjs && node tests/prompt-editor-runtime.mjs && node tests/restoration-runtime.mjs && node tests/pty-contract-runtime.mjs && node tests/pty-handle-runtime.mjs && node tests/agent-tui-bridge-runtime.mjs && node tests/surface-swap-runtime.mjs && node tests/contract-package-runtime.mjs && node tests/generated-surface-runtime.mjs",
     "gate": "npm run test && npm run check && npm run build",
     "tauri": "tauri"
   },
