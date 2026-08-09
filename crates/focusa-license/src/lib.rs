@@ -23,6 +23,7 @@ pub mod denial_ux;
 pub mod facade_policy_presenter;
 pub mod feature_decision;
 pub mod license_migration;
+pub mod observability;
 
 pub use activation_client::{
     ActivationClientError, ActivationJourney, ActivationLedgerEvent, ActivationRegistration,
@@ -125,6 +126,8 @@ pub use limit_reservation::{
     RELEASE_PROOF_LIMIT_BUCKETS, TEAM_REMOTE_LIMIT_BUCKETS,
     LimitReservationService, ReservationError, ReservationGrant, ReservationScope,
 };
+
+pub use observability::EntitlementDecisionCounters;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

@@ -24,5 +24,13 @@ serde_json = { workspace = true }
 serde_yaml = "0.9"
 sha2 = { workspace = true }
 
+[dev-dependencies]
+chrono = { workspace = true }
+
+[[bench]]
+name = "entitlement_policy"
+path = "benches/entitlement_policy.rs"
+harness = false
+
 [lints]
 workspace = true

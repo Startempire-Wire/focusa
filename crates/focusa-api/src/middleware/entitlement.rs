@@ -1383,6 +1383,90 @@ mod tests {
             rows.len()
         );
     }
+
+    #[test]
+    fn spec152f_observability_middleware_metadata_is_cached_not_reparsed_per_request() {
+        // The route/operation registries are compiled in via include_str! and
+        // loaded exactly once through a OnceLock: repeated classification can
+        // never re-parse files or touch the network per request.
+        let first = entitlement_metadata().expect("classification metadata must load");
+        let second = entitlement_metadata().expect("classification metadata must load");
+        assert!(
+            std::ptr::eq(first, second),
+            "classification metadata must be a single cached instance"
+        );
+        assert!(!first.operations.is_empty(), "operations registry must load");
+        assert!(!first.routes.is_empty(), "route classification must load");
+
+        // Recovery guidance is also compile-time and OnceLock-cached.
+        let guidance = recovery_guidance_for_code("ENTITLEMENT_BASE_REQUIRED");
+        assert_eq!(guidance.action, "reactivate_or_repair_lease");
+        assert!(!guidance.allowed.is_empty());
+    }
+
+    #[test]
+    fn spec152f_observability_middleware_classification_is_deterministic_and_io_free() {
+        // The same (method, path) must resolve to the identical bounded policy
+        // on every call — deterministic in-memory classification, no I/O.
+        let method = &Method::POST;
+        let path = "/v1/workpoint/checkpoint";
+        let first = resolve_route_entitlement_policy(method, path).expect("classified");
+        for _ in 0..100 {
+            let again = resolve_route_entitlement_policy(method, path).expect("classified");
+            assert_eq!(again.operation_id, first.operation_id);
+            assert_eq!(again.operation_class, first.operation_class);
+            assert_eq!(again.capability_family, first.capability_family);
+            assert_eq!(again.required_feature, first.required_feature);
+            assert_eq!(again.limit_bucket, first.limit_bucket);
+            assert_eq!(again.recovery_allowance, first.recovery_allowance);
+        }
+        assert_eq!(first.operation_class, focusa_license::OperationClass::ValueMutation);
+        assert_eq!(
+            first.capability_family,
+            focusa_license::CapabilityFamily::BaseFocusa
+        );
+    }
+
+    #[test]
+    fn spec152f_observability_middleware_denial_envelope_is_bounded_and_secret_free() {
+        // Denial envelopes carry only a bounded code/static message and feature
+        // metadata — never lease ids, digests, tokens, or customer identifiers.
+        let denial = route_entitlement_denial(
+            &LicenseGuard::eval(7),
+            &Method::POST,
+            "/v1/workpoint/checkpoint",
+        )
+        .expect("missing lease must deny");
+        assert_eq!(denial.code, "ENTITLEMENT_BASE_REQUIRED");
+        assert!(
+            !denial.message.contains("lease-")
+                && !denial.message.contains("sha256")
+                && !denial.message.contains("token")
+                && !denial.message.contains("account"),
+            "denial message must be static and secret-free: {}",
+            denial.message
+        );
+
+        let premium = route_entitlement_denial(
+            &LicenseGuard::from_entitlement(active_signed_snapshot()),
+            &Method::POST,
+            "/v1/connect/room/create",
+        )
+        .expect("premium without feature must deny");
+        assert_eq!(premium.code, "ENTITLEMENT_FEATURE_REQUIRED");
+        assert!(premium.required_feature.is_some());
+    }
+
+    fn active_signed_snapshot() -> focusa_license::authority::EntitlementSnapshot {
+        let mut snapshot =
+            focusa_license::authority::EntitlementSnapshot::unactivated("focusa", "node-obs");
+        snapshot.state = EntitlementState::Active;
+        snapshot.sequence = Some(7);
+        snapshot.lease_id = Some("lease-obs".into());
+        snapshot.lease_digest = Some("sha256:obs".into());
+        snapshot.expires_at = Some(chrono::Utc::now() + chrono::Duration::minutes(5));
+        snapshot
+    }
 }
 
 #[cfg(test)]
