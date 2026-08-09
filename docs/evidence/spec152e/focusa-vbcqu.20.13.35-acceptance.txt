@@ -1,0 +1,209 @@
+Spec 152E EDD-bound signed lease issuer — acceptance evidence
+Work item: focusa-vbcqu.20.13.35
+Title: 152E.04.04 Issue signed device lease bound to canonical EDD truth
+Scope: lease issuer/signer; EDD order/license/account/product/node adapters;
+authority key set; Spec 152 golden vector
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§7.5 wp_wpuiai_authority_leases, §10
+POST /v1/lease/refresh, §11 "signed lease issues", §12 "issue signed Evaluation
+lease", §15 human key and signed lease separation, §17 lifecycle sequence
+increments, §18 refund/revoke/expiry → sequence increment → refresh denied,
+§19 security/privacy, §20 stable failure semantics, §23 acceptance matrix);
+Specs 152, 150A, 152A-D; Spec 158 implementation excluded.
+
+Exact surfaces (this atom only)
+- Lease issuer/signer: docs/contracts/spec152e-edd-bound-lease-issuer.v1.php
+  (FocusaSpec152eEddBoundLeaseIssuer, FocusaSpec152eEd25519Signer)
+- EDD order/license/account/product/node adapters: FocusaSpec152eEddOrderAdapter,
+  FocusaSpec152eEddLicenseAdapter, FocusaSpec152eEddAccountAdapter,
+  FocusaSpec152eEddProductAdapter, FocusaSpec152eEddNodeAdapter
+- Authority key set: FocusaSpec152eAuthorityKeySetSeam (focusa.authority_key_set
+  .v1, root-signed envelope)
+- Spec 152 golden vector: docs/contracts/spec152e-lease-golden-vectors.v1.json
+  (paid / Evaluation / bundle positive vectors + 8 negative vectors)
+
+Implementation commits: `a93d3a91` (lease issuer/signer contract, EDD truth
+adapters, authority key set, golden vectors, exact-verification tests)
+
+Bounded result
+- Added the candidate EDD-bound lease issuer/signer seam. issueLease() issues a
+  signed `focusa.authority_lease.v1` envelope ONLY after five canonical
+  preconditions resolve in one transaction: (1) a verified authority account
+  (wp_wpuiai_authority_accounts status active with mailbox_verified /
+  account_promoted reason; EMAIL_VERIFICATION_REQUIRED / ACCOUNT_NOT_FOUND
+  otherwise); (2) a usable canonical EDD license (wp_edd_licenses status active,
+  unexpired, positive activation_limit, matching EDD customer;
+  EDD_LICENSE_UNUSABLE / LICENSE_ACCOUNT_MISMATCH otherwise); (3) a settled EDD
+  order and exact order item (complete order for the account customer, item
+  matching the license download and the exact server-owned price;
+  EDD_ORDER_PENDING / EDD_ORDER_UNVERIFIED otherwise); (4) the server-owned
+  product grant resolved from the frozen registry by public product code only —
+  features, limits, prices, tiers, commercial rights, and sequence are never
+  caller-supplied (CALLER_CONTROLLED_GRANT_DENIED / PRODUCT_MAPPING_REQUIRED);
+  and (5) a settled node bound to the account, the license, the product, and the
+  presented device public key (NODE_NOT_FOUND / NODE_NOT_ACTIVE /
+  NODE_NOT_BOUND / NODE_PUBLIC_KEY_REQUIRED otherwise). The EDD license is
+  resolved from the node binding — the caller cannot select a license, order,
+  customer, or price.
+- Claims: every issued lease payload carries schema, lease_id, product, product
+  code, posture, subject/account, customer, order, order item, EDD license,
+  node, monotonic sequence, issued/not-before/expiry/offline-grace times,
+  authority key id (kid), status, features, limits, and commercial grants. Paid
+  (focusa_operator_lifetime_v1, price 697.00, expiry +90d, offline grace +30d),
+  Evaluation (focusa_evaluation, price 0.00, expiry +30d, no offline grace,
+  bounded subset features, node_limit 1), and bundle
+  (focusa_uiai_operator_bundle_lifetime_v1, price 1254.60, exact-union
+  features) postures are distinguished and server-derived.
+- Signing: pure-PHP RFC 8032 Ed25519 via GMP (FocusaSpec152eEd25519Signer),
+  domain-separated (FOCUSA-AUTHORITY-LEASE-V1\0 /
+  FOCUSA-AUTHORITY-KEY-SET-V1\0), byte-compatible with libsodium, Python
+  `cryptography`, and ed25519-dalek. The key-set seam reproduces the existing
+  trusted Spec 152 Rust golden-vector key-set envelope byte-for-byte
+  (root_public_key_b64 A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=, identical
+  payload_b64 and signature_b64), so the existing authority-lease verifier
+  accepts the issued envelopes.
+- Sequence: a per-account/product server-owned ledger
+  (wp_wpuiai_authority_lease_sequences) issues strictly monotonic sequences;
+  refund/revoke/expiry transitions advance the account entitlement sequence so a
+  previously issued lease becomes stale and refresh is denied (STALE_SEQUENCE).
+  A fresh lease after the transition jumps past the bumped sequence.
+  previous_lease_digest chains when a prior lease exists. Idempotent replay
+  returns the byte-identical lease; changed reuse of an idempotency key fails
+  closed (IDEMPOTENCY_CONFLICT).
+- Verification: verifyEnvelope() mirrors the existing verifier rules (envelope
+  schema, key-set trust, key status/validity window, domain-separated signature,
+  authority-key-id match, product/node match, minimum sequence, previous digest,
+  status, not-before, expiry/offline-grace) and maps to Active / OfflineGrace /
+  rejections (WRONG_PRODUCT, STALE_SEQUENCE, EXPIRED, REVOKED_LEASE,
+  UNKNOWN_KEY, WRONG_NODE, INVALID_SIGNATURE, NOT_YET_VALID, REVOKED_KEY,
+  KEY_OUTSIDE_VALIDITY).
+- Golden vectors: docs/contracts/spec152e-lease-golden-vectors.v1.json pins the
+  paid/Eval/bundle signed envelopes byte-exact with the PHP issuer output and
+  the 8 negative envelopes (wrong product, stale sequence, expired, revoked,
+  refunded → stale sequence at the post-refund sequence 45, unknown key, unbound
+  node, invalid signature). No unverified-email promotion, local/self-issued
+  entitlement, independent facade authority, client-controlled EDD price/grants,
+  secret or unmasked real-email evidence, or publication (redaction scan
+  asserts no '@', no 5x8-hex license key, no sk_/rk_/pk_ prefixes, no
+  focusa_live_ synthetic keys anywhere in vectors, leases, or results).
+
+Exact verification (exit codes)
+1. php tests/spec152e_edd_bound_lease_issuer_test.php — exit 0 (run three
+   times; deterministic, byte-identical output, sha256
+   dbc1c62515177a043f4d9bbab6184e83bbec5c9e7b9bd2efe5e75e11aadfd6a5).
+   Bounded result:
+   {"schema":"focusa.spec152e.edd_bound_lease_issuer_validation.v1",
+   "positive_checks":62,"negative_checks":34,"leases_issued":6,
+   "golden_vectors":["paid","evaluation","bundle"],"negatives_rejected":8,
+   "result":"passed_fail_closed"}
+   Positive: migration idempotency with first-provenance preservation; paid
+   lease issuance (sequence 42, posture paid) byte-exact with the golden
+   vector; Evaluation lease (sequence 7, posture evaluation, +30d expiry, no
+   offline grace, node_limit 1, price 0.00) byte-exact; bundle lease (sequence
+   9, posture bundle, exact-union features, price 1254.60) byte-exact; every
+   account/customer/order/item/license/product/features/limits/commercial/
+   node/sequence/time/kid claim present and exact; verifier accepts all three
+   as Active at the vector now; post-expiry pre-grace-end maps to OfflineGrace;
+   verifier rejects a lease past expiry and grace; idempotent replay returns
+   the byte-identical lease with no duplicate row; sequence ledger records the
+   issued sequence; a second lease for the same account/product is strictly
+   monotonic (43) and chains previous_lease_digest to the exact prior payload
+   digest; refund lifecycle (account sequence bumped to 45) makes the prior
+   lease stale (STALE_SEQUENCE) and a fresh lease jumps to 46; the verifier
+   rejects all 8 golden negative vectors with the exact codes; NOT_YET_VALID
+   rejection; the key-set seam reproduces the trusted Rust golden-vector
+   key-set envelope byte-for-byte and the pure-PHP verifier accepts the trusted
+   Rust key-set signature; hygiene scan finds no email, license key, or secret
+   in any envelope, claim, lease, or ledger row; rollback-preservation
+   migration stays idempotent.
+   Negative: EMAIL_VERIFICATION_REQUIRED (unverified account), NODE_NOT_ACTIVE
+   (deactivated node), NODE_NOT_BOUND (node of another account or another
+   product), NODE_PUBLIC_KEY_REQUIRED (wrong or malformed device key),
+   NODE_NOT_FOUND, CALLER_CONTROLLED_GRANT_DENIED (caller-supplied features,
+   price, sequence), PRODUCT_MAPPING_REQUIRED, EDD_LICENSE_UNUSABLE (revoked,
+   zero-capacity, expired licenses), EDD_ORDER_PENDING, EDD_ORDER_UNVERIFIED
+   (price mismatch and wrong-download evaluation node), LICENSE_ACCOUNT_MISMATCH
+   (license of another customer, node bound to another customer's license),
+   IDEMPOTENCY_CONFLICT (changed reuse of an idempotency key), and
+   InvalidArgumentException for malformed account/lease UUIDs and empty
+   idempotency keys.
+2. python3 tests/spec152e_lease_golden_vector_test.py — exit 0 (run three
+   times; deterministic, byte-identical output, sha256
+   c6956bfa7634de1564bf328a481dca4c5bf51b5956ca9b0bb861aa12ee0ea116).
+   Bounded result:
+   {"schema":"focusa.spec152e.lease_golden_vector_validation.v1",
+   "fixture":"public_synthetic_nonproduction",
+   "golden_vectors":["bundle","evaluation","paid"],"negative_cases":8,
+   "positive_checks":100,"negative_checks":10,"result":"passed_fail_closed"}
+   The `cryptography` Ed25519 implementation independently verifies the
+   root-signed key-set envelope (KEY_SET_DOMAIN), the key-set claims, the
+   lease-key validity window, and every paid/Eval/bundle lease signature
+   (LEASE_DOMAIN); the published key set is byte-identical to the trusted Rust
+   golden vector; all claim groups are checked; the paid OfflineGrace boundary
+   maps correctly; all 8 negative vectors are rejected with the exact named
+   reasons (wrong_product, stale_sequence, expired, revoked_lease,
+   stale_sequence for refunded at the post-refund sequence, unknown_key,
+   wrong_node for unbound node, invalid_signature); an all-zero signature and a
+   tampered payload fail closed; hygiene scans pass.
+
+Regression checks (exit codes)
+- All 30 tests/spec152e_*.php suites pass with exit 0, including the new
+  EDD-bound lease issuer test and the prior account, registration, issuance,
+  dual-delivery, outbox, lifecycle, and node-reservation suites.
+- All 3 tests/spec172_*.php suites pass with exit 0.
+- python3 tests/spec152e_api_contract_test.py — exit 0 (generated activation
+  contracts are current; no public API surface changed).
+- python3 tests/spec152e_state_machine_contract_test.py — exit 0.
+- python3 tests/spec152e_product_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_golden_vector_test.py — exit 0.
+- python3 tests/spec152e_migration_inventory_test.py — exit 0.
+- python3 tests/spec152e_deployed_surface_inventory_test.py — exit 0.
+- python3 tests/spec152e_terminal_envelope_vector_test.py — exit 0.
+- python3 scripts/generate-spec152e-product-registry.py --check — exit 0.
+- python3 scripts/generate-spec152e-facade-registry.py --check — exit 0.
+- python3 scripts/generate-spec152e-activation-contracts.py --check — exit 0.
+- python3 scripts/generate-spec152e-installer-route-manifest.py --check —
+  exit 0.
+- Pre-existing, unrelated failure (reproduces identically without this atom's
+  files; its target file is not touched by this atom):
+  tests/spec152e_document_authority_test.py — exit 1, expected
+  'publication_rule: forbidden until focusa-vbcqu.20.13.63 and
+  focusa-vbcqu.20.14.52 close' while
+  docs/contracts/spec152-final-audit-status.v1.yaml (last touched by commit
+  4ffbf40f, not this atom) carries the extended Spec 172 acceptance wording.
+
+Tests added
+- tests/spec152e_edd_bound_lease_issuer_test.php (exact verification; 62
+  positive / 34 negative checks) covering the five EDD truth preconditions, the
+  full claim set, byte-exact golden-vector determinism, verifier semantics
+  (Active/OfflineGrace/rejections), monotonic sequence with refund/revoke/
+  expiry staleness, idempotent replay and conflicts, the Rust key-set
+  byte-compat anchor, and log hygiene.
+- tests/spec152e_lease_golden_vector_test.py (exact verification; 100 positive
+  / 10 negative checks) independently re-verifying the signed vectors with
+  Python `cryptography` and the full fail-closed negative matrix.
+
+Acceptance criteria
+- Verifier accepts exact paid/Eval/bundle vectors and rejects wrong product,
+  stale sequence, expired, revoked, refunded, unknown key, or unbound node:
+  verified — the PHP verifier and the independent Python verifier both accept
+  the three positive vectors and reject all eight negative vectors with the
+  named reasons (refunded rejects as stale_sequence at the post-refund
+  sequence).
+- All named positive and negative checks pass; diff contains only named
+  surfaces (lease issuer/signer contract, EDD adapters, authority key set,
+  golden vector, the two exact-verification tests); generated contracts are
+  current (api_contract_test.py and all generator --check scripts exit 0);
+  secrets and unmasked real email are absent (redaction scans pass); evidence
+  is replayable from the pinned commit (offline, deterministic, byte-identical
+  output across runs).
+
+Rollback
+- Revert only this atom's commits: the implementation commit (lease issuer
+  contract + golden vectors + tests) and the evidence commit containing this
+  file. Preserve EDD customer/order/refund truth, verified identities,
+  licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration
+  journals; lease-issuer rollback is preservation-only.
+
+No push, deploy, release, merge, or Beads mutation was performed.

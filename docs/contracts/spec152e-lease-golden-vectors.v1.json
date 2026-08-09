@@ -1,0 +1,284 @@
+{
+    "schema": "focusa.spec152e.lease_golden_vectors.v1",
+    "fixture_kind": "public_synthetic_nonproduction",
+    "domains": {
+        "lease": "FOCUSA-AUTHORITY-LEASE-V1\u0000",
+        "key_set": "FOCUSA-AUTHORITY-KEY-SET-V1\u0000"
+    },
+    "root_key_id": "authority-root-2026-01",
+    "root_public_key_b64": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+    "lease_key_id": "authority-lease-2026-01",
+    "lease_public_key_b64": "Kay64UG8yvCyLhqU000LxzYeUm0L/hLIl5S8kyKWbdc=",
+    "key_set_envelope": {
+        "schema": "focusa.signed_envelope.v1",
+        "signer_key_id": "authority-root-2026-01",
+        "payload_b64": "eyJleHBpcmVzX2F0IjoiMjAzMC0wMS0wMVQwMDowMDowMFoiLCJpc3N1ZWRfYXQiOiIyMDI2LTA4LTAxVDAwOjAwOjAwWiIsImtleXMiOlt7ImtleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwibm90X2FmdGVyIjoiMjAyOS0wMS0wMVQwMDowMDowMFoiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wMVQwMDowMDowMFoiLCJwdWJsaWNfa2V5X2I2NCI6IktheTY0VUc4eXZDeUxocVUwMDBMeHpZZVVtMEwvaExJbDVTOGt5S1diZGM9Iiwic3RhdHVzIjoiYWN0aXZlIn1dLCJzY2hlbWEiOiJmb2N1c2EuYXV0aG9yaXR5X2tleV9zZXQudjEiLCJzZXF1ZW5jZSI6N30=",
+        "signature_b64": "zHkLUrbBnvUsf2zT4da8MnB//tN6gH/jpZf/aXdDko5aL2IjHfDOjVmTy43o9MJ3ew6o2bMv8Eiqh7FMswe8DQ=="
+    },
+    "now": "2026-08-08T18:30:00Z",
+    "vectors": {
+        "paid": {
+            "posture": "paid",
+            "product": "focusa",
+            "node_id": "node-paid-golden-001",
+            "sequence": 42,
+            "lease_id": "lease-golden-paid-0001",
+            "account_uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+            "customer_id": 1001,
+            "order_id": 9001,
+            "order_item_id": 90011,
+            "edd_license_id": 7001,
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-01",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTExLTA2VDE4OjMwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1wYWlkLTAwMDEiLCJsaW1pdHMiOnsibm9kZV9saW1pdCI6Mywib3BlcmF0b3Jfc2VhdHMiOjF9LCJub2RlX2lkIjoibm9kZS1wYWlkLWdvbGRlbi0wMDEiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJvZmZsaW5lX2dyYWNlX3VudGlsIjoiMjAyNi0xMi0wNlQxODozMDowMFoiLCJvcmRlcl9pZCI6OTAwMSwib3JkZXJfaXRlbV9pZCI6OTAwMTEsInBvc3R1cmUiOiJwYWlkIiwicHJvZHVjdCI6ImZvY3VzYSIsInByb2R1Y3RfY29kZSI6ImZvY3VzYV9vcGVyYXRvcl9saWZldGltZV92MSIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6NDIsInN0YXR1cyI6ImFjdGl2ZSIsInN1YmplY3RfaWQiOiJhMWIyYzNkNC1lNWY2LTRhN2ItOGM5ZC0wZTFmMmEzYjRjNWQifQ==",
+                "signature_b64": "yUHGUB2UmxWagCjn5zBzsFrUkoYA6o8YjOxeGf/fEZGqNNagTjrZ2cxtNfPGP9nkKs3DAc1ZG73WaFxAgc+rCg=="
+            },
+            "claims": {
+                "account_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                "authority_key_id": "authority-lease-2026-01",
+                "commercial": {
+                    "node_set": "operator_shared_v1",
+                    "price_usd": "697.00",
+                    "price_version": "v1",
+                    "refund_policy": "whole_order_30_days",
+                    "term": "lifetime",
+                    "upgrade_policy": "explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved"
+                },
+                "customer_id": 1001,
+                "edd_license_id": 7001,
+                "expires_at": "2026-11-06T18:30:00Z",
+                "features": {
+                    "automation": true,
+                    "base_focusa": true,
+                    "premium_updates": true,
+                    "release_proof": true,
+                    "team_remote": true
+                },
+                "issued_at": "2026-08-08T18:30:00Z",
+                "lease_id": "lease-golden-paid-0001",
+                "limits": {
+                    "node_limit": 3,
+                    "operator_seats": 1
+                },
+                "node_id": "node-paid-golden-001",
+                "not_before": "2026-08-08T18:30:00Z",
+                "offline_grace_until": "2026-12-06T18:30:00Z",
+                "order_id": 9001,
+                "order_item_id": 90011,
+                "posture": "paid",
+                "product": "focusa",
+                "product_code": "focusa_operator_lifetime_v1",
+                "schema": "focusa.authority_lease.v1",
+                "sequence": 42,
+                "status": "active",
+                "subject_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+            }
+        },
+        "evaluation": {
+            "posture": "evaluation",
+            "product": "focusa",
+            "node_id": "node-eval-golden-001",
+            "sequence": 7,
+            "lease_id": "lease-golden-eval-0001",
+            "account_uuid": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+            "customer_id": 2002,
+            "order_id": 9002,
+            "order_item_id": 90022,
+            "edd_license_id": 7002,
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-01",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYjJjM2Q0ZTUtZjZhNy00YjhjLTlkMGUtMWYyYTNiNGM1ZDZlIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjAuMDAiLCJwcmljZV92ZXJzaW9uIjoidjEiLCJyZWZ1bmRfcG9saWN5Ijoibm9uZSIsInRlcm0iOiJldmFsdWF0aW9uXzMwX2RheXMiLCJ1cGdyYWRlX3BvbGljeSI6Im5vX2Rvd25ncmFkZV9vZl9wYWlkX3JlY29yZHMifSwiY3VzdG9tZXJfaWQiOjIwMDIsImVkZF9saWNlbnNlX2lkIjo3MDAyLCJleHBpcmVzX2F0IjoiMjAyNi0wOS0wN1QxODozMDowMFoiLCJmZWF0dXJlcyI6eyJhdXRvbWF0aW9uIjpmYWxzZSwiYmFzZV9mb2N1c2EiOnRydWUsInByZW1pdW1fdXBkYXRlcyI6ZmFsc2UsInJlbGVhc2VfcHJvb2YiOmZhbHNlLCJ0ZWFtX3JlbW90ZSI6ZmFsc2V9LCJpc3N1ZWRfYXQiOiIyMDI2LTA4LTA4VDE4OjMwOjAwWiIsImxlYXNlX2lkIjoibGVhc2UtZ29sZGVuLWV2YWwtMDAwMSIsImxpbWl0cyI6eyJub2RlX2xpbWl0IjoxLCJvcGVyYXRvcl9zZWF0cyI6MX0sIm5vZGVfaWQiOiJub2RlLWV2YWwtZ29sZGVuLTAwMSIsIm5vdF9iZWZvcmUiOiIyMDI2LTA4LTA4VDE4OjMwOjAwWiIsIm9mZmxpbmVfZ3JhY2VfdW50aWwiOm51bGwsIm9yZGVyX2lkIjo5MDAyLCJvcmRlcl9pdGVtX2lkIjo5MDAyMiwicG9zdHVyZSI6ImV2YWx1YXRpb24iLCJwcm9kdWN0IjoiZm9jdXNhIiwicHJvZHVjdF9jb2RlIjoiZm9jdXNhX2V2YWx1YXRpb24iLCJzY2hlbWEiOiJmb2N1c2EuYXV0aG9yaXR5X2xlYXNlLnYxIiwic2VxdWVuY2UiOjcsInN0YXR1cyI6ImFjdGl2ZSIsInN1YmplY3RfaWQiOiJiMmMzZDRlNS1mNmE3LTRiOGMtOWQwZS0xZjJhM2I0YzVkNmUifQ==",
+                "signature_b64": "ScFI8jrxRFxKlmVNXsCRzx8HZfK9yURt45iWSmBuk1/ozqR/1tzyROzieZ8MXt2udBtJ6VArw1aIa4HIjY5hDg=="
+            },
+            "claims": {
+                "account_id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+                "authority_key_id": "authority-lease-2026-01",
+                "commercial": {
+                    "node_set": "operator_shared_v1",
+                    "price_usd": "0.00",
+                    "price_version": "v1",
+                    "refund_policy": "none",
+                    "term": "evaluation_30_days",
+                    "upgrade_policy": "no_downgrade_of_paid_records"
+                },
+                "customer_id": 2002,
+                "edd_license_id": 7002,
+                "expires_at": "2026-09-07T18:30:00Z",
+                "features": {
+                    "automation": false,
+                    "base_focusa": true,
+                    "premium_updates": false,
+                    "release_proof": false,
+                    "team_remote": false
+                },
+                "issued_at": "2026-08-08T18:30:00Z",
+                "lease_id": "lease-golden-eval-0001",
+                "limits": {
+                    "node_limit": 1,
+                    "operator_seats": 1
+                },
+                "node_id": "node-eval-golden-001",
+                "not_before": "2026-08-08T18:30:00Z",
+                "offline_grace_until": null,
+                "order_id": 9002,
+                "order_item_id": 90022,
+                "posture": "evaluation",
+                "product": "focusa",
+                "product_code": "focusa_evaluation",
+                "schema": "focusa.authority_lease.v1",
+                "sequence": 7,
+                "status": "active",
+                "subject_id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+            }
+        },
+        "bundle": {
+            "posture": "bundle",
+            "product": "focusa",
+            "node_id": "node-bundle-golden-001",
+            "sequence": 9,
+            "lease_id": "lease-golden-bundle-0001",
+            "account_uuid": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+            "customer_id": 3003,
+            "order_id": 9003,
+            "order_item_id": 90033,
+            "edd_license_id": 7003,
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-01",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYzNkNGU1ZjYtYTdiOC00YzlkLTBlMWYtMmEzYjRjNWQ2ZTdmIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjEyNTQuNjAiLCJwcmljZV92ZXJzaW9uIjoidjEiLCJyZWZ1bmRfcG9saWN5Ijoid2hvbGVfb3JkZXJfMzBfZGF5cyIsInRlcm0iOiJsaWZldGltZSIsInVwZ3JhZGVfcG9saWN5IjoiZXhwbGljaXRfdXBncmFkZV9vcl9jcm9zc19ncmFkZV9yZXF1aXJlZF9leGlzdGluZ19vcGVyYXRvcl92MV9wcmVzZXJ2ZWQifSwiY3VzdG9tZXJfaWQiOjMwMDMsImVkZF9saWNlbnNlX2lkIjo3MDAzLCJleHBpcmVzX2F0IjoiMjAyNi0xMS0wNlQxODozMDowMFoiLCJmZWF0dXJlcyI6eyJhdXRvbWF0aW9uIjp0cnVlLCJiYXNlX2ZvY3VzYSI6dHJ1ZSwiYmFzZV91aWFpIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1idW5kbGUtMDAwMSIsImxpbWl0cyI6eyJub2RlX2xpbWl0IjozLCJvcGVyYXRvcl9zZWF0cyI6MX0sIm5vZGVfaWQiOiJub2RlLWJ1bmRsZS1nb2xkZW4tMDAxIiwibm90X2JlZm9yZSI6IjIwMjYtMDgtMDhUMTg6MzA6MDBaIiwib2ZmbGluZV9ncmFjZV91bnRpbCI6IjIwMjYtMTItMDZUMTg6MzA6MDBaIiwib3JkZXJfaWQiOjkwMDMsIm9yZGVyX2l0ZW1faWQiOjkwMDMzLCJwb3N0dXJlIjoiYnVuZGxlIiwicHJvZHVjdCI6ImZvY3VzYSIsInByb2R1Y3RfY29kZSI6ImZvY3VzYV91aWFpX29wZXJhdG9yX2J1bmRsZV9saWZldGltZV92MSIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6OSwic3RhdHVzIjoiYWN0aXZlIiwic3ViamVjdF9pZCI6ImMzZDRlNWY2LWE3YjgtNGM5ZC0wZTFmLTJhM2I0YzVkNmU3ZiJ9",
+                "signature_b64": "vNi1mMYkypAN7Alwhg7ghOSkNQWAAB+YIE1JCvyYk/srp7VJG9Dz6S5VwGE22UJ4ykF/+Wr6oCOhyVWtAxFeBA=="
+            },
+            "claims": {
+                "account_id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+                "authority_key_id": "authority-lease-2026-01",
+                "commercial": {
+                    "node_set": "operator_shared_v1",
+                    "price_usd": "1254.60",
+                    "price_version": "v1",
+                    "refund_policy": "whole_order_30_days",
+                    "term": "lifetime",
+                    "upgrade_policy": "explicit_upgrade_or_cross_grade_required_existing_operator_v1_preserved"
+                },
+                "customer_id": 3003,
+                "edd_license_id": 7003,
+                "expires_at": "2026-11-06T18:30:00Z",
+                "features": {
+                    "automation": true,
+                    "base_focusa": true,
+                    "base_uiai": true,
+                    "premium_updates": true,
+                    "release_proof": true,
+                    "team_remote": true
+                },
+                "issued_at": "2026-08-08T18:30:00Z",
+                "lease_id": "lease-golden-bundle-0001",
+                "limits": {
+                    "node_limit": 3,
+                    "operator_seats": 1
+                },
+                "node_id": "node-bundle-golden-001",
+                "not_before": "2026-08-08T18:30:00Z",
+                "offline_grace_until": "2026-12-06T18:30:00Z",
+                "order_id": 9003,
+                "order_item_id": 90033,
+                "posture": "bundle",
+                "product": "focusa",
+                "product_code": "focusa_uiai_operator_bundle_lifetime_v1",
+                "schema": "focusa.authority_lease.v1",
+                "sequence": 9,
+                "status": "active",
+                "subject_id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f"
+            }
+        }
+    },
+    "negatives": [
+        {
+            "case": "wrong_product",
+            "reason": "wrong_product",
+            "expected_product": "focusa",
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-01",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTExLTA2VDE4OjMwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1wYWlkLTAwMDEiLCJsaW1pdHMiOnsibm9kZV9saW1pdCI6Mywib3BlcmF0b3Jfc2VhdHMiOjF9LCJub2RlX2lkIjoibm9kZS1wYWlkLWdvbGRlbi0wMDEiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJvZmZsaW5lX2dyYWNlX3VudGlsIjoiMjAyNi0xMi0wNlQxODozMDowMFoiLCJvcmRlcl9pZCI6OTAwMSwib3JkZXJfaXRlbV9pZCI6OTAwMTEsInBvc3R1cmUiOiJwYWlkIiwicHJvZHVjdCI6InVpYWlfZW5naW5lIiwicHJvZHVjdF9jb2RlIjoiZm9jdXNhX29wZXJhdG9yX2xpZmV0aW1lX3YxIiwic2NoZW1hIjoiZm9jdXNhLmF1dGhvcml0eV9sZWFzZS52MSIsInNlcXVlbmNlIjo0Miwic3RhdHVzIjoiYWN0aXZlIiwic3ViamVjdF9pZCI6ImExYjJjM2Q0LWU1ZjYtNGE3Yi04YzlkLTBlMWYyYTNiNGM1ZCJ9",
+                "signature_b64": "LIGLf1nCqKRBF2ofELHomo+pHO/xdLh2LhOq+J/Hq8sZxFGUlgruRe95scZOuyuWhtmc4AIwEp1O8+NSgoO0Dg=="
+            }
+        },
+        {
+            "case": "stale_sequence",
+            "reason": "stale_sequence",
+            "minimum_sequence": 42,
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-01",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTExLTA2VDE4OjMwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1wYWlkLTAwMDEiLCJsaW1pdHMiOnsibm9kZV9saW1pdCI6Mywib3BlcmF0b3Jfc2VhdHMiOjF9LCJub2RlX2lkIjoibm9kZS1wYWlkLWdvbGRlbi0wMDEiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJvZmZsaW5lX2dyYWNlX3VudGlsIjoiMjAyNi0xMi0wNlQxODozMDowMFoiLCJvcmRlcl9pZCI6OTAwMSwib3JkZXJfaXRlbV9pZCI6OTAwMTEsInBvc3R1cmUiOiJwYWlkIiwicHJvZHVjdCI6ImZvY3VzYSIsInByb2R1Y3RfY29kZSI6ImZvY3VzYV9vcGVyYXRvcl9saWZldGltZV92MSIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6NDEsInN0YXR1cyI6ImFjdGl2ZSIsInN1YmplY3RfaWQiOiJhMWIyYzNkNC1lNWY2LTRhN2ItOGM5ZC0wZTFmMmEzYjRjNWQifQ==",
+                "signature_b64": "uECXvvBLUg3nqHTk86can4p+qFbDEjUocJcNdULUJwqBDxhXSaI0bOtBvPHxGAb9yJYx4pq56FKnYP5LqoQOBQ=="
+            }
+        },
+        {
+            "case": "expired",
+            "reason": "expired",
+            "now": "2026-08-08T18:30:00Z",
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-01",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTA4LTAxVDAwOjAwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wNi0wMVQwMDowMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1wYWlkLTAwMDEiLCJsaW1pdHMiOnsibm9kZV9saW1pdCI6Mywib3BlcmF0b3Jfc2VhdHMiOjF9LCJub2RlX2lkIjoibm9kZS1wYWlkLWdvbGRlbi0wMDEiLCJub3RfYmVmb3JlIjoiMjAyNi0wNi0wMVQwMDowMDowMFoiLCJvZmZsaW5lX2dyYWNlX3VudGlsIjoiMjAyNi0wOC0wMlQwMDowMDowMFoiLCJvcmRlcl9pZCI6OTAwMSwib3JkZXJfaXRlbV9pZCI6OTAwMTEsInBvc3R1cmUiOiJwYWlkIiwicHJvZHVjdCI6ImZvY3VzYSIsInByb2R1Y3RfY29kZSI6ImZvY3VzYV9vcGVyYXRvcl9saWZldGltZV92MSIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6NDIsInN0YXR1cyI6ImFjdGl2ZSIsInN1YmplY3RfaWQiOiJhMWIyYzNkNC1lNWY2LTRhN2ItOGM5ZC0wZTFmMmEzYjRjNWQifQ==",
+                "signature_b64": "O3QF7vPb69AdMNWCNQ7r85R7lrb9ftUe9GDucjqiXX25ouzCtpzY1tXromhgz8802oMAo8H8yNU8/jCgX/TWBg=="
+            }
+        },
+        {
+            "case": "revoked",
+            "reason": "revoked_lease",
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-01",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTExLTA2VDE4OjMwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1yZXZva2VkLTAwMDEiLCJsaW1pdHMiOnsibm9kZV9saW1pdCI6Mywib3BlcmF0b3Jfc2VhdHMiOjF9LCJub2RlX2lkIjoibm9kZS1wYWlkLWdvbGRlbi0wMDEiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJvZmZsaW5lX2dyYWNlX3VudGlsIjoiMjAyNi0xMi0wNlQxODozMDowMFoiLCJvcmRlcl9pZCI6OTAwMSwib3JkZXJfaXRlbV9pZCI6OTAwMTEsInBvc3R1cmUiOiJwYWlkIiwicHJvZHVjdCI6ImZvY3VzYSIsInByb2R1Y3RfY29kZSI6ImZvY3VzYV9vcGVyYXRvcl9saWZldGltZV92MSIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6NDIsInN0YXR1cyI6InJldm9rZWQiLCJzdWJqZWN0X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIn0=",
+                "signature_b64": "grVQV5f1Me8hDcbU5YSnEcmPToigxOL+n/R1FRn196RFSkLYwVzPsA7r7YqlGSxnwHAbnVBr2Z9UIkTeJhPoDw=="
+            }
+        },
+        {
+            "case": "refunded",
+            "reason": "stale_sequence",
+            "refund_sequence": 45,
+            "minimum_sequence": 45,
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-01",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTExLTA2VDE4OjMwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1yZWZ1bmRlZC0wMDAxIiwibGltaXRzIjp7Im5vZGVfbGltaXQiOjMsIm9wZXJhdG9yX3NlYXRzIjoxfSwibm9kZV9pZCI6Im5vZGUtcGFpZC1nb2xkZW4tMDAxIiwibm90X2JlZm9yZSI6IjIwMjYtMDgtMDhUMTg6MzA6MDBaIiwib2ZmbGluZV9ncmFjZV91bnRpbCI6IjIwMjYtMTItMDZUMTg6MzA6MDBaIiwib3JkZXJfaWQiOjkwMDEsIm9yZGVyX2l0ZW1faWQiOjkwMDExLCJwb3N0dXJlIjoicGFpZCIsInByb2R1Y3QiOiJmb2N1c2EiLCJwcm9kdWN0X2NvZGUiOiJmb2N1c2Ffb3BlcmF0b3JfbGlmZXRpbWVfdjEiLCJzY2hlbWEiOiJmb2N1c2EuYXV0aG9yaXR5X2xlYXNlLnYxIiwic2VxdWVuY2UiOjQyLCJzdGF0dXMiOiJhY3RpdmUiLCJzdWJqZWN0X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIn0=",
+                "signature_b64": "Rb3LtY2YI0h9/aeAmBpX2d3EiZVVNsx61tf41YUZq1RsuCT7F8PJbrkF3hwFWAvwX3j8tdaTHhcI5Y/7JgSgDQ=="
+            }
+        },
+        {
+            "case": "unknown_key",
+            "reason": "unknown_key",
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-99",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTExLTA2VDE4OjMwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1wYWlkLTAwMDEiLCJsaW1pdHMiOnsibm9kZV9saW1pdCI6Mywib3BlcmF0b3Jfc2VhdHMiOjF9LCJub2RlX2lkIjoibm9kZS1wYWlkLWdvbGRlbi0wMDEiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJvZmZsaW5lX2dyYWNlX3VudGlsIjoiMjAyNi0xMi0wNlQxODozMDowMFoiLCJvcmRlcl9pZCI6OTAwMSwib3JkZXJfaXRlbV9pZCI6OTAwMTEsInBvc3R1cmUiOiJwYWlkIiwicHJvZHVjdCI6ImZvY3VzYSIsInByb2R1Y3RfY29kZSI6ImZvY3VzYV9vcGVyYXRvcl9saWZldGltZV92MSIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6NDIsInN0YXR1cyI6ImFjdGl2ZSIsInN1YmplY3RfaWQiOiJhMWIyYzNkNC1lNWY2LTRhN2ItOGM5ZC0wZTFmMmEzYjRjNWQifQ==",
+                "signature_b64": "yUHGUB2UmxWagCjn5zBzsFrUkoYA6o8YjOxeGf/fEZGqNNagTjrZ2cxtNfPGP9nkKs3DAc1ZG73WaFxAgc+rCg=="
+            }
+        },
+        {
+            "case": "unbound_node",
+            "reason": "wrong_node",
+            "expected_node_id": "node-paid-golden-001",
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-01",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTExLTA2VDE4OjMwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi11bmJvdW5kLTAwMDEiLCJsaW1pdHMiOnsibm9kZV9saW1pdCI6Mywib3BlcmF0b3Jfc2VhdHMiOjF9LCJub2RlX2lkIjoibm9kZS11bmJvdW5kLWdvbGRlbi05OTkiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJvZmZsaW5lX2dyYWNlX3VudGlsIjoiMjAyNi0xMi0wNlQxODozMDowMFoiLCJvcmRlcl9pZCI6OTAwMSwib3JkZXJfaXRlbV9pZCI6OTAwMTEsInBvc3R1cmUiOiJwYWlkIiwicHJvZHVjdCI6ImZvY3VzYSIsInByb2R1Y3RfY29kZSI6ImZvY3VzYV9vcGVyYXRvcl9saWZldGltZV92MSIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6NDIsInN0YXR1cyI6ImFjdGl2ZSIsInN1YmplY3RfaWQiOiJhMWIyYzNkNC1lNWY2LTRhN2ItOGM5ZC0wZTFmMmEzYjRjNWQifQ==",
+                "signature_b64": "3onXoAuoHYn/9cSWAA2gHdnbzkOrFNg4rjre55Hi5xBPpi/1MtOQqHCOEd293lMNyrKquPI+M2J6tweyWMleCA=="
+            }
+        },
+        {
+            "case": "invalid_signature",
+            "reason": "invalid_signature",
+            "envelope": {
+                "schema": "focusa.signed_envelope.v1",
+                "signer_key_id": "authority-lease-2026-01",
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTExLTA2VDE4OjMwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1wYWlkLTAwMDEiLCJsaW1pdHMiOnsibm9kZV9saW1pdCI6Mywib3BlcmF0b3Jfc2VhdHMiOjF9LCJub2RlX2lkIjoibm9kZS1wYWlkLWdvbGRlbi0wMDEiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJvZmZsaW5lX2dyYWNlX3VudGlsIjoiMjAyNi0xMi0wNlQxODozMDowMFoiLCJvcmRlcl9pZCI6OTAwMSwib3JkZXJfaXRlbV9pZCI6OTAwMTEsInBvc3R1cmUiOiJwYWlkIiwicHJvZHVjdCI6ImZvY3VzYSIsInByb2R1Y3RfY29kZSI6ImZvY3VzYV9vcGVyYXRvcl9saWZldGltZV92MSIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6NDIsInN0YXR1cyI6ImFjdGl2ZSIsInN1YmplY3RfaWQiOiJhMWIyYzNkNC1lNWY2LTRhN2ItOGM5ZC0wZTFmMmEzYjRjNWQifQ==",
+                "signature_b64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+            }
+        }
+    ]
+}
