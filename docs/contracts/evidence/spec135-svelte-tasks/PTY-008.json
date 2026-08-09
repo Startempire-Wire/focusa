@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-008",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Resized PTY verified: validate_geometry fails closed on zero dimensions and overflow before reaching the PTY; valid latest geometry reaches the PTY and emits a Resized event with exact identity/generation/sequence. Per-governed-Attachment process stays alive across view switches.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-007"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo test -p focusa-pty geometry_validation_rejects_zero_and_overflow",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-pty resize_rejects_invalid_dimensions_before_reaching_pty",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-pty",
+      "result": "pass: 24 tests"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
