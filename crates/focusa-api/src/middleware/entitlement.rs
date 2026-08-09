@@ -14,11 +14,7 @@ use focusa_core::{
     },
     runtime::persistence_sqlite::EntitlementLimitReservationOutcome,
 };
-use focusa_license::{
-    authority::EntitlementState,
-    LicenseGuard,
-    RecoveryAllowance,
-};
+use focusa_license::{LicenseGuard, RecoveryAllowance, authority::EntitlementState};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
@@ -82,10 +78,12 @@ struct EntitlementMetadata {
     routes: Vec<RouteClassificationRecord>,
 }
 
-const ROUTE_CLASSIFICATION_JSON: &str =
-    include_str!("../../../../docs/contracts/spec141/generated-capability-v2/route-classification.json");
-const OPERATION_REGISTRY_JSON: &str =
-    include_str!("../../../../docs/contracts/spec135/generated-contract-v1/operation-registry.json");
+const ROUTE_CLASSIFICATION_JSON: &str = include_str!(
+    "../../../../docs/contracts/spec141/generated-capability-v2/route-classification.json"
+);
+const OPERATION_REGISTRY_JSON: &str = include_str!(
+    "../../../../docs/contracts/spec135/generated-contract-v1/operation-registry.json"
+);
 const ROUTE_UNCLASSIFIED_ERROR: &str =
     "This mutation route has no exact entitlement descriptor and is blocked fail-closed.";
 
@@ -215,7 +213,8 @@ fn reserve_route_limit(
         .filter(|value| !value.trim().is_empty())
         .ok_or(RouteEntitlementDenial {
             code: "ENTITLEMENT_IDEMPOTENCY_REQUIRED".to_string(),
-            message: "A stable Idempotency-Key is required before reserving signed limit units.".to_string(),
+            message: "A stable Idempotency-Key is required before reserving signed limit units."
+                .to_string(),
             required_feature: policy.required_feature.clone(),
             limit_bucket: Some(bucket.to_string()),
         })?;
@@ -225,7 +224,8 @@ fn reserve_route_limit(
         .as_ref()
         .ok_or(RouteEntitlementDenial {
             code: "ENTITLEMENT_REQUIRED".to_string(),
-            message: "A valid signed Focusa authority lease is required for this operation.".to_string(),
+            message: "A valid signed Focusa authority lease is required for this operation."
+                .to_string(),
             required_feature: policy.required_feature.clone(),
             limit_bucket: Some(bucket.to_string()),
         })?;
@@ -285,25 +285,50 @@ fn route_entitlement_denial(
         return None;
     };
 
+    // Declared recovery/customer-control surfaces are governed by their own
+    // allowances and never by lease state; they pass before any evaluation.
+    if policy.recovery_allowance != RecoveryAllowance::None {
+        return None;
+    }
+
     if let Err(failure) = evaluate_entitlement_execution(
         guard,
         &policy.to_execution_policy(),
         EntitlementExecutionContext::default(),
     ) {
+        // With no signed lease at all, the base Focusa gate is the first
+        // prerequisite for every value-producing operation, premium or not;
+        // it must be reported before any premium feature denial can exist.
+        let code = if guard.entitlement.is_none() && failure.code == "ENTITLEMENT_REQUIRED" {
+            "ENTITLEMENT_BASE_REQUIRED".to_string()
+        } else {
+            failure.code
+        };
         return Some(RouteEntitlementDenial {
-            code: failure.code,
+            code,
             message: failure.message,
             required_feature: failure.required_feature,
             limit_bucket: failure.limit_bucket,
         });
     }
+
+    // Lease binding/current-state validation before handler invocation:
+    // an expired, revoked, unbound, or fabricated lease must never reach a
+    // value-producing handler even when the policy state grid would allow it.
+    if !entitlement_allows_mutation(guard) {
+        return Some(RouteEntitlementDenial {
+            code: "ENTITLEMENT_BASE_REQUIRED".to_string(),
+            message:
+                "A current signed Focusa authority lease is required before this handler runs."
+                    .to_string(),
+            required_feature: policy.required_feature,
+            limit_bucket: policy.limit_bucket,
+        });
+    }
     None
 }
 
-fn resolve_route_entitlement_policy(
-    method: &Method,
-    path: &str,
-) -> Option<RouteEntitlementPolicy> {
+fn resolve_route_entitlement_policy(method: &Method, path: &str) -> Option<RouteEntitlementPolicy> {
     if let Some(allowance) = route_recovery_allowance(path) {
         let Some(capability_family) = allowance.implied_family() else {
             return None;
@@ -323,17 +348,19 @@ fn resolve_route_entitlement_policy(
     }
 
     requirement_for_path(path).and_then(|requirement| {
-        feature_to_capability_family(requirement.feature).map(|capability_family| RouteEntitlementPolicy {
-            operation_id: synthetic_operation_id(method, path),
-            operation_class: focusa_license::OperationClass::ValueMutation,
-            capability_family,
-            required_feature: if capability_family.is_optional_premium() {
-                Some(requirement.feature.to_string())
-            } else {
-                None
-            },
-            limit_bucket: requirement.limit_bucket.map(|bucket| bucket.to_string()),
-            recovery_allowance: RecoveryAllowance::None,
+        feature_to_capability_family(requirement.feature).map(|capability_family| {
+            RouteEntitlementPolicy {
+                operation_id: synthetic_operation_id(method, path),
+                operation_class: focusa_license::OperationClass::ValueMutation,
+                capability_family,
+                required_feature: if capability_family.is_optional_premium() {
+                    Some(requirement.feature.to_string())
+                } else {
+                    None
+                },
+                limit_bucket: requirement.limit_bucket.map(|bucket| bucket.to_string()),
+                recovery_allowance: RecoveryAllowance::None,
+            }
         })
     })
 }
@@ -368,9 +395,7 @@ fn route_entitlement_policy_from_classification(
     None
 }
 
-fn feature_to_capability_family(
-    feature: &str,
-) -> Option<focusa_license::CapabilityFamily> {
+fn feature_to_capability_family(feature: &str) -> Option<focusa_license::CapabilityFamily> {
     use focusa_license::CapabilityFamily;
     match feature {
         "focusa.core.workpoint" | "focusa.core.evidence" | "focusa.core.mission" => {
@@ -379,14 +404,12 @@ fn feature_to_capability_family(
         "focusa.agent.parallelism" | "focusa.agent.silent_sessions" => {
             Some(CapabilityFamily::Automation)
         }
-        "focusa.team.multi_operator" | "focusa.remote.stream" => {
-            Some(CapabilityFamily::TeamRemote)
-        }
+        "focusa.team.multi_operator" | "focusa.remote.stream" => Some(CapabilityFamily::TeamRemote),
         "focusa.release.proof" => Some(CapabilityFamily::ReleaseProof),
-        "focusa.update.unattended" | "focusa.update.apply"
-        | "focusa.install.channel.nightly" | "focusa.install.channel.preview" => {
-            Some(CapabilityFamily::PremiumUpdates)
-        }
+        "focusa.update.unattended"
+        | "focusa.update.apply"
+        | "focusa.install.channel.nightly"
+        | "focusa.install.channel.preview" => Some(CapabilityFamily::PremiumUpdates),
         "focusa.export.packaged" => Some(CapabilityFamily::CustomerDataExport),
         _ => None,
     }
@@ -430,7 +453,11 @@ fn synthetic_operation_id(method: &Method, path: &str) -> String {
         .replace('/', ".")
         .replace('{', "")
         .replace('}', "");
-    let normalized = if segments.is_empty() { "root" } else { &segments };
+    let normalized = if segments.is_empty() {
+        "root"
+    } else {
+        &segments
+    };
     format!("rest.{normalized}.{}", method.as_str().to_ascii_lowercase())
 }
 
@@ -529,12 +556,21 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
 }
 
 fn route_is_known_read_without_side_effect(method: &Method, path: &str) -> bool {
-    route_has_classified_read(method, path) || route_has_declared_methods(path)
+    // A declared-method ledger entry alone never exempts a premium read:
+    // reads that resolve to an optional-premium family must still pass the
+    // entitlement gate (they expose premium collaboration/automation state).
+    route_has_classified_read(method, path)
+        || (route_has_declared_methods(path) && !route_has_premium_policy(method, path))
 }
 
 fn route_has_classified_read(method: &Method, path: &str) -> bool {
     resolve_route_entitlement_policy(method, path)
         .is_some_and(|policy| policy.operation_class == focusa_license::OperationClass::Read)
+}
+
+fn route_has_premium_policy(method: &Method, path: &str) -> bool {
+    resolve_route_entitlement_policy(method, path)
+        .is_some_and(|policy| policy.capability_family.is_optional_premium())
 }
 
 fn route_has_declared_methods(path: &str) -> bool {
@@ -688,9 +724,13 @@ mod tests {
     #[test]
     fn exact_feature_and_signed_limit_are_required_before_route_handler() {
         assert_eq!(
-            route_entitlement_denial(&LicenseGuard::eval(7), &Method::POST, "/v1/workpoint/checkpoint")
-                .unwrap()
-                .code,
+            route_entitlement_denial(
+                &LicenseGuard::eval(7),
+                &Method::POST,
+                "/v1/workpoint/checkpoint"
+            )
+            .unwrap()
+            .code,
             "ENTITLEMENT_BASE_REQUIRED"
         );
 
@@ -717,11 +757,18 @@ mod tests {
             .features
             .insert("focusa.team.multi_operator".into(), true);
         let guard = LicenseGuard::from_entitlement(snapshot);
-        assert_eq!(route_entitlement_denial(&guard, &Method::POST, team_path), None);
         assert_eq!(
-            route_entitlement_denial(&LicenseGuard::eval(7), &Method::POST, "/v1/unclassified/mutation")
-                .unwrap()
-                .code,
+            route_entitlement_denial(&guard, &Method::POST, team_path),
+            None
+        );
+        assert_eq!(
+            route_entitlement_denial(
+                &LicenseGuard::eval(7),
+                &Method::POST,
+                "/v1/unclassified/mutation"
+            )
+            .unwrap()
+            .code,
             "ENTITLEMENT_ROUTE_UNCLASSIFIED"
         );
         assert_eq!(
@@ -829,30 +876,24 @@ mod tests {
             (
                 "recovery_only",
                 LicenseGuard::from_entitlement(EntitlementSnapshot::recovery_only(
-                    "focusa", "node", "recovery-matrix",
+                    "focusa",
+                    "node",
+                    "recovery-matrix",
                 )),
             ),
-            (
-                "refunded_or_revoked",
-                {
-                    let mut snap = EntitlementSnapshot::unactivated("focusa", "node");
-                    snap.state = EntitlementState::RecoveryOnly;
-                    snap.lease_id = Some("lease-refunded".into());
-                    snap.lease_digest = Some("sha256:refunded".into());
-                    snap.sequence = Some(1);
-                    LicenseGuard::from_entitlement(snap)
-                },
-            ),
+            ("refunded_or_revoked", {
+                let mut snap = EntitlementSnapshot::unactivated("focusa", "node");
+                snap.state = EntitlementState::RecoveryOnly;
+                snap.lease_id = Some("lease-refunded".into());
+                snap.lease_digest = Some("sha256:refunded".into());
+                snap.sequence = Some(1);
+                LicenseGuard::from_entitlement(snap)
+            }),
             (
                 "unactivated",
-                LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated(
-                    "focusa", "node",
-                )),
+                LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated("focusa", "node")),
             ),
-            (
-                "missing",
-                LicenseGuard::eval(7),
-            ),
+            ("missing", LicenseGuard::eval(7)),
         ];
 
         // Recovery/customer-control routes that MUST be available in every blocked state.
@@ -869,7 +910,11 @@ mod tests {
             ("export_run", &Method::POST, "/v1/export/run"),
             ("export_status", &Method::GET, "/v1/export/status"),
             ("export_history", &Method::GET, "/v1/export/history"),
-            ("export_manifest", &Method::GET, "/v1/export/manifest/manifest-1"),
+            (
+                "export_manifest",
+                &Method::GET,
+                "/v1/export/manifest/manifest-1",
+            ),
             // Node deactivation
             ("node_deactivation", &Method::POST, "/v1/device/pair/revoke"),
             // Pairing status (read)
@@ -888,7 +933,11 @@ mod tests {
             ("version", &Method::GET, "/v1/version"),
             ("update_check", &Method::POST, "/v1/update/check"),
             ("update_plan", &Method::POST, "/v1/update/plan"),
-            ("silent_export", &Method::POST, "/v1/silent-sessions/session-1/export"),
+            (
+                "silent_export",
+                &Method::POST,
+                "/v1/silent-sessions/session-1/export",
+            ),
             ("preflight", &Method::POST, "/v1/silent-sessions/preflight"),
         ];
 
@@ -897,15 +946,43 @@ mod tests {
         // device/pair/start is excluded because it is classified as account_recovery
         // in the operation registry (required for node activation/recovery).
         let protected_mutations: Vec<(&str, &Method, &str)> = vec![
-            ("workpoint_checkpoint", &Method::POST, "/v1/workpoint/checkpoint"),
-            ("metacog_capture", &Method::POST, "/v1/metacognition/capture"),
+            (
+                "workpoint_checkpoint",
+                &Method::POST,
+                "/v1/workpoint/checkpoint",
+            ),
+            (
+                "metacog_capture",
+                &Method::POST,
+                "/v1/metacognition/capture",
+            ),
             ("turn_start", &Method::POST, "/v1/turn/start"),
-            ("silent_session_start", &Method::POST, "/v1/silent-sessions/session-1/start"),
+            (
+                "silent_session_start",
+                &Method::POST,
+                "/v1/silent-sessions/session-1/start",
+            ),
             ("project_new", &Method::POST, "/v1/project/new"),
-            ("connect_room_create", &Method::POST, "/v1/connect/room/create"),
-            ("constitution_propose", &Method::POST, "/v1/constitution/propose"),
-            ("project_bootstrap_apply", &Method::POST, "/v1/project/bootstrap/apply"),
-            ("silent_session_create", &Method::POST, "/v1/silent-sessions"),
+            (
+                "connect_room_create",
+                &Method::POST,
+                "/v1/connect/room/create",
+            ),
+            (
+                "constitution_propose",
+                &Method::POST,
+                "/v1/constitution/propose",
+            ),
+            (
+                "project_bootstrap_apply",
+                &Method::POST,
+                "/v1/project/bootstrap/apply",
+            ),
+            (
+                "silent_session_create",
+                &Method::POST,
+                "/v1/silent-sessions",
+            ),
         ];
 
         for (state_label, guard) in &blocked_guards {
@@ -980,18 +1057,139 @@ mod tests {
     }
 
     #[test]
+    fn blocked_leases_permit_only_declared_recovery_surfaces_with_zero_mutation_sentinels() {
+        // Replay proof: for every blocked lease posture (missing, invalid,
+        // expired, revoked), only declared recovery surfaces may pass the
+        // pre-handler gate, and every protected mutation route must be denied
+        // before side effects — zero mutation sentinel events may escape.
+        use focusa_license::authority::EntitlementSnapshot;
+
+        let mut expired_snap = EntitlementSnapshot::unactivated("focusa", "node");
+        expired_snap.state = EntitlementState::Active;
+        expired_snap.lease_id = Some("lease-expired".into());
+        expired_snap.lease_digest = Some("sha256:expired".into());
+        expired_snap.sequence = Some(7);
+        expired_snap.expires_at = Some(chrono::Utc::now() - chrono::Duration::seconds(1));
+
+        let mut invalid_snap = EntitlementSnapshot::unactivated("focusa", "node");
+        invalid_snap.state = EntitlementState::Active;
+        invalid_snap.lease_id = Some("lease-invalid".into());
+        invalid_snap.lease_digest = Some("not-a-sha256-digest".into());
+        invalid_snap.sequence = Some(7);
+        invalid_snap.expires_at = Some(chrono::Utc::now() + chrono::Duration::minutes(5));
+
+        let mut revoked_snap = EntitlementSnapshot::unactivated("focusa", "node");
+        revoked_snap.state = EntitlementState::RecoveryOnly;
+        revoked_snap.lease_id = Some("lease-revoked".into());
+        revoked_snap.lease_digest = Some("sha256:revoked".into());
+        revoked_snap.sequence = Some(1);
+
+        let blocked_guards: Vec<(&str, LicenseGuard)> = vec![
+            ("missing", LicenseGuard::eval(7)),
+            ("invalid", LicenseGuard::from_entitlement(invalid_snap)),
+            ("expired", LicenseGuard::from_entitlement(expired_snap)),
+            ("revoked", LicenseGuard::from_entitlement(revoked_snap)),
+        ];
+
+        let recovery_surfaces: Vec<(&str, &Method, &str)> = vec![
+            ("stable_update", &Method::POST, "/v1/update/apply"),
+            ("repair", &Method::POST, "/v1/project/bootstrap/repair"),
+            ("rollback", &Method::POST, "/v1/update/rollback"),
+            ("export_run", &Method::POST, "/v1/export/run"),
+            ("export_status", &Method::GET, "/v1/export/status"),
+            ("export_history", &Method::GET, "/v1/export/history"),
+            (
+                "export_manifest",
+                &Method::GET,
+                "/v1/export/manifest/manifest-1",
+            ),
+            ("node_deactivation", &Method::POST, "/v1/device/pair/revoke"),
+            ("pairing_status", &Method::GET, "/v1/device/pair/status"),
+            ("diagnostics", &Method::GET, "/v1/doctor"),
+            ("diagnostics_closure", &Method::GET, "/v1/doctor/closure"),
+            ("license_status", &Method::GET, "/v1/license/status"),
+            ("health", &Method::GET, "/v1/health"),
+            ("version", &Method::GET, "/v1/version"),
+        ];
+
+        let protected_mutations: Vec<(&str, &Method, &str)> = vec![
+            (
+                "workpoint_checkpoint",
+                &Method::POST,
+                "/v1/workpoint/checkpoint",
+            ),
+            (
+                "metacog_capture",
+                &Method::POST,
+                "/v1/metacognition/capture",
+            ),
+            ("turn_start", &Method::POST, "/v1/turn/start"),
+            (
+                "silent_session_start",
+                &Method::POST,
+                "/v1/silent-sessions/session-1/start",
+            ),
+            ("project_new", &Method::POST, "/v1/project/new"),
+            (
+                "connect_room_create",
+                &Method::POST,
+                "/v1/connect/room/create",
+            ),
+            (
+                "constitution_propose",
+                &Method::POST,
+                "/v1/constitution/propose",
+            ),
+            (
+                "project_bootstrap_apply",
+                &Method::POST,
+                "/v1/project/bootstrap/apply",
+            ),
+            (
+                "silent_session_create",
+                &Method::POST,
+                "/v1/silent-sessions",
+            ),
+            ("device_pair_list", &Method::GET, "/v1/device/pair/list"),
+            ("connect_rooms", &Method::GET, "/v1/connect/rooms"),
+        ];
+
+        for (state_label, guard) in &blocked_guards {
+            for (route_label, method, path) in &recovery_surfaces {
+                let denial = route_entitlement_denial(guard, method, path);
+                assert!(
+                    denial.is_none(),
+                    "{route_label} ({path}) must remain available in state {state_label}, got: {denial:?}"
+                );
+            }
+
+            let mut mutation_sentinels = 0u32;
+            for (route_label, method, path) in &protected_mutations {
+                let denial = route_entitlement_denial(guard, method, path);
+                assert!(
+                    denial.is_some(),
+                    "{route_label} ({path}) must be denied before side effects in state {state_label}"
+                );
+                mutation_sentinels += 1;
+            }
+            assert_eq!(
+                mutation_sentinels,
+                protected_mutations.len() as u32,
+                "state {state_label}: every protected mutation must emit a denial sentinel"
+            );
+        }
+    }
+
+    #[test]
     fn route_entitlement_inheritance() {
         // Verify all routes in the reconciliation manifest resolve through
         // inheritance to a canonical operation policy without owning pricing,
         // tier, or caller-controlled grants.
-        let reconciliation_json = include_str!(
-            "../../../../docs/contracts/spec152f-surface-reconciliation/rest.v1.json"
-        );
+        let reconciliation_json =
+            include_str!("../../../../docs/contracts/spec152f-surface-reconciliation/rest.v1.json");
         let reconciliation: serde_json::Value =
             serde_json::from_str(reconciliation_json).expect("valid reconciliation JSON");
-        let rows = reconciliation["rows"]
-            .as_array()
-            .expect("rows is an array");
+        let rows = reconciliation["rows"].as_array().expect("rows is an array");
         assert!(
             rows.len() >= 189,
             "expected >=189 REST entries in reconciliation manifest, got {}",
@@ -1002,9 +1200,7 @@ mod tests {
         let mut unresolved = Vec::new();
 
         for row in rows {
-            let path = row["symbol_or_route"]
-                .as_str()
-                .expect("path is a string");
+            let path = row["symbol_or_route"].as_str().expect("path is a string");
             let resolution = row["resolution"].as_str().unwrap_or_default();
 
             // Recovery routes are handled by the middleware
