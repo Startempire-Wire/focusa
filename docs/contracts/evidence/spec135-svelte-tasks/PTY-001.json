@@ -1,0 +1,30 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-001",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Module-level PiAttachmentStore singleton owns the frontend Pi attachment state machine (unbound/binding/attached/disconnected/error) with exact identity (generated AttachmentKey alias), run generation + monotonic sequence, stale-output rejection, attach/resize/interrupt/close/restart/detach command surface; AgentTuiSurface consumes the store so Mission Canvas and Agent TUI share one Pi session and Attachment and Pi survives view switches.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": []
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/pi-attachment-store-runtime.mjs",
+      "result": "pass: 5 scenarios"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
