@@ -1476,3 +1476,7 @@ mod spec152f_state_grid_acceptance;
 #[cfg(test)]
 #[path = "spec172_runtime_policy.rs"]
 mod spec172_runtime_policy;
+
+#[cfg(test)]
+#[path = "spec172_core_api_bypass.rs"]
+mod spec172_core_api_bypass;

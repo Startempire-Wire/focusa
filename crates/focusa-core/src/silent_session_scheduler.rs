@@ -10,8 +10,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+use crate::guarded_mutation::guard_value_mutation;
 use crate::license::{
-    evaluate_entitlement_execution,
     EntitlementExecutionContext,
     EntitlementExecutionPolicy,
 };
@@ -223,7 +223,12 @@ fn evaluate_silent_session_dispatch_entitlement(
     initiating_operation_id: Option<&str>,
     reservation_id: Option<&str>,
 ) -> Result<(), SilentSessionDispatchEntitlementError> {
-    evaluate_entitlement_execution(entitlement_guard, policy, context)
+    // Spec 172 §11.5/§20.9: workers, schedulers, queues, and resumable jobs
+    // inherit initiating authority and MUST revalidate at dispatch through the
+    // shared core chokepoint. A previously queued operation cannot continue
+    // after refund, revoke, higher sequence, or family denial, and a stale or
+    // fabricated lease cannot produce value even when HTTP middleware is absent.
+    guard_value_mutation(entitlement_guard, policy, context)
         .map(|_| ())
         .map_err(|error| SilentSessionDispatchEntitlementError {
             code: error.code,
@@ -262,7 +267,7 @@ fn evaluate_silent_session_dispatch_candidate_entitlement(
     {
         match reference.and_then(|reference| reference.initiating_policy.as_ref()) {
             Some(policy) => {
-                let decision = evaluate_entitlement_execution(
+                let decision = guard_value_mutation(
                     entitlement_guard,
                     policy,
                     EntitlementExecutionContext::default(),

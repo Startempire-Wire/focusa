@@ -1,0 +1,142 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.25
+Title: 172.04.01 Prove core/API chokepoints and direct-call bypass resistance
+Implementation commit: `e4e5cd2d` (feat(spec172): prove core/API chokepoints
+and direct-call bypass resistance)
+
+Exact surfaces
+- Shared chokepoint implementation (NEW):
+  crates/focusa-core/src/guarded_mutation.rs — canonical gate for every
+  value-producing mutation (HTTP and non-HTTP): guard_value_mutation /
+  guard_project_mutation apply product/type/family decisions before any side
+  effect; apply_guarded_mutation / apply_guarded_project_mutation wrap the
+  single-writer reducer with zero-side-effect counters; GuardedStorageLedger
+  models the direct storage adapter contract (durable writes only after
+  chokepoint approval). No caller-controlled product, price, License Type,
+  family, feature, limit, node, or commercial right is accepted: the gate
+  resolves the literal authority product id `focusa` and requires a current
+  bound signed lease for value mutations (stale-client resistance).
+- Worker dispatch revalidation (Modified):
+  crates/focusa-core/src/silent_session_scheduler.rs — dispatch and
+  initiating-policy revalidation now route through the shared chokepoint
+  (Spec 172 §11.5): queued-before-refund, higher-sequence, family-denial, and
+  stale-client work cannot continue at dispatch.
+- focusa-core execution guard (existing, unchanged): stable codes
+  ENTITLEMENT_BASE_REQUIRED / ENTITLEMENT_FEATURE_REQUIRED /
+  ENTITLEMENT_REQUIRED / ENTITLEMENT_ROUTE_UNCLASSIFIED; recovery/read/export
+  stay reachable in blocked states.
+- focusa-api entitlement middleware (Modified): test-only module wired
+  crates/focusa-api/src/middleware/spec172_core_api_bypass.rs (compiled only
+  under `cargo test`) proving HTTP gate equivalence: stale clients, wrong
+  method, wrong product, and unclassified mutations fail before handler side
+  effects; recovery routes stay reachable in every blocked state.
+- Direct storage/reducer adapters: reducer calls are reachable only through
+  the guarded adapters; a raw direct reducer call never reaches the storage
+  ledger (zero sanctioned side effects).
+- tests/spec172_core_api_bypass_test.py (cross-layer acceptance receipt)
+- New Rust vectors: crates/focusa-core/tests/spec172_core_api_bypass.rs (4)
+  and crates/focusa-api/src/middleware/spec172_core_api_bypass.rs (4).
+
+Bounded result
+- The shared chokepoint is now the single sanctioned path for every protected
+  mutation. Attempted and denied BEFORE any side effect, with
+  side_effect_count == 0 on every denial and exactly 1 on approval:
+  1. Direct core bypass: guard_value_mutation / apply_guarded_mutation deny
+     missing, unactivated, refunded/revoked, expired-stale, and
+     wrong-product (UIAI-only) leases with ENTITLEMENT_BASE_REQUIRED; the
+     guarded reducer adapter reports side_effect_count == 0 and never reaches
+     the reducer; GuardedStorageLedger.durable_writes stays 0 for every
+     blocked attempt.
+  2. Direct reducer / storage adapter bypass: a raw `reducer::reduce` call
+     (the bypass an adapter must NOT permit) produces no sanctioned
+     side-effect counter and never reaches the storage ledger; the exact
+     signed Focusa lease approves exactly one reducer application and exactly
+     one durable write.
+  3. Stale client: expired Active lease, unbound (fabricated) lease, and past
+     offline-grace lease all fail closed at the chokepoint and at the API
+     route gate; valid Offline Grace passes. Wrong method (POST on a
+     GET-classified route) and unclassified mutation routes fail closed
+     (ENTITLEMENT_BASE_REQUIRED / ENTITLEMENT_ROUTE_UNCLASSIFIED); premium
+     families still require their exact authority feature grant
+     (ENTITLEMENT_FEATURE_REQUIRED).
+  4. Worker dispatch revalidation: queued-before-refund and stale-client work
+     is deferred at dispatch with DispatchDeferralReason::EntitlementDenied
+     (detail carries ENTITLEMENT_BASE_REQUIRED), selected_work_item == None,
+     and zero durable writes around refund/staleness; queued work still
+     dispatches while entitlement is current.
+  5. Recovery/read/export remain reachable: account recovery, basic customer
+     data export, and read projection pass through the chokepoint in every
+     blocked state the resolver keeps reachable (at least one protection
+     surface per blocked state); API recovery routes (stable update, repair,
+     rollback, export, diagnostics) pass in every blocked state. Internal
+     maintenance fails closed without an initiating posture and passes with
+     an inherited entitled posture.
+- The Python receipt replays four pure-Python bypass-relevant contract gates
+  (License Types / no caller-controlled type, dynamic tools fail closed,
+  family allowlists / no anonymous capability, lifetime credential / stale
+  credentials defeated) with real exit codes, statically pins the shared
+  chokepoint, worker dispatch, and API route-gate surfaces (34 positive
+  checks, 0 negative), and runs hygiene checks (no raw email, key, token,
+  customer row, credential, or card data in any surface or evidence).
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_core_api_bypass_test.py` — exit 0.
+   Receipt: schema focusa.spec172.core_api_bypass_acceptance.v1, result
+   "passed", 4 replay gates with exit codes all 0, 8 Rust vectors
+   (4 core + 4 API), 34 static positive checks, 0 negative.
+2. `cargo test --workspace spec172_core_api_bypass` — exit 0.
+   test result: ok. 8 passed; 0 failed (4 focusa-core integration vectors:
+   spec172_core_api_bypass_direct_core_reducer_storage_bypasses_fail_closed,
+   spec172_core_api_bypass_stale_client_unbound_and_wrong_product_fail_closed,
+   spec172_core_api_bypass_worker_dispatch_revalidates_queued_before_refund,
+   spec172_core_api_bypass_recovery_read_export_reachable_in_blocked_states;
+   4 focusa-api route-gate vectors:
+   spec172_core_api_bypass_stale_client_denied_before_handler,
+   spec172_core_api_bypass_wrong_method_and_unclassified_fail_closed,
+   spec172_core_api_bypass_direct_call_cannot_skip_middleware,
+   spec172_core_api_bypass_recovery_and_read_remain_reachable_when_blocked).
+
+Regression checks (exit codes)
+- `cargo test -p focusa-core scheduler` — exit 0: 20 passed; 0 failed
+  (897 filtered out); existing worker dispatch revalidation tests unaffected
+  by routing dispatch through the shared chokepoint.
+- `cargo test -p focusa-api spec152f_state_grid_acceptance` — exit 0:
+  8 passed; 0 failed (485 filtered out); existing entitlement middleware
+  acceptance unaffected by the added test-only module.
+
+Tests added
+- focusa-core (crates/focusa-core/tests/spec172_core_api_bypass.rs):
+  spec172_core_api_bypass_direct_core_reducer_storage_bypasses_fail_closed,
+  spec172_core_api_bypass_stale_client_unbound_and_wrong_product_fail_closed,
+  spec172_core_api_bypass_worker_dispatch_revalidates_queued_before_refund,
+  spec172_core_api_bypass_recovery_read_export_reachable_in_blocked_states.
+- focusa-api (crates/focusa-api/src/middleware/spec172_core_api_bypass.rs):
+  spec172_core_api_bypass_stale_client_denied_before_handler,
+  spec172_core_api_bypass_wrong_method_and_unclassified_fail_closed,
+  spec172_core_api_bypass_direct_call_cannot_skip_middleware,
+  spec172_core_api_bypass_recovery_and_read_remain_reachable_when_blocked.
+- Shared chokepoint implementation: crates/focusa-core/src/guarded_mutation.rs
+  (guard_value_mutation, guard_project_mutation, apply_guarded_mutation,
+  apply_guarded_project_mutation, GuardedStorageLedger, zero-side-effect
+  counters).
+- Python receipt: tests/spec172_core_api_bypass_test.py.
+
+Remaining blockers
+- None for this atom. Downstream atoms remain open as planned:
+  focusa-vbcqu.20.15.26 (project Spec 172 through CLI, Pi, and agent tools),
+  .20.15.27 (menubar and TUI), .20.15.28 (Focusa Desktop), .20.15.29 (UIAI
+  Cockpit), .20.15.30 (remove local Evaluation), .20.15.36 (future Navigator
+  exclusion), .20.15.38 (adversarial matrix) — these are dependents, not
+  prerequisites.
+
+Rollback
+- Revert only implementation commit `e4e5cd2d` and this evidence record if
+  required. All changes are additive except three small, behavior-preserving
+  wirings: the two scheduler call sites now route through the shared
+  chokepoint (dispatch policy is InternalMaintenance, so the lease gate does
+  not change dispatch decisions) and the API entitlement middleware gained a
+  test-only module include. Preserve verified identities, customers, orders,
+  refunds, License Types, keys, nodes, sequences, data, migration journals,
+  evidence, and all accepted unrelated work.
+
+No push, deploy, release, merge, or Beads mutation was performed.
