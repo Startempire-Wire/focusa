@@ -1,0 +1,34 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "DOMAIN-012",
+      "GEN-003",
+      "PROFILE-008"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/mission-canvas-functional-acceptance.mjs",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass: 24 suites"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": [],
+  "task_id": "ACCEPT-001",
+  "result": "All thirteen NDC scenarios pass with SEMANTIC assertions over eligible sets, layout-node references, deterministic reflow, receipts \u2014 no snapshot-only assertions."
+}
