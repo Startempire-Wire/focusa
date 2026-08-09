@@ -1,0 +1,33 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PROFILE-001",
+      "PROFILE-002"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/profile-projection-runtime.mjs",
+      "result": "pass: 6-profile fixture + memory survival"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": [],
+  "task_id": "PROFILE-008",
+  "result": "Custom projection verified: only resolver-emitted Custom contributions render (fixture asserts the exact contribution set, no invented contributions); a vertical is not a color swap or a hard-coded alternate page (no ProfileCustomPage components, no profile-keyed background presentation); per-profile layout memory survives contribution disappearance (absent_contribution_ids) and return (placements preserved) through the canonical ProfileLayoutMemory envelope."
+}
