@@ -1,0 +1,107 @@
+Spec 152 / Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.6
+Title: 152.01.06 Replay protected credential storage
+Implementation commits: `b79c73db15b2137efa222104e54bb5e20bd2f080` (reconciliation
+landing: private node identity + OS-protected refresh credential storage,
+rotation receipt, contract tests) and `7753f1ab55e1727fc275ae2385b03763d3deb223`
+(base protected refresh-credential storage and platform keyring adapter).
+Current atom worktree head: `0e8e282d37e77ebacefc8162176db0f30129a5ac`.
+
+Exact surfaces
+- crates/focusa-license/src/authority_credentials.rs
+- crates/focusa-license/src/authority_store.rs
+- platform keyring adapters and their tests (in-module contract tests in
+  authority_credentials.rs; redaction scan at tests/spec152_protected_credential_test.py)
+
+Bounded result
+- Durable node identity is created once per config directory
+  (`load_or_create_node_identity`) with schema `focusa.node_identity.v1`,
+  random v7 node id, and product binding, persisted atomically
+  (`atomic_private_write`: temp file + rename, 0600 on unix) and validated
+  fail-closed on read (schema/product/uuid shape; corrupt files yield
+  `NodeIdentityInvalid`, never a regenerated or downgraded identity).
+- OS-protected refresh credential storage: `KeyringCredentialStore` wraps the
+  `keyring` crate (macOS Keychain, Linux Secret Service, Windows Credential
+  Manager) behind the `ProtectedCredentialStore` trait (put/get/delete).
+  `protected_store_backend_for_os` maps the three supported platforms and
+  returns the typed `CredentialStoreError::StoreUnavailable` posture for any
+  unknown OS; native store failures map to typed unavailable/missing/write/
+  delete postures, never a plaintext fallback.
+- Credential rotation/removal: `rotate_refresh_credential` writes then re-reads
+  to verify persistence and returns a `CredentialRotationReceipt` carrying
+  `secret_persisted_in_receipt: false` and only service/account/backend/timing
+  metadata. `delete` removes the credential; missing entries map to
+  `CredentialMissing`.
+- `PersistedAuthorityState::from_verified_envelopes` (decodes the signed key
+  set, derives sequence, verifies the lease, persists `refresh_after: None`)
+  and `write_atomic` (create-new temp file, 0600 on unix, sync, rename) add
+  durable atomic authority-state writes; the new `AuthorityStoreError::Write`
+  variant resolves to `authority_state_unwritable`, fail-closed.
+- Secrets never leave the protected boundary: `SensitiveCredential` redacts
+  Debug/Display (`[REDACTED]`), handles carry identity only
+  (`focusa.<product>.license-authority` / `node:<node_id>:refresh`), and the
+  rotation receipt cannot contain the secret. No raw refresh token appears in
+  JSON, argv, env output, logs, receipts, or fallback plaintext (Spec 158
+  implementation remains excluded; licensing permits capability but never
+  selects or creates cognitive/Workstream authority).
+
+Exact verification (exit codes)
+1. `cargo fmt --all -- --check` — exit 1, blocked only by 43 pre-existing
+   unformatted files OUTSIDE this atom's exact surfaces (recently merged atoms
+   committed unformatted code, e.g. crates/focusa-license/tests/spec152f_*.rs,
+   crates/focusa-tui, crates/pi-client-tool-gateway). Neither
+   authority_credentials.rs nor authority_store.rs appears anywhere in the
+   rustfmt 1.9.0 diff output; scoped proof
+   `rustfmt --check --edition 2024 crates/focusa-license/src/authority_credentials.rs
+   crates/focusa-license/src/authority_store.rs` — exit 0.
+2. `cargo clippy -p focusa-license --all-targets -- -D warnings` — exit 101,
+   blocked only by 3 pre-existing `manual_contains` lints in
+   crates/focusa-license/src/entitlement_policy.rs:1480/1485/1488 (commit
+   2fa95680a, a prior atom's merged Spec 172 classifier work) — identical to
+   the blocker recorded in the focusa-vbcqu.20.4 evidence. No clippy warning
+   or error is reported for this atom's surface files
+   (authority_credentials.rs, authority_store.rs).
+3. `cargo test -p focusa-license authority_credentials` — exit 0.
+   test result: ok. 4 passed; 0 failed (52 filtered out), covering the mocked
+   platform matrix, private node identity fail-closed durability, and
+   protected-store rotation/redaction/removal.
+
+Required outputs (exit codes)
+- Redaction scan: `python3 tests/spec152_protected_credential_test.py` — exit 0
+  ("Spec152 protected credentials: PASS"), asserting private node identity
+  schema, atomic private write, 0600 mode, all three platform backends,
+  `rotate_refresh_credential`, `secret_persisted_in_receipt: false`,
+  SensitiveCredential Debug/Display redaction, no Debug derive on
+  LeaseRefreshRequest/NodeListRequest/DeactivateNodeRequest, and no
+  println!/format!/args! of the refresh credential.
+- Platform adapter contract tests: in-module tests in
+  authority_credentials.rs (`native_platforms_map_to_os_protected_backends`,
+  `credential_handle_contains_identity_but_never_secret`,
+  `node_identity_is_durable_private_and_fail_closed`,
+  `protected_store_round_trip_redacts_and_deletes`) — all pass above. Mocked
+  platform matrices pass now; later installed acceptance proves native stores
+  without exposing values.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0: 239 tests passed, 0 failed
+  (56 unit + 11 authority-lease + 8 entitlement-policy-grid +
+  3 capsule-manifest + 34 automation + 29 export + 32 release-proof +
+  42 team-remote + 12 dynamic-operation-manifest + 12 family-inheritance +
+  0 doctests).
+
+Tests added (landed with implementation commits)
+- focusa-license (in-module): native_platforms_map_to_os_protected_backends,
+  credential_handle_contains_identity_but_never_secret,
+  node_identity_is_durable_private_and_fail_closed,
+  protected_store_round_trip_redacts_and_deletes.
+- Redaction scan: tests/spec152_protected_credential_test.py (positive
+  assertions for all protected-store surfaces; negative assertions that no
+  credential leaks via Debug, receipt, or output macros).
+
+Rollback
+- Revert only implementation commits `b79c73db15b2137efa222104e54bb5e20bd2f080`
+  and `7753f1ab55e1727fc275ae2385b03763d3deb223` (and this evidence record if
+  required). Preserve leases, credentials, user data, Workpoints, Evidence,
+  and migration journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.
