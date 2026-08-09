@@ -1,0 +1,34 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-015",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Complete-inner-surface replacement over the SAME Pi process verified: switching to Mission Canvas and back twice returns to the same Attachment, the same run generation (store.generation never bumps on view switch), the same transcript stream (output continues on the same generation/sequence), and the same draft state (store-adjacent). No duplicate attach command is ever issued across swaps \u2014 one persistent Pi process per governed Attachment.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-013",
+      "PTY-014",
+      "UI-019"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/surface-swap-runtime.mjs",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
