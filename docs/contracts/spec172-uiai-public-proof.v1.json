@@ -1,0 +1,717 @@
+{
+  "schema": "focusa.spec172_uiai_public_proof.v1",
+  "version": 1,
+  "atom": "focusa-vbcqu.20.15.39",
+  "title": "172.05.08 Capture UIAI public pricing, route, and contradiction-removal proof",
+  "authority": {
+    "spec": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+    "section_18_1": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md#181-public-evidence-basis",
+    "section_18_2": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md#182-required-convergence",
+    "baseline_contract": "docs/contracts/spec172-public-commerce-baseline.v1.json",
+    "convergence_contract": "docs/contracts/spec172-public-facade-convergence.v1.json",
+    "canonical_prices": {
+      "focusa_operator_lifetime_v1": "697.00",
+      "uiai_operator_lifetime_v1": "697.00",
+      "focusa_uiai_operator_bundle_lifetime_v1": "1254.60"
+    }
+  },
+  "capture": {
+    "captured_at": "2026-08-09",
+    "capture_method": "uiai_engine_browser_read",
+    "supplemental_method": "live_origin_http_read",
+    "authentication_required": false,
+    "uiai_service": "localhost:7456 uiai-engine v2.0.0 (remote OVH browser plane)",
+    "uiai_service_health": "healthy",
+    "browser_plane_reachability": {
+      "https://engine.focusa.dev/": "reachable",
+      "https://wpuiai.com/": "reachable",
+      "https://wpuiai.com/downloads/wpuiai-pro-lifetime/": "reachable",
+      "https://focusa.dev/": "unreachable_navigation_timeout_origin_read_used",
+      "https://install.focusa.dev/": "unreachable_navigation_timeout_origin_read_used"
+    }
+  },
+  "evidence_posture": {
+    "classification": "bounded_redacted_public_claim_proof",
+    "public_copy_is_entitlement_authority": false,
+    "raw_capture_embedded": false,
+    "raw_email_or_key_embedded": false,
+    "authenticated_or_customer_data_capture": false,
+    "no_anonymous_or_local_grant_proof": true,
+    "service_status_after_capture": "available"
+  },
+  "sources": [
+    {
+      "surface": "focusa",
+      "urls": [
+        "https://focusa.dev/",
+        "https://focusa.dev/pricing/",
+        "https://focusa.dev/llms.txt",
+        "https://focusa.dev/.well-known/agent-commerce.json"
+      ],
+      "evidence_ref": "spec172:18.1-removal:focusa:2026-08-09"
+    },
+    {
+      "surface": "engine",
+      "urls": [
+        "https://engine.focusa.dev/",
+        "https://engine.focusa.dev/pricing/",
+        "https://engine.focusa.dev/llms.txt",
+        "https://engine.focusa.dev/.well-known/agent-commerce.json"
+      ],
+      "evidence_ref": "spec172:18.1-removal:engine:2026-08-09"
+    },
+    {
+      "surface": "install",
+      "urls": [
+        "https://install.focusa.dev/",
+        "https://install.focusa.dev/focusa",
+        "https://install.focusa.dev/bundle"
+      ],
+      "evidence_ref": "spec172:18.1-removal:install:2026-08-09"
+    },
+    {
+      "surface": "wpuiai_edd",
+      "urls": [
+        "https://wpuiai.com/wp-sitemap-posts-download-1.xml",
+        "public EDD Download pages enumerated by the captured sitemap"
+      ],
+      "evidence_ref": "spec172:18.1-removal:wpuiai-edd:2026-08-09",
+      "enumerated_download_pages": [
+        "https://wpuiai.com/downloads/wpuiai-pro-lifetime/",
+        "https://wpuiai.com/downloads/wpuiai-agency-lifetime/",
+        "https://wpuiai.com/downloads/credit-pack-mega-2000/"
+      ]
+    }
+  ],
+  "uiai_sessions": [
+    {
+      "surface": "engine",
+      "url": "https://engine.focusa.dev/",
+      "session_id": "-F_XF7e_",
+      "reachable": true,
+      "evidence_ref": "uiai-browser:session=-F_XF7e_:engine-root",
+      "read_schema": "uiai.browser_read.v2",
+      "title": "UIAI Engine - Browser intelligence for AI agents",
+      "text_chars": 17793,
+      "snapshot_refs": 66,
+      "diagnostics": {
+        "seq": 45,
+        "console": 1,
+        "exceptions": 0,
+        "failed_requests": 0
+      },
+      "bounded_result": "Live UIAI browser read of engine.focusa.dev root: '$697 UIAI Engine Operator Lifetime License', 'Loopback-eval mode is free for development', 'curl ... install.focusa.dev/engine ... --eval', Gravity form to Stripe checkout copy; clean diagnostics (0 exceptions, 0 failed requests, one jQuery Migrate console notice)."
+    },
+    {
+      "surface": "wpuiai",
+      "url": "https://wpuiai.com/",
+      "session_id": "HaIVG2Cs",
+      "reachable": true,
+      "evidence_ref": "uiai-browser:session=HaIVG2Cs:wpuiai-root",
+      "read_schema": "uiai.browser_read.v2",
+      "title": "WPUIAI - AI-Powered WordPress Design Intelligence",
+      "text_chars": 2137,
+      "snapshot_refs": 0,
+      "diagnostics": {
+        "seq": 27,
+        "console": 1,
+        "exceptions": 0,
+        "failed_requests": 1
+      },
+      "bounded_result": "Live UIAI browser read of wpuiai.com root: WPUIAI WordPress product site ('Blueprint' workflow marketing); no Focusa/UIAI Operator offer and no legacy-price mixing on the home page; only failed request is favicon.ico 404."
+    },
+    {
+      "surface": "wpuiai_edd",
+      "url": "https://wpuiai.com/downloads/wpuiai-pro-lifetime/",
+      "session_id": "J_vSHrjR",
+      "reachable": true,
+      "evidence_ref": "uiai-browser:session=J_vSHrjR:wpuiai-edd-pro-lifetime",
+      "read_schema": "uiai.browser_read.v2",
+      "title": "WPUIAI Pro Lifetime - WPUIAI",
+      "text_chars": 211,
+      "snapshot_refs": 0,
+      "diagnostics": {
+        "seq": 20,
+        "console": 1,
+        "exceptions": 0,
+        "failed_requests": 1
+      },
+      "bounded_result": "Live UIAI browser read of the WPUIAI EDD Download page: 'WPUIAI Pro Lifetime - One-time credit pack purchase. $149.00 - Purchase Checkout'; legacy WPUIAI catalog price visible; clean diagnostics except favicon.ico 404."
+    },
+    {
+      "surface": "focusa",
+      "url": "https://focusa.dev/",
+      "session_id": "",
+      "reachable": false,
+      "evidence_ref": "uiai-error:uiai-error-299",
+      "class": "timeout",
+      "bounded_result": "UIAI browser plane could not navigate to focusa.dev (session open failed after 2 attempts, navigation failed: context deadline exceeded; OVH plane to KH-origin route blocked). Live origin HTTP read used instead (HTTP 200, 124,494 bytes)."
+    },
+    {
+      "surface": "install",
+      "url": "https://install.focusa.dev/",
+      "session_id": "",
+      "reachable": false,
+      "evidence_ref": "uiai-error:uiai-error-1451",
+      "class": "timeout",
+      "bounded_result": "UIAI browser plane could not navigate to install.focusa.dev (session open failed after 2 attempts, navigation failed: context deadline exceeded). Live origin HTTP read used instead (HTTP 200, 46,281 bytes)."
+    }
+  ],
+  "origin_reads": [
+    {
+      "url": "https://focusa.dev/",
+      "status": 200,
+      "bytes": 124494,
+      "bounded": "Focusa root: '$697 Focusa Operator Lifetime License', 'Eval mode (no license)', 'Send the Gravity form ... to start Stripe checkout', 'Stripe checkout secure', 'See https://focusa.dev/LICENSE and https://focusa.dev/COMMERCIAL.md.'"
+    },
+    {
+      "url": "https://focusa.dev/pricing/",
+      "status": 200,
+      "bytes": 35757,
+      "bounded": "Pricing table: Focusa Operator $697 lifetime license; UIAI Engine $697 lifetime license; Focusa Arena $49/$149/+$100; Founders Forge $7,500 full seat / $1,500 deposit."
+    },
+    {
+      "url": "https://focusa.dev/llms.txt",
+      "status": 200,
+      "bytes": 1699,
+      "bounded": "Price: $697 USD; checkout link is a page form anchor; no EDD destination."
+    },
+    {
+      "url": "https://focusa.dev/.well-known/agent-commerce.json",
+      "status": 200,
+      "bytes": 13465,
+      "bounded": "Products: focusa_operator_preview 69700 minor, uiai_engine_commercial_access 69700 minor, founders_forge_deposit 150000 minor, arena_demo 0, install_gateway 0; payment_provider 'Gravity Forms Stripe'; gf_stripe_link supported; no EDD protocol."
+    },
+    {
+      "url": "https://focusa.dev/LICENSE",
+      "status": 404,
+      "bytes": 0,
+      "bounded": "Advertised license terms URL returns 404."
+    },
+    {
+      "url": "https://focusa.dev/COMMERCIAL.md",
+      "status": 404,
+      "bytes": 0,
+      "bounded": "Advertised commercial terms URL returns 404."
+    },
+    {
+      "url": "https://focusa.dev/terms/",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Valid local terms page."
+    },
+    {
+      "url": "https://focusa.dev/payment-terms/",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Valid local payment-terms page."
+    },
+    {
+      "url": "https://focusa.dev/privacy/",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Valid local privacy page."
+    },
+    {
+      "url": "https://engine.focusa.dev/",
+      "status": 200,
+      "bytes": 126265,
+      "bounded": "Engine root: '$697 UIAI Engine Operator Lifetime License'; 'Loopback-eval mode is free for development'; 'Selected Focusa Operator Lifetime License holders may receive UIAI Engine access depending on fit'; 'Submit the Gravity form ... to start Stripe checkout'."
+    },
+    {
+      "url": "https://engine.focusa.dev/pricing/",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Engine pricing page returns 200."
+    },
+    {
+      "url": "https://engine.focusa.dev/llms.txt",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Price: $697 USD."
+    },
+    {
+      "url": "https://engine.focusa.dev/.well-known/agent-commerce.json",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Same product set as focusa.dev agent-commerce; payment_provider 'Gravity Forms Stripe'."
+    },
+    {
+      "url": "https://engine.focusa.dev/LICENSE",
+      "status": 404,
+      "bytes": 0,
+      "bounded": "Advertised license terms URL returns 404."
+    },
+    {
+      "url": "https://engine.focusa.dev/COMMERCIAL.md",
+      "status": 404,
+      "bytes": 0,
+      "bounded": "Advertised commercial terms URL returns 404."
+    },
+    {
+      "url": "https://install.focusa.dev/",
+      "status": 200,
+      "bytes": 46281,
+      "bounded": "Install root: 'Bundle: Focusa + UIAI Engine together for $1,097.'; 'Private by design - No telemetry, no phone home.'; 'Free to try. No account, no credit card.'; 'Commercial: $697 per product, lifetime'; advertises curl https://install.focusa.dev/focusa, /engine, /bundle with --eval; 'Pinned checksums and signatures are published at https://install.focusa.dev/checksums.'"
+    },
+    {
+      "url": "https://install.focusa.dev/focusa",
+      "status": 404,
+      "bytes": 61992,
+      "bounded": "Advertised convenience route returns 404."
+    },
+    {
+      "url": "https://install.focusa.dev/bundle",
+      "status": 404,
+      "bytes": 61992,
+      "bounded": "Advertised convenience route returns 404."
+    },
+    {
+      "url": "https://install.focusa.dev/engine",
+      "status": 404,
+      "bytes": 61992,
+      "bounded": "Advertised convenience route returns 404."
+    },
+    {
+      "url": "https://install.focusa.dev/powershell",
+      "status": 404,
+      "bytes": 61992,
+      "bounded": "Advertised convenience route returns 404."
+    },
+    {
+      "url": "https://install.focusa.dev/checksums",
+      "status": 404,
+      "bytes": 61992,
+      "bounded": "Advertised checksums URL returns 404."
+    },
+    {
+      "url": "https://install.focusa.dev/terms/",
+      "status": 404,
+      "bytes": 61992,
+      "bounded": "Install terms page returns 404."
+    },
+    {
+      "url": "https://install.focusa.dev/license",
+      "status": 404,
+      "bytes": 61992,
+      "bounded": "Install license request URL returns 404."
+    },
+    {
+      "url": "https://wpuiai.com/wp-sitemap-posts-download-1.xml",
+      "status": 200,
+      "bytes": 1821,
+      "bounded": "EDD sitemap lists only legacy WPUIAI downloads (pro, agency, screenshots, starter, credit packs); no Focusa/UIAI Operator Download present."
+    },
+    {
+      "url": "https://wpuiai.com/downloads/wpuiai-pro-lifetime/",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Legacy EDD Download page: $149.00 credit pack."
+    },
+    {
+      "url": "https://wpuiai.com/downloads/wpuiai-agency-lifetime/",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Legacy EDD Download page: $349.00 credit pack."
+    },
+    {
+      "url": "https://wpuiai.com/downloads/credit-pack-mega-2000/",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Legacy EDD Download page: $79.00 credit pack."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/Startempire-Wire/focusa/main/LICENSE.md",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Valid BSL 1.1 terms (change date 2030-01-01) at the public repo."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/Startempire-Wire/focusa/main/COMMERCIAL.md",
+      "status": 200,
+      "bytes": 0,
+      "bounded": "Valid commercial-licensing terms at the public repo."
+    }
+  ],
+  "canonical_claims": [
+    {
+      "code": "V01",
+      "baseline_code": "standalone_prices_697",
+      "claim": "Standalone Operator prices $697.00 live on all four public surfaces",
+      "status": "verified",
+      "bounded_claim": "focusa.dev root/pricing/llms.txt and agent-commerce.json (69700 minor), engine.focusa.dev root/llms.txt and agent-commerce.json (69700 minor), install.focusa.dev root ('$697 per product, lifetime'; 'Buy Focusa License - $697'; 'Buy UIAI Engine License - $697').",
+      "evidence_refs": [
+        "uiai-browser:session=-F_XF7e_:engine-root",
+        "spec172:18.1-removal:focusa:2026-08-09",
+        "spec172:18.1-removal:engine:2026-08-09",
+        "spec172:18.1-removal:install:2026-08-09"
+      ]
+    },
+    {
+      "code": "V02",
+      "claim": "Operator License Type names are published",
+      "status": "verified",
+      "bounded_claim": "'Focusa Operator Lifetime License' on focusa.dev; 'UIAI Engine Operator Lifetime License' on engine.focusa.dev; pricing table rows 'Focusa Operator $697 lifetime license' and 'UIAI Engine $697 lifetime license'.",
+      "evidence_refs": [
+        "uiai-browser:session=-F_XF7e_:engine-root",
+        "spec172:18.1-removal:focusa:2026-08-09"
+      ]
+    },
+    {
+      "code": "V03",
+      "claim": "Machine commerce carries 69700 minor / 697 USD for both Operator offers",
+      "status": "verified",
+      "bounded_claim": "focusa.dev and engine.focusa.dev .well-known/agent-commerce.json both publish focusa_operator_preview and uiai_engine_commercial_access at amount_minor 69700, amount 697, currency USD.",
+      "evidence_refs": [
+        "spec172:18.1-removal:focusa:2026-08-09",
+        "spec172:18.1-removal:engine:2026-08-09"
+      ]
+    },
+    {
+      "code": "V04",
+      "baseline_code": "legacy_wpuiai_prices",
+      "claim": "Legacy WPUIAI catalog remains explicitly separate from Focusa/UIAI License Types",
+      "status": "verified",
+      "bounded_claim": "WPUIAI EDD sitemap and Download pages contain only legacy WPUIAI offers ($79/$149/$349 credit-pack pages) with no Focusa/UIAI Operator Download; Focusa/Engine/install surfaces never show the legacy WPUIAI prices; wpuiai.com home page carries no Focusa/UIAI commerce.",
+      "evidence_refs": [
+        "uiai-browser:session=HaIVG2Cs:wpuiai-root",
+        "uiai-browser:session=J_vSHrjR:wpuiai-edd-pro-lifetime",
+        "spec172:18.1-removal:wpuiai-edd:2026-08-09"
+      ]
+    },
+    {
+      "code": "V05",
+      "claim": "UIAI browser diagnostics are clean on engine.focusa.dev",
+      "status": "verified",
+      "bounded_claim": "UIAI session -F_XF7e_: read 17,793 chars, 66 snapshot refs, diagnostics seq 45 with 0 exceptions and 0 failed requests (one jQuery Migrate console notice).",
+      "evidence_refs": [
+        "uiai-browser:session=-F_XF7e_:engine-root"
+      ]
+    },
+    {
+      "code": "V06",
+      "claim": "UIAI browser diagnostics are clean on wpuiai.com and its EDD pages",
+      "status": "verified",
+      "bounded_claim": "UIAI sessions HaIVG2Cs (root) and J_vSHrjR (EDD Download page): 0 exceptions; the only failed request is favicon.ico 404 on each.",
+      "evidence_refs": [
+        "uiai-browser:session=HaIVG2Cs:wpuiai-root",
+        "uiai-browser:session=J_vSHrjR:wpuiai-edd-pro-lifetime"
+      ]
+    },
+    {
+      "code": "V07",
+      "claim": "focusa.dev and engine.focusa.dev local terms pages resolve",
+      "status": "verified",
+      "bounded_claim": "focusa.dev/terms/, /payment-terms/, /privacy/ and engine.focusa.dev/terms/, /payment-terms/ all return HTTP 200.",
+      "evidence_refs": [
+        "spec172:18.1-removal:focusa:2026-08-09",
+        "spec172:18.1-removal:engine:2026-08-09"
+      ]
+    },
+    {
+      "code": "V08",
+      "claim": "Public repo publishes valid license and commercial terms",
+      "status": "verified",
+      "bounded_claim": "Startempire-Wire/focusa LICENSE.md (Business Source License 1.1, change date 2030-01-01) and COMMERCIAL.md return HTTP 200 with substantive terms.",
+      "evidence_refs": [
+        "spec172:18.1-removal:focusa:2026-08-09"
+      ]
+    },
+    {
+      "code": "V09",
+      "claim": "UIAI Engine service is healthy during capture",
+      "status": "verified",
+      "bounded_claim": "uiai-engine v2.0.0 reports healthy; browser pool 2/2 pages available; captures were unauthenticated public reads with Focusa scope echoed.",
+      "evidence_refs": [
+        "spec172:18.1-removal:focusa-vbcqu.20.15.39:2026-08-09"
+      ]
+    },
+    {
+      "code": "V10",
+      "claim": "No authenticated or customer-data capture occurred",
+      "status": "verified",
+      "bounded_claim": "All UIAI sessions and origin reads were unauthenticated public reads; no email, key, token, customer row, credential, or card data was captured or embedded.",
+      "evidence_refs": [
+        "spec172:18.1-removal:focusa-vbcqu.20.15.39:2026-08-09"
+      ]
+    }
+  ],
+  "remaining_contradictions": [
+    {
+      "code": "R01",
+      "baseline_code": "anonymous_local_evaluation",
+      "section_18_2_current": "Anonymous/no-account Evaluation",
+      "status": "remaining",
+      "bounded_claim": "Anonymous/local evaluation remains live: focusa.dev 'Eval mode (no license)' with 'curl ... bash -s -- --eval'; engine.focusa.dev 'Loopback-eval mode is free for development' with --eval; install.focusa.dev 'Install for Evaluation', 'Free to try. No account, no credit card.', and --eval install commands.",
+      "required": "Verified mailbox required for product capability; verified signed limited-access assertion; no local grant creation",
+      "blocker": "requires live public copy change to verified limited-mode wording and removal of --eval install commands",
+      "evidence_refs": [
+        "uiai-browser:session=-F_XF7e_:engine-root",
+        "spec172:18.1-removal:focusa:2026-08-09",
+        "spec172:18.1-removal:install:2026-08-09"
+      ]
+    },
+    {
+      "code": "R02",
+      "baseline_code": "conflicting_bundle_1097",
+      "section_18_2_current": "Bundle advertised at $1,097",
+      "status": "remaining",
+      "bounded_claim": "install.focusa.dev still advertises 'Bundle: Focusa + UIAI Engine together for $1,097.' (required $1,254.60 = 69700+69700 minus 1000 basis points).",
+      "required": "Bundle price $1,254.60",
+      "blocker": "requires install-site copy change from $1,097 to $1,254.60",
+      "evidence_refs": [
+        "spec172:18.1-removal:install:2026-08-09"
+      ]
+    },
+    {
+      "code": "R03",
+      "baseline_code": "no_phone_home",
+      "section_18_2_current": "No phone home",
+      "status": "remaining",
+      "bounded_claim": "install.focusa.dev still advertises 'Private by design - No telemetry, no phone home. License checks are on-demand and local.'",
+      "required": "No telemetry; bounded authority communication for identity, activation, refresh, refund/revoke, and recovery",
+      "blocker": "requires install-site copy change to the bounded-authority no-telemetry wording",
+      "evidence_refs": [
+        "spec172:18.1-removal:install:2026-08-09"
+      ]
+    },
+    {
+      "code": "R04",
+      "baseline_code": "gravity_stripe_positioning",
+      "section_18_2_current": "Gravity Forms/direct Stripe creates entitlement",
+      "status": "remaining",
+      "bounded_claim": "Direct Gravity/Stripe checkout remains the live rail: focusa.dev 'Send the Gravity form with your project/workflow context to start Stripe checkout' and 'Stripe checkout secure'; engine.focusa.dev 'Submit the Gravity form ... to start Stripe checkout'; both agent-commerce.json files list payment_provider 'Gravity Forms Stripe' and gf_stripe_link supported.",
+      "required": "Paid checkout and key truth converge on WPUIAI EDD with configured Stripe gateway",
+      "blocker": "requires checkout rail migration from Gravity Forms Stripe to WPUIAI EDD and updated machine commerce",
+      "evidence_refs": [
+        "uiai-browser:session=-F_XF7e_:engine-root",
+        "spec172:18.1-removal:focusa:2026-08-09",
+        "spec172:18.1-removal:engine:2026-08-09"
+      ]
+    },
+    {
+      "code": "R05",
+      "baseline_code": "broken_routes_and_license_links",
+      "section_18_2_current": "/focusa and /bundle commands advertised while routes return 404",
+      "status": "remaining",
+      "bounded_claim": "install.focusa.dev advertises curl https://install.focusa.dev/focusa, /engine, and /bundle and 'Pinned checksums and signatures are published at https://install.focusa.dev/checksums'; /focusa, /bundle, /engine, /powershell, and /checksums all return HTTP 404.",
+      "required": "Repair routes or remove claims before publication",
+      "blocker": "requires serving the advertised installer assets or removing the claims",
+      "evidence_refs": [
+        "spec172:18.1-removal:install:2026-08-09"
+      ]
+    },
+    {
+      "code": "R06",
+      "baseline_code": "broken_routes_and_license_links",
+      "section_18_2_current": "Public LICENSE or COMMERCIAL.md links return 404",
+      "status": "remaining",
+      "bounded_claim": "focusa.dev root says 'See https://focusa.dev/LICENSE and https://focusa.dev/COMMERCIAL.md.' but both return 404; engine.focusa.dev/LICENSE and COMMERCIAL.md also 404. The public repo LICENSE.md/COMMERCIAL.md resolve (HTTP 200), so valid terms exist but the advertised site URLs are broken.",
+      "required": "Publish valid terms or remove broken links before publication",
+      "blocker": "requires publishing terms at the advertised site URLs or removing the broken links",
+      "evidence_refs": [
+        "spec172:18.1-removal:focusa:2026-08-09",
+        "spec172:18.1-removal:engine:2026-08-09"
+      ]
+    },
+    {
+      "code": "R07",
+      "section_18_2_current": "Paid checkout and key truth converge on WPUIAI EDD with configured Stripe gateway",
+      "status": "remaining",
+      "bounded_claim": "No Focusa/UIAI Operator EDD Download exists in the live WPUIAI EDD catalog (sitemap lists only legacy offers), and the live checkout rail is on-site Gravity Forms Stripe, so the EDD checkout destination is not established on any public surface.",
+      "required": "WPUIAI EDD sole checkout authority with configured Stripe gateway",
+      "blocker": "requires dedicated Operator EDD Downloads and checkout linkage on the live sites",
+      "evidence_refs": [
+        "spec172:18.1-removal:wpuiai-edd:2026-08-09",
+        "uiai-browser:session=J_vSHrjR:wpuiai-edd-pro-lifetime"
+      ]
+    },
+    {
+      "code": "R08",
+      "section_18_2_current": "Focusa purchase may implicitly grant UIAI",
+      "status": "remaining",
+      "bounded_claim": "engine.focusa.dev states 'Selected Focusa Operator Lifetime License holders may receive UIAI Engine access depending on fit, setup needs, and use case' and lists 'approved Focusa Operator Lifetime License use' under 'Allowed without commercial license', leaving an implicit Focusa-purchase-to-UIAI access path.",
+      "required": "Only UIAI License Type, Bundle, or explicit authority grant provides UIAI paid capability",
+      "blocker": "requires engine-site copy change to product-isolated UIAI grant language",
+      "evidence_refs": [
+        "uiai-browser:session=-F_XF7e_:engine-root",
+        "spec172:18.1-removal:engine:2026-08-09"
+      ]
+    },
+    {
+      "code": "R09",
+      "section_18_2_current": "Timed Evaluation requirement",
+      "status": "remaining",
+      "bounded_claim": "No permanent verified no-license limited-mode copy is published; the live surfaces offer 'Eval mode (no license)', 'Loopback-eval mode', and 'Install for Evaluation' instead of the required verified-mailbox limited mode. No timed countdown was observed, but the evaluation posture itself remains.",
+      "required": "Permanent verified no-license limited mode",
+      "blocker": "requires publishing the verified limited-mode posture copy and removing eval-mode framing",
+      "evidence_refs": [
+        "uiai-browser:session=-F_XF7e_:engine-root",
+        "spec172:18.1-removal:focusa:2026-08-09",
+        "spec172:18.1-removal:install:2026-08-09"
+      ]
+    }
+  ],
+  "proof_index": {
+    "schema": "focusa.spec172_uiai_public_proof_index.v1",
+    "claims_digest_sha256": "1e84621e836501d420bb3cbcbd583098ea6616a42c654df7ddb776b9a82e36d3",
+    "canonicalized_digest_input": "canonical_claims + remaining_contradictions sections, json.dumps(sort_keys=True, separators=(',', ':'))",
+    "verified_claim_count": 10,
+    "remaining_contradiction_count": 9,
+    "uiai_session_count": 5,
+    "origin_read_count": 29,
+    "index_rows": [
+      {
+        "code": "V01",
+        "kind": "verified",
+        "evidence_refs": [
+          "uiai-browser:session=-F_XF7e_:engine-root",
+          "spec172:18.1-removal:focusa:2026-08-09",
+          "spec172:18.1-removal:engine:2026-08-09",
+          "spec172:18.1-removal:install:2026-08-09"
+        ]
+      },
+      {
+        "code": "V02",
+        "kind": "verified",
+        "evidence_refs": [
+          "uiai-browser:session=-F_XF7e_:engine-root",
+          "spec172:18.1-removal:focusa:2026-08-09"
+        ]
+      },
+      {
+        "code": "V03",
+        "kind": "verified",
+        "evidence_refs": [
+          "spec172:18.1-removal:focusa:2026-08-09",
+          "spec172:18.1-removal:engine:2026-08-09"
+        ]
+      },
+      {
+        "code": "V04",
+        "kind": "verified",
+        "evidence_refs": [
+          "uiai-browser:session=HaIVG2Cs:wpuiai-root",
+          "uiai-browser:session=J_vSHrjR:wpuiai-edd-pro-lifetime",
+          "spec172:18.1-removal:wpuiai-edd:2026-08-09"
+        ]
+      },
+      {
+        "code": "V05",
+        "kind": "verified",
+        "evidence_refs": [
+          "uiai-browser:session=-F_XF7e_:engine-root"
+        ]
+      },
+      {
+        "code": "V06",
+        "kind": "verified",
+        "evidence_refs": [
+          "uiai-browser:session=HaIVG2Cs:wpuiai-root",
+          "uiai-browser:session=J_vSHrjR:wpuiai-edd-pro-lifetime"
+        ]
+      },
+      {
+        "code": "V07",
+        "kind": "verified",
+        "evidence_refs": [
+          "spec172:18.1-removal:focusa:2026-08-09",
+          "spec172:18.1-removal:engine:2026-08-09"
+        ]
+      },
+      {
+        "code": "V08",
+        "kind": "verified",
+        "evidence_refs": [
+          "spec172:18.1-removal:focusa:2026-08-09"
+        ]
+      },
+      {
+        "code": "V09",
+        "kind": "verified",
+        "evidence_refs": [
+          "spec172:18.1-removal:focusa-vbcqu.20.15.39:2026-08-09"
+        ]
+      },
+      {
+        "code": "V10",
+        "kind": "verified",
+        "evidence_refs": [
+          "spec172:18.1-removal:focusa-vbcqu.20.15.39:2026-08-09"
+        ]
+      },
+      {
+        "code": "R01",
+        "kind": "remaining",
+        "evidence_refs": [
+          "uiai-browser:session=-F_XF7e_:engine-root",
+          "spec172:18.1-removal:focusa:2026-08-09",
+          "spec172:18.1-removal:install:2026-08-09"
+        ]
+      },
+      {
+        "code": "R02",
+        "kind": "remaining",
+        "evidence_refs": [
+          "spec172:18.1-removal:install:2026-08-09"
+        ]
+      },
+      {
+        "code": "R03",
+        "kind": "remaining",
+        "evidence_refs": [
+          "spec172:18.1-removal:install:2026-08-09"
+        ]
+      },
+      {
+        "code": "R04",
+        "kind": "remaining",
+        "evidence_refs": [
+          "uiai-browser:session=-F_XF7e_:engine-root",
+          "spec172:18.1-removal:focusa:2026-08-09",
+          "spec172:18.1-removal:engine:2026-08-09"
+        ]
+      },
+      {
+        "code": "R05",
+        "kind": "remaining",
+        "evidence_refs": [
+          "spec172:18.1-removal:install:2026-08-09"
+        ]
+      },
+      {
+        "code": "R06",
+        "kind": "remaining",
+        "evidence_refs": [
+          "spec172:18.1-removal:focusa:2026-08-09",
+          "spec172:18.1-removal:engine:2026-08-09"
+        ]
+      },
+      {
+        "code": "R07",
+        "kind": "remaining",
+        "evidence_refs": [
+          "spec172:18.1-removal:wpuiai-edd:2026-08-09",
+          "uiai-browser:session=J_vSHrjR:wpuiai-edd-pro-lifetime"
+        ]
+      },
+      {
+        "code": "R08",
+        "kind": "remaining",
+        "evidence_refs": [
+          "uiai-browser:session=-F_XF7e_:engine-root",
+          "spec172:18.1-removal:engine:2026-08-09"
+        ]
+      },
+      {
+        "code": "R09",
+        "kind": "remaining",
+        "evidence_refs": [
+          "uiai-browser:session=-F_XF7e_:engine-root",
+          "spec172:18.1-removal:focusa:2026-08-09",
+          "spec172:18.1-removal:install:2026-08-09"
+        ]
+      }
+    ]
+  }
+}
