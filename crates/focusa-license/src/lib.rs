@@ -6,6 +6,9 @@
 //! Legacy tier/file parsing is retained solely as non-authoritative migration input;
 //! missing, edited, expired, revoked, or unverifiable state cannot grant capability.
 
+pub mod activation_client;
+pub mod activation_facade;
+pub mod activation_reducer;
 pub mod authority;
 pub mod authority_client;
 pub mod authority_credentials;
@@ -17,6 +20,21 @@ mod entitlement_policy;
 pub mod feature_decision;
 pub mod license_migration;
 
+pub use activation_client::{
+    ActivationClientError, ActivationJourney, ActivationLedgerEvent, ActivationRegistration,
+    ActivationSession, ActivationStartReply, ActivationAuthority, CheckoutOutcome, PollOutcome,
+    PublicOffer, DEFAULT_MAX_POLLS, retry_policy_for_code,
+};
+pub use activation_facade::{
+    ActivationError, ActivationErrorCode, ActivationErrorSpec, ActivationRequestContext,
+    FacadeOperation, mask_email,
+};
+pub use activation_reducer::{
+    ActivationEnvelopeError, ActivationErrorEnvelope, ActivationOutputEnvelope,
+    ActivationState, ActivationTransition, ActivationTransitionError, PollRetryPolicy,
+    PresenterActivationState, RetryPosture, presenter_next_action, presenter_state,
+    reduce_activation,
+};
 pub use entitlement_policy::{
     authority_policy_state, base_product_compatibility_projection,
     classify_operator_family_inheritance,
