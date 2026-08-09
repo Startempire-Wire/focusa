@@ -27,6 +27,6 @@
     }
   ],
   "remaining_work": [],
-  "task_id": "DOMAIN-011",
-  "result": "Bounded Workstream history: surface:history:* renders only when emitted; history is bounded by the canonical projection."
+  "task_id": "DOMAIN-008",
+  "result": "Document Work Surface contribution: renders only when Core emits surface:document:*; never inferred from file state."
 }

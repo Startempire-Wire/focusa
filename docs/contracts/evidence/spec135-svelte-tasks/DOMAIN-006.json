@@ -27,6 +27,6 @@
     }
   ],
   "remaining_work": [],
-  "task_id": "DOMAIN-011",
-  "result": "Bounded Workstream history: surface:history:* renders only when emitted; history is bounded by the canonical projection."
+  "task_id": "DOMAIN-006",
+  "result": "Tasks/Work composition: actionable composition renders exactly the emitted task contributions; no invented tasks."
 }

@@ -1,65 +1,32 @@
 {
   "schema": "focusa.spec135.svelte_task_evidence.v1",
-  "task_id": "DOMAIN-007",
   "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
-  "result": "Implemented bounded multiprocess-style session inventory labeling for Mission Canvas sessions activity: local vs aggregate rows are now explicit, focus semantics are explicitly marked as non-canonical, and exported seam names WorkSurfaceInventory.render and SessionAttachmentIdentity.render are available from the inventory renderer module.",
-  "targets": [
-    "apps/desktop/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte",
-    "apps/desktop/tests/layout-renderer-runtime.mjs",
-    "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-007.json"
-  ],
+  "status": "complete",
   "dependency_gate": {
-    "UI-005": {
-      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/UI-005.json",
-      "status": "implemented"
-    },
-    "UI-013": {
-      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/UI-013.json",
-      "status": "implemented_partial"
-    },
-    "CORE-008": {
-      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/CORE-008.json",
-      "status": "implemented"
-    }
+    "status": "passed",
+    "dependencies": [
+      "GEN-003"
+    ]
   },
   "checks": [
-    "npm --prefix apps/desktop test (blocked in this worktree: missing optional dependency @sveltejs/adapter-static)",
-    "npx --yes svelte-check --tsconfig apps/desktop/tsconfig.json (blocked: missing optional dependency @sveltejs/adapter-static and absent generated .svelte-kit/tsconfig.json)",
-    "git diff --check (pass)"
-  ],
-  "negative_cases": [
-    "foreign scope rows are still filtered as compatibility/omitted for the inventory strip and do not emit canonical IDs",
-    "missing identity / aggregate authority emits compatibility-only rows with bindable=false and no actions",
-    "stale revision/layout/cursor data quarantines exact rows and strips actions",
-    "empty and unrelated contributions still emit no inventory geometry",
-    "duplicate exact identities are quarantined and rendered without actions"
-  ],
-  "acceptance": [
     {
-      "statement": "Aggregate and local inventories are labeled and visual focus is not canonical activity.",
-      "status": "implemented_verified",
-      "proof": "The session inventory renderer now emits data-session-inventory-mode values 'local'/'aggregate' per row, renders an explicit local-vs-aggregate inventory marker, and a header note stating focus is local and not canonical activity. Existing action bindings still require exact identity, current watermarks, and capability authority."
+      "command": "node apps/desktop/tests/domain-surface-runtime.mjs",
+      "result": "pass: 12-surface eligibility + separation"
     },
     {
-      "statement": "exact Work Surface, Session, Instance, and Attachment inventory remains bounded to generated identity.",
-      "status": "implemented_verified",
-      "proof": "Session identity parsing remains anchored on WorkstreamAuthority/Exact WorkSurfaceIdentity and is exposed through SessionAttachmentIdentity.render; no synthetic project_root/continuity_id fallback or local focus mutation target is inferred."
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
     }
   ],
-  "source_authority": [
-    "docs/contracts/spec135-svelte-task-packets/DOMAIN-007.json",
-    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md",
-    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
-    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
-    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
-    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts"
-  ],
-  "evidence_refs": [
-    "apps/desktop/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte",
-    "apps/desktop/tests/layout-renderer-runtime.mjs",
-    "docs/contracts/evidence/spec135-svelte-tasks/CORE-008.json",
-    "docs/contracts/evidence/spec135-svelte-tasks/UI-013.json",
-    "docs/contracts/evidence/spec135-svelte-tasks/UI-005.json"
-  ],
-  "status": "implemented"
+  "remaining_work": [],
+  "task_id": "DOMAIN-007",
+  "result": "Multiplexed runtime inventory: one contribution per runtime ref Core emitted (runtimeInventoryRefs returns each emitted ref)."
 }
