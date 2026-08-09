@@ -4,7 +4,7 @@
 
 use axum::{Json, Router, extract::State, http::StatusCode, routing::get};
 use focusa_license::{
-    ActivationRegistration, Capability, CapabilityCheck, AgentActivationEnvelope,
+    ActivationRegistration, AgentActivationEnvelope, Capability, CapabilityCheck,
     authority::EntitlementState,
 };
 use serde::Serialize;
@@ -38,17 +38,19 @@ async fn license_status(
                 })),
             )
         })?;
-    let entitlement_decision = focusa_license::entitlement_decision_projection(g.entitlement.as_ref())
-        .map_err(|error| {
-            (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({
-                    "error": "ENTITLEMENT_SNAPSHOT_MISSING",
-                    "message": error.to_string(),
-                    "recovery_policy": "recovery, export, repair, and uninstall remain available",
-                })),
-            )
-        })?;
+    let entitlement_decision = focusa_license::entitlement_decision_projection(
+        g.entitlement.as_ref(),
+    )
+    .map_err(|error| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({
+                "error": "ENTITLEMENT_SNAPSHOT_MISSING",
+                "message": error.to_string(),
+                "recovery_policy": "recovery, export, repair, and uninstall remain available",
+            })),
+        )
+    })?;
     let caps = [
         Capability::CommercialUse,
         Capability::HostedMode,
@@ -94,13 +96,33 @@ async fn license_status(
         None => "migrate legacy license through authority activation",
     };
 
+    // Spec 152E §21 shared presenter projection: the daemon REST surface
+    // exposes the same frozen presenter state, next action, and allowed
+    // actions as the menubar, TUI, and lifecycle receipts for the same
+    // entitlement. The mapping mirrors the TUI presenter; the shared frozen
+    // vocabulary is bound by tests/spec152e_tui_rest_activation_test.py.
+    let presenter_state = presenter_state_for_entitlement_status(status);
+    let presenter_next_action = presenter_next_action_label(presenter_state);
+    let presenter_actions: Vec<&str> =
+        allowed_actions_for_presenter_state(presenter_state).to_vec();
+    let masked_identity = g.customer_email.as_deref().and_then(mask_identity);
+    let presenter = serde_json::json!({
+        "schema": "focusa.presenter_entitlement_posture.v1",
+        "presenter_state": presenter_state,
+        "next_action": presenter_next_action,
+        "allowed_actions": presenter_actions,
+        "terminal": matches!(presenter_state, "activated" | "denied" | "recovery_only"),
+        "masked_identity": masked_identity,
+        "recovery_policy": "recovery, export, repair, and uninstall remain available",
+    });
+
     Ok(Json(serde_json::json!({
         "status": status,
         "tier": g.tier.label(),
         "issued_at": g.issued_at.to_rfc3339(),
         "expires_at": g.expires_at.map(|d| d.to_rfc3339()),
         "bsl_change_date": g.bsl_change_date.to_rfc3339(),
-        "masked_identity": g.customer_email.as_deref().and_then(mask_identity),
+        "masked_identity": masked_identity,
         "expired": g.is_expired(),
         "authority": authority,
         "entitlement_decision": entitlement_decision,
@@ -111,6 +133,7 @@ async fn license_status(
             posture.iter().filter(|p| p.outcome == "denied").count()
         ),
         "next_action": next_action,
+        "presenter": presenter,
     })))
 }
 
@@ -121,6 +144,66 @@ fn mask_identity(value: &str) -> Option<String> {
     }
     let first = local.chars().next()?;
     Some(format!("{first}***@{domain}"))
+}
+
+/// Frozen Spec 152E presenter state for a license-status label. Identical
+/// mapping to the TUI presenter (crates/focusa-tui/src/activation_presenter.rs);
+/// cross-surface equivalence is bound by
+/// tests/spec152e_tui_rest_activation_test.py.
+fn presenter_state_for_entitlement_status(status: &str) -> &'static str {
+    match status {
+        "active" | "offline_grace" => "activated",
+        "recovery_only" => "recovery_only",
+        "expired" | "revoked" => "denied",
+        // Unactivated and legacy-migration-only postures re-enter the shared
+        // activation flow; they never grant anything locally.
+        _ => "email_required",
+    }
+}
+
+/// Frozen next-action table for a presenter state (shared projection).
+fn presenter_next_action_label(state: &str) -> &'static str {
+    match state {
+        "email_required" => "provide_email",
+        "email_verification_pending" => "verify_email",
+        "email_verified" => "select_offer",
+        "selection_required" => "select_offer",
+        "checkout_required" => "open_checkout",
+        "payment_pending" => "poll_after_retry_after",
+        "license_delivery_ready" => "deliver_license",
+        "activated" => "activated",
+        "denied" => "activate_or_manage_entitlement",
+        "recovery_only" => "recovery",
+        _ => "activate_or_manage_entitlement",
+    }
+}
+
+/// Equivalent allowed actions for a presenter state (shared projection).
+fn allowed_actions_for_presenter_state(state: &str) -> &'static [&'static str] {
+    match state {
+        "email_required" => &["provide_email"],
+        "email_verification_pending" => &["verify_email", "resend_code"],
+        "email_verified" => &["select_offer"],
+        "selection_required" => &[
+            "select_purchase",
+            "select_limited_access",
+            "select_existing_key",
+        ],
+        "checkout_required" => &["open_checkout"],
+        "payment_pending" => &["poll", "open_checkout"],
+        "license_delivery_ready" => &["deliver_license", "activate"],
+        "activated" => &["manage_nodes", "refresh_lease", "manage_account", "resume"],
+        "denied" => &["activate_or_manage_entitlement", "recovery"],
+        "recovery_only" => &[
+            "recovery",
+            "repair",
+            "export",
+            "uninstall",
+            "manage_nodes",
+            "manage_account",
+        ],
+        _ => &["activate_or_manage_entitlement", "recovery"],
+    }
 }
 
 /// Read presenter-safe registration snapshots from the activation directory.
@@ -207,7 +290,10 @@ async fn activation_status(
 
 #[cfg(test)]
 mod tests {
-    use super::{mask_identity, read_registration_snapshots};
+    use super::{
+        allowed_actions_for_presenter_state, mask_identity, presenter_next_action_label,
+        presenter_state_for_entitlement_status, read_registration_snapshots,
+    };
     use focusa_license::ActivationRegistration;
 
     #[test]
@@ -221,11 +307,51 @@ mod tests {
     }
 
     #[test]
+    fn presenter_projection_uses_frozen_shared_vocabulary() {
+        // Active/offline-grace postures render as the shared `activated`
+        // state with node management and refresh; recovery renders
+        // recovery_only with recovery actions; unactivated renders
+        // email_required (shared activation flow, no local grant).
+        assert_eq!(
+            presenter_state_for_entitlement_status("active"),
+            "activated"
+        );
+        assert_eq!(
+            presenter_state_for_entitlement_status("offline_grace"),
+            "activated"
+        );
+        assert_eq!(
+            presenter_state_for_entitlement_status("recovery_only"),
+            "recovery_only"
+        );
+        assert_eq!(presenter_state_for_entitlement_status("expired"), "denied");
+        assert_eq!(
+            presenter_state_for_entitlement_status("unactivated"),
+            "email_required"
+        );
+        assert_eq!(
+            presenter_state_for_entitlement_status("legacy_migration_only"),
+            "email_required"
+        );
+        assert_eq!(presenter_next_action_label("activated"), "activated");
+        assert_eq!(
+            presenter_next_action_label("denied"),
+            "activate_or_manage_entitlement"
+        );
+        assert_eq!(presenter_next_action_label("recovery_only"), "recovery");
+        assert!(allowed_actions_for_presenter_state("activated").contains(&"manage_nodes"));
+        assert!(allowed_actions_for_presenter_state("recovery_only").contains(&"repair"));
+        // Fail-closed default for unknown labels.
+        assert_eq!(
+            presenter_next_action_label("granted_now"),
+            "activate_or_manage_entitlement"
+        );
+    }
+
+    #[test]
     fn snapshot_scan_accepts_only_canonical_schemas_and_stays_deterministic() {
-        let directory = std::env::temp_dir().join(format!(
-            "focusa-api-activation-{}",
-            uuid::Uuid::now_v7()
-        ));
+        let directory =
+            std::env::temp_dir().join(format!("focusa-api-activation-{}", uuid::Uuid::now_v7()));
         std::fs::create_dir_all(&directory).unwrap();
         let snapshot = serde_json::json!({
             "schema": "focusa.activation_registration.v1",
@@ -238,7 +364,11 @@ mod tests {
             "poll_count": 3,
             "max_polls": 40,
         });
-        std::fs::write(directory.join("registration-0002.json"), snapshot.to_string()).unwrap();
+        std::fs::write(
+            directory.join("registration-0002.json"),
+            snapshot.to_string(),
+        )
+        .unwrap();
         let unrelated = serde_json::json!({"schema": "other.schema.v1", "value": 1});
         std::fs::write(directory.join("unrelated.json"), unrelated.to_string()).unwrap();
         std::fs::write(directory.join("malformed.json"), "{not json").unwrap();
@@ -248,10 +378,7 @@ mod tests {
         assert_eq!(registrations[0].registration_id, "registration-0002");
         assert_eq!(registrations[0].state.label(), "checkout_pending");
         // The scan is deterministic: run twice, same result.
-        assert_eq!(
-            read_registration_snapshots(&directory),
-            registrations
-        );
+        assert_eq!(read_registration_snapshots(&directory), registrations);
         std::fs::remove_dir_all(&directory).unwrap();
     }
 
@@ -273,7 +400,10 @@ mod tests {
         assert_eq!(envelope.schema, "focusa.agent_activation_envelope.v1");
         assert_eq!(envelope.state, "payment_pending");
         assert!(envelope.human_action_required);
-        assert_eq!(envelope.human_action.as_deref(), Some("complete_payment_then_poll"));
+        assert_eq!(
+            envelope.human_action.as_deref(),
+            Some("complete_payment_then_poll")
+        );
         assert!(!envelope.key_visible);
         let body = serde_json::to_string(&envelope).unwrap();
         assert!(!body.contains("raw_email"));

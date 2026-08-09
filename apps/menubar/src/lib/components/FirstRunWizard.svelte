@@ -32,6 +32,11 @@
     type EntitlementChoice,
     type FirstRunEntitlementState,
   } from '$lib/firstRunEntitlement';
+  import {
+    denialRecovery,
+    projectActivationStatus,
+    type MenubarActivationView,
+  } from '$lib/activationPresenter';
   import QRCode from './QRCode.svelte';
   import Settings from './Settings.svelte';
   import {
@@ -107,6 +112,12 @@
   let entitlementState = $state<FirstRunEntitlementState>(loadEntitlementState());
   let entitlementBusy = $state(false);
   let entitlementMessage = $state('Checking signed entitlement authority…');
+  // Shared activation presenter view (Spec 152E §21): the menubar renders
+  // the same activation states/actions, masked identity, checkout/verify
+  // links, terminal delivery, node management, denial/recovery, and resume
+  // handles as the TUI, daemon REST, and lifecycle receipts for the same
+  // canonical registration — it never re-decides a transition.
+  let activationView = $state<MenubarActivationView | null>(null);
 
   function persistEntitlementState(next: FirstRunEntitlementState) {
     entitlementState = next;
@@ -184,6 +195,13 @@
         privacy_accepted: response.status === 'active' || response.status === 'offline_grace',
       };
       persistEntitlementState(advanceFirstRun(entitlementState, { type: 'authority_observed', authority: projection }));
+      // Project the shared activation presenter view from the daemon REST
+      // activation surface; unknown states fail closed to null.
+      try {
+        activationView = projectActivationStatus(await fetchJson<unknown>('/v1/activation/status', 5000));
+      } catch {
+        activationView = null;
+      }
       entitlementMessage = entitlementReady(projection)
         ? 'Signed entitlement verified. Optional integrations are now available.'
         : 'No runnable entitlement is active. Recovery operations remain available.';
@@ -194,6 +212,11 @@
         last_error: 'authority_status_unavailable',
         updated_at: new Date().toISOString(),
       });
+      try {
+        activationView = projectActivationStatus(await fetchJson<unknown>('/v1/activation/status', 5000));
+      } catch {
+        activationView = null;
+      }
       entitlementMessage = 'Authority status unavailable. Recovery, export, repair, and uninstall remain available.';
     } finally {
       entitlementBusy = false;
@@ -696,7 +719,27 @@
     <p class="stepper">Step {stepIndex} of {stepTotal}</p>
   </header>
 
-  {#if entitlementState.stage === 'trust_recovery'}
+  {#if activationView && activationView.state !== 'activated'}
+    <div class="card">
+      <h3>Activation — {activationView.state.replace(/_/g, ' ')}</h3>
+      {#if activationView.masked_email}<p>Account: {activationView.masked_email}</p>{/if}
+      {#if activationView.safe_url}
+        <p>Open <a href={activationView.safe_url} target="_blank" rel="noopener noreferrer">{activationView.safe_url}</a></p>
+      {/if}
+      <p>Next action: <strong>{activationView.next_action}</strong></p>
+      <p class="dim">Allowed actions: {activationView.actions.join(', ')}</p>
+      {#if activationView.resume_handle}
+        <p class="dim">Resume handle: <code>{activationView.resume_handle}</code> (poll credentials stay in the protected store)</p>
+      {/if}
+      {#if denialRecovery(activationView).recovery_only}
+        <p class="dim">Recovery only: {denialRecovery(activationView).recovery_actions.join(', ')} remain available.</p>
+      {/if}
+      <div class="row">
+        <button class="primary" disabled={entitlementBusy} onclick={refreshEntitlement}>Refresh</button>
+        <button class="utility" onclick={() => selectEntitlementChoice('manage')}>Manage</button>
+      </div>
+    </div>
+  {:else if entitlementState.stage === 'trust_recovery'}
     <div class="card">
       <h3>Trust and recovery</h3>
       <p>{entitlementMessage}</p>

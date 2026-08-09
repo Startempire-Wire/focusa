@@ -189,3 +189,109 @@ fn adapter_posture_must_match_parent_authority_digest() {
         Err(LifecycleReceiptError::AdapterMismatch)
     );
 }
+
+#[test]
+fn receipt_presenter_posture_uses_shared_presenter_vocabulary() {
+    // Product-ready receipts render as the shared `activated` state with
+    // node management and refresh actions — the same posture the menubar,
+    // TUI, and daemon REST surface expose for an entitled registration.
+    let ready = LifecycleReceiptV1::from_acceptance(
+        "receipt:ready",
+        &acceptance(LifecycleEntitlementReceiptClass::PaidReady),
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+    let posture = ready.presenter_posture();
+    assert_eq!(posture.presenter_state, "activated");
+    assert_eq!(posture.next_action, "activated");
+    assert!(posture.product_ready);
+    assert!(posture.terminal);
+    assert!(
+        posture
+            .allowed_actions
+            .contains(&"manage_nodes".to_string())
+    );
+    assert!(
+        posture
+            .allowed_actions
+            .contains(&"refresh_lease".to_string())
+    );
+
+    // RecoveryReady renders recovery_only with the shared recovery actions.
+    let recovery = LifecycleReceiptV1::from_acceptance(
+        "receipt:recovery",
+        &acceptance(LifecycleEntitlementReceiptClass::RecoveryReady),
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+    let recovery_posture = recovery.presenter_posture();
+    assert_eq!(recovery_posture.presenter_state, "recovery_only");
+    assert_eq!(recovery_posture.next_action, "recovery");
+    assert!(
+        recovery_posture
+            .allowed_actions
+            .contains(&"repair".to_string())
+    );
+    assert!(
+        recovery_posture
+            .allowed_actions
+            .contains(&"uninstall".to_string())
+    );
+    assert!(!recovery_posture.product_ready);
+
+    // BlockedEntitlement renders denied with activation-or-manage guidance;
+    // it never renders as usable.
+    let mut blocked = acceptance(LifecycleEntitlementReceiptClass::BlockedEntitlement);
+    blocked.final_state = LifecycleState::BlockedLicense;
+    blocked.closure_allowed = false;
+    blocked.entitlement_binding = None;
+    blocked.entitlement_evidence_refs.clear();
+    let blocked_receipt = LifecycleReceiptV1::from_acceptance(
+        "receipt:blocked",
+        &blocked,
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+    let denied = blocked_receipt.presenter_posture();
+    assert_eq!(denied.presenter_state, "denied");
+    assert_eq!(denied.next_action, "activate_or_manage_entitlement");
+    assert!(denied.allowed_actions.contains(&"recovery".to_string()));
+
+    // A product-ready class without a verified signature fails closed to
+    // recovery_only and never renders as activated. (Construction already
+    // refuses such receipts via UnverifiedProductReady; the posture still
+    // fails closed when projection runs on any such record.)
+    let mut forged = LifecycleReceiptV1::from_acceptance(
+        "receipt:forged",
+        &acceptance(LifecycleEntitlementReceiptClass::PaidReady),
+        time("2026-08-05T12:10:00Z"),
+        digest('e'),
+        None,
+        vec![],
+        None,
+    )
+    .unwrap();
+    forged.signature_verified = false;
+    let forged_posture = forged.presenter_posture();
+    assert_eq!(forged_posture.presenter_state, "recovery_only");
+    assert!(!forged_posture.product_ready);
+
+    // The posture is presenter-safe: no raw email, key, credential, or card
+    // data field by construction.
+    let body = serde_json::to_string(&posture).unwrap();
+    assert!(!body.contains("email"));
+    assert!(!body.contains("credential"));
+    assert!(!body.contains("card"));
+}
