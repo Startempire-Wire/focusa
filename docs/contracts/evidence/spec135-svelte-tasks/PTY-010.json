@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-010",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Detached presentation with live process verified: detach keeps the process alive; reattach resyncs subsequent output from the SAME process generation via bounded event history (resync_events after the last observed sequence); live streaming is best-effort while history is the durable reattach path. Registry re-attach returns the same live process Arc.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-007"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo test -p focusa-pty reattach_resyncs_subsequent_output_from_same_generation",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-pty reattach_resyncs",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p focusa-pty",
+      "result": "pass: 24 tests"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
