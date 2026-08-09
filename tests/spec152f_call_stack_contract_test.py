@@ -138,11 +138,11 @@ expected_existing = {
     "ENTITLEMENT_RESERVATION_FAILED",
     "ENTITLEMENT_ROUTE_UNCLASSIFIED",
     "ENTITLEMENT_SNAPSHOT_MISSING",
+    "ENTITLEMENT_POLICY_UNKNOWN",
 }
 expected_new = {
     "ENTITLEMENT_FAMILY_UNKNOWN",
     "ENTITLEMENT_POLICY_ACTIVATION_FORBIDDEN",
-    "ENTITLEMENT_POLICY_UNKNOWN",
 }
 assert set(error_codes) == expected_existing | expected_new
 assert {row["code"] for row in error_rows if row["source_status"] == "existing"} == expected_existing

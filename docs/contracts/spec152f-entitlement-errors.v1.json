@@ -15,7 +15,11 @@
       "http_status": 403,
       "public_message": "This operation requires an additional authority-granted Focusa feature.",
       "recovery_action": "review_offer_or_manage_entitlement",
-      "required_context": ["capability_family", "operation_id", "required_feature"],
+      "required_context": [
+        "capability_family",
+        "operation_id",
+        "required_feature"
+      ],
       "retryable": false,
       "source_status": "existing"
     },
@@ -25,7 +29,11 @@
       "http_status": 428,
       "public_message": "A stable idempotency key is required before reserving licensed capacity.",
       "recovery_action": "retry_with_stable_idempotency_key",
-      "required_context": ["capability_family", "operation_id", "limit_bucket"],
+      "required_context": [
+        "capability_family",
+        "operation_id",
+        "limit_bucket"
+      ],
       "retryable": true,
       "source_status": "existing"
     },
@@ -35,7 +43,11 @@
       "http_status": 429,
       "public_message": "The authority-granted capacity for this operation is unavailable or exhausted.",
       "recovery_action": "manage_capacity_or_retry_after_settlement",
-      "required_context": ["capability_family", "operation_id", "limit_bucket"],
+      "required_context": [
+        "capability_family",
+        "operation_id",
+        "limit_bucket"
+      ],
       "retryable": false,
       "source_status": "existing"
     },
@@ -45,7 +57,10 @@
       "http_status": 403,
       "public_message": "This operation has no registered entitlement family and is blocked before execution.",
       "recovery_action": "run_diagnostics_or_update_policy",
-      "required_context": ["operation_id", "policy_digest"],
+      "required_context": [
+        "operation_id",
+        "policy_digest"
+      ],
       "retryable": false,
       "source_status": "spec152f_new"
     },
@@ -55,7 +70,11 @@
       "http_status": 403,
       "public_message": "This granular entitlement control is not approved for runtime activation.",
       "recovery_action": "use_registered_base_or_premium_policy",
-      "required_context": ["capability_family", "operation_id", "policy_digest"],
+      "required_context": [
+        "capability_family",
+        "operation_id",
+        "policy_digest"
+      ],
       "retryable": false,
       "source_status": "spec152f_new"
     },
@@ -65,9 +84,13 @@
       "http_status": 403,
       "public_message": "The entitlement policy is unavailable or unrecognized and this operation is blocked.",
       "recovery_action": "run_diagnostics_or_update_policy",
-      "required_context": ["operation_id", "policy_digest"],
+      "required_context": [
+        "operation_id",
+        "policy_digest"
+      ],
       "retryable": false,
-      "source_status": "spec152f_new"
+      "source_status": "existing",
+      "implemented": true
     },
     {
       "category": "authority",
@@ -75,7 +98,11 @@
       "http_status": 403,
       "public_message": "A usable authority-issued Focusa entitlement is required for this operation.",
       "recovery_action": "activate_evaluation_purchase_or_manage_entitlement",
-      "required_context": ["capability_family", "entitlement_state", "operation_id"],
+      "required_context": [
+        "capability_family",
+        "entitlement_state",
+        "operation_id"
+      ],
       "retryable": false,
       "source_status": "existing"
     },
@@ -85,7 +112,11 @@
       "http_status": 503,
       "public_message": "Licensed capacity could not be reserved safely before execution.",
       "recovery_action": "retry_with_same_idempotency_key_or_run_diagnostics",
-      "required_context": ["capability_family", "operation_id", "limit_bucket"],
+      "required_context": [
+        "capability_family",
+        "operation_id",
+        "limit_bucket"
+      ],
       "retryable": true,
       "source_status": "existing"
     },
@@ -95,7 +126,9 @@
       "http_status": 403,
       "public_message": "This operation has no exact entitlement descriptor and is blocked before execution.",
       "recovery_action": "run_diagnostics_or_update_policy",
-      "required_context": ["operation_id"],
+      "required_context": [
+        "operation_id"
+      ],
       "retryable": false,
       "source_status": "existing"
     },
@@ -105,7 +138,9 @@
       "http_status": 403,
       "public_message": "A verified authority entitlement snapshot is unavailable.",
       "recovery_action": "activate_refresh_or_run_diagnostics",
-      "required_context": ["entitlement_state"],
+      "required_context": [
+        "entitlement_state"
+      ],
       "retryable": false,
       "source_status": "existing"
     }
