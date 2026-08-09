@@ -1,0 +1,101 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.39
+Title: 152F.05.03 Project canonical decisions through Pi and agent tools
+Implementation commit: `530d64ad`
+
+Exact surfaces
+- apps/pi-extension tool preflight/state/commands
+  (src/entitlement-policy-adapter.ts new; src/tools.ts entitlement projection;
+  src/state.ts focusaFetch denial envelope preserved)
+- Agent Capability Descriptor V2 (docs/contracts/spec141/generated-capability-v2/)
+- agent JSON envelopes (focusa.entitlement_decision.v1 projected into every
+  Pi tool result; recovery actions exposed)
+
+Bounded result
+- Added the Pi/agent policy adapter (apps/pi-extension/src/entitlement-policy-adapter.ts):
+  `resolveOperationPolicyForTool` resolves each tool's canonical operation
+  policy from the canonical tool registry (FOCUSA_TOOL_CONTRACTS);
+  `preflightAuthority` resolves operation policy BEFORE side effects and
+  fails closed — unknown tools have no policy and block, value-producing
+  mutations (base_focusa/automation/team_remote/release_proof/premium_updates)
+  require a usable authority posture, and recovery/read families remain
+  usable at the tool layer (the daemon still enforces its own security);
+  `projectEntitlementDecision` returns stable machine JSON
+  (`focusa.entitlement_decision.v1`): ok=false, status=blocked,
+  failure_class=entitlement_blocked, canonical operation class/family/
+  commercial treatment/required feature/limit bucket/recovery allowance, and
+  a typed recovery object (status_path /v1/license/status plus allowed
+  actions including export, repair, update_for_recovery, uninstall, safe_read).
+  Commercial fields always come from the canonical contract — never from a
+  caller-controlled payload.
+- Authority boundary (Spec 152F §5): the adapter emits
+  licensing_grants_capability_only=true and operator_authority_granted=false,
+  cognitive_authority_granted=false, approval_inferred=false,
+  discovery_visibility_granted=false by construction. Licensing grants
+  capability only; operator permission/confirmation is preserved
+  independently and never inferred from entitlement state; tool
+  discovery/visibility is advisory routing metadata and never grants
+  entitlement (`discoveryGrantsNothing`).
+- Wired every Pi tool through the adapter in tools.ts inferToolResult (the
+  single chokepoint all focusa_* tools flow through): ENTITLEMENT_* daemon
+  denials now project the canonical `entitlement_decision` envelope,
+  `entitlement_blocked` failure class, operator_required retry posture (never
+  auto-approval), no side-effect claims, and recovery next-tools
+  (focusa_agent_card, focusa_tool_doctor). FocusaToolResultV1 carries the
+  optional entitlement_decision field; the tool-result output schema mirrors it.
+- Extended apps/pi-extension/tests/pi-entitlement-gate.test.mjs to assert the
+  adapter wiring and fail-closed/authority-boundary invariants, and added
+  tests/spec152f_agent_presenter_test.py: presenter parity proving every one
+  of the 136 Pi tools inherits its Agent Capability Descriptor V2 operation
+  policy (policy_owner=entitlement_policy_resolver), descriptors never grant
+  operator/cognitive authority or mutation confirmation, and discovery
+  projections (pi-tools.json, openai-tools.json, mcp-tools.json, agent-card)
+  are advisory-only with no entitlement grant fields.
+
+Exact verification (exit codes)
+1. `node apps/pi-extension/tests/pi-entitlement-gate.test.mjs` — exit 0.
+   Output: "Pi entitlement denial projection gate passed"
+2. `python3 tests/spec152f_agent_presenter_test.py` — exit 0.
+   Output: "Spec 152F agent presenter parity: PASS (136 Pi tools inherit
+   descriptor policy, 136 descriptors, discovery advisory only)"
+3. Combined `node apps/pi-extension/tests/pi-entitlement-gate.test.mjs &&
+   python3 tests/spec152f_agent_presenter_test.py` — exit 0.
+
+Regression checks (exit codes)
+- `tsc --noEmit -p apps/pi-extension/tsconfig.json` on the changed surfaces —
+  no errors in entitlement-policy-adapter.ts or tools.ts (9 pre-existing
+  errors in untouched files (tool-contracts.ts family widening, missing
+  local @earendil-works/pi-tui) reproduce identically on the base commit and
+  are outside this atom's surfaces).
+- `node apps/pi-extension/tests/tool-doctor-authority.test.mjs` — exit 0.
+- `node apps/pi-extension/tests/spec152e_agent_activation.test.mjs`,
+  `node apps/pi-extension/tests/tool-discovery-visible-runtime.test.mjs`,
+  `node apps/pi-extension/tests/pi-sdk-security.test.mjs` — fail only in this
+  sandbox because the pi-extension typescript devDependency is not installed
+  locally (npm routes to the remote OVH build; node_modules is not synced);
+  these tests do not exercise the changed surfaces and fail before loading
+  them. The exact verification tests are dependency-free and pass.
+- `git diff --check` — exit 0.
+
+Tests added
+- apps/pi-extension/tests/pi-entitlement-gate.test.mjs: extended with 12 new
+  assertions binding tools.ts to the policy adapter and asserting the adapter
+  fail-closed preflight, stable machine JSON, recovery actions, and the
+  never-grant authority boundary.
+- tests/spec152f_agent_presenter_test.py: presenter parity gate — every Pi
+  tool inherits its descriptor operation policy (136/136), descriptors never
+  grant operator/cognitive authority or mutation confirmation, and discovery
+  projections carry no entitlement grants.
+
+Rollback
+- Revert only this atom's implementation commit `530d64ad` (and this evidence
+  record if required): the entitlement-policy-adapter.ts module, the tools.ts
+  entitlement projection wiring, the pi-entitlement-gate.test.mjs additions,
+  and tests/spec152f_agent_presenter_test.py. Reverting restores the prior
+  Pi/agent presentation behavior without weakening EDD identity/commerce,
+  signed-lease, refund/revoke, node, sequence, or recovery authority; the
+  daemon-side canonical enforcement is untouched. Preserve customers, orders,
+  refunds, licenses, nodes, sequences, customer data, migration journals, and
+  accepted authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.
