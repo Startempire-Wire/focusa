@@ -1,0 +1,106 @@
+{
+  "schema": "focusa.spec152e.legacy_customer_fixture.v1",
+  "fixture_id": "focusa-vbcqu.20.13.51",
+  "authority": {
+    "canonical": "WPUIAI.com EDD",
+    "spec158": "excluded"
+  },
+  "policy": "verified_identity_promotion_only",
+  "redaction": {
+    "raw_email": "absent",
+    "customer_payload_stored": false,
+    "secret_material": "absent"
+  },
+  "records": [
+    {
+      "handle": "rec_legacy_alpha",
+      "surface": "edd_customer",
+      "disposition": "verify_first",
+      "evidence": {
+        "kind": "purchase_evidence",
+        "source": "edd_software_licensing",
+        "record": "legacy-alpha-2001"
+      }
+    },
+    {
+      "handle": "rec_legacy_echo",
+      "surface": "edd_customer",
+      "disposition": "evidence_backed_import",
+      "evidence": {
+        "kind": "install_site_migration",
+        "source": "install_site_reconciliation",
+        "record": "legacy-echo-2005"
+      }
+    },
+    {
+      "handle": "rec_legacy_delta",
+      "surface": "edd_customer",
+      "disposition": "verify_first",
+      "evidence": {
+        "kind": "stripe_reconciliation",
+        "source": "stripe_reconciliation",
+        "record": "legacy-delta-2004"
+      }
+    },
+    {
+      "handle": "rec_legacy_foxtrot",
+      "surface": "edd_customer",
+      "disposition": "verify_first",
+      "evidence": {
+        "kind": "purchase_evidence",
+        "source": "edd_software_licensing",
+        "record": "legacy-foxtrot-2008"
+      }
+    },
+    {
+      "handle": "rec_legacy_dup",
+      "surface": "edd_customer",
+      "disposition": "duplicate",
+      "evidence": {
+        "kind": "purchase_evidence",
+        "source": "edd_software_licensing",
+        "record": "legacy-dup-2007"
+      }
+    },
+    {
+      "handle": "rec_legacy_synthetic",
+      "surface": "install_site_license",
+      "disposition": "synthetic_quarantine",
+      "evidence": {
+        "kind": "purchase_evidence",
+        "source": "custom_key_generator",
+        "record": "legacy-synthetic-2006"
+      }
+    },
+    {
+      "handle": "rec_legacy_refunded",
+      "surface": "edd_order",
+      "disposition": "refunded_revoked",
+      "evidence": {
+        "kind": "purchase_evidence",
+        "source": "edd_software_licensing",
+        "record": "legacy-charlie-2003"
+      }
+    },
+    {
+      "handle": "rec_legacy_revoked",
+      "surface": "edd_license",
+      "disposition": "refunded_revoked",
+      "evidence": {
+        "kind": "purchase_evidence",
+        "source": "edd_software_licensing",
+        "record": "legacy-bravo-2002"
+      }
+    },
+    {
+      "handle": "rec_legacy_unresolved",
+      "surface": "install_site_license",
+      "disposition": "unresolved",
+      "evidence": {
+        "kind": "purchase_evidence",
+        "source": "install_site_reconciliation",
+        "record": "legacy-unresolved-2010"
+      }
+    }
+  ]
+}
