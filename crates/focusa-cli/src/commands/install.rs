@@ -2335,7 +2335,15 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
         );
     }
 
-    acquire_installer_entitlement(&config_dir, &required_feature, args.json).await?;
+    // Spec 152E §21 surface consolidation: an interactive terminal renders
+    // the universal email → verify → offer → checkout/poll → key/lease flow
+    // through the shared activation client. Noninteractive installs keep the
+    // device-code authorization path below (verified-email, signed lease).
+    if crate::commands::activation_flow::interactive_available() {
+        authorize_installer_activation_flow(&config_dir, args, channel).await?;
+    } else {
+        acquire_installer_entitlement(&config_dir, &required_feature, args.json).await?;
+    }
     let snapshot =
         resolve_installer_entitlement(&config_dir, &required_feature)?.ok_or_else(|| {
             anyhow!(
@@ -2601,6 +2609,69 @@ async fn acquire_installer_entitlement(
     state
         .write_atomic(&config_dir.join(AUTHORITY_STATE_FILE))
         .context("persist verified authority state")?;
+    Ok(())
+}
+
+/// Spec 152E §21: the Rust installer renders the universal activation flow
+/// (email → verify → offer → checkout/poll → key/lease, existing key,
+/// Evaluation via the Spec 172 limited-access overlay, resume, cancel,
+/// timeout, recovery) through the shared activation client when an
+/// interactive terminal is available. `--eval` maps to Evaluation intent;
+/// the authority decides eligibility and no client-side Evaluation exists.
+/// Terminal delivery persists the verified signed lease through the
+/// canonical authority store and the poll credential through the protected
+/// store. Card data is never accepted and nothing is self-issued.
+async fn authorize_installer_activation_flow(
+    config_dir: &std::path::Path,
+    args: &InstallArgs,
+    channel: Channel,
+) -> Result<()> {
+    use crate::commands::activation_flow::{
+        INSTALLER_FLOW, ActivationFlowSessionPersist, StdinFlowInput, interactive_available,
+        resolve_flow_node_identity, run_activation_flow,
+    };
+    use focusa_license::{ActivationHttpClient, ActivationHttpPolicy};
+
+    if !interactive_available() {
+        bail!("E_AUTHORITY_INTERACTIVE_REQUIRED: universal activation flow needs an interactive terminal; use device-code authorization for noninteractive installs");
+    }
+    let identity = resolve_flow_node_identity(config_dir)
+        .map_err(|error| anyhow!(error.to_string()))?;
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN").unwrap_or_else(|_| {
+        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/authority/".to_string()
+    });
+    let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
+    let policy = ActivationHttpPolicy {
+        base_url,
+        timeout: Duration::from_secs(30),
+        max_response_bytes: 1024 * 1024,
+    };
+    let client = ActivationHttpClient::new(policy)
+        .map_err(|error| anyhow!("initialize activation authority transport: {error}"))?;
+    let persist = ActivationFlowSessionPersist::new(config_dir);
+    let mut input = StdinFlowInput;
+    let outcome = run_activation_flow(
+        client,
+        INSTALLER_FLOW,
+        &mut input,
+        None,
+        Some(identity.node_id.clone()),
+        if args.eval {
+            Some(focusa_license::ActivationJourney::LimitedAccess)
+        } else {
+            None
+        },
+        Some(600),
+        args.json,
+        Some(&persist),
+    )?;
+    if !outcome.terminal || outcome.presenter_state != "activated" {
+        bail!(
+            "E_AUTHORITY_ACTIVATION_UNSETTLED: interactive activation settled as {} without a usable lease; recovery, export, repair, and uninstall remain available",
+            outcome.presenter_state
+        );
+    }
+    let _ = channel; // channel grants are validated by phase_license after this.
     Ok(())
 }
 

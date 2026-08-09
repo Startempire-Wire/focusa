@@ -12,6 +12,7 @@
 //! unless the operator explicitly opts in via `--persist-key`.
 
 use crate::api_client::ApiClient;
+use anyhow::Context;
 use clap::{Args, Subcommand};
 use focusa_core::license::{
     LicenseStatus, activate as core_activate, check_feature as core_check_feature,
@@ -29,6 +30,11 @@ pub struct LicenseArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum LicenseCmd {
+    /// Interactive authority activation (Spec 152E §14.1): one shared flow
+    /// renders email → verify → offer → checkout/poll → key/lease, existing
+    /// key, Evaluation (Spec 172 limited-access overlay), resume, cancel,
+    /// timeout, and recovery. Never accepts card data and never self-issues.
+    ActivateFlow(ActivateFlowArgs),
     /// Activate a Focusa license key. Saves the local license state file.
     Activate(ActivateArgs),
     /// Show current license status (mode, status, features, offline-valid-until).
@@ -56,6 +62,27 @@ pub enum LicenseCmd {
     /// is printed. Use this as a long-running sidecar after a purchase
     /// so refunds and revokes propagate within the poll interval.
     Watch(WatchArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct ActivateFlowArgs {
+    /// Resume a persisted activation registration (bounded poll
+    /// continuation). The poll credential is re-supplied from the protected
+    /// store; the snapshot never contains it.
+    #[arg(long, value_name = "REGISTRATION_ID")]
+    pub resume: Option<String>,
+
+    /// Explicit email for a new activation (prompted interactively
+    /// otherwise). The email only creates a pending attempt; verification is
+    /// always required before any promotion.
+    #[arg(long, value_name = "EMAIL")]
+    pub email: Option<String>,
+
+    /// Bounded poll wall-clock timeout in seconds (default: the
+    /// registration poll budget governs; timeout settles fail-closed via
+    /// cancel → recovery_only).
+    #[arg(long, value_name = "SECONDS")]
+    pub poll_timeout: Option<u64>,
 }
 
 #[derive(Args, Debug)]
@@ -497,6 +524,7 @@ pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
         LicenseCmd::Status => run_status(json_output).await,
         LicenseCmd::Doctor => run_doctor(json_output).await,
         LicenseCmd::CheckFeature(a) => run_check_feature(json_output, a).await,
+        LicenseCmd::ActivateFlow(a) => run_activation_flow_command(json_output, a).await,
         LicenseCmd::Activate(_)
         | LicenseCmd::Deactivate
         | LicenseCmd::DevmodeFull(_)
@@ -1459,6 +1487,114 @@ async fn run_devmode_full(json_output: bool, args: DevmodeFullArgs) -> anyhow::R
                 "  note: dev_mode is a TEST FIXTURE; this install was downgraded to evaluation."
             );
         }
+    }
+    Ok(())
+}
+
+// ── Spec 152E §14.1 interactive activation (shared flow) ────────────────
+
+/// Interactive authority activation through the shared activation flow
+/// (crates/focusa-cli/src/commands/activation_flow.rs). The flow drives the
+/// shared `ActivationSession`; this command only wires the HTTP transport,
+/// the terminal prompt source, and safe persistence (snapshot + poll
+/// credential + verified signed lease). Card data is never accepted and
+/// nothing is self-issued.
+async fn run_activation_flow_command(
+    json_output: bool,
+    args: ActivateFlowArgs,
+) -> anyhow::Result<()> {
+    use crate::commands::activation_flow::{
+        ActivationFlowSessionPersist, CLI_FLOW, StdinFlowInput, load_poll_credential,
+        load_registration_snapshot, resolve_flow_node_identity, resume_activation_flow,
+        run_activation_flow,
+    };
+    use focusa_license::authority_credentials::KeyringCredentialStore;
+    use focusa_license::{ActivationHttpClient, ActivationHttpPolicy};
+
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| anyhow::anyhow!("HOME not set; cannot resolve activation state"))?;
+    let config_dir = home.join(".config/focusa");
+    let identity = resolve_flow_node_identity(&config_dir)
+        .map_err(|error| anyhow::anyhow!("{error}"))?;
+
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN").unwrap_or_else(|_| {
+        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/authority/".to_string()
+    });
+    let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
+    let policy = ActivationHttpPolicy {
+        base_url,
+        timeout: std::time::Duration::from_secs(30),
+        max_response_bytes: 1024 * 1024,
+    };
+    let client = ActivationHttpClient::new(policy)
+        .map_err(|error| anyhow::anyhow!("initialize activation authority transport: {error}"))?;
+    let persist = ActivationFlowSessionPersist::new(&config_dir);
+
+    if let Some(registration_id) = args.resume.as_deref() {
+        let registration = load_registration_snapshot(&config_dir, registration_id)?;
+        let credential = load_poll_credential(&KeyringCredentialStore, registration_id)?;
+        let outcome = resume_activation_flow(
+            client,
+            CLI_FLOW,
+            registration,
+            credential,
+            args.poll_timeout,
+            json_output,
+            Some(&persist),
+        )?;
+        if json_output {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "resumed": true,
+                    "presenter_state": outcome.presenter_state,
+                    "terminal": outcome.terminal,
+                    "registration_id": outcome.registration_id,
+                }))?
+            );
+        } else if outcome.terminal {
+            println!("Resumed activation settled as {}.", outcome.presenter_state);
+        } else {
+            println!("Resumed activation is {}.", outcome.presenter_state);
+        }
+        return Ok(());
+    }
+
+    let mut input = StdinFlowInput;
+    let outcome = run_activation_flow(
+        client,
+        CLI_FLOW,
+        &mut input,
+        args.email,
+        Some(identity.node_id.clone()),
+        None,
+        args.poll_timeout,
+        json_output,
+        Some(&persist),
+    )?;
+    if json_output {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "resumed": false,
+                "presenter_state": outcome.presenter_state,
+                "terminal": outcome.terminal,
+                "registration_id": outcome.registration_id,
+            }))?
+        );
+    } else if outcome.terminal && outcome.presenter_state == "activated" {
+        println!("Activation complete: device is entitled.");
+    } else if outcome.terminal {
+        println!(
+            "Activation settled as {}; recovery, export, repair, and uninstall remain available.",
+            outcome.presenter_state
+        );
+    } else {
+        println!(
+            "Activation paused at {}; resume with --resume {}.",
+            outcome.presenter_state, outcome.registration_id
+        );
     }
     Ok(())
 }

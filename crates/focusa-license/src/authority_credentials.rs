@@ -55,6 +55,21 @@ impl CredentialHandle {
             account: format!("node:{node_id}:refresh"),
         })
     }
+
+    /// Registration-scoped handle for the expiring activation poll
+    /// credential. The poll credential is never persisted raw in snapshots;
+    /// resume re-supplies it from the protected store under this handle
+    /// (Spec 152E §10: poll credentials are registration-specific, secret,
+    /// expiring, and stored only as hashes server-side).
+    pub fn for_registration(registration_id: &str) -> Result<Self, CredentialStoreError> {
+        if registration_id.trim().is_empty() {
+            return Err(CredentialStoreError::MissingIdentity("registration_id"));
+        }
+        Ok(Self {
+            service: "focusa.activation.poll-credential".into(),
+            account: format!("registration:{registration_id}"),
+        })
+    }
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]

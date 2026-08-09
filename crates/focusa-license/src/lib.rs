@@ -8,6 +8,7 @@
 
 pub mod activation_client;
 pub mod activation_facade;
+pub mod activation_http;
 pub mod activation_reducer;
 pub mod authority;
 pub mod authority_client;
@@ -28,6 +29,10 @@ pub use activation_client::{
 pub use activation_facade::{
     ActivationError, ActivationErrorCode, ActivationErrorSpec, ActivationRequestContext,
     FacadeOperation, mask_email,
+};
+pub use activation_http::{
+    ActivationHttpClient, ActivationHttpError, ActivationHttpPolicy, LeaseDeliveryEnvelope,
+    code_from_label,
 };
 pub use activation_reducer::{
     ActivationEnvelopeError, ActivationErrorEnvelope, ActivationOutputEnvelope,
