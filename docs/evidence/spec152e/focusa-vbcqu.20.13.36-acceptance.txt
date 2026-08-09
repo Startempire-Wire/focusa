@@ -1,0 +1,218 @@
+Spec 152E lease refresh settlement — acceptance evidence
+Work item: focusa-vbcqu.20.13.36
+Title: 152E.04.05 Implement refresh, sequence, refund, revoke, and expiry settlement
+Scope: lease refresh endpoint/service (POST /v1/lease/refresh); EDD lifecycle
+projector/outbox integration; highest sequence surface; signed denial/recovery
+posture; bounded refresh credential rotation
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§7.5 wp_wpuiai_authority_leases, §10
+POST /v1/lease/refresh, §14.2 refresh credential, §17 lifecycle sequence
+increments, §18 refund/revoke/expiry → sequence increment → refresh denied →
+recovery_only, §19 security/privacy incl. idempotent refresh, §20 stable failure
+semantics, §22.4 rollback preserves refund/revoke truth, §23 acceptance matrix
+"Refund", "Revocation", "Authority outage" rows); Specs 152, 150A, 152A-D;
+Spec 158 implementation excluded.
+
+Exact surfaces (this atom only)
+- Lease refresh endpoint/service:
+  docs/contracts/spec152e-lease-refresh-service.v1.php
+  (FocusaSpec152eLeaseRefreshMigration, FocusaSpec152eLeaseRefreshService,
+  FocusaSpec152eLeaseRefreshRoutes)
+- Exact verification: tests/spec152e_lease_refresh_lifecycle_test.php
+
+Implementation commit: `14158e7c` (lease refresh service/route seam + exact
+verification test)
+
+Bounded result
+- Added the lease refresh service seam for the registered authority route
+  POST /v1/lease/refresh (facade registry proxy_route lease_refresh, facade
+  security POST, install-facade input allowlist node_id/refresh_credential/
+  current_sequence). The caller may submit only node_id, refresh_credential,
+  the advisory current_sequence, request_id, and idempotency_key; any EDD id,
+  price, grant, feature, limit, tier, commercial field, lease_uuid, or sequence
+  fails closed with CALLER_CONTROLLED_GRANT_DENIED, and raw email input fails
+  closed with INPUT_RAW_EMAIL_FORBIDDEN.
+- Refresh re-reads canonical state, never the presented client claims: the
+  verified authority account (FocusaSpec152eEddAccountAdapter), the current
+  lease for (account, node, product), the node binding (NODE_NOT_FOUND /
+  NODE_NOT_ACTIVE / NODE_NOT_BOUND on removal/deactivation/unbinding), the
+  EDD license truth (FocusaSpec152eEddLicenseAdapter: EDD_LICENSE_UNUSABLE /
+  LICENSE_ACCOUNT_MISMATCH), the exact order/item/price truth
+  (FocusaSpec152eEddOrderAdapter + the frozen server-owned download mapping:
+  EDD_ORDER_PENDING / EDD_ORDER_UNVERIFIED), the EDD lifecycle projector journal
+  per license (refund/revoke/expire/suspend/cancel/supersede postures), and the
+  monotonic authority sequence (account highest_entitlement_sequence and the
+  per-license journal result_sequence; STALE_SEQUENCE below the authority).
+- Offline bounds: refresh is refused NOT_YET_VALID before the lease not_before
+  and refused EXPIRED past expires_at + offline grace (evaluation leases have no
+  grace); refresh inside the offline-grace window is allowed and re-extends the
+  lease +90 days from the refresh time. Past expiry+grace there is no local
+  extension — the client must re-activate through the authority.
+- Rotation: when truth holds, the service issues the next strictly-monotonic
+  signed lease through the EDD-bound issuer (which re-validates account/
+  license/order/product/node), supersedes the presented lease
+  (status superseded / refresh_rotated), chains previous_lease_digest to the
+  exact prior payload digest, rotates the bounded refresh credential
+  (SHA-256 digest at rest only; plaintext returned exactly once; old credential
+  superseded), and appends lease_superseded + lease_issued outbox events in the
+  same settlement transaction. Idempotent replay returns the same rotated lease
+  and re-seeds the one-time credential; changed reuse of an idempotency key
+  fails closed (IDEMPOTENCY_CONFLICT).
+- Signed denial/recovery posture: refund, revoke, expiry, suspension, node
+  removal, stale sequence, or unusable EDD truth produce a SIGNED
+  focusa.spec152e.refresh_refusal.v1 envelope (Ed25519 under the trusted
+  authority lease key, LEASE_DOMAIN) carrying account/node/product/lease refs,
+  presented + authority sequences, the recovery-only posture, and the bounded
+  refusal reason. The presented lease is settled to the matching terminal
+  status (refunded/edd_refunded, revoked/edd_revoked, superseded/...), a
+  lease_superseded or lease_revoked outbox event is appended (in-transaction,
+  same as the settlement), and the signed refusal is journaled. Repeat refresh
+  on an already-settled lease returns the stable signed refusal without
+  re-settling or re-journaling. Stale software/state cannot restore access:
+  after an authority sequence advance past the lease (e.g. refund/revoke or an
+  account-level transition), the standard lease verifier rejects the old lease
+  with STALE_SEQUENCE at the refusal's authority sequence, and the refresh path
+  refuses it deterministically.
+- Highest sequence surface: highestSequence(account, product) returns the
+  account highest_entitlement_sequence, the lease sequence ledger, and the
+  max (43 after the rotation scenario; the refusal carries the post-transition
+  authority sequence, never below the refused lease's own sequence).
+- verifyRefusal() mirrors the runtime verifier (key-set trust, signature,
+  schema, reason bound, key-id, window, sequence authority) and rejects
+  tampered, unknown-key, unbounded-reason, wrong-account, stale, and expired
+  refusals. The routes seam resolves the registered route fail-closed and masks
+  responses to the public facade allowlist (refresh credential never passes a
+  masked envelope; the HTTP adapter maps REFUNDED → LICENSE_REFUNDED and
+  REVOKED → LEASE_REVOKED for the existing Rust authority client's
+  RecoveryOnly disposition).
+- No raw email, secret, license key, or unmasked real-email evidence is
+  accepted or stored; the plaintext refresh credential appears only in the
+  one-time result, never in any stored row; refund/revoke/expiry settlement is
+  preservation-only (EDD customer/order/license, node, lease, credential, and
+  audit history are never deleted).
+
+Exact verification (exit codes)
+1. php tests/spec152e_lease_refresh_lifecycle_test.php — exit 0 (run three
+   times; deterministic, byte-identical output, sha256
+   ae659545228726cda5e82bbe189e4cf40be12958a3c3c9169b846be3546a8df5).
+   Bounded result:
+   {"schema":"focusa.spec152e.lease_refresh_lifecycle_validation.v1",
+   "positive_checks":86,"negative_checks":18,"rotations":2,"refusals":15,
+   "settlements":["refunded","revoked","expired","superseded_stale",
+   "superseded_node","superseded_edd"],"highest_sequence_after_rotation":43,
+   "result":"passed_fail_closed"}
+   Positive: migration idempotency with first-provenance preservation; rollback
+   preservation journaling; refresh credential issuance (opaque rc_ token,
+   digest-at-rest only, idempotent replay, REFRESH_CREDENTIAL_ALREADY_ISSUED);
+   rotation (A1 lease 42 → 43) with byte-exact previous_lease_digest chaining,
+   old lease superseded/refresh_rotated, old credential superseded, new
+   credential digest bound to the new lease, rotated envelope verifies Active
+   at minimum_sequence 43, highestSequence 43, lease_superseded + lease_issued
+   outbox events journaled and the lease_issued envelope verifies with the
+   authority HMAC signer, refresh log never stores the plaintext credential;
+   idempotent rotation replay re-seeds the one-time credential without a new
+   log row; offline-grace rotation at +114 days re-extends to +90d from the
+   refresh time; NOT_YET_VALID denial before not_before without settling;
+   refund settlement (complete → lease 43 → refund at sequence 43) →
+   REFUNDED signed refusal at authority 43, lease settled refunded/
+   edd_refunded, lease_superseded outbox event, stable re-denial on repeat;
+   revoke settlement → REVOKED signed refusal, lease revoked/edd_revoked,
+   lease_revoked outbox event; stale sequence after an account-level advance
+   (45) → STALE_SEQUENCE signed refusal at authority 45 and the standard
+   verifier rejects the old lease at that authority sequence (stale
+   software/state cannot restore access); current_sequence mismatch →
+   STALE_SEQUENCE refusal that is never internally stale; credential-invalid
+   denial without mutating the lease row; node removal (NODE_NOT_FOUND) and
+   node deactivation (NODE_NOT_ACTIVE) settlements; EDD truth re-reads
+   (revoked license → EDD_LICENSE_UNUSABLE, cross-customer license →
+   LICENSE_ACCOUNT_MISMATCH, pending order → EDD_ORDER_PENDING, download
+   mismatch → EDD_ORDER_UNVERIFIED); evaluation expiry (no grace) and paid
+   past-grace expiry → EXPIRED refusals with lease superseded/lease_expired;
+   verifyRefusal negatives (REFUSAL_STALE, EXPIRED, REFUSAL_REASON_UNKNOWN,
+   UNKNOWN_KEY, INVALID_SIGNATURE, WRONG_ACCOUNT); route seam resolves
+   POST /v1/lease/refresh and fails closed on GET; masked responses expose
+   state + lease envelope and never the refresh credential; route handle maps
+   hard failures to bounded error envelopes; hygiene scans find no email,
+   license key, secret prefix, synthetic key, or plaintext credential in any
+   result, refusal, outbox, lifecycle, lease, sequence, log, or credential row.
+   Negative: ACCOUNT_NOT_FOUND, EMAIL_VERIFICATION_REQUIRED (unverified
+   account), PRODUCT_MAPPING_REQUIRED, LEASE_NOT_FOUND (no current lease),
+   REFRESH_CREDENTIAL_REQUIRED (no issued credential), CALLER_CONTROLLED_
+   GRANT_DENIED (caller price), INPUT_RAW_EMAIL_FORBIDDEN, IDEMPOTENCY_CONFLICT
+   (changed reuse), InvalidArgumentException for malformed account UUID and
+   empty refresh credential.
+
+Regression checks (exit codes)
+- All 35 tests/spec152e_*.php + tests/spec172_*.php suites pass with exit 0,
+  including the new lease refresh lifecycle suite and the prior issuer,
+  lifecycle-projection, outbox, node-reservation, account, registration,
+  issuance, and delivery suites.
+- python3 tests/spec152e_api_contract_test.py — exit 0 (generated activation
+  contracts are current; no public API surface changed).
+- python3 tests/spec152e_state_machine_contract_test.py — exit 0.
+- python3 tests/spec152e_product_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_golden_vector_test.py — exit 0.
+- python3 tests/spec152e_facade_acceptance_test.py — exit 0 (the suite that
+  asserts the lease_refresh route surface).
+- python3 tests/spec152e_migration_inventory_test.py — exit 0.
+- python3 tests/spec152e_deployed_surface_inventory_test.py — exit 0.
+- python3 tests/spec152e_lease_golden_vector_test.py — exit 0.
+- python3 tests/spec152e_terminal_envelope_vector_test.py — exit 0.
+- python3 tests/spec152_protected_credential_test.py — exit 0 (refresh
+  credential redaction surface).
+- python3 scripts/generate-spec152e-product-registry.py --check — exit 0.
+- python3 scripts/generate-spec152e-facade-registry.py --check — exit 0.
+- python3 scripts/generate-spec152e-activation-contracts.py --check — exit 0.
+- python3 scripts/generate-spec152e-installer-route-manifest.py --check —
+  exit 0.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom):
+  tests/spec152e_document_authority_test.py — exit 1, expected
+  'publication_rule: forbidden until focusa-vbcqu.20.13.63 and
+  focusa-vbcqu.20.14.52 close' while
+  docs/contracts/spec152-final-audit-status.v1.yaml (last touched by commit
+  4ffbf40f, not this atom) carries the extended Spec 172 acceptance wording;
+  tests/spec152f_document_authority_test.py — exit 1, same stale audit-status
+  token; tests/spec152_entitlement_coverage_test.py — exit 1, generated
+  coverage staleness unrelated to this atom's surfaces; plus the broader
+  pre-existing spec98/spec100/spec104/spec135 static/e2e gates that fail on
+  this worktree baseline.
+
+Tests added
+- tests/spec152e_lease_refresh_lifecycle_test.php (exact verification; 86
+  positive / 18 negative checks) covering rotation with monotonic sequence and
+  previous-digest chaining, refresh credential issue/rotation/replay, the
+  highest-sequence surface, offline-bounds (NOT_YET_VALID, grace-window
+  rotation, EXPIRED), refund/revoke/expiry/node-removal/stale-sequence/EDD-truth
+  signed refusals with lease settlement and outbox journaling, stable re-denial
+  on settled leases, verifier rejection of the stale lease at the refusal
+  authority sequence, verifyRefusal negative matrix, the route seam, masked
+  responses, and full hygiene scans.
+
+Acceptance criteria
+- All EDD lifecycle transitions appear on refresh within bounded policy and
+  stale software/state cannot restore access: verified — refund, revoke,
+  expiry, suspension, node removal, and account-level sequence advances all
+  deny refresh with a signed recovery-only refusal, settle the lease row, and
+  journal the outbox; the old lease is rejected by the verifier at the refusal
+  authority sequence; refresh inside offline grace re-extends; past expiry and
+  grace there is no local extension.
+- All named positive and negative checks pass (86/18, exit 0, byte-identical
+  across runs); diff contains only the named surfaces (lease refresh
+  service/route contract + the exact verification test); generated contracts
+  are current (api_contract_test.py and all generator --check scripts exit 0);
+  secrets and unmasked real email are absent (hygiene scans pass; only
+  reserved @example.invalid fixture inputs, never in outputs); evidence is
+  replayable from the pinned commit (offline, deterministic, byte-identical
+  output, sha256 ae659545228726cda5e82bbe189e4cf40be12958a3c3c9169b846be3546a8df5).
+
+Rollback
+- Revert only this atom's commits: the implementation commit (lease refresh
+  service contract + exact verification test) and the evidence commit
+  containing this file. Preserve EDD customer/order/refund truth, verified
+  identities, licenses, nodes, sequences, credentials, Workpoints, Evidence,
+  and migration journals; refresh rollback is preservation-only — the refresh
+  log, credential digests, and settlement journals are never deleted.
+
+No push, deploy, release, merge, or Beads mutation was performed.
