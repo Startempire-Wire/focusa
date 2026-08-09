@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CONTRACT-008",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Pure traversal utilities (packages/mission-canvas-contracts/traversal.ts): collectContributionRefs, contributionIdsOfKind, findContribution, workSurfaceRefs, contributionOrder traverse the canonical projection read-only \u2014 they never choose eligibility or layout (Core owns composition). Runtime test freezes the projection and asserts no mutation and canonical ordering. Desktop consumes via the single package path.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "CONTRACT-007"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/contract-package-runtime.mjs",
+      "result": "pass: re-export identity + no-copy checks"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}

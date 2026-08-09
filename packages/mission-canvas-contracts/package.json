@@ -1,0 +1,23 @@
+{
+  "name": "@focusa/mission-canvas-contracts",
+  "version": "0.9.143-dev",
+  "private": true,
+  "type": "module",
+  "description": "ONE package import path for the generated Mission Canvas artifacts — Desktop and Pi re-export, never copy, DTO definitions.",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "import": "./index.ts"
+    },
+    "./traversal": {
+      "types": "./traversal.ts",
+      "import": "./traversal.ts"
+    }
+  },
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}
