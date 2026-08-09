@@ -117,8 +117,15 @@ pub use denial_ux::{
 pub mod bundle_activation;
 pub mod uiai_activation;
 pub mod uiai_child_token;
+pub mod cockpit_action_registry;
 pub mod limit_reservation;
 pub mod lifetime_entitlement;
+
+pub use cockpit_action_registry::{
+    classify_cockpit_action, resolve_cockpit_action, COCKPIT_ACTION_REGISTRY_SCHEMA,
+    CockpitActionDecision, CockpitActionDenial, CockpitActionError, CockpitActionMapEntry,
+    SPEC172_COCKPIT_ACTION_REGISTRY,
+};
 
 pub use limit_reservation::{
     declared_server_owned_limit_buckets, family_limit_buckets,
