@@ -1,0 +1,597 @@
+{
+  "schema": "focusa.spec152e.presenter_parity_matrix.v1",
+  "contract_version": 1,
+  "generation": {
+    "generated_by": "atom focusa-vbcqu.20.13.48 (152E.05.10 presenter parity, privacy, and install-channel neutrality)",
+    "gate": "tests/spec152e_presenter_parity_test.py",
+    "currency_rule": "per-presenter state/next-action/error coverage is RECOMPUTED from the pinned sources by the gate with the same quoted-literal algorithm used to generate this matrix; the committed matrix must equal the recomputed coverage or the gate fails, so this artifact is a generated contract that stays current with the surfaces.",
+    "inputs": [
+      "docs/contracts/spec152e-activation-internal.v1.json",
+      "docs/contracts/spec152e-activation-errors.v1.json",
+      "docs/contracts/spec152e-agent-activation.v1.json",
+      "crates/focusa-license/tests/fixtures/spec152e-activation-transcript-fixtures.v1.json"
+    ]
+  },
+  "authority": {
+    "customer_identity_commerce_human_key_refund_entitlement": "WPUIAI.com EDD",
+    "facade": "registered_authenticated_bounded_proxy_only",
+    "runtime_grant": "authority_issued_device_bound_signed_lease",
+    "spec158": "excluded",
+    "spec172_overlay": "verified_no_license_replaces_evaluation"
+  },
+  "spec_refs": [
+    "docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md (Spec 152E §4 presenters, §8 product/grant registry, §12 Evaluation, §14 agent/JSON, §16 dual delivery, §19 security/privacy, §20 stable failures, §21 surface consolidation, §22.3 cutover)",
+    "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md (Spec 172 overlay: verified_no_license replaces Evaluation)",
+    "Specs 152, 150A, 152A-D; Spec 158 implementation excluded"
+  ],
+  "bound_contracts": {
+    "internal": "docs/contracts/spec152e-activation-internal.v1.json",
+    "errors": "docs/contracts/spec152e-activation-errors.v1.json",
+    "agent": "docs/contracts/spec152e-agent-activation.v1.json",
+    "fixture": "crates/focusa-license/tests/fixtures/spec152e-activation-transcript-fixtures.v1.json",
+    "product_registry": "docs/contracts/spec152e-edd-product-registry.v1.json",
+    "surface_inventory": "docs/contracts/spec152e-deployed-surface-inventory.v1.json"
+  },
+  "frozen_vocabulary": {
+    "presenter_states": [
+      "email_required",
+      "email_verification_pending",
+      "email_verified",
+      "selection_required",
+      "checkout_required",
+      "payment_pending",
+      "license_delivery_ready",
+      "activated",
+      "denied",
+      "recovery_only"
+    ],
+    "terminal_states": ["activated", "denied", "recovery_only"],
+    "next_actions": [
+      "activate_or_manage_entitlement",
+      "activate_or_manage_license",
+      "activated",
+      "authenticated_recovery",
+      "contact_support",
+      "deliver_license",
+      "manage_license",
+      "manage_limit",
+      "manage_nodes",
+      "open_checkout",
+      "poll_after_retry_after",
+      "provide_email",
+      "recovery",
+      "recovery_only",
+      "restart_or_recover_activation",
+      "restart_verification",
+      "retry_or_use_recovery",
+      "retry_same_idempotency_key",
+      "retry_verification_within_budget",
+      "select_offer",
+      "select_paid_or_limited_access",
+      "select_supported_product",
+      "send_idempotency_key",
+      "send_new_request_id",
+      "use_original_request_or_new_key",
+      "use_registered_facade",
+      "verify_account_email",
+      "verify_checkout_identity",
+      "verify_email",
+      "verify_license_owner",
+      "wait_for_product_mapping"
+    ],
+    "authority_error_codes": [
+      "ACCOUNT_EMAIL_MISMATCH",
+      "ACCOUNT_MERGE_REVIEW_REQUIRED",
+      "AUTHORITY_UNAVAILABLE",
+      "EDD_CHECKOUT_REQUIRED",
+      "EDD_CUSTOMER_RESOLUTION_FAILED",
+      "EDD_LICENSE_PENDING",
+      "EDD_LICENSE_UNUSABLE",
+      "EDD_ORDER_PENDING",
+      "EDD_ORDER_UNVERIFIED",
+      "EMAIL_DELIVERY_FAILED",
+      "EMAIL_REQUIRED",
+      "EMAIL_VERIFICATION_EXPIRED",
+      "EMAIL_VERIFICATION_FAILED",
+      "EMAIL_VERIFICATION_REQUIRED",
+      "ENTITLEMENT_FEATURE_REQUIRED",
+      "ENTITLEMENT_LIMIT_EXHAUSTED",
+      "ENTITLEMENT_REQUIRED",
+      "EVALUATION_NOT_ELIGIBLE",
+      "FACADE_ORIGIN_DENIED",
+      "FACADE_PRODUCT_DENIED",
+      "IDEMPOTENCY_CONFLICT",
+      "IDEMPOTENCY_KEY_REQUIRED",
+      "LICENSE_ACCOUNT_MISMATCH",
+      "LICENSE_DELIVERY_FAILED",
+      "LICENSE_DELIVERY_PENDING",
+      "NODE_LIMIT_EXHAUSTED",
+      "POLL_CREDENTIAL_EXPIRED",
+      "POLL_CREDENTIAL_REQUIRED",
+      "PRODUCT_MAPPING_REQUIRED",
+      "REFUNDED",
+      "REQUEST_ID_REQUIRED",
+      "REQUEST_IN_PROGRESS",
+      "REVOKED"
+    ],
+    "bootstrap_error_codes": [
+      "E_AUTHORITY_RAW_KEY_FORBIDDEN",
+      "E_AUTHORITY_ACTIVATION_UNSETTLED",
+      "E_AUTHORITY_DEVICE_DENIED",
+      "E_AUTHORITY_EXISTING_UNUSABLE",
+      "E_AUTHORITY_INTERACTIVE_REQUIRED",
+      "E_AUTHORITY_KEYSET_MISSING",
+      "E_AUTHORITY_LEASE_UNUSABLE",
+      "E_AUTHORITY_PAID_MIGRATION_REQUIRED",
+      "E_INSTALL_INTERRUPTED"
+    ]
+  },
+  "presenters": [
+    {
+      "id": "unix",
+      "name": "Unix verified bootstrapper",
+      "role": "verified_bootstrap_delegate",
+      "sources": ["scripts/install-focusa.sh"],
+      "renders_presenter_states": false,
+      "states": [],
+      "next_actions": [],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": ["E_AUTHORITY_RAW_KEY_FORBIDDEN", "E_INSTALL_INTERRUPTED"],
+      "receipt_schema": null,
+      "handoff_markers": [
+        "if \"$BOOTSTRAP_BIN\" \"${ARGS[@]}\"; then",
+        "E_AUTHORITY_RAW_KEY_FORBIDDEN",
+        "authority-issued only"
+      ],
+      "credential_handling": {
+        "identity": "raw --email rejected at the boundary with E_AUTHORITY_RAW_KEY_FORBIDDEN before any state or network I/O; never echoed",
+        "key": "raw --license-key rejected at the boundary; never accepted, stored, or transformed",
+        "card": "card PAN/expiry/CVC never accepted",
+        "note": "pure bootstrap presenter: artifact verification, rollback, preserve-by-default uninstall, and one fail-closed handoff of allowlisted args to the canonical Rust installer"
+      },
+      "channel": {"records_install_channel": false, "note": "delegates entitlement acquisition; no channel evidence is created"},
+      "differs_by": "transport: POSIX shell bootstrap vs. native installers; no semantic divergence"
+    },
+    {
+      "id": "powershell",
+      "name": "PowerShell Windows verified bootstrapper",
+      "role": "verified_bootstrap_delegate",
+      "sources": ["scripts/install-focusa.ps1"],
+      "renders_presenter_states": false,
+      "states": [],
+      "next_actions": [],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": ["E_AUTHORITY_RAW_KEY_FORBIDDEN", "E_INSTALL_INTERRUPTED"],
+      "receipt_schema": "focusa.windows_verified_bootstrap_plan.v1",
+      "handoff_markers": [
+        "& $Focusa @Args",
+        "E_AUTHORITY_RAW_KEY_FORBIDDEN",
+        "authority-issued only"
+      ],
+      "credential_handling": {
+        "identity": "raw -Email / -LicenseKey rejected at the boundary before any state or network I/O; never echoed",
+        "key": "raw key parameters rejected; no key storage or transformation",
+        "card": "card PAN/expiry/CVC never accepted",
+        "note": "pure bootstrap presenter; dry-run emits a non-mutating JSON plan; one fail-closed handoff to the canonical Rust installer"
+      },
+      "channel": {"records_install_channel": false, "note": "delegates entitlement acquisition; no channel evidence is created"},
+      "differs_by": "transport: PowerShell bootstrap with JSON dry-run plan vs. POSIX shell; no semantic divergence"
+    },
+    {
+      "id": "rust_installer",
+      "name": "Rust installer orchestrator",
+      "role": "canonical_orchestrator",
+      "sources": ["crates/focusa-cli/src/commands/install.rs"],
+      "renders_presenter_states": true,
+      "states": ["activated", "recovery_only"],
+      "next_actions": ["activated", "recovery_only"],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": [
+        "E_AUTHORITY_ACTIVATION_UNSETTLED",
+        "E_AUTHORITY_DEVICE_DENIED",
+        "E_AUTHORITY_EXISTING_UNUSABLE",
+        "E_AUTHORITY_INTERACTIVE_REQUIRED",
+        "E_AUTHORITY_KEYSET_MISSING",
+        "E_AUTHORITY_LEASE_UNUSABLE",
+        "E_AUTHORITY_PAID_MIGRATION_REQUIRED",
+        "E_AUTHORITY_RAW_KEY_FORBIDDEN"
+      ],
+      "receipt_schema": "focusa.lifecycle_acceptance_receipt.v1",
+      "handoff_markers": [
+        "authorize_installer_activation_flow",
+        "run_activation_flow",
+        "install_channel_feature"
+      ],
+      "credential_handling": {
+        "identity": "masked identity only through the shared flow; device verification URL + user code presented safely",
+        "key": "signed node-bound authority lease acquired through the shared activation client; never self-issued",
+        "card": "card data never accepted",
+        "note": "--eval maps to Spec 172 limited-access overlay intent; entitlement acquisition precedes product asset activation; recovery hints preserve prior installation"
+      },
+      "channel": {"records_install_channel": true, "install_channel_values": ["official_installer"], "note": "advisory telemetry only"},
+      "differs_by": "rendering: native installer UX vs. terminal transcripts; no semantic divergence"
+    },
+    {
+      "id": "cli",
+      "name": "Interactive CLI activation flow",
+      "role": "interactive_cli_transcript",
+      "sources": [
+        "crates/focusa-cli/src/commands/activation_flow.rs",
+        "crates/focusa-cli/src/commands/license.rs"
+      ],
+      "renders_presenter_states": true,
+      "states": [
+        "email_required",
+        "email_verification_pending",
+        "email_verified",
+        "selection_required",
+        "checkout_required",
+        "payment_pending",
+        "license_delivery_ready",
+        "activated",
+        "denied",
+        "recovery_only"
+      ],
+      "next_actions": ["activated", "recovery_only", "restart_or_recover_activation"],
+      "authority_error_codes": [
+        "AUTHORITY_UNAVAILABLE",
+        "EMAIL_REQUIRED",
+        "POLL_CREDENTIAL_EXPIRED",
+        "POLL_CREDENTIAL_REQUIRED",
+        "REFUNDED"
+      ],
+      "bootstrap_error_codes": [],
+      "receipt_schema": "focusa.activation_flow_outcome.v1",
+      "handoff_markers": ["presenter_state", "masked_email", "safe_url", "next_action"],
+      "credential_handling": {
+        "identity": "masked_email only; raw email never rendered",
+        "key": "one-time key envelope; full key never rendered except explicit customer-controlled reveal",
+        "card": "card PAN/expiry/CVC never accepted",
+        "note": "deterministic transcript replay in the same commit's unit tests against a scripted authority"
+      },
+      "channel": {"records_install_channel": true, "install_channel_values": ["source_build", "official_installer"], "note": "advisory telemetry only"},
+      "differs_by": "rendering: terminal prompts vs. TUI/REST JSON; no semantic divergence"
+    },
+    {
+      "id": "agent",
+      "name": "Agent-safe JSON activation and resume protocol",
+      "role": "agent_json_envelope",
+      "sources": [
+        "crates/focusa-license/src/activation_agent.rs",
+        "apps/pi-extension/src/activation-envelope.ts"
+      ],
+      "renders_presenter_states": true,
+      "states": [
+        "email_required",
+        "email_verification_pending",
+        "email_verified",
+        "selection_required",
+        "checkout_required",
+        "payment_pending",
+        "license_delivery_ready",
+        "activated",
+        "denied",
+        "recovery_only"
+      ],
+      "next_actions": ["activated", "poll_after_retry_after", "provide_email", "recovery", "recovery_only", "select_offer"],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": [],
+      "receipt_schema": "focusa.agent_activation_envelope.v1",
+      "handoff_markers": [
+        "human_action_for_state",
+        "key_visible",
+        "masked_key_prefix",
+        "reveal_key",
+        "reveal_confirmation",
+        "registration_id"
+      ],
+      "credential_handling": {
+        "identity": "masked_email by default; raw email never in the envelope",
+        "key": "masked by default; reveal requires BOTH opt-in reveal_key and reveal_confirmation; poll credential stored as keyed hash only and never in snapshots",
+        "card": "card PAN/expiry/CVC never accepted",
+        "note": "agents never invent an email, verification code, consent, payment confirmation, or license, and never advance a human-required state"
+      },
+      "channel": {"records_install_channel": true, "install_channel_values": ["source_build"], "note": "advisory telemetry in agent begin/resume tests only"},
+      "differs_by": "transport: typed agent envelope vs. interactive prompts; no semantic divergence"
+    },
+    {
+      "id": "menubar",
+      "name": "Menubar entitlement presenter",
+      "role": "desktop_projection",
+      "sources": ["apps/menubar/src/lib/activationPresenter.ts"],
+      "renders_presenter_states": true,
+      "states": [
+        "email_required",
+        "email_verification_pending",
+        "email_verified",
+        "selection_required",
+        "checkout_required",
+        "payment_pending",
+        "license_delivery_ready",
+        "activated",
+        "denied",
+        "recovery_only"
+      ],
+      "next_actions": [
+        "activate_or_manage_entitlement",
+        "activated",
+        "deliver_license",
+        "manage_nodes",
+        "open_checkout",
+        "poll_after_retry_after",
+        "provide_email",
+        "recovery",
+        "recovery_only",
+        "select_offer",
+        "verify_email"
+      ],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": [],
+      "receipt_schema": null,
+      "handoff_markers": ["PRESENTER_STATES", "TERMINAL_STATES", "presenterNextAction"],
+      "credential_handling": {
+        "identity": "masked identity only; unmasked emails fail closed",
+        "key": "no key material field by construction",
+        "card": "card data never present",
+        "note": "read-only projection of daemon payloads; actions execute through the daemon REST surface"
+      },
+      "channel": {"records_install_channel": false, "note": "projects entitlement posture only"},
+      "differs_by": "rendering: desktop menu vs. TUI/REST; no semantic divergence"
+    },
+    {
+      "id": "tui",
+      "name": "TUI activation presenter",
+      "role": "terminal_projection",
+      "sources": ["crates/focusa-tui/src/activation_presenter.rs"],
+      "renders_presenter_states": true,
+      "states": [
+        "email_required",
+        "email_verification_pending",
+        "email_verified",
+        "selection_required",
+        "checkout_required",
+        "payment_pending",
+        "license_delivery_ready",
+        "activated",
+        "denied",
+        "recovery_only"
+      ],
+      "next_actions": [
+        "activate_or_manage_entitlement",
+        "activated",
+        "deliver_license",
+        "manage_nodes",
+        "open_checkout",
+        "poll_after_retry_after",
+        "provide_email",
+        "recovery",
+        "recovery_only",
+        "select_offer",
+        "verify_email"
+      ],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": [],
+      "receipt_schema": null,
+      "handoff_markers": ["TuiPresenterState", "next_action", "is_terminal"],
+      "credential_handling": {
+        "identity": "masked identity only; unknown states, unmasked emails, and raw credentials fail closed",
+        "key": "no raw credential field by construction",
+        "card": "card data never present",
+        "note": "read-only: renders posture and actions; every action executes through the daemon REST surface"
+      },
+      "channel": {"records_install_channel": false, "note": "projects entitlement posture only"},
+      "differs_by": "rendering: TUI widgets vs. menubar/REST; no semantic divergence"
+    },
+    {
+      "id": "rest",
+      "name": "Daemon REST license presenter",
+      "role": "daemon_json_presenter",
+      "sources": ["crates/focusa-api/src/routes/license.rs"],
+      "renders_presenter_states": true,
+      "states": [
+        "email_required",
+        "email_verification_pending",
+        "email_verified",
+        "selection_required",
+        "checkout_required",
+        "payment_pending",
+        "license_delivery_ready",
+        "activated",
+        "denied",
+        "recovery_only"
+      ],
+      "next_actions": [
+        "activate_or_manage_entitlement",
+        "activated",
+        "deliver_license",
+        "manage_nodes",
+        "open_checkout",
+        "poll_after_retry_after",
+        "provide_email",
+        "recovery",
+        "recovery_only",
+        "select_offer",
+        "verify_email"
+      ],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": [],
+      "receipt_schema": "focusa.presenter_entitlement_posture.v1",
+      "handoff_markers": [
+        "presenter_state_for_entitlement_status",
+        "presenter_next_action_label",
+        "allowed_actions_for_presenter_state",
+        "mask_identity"
+      ],
+      "credential_handling": {
+        "identity": "masked_identity only (mask_identity); raw email never returned",
+        "key": "no full key field; lease envelope handled outside the presenter block",
+        "card": "card data never present",
+        "note": "unknown entitlement statuses fail closed to email_required; unknown presenter states fail closed to activate-or-manage"
+      },
+      "channel": {"records_install_channel": false, "note": "test fixtures record channel advisory only"},
+      "differs_by": "transport: JSON over HTTP vs. TUI widgets; no semantic divergence"
+    },
+    {
+      "id": "receipts",
+      "name": "Lifecycle receipt presenter posture",
+      "role": "receipt_schema_presenter",
+      "sources": ["crates/focusa-core/src/install_lifecycle/receipts.rs"],
+      "renders_presenter_states": true,
+      "states": ["activated", "denied", "recovery_only"],
+      "next_actions": ["activate_or_manage_entitlement", "activated", "manage_nodes", "recovery", "recovery_only"],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": [],
+      "receipt_schema": "focusa.lifecycle_receipt_presenter_posture.v1",
+      "handoff_markers": ["presenter_posture", "LifecycleReceiptPresenterPosture", "receipt_hash"],
+      "credential_handling": {
+        "identity": "no identity field on the receipt posture; masked identity only upstream",
+        "key": "receipts carry digests and receipt hashes, never key material",
+        "card": "card data never present",
+        "note": "product-ready receipt class without a verified signature renders recovery_only, never activated; receipt hashes chain predecessors"
+      },
+      "channel": {"records_install_channel": false, "note": "receipts record acceptance classes and hashes, not install channels"},
+      "differs_by": "transport: durable receipt schema vs. live posture JSON; no semantic divergence"
+    },
+    {
+      "id": "source_build",
+      "name": "Source-build / raw binary first-run activation",
+      "role": "source_presenter",
+      "sources": ["crates/focusa-license/src/authority_store.rs"],
+      "renders_presenter_states": false,
+      "states": [],
+      "next_actions": [],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": [],
+      "receipt_schema": "focusa.spec152e.source_build_first_run.v1",
+      "handoff_markers": [
+        "state_resolution_never_reads_install_channel_or_installer_files",
+        "install_channel"
+      ],
+      "credential_handling": {
+        "identity": "masked identity only through the shared flow",
+        "key": "authority lease required; missing/corrupt/deleted state fails closed to unactivated/recovery_only",
+        "card": "card data never present",
+        "note": "install_channel=source_build is advisory telemetry, never entitlement evidence; deleting installer state can neither unlock protected work nor change the runtime decision"
+      },
+      "channel": {"records_install_channel": true, "install_channel_values": ["source_build"], "note": "advisory telemetry only; durable-state decision has no channel input"},
+      "differs_by": "transport: no installer provenance vs. official installer; same authority flow, same entitlement"
+    },
+    {
+      "id": "uiai",
+      "name": "UIAI Engine activation through the same EDD account",
+      "role": "product_presenter",
+      "sources": ["crates/focusa-license/src/uiai_activation.rs"],
+      "renders_presenter_states": false,
+      "states": [],
+      "next_actions": [],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": [],
+      "receipt_schema": "focusa.uiai_activation_contract.v1",
+      "handoff_markers": [
+        "resolve_uiai_activation",
+        "PUBLIC_CODE_UIAI_OPERATOR_LIFETIME_V1",
+        "same_account_binding",
+        "UiaiAccountIdentity"
+      ],
+      "credential_handling": {
+        "identity": "one verified EDD account identity; no duplicate customer identity",
+        "key": "UIAI key/lease delivered through the SAME shared registration; never locally issued",
+        "card": "card data never present",
+        "note": "client submits only the public product code; EDD ids, prices, tiers, grants, limits, and commercial flags are never accepted"
+      },
+      "channel": {"records_install_channel": false, "note": "product decision module; channel is not an input"},
+      "differs_by": "transport: UIAI engine install vs. Focusa install; same EDD account and registration"
+    },
+    {
+      "id": "bundle",
+      "name": "Focusa + UIAI one-account bundle activation",
+      "role": "product_presenter",
+      "sources": ["crates/focusa-license/src/bundle_activation.rs"],
+      "renders_presenter_states": false,
+      "states": [],
+      "next_actions": [],
+      "authority_error_codes": [],
+      "bootstrap_error_codes": [],
+      "receipt_schema": "focusa.bundle_activation_contract.v1",
+      "handoff_markers": [
+        "resolve_bundle_activation",
+        "PUBLIC_CODE_FOCUSA_UIAI_BUNDLE_LIFETIME_V1",
+        "BUNDLE_PRICE_USD",
+        "no_duplicate_payment"
+      ],
+      "credential_handling": {
+        "identity": "one verified EDD account; strict same_account_binding on both lease subjects",
+        "key": "ONE EDD order and ONE canonical human-facing key; typed recoverable partial state reuses the same order/registration handle",
+        "card": "card data never present",
+        "note": "bundle SKU is one commerce SKU/key at the frozen server-owned price 1254.60 granting the exact union of the two Operator v1 grants with three shared operator nodes"
+      },
+      "channel": {"records_install_channel": false, "note": "product decision module; channel is not an input"},
+      "differs_by": "transport: bundle installer route (/bundle) vs. single-product routes; same registration and entitlement authority"
+    }
+  ],
+  "vectors": {
+    "positive": [
+      {"id": "paid_terminal_focusa", "terminal_presenter_state": "activated"},
+      {"id": "existing_key_journey", "terminal_presenter_state": "activated"},
+      {"id": "limited_access_spec172_overlay", "terminal_presenter_state": "activated"},
+      {"id": "refund_recovery", "terminal_presenter_state": "recovery_only"},
+      {"id": "revocation_recovery", "terminal_presenter_state": "recovery_only"},
+      {"id": "supersession_recovery", "terminal_presenter_state": "recovery_only"},
+      {"id": "checkout_expiry_recovery", "terminal_presenter_state": "recovery_only"},
+      {"id": "verification_expiry_recovery", "terminal_presenter_state": "recovery_only"}
+    ],
+    "negative": [
+      "no_unverified_email_promotion",
+      "no_entitlement_before_verification",
+      "no_checkout_from_unverified_attempt",
+      "no_lease_without_verified_device",
+      "no_node_without_verification",
+      "recovery_never_regrants",
+      "recovery_never_reissues",
+      "paid_never_downgraded_to_limited_access",
+      "no_backward_transition_from_selected"
+    ]
+  },
+  "privacy": {
+    "forbidden_fields": [
+      "email",
+      "normalized_email",
+      "raw_email",
+      "full_license_key",
+      "poll_credential_hash",
+      "verification_hash",
+      "server_credential",
+      "signing_key",
+      "card_pan",
+      "card_expiry",
+      "card_cvc",
+      "edd_internal_record"
+    ],
+    "masked_only_identity": true,
+    "unmasked_real_email_absent": true,
+    "secret_material_absent": true,
+    "card_data_never_collected": true,
+    "reveal_policy": "full key output masked by default; explicit customer-controlled reveal requires both opt-in and confirmation",
+    "email_scan_note": "the only non-synthetic address allowed on presenter surfaces is the product-owned public support contact support@focusa.dev (help text); every other address must be a deterministic example-domain fixture"
+  },
+  "channel_neutrality": {
+    "advisory_only": true,
+    "entitlement_never_changes_with_channel": true,
+    "install_channel_recorded_only_in": [
+      "crates/focusa-license/src/activation_client.rs (registration/context field)",
+      "crates/focusa-license/src/activation_facade.rs (request payload)",
+      "crates/focusa-license/src/activation_http.rs (start request)",
+      "crates/focusa-cli/src/commands/activation_flow.rs (advisory presenter values)",
+      "test fixtures and #[cfg(test)] blocks"
+    ],
+    "install_channel_never_read_by": [
+      "crates/focusa-license/src/activation_reducer.rs",
+      "crates/focusa-license/src/entitlement_policy.rs",
+      "crates/focusa-license/src/authority_store.rs (state resolution)",
+      "crates/focusa-api/src/routes/license.rs (daemon gate)",
+      "crates/focusa-core (install lifecycle)",
+      "all presenter rendering surfaces"
+    ],
+    "release_channel_note": "focusa.install.channel.* feature strings in entitlement_policy.rs/capsule_manifest.rs are capsule-manifest RELEASE-channel feature claims, distinct from the install_channel telemetry field; the neutrality check is scoped to the install_channel identifier and no entitlement decision reads it."
+  }
+}
