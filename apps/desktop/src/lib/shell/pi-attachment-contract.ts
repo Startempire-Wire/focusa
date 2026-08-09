@@ -30,7 +30,9 @@ export type PiNativeCommand =
   | { kind: 'input'; attachment_id: PiAttachmentIdentity['attachment_id']; data: string }
   | { kind: 'resize'; attachment_id: PiAttachmentIdentity['attachment_id']; geometry: PiTerminalGeometry }
   | { kind: 'interrupt'; attachment_id: PiAttachmentIdentity['attachment_id'] }
-  | { kind: 'detach'; attachment_id: PiAttachmentIdentity['attachment_id'] };
+  | { kind: 'detach'; attachment_id: PiAttachmentIdentity['attachment_id'] }
+  | { kind: 'close'; attachment_id: PiAttachmentIdentity['attachment_id'] }
+  | { kind: 'restart'; attachment_id: PiAttachmentIdentity['attachment_id'] };
 
 export const UNBOUND_PI_ATTACHMENT: PiAttachmentProjection = {
   state: 'unbound',
