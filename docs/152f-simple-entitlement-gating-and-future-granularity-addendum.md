@@ -1,6 +1,6 @@
 # Spec 152F — Simple Entitlement Gating and Future Granularity Addendum
 
-**Status:** Normative licensing policy for the `v0.9.144` correction train; implementation and acceptance remain open
+**Status:** Normative licensing policy for the `v0.9.144` correction train; implementation accepted with receipts (see docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt); stable release and publication remain forbidden until Spec 152E final closure (focusa-vbcqu.20.13.63) and REL.4–REL.7 close truthfully
 **Extends:** Spec 152, Spec 152A–E, and Spec 150A
 **Does not weaken:** EDD authority, verified-mailbox requirements, signed runtime leases, refunds, revocation, node binding, sequence monotonicity, or recovery availability
 **Primary objective:** Start collecting revenue with a small, understandable paywall while preserving controlled future expansion.

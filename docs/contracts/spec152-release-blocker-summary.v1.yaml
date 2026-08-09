@@ -4,6 +4,9 @@ simplification_authority: docs/152f-simple-entitlement-gating-and-future-granula
 work_item_root: focusa-vbcqu.20.13
 simplification_work_item_root: focusa-vbcqu.20.14
 simplification_final_work_item: focusa-vbcqu.20.14.52
+simplification_closure_status: accepted_with_receipts
+simplification_closure_receipt: docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt
+spec152e_final_closure_blocked_by: focusa-vbcqu.20.14.52
 status: blocked_for_new_evaluator_customer_and_stable_distribution
 spec_158: excluded
 blockers:
