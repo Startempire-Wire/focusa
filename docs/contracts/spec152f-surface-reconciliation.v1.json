@@ -2,11 +2,11 @@
   "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
   "baseline_counts": {
     "covered": 592,
-    "total": 978,
-    "unmatched": 386
+    "total": 980,
+    "unmatched": 388
   },
   "baseline_coverage": "docs/contracts/spec152-entitlement-coverage.v1.json",
-  "coverage_canonical_sha256": "0b1e13ca86ff3728a942cbeae1cb18dd4fec2c2b4d86672ea7b6085e39a5bc87",
+  "coverage_canonical_sha256": "8c53af1ed6b8eafdc4e6332b1e5fb0c3e5f2b7f357f41107e52fc974eb1ebe02",
   "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
   "policy_file_sha256": "7aa11eae5eb360325b23441f9c67554604d476027a4a343e5d0fb263f4c4df87",
   "resolution_counts": {
@@ -14,7 +14,7 @@
     "inherit_canonical_operation": 176,
     "premium_family_candidate": 51,
     "recovery_or_read_allowance": 3,
-    "scanner_exclusion_test_only": 7
+    "scanner_exclusion_test_only": 9
   },
   "rules": [
     "inventory rows are not prices SKUs or independent paywalls",
@@ -23,7 +23,7 @@
     "test-only files are excluded without hiding production entrypoints",
     "recovery read export repair rollback and stable security paths remain available subject to security"
   ],
-  "runtime_file_entries": 27,
+  "runtime_file_entries": 29,
   "runtime_file_entries_after_test_exclusion": 20,
   "schema": "focusa.spec152f.surface_reconciliation.v1",
   "shards": {
@@ -44,24 +44,24 @@
     },
     "runtime_files": {
       "path": "docs/contracts/spec152f-surface-reconciliation/runtime_files.v1.json",
-      "row_count": 27,
-      "sha256": "16fe3ebc30571ac3892596a53cc4a0dfb487688ff010855d510a0be27216ea9e"
+      "row_count": 29,
+      "sha256": "d2a74a1e7588c72ccb4c2c09e3de7e515ffd84cbed6a72a7a4ea9d63e716211f"
     }
   },
   "source_digests": {
-    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "e271c941e4fafebc344f9bdcca84eb6f3b0f094be10071dc36582a4aa69b357d",
+    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "d0ad2aa6cbd85cea96cea9f03165882dd57c310b8bd7f455a3efb2dc714169eb",
     "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "9de2cf306b6e37252e07dea8f9d50bafc0d788f2040837fc903a21a91eda1395",
     "docs/contracts/spec141/generated-capability-v2/route-classification.json": "ab7e1bef639dc294f176bbc86076ec983a897dbc86d227c2d9068831d0e786fa"
   },
   "surface_counts": {
     "cli": 87,
-    "export": 3,
+    "export": 4,
     "menubar": 83,
-    "release": 17,
+    "release": 18,
     "rest": 189,
     "scheduler": 2,
     "update": 5
   },
-  "test_only_scanner_exclusions": 7,
+  "test_only_scanner_exclusions": 9,
   "unknown_method_routes": 0
 }

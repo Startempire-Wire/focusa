@@ -12738,10 +12738,15 @@
     }
   ],
   "scanner_exclusions": {
-    "count": 7,
+    "count": 9,
     "entries": [
       {
         "path": "crates/focusa-cli/tests/silent_proof_export_parity_e2e.rs",
+        "rule": "tests_directory",
+        "surface": "export"
+      },
+      {
+        "path": "crates/focusa-license/tests/spec152f_export_entitlement.rs",
         "rule": "tests_directory",
         "surface": "export"
       },
@@ -12771,6 +12776,11 @@
         "surface": "release"
       },
       {
+        "path": "crates/focusa-license/tests/spec152f_release_proof_entitlement.rs",
+        "rule": "tests_directory",
+        "surface": "release"
+      },
+      {
         "path": "crates/focusa-cli/tests/spec128_update_runtime_e2e.rs",
         "rule": "tests_directory",
         "surface": "update"
@@ -12780,7 +12790,7 @@
   },
   "schema": "focusa.entitlement_coverage.v1",
   "source_digests": {
-    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "e271c941e4fafebc344f9bdcca84eb6f3b0f094be10071dc36582a4aa69b357d",
+    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "d0ad2aa6cbd85cea96cea9f03165882dd57c310b8bd7f455a3efb2dc714169eb",
     "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "9de2cf306b6e37252e07dea8f9d50bafc0d788f2040837fc903a21a91eda1395",
     "docs/contracts/spec141/generated-capability-v2/route-classification.json": "ab7e1bef639dc294f176bbc86076ec983a897dbc86d227c2d9068831d0e786fa"
   },

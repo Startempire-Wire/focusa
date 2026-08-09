@@ -15,8 +15,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/connect/firstrun",
-        feature: "focusa.core.workpoint",
-        limit_bucket: None,
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
         template: "/connect/room/{room_id}/scan",
@@ -585,8 +585,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/room/firstrun",
-        feature: "focusa.core.workpoint",
-        limit_bucket: None,
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/room/start",
@@ -610,13 +610,13 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/room/{room_id}/status",
-        feature: "focusa.core.evidence",
-        limit_bucket: None,
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/rooms",
-        feature: "focusa.core.evidence",
-        limit_bucket: None,
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/start",
@@ -625,8 +625,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/connect/status",
-        feature: "focusa.core.evidence",
-        limit_bucket: None,
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
         template: "/v1/constitution",
@@ -785,23 +785,23 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/device/pair/list",
-        feature: "focusa.core.evidence",
-        limit_bucket: None,
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
         template: "/v1/device/pair/revoke",
-        feature: "focusa.core.workpoint",
-        limit_bucket: None,
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
         template: "/v1/device/pair/start",
-        feature: "focusa.core.workpoint",
-        limit_bucket: None,
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
         template: "/v1/device/pair/status",
-        feature: "focusa.core.evidence",
-        limit_bucket: None,
+        feature: "focusa.team.multi_operator",
+        limit_bucket: Some("team_operators"),
     },
     RouteEntitlementRequirement {
         template: "/v1/dxux/digest",
@@ -1435,8 +1435,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/project/session-transfer",
-        feature: "focusa.team.multi_operator",
-        limit_bucket: Some("team_operators"),
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
         template: "/v1/project/settings",
@@ -1545,8 +1545,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/release/proof/status",
-        feature: "focusa.core.evidence",
-        limit_bucket: None,
+        feature: "focusa.release.proof",
+        limit_bucket: Some("release_proof_runs"),
     },
     RouteEntitlementRequirement {
         template: "/v1/resource/mode",
@@ -1810,8 +1810,8 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/subagent/result",
-        feature: "focusa.agent.silent_sessions",
-        limit_bucket: Some("silent_session_runs"),
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
         template: "/v1/sync/crdt/export",
