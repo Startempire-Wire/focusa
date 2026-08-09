@@ -8,6 +8,7 @@ use crate::work_item::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use crate::license::{
     evaluate_entitlement_execution,
@@ -71,6 +72,97 @@ pub struct SilentSessionDispatchDecision {
     pub selected_work_item: Option<WorkItemRef>,
     pub deferred: Vec<DeferredDispatchCandidate>,
     pub canonical_ready_count: usize,
+}
+
+/// Spec 152F.06.06 — bounded, label-only scheduler revalidation metrics.
+///
+/// Counts are derived from one `SilentSessionDispatchDecision` and keyed only
+/// by the fixed deferral-reason enum plus a selection counter. The snapshot
+/// escape returns canonical labels with counts and never retains session ids,
+/// work-item refs, lease ids, digests, or customer data.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SilentSessionDispatchMetrics {
+    selected: u64,
+    deferred_work_item_not_ready: u64,
+    deferred_resource: u64,
+    deferred_writer: u64,
+    deferred_entitlement: u64,
+}
+
+impl SilentSessionDispatchMetrics {
+    /// Record one dispatch decision. Only the fixed deferral-reason set and the
+    /// selection bit are counted; no caller-controlled string can grow the set.
+    pub fn record(&mut self, decision: &SilentSessionDispatchDecision) {
+        if decision.selected_work_item.is_some() {
+            self.selected += 1;
+        }
+        for deferred in &decision.deferred {
+            match deferred.reason {
+                DispatchDeferralReason::WorkItemNotReady => self.deferred_work_item_not_ready += 1,
+                DispatchDeferralReason::ResourceAdmissionDenied => self.deferred_resource += 1,
+                DispatchDeferralReason::WriterAdmissionDenied => self.deferred_writer += 1,
+                DispatchDeferralReason::EntitlementDenied => self.deferred_entitlement += 1,
+            }
+        }
+    }
+
+    /// Selections recorded across all recorded decisions.
+    pub fn selected(&self) -> u64 {
+        self.selected
+    }
+
+    /// Deferrals recorded for one canonical deferral reason.
+    pub fn deferred(&self, reason: DispatchDeferralReason) -> u64 {
+        match reason {
+            DispatchDeferralReason::WorkItemNotReady => self.deferred_work_item_not_ready,
+            DispatchDeferralReason::ResourceAdmissionDenied => self.deferred_resource,
+            DispatchDeferralReason::WriterAdmissionDenied => self.deferred_writer,
+            DispatchDeferralReason::EntitlementDenied => self.deferred_entitlement,
+        }
+    }
+
+    /// Entitlement revalidation denials (the Spec 152F §7 dispatch check).
+    pub fn entitlement_denied(&self) -> u64 {
+        self.deferred_entitlement
+    }
+
+    /// Total recorded outcomes (selection + all deferral reasons).
+    pub fn total(&self) -> u64 {
+        self.selected
+            + self.deferred_work_item_not_ready
+            + self.deferred_resource
+            + self.deferred_writer
+            + self.deferred_entitlement
+    }
+
+    /// Fixed capacity in counter slots; independent of any recorded workload.
+    pub const fn capacity(&self) -> usize {
+        5
+    }
+
+    /// Label-only snapshot for logs and metrics. Values are counts; keys are
+    /// canonical labels — never session, work-item, or lease identifiers.
+    pub fn snapshot(&self) -> BTreeMap<String, u64> {
+        let mut out = BTreeMap::new();
+        out.insert("dispatch.selected.count".to_string(), self.selected);
+        out.insert(
+            "dispatch.deferred.work_item_not_ready.count".to_string(),
+            self.deferred_work_item_not_ready,
+        );
+        out.insert(
+            "dispatch.deferred.resource_denied.count".to_string(),
+            self.deferred_resource,
+        );
+        out.insert(
+            "dispatch.deferred.writer_denied.count".to_string(),
+            self.deferred_writer,
+        );
+        out.insert(
+            "dispatch.deferred.entitlement_denied.count".to_string(),
+            self.deferred_entitlement,
+        );
+        out
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -894,5 +986,79 @@ mod tests {
             &[high, older_high.clone()],
         );
         assert_eq!(decision.selected_session_id, Some(older_high.session_id));
+    }
+
+    fn metrics_decision(
+        selected: bool,
+        deferrals: &[(DispatchDeferralReason, &str)],
+    ) -> SilentSessionDispatchDecision {
+        SilentSessionDispatchDecision {
+            schema: SILENT_SESSION_DISPATCH_SCHEMA.into(),
+            selected_session_id: None,
+            selected_work_item: selected
+                .then(|| item("selected", WorkItemStatus::Open, 0).reference()),
+            deferred: deferrals
+                .iter()
+                .map(|(reason, detail)| DeferredDispatchCandidate {
+                    session_id: SilentSessionId::new(),
+                    work_item: item("deferred", WorkItemStatus::Open, 0).reference(),
+                    reason: *reason,
+                    detail: detail.to_string(),
+                })
+                .collect(),
+            canonical_ready_count: 1,
+        }
+    }
+
+    #[test]
+    fn spec152f_observability_scheduler_revalidation_metrics_count_by_reason() {
+        let mut metrics = SilentSessionDispatchMetrics::default();
+        metrics.record(&metrics_decision(
+            true,
+            &[(DispatchDeferralReason::EntitlementDenied, "ENTITLEMENT_BASE_REQUIRED")],
+        ));
+        metrics.record(&metrics_decision(
+            false,
+            &[
+                (DispatchDeferralReason::EntitlementDenied, "ENTITLEMENT_REQUIRED"),
+                (DispatchDeferralReason::ResourceAdmissionDenied, "quota"),
+            ],
+        ));
+        metrics.record(&metrics_decision(
+            false,
+            &[(DispatchDeferralReason::WorkItemNotReady, "blocked")],
+        ));
+        metrics.record(&metrics_decision(true, &[]));
+
+        assert_eq!(metrics.selected(), 2);
+        assert_eq!(metrics.entitlement_denied(), 2);
+        assert_eq!(metrics.deferred(DispatchDeferralReason::ResourceAdmissionDenied), 1);
+        assert_eq!(metrics.deferred(DispatchDeferralReason::WriterAdmissionDenied), 0);
+        assert_eq!(metrics.deferred(DispatchDeferralReason::WorkItemNotReady), 1);
+        assert_eq!(metrics.total(), 2 + 2 + 1 + 1);
+    }
+
+    #[test]
+    fn spec152f_observability_scheduler_revalidation_metrics_are_label_only_and_bounded() {
+        let mut metrics = SilentSessionDispatchMetrics::default();
+        metrics.record(&metrics_decision(
+            true,
+            &[(DispatchDeferralReason::EntitlementDenied, "ENTITLEMENT_BASE_REQUIRED")],
+        ));
+        let snapshot = metrics.snapshot();
+        assert_eq!(snapshot.len(), metrics.capacity(), "fixed bounded capacity");
+        assert_eq!(snapshot["dispatch.deferred.entitlement_denied.count"], 1);
+        assert_eq!(snapshot["dispatch.selected.count"], 1);
+        assert!(
+            snapshot.keys().all(|key| {
+                !key.contains("session")
+                    && !key.contains("lease")
+                    && !key.contains("digest")
+                    && !key.contains("sha256")
+                    && !key.contains("provider_item")
+            }),
+            "snapshot must never expose session, work-item, or lease identifiers"
+        );
+        assert!(snapshot.values().all(|count| *count <= 1));
     }
 }
