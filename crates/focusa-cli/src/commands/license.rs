@@ -83,6 +83,25 @@ pub struct ActivateFlowArgs {
     /// cancel → recovery_only).
     #[arg(long, value_name = "SECONDS")]
     pub poll_timeout: Option<u64>,
+
+    /// Agent/JSON protocol (Spec 152E §14.2): non-interactive, never
+    /// prompts, never invents an email, verification code, consent, payment
+    /// confirmation, or license. Returns typed human-action envelopes with a
+    /// resumable registration handle; requires --email for a new attempt or
+    /// --resume for a bounded poll continuation.
+    #[arg(long)]
+    pub agent: bool,
+
+    /// Customer-controlled key reveal opt-in (agent mode): full key output
+    /// is masked by default; revealing the one-time key requires BOTH this
+    /// flag and --confirm-reveal.
+    #[arg(long)]
+    pub reveal_key: bool,
+
+    /// Explicit confirmation for the customer-controlled key reveal
+    /// (agent mode). Without it the key stays masked.
+    #[arg(long)]
+    pub confirm_reveal: bool,
 }
 
 #[derive(Args, Debug)]
@@ -524,7 +543,13 @@ pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
         LicenseCmd::Status => run_status(json_output).await,
         LicenseCmd::Doctor => run_doctor(json_output).await,
         LicenseCmd::CheckFeature(a) => run_check_feature(json_output, a).await,
-        LicenseCmd::ActivateFlow(a) => run_activation_flow_command(json_output, a).await,
+        LicenseCmd::ActivateFlow(a) => {
+            if a.agent {
+                run_agent_activation_command(json_output, a).await
+            } else {
+                run_activation_flow_command(json_output, a).await
+            }
+        }
         LicenseCmd::Activate(_)
         | LicenseCmd::Deactivate
         | LicenseCmd::DevmodeFull(_)
@@ -1594,6 +1619,96 @@ async fn run_activation_flow_command(
         println!(
             "Activation paused at {}; resume with --resume {}.",
             outcome.presenter_state, outcome.registration_id
+        );
+    }
+    Ok(())
+}
+
+/// Agent/JSON protocol (Spec 152E §14.2): non-interactive, fail-closed. The
+/// agent begins with `--email` (pending attempt only) or resumes with
+/// `--resume <handle>`, and receives typed human-action envelopes with a
+/// resumable registration handle. The agent never invents an email,
+/// verification code, consent, payment confirmation, or license; the full key
+/// stays masked unless the customer explicitly opts in AND confirms
+/// (--reveal-key --confirm-reveal).
+async fn run_agent_activation_command(
+    json_output: bool,
+    args: ActivateFlowArgs,
+) -> anyhow::Result<()> {
+    use crate::commands::activation_flow::{
+        CLI_FLOW, load_poll_credential, load_registration_snapshot, resolve_flow_node_identity,
+        resume_agent_activation, run_agent_activation,
+    };
+    use focusa_license::authority_credentials::KeyringCredentialStore;
+    use focusa_license::{ActivationHttpClient, ActivationHttpPolicy, AgentKeyReveal};
+
+    let reveal = AgentKeyReveal {
+        reveal_key: args.reveal_key,
+        reveal_confirmation: args.confirm_reveal,
+    };
+
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| anyhow::anyhow!("HOME not set; cannot resolve activation state"))?;
+    let config_dir = home.join(".config/focusa");
+    let identity = resolve_flow_node_identity(&config_dir)
+        .map_err(|error| anyhow::anyhow!("{error}"))?;
+
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN").unwrap_or_else(|_| {
+        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/authority/".to_string()
+    });
+    let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
+    let policy = ActivationHttpPolicy {
+        base_url,
+        timeout: std::time::Duration::from_secs(30),
+        max_response_bytes: 1024 * 1024,
+    };
+    let client = ActivationHttpClient::new(policy)
+        .map_err(|error| anyhow::anyhow!("initialize activation authority transport: {error}"))?;
+
+    let outcome = if let Some(registration_id) = args.resume.as_deref() {
+        let registration = load_registration_snapshot(&config_dir, registration_id)?;
+        let credential = load_poll_credential(&KeyringCredentialStore, registration_id)?;
+        resume_agent_activation(
+            client,
+            CLI_FLOW,
+            registration,
+            credential,
+            args.poll_timeout,
+            reveal,
+        )?
+    } else {
+        let email = args.email.ok_or_else(|| {
+            anyhow::anyhow!(
+                "EMAIL_REQUIRED: agent mode never prompts; pass --email for a new attempt or --resume <registration_id> to continue"
+            )
+        })?;
+        run_agent_activation(
+            client,
+            CLI_FLOW,
+            Some(email),
+            Some(identity.node_id.clone()),
+            reveal,
+        )?
+    };
+
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&outcome.envelope)?);
+    } else if outcome.terminal {
+        println!(
+            "Activation settled as {}; recovery, export, repair, and uninstall remain available.",
+            outcome.envelope.state
+        );
+    } else {
+        println!(
+            "Human action required: {} (registration {}) — resume with --resume {} after the human completes it.",
+            outcome
+                .envelope
+                .human_action
+                .as_deref()
+                .unwrap_or("human_action"),
+            outcome.registration_id,
+            outcome.registration_id
         );
     }
     Ok(())

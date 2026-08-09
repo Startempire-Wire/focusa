@@ -7,6 +7,7 @@
 //! missing, edited, expired, revoked, or unverifiable state cannot grant capability.
 
 pub mod activation_client;
+pub mod activation_agent;
 pub mod activation_facade;
 pub mod activation_http;
 pub mod activation_reducer;
@@ -25,6 +26,10 @@ pub use activation_client::{
     ActivationClientError, ActivationJourney, ActivationLedgerEvent, ActivationRegistration,
     ActivationSession, ActivationStartReply, ActivationAuthority, CheckoutOutcome, PollOutcome,
     PublicOffer, DEFAULT_MAX_POLLS, retry_policy_for_code,
+};
+pub use activation_agent::{
+    AGENT_ENVELOPE_SCHEMA, AgentActivationEnvelope, AgentKeyReveal, human_action_for_state,
+    human_action_required, mask_key_prefix, masked_email_or_none,
 };
 pub use activation_facade::{
     ActivationError, ActivationErrorCode, ActivationErrorSpec, ActivationRequestContext,

@@ -20,6 +20,7 @@ use focusa_license::activation_client::{
 use focusa_license::activation_facade::{
     ActivationError, ActivationErrorCode, ActivationRequestContext,
 };
+use focusa_license::activation_agent::{AgentActivationEnvelope, AgentKeyReveal};
 use focusa_license::activation_http::{ActivationHttpClient, LeaseDeliveryEnvelope};
 use focusa_license::activation_reducer::{
     ActivationOutputEnvelope, ActivationState, RetryPosture, presenter_state,
@@ -527,6 +528,136 @@ fn new_context(config: ActivationFlowConfig) -> ActivationRequestContext {
         config.install_channel,
         Some(idempotency_key),
     )
+}
+
+// ── Spec 152E §14.2 agent/JSON protocol ────────────────────────────────────
+
+/// Terminal outcome of one agent step: the typed human-action envelope plus
+/// the resumable registration handle. When `terminal` is false the agent must
+/// hand the envelope to the human and resume later with `--resume <handle>`.
+#[derive(Debug)]
+pub struct AgentActivationOutcome {
+    pub envelope: AgentActivationEnvelope,
+    pub registration_id: String,
+    pub terminal: bool,
+}
+
+/// One bounded agent step for a NEW registration: the email only creates a
+/// pending attempt (Spec 152E §5/§6.1). The agent never invents a
+/// verification code, so the envelope reports the typed human action
+/// (`enter_verification_code`) and stops with the resumable handle. No prompt
+/// is ever rendered and nothing is invented.
+pub fn run_agent_activation<A: ActivationAuthority>(
+    authority: A,
+    config: ActivationFlowConfig,
+    email: Option<String>,
+    device_public_key: Option<String>,
+    reveal: AgentKeyReveal,
+) -> Result<AgentActivationOutcome, ActivationFlowError> {
+    let context = new_context(config);
+    let email = email.ok_or(ActivationFlowError::EmailRequired)?;
+    if email.trim().is_empty() {
+        return Err(ActivationFlowError::EmailRequired);
+    }
+    let session = ActivationSession::begin(
+        authority,
+        context,
+        &email,
+        "focusa",
+        device_public_key.as_deref(),
+    )?;
+    let envelope = AgentActivationEnvelope::from_session(&session, None, reveal, None)?;
+    Ok(AgentActivationOutcome {
+        registration_id: session.registration_id().to_string(),
+        terminal: session.state().is_terminal(),
+        envelope,
+    })
+}
+
+/// One bounded agent resume step: re-supplies the poll credential from the
+/// protected store and polls within the registration budget (and optional
+/// wall-clock timeout). Terminal settlements end the session; any other state
+/// still requires a human action, so the agent receives the typed envelope
+/// and the resumable handle instead of exhausting the budget. Authority
+/// recovery/refund/revoke settles fail-closed to `recovery_only`.
+pub fn resume_agent_activation<A: ActivationAuthority>(
+    authority: A,
+    config: ActivationFlowConfig,
+    registration: ActivationRegistration,
+    poll_credential: SensitiveCredential,
+    poll_timeout_seconds: Option<u64>,
+    reveal: AgentKeyReveal,
+) -> Result<AgentActivationOutcome, ActivationFlowError> {
+    let context = new_context(config);
+    let mut session =
+        ActivationSession::resume(authority, context, registration, poll_credential)?;
+    if session.state().is_terminal() {
+        let envelope = AgentActivationEnvelope::from_session(&session, None, reveal, None)?;
+        return Ok(AgentActivationOutcome {
+            registration_id: session.registration_id().to_string(),
+            terminal: true,
+            envelope,
+        });
+    }
+    let deadline =
+        poll_timeout_seconds.map(|seconds| Instant::now() + Duration::from_secs(seconds));
+    loop {
+        if let Some(deadline) = deadline {
+            if Instant::now() >= deadline {
+                session.cancel().map_err(ActivationFlowError::Client)?;
+                return finish_agent(session, reveal);
+            }
+        }
+        match session.poll() {
+            Ok(_) => {
+                // One bounded poll settled the step. Terminal states stop;
+                // any other state still requires a human action, so return
+                // the typed envelope + resumable handle.
+                return finish_agent(session, reveal);
+            }
+            Err(ActivationClientError::Authority(error)) => {
+                let retry = retry_policy_for_code(error.code);
+                match retry.posture {
+                    RetryPosture::SafeRetry | RetryPosture::RetrySameIdempotencyKey => {
+                        let seconds = retry.retry_after_seconds.unwrap_or(3).min(30);
+                        std::thread::sleep(Duration::from_secs(seconds as u64));
+                    }
+                    RetryPosture::Restart => {
+                        return Err(ActivationFlowError::RestartVerificationRequired)
+                    }
+                    RetryPosture::RecoveryOnly | RetryPosture::None => {
+                        session.cancel().map_err(ActivationFlowError::Client)?;
+                        return finish_agent_with_error(session, Some(&error), reveal);
+                    }
+                }
+            }
+            Err(ActivationClientError::PollBudgetExhausted) => {
+                session.cancel().map_err(ActivationFlowError::Client)?;
+                return finish_agent(session, reveal);
+            }
+            Err(error) => return Err(ActivationFlowError::Client(error)),
+        }
+    }
+}
+
+fn finish_agent<A: ActivationAuthority>(
+    session: ActivationSession<A>,
+    reveal: AgentKeyReveal,
+) -> Result<AgentActivationOutcome, ActivationFlowError> {
+    finish_agent_with_error(session, None, reveal)
+}
+
+fn finish_agent_with_error<A: ActivationAuthority>(
+    session: ActivationSession<A>,
+    error: Option<&ActivationError>,
+    reveal: AgentKeyReveal,
+) -> Result<AgentActivationOutcome, ActivationFlowError> {
+    let envelope = AgentActivationEnvelope::from_session(&session, error, reveal, None)?;
+    Ok(AgentActivationOutcome {
+        registration_id: session.registration_id().to_string(),
+        terminal: session.state().is_terminal(),
+        envelope,
+    })
 }
 
 fn try_persist<A: ActivationAuthority>(
@@ -1541,5 +1672,202 @@ mod tests {
         let raw = std::fs::read_to_string(&path).unwrap();
         assert!(!raw.contains("poll-secret"));
         std::fs::remove_dir_all(&directory).unwrap();
+    }
+
+    // ── Spec 152E §14.2 agent/JSON protocol ───────────────────────────────
+
+    #[test]
+    fn agent_begin_returns_typed_human_action_envelope_and_handle_without_prompt() {
+        let authority = scripted_paid_start();
+        let outcome = run_agent_activation(
+            authority,
+            CLI_FLOW,
+            Some("customer@example.com".into()),
+            Some("device-pub-key".into()),
+            AgentKeyReveal::denied(),
+        )
+        .expect("agent begin");
+        assert!(!outcome.terminal);
+        assert_eq!(outcome.envelope.schema, "focusa.agent_activation_envelope.v1");
+        assert_eq!(outcome.envelope.state, "email_verification_pending");
+        assert!(outcome.envelope.human_action_required);
+        assert_eq!(
+            outcome.envelope.human_action.as_deref(),
+            Some("enter_verification_code")
+        );
+        assert_eq!(outcome.envelope.masked_email.as_deref(), Some("c***@example.com"));
+        assert_eq!(outcome.registration_id, outcome.envelope.registration_id);
+        let body = serde_json::to_string(&outcome.envelope).unwrap();
+        assert!(!body.contains("customer@example.com"));
+        assert!(!body.contains("poll-secret"));
+    }
+
+    #[test]
+    fn agent_begin_without_email_fails_closed_without_authority_call() {
+        let authority = ScriptedAuthority::new();
+        let error = run_agent_activation(
+            authority,
+            CLI_FLOW,
+            None,
+            None,
+            AgentKeyReveal::denied(),
+        )
+        .unwrap_err();
+        assert!(matches!(error, ActivationFlowError::EmailRequired));
+    }
+
+    #[test]
+    fn agent_resume_polls_boundedly_and_returns_human_action_payment_envelope() {
+        let authority = ScriptedAuthority::new();
+        authority.push(
+            "activation.poll",
+            Ok(AuthorityReply::Poll(PollOutcome {
+                transitions: vec![ActivationTransition::CheckoutStarted],
+                one_time_key_envelope: None,
+                node_id: None,
+                lease_envelope: None,
+            })),
+        );
+        let registration = ActivationRegistration {
+            schema: "focusa.activation_registration.v1".into(),
+            registration_id: "registration-0001".into(),
+            facade_id: "focusa-cli".into(),
+            presenter: "cli".into(),
+            install_channel: "source_build".into(),
+            state: ActivationState::OfferSelected,
+            masked_email: Some("c***@example.com".into()),
+            poll_count: 0,
+            max_polls: 40,
+        };
+        let credential = SensitiveCredential::new("poll-secret".into()).unwrap();
+        let outcome = resume_agent_activation(
+            authority,
+            CLI_FLOW,
+            registration,
+            credential,
+            None,
+            AgentKeyReveal::denied(),
+        )
+        .expect("agent resume");
+        assert!(!outcome.terminal);
+        assert_eq!(outcome.envelope.state, "payment_pending");
+        assert!(outcome.envelope.human_action_required);
+        assert_eq!(
+            outcome.envelope.human_action.as_deref(),
+            Some("complete_payment_then_poll")
+        );
+        assert_eq!(outcome.envelope.next_action, "complete_payment_then_poll");
+        assert_eq!(outcome.envelope.poll_count, 1);
+    }
+
+    #[test]
+    fn agent_resume_settles_terminal_delivery_with_key_masked_by_default() {
+        let authority = ScriptedAuthority::new();
+        authority.push(
+            "activation.poll",
+            Ok(AuthorityReply::Poll(PollOutcome {
+                transitions: vec![
+                    ActivationTransition::EntitlementIssued,
+                    ActivationTransition::TerminalDeliveryReady,
+                    ActivationTransition::DeviceRegistered,
+                    ActivationTransition::LeaseIssued,
+                    ActivationTransition::Delivered,
+                ],
+                one_time_key_envelope: Some("base64:key-envelope".into()),
+                node_id: Some("node-0001".into()),
+                lease_envelope: None,
+            })),
+        );
+        let registration = ActivationRegistration {
+            schema: "focusa.activation_registration.v1".into(),
+            registration_id: "registration-0001".into(),
+            facade_id: "focusa-cli".into(),
+            presenter: "cli".into(),
+            install_channel: "source_build".into(),
+            state: ActivationState::CheckoutPending,
+            masked_email: Some("c***@example.com".into()),
+            poll_count: 0,
+            max_polls: 40,
+        };
+        let credential = SensitiveCredential::new("poll-secret".into()).unwrap();
+        let outcome = resume_agent_activation(
+            authority,
+            CLI_FLOW,
+            registration,
+            credential,
+            None,
+            AgentKeyReveal::denied(),
+        )
+        .expect("agent resume to delivery");
+        assert!(outcome.terminal);
+        assert_eq!(outcome.envelope.state, "activated");
+        assert!(outcome.envelope.key_present);
+        assert!(!outcome.envelope.key_visible, "key masked by default for agents");
+        let body = serde_json::to_string(&outcome.envelope).unwrap();
+        assert!(!body.contains("key-envelope"));
+        assert!(!body.contains("full-key-envelope"));
+    }
+
+    #[test]
+    fn agent_resume_recovery_only_never_regrants_and_carries_typed_error() {
+        let authority = ScriptedAuthority::new();
+        authority.push("activation.poll", Err(ActivationErrorCode::Refunded));
+        let registration = ActivationRegistration {
+            schema: "focusa.activation_registration.v1".into(),
+            registration_id: "registration-0001".into(),
+            facade_id: "focusa-cli".into(),
+            presenter: "cli".into(),
+            install_channel: "source_build".into(),
+            state: ActivationState::CheckoutPending,
+            masked_email: Some("c***@example.com".into()),
+            poll_count: 0,
+            max_polls: 40,
+        };
+        let credential = SensitiveCredential::new("poll-secret".into()).unwrap();
+        let outcome = resume_agent_activation(
+            authority,
+            CLI_FLOW,
+            registration,
+            credential,
+            None,
+            AgentKeyReveal::denied(),
+        )
+        .expect("refund settles recovery");
+        assert!(outcome.terminal);
+        assert_eq!(outcome.envelope.state, "recovery_only");
+        assert_eq!(outcome.envelope.next_action, "recovery_only");
+        assert_eq!(outcome.envelope.error.as_ref().unwrap().code, "REFUNDED");
+        assert_eq!(
+            outcome.envelope.error.as_ref().unwrap().next_action,
+            "recovery_only"
+        );
+    }
+
+    #[test]
+    fn agent_timeout_cancels_fail_closed_to_recovery_only() {
+        let authority = ScriptedAuthority::new();
+        let registration = ActivationRegistration {
+            schema: "focusa.activation_registration.v1".into(),
+            registration_id: "registration-0001".into(),
+            facade_id: "focusa-cli".into(),
+            presenter: "cli".into(),
+            install_channel: "source_build".into(),
+            state: ActivationState::CheckoutPending,
+            masked_email: Some("c***@example.com".into()),
+            poll_count: 0,
+            max_polls: 40,
+        };
+        let credential = SensitiveCredential::new("poll-secret".into()).unwrap();
+        let outcome = resume_agent_activation(
+            authority,
+            CLI_FLOW,
+            registration,
+            credential,
+            Some(0),
+            AgentKeyReveal::denied(),
+        )
+        .expect("timeout cancels");
+        assert!(outcome.terminal);
+        assert_eq!(outcome.envelope.state, "recovery_only");
     }
 }
