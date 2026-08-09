@@ -63,6 +63,14 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .as_ref()
         .map(|posture| format!("Entitlement   {}", posture.status_line()))
         .unwrap_or_else(|| "Entitlement   unavailable (no signed authority snapshot)".into());
+    // Spec 152F §11.5/§13 accessibility fixture: the TUI shows the same
+    // next-action guide and always-reachable set as the menubar presenter;
+    // denied value actions stay explained and never trap the customer.
+    let entitlement_guide_line = app
+        .license
+        .as_ref()
+        .map(|posture| format!("Entitlement   {}", posture.action_guide()))
+        .unwrap_or_default();
     let text = vec![
         Line::from(vec![
             Span::styled("Mission Deck", theme::title()),
@@ -72,6 +80,7 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         Line::from(format!("Active frame  {active_frame}")),
         Line::from(activation_line),
         Line::from(entitlement_line),
+        Line::from(entitlement_guide_line),
         Line::from(format!("Scope badge   {}  {}", scope.visual, scope.label)),
         Line::from(format!("Proof meter   {}  {}", proof.visual, proof.label)),
         Line::from(format!(

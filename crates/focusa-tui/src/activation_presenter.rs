@@ -162,15 +162,65 @@ pub struct TuiLicensePosture {
     pub masked_identity: Option<String>,
 }
 
+/// Always-reachable surface families (Spec 152F P6 / §11.5, §13):
+/// navigation, status, account, read, export, recovery, repair, update, and
+/// uninstall are never disabled by a denied entitlement decision. Frozen
+/// fixture shared with the menubar presenter
+/// (apps/menubar/src/lib/entitlementPosture.ts
+/// `ALWAYS_REACHABLE_ACTIONS`) and the menubar action map
+/// (docs/contracts/spec152f-menubar-action-map.v1.json
+/// `accessibility_fixtures.always_reachable`).
+pub const ALWAYS_REACHABLE: [&str; 9] = [
+    "navigation",
+    "status",
+    "account",
+    "read",
+    "export",
+    "recovery",
+    "repair",
+    "update",
+    "uninstall",
+];
+
 impl TuiLicensePosture {
     pub fn status_line(&self) -> String {
         format!(
-            "entitlement={} next={} actions=[{}] identity={}",
+            "entitlement={} next={} actions=[{}] identity={} | Recovery, export, repair, and uninstall remain available when execution is locked",
             self.presenter_state,
             self.next_action,
             self.actions.join(","),
             self.masked_identity.as_deref().unwrap_or("masked")
         )
+    }
+
+    /// Accessibility fixture shared with the menubar presenter: the next
+    /// action label and the always-reachable set. Never disabled and never
+    /// empty; parity-bound by
+    /// tests/spec152f_presenter_accessibility_test.mjs.
+    pub fn action_guide(&self) -> String {
+        format!(
+            "next={} label={} always_reachable=[{}]",
+            self.next_action,
+            self.next_action_label(),
+            ALWAYS_REACHABLE.join(",")
+        )
+    }
+
+    /// Human-readable next-action label (mirror of the menubar action guide;
+    /// rendering only, never a commercial decision).
+    fn next_action_label(&self) -> &'static str {
+        match self.next_action.as_str() {
+            "provide_email" => "Provide email",
+            "verify_email" => "Verify email",
+            "select_offer" => "Select offer",
+            "open_checkout" => "Open checkout",
+            "poll_after_retry_after" => "Poll after retry-after",
+            "deliver_license" => "Deliver license",
+            "activated" => "Entitlement active",
+            "activate_or_manage_entitlement" => "Evaluate or manage entitlement",
+            "recovery" => "Recovery",
+            _ => "Manage entitlement",
+        }
     }
 }
 
