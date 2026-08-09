@@ -88,6 +88,7 @@ pub use dynamic_operation_manifest::{
     REGISTERED_OPERATION_CLASSES, REGISTERED_PRODUCT_OWNERS,
     REGISTERED_SIDE_EFFECT_CLASSES,
 };
+pub mod bundle_activation;
 pub mod uiai_activation;
 pub mod uiai_child_token;
 
