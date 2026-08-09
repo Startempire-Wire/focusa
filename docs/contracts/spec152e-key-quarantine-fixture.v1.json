@@ -1,0 +1,129 @@
+{
+  "schema": "focusa.spec152e.key_quarantine_fixture.v1",
+  "fixture_id": "focusa-vbcqu.20.13.52",
+  "authority": {
+    "canonical": "WPUIAI.com EDD",
+    "spec158": "excluded"
+  },
+  "policy": "quarantine_synthetic_duplicate_ambiguous_only",
+  "redaction": {
+    "raw_email": "absent",
+    "raw_key": "absent",
+    "payment_id_stored": false,
+    "secret_material": "absent"
+  },
+  "records": [
+    {
+      "handle": "rec_q_synth_0001",
+      "surface": "focusa_live_synthetic",
+      "disposition": "synthetic_quarantine",
+      "reason": "EDD_ORDER_UNVERIFIED",
+      "masked_key": "fl_****_0001",
+      "evidence": {
+        "kind": "install_site_migration",
+        "source": "install_site_reconciliation",
+        "record": "synth-install-0001"
+      }
+    },
+    {
+      "handle": "rec_q_synth_0002",
+      "surface": "focusa_live_synthetic",
+      "disposition": "synthetic_quarantine",
+      "reason": "EDD_ORDER_UNVERIFIED",
+      "masked_key": "fl_****_0002",
+      "evidence": {
+        "kind": "install_site_migration",
+        "source": "install_site_reconciliation",
+        "record": "synth-install-0002"
+      }
+    },
+    {
+      "handle": "rec_q_dup_edd_a",
+      "surface": "duplicate_edd_key",
+      "disposition": "duplicate",
+      "reason": "LICENSE_ACCOUNT_MISMATCH",
+      "key_group": "kg_dup_edd_0001",
+      "masked_key": "fl_****_1001",
+      "evidence": {
+        "kind": "purchase_evidence",
+        "source": "edd_software_licensing",
+        "record": "dup-edd-a-1001"
+      }
+    },
+    {
+      "handle": "rec_q_dup_edd_b",
+      "surface": "duplicate_edd_key",
+      "disposition": "duplicate",
+      "reason": "LICENSE_ACCOUNT_MISMATCH",
+      "key_group": "kg_dup_edd_0001",
+      "masked_key": "fl_****_1001",
+      "evidence": {
+        "kind": "purchase_evidence",
+        "source": "edd_software_licensing",
+        "record": "dup-edd-b-1002"
+      }
+    },
+    {
+      "handle": "rec_q_dup_custom_a",
+      "surface": "duplicate_custom_key",
+      "disposition": "duplicate",
+      "reason": "ACCOUNT_MERGE_REVIEW_REQUIRED",
+      "key_group": "kg_dup_custom_0001",
+      "masked_key": "fl_****_2001",
+      "evidence": {
+        "kind": "install_site_migration",
+        "source": "install_site_reconciliation",
+        "record": "dup-custom-a-2001"
+      }
+    },
+    {
+      "handle": "rec_q_dup_custom_b",
+      "surface": "duplicate_custom_key",
+      "disposition": "duplicate",
+      "reason": "ACCOUNT_MERGE_REVIEW_REQUIRED",
+      "key_group": "kg_dup_custom_0001",
+      "masked_key": "fl_****_2001",
+      "evidence": {
+        "kind": "install_site_migration",
+        "source": "install_site_reconciliation",
+        "record": "dup-custom-b-2002"
+      }
+    },
+    {
+      "handle": "rec_q_orphan_0001",
+      "surface": "orphan_payment_id",
+      "disposition": "orphan_payment",
+      "reason": "EDD_ORDER_UNVERIFIED",
+      "masked_key": "pi_****_3001",
+      "evidence": {
+        "kind": "stripe_reconciliation",
+        "source": "stripe_reconciliation",
+        "record": "orphan-payment-3001"
+      }
+    },
+    {
+      "handle": "rec_q_product_0001",
+      "surface": "unresolved_product",
+      "disposition": "unresolved",
+      "reason": "PRODUCT_MAPPING_REQUIRED",
+      "masked_key": "fl_****_4001",
+      "evidence": {
+        "kind": "purchase_evidence",
+        "source": "edd_software_licensing",
+        "record": "unresolved-product-4001"
+      }
+    },
+    {
+      "handle": "rec_q_account_0001",
+      "surface": "unresolved_account",
+      "disposition": "unresolved",
+      "reason": "EDD_CUSTOMER_RESOLUTION_FAILED",
+      "masked_key": "fl_****_5001",
+      "evidence": {
+        "kind": "operator_review",
+        "source": "authority_reconciliation",
+        "record": "unresolved-account-5001"
+      }
+    }
+  ]
+}
