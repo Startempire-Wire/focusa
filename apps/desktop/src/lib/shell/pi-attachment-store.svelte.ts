@@ -107,6 +107,16 @@ export class PiAttachmentStore {
     return true;
   }
 
+  /** Current run generation; controls activate only for this generation. */
+  get generation(): number {
+    return this.#generation;
+  }
+
+  /** Latest dispatched monotonic sequence of the current run. */
+  get latestSequence(): number {
+    return this.#sequence;
+  }
+
   /**
    * Stale-output rejection: output produced for an earlier run generation is
    * dropped. The terminal must pass the generation it was bound with.

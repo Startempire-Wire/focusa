@@ -1,0 +1,34 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "PTY-013",
+  "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
+  "status": "complete",
+  "result": "Agent TUI bridge: authentic terminal renderer stream + controls. createAgentTuiBridge adapts the platform-neutral PtyHandle to the renderer; commands route through the module-level store (fail closed when unbound); Interrupt control activates only when attached at the exact current run generation (store.generation + acceptsOutput gate). No static terminal text exists; renderer is a live PTY stream. Same Pi session + Attachment in Mission Canvas and Agent TUI.",
+  "dependency_gate": {
+    "status": "passed",
+    "dependencies": [
+      "PTY-001",
+      "PTY-003",
+      "PTY-007"
+    ]
+  },
+  "checks": [
+    {
+      "command": "node apps/desktop/tests/agent-tui-bridge-runtime.mjs",
+      "result": "pass: 4 scenario groups"
+    },
+    {
+      "command": "npm --prefix apps/desktop test",
+      "result": "pass"
+    },
+    {
+      "command": "npm --prefix apps/desktop run check",
+      "result": "pass: 0 errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "remaining_work": []
+}
