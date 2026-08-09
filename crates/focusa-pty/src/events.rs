@@ -1,6 +1,7 @@
 //! Ordered output events with exact identity, run generation, and monotonic
 //! sequence (PTY-006).
 
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 
@@ -95,6 +96,7 @@ pub struct EventSink {
     rx: Arc<Mutex<Option<mpsc::Receiver<PtyEventEnvelope>>>>,
     generation: Arc<AtomicU64>,
     sequence: Arc<SequenceCounter>,
+    history: Arc<Mutex<VecDeque<PtyEventEnvelope>>>,
 }
 
 impl EventSink {
@@ -105,7 +107,38 @@ impl EventSink {
             rx: Arc::new(Mutex::new(Some(rx))),
             generation: Arc::new(AtomicU64::new(generation)),
             sequence: Arc::new(SequenceCounter::default()),
+            history: Arc::new(Mutex::new(VecDeque::with_capacity(4096))),
         }
+    }
+
+    /// Bounded event history so a reattached surface can resync from the
+    /// SAME process generation (PTY-010). Oldest envelopes drop first.
+    pub fn push_history(&self, envelope: PtyEventEnvelope) {
+        let mut history = self.history.lock().unwrap();
+        if history.len() >= 4096 {
+            history.pop_front();
+        }
+        history.push_back(envelope);
+    }
+
+    /// Envelopes with a sequence strictly greater than `since_sequence`.
+    pub fn history_after(&self, since_sequence: u64) -> Vec<PtyEventEnvelope> {
+        self.history
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|envelope| envelope.sequence > since_sequence)
+            .cloned()
+            .collect()
+    }
+
+    pub fn latest_sequence_in_history(&self) -> u64 {
+        self.history
+            .lock()
+            .unwrap()
+            .back()
+            .map(|envelope| envelope.sequence)
+            .unwrap_or(0)
     }
 
     pub fn generation(&self) -> u64 {
@@ -127,7 +160,11 @@ impl EventSink {
             self.generation.load(Ordering::Relaxed),
             self.sequence.next(),
         );
-        self.tx.send(envelope)
+        self.push_history(envelope.clone());
+        // Live streaming is best-effort: when the surface detached (dropped
+        // the receiver), history remains the durable resync path (PTY-010).
+        let _ = self.tx.send(envelope.clone());
+        Ok(())
     }
 
     /// Returns true when the event belongs to the current generation and does

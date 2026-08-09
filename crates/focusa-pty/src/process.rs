@@ -33,6 +33,55 @@ pub enum PtyProcessError {
 
 pub type PtyProcessResult<T> = Result<T, PtyProcessError>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum GeometryError {
+    #[error("zero dimension is invalid")]
+    ZeroDimension,
+    #[error("dimension overflow")]
+    Overflow,
+}
+
+/// PTY-008: invalid zero/overflow dimensions fail closed before reaching the
+/// PTY. Columns/rows are u16; zero is invalid and anything beyond a sane
+/// terminal viewport (4096) is an overflow.
+pub fn validate_geometry(geometry: &PtyGeometry) -> Result<(), GeometryError> {
+    if geometry.columns == 0 || geometry.rows == 0 {
+        return Err(GeometryError::ZeroDimension);
+    }
+    if geometry.columns > 4096 || geometry.rows > 4096 {
+        return Err(GeometryError::Overflow);
+    }
+    Ok(())
+}
+
+/// PTY-007: acknowledgement for a guarded input write.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PtyWriteAck {
+    Accepted { sequence: u64 },
+    Rejected { reason: WriteRejectionReason },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WriteRejectionReason {
+    ForeignAttachment,
+    StaleGeneration,
+    NotAttached,
+}
+
+/// PTY-009: acknowledgement for an interrupt (ETX) targeting one process.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InterruptAck {
+    pub accepted: bool,
+    pub generation: u64,
+}
+
+/// PTY-009: interrupt (ETX) is distinct from terminate (kill).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TerminateKind {
+    Interrupt,
+    Terminate,
+}
+
 /// Runtime command being executed. Defaults to the `pi` binary on PATH.
 #[derive(Debug, Clone)]
 pub struct PtyCommandSpec {
@@ -94,6 +143,8 @@ impl PtyProcess {
         generation: u64,
     ) -> PtyProcessResult<Arc<Self>> {
         identity.validate()?;
+        validate_geometry(&geometry)
+            .map_err(|error| PtyProcessError::Open(error.to_string()))?;
 
         let sink = EventSink::new(generation);
         let pty_system = native_pty_system();
@@ -195,19 +246,44 @@ impl PtyProcess {
 
     /// Write input into the PTY. Returns false when no process is attached.
     pub fn write_input(&self, data: &str) -> PtyProcessResult<bool> {
-        let mut guard = self.writer.lock().unwrap();
-        let writer = guard.as_mut().ok_or(PtyProcessError::WriterUnavailable)?;
-        writer
-            .write_all(data.as_bytes())
-            .map_err(|e| PtyProcessError::Reader(e.to_string()))?;
-        writer
-            .flush()
-            .map_err(|e| PtyProcessError::Reader(e.to_string()))?;
-        Ok(true)
+        match self.write_input_guarded(&self.identity, self.generation(), data) {
+            PtyWriteAck::Accepted { .. } => Ok(true),
+            _ => Ok(false),
+        }
     }
 
-    /// Resize the PTY viewport.
+    /// PTY-007: guarded write with acknowledgement. A foreign Attachment or a
+    /// stale generation input is rejected BEFORE any byte reaches the PTY.
+    pub fn write_input_guarded(
+        &self,
+        identity: &PtyAttachmentIdentity,
+        generation: u64,
+        data: &str,
+    ) -> PtyWriteAck {
+        if identity.attachment_key.attachment_id != self.identity.attachment_key.attachment_id
+            || identity.work_surface_id != self.identity.work_surface_id
+        {
+            return PtyWriteAck::Rejected { reason: WriteRejectionReason::ForeignAttachment };
+        }
+        if generation != self.generation() {
+            return PtyWriteAck::Rejected { reason: WriteRejectionReason::StaleGeneration };
+        }
+        let mut guard = self.writer.lock().unwrap();
+        let writer = match guard.as_mut() {
+            Some(writer) => writer,
+            None => return PtyWriteAck::Rejected { reason: WriteRejectionReason::NotAttached },
+        };
+        if writer.write_all(data.as_bytes()).is_err() || writer.flush().is_err() {
+            return PtyWriteAck::Rejected { reason: WriteRejectionReason::NotAttached };
+        }
+        PtyWriteAck::Accepted { sequence: self.sink.lock().unwrap().latest_sequence() }
+    }
+
+    /// Resize the PTY viewport. Invalid zero/overflow dimensions fail before
+    /// reaching the PTY (PTY-008).
     pub fn resize(&self, geometry: PtyGeometry) -> PtyProcessResult<()> {
+        validate_geometry(&geometry)
+            .map_err(|error| PtyProcessError::Open(error.to_string()))?;
         let mut guard = self.master.lock().unwrap();
         let master = guard.as_mut().ok_or(PtyProcessError::WriterUnavailable)?;
         master
@@ -229,15 +305,28 @@ impl PtyProcess {
         Ok(())
     }
 
-    /// Interrupt: write ETX (Ctrl-C) into the PTY master.
-    pub fn interrupt(&self) -> PtyProcessResult<()> {
+    /// PTY-009: interrupt (ETX) targeting ONE process, distinct from
+    /// terminate (close/kill). Returns an acknowledgement with the run
+    /// generation; the interrupted event is emitted through the sink.
+    pub fn interrupt(&self) -> PtyProcessResult<InterruptAck> {
         self.write_input("\u{3}")?;
         self.sink
             .lock()
             .unwrap()
             .emit(PtyEvent::Interrupted, self.identity.clone())
             .map_err(|e| PtyProcessError::Reader(e.to_string()))?;
-        Ok(())
+        Ok(InterruptAck { accepted: true, generation: self.generation() })
+    }
+
+    /// Terminate (kill + reap). Distinct from interrupt.
+    pub fn terminate(&self) -> PtyProcessResult<()> {
+        self.close()
+    }
+
+    /// PTY-010: resync events for a reattached surface from the SAME process
+    /// generation. Returns ordered envelopes after `since_sequence`.
+    pub fn resync_events(&self, since_sequence: u64) -> Vec<PtyEventEnvelope> {
+        self.sink.lock().unwrap().history_after(since_sequence)
     }
 
     /// Kill + reap the child process.
@@ -355,6 +444,44 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[test]
+    fn geometry_validation_rejects_zero_and_overflow() {
+        assert_eq!(
+            validate_geometry(&PtyGeometry { columns: 0, rows: 24, pixel_width: 0, pixel_height: 0 }),
+            Err(GeometryError::ZeroDimension)
+        );
+        assert_eq!(
+            validate_geometry(&PtyGeometry { columns: 80, rows: 0, pixel_width: 0, pixel_height: 0 }),
+            Err(GeometryError::ZeroDimension)
+        );
+        assert_eq!(
+            validate_geometry(&PtyGeometry { columns: 5000, rows: 24, pixel_width: 0, pixel_height: 0 }),
+            Err(GeometryError::Overflow)
+        );
+        assert_eq!(
+            validate_geometry(&PtyGeometry { columns: 120, rows: 40, pixel_width: 960, pixel_height: 640 }),
+            Ok(())
+        );
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    #[test]
+    fn resize_rejects_invalid_dimensions_before_reaching_pty() {
+        let process = PtyProcess::spawn(
+            sample_identity(),
+            shell_spec(),
+            PtyGeometry { columns: 80, rows: 24, pixel_width: 0, pixel_height: 0 },
+        )
+        .expect("spawn");
+        assert!(process
+            .resize(PtyGeometry { columns: 0, rows: 24, pixel_width: 0, pixel_height: 0 })
+            .is_err(), "zero columns must fail before reaching the PTY");
+        assert!(process
+            .resize(PtyGeometry { columns: 120, rows: 40, pixel_width: 0, pixel_height: 0 })
+            .is_ok(), "valid latest geometry reaches the PTY");
+        process.close().expect("close");
+    }
+
     #[cfg(any(target_os = "macos", target_os = "linux"))]
     #[test]
     fn process_emits_ordered_output_with_exact_identity() {
@@ -385,6 +512,38 @@ mod tests {
         assert!(outputs[1].contains("world"), "second line in order: {outputs:?}");
         assert!(!process.accepts(0, 1), "stale generation rejected");
         assert!(!process.accepts(1, 999), "non-monotonic sequence rejected");
+        process.close().expect("close");
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    #[test]
+    fn write_ack_rejects_foreign_attachment_and_stale_generation() {
+        let process = PtyProcess::spawn(
+            sample_identity(),
+            PtyCommandSpec {
+                program: "/bin/sh".into(),
+                args: vec!["-c".into(), "cat".into()],
+                cwd: Some("/tmp".into()),
+            },
+            PtyGeometry { columns: 80, rows: 24, pixel_width: 0, pixel_height: 0 },
+        )
+        .expect("spawn");
+
+        // foreign attachment
+        let mut foreign = sample_identity();
+        foreign.attachment_key.attachment_id = "attachment:other".into();
+        assert_eq!(
+            process.write_input_guarded(&foreign, process.generation(), "x\n"),
+            PtyWriteAck::Rejected { reason: WriteRejectionReason::ForeignAttachment }
+        );
+        // stale generation
+        assert_eq!(
+            process.write_input_guarded(&sample_identity(), process.generation() + 99, "x\n"),
+            PtyWriteAck::Rejected { reason: WriteRejectionReason::StaleGeneration }
+        );
+        // current identity + generation accepted
+        let ack = process.write_input_guarded(&sample_identity(), process.generation(), "echo ok\n");
+        assert!(matches!(ack, PtyWriteAck::Accepted { .. }), "current input accepted");
         process.close().expect("close");
     }
 
@@ -422,6 +581,89 @@ mod tests {
         }
         assert!(saw_output, "input reached the process and echoed back");
         process.interrupt().expect("interrupt");
+        process.close().expect("close");
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    #[test]
+    fn interrupt_targets_one_process_and_is_distinct_from_terminate() {
+        // A process that ignores SIGINT must survive interrupt() but die on
+        // close/terminate: interrupt is ETX (signal), terminate is kill.
+        let process = PtyProcess::spawn(
+            sample_identity(),
+            PtyCommandSpec {
+                program: "/bin/sh".into(),
+                args: vec![
+                    "-c".into(),
+                    "trap '' INT; while true; do sleep 1; done".into(),
+                ],
+                cwd: Some("/tmp".into()),
+            },
+            PtyGeometry { columns: 80, rows: 24, pixel_width: 0, pixel_height: 0 },
+        )
+        .expect("spawn");
+        let ack = process.interrupt().expect("interrupt");
+        assert!(ack.accepted);
+        assert_eq!(ack.generation, process.generation());
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        assert!(process.is_alive(), "interrupt (ETX) must NOT terminate the process");
+        process.terminate().expect("terminate");
+        assert!(!process.is_alive(), "terminate kills the process");
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    #[test]
+    fn reattach_resyncs_subsequent_output_from_same_generation() {
+        let process = PtyProcess::spawn(
+            sample_identity(),
+            PtyCommandSpec {
+                program: "/bin/sh".into(),
+                args: vec![
+                    "-c".into(),
+                    "for i in 1 2 3 4 5; do echo tick-$i; sleep 0.2; done".into(),
+                ],
+                cwd: Some("/tmp".into()),
+            },
+            PtyGeometry { columns: 80, rows: 24, pixel_width: 0, pixel_height: 0 },
+        )
+        .expect("spawn");
+        let generation = process.generation();
+        let mut events = process.events().expect("receiver");
+        // Read a first output event (attach session).
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        let mut last_seq = 0u64;
+        while std::time::Instant::now() < deadline {
+            while let Ok(envelope) = events.try_recv() {
+                if let PtyEvent::Output { .. } = &envelope.kind {
+                    last_seq = envelope.sequence;
+                }
+            }
+            if last_seq > 0 {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+        assert!(last_seq > 0, "first output observed");
+        // "Detach": drop the receiver; process keeps running.
+        drop(events);
+        std::thread::sleep(std::time::Duration::from_millis(700));
+        // "Reattach": resync from the last observed sequence.
+        let subsequent = process.resync_events(last_seq);
+        let outputs: Vec<&str> = subsequent
+            .iter()
+            .filter_map(|envelope| match &envelope.kind {
+                PtyEvent::Output { data } => Some(data.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            outputs.iter().any(|data| data.contains("tick-2")),
+            "reattach receives subsequent output from same generation: {outputs:?}"
+        );
+        assert!(
+            subsequent.iter().all(|envelope| envelope.generation == generation),
+            "all resynced events carry the SAME process generation"
+        );
         process.close().expect("close");
     }
 }
