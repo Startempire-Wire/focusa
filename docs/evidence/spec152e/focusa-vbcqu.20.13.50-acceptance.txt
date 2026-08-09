@@ -1,0 +1,130 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.50
+Title: 152E.06.02 Migrate evidence-backed paid install-site records into EDD
+authority
+Implementation commit: `1d67f64f8ae191338b6552b8c62e1ed926875b3d` (code + fixture + test)
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§22.1 inventory, §22.2 merge rules — verified email
+plus evidence-backed purchase/license linkage may attach a record to an account;
+Stripe customer/payment evidence may reconcile install-site paid records to EDD;
+raw matching email alone does not transfer ownership; key/order/product/refund/
+sequence history is preserved; migration cannot reactivate refunded/revoked
+records or downgrade paid users; §22.3 cutover step 6, §22.4 rollback, §6.3
+atomic promotion, §7 canonical account model, §23 acceptance "Legacy install-site
+record" row); Specs 152, 150A, 152A-D; Spec 158 implementation excluded.
+Locked-release correction atom in the spec152f/spec172 async pipeline.
+
+Exact surfaces (this atom only)
+- Migration journal/adapter:
+  docs/contracts/spec152e-paid-record-migration.v1.php
+  (FocusaSpec152ePaidRecordMigrationSchema + FocusaSpec152ePaidRecordMigrationService)
+- Stripe payment/refund evidence, install registry, and EDD customer/order/
+  license/account mappings:
+  docs/contracts/spec152e-paid-record-migration-fixture.v1.json
+  (redacted, deterministic; no raw email, no raw key, no payment id, no secret)
+- tests/spec152e_paid_record_migration_test.py (exact verification)
+
+Bounded result
+- Added the paid-record migrator: the schema owns five tables —
+  wpuiai_paid_record_journal (append-only, digest-chained), _imports (one row
+  per accepted record), _evidence (Stripe payment_evidence / refund_evidence
+  pinned 64-hex digests), _install_registry (noncanonical source rows), and
+  _edd_mappings (exactly one EDD/account entitlement per accepted record).
+- Evidence-first import: applyRecord() accepts a record only when its Stripe
+  payment/refund evidence row and its install-registry source row exist and
+  agree with the record handle; disposition unresolved has no evidence/registry
+  and always fails closed with EDD_ORDER_UNVERIFIED — nothing is written.
+- Verified identity before ownership delivery: applyRecord() demands a keyed
+  64-hex verified-identity digest (never the raw email) that must match the
+  record's pinned identity_lookup_digest; verify_first records deliver
+  entitlement only after that gate (EMAIL_VERIFICATION_REQUIRED without it,
+  EMAIL_VERIFICATION_FAILED on mismatch).
+- One entitlement per accepted record: every accepted paid record resolves to
+  exactly one imports row and one edd_mappings row, journaled once. Replays
+  return the stored result (replayed=true) and never create a second
+  entitlement or journal entry; the adverse-state journal is likewise
+  idempotent.
+- Never reactivate refund/revoke: refunded/revoked records are journaled
+  `preserve_adverse_state` with the typed reason (REFUNDED/REVOKED), produce
+  zero entitlement, and reactivate() always fails closed — there is no code
+  path that can re-grant, re-import, or resurrect them.
+- Preserved history where policy allows: product code, record status, masked
+  key, and sequence are carried from the install registry into the
+  imports/mapping rows — never from caller input; the server-owned product
+  allowlist (focusa_operator / uiai_engine_operator / focusa_uiai_bundle /
+  focusa_evaluation) rejects any caller-controlled product
+  (PRODUCT_MAPPING_REQUIRED) and the decision signature has no price, grant,
+  tier, limit, or feature inputs.
+- Dry-run / apply / rollback-safe: dryRun() mirrors the exact apply gates and
+  writes zero rows; applyRecord() is transactional and idempotent; rollback is
+  preservation-only (preserveForRollback() writes a rollback_preserved event;
+  no DELETE/TRUNCATE/DROP path exists) and can never delete EDD
+  customer/order/refund truth, verified identities, licenses, nodes,
+  sequences, credentials, Workpoints, Evidence, or migration journals.
+- The journal is replay-safe: every entry carries previous_digest + entry_digest
+  chained from genesis, and journalChainValid() recomputes the whole chain.
+- No unverified-email promotion, no local/self-issued entitlement, no
+  independent facade authority, no client-controlled EDD price/grants, and no
+  secret or unmasked real-email evidence anywhere in the contract, fixture,
+  or test output. Cargo/release builds remain deferred until the operator's
+  50% gate; this atom touches no Rust surface, so no cargo build was run.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152e_paid_record_migration_test.py` — exit 0 (run three
+   times; deterministic, byte-identical harness output; harness sha256
+   84975e9c08fd1f0d5c5da171b54167209a3d2ffa9e59b701f554a212762a2028).
+   Validation summary:
+   fixture_sha256=e620feeff83e896e81d9aaea965e58d229b6fc7e82626a8e5dc3b060fe653cc2
+   contract_sha256=7ac2d8f7c588a08503d7f6795b410dc2ffaac1c5f63a825e12bf41cc2cf348b1
+   positive_checks=53  negative_checks=10  accepted_imports=6
+   entitlement_mappings=6  journal_entries=8  dry_run_writes=0
+   replay_second_entitlement=0  reactivation_denials=2
+   verify_first_imported=1  rollback_preserved=1  journal_chain_valid=true
+   result=passed
+   The gate statically validates the fixture (one entitlement per accepted
+   record, adverse state preserved, zero mappings for refunded/revoked/
+   verify_first/unresolved, redaction) and the contract (fail-closed codes,
+   replay-safe journal chain, preservation-only rollback, reactivate() can only
+   throw), then executes the PHP adapter twice against sqlite with byte-
+   identical output: 5 evidence-backed imports plus 1 verified verify_first
+   import, 2 refunded/revoked preserved and never reactivated, replay
+   idempotent, dry-run zero writes, fail-closed unresolved/idempotency/product
+   denials, and preservation-only rollback.
+
+Regression checks (exit codes)
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0 (prior atom
+  20.13.49 inventory contract untouched; physical_records=596).
+- `php tests/spec152e_key_quarantine_test.php` — exit 0 (prior atom 20.13.52:
+  positive=251, negative=15).
+- `php tests/spec152e_legacy_customer_migration_test.php` — exit 0 (prior atom
+  20.13.51: positive=151, negative=18).
+- `python3 tests/spec152e_delivery_lease_acceptance_test.py` — exit 1:
+  "spec152e-presenter-parity-matrix.v1.json: no unmasked real email
+  (support@focusa.dev)". This failure is PRE-EXISTING and unrelated to this
+  atom: the presenter parity matrix was added by atom 20.13.48 (commit
+  8f9803ce, an ancestor of this worktree's base); no file this atom adds
+  (spec152e-paid-record-migration.v1.php, the fixture, and the gate test)
+  participates in that check.
+- `php -l docs/contracts/spec152e-paid-record-migration.v1.php` — exit 0 (no
+  syntax errors).
+- No cargo command was run: this atom touches no Rust surface and the
+  locked-release FORBIDDEN rule defers cargo/release builds to the operator's
+  50% gate.
+
+Tests added
+- tests/spec152e_paid_record_migration_test.py — the exact verification gate
+  (53 positive / 10 negative checks): fixture structure and redaction;
+  one-entitlement-per-accepted-record; adverse-state preservation; verified
+  identity gate; static contract invariants (fail-closed codes, journal chain,
+  preservation-only rollback, reactivate-only-throws, no raw email/price/grant
+  inputs); and behavioral dry-run/apply/replay/rollback execution of the PHP
+  adapter with byte-identical replayable output.
+
+Rollback
+- Revert only this atom's commits (implementation commit plus the evidence
+  commit containing this file). Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals; no authority, EDD, node, lease, or local
+  install state is mutated by these migration proofs and replay tests.
+
+No push, deploy, release, merge, or Beads mutation was performed.
