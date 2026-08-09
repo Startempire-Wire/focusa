@@ -1472,3 +1472,7 @@ mod tests {
 #[cfg(test)]
 #[path = "spec152f_state_grid_acceptance.rs"]
 mod spec152f_state_grid_acceptance;
+
+#[cfg(test)]
+#[path = "spec172_runtime_policy.rs"]
+mod spec172_runtime_policy;
