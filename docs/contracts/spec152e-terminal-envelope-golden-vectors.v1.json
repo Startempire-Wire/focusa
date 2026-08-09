@@ -1,0 +1,25 @@
+{
+  "schema": "focusa.spec152e.terminal_envelope_golden_vectors.v1",
+  "fixture_kind": "public_synthetic_nonproduction",
+  "algorithm": "X25519+HKDF-SHA256+AES-256-GCM",
+  "info": "focusa.spec152e.terminal_delivery_envelope.v1\u0000hkdf",
+  "device_private_key_hex": "0000000000000000000000000000000101010101010101010101010101010101",
+  "device_public_key_hex": "7a917db00f98516a14141aa11e44aef9d3a5ace4eefe25cf4e9395b3f57e7b3a",
+  "ephemeral_private_key_hex": "abababababababababababababababababababababababababababababababab",
+  "ephemeral_public_key_hex": "c1fdcb9ad5a6b378e46cca44e85d6e8c5f2095fd7e41ff22aa4a0390baaeb772",
+  "shared_secret_hex": "75be233490637538debc7dae84f194984e6e3205d09413ce2ffa8bc4852b9613",
+  "derived_key_hex": "bb710c86bb83154e9f045806b1aa95f97c117b0a8c85ce9b78602a73764076ac",
+  "nonce_b64url": "AQIDBAUGBwgJCgsM",
+  "canonical_claims_json": "{\"account_uuid\":\"018f47c2-6ac0-7b16-8d1a-4e93df5a0102\",\"customer_id\":41001,\"edd_license_id\":503,\"envelope_id\":\"env_0123456789abcdef0123456789abcdef\",\"expires_at\":\"2026-08-08T18:30:00Z\",\"issued_at\":\"2026-08-08T18:00:00Z\",\"license_key\":\"ABCD1234-EFAB5678-90CD1234-EFAB5678\",\"one_time\":true,\"product_code\":\"focusa_operator\",\"registration_id\":\"018f47c2-6ac0-7b16-8d1a-4e93df5a0101\",\"schema\":\"focusa.spec152e.terminal_delivery_envelope.v1\"}",
+  "aad_json": "{\"algorithm\":\"X25519+HKDF-SHA256+AES-256-GCM\",\"ephemeral_public_key\":\"wf3LmtWms3jkbMpE6F1ujF8glf1-Qf8iqkoDkLqut3I\",\"nonce\":\"AQIDBAUGBwgJCgsM\",\"schema\":\"focusa.spec152e.terminal_delivery_envelope.v1\",\"version\":1}",
+  "envelope": {
+    "schema": "focusa.spec152e.terminal_delivery_envelope.v1",
+    "version": 1,
+    "algorithm": "X25519+HKDF-SHA256+AES-256-GCM",
+    "ephemeral_public_key": "wf3LmtWms3jkbMpE6F1ujF8glf1-Qf8iqkoDkLqut3I",
+    "nonce": "AQIDBAUGBwgJCgsM",
+    "ciphertext": "O5cy8mKbZlG66Tu84R7aFTp9gaST-3XgA8YSuDgdPtkJSkeLudhVlNjV1-7A2EWi_ee8gHa5xWfNosXiCOoAyT-wYJmkwMXYREsPzpHcID3EuO8vcG9StYoKg_PxzrSLXJLeY0pD2CpD9Z-A8wl_yEI5N2s09tNEM1yqUqQlSl2n1-3dQZUnU6sjQrWeqSH6YZx3FxNJNN6-K-ntOTGL6lehPeKLuJQgbP3cFk6UX7YAohRW7XzYPY6TWkSX2_DwJnUHPJMFCunP1Uy81XmAMz1Kp4B8mxfVApLgJBtLjgrehjMNO-4fs9MqzjD0ItmkBsx4rJ4_RqMdNZk-nCfJQQtFHbU4fK2tWBq-9n9C6zrNNi5MYlU_z6Srol49UAeFApI3J8uczlSEP8OvTvcN2IJSc0spYKiOLhY9OEgEXLrVPB5yCKwgvI78D7vOtyleRcuTHBS3z_iPeV8kPz9f9uQ9wtvEFVMY6u-UfpgFWZFF383nnK8dbWBD7wyJKLl-m3DktBHcjXH30jwfasEzIB6Hk8HREp6xTw3DFyGEz99XYZqcFOyDN5fk_EvX6vf-FdjtapyDScMlvv53_Q8cIvfHhA"
+  },
+  "license_key": "ABCD1234-EFAB5678-90CD1234-EFAB5678",
+  "license_key_mask": "********-********-********-5678"
+}
