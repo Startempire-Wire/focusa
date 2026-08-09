@@ -81,6 +81,7 @@ import { projectBindingAllowsDurableWrites, reconcileProjectBindingDecision } fr
 import { resolveCanonicalMarkerProjectRoot } from "./project-identity-working-context.js";
 import { publishScopedStateChange } from "./scoped-surface-refresh.js";
 import { modelVisibleDiscoveryPayload as renderDiscoveryPayload } from "./tool-discovery-visible.js";
+import { projectEntitlementDecision, type EntitlementDecisionV1 } from "./entitlement-policy-adapter.js";
 
 function modelVisibleDiscoveryPayload(label: string, payload: unknown, maxChars = 12_000): string {
   return renderDiscoveryPayload(label, payload, storeEcsArtifact, maxChars);
@@ -429,6 +430,7 @@ type FocusaFailureClass =
   | "process_control_failed"
   | "noncanonical_fallback"
   | "read_model_lag"
+  | "entitlement_blocked"
   | "unknown_ambiguous_completion";
 
 interface FocusaToolResultV1 {
@@ -453,6 +455,8 @@ interface FocusaToolResultV1 {
   ontology_candidate_delta_refs?: string[];
   error?: { field?: string; code?: string; message?: string; allowed_values?: string[] } | null;
   raw?: unknown;
+  /** Spec 152F §7: canonical entitlement decision projected for a blocked tool. */
+  entitlement_decision?: EntitlementDecisionV1;
 }
 
 function reflexSuggestionsForFailure(
@@ -764,6 +768,7 @@ function focusaToolResult(params: {
   ontology_candidate_delta_refs?: string[];
   error?: FocusaToolResultV1["error"];
   raw?: unknown;
+  entitlement_decision?: EntitlementDecisionV1;
 }): FocusaToolResultV1 {
   const degraded = params.degraded ?? (params.status === "degraded" || params.status === "offline");
   const canonical = params.canonical ?? (!degraded && params.ok);
@@ -800,6 +805,7 @@ function focusaToolResult(params: {
     ontology_candidate_delta_refs: params.ontology_candidate_delta_refs ?? [],
     error: params.error ?? null,
     raw: compactApiEcho(params.raw),
+    ...(params.entitlement_decision ? { entitlement_decision: params.entitlement_decision } : {}),
   };
 }
 
@@ -1336,6 +1342,18 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
       : typeof (details.response as any)?.failure_class === "string"
         ? ((details.response as any).failure_class as FocusaFailureClass)
         : undefined;
+  // Spec 152F §7: project the canonical entitlement decision when the daemon
+  // blocks the tool (focusaFetch returns an ENTITLEMENT_* denial envelope).
+  const daemonResponse =
+    details.response && typeof details.response === "object"
+      ? (details.response as Record<string, unknown>)
+      : null;
+  const entitlementBlocked =
+    detailsFailureClass === "entitlement_blocked" || daemonResponse?.failure_class === "entitlement_blocked";
+  const entitlementCode =
+    daemonResponse && daemonResponse.error && typeof daemonResponse.error === "object"
+      ? String((daemonResponse.error as Record<string, unknown>).code || "ENTITLEMENT_BLOCKED")
+      : "ENTITLEMENT_BLOCKED";
   const activeWorkpoint = resolveActiveWorkpointContext();
   const resultWorkpointId =
     String(
@@ -1346,9 +1364,9 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
         ""
     ) || null;
   return focusaToolResult({
-    ok,
-    status,
-    failure_class: detailsFailureClass,
+    ok: entitlementBlocked ? false : ok,
+    status: entitlementBlocked ? "blocked" : status,
+    failure_class: entitlementBlocked ? "entitlement_blocked" : detailsFailureClass,
     canonical: !degraded && !offline,
     degraded,
     summary: text || `${tool} ${status}`,
@@ -1357,28 +1375,38 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
     endpoint: typeof details.endpoint === "string" ? details.endpoint : undefined,
     workpoint_id: resultWorkpointId,
     retry: {
-      safe: readOnly || status === "validation_rejected" || status === "offline",
-      posture:
-        status === "validation_rejected"
+      safe: entitlementBlocked ? false : readOnly || status === "validation_rejected" || status === "offline",
+      posture: entitlementBlocked
+        ? "operator_required"
+        : status === "validation_rejected"
           ? "do_not_retry_unchanged"
           : readOnly
             ? "safe_retry"
             : "check_side_effects_first",
-      reason: status,
+      reason: entitlementBlocked ? "entitlement_blocked" : status,
     },
-    side_effects: readOnly ? [] : [family],
+    side_effects: entitlementBlocked ? [] : readOnly ? [] : [family],
     evidence_refs: activeWorkpoint.evidence_refs,
     next_tools:
       Array.isArray(details.next_tools) && details.next_tools.length
         ? details.next_tools.map(String)
-        : status === "offline"
-          ? ["focusa_tool_doctor", "focusa_resource_mode"]
-          : family === "workpoint"
-            ? ["focusa_workpoint_resume"]
-            : [],
+        : entitlementBlocked
+          ? ["focusa_agent_card", "focusa_tool_doctor"]
+          : status === "offline"
+            ? ["focusa_tool_doctor", "focusa_resource_mode"]
+            : family === "workpoint"
+              ? ["focusa_workpoint_resume"]
+              : [],
     ontology_candidate_delta_refs: ontologyCandidateDeltaRefs(tool, result, status),
-    error: validationRejected || blocked || offline ? { code: status, message: text.slice(0, 240) } : null,
+    error: entitlementBlocked
+      ? { code: entitlementCode, message: text.slice(0, 240) }
+      : validationRejected || blocked || offline
+        ? { code: status, message: text.slice(0, 240) }
+        : null,
     raw: details.response ?? details,
+    ...(entitlementBlocked
+      ? { entitlement_decision: projectEntitlementDecision(tool, daemonResponse) }
+      : {}),
   });
 }
 
@@ -1553,6 +1581,7 @@ const FOCUSA_TOOL_RESULT_V1_SCHEMA = Type.Object(
       Type.Literal("error"),
     ]),
     failure_class: Type.Union([Type.String(), Type.Null()]),
+    entitlement_decision: Type.Optional(Type.Unknown()),
     canonical: Type.Boolean(),
     degraded: Type.Boolean(),
     summary: Type.String(),
