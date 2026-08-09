@@ -39,7 +39,9 @@ REQUIRED_KEYS = {
     "rationale",
 }
 
-# Exact 7 test-only scanner exclusions (from atom focusa-vbcqu.20.14.27).
+# Exact test-only scanner exclusions (atom focusa-vbcqu.20.14.27 plus the two
+# Spec 152F premium-family test files discovered by the scanner after the 152e
+# presenter unification merged into this branch).
 SCANNER_EXCLUSIONS = {
     "crates/focusa-cli/tests/silent_proof_export_parity_e2e.rs",
     "crates/focusa-core/src/release_adapters_test.rs",
@@ -48,6 +50,8 @@ SCANNER_EXCLUSIONS = {
     "crates/focusa-core/src/release_ledger_test.rs",
     "crates/focusa-core/src/release_orchestrator_test.rs",
     "crates/focusa-cli/tests/spec128_update_runtime_e2e.rs",
+    "crates/focusa-license/tests/spec152f_export_entitlement.rs",
+    "crates/focusa-license/tests/spec152f_release_proof_entitlement.rs",
 }
 
 # Forbidden: files that were excluded by the scanner but whose surface groups

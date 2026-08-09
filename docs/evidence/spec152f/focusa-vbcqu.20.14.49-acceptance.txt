@@ -1,0 +1,189 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.49
+Title: 152F.06.07 Run complete build-independent Spec 152F gate
+Implementation commit: `c6747574` (feat(spec152f): run complete build-
+independent Spec 152F gate; see git log for this atom)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.14.49 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- tests/spec152f_build_independent_gate.sh (NEW — the complete build-
+  independent Spec 152F gate)
+- All Spec152F contracts/generators/static tests under docs/contracts and
+  tests/ (24 Python + 2 Node tests, executed by the gate; contracts
+  validated statically)
+- Regenerated generated artifacts (byte-identical regeneration verified):
+  docs/contracts/spec152-entitlement-coverage.v1.json,
+  docs/contracts/spec152f-surface-reconciliation.v1.json, and
+  docs/contracts/spec152f-surface-reconciliation/menubar.v1.json
+- Synchronized hand-maintained contracts and their static tests:
+  docs/contracts/spec152f-cli-operation-map.v1.json (86->87 rows: WorkLoop
+  now represented as a canonical command bound to focusa.work_loop.control /
+  focusa.work_loop.status, mirroring the reconciliation shard),
+  docs/contracts/spec152f-menubar-action-map.v1.json (83->85 actions,
+  re-classified from the current svelte sources),
+  tests/spec152f_cli_operation_map_test.py,
+  tests/spec152f_cross_presenter_parity_test.py,
+  tests/spec152f_menubar_action_map_test.mjs,
+  tests/spec152f_runtime_entrypoint_map_test.py,
+  tests/spec152f_surface_reconciliation_contract_test.py, and
+  tests/spec152f_surface_scanner_test.py (hardcoded counts/exclusions
+  synchronized to the current accepted source state)
+- No contract, generator, or other test file outside these surfaces was
+  modified by this atom.
+
+Bounded result
+- Added tests/spec152f_build_independent_gate.sh: one deterministic,
+  build-free gate that runs the complete Spec 152F test surface with ZERO
+  hidden skips and ZERO fabricated passes, and cannot pass with missing
+  tools/tests or stale generated output:
+  * Every tests/spec152f_*.{py,mjs} file runs, discovered by glob, and the
+    exact constituent inventory is pinned (24 Python + 2 Node basenames), so
+    a removed/renamed test fails the gate and a newly added test fails until
+    explicitly inventoried — never silently skipped either way. A missing
+    runtime (python3/node/git) fails the gate before any test runs.
+  * Static layer over every Spec 152F contract/generator artifact: JSON
+    parse of all 8 spec152f top-level JSON contracts (including the
+    taskgraph index) plus all 7 taskgraph phase files plus the spec152
+    entitlement-coverage contract — 16 JSON contracts total, YAML parse of
+    both spec152f YAML contracts, Python syntax compile of all 24 Python
+    tests, node --check of both Node tests — 55 static runs, all exit 0.
+  * Generated files are current: scripts/generate-spec152-entitlement-
+    coverage.py --check exits 0 (byte-identical regeneration); the coverage
+    contract shows covered=974 unmatched=0 total=974 (zero unmatched
+    surfaces, no 395 independent paywalls) with scanner exclusions count 9;
+    the taskgraph index per-phase sha256 digests recompute byte-exactly.
+  * Fail-closed FORBIDDEN coverage: each forbidden property is asserted by
+    at least one Spec 152F test — no local/self-issued Evaluation
+    (no_local_issuance), no caller-controlled product/price/grants
+    (caller_controlled), no presenter-owned commercial decision
+    (presenter_must_not), no 395 independent paywalls (no_dead_end_paywalls,
+    metadata_repair_required), recovery always available
+    (recovery_always_available), no raw key/token in evidence
+    (no_raw_key_or_token), no account enumeration, no false urgency, no
+    duplicate customer/key, no automatic expiry, no reinstall-same-account
+    or node/limit expansion, bounded cached grants, offline grace never
+    expands features or limits, and test files never become runtime surfaces
+    (scanner_exclusion_test_only).
+  * Redaction hygiene on docs/evidence/spec152f: no raw credential/token,
+    no customer email, no Luhn-valid card-like sequence. The only email in
+    the evidence is the public support address, which prior-atom evidence
+    (focusa-vbcqu.20.13.60-acceptance.txt) documents explicitly as public
+    and which is published in COMMERCIAL.md; the gate allows exactly that
+    documented address in exactly that one evidence record and fails on any
+    other email (this acceptance record deliberately avoids quoting the
+    literal address so the scope stays exactly one file). The card check is
+    Luhn-validated so 16-digit runs inside documented sha256 result handles
+    (immutable result digests, e.g. focusa-vbcqu.20.13.19-acceptance.txt)
+    are not treated as card data.
+  * Prior-atom completeness: at least 67 closed Spec 152F acceptance records
+    exist (67 at gate time), proving no hidden skip in the atom series.
+  * Zero-diff after the run: `git diff --quiet -- docs/contracts` plus an
+    untracked-file check prove no Spec 152F artifact changed during the run;
+    `git diff --check` clean on docs/contracts, tests, and
+    docs/evidence/spec152f.
+  * The gate records the exact HEAD SHA and the sha256 of the committed
+    entitlement-coverage contract in its receipt.
+- Stale-state repair within the atom's exact surfaces: the committed Spec
+  152F generated contracts were stale relative to the current accepted
+  source state because the 152e presenter unification (c24071d5) and later
+  spec172 atoms shifted menubar svelte line numbers (85 discovered actions,
+  up from 83) and added two Spec 152F premium-family test files
+  (crates/focusa-license/tests/spec152f_export_entitlement.rs and
+  spec152f_release_proof_entitlement.rs; scanner exclusions 7->9) and the
+  WorkLoop top-level CLI command (added to the reconciliation shard; CLI map
+  86->87). The gate's own fail-closed checks (and the pre-existing static
+  tests, which were already failing at HEAD) exposed this; the generated
+  artifacts were regenerated deterministically (two consecutive generator
+  runs are byte-identical), the hand-maintained CLI/menubar maps were
+  synchronized to the regenerated shards, and the hardcoded static test
+  expectations were updated to the current accepted state. WorkLoop is now
+  mapped as a canonical command inheriting the governed work-loop operations
+  (never an independent paywall); the 20.14.25 "intentionally not
+  represented" exclusion is obsolete because the scanner now discovers
+  WorkLoop as a top-level command and the map must mirror the shard.
+
+Exact verification (exit codes)
+1. `bash tests/spec152f_build_independent_gate.sh` (from the committed
+   state, c6747574) — exit 0.
+   Receipt: sha256 head=c6747574ad9a11a0877881f30989915b45730aeb;
+   sha256 spec152-entitlement-coverage.v1.json=
+   2df94dc5500f2649270ed197cae441aa8f24dfa990ee32d9840c0331d5d729df;
+   runs=71 passed=71 failed=0; tests=py:24 node:2 sh:0;
+   contracts=json:16 yaml:2.
+   Final line: `✓ spec152f_build_independent_gate PASS (zero hidden skips)`.
+2. Re-run of the exact verification after the evidence file is in place —
+   exit 0, runs=71 passed=71 failed=0, tree clean after the run (the
+   redaction scan then covers this acceptance record too).
+3. Fail-closed negative verifications (the gate cannot pass with missing
+   tools/tests or stale generated output):
+   a. Stale generated output: tampering with
+      docs/contracts/spec152-entitlement-coverage.v1.json (counts total
+      974->973) — gate exit 1 (spec152f_surface_scanner_test.py and the
+      generator --check fail); artifact restored byte-identically.
+   b. Missing test: removing tests/spec152f_document_authority_test.py —
+      gate exit 1 (inventory mismatch); test restored.
+   c. Missing runtime: PATH without node — gate exit 1
+      ("missing required runtime/tool: node").
+
+Regression checks (exit codes)
+- The gate runs the full pre-existing Spec 152F suite; every test exits 0:
+  24 Python + 2 Node tests, plus 55 static contract/syntax runs.
+- `python3 scripts/generate-spec152-entitlement-coverage.py --check` — exit
+  0: {"coverage": {"covered": 974, "total": 974, "unmatched": 0},
+  "reconciliation": {...}}.
+- `bash -n tests/spec152f_build_independent_gate.sh` — exit 0 (script
+  syntax valid).
+- `git diff --check` — exit 0, no whitespace errors.
+- Related non-Spec152F tests that consume the regenerated contracts still
+  pass: tests/spec152_entitlement_coverage_test.py, tests/spec172_cross_
+  surface_adversarial_test.py, tests/spec172_focusa_desktop_entitlement_
+  test.py, tests/spec172_menubar_tui_presenter_test.mjs — all exit 0.
+
+Tests added
+- tests/spec152f_build_independent_gate.sh — the complete build-independent
+  Spec 152F gate: pinned-inventory glob-discovered execution of every Spec
+  152F Python/Node test (no skip list; removed, renamed, or un-inventoried
+  tests fail), missing-runtime fail-closed checks, static
+  JSON/YAML/Python-syntax/Node-syntax validation of every Spec 152F contract
+  and generator artifact, coverage-generator currency check with zero
+  unmatched surfaces, taskgraph per-phase sha256 zero-diff recomputation,
+  forbidden-property coverage assertions, evidence redaction hygiene
+  (credential-token, customer-email, and Luhn-validated card scans),
+  prior-atom evidence completeness (>= 67 records), a zero-diff/untracked-
+  file check on docs/contracts after the run, and an exact HEAD SHA +
+  coverage sha256 receipt. Fails closed (exit 1) on any failure, missing
+  runtime, missing test, stale generated artifact, or skipped surface.
+- Updated static tests (counts/exclusions synchronized to the current
+  accepted source state): spec152f_surface_reconciliation_contract_test.py
+  (390 rows, 593/390/983 baseline counts, surface/resolution counts,
+  exclusions 9, runtime entries 29), spec152f_surface_scanner_test.py
+  (9 exclusions, 29 baseline file matches, runtime coverage 974/0/974,
+  frozen-shard runtime entrypoints), spec152f_cli_operation_map_test.py
+  (87 commands; WorkLoop canonical assertions), spec152f_runtime_entrypoint_
+  map_test.py (9 scanner exclusions), spec152f_menubar_action_map_test.mjs
+  (85/85 actions), spec152f_cross_presenter_parity_test.py (87 CLI, 53/26/6
+  menubar classes).
+
+Remaining blockers
+- None for this atom. Downstream atom focusa-vbcqu.20.14.50 (152F.06.08
+  installed exact-SHA cross-platform acceptance) remains open as a
+  dependent, not a prerequisite. The live public-surface contradictions
+  recorded by focusa-vbcqu.20.15.39 (R01-R09) remain open for the site
+  owners; this build-independent gate does not mutate any live surface.
+
+Rollback
+- Revert only this atom: `git revert c6747574` (drop
+  tests/spec152f_build_independent_gate.sh and the regenerated/synchronized
+  Spec 152F contracts and static-test updates, and
+  docs/evidence/spec152f/focusa-vbcqu.20.14.49-acceptance.txt if required).
+  Reverting restores the previously committed stale generated artifacts and
+  hardcoded expectations; no contract, generator, or other test file outside
+  the listed surfaces was modified by this atom. Verified identities,
+  customers, orders, refunds, License Types, keys, nodes, sequences, data,
+  migration journals, evidence, and accepted unrelated work are preserved
+  untouched. This atom simplified/repairs enforcement surface bookkeeping
+  only; it does not weaken EDD identity/commerce, signed-lease,
+  refund/revoke, node, sequence, or recovery authority.
+
+No push, deploy, release, merge, or Beads mutation was performed.

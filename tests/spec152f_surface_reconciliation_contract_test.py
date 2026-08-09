@@ -28,26 +28,26 @@ assert index["schema"] == "focusa.spec152f.surface_reconciliation.v1"
 assert index["authority"] == "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md"
 assert index["policy"] == "docs/contracts/spec152f-entitlement-policy.v1.yaml"
 assert index["baseline_coverage"] == "docs/contracts/spec152-entitlement-coverage.v1.json"
-assert index["baseline_counts"] == {"covered": 592, "unmatched": 386, "total": 978}
+assert index["baseline_counts"] == {"covered": 593, "unmatched": 390, "total": 983}
 assert index["surface_counts"] == {
     "rest": 189,
     "cli": 87,
-    "menubar": 83,
-    "release": 17,
+    "menubar": 85,
+    "release": 18,
     "update": 5,
-    "export": 3,
+    "export": 4,
     "scheduler": 2,
 }
 assert index["resolution_counts"] == {
     "base_entitlement_candidate": 149,
-    "inherit_canonical_operation": 176,
+    "inherit_canonical_operation": 178,
     "premium_family_candidate": 51,
     "recovery_or_read_allowance": 3,
-    "scanner_exclusion_test_only": 7,
+    "scanner_exclusion_test_only": 9,
 }
 assert index["unknown_method_routes"] == 0
-assert index["test_only_scanner_exclusions"] == 7
-assert index["runtime_file_entries"] == 27
+assert index["test_only_scanner_exclusions"] == 9
+assert index["runtime_file_entries"] == 29
 assert index["runtime_file_entries_after_test_exclusion"] == 20
 assert index["coverage_canonical_sha256"] == hashlib.sha256(
     json.dumps(baseline_coverage, sort_keys=True, separators=(",", ":")).encode()
@@ -57,7 +57,7 @@ assert index["policy_file_sha256"] == hashlib.sha256(
 ).hexdigest()
 assert index["source_digests"] == baseline_coverage["source_digests"]
 assert runtime_coverage["counts"]["unmatched"] == 0
-assert runtime_coverage["scanner_exclusions"]["count"] == 7
+assert runtime_coverage["scanner_exclusions"]["count"] == 9
 
 assert set(index["shards"]) == {"rest", "cli", "menubar", "runtime_files"}
 rows = []
@@ -73,8 +73,8 @@ for group, ref in sorted(index["shards"].items()):
     assert shard["row_count"] == ref["row_count"] == len(shard["rows"])
     rows.extend(shard["rows"])
 
-assert len(rows) == 386
-assert len({row["baseline_id"] for row in rows}) == 386
+assert len(rows) == 390
+assert len({row["baseline_id"] for row in rows}) == 390
 required_fields = {
     "baseline_id",
     "surface",
@@ -130,12 +130,12 @@ for surface, owner in {
     assert {row["owner_task"] for row in selected} == {owner}
 
 excluded = [row for row in rows if row["resolution"] == "scanner_exclusion_test_only"]
-assert len(excluded) == 7
+assert len(excluded) == 9
 assert {row["owner_task"] for row in excluded} == {"focusa-vbcqu.20.14.27"}
 assert all("/tests/" in "/" + row["symbol_or_route"] or row["symbol_or_route"].endswith("_test.rs") for row in excluded)
 
 runtime = [row for row in rows if row["surface"] not in {"rest", "cli", "menubar"}]
-assert len(runtime) == 27
+assert len(runtime) == 29
 assert sum(row["resolution"] != "scanner_exclusion_test_only" for row in runtime) == 20
 assert {row["owner_task"] for row in runtime if row["resolution"] != "scanner_exclusion_test_only"} == {
     "focusa-vbcqu.20.14.28"

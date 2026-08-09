@@ -2,16 +2,16 @@
   "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
   "baseline_counts": {
     "covered": 593,
-    "total": 981,
-    "unmatched": 388
+    "total": 983,
+    "unmatched": 390
   },
   "baseline_coverage": "docs/contracts/spec152-entitlement-coverage.v1.json",
-  "coverage_canonical_sha256": "5efb27d85c6df916839889fc0f8b0186cbbe6a2b025ff3f2c70182b263b8930c",
+  "coverage_canonical_sha256": "31f536189d8436e8dd8d179dd7fec5ba003ecc5d9406ff47a1a3b82edd90dcef",
   "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
   "policy_file_sha256": "7aa11eae5eb360325b23441f9c67554604d476027a4a343e5d0fb263f4c4df87",
   "resolution_counts": {
     "base_entitlement_candidate": 149,
-    "inherit_canonical_operation": 176,
+    "inherit_canonical_operation": 178,
     "premium_family_candidate": 51,
     "recovery_or_read_allowance": 3,
     "scanner_exclusion_test_only": 9
@@ -34,8 +34,8 @@
     },
     "menubar": {
       "path": "docs/contracts/spec152f-surface-reconciliation/menubar.v1.json",
-      "row_count": 83,
-      "sha256": "37bb2c825f3f79275ef678b8889dd02697b67554d37f366c27fa7ba9a229d67d"
+      "row_count": 85,
+      "sha256": "8fc51f101a08d187bd4d95fae85484cfea97069904c80226b96dcaf762714170"
     },
     "rest": {
       "path": "docs/contracts/spec152f-surface-reconciliation/rest.v1.json",
@@ -56,7 +56,7 @@
   "surface_counts": {
     "cli": 87,
     "export": 4,
-    "menubar": 83,
+    "menubar": 85,
     "release": 18,
     "rest": 189,
     "scheduler": 2,

@@ -6,7 +6,7 @@
  * against the menubar surface reconciliation baseline (docs/contracts/spec152f-surface-reconciliation/menubar.v1.json).
  *
  * Acceptance criteria:
- *   83/83 baseline actions are mapped
+ *   85/85 baseline actions are mapped
  *   buttons never mint or reinterpret entitlement
  *   protected denial remains actionable
  *
@@ -54,12 +54,12 @@ console.log('=== Schema validation ===');
 assert(actionMap.schema === 'focusa.spec152f.menubar_action_map.v1', 'Action map schema is correct');
 assert(actionMap.surface_group === 'menubar', 'Action map surface_group is menubar');
 assert(Array.isArray(actionMap.actions), 'Action map has actions array');
-assert(actionMap.actions.length === 83, `Action map has 83 actions (got ${actionMap.actions.length})`);
-assert(actionMap.baseline_count === 83, 'Baseline count is 83');
+assert(actionMap.actions.length === 85, `Action map has 85 actions (got ${actionMap.actions.length})`);
+assert(actionMap.baseline_count === 85, 'Baseline count is 85');
 assert(baseline.schema === 'focusa.spec152f.surface_reconciliation_shard.v1', 'Baseline schema is correct');
-assert(baseline.row_count === 83, `Baseline has 83 rows (got ${baseline.row_count})`);
+assert(baseline.row_count === 85, `Baseline has 85 rows (got ${baseline.row_count})`);
 assert(Array.isArray(baseline.rows), 'Baseline has rows array');
-assert(baseline.rows.length === 83, `Baseline rows count is 83 (got ${baseline.rows.length})`);
+assert(baseline.rows.length === 85, `Baseline rows count is 85 (got ${baseline.rows.length})`);
 
 // ── Cross-reference: every baseline entry has a matching action map entry ──
 console.log('\n=== Baseline / Action map cross-reference ===');
@@ -109,7 +109,7 @@ for (const action of actionMap.actions) {
 console.log(`  navigation_display: ${classifications.navigation_display || 0}`);
 console.log(`  recovery_account:    ${classifications.recovery_account || 0}`);
 console.log(`  canonical_operation: ${classifications.canonical_operation || 0}`);
-assert((classifications.navigation_display || 0) + (classifications.recovery_account || 0) + (classifications.canonical_operation || 0) === 83, 'All 83 actions classified');
+assert((classifications.navigation_display || 0) + (classifications.recovery_account || 0) + (classifications.canonical_operation || 0) === 85, 'All 85 actions classified');
 
 // ── Policy: buttons never mint or reinterpret entitlement ───────────
 console.log('\n=== Policy: no commercial decisions in presenters ===');
@@ -261,7 +261,7 @@ if (failures > 0) {
   console.error('\n❌ TEST FAILED');
   process.exit(1);
 } else {
-  console.log('\n✅ 83/83 baseline menubar actions successfully mapped');
+  console.log('\n✅ 85/85 baseline menubar actions successfully mapped');
   console.log('✅ Buttons never mint or reinterpret entitlement');
   console.log('✅ Protected denial remains actionable');
   process.exit(0);

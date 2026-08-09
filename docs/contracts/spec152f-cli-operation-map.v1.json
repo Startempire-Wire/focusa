@@ -2,7 +2,7 @@
   "schema": "focusa.spec152f.cli_operation_map.v1",
   "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
   "owner_task": "focusa-vbcqu.20.14.25",
-  "row_count": 86,
+  "row_count": 87,
   "rows": [
     {
       "command": "About",
@@ -1713,6 +1713,51 @@
       "route_reference_count": 0,
       "notes": "local_support_surface",
       "source": "crates/focusa-cli/src/commands/work_item.rs"
+    },
+    {
+      "command": "WorkLoop",
+      "command_path": "focusa work-loop",
+      "operation_refs": [
+        "focusa.work_loop.control",
+        "focusa.work_loop.status"
+      ],
+      "unmapped_routes": [
+        "/v1/work-loop",
+        "/v1/work-loop/checkpoint",
+        "/v1/work-loop/checkpoints",
+        "/v1/work-loop/context",
+        "/v1/work-loop/degraded",
+        "/v1/work-loop/delegation/clear",
+        "/v1/work-loop/delegation/enable",
+        "/v1/work-loop/driver/abort",
+        "/v1/work-loop/driver/prompt",
+        "/v1/work-loop/driver/start",
+        "/v1/work-loop/driver/stop",
+        "/v1/work-loop/enable",
+        "/v1/work-loop/events",
+        "/v1/work-loop/health",
+        "/v1/work-loop/heartbeat",
+        "/v1/work-loop/pause",
+        "/v1/work-loop/pause-flags",
+        "/v1/work-loop/replay/closure-bundle",
+        "/v1/work-loop/replay/closure-evidence",
+        "/v1/work-loop/resume",
+        "/v1/work-loop/select-next",
+        "/v1/work-loop/session/abort",
+        "/v1/work-loop/session/attach",
+        "/v1/work-loop/status/deep",
+        "/v1/work-loop/stop"
+      ],
+      "command_class": "canonical",
+      "local_display": false,
+      "recovery": false,
+      "destructive": false,
+      "requires_confirmation": false,
+      "direct_core_call": true,
+      "core_guard": null,
+      "route_reference_count": 26,
+      "notes": "canonical_operations_present",
+      "source": "crates/focusa-cli/src/commands/work_loop.rs"
     },
     {
       "command": "Workflow",
