@@ -277,6 +277,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (operationId === 'focusa.mission_canvas.draft.get') {
       validateDraftGetResponse(operationId, response.status, value, authority);
     }
+    if (operationId === 'focusa.mission_canvas.draft.sync') {
+      validateDraftSyncResponse(operationId, response.status, value, authority);
+    }
     if (operationId === 'focusa.mission_canvas.recomposition.evidence.get') {
       validateRecompositionEvidenceResponse(operationId, response.status, value, authority);
     }
@@ -935,6 +938,15 @@ function validateRecompositionEvidenceResponse(
   }
 }
 
+function validateDraftSyncResponse(
+  operationId: string,
+  status: number,
+  value: unknown,
+  expectedAuthority: WorkstreamAuthorityContext
+): void {
+  validateDraftGetResponse(operationId, status, value, expectedAuthority);
+}
+
 function validateDraftGetResponse(
   operationId: string,
   status: number,
@@ -1535,6 +1547,16 @@ function readIfMatchRevision(input: unknown, operationId?: string): string | und
       // generated mutation uses it as the optimistic If-Match watermark and
       // Core advances the persisted preference atomically.
       return String(memoryRevision);
+    }
+  }
+  if (operationId === 'focusa.mission_canvas.draft.sync') {
+    const draftRevision = record.draft_revision;
+    if (typeof draftRevision === 'number'
+      && Number.isSafeInteger(draftRevision)
+      && draftRevision >= 0) {
+      // CanvasDraftState.draft_revision is the optimistic If-Match watermark;
+      // Core rejects a sync that does not advance the stored revision.
+      return String(draftRevision);
     }
   }
   for (const field of [
