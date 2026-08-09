@@ -1,0 +1,442 @@
+{
+  "schema": "focusa.spec152e.uiai_bundle_isolation_fixture.v1",
+  "fixture_id": "focusa-vbcqu.20.13.59",
+  "fixture_kind": "public_synthetic_nonproduction",
+  "authority": {
+    "canonical": "WPUIAI.com EDD",
+    "new_issuance": "edd_authority_only",
+    "facade_role": "presenter_and_bounded_proxy_only",
+    "install_site_authority": "none",
+    "stripe_gateway": "edd_stripe_test_mode",
+    "spec158": "excluded",
+    "caller_controls_forbidden": [
+      "edd_download_id",
+      "edd_price_id",
+      "price",
+      "amount",
+      "total",
+      "currency",
+      "tier",
+      "features",
+      "grants",
+      "limits",
+      "node_limit",
+      "operator_seats",
+      "commercial",
+      "license_type",
+      "refund_policy",
+      "upgrade_policy",
+      "redirect_url",
+      "success_url",
+      "cancel_url",
+      "return_url"
+    ]
+  },
+  "redaction": {
+    "raw_email": "absent",
+    "raw_key": "absent",
+    "payment_id_stored": false,
+    "secret_material": "absent",
+    "child_token": "digest_only_at_rest",
+    "receipt": "masked_email_and_key_mask_only"
+  },
+  "keys": {
+    "schema": "focusa.spec152e.edd_sl_human_key.v1",
+    "shape": "FOCUSA_4x4_hex_uppercase",
+    "human_key_mask": "FOCUSA-****-****-****-****",
+    "source": "edd_software_licensing",
+    "delivery": "same_canonical_key_email_and_account"
+  },
+  "facade": {
+    "facade_id": "focusa_install_v1",
+    "origin": "https://install.focusa.dev",
+    "brand": "Focusa + UIAI",
+    "role": "presenter_only",
+    "checkout_path": "/activate/checkout/",
+    "verification_path": "/activate/verify",
+    "manage_path": "/account"
+  },
+  "products": {
+    "focusa_operator_lifetime_v1": {
+      "posture": "paid",
+      "products": [
+        "focusa"
+      ],
+      "grants": [
+        "focusa_operator_lifetime_v1"
+      ],
+      "grant_composition": "standalone",
+      "edd_download_id": 4601,
+      "edd_price_id": "46011",
+      "price_usd": "697.00",
+      "features": [
+        "base_focusa",
+        "mission",
+        "workpoint",
+        "evidence",
+        "team_remote",
+        "release_proof"
+      ],
+      "limits": {
+        "node_limit": 3,
+        "operator_seats": 1
+      },
+      "term": "lifetime",
+      "refund_policy": "whole_order_30_days",
+      "human_key_count": 1
+    },
+    "uiai_operator_lifetime_v1": {
+      "posture": "paid",
+      "products": [
+        "uiai_engine"
+      ],
+      "grants": [
+        "uiai_operator_lifetime_v1"
+      ],
+      "grant_composition": "standalone",
+      "edd_download_id": 4602,
+      "edd_price_id": "46012",
+      "price_usd": "697.00",
+      "features": [
+        "uiai_public_observation",
+        "uiai_browser_action",
+        "uiai_persistence",
+        "uiai_diagnostics",
+        "uiai_proof_packets",
+        "uiai_batch_responsive",
+        "uiai_supported_integrations"
+      ],
+      "limits": {
+        "node_limit": 3,
+        "operator_seats": 1
+      },
+      "term": "lifetime",
+      "refund_policy": "whole_order_30_days",
+      "human_key_count": 1
+    },
+    "focusa_uiai_operator_bundle_lifetime_v1": {
+      "posture": "bundle",
+      "products": [
+        "focusa",
+        "uiai_engine"
+      ],
+      "grants": [
+        "focusa_operator_lifetime_v1",
+        "uiai_operator_lifetime_v1"
+      ],
+      "grant_composition": "exact_union",
+      "edd_download_id": 4603,
+      "edd_price_id": "46013",
+      "price_usd": "1254.60",
+      "features": [
+        "base_focusa",
+        "mission",
+        "workpoint",
+        "evidence",
+        "team_remote",
+        "release_proof",
+        "uiai_public_observation",
+        "uiai_browser_action",
+        "uiai_persistence",
+        "uiai_diagnostics",
+        "uiai_proof_packets",
+        "uiai_batch_responsive",
+        "uiai_supported_integrations"
+      ],
+      "limits": {
+        "node_limit": 3,
+        "operator_seats": 1
+      },
+      "term": "lifetime",
+      "refund_policy": "whole_order_30_days",
+      "human_key_count": 1
+    }
+  },
+  "sessions": {
+    "focusa": {
+      "product_code": "focusa_operator_lifetime_v1",
+      "email_domain": "invalid.example",
+      "email_prefix_char": "f",
+      "email_digest": "ee832465711e57ff789e5e658c9ed68a7471937a1496bfbbc519dc5c8e38a0cf",
+      "invalid_email_digest": "fe4c333e541798ce9cc1e164efb75f5bbb58604fc21b22fe406bd4e45b5be194",
+      "verification_code": "483921",
+      "customer_id": 2409,
+      "order_id": 9499,
+      "order_item_id": 94991,
+      "edd_license_id": 7211,
+      "payment_reference_digest": "b0d17e9a2be5d2257a0cbad114a07ff424d89fe655e9074630944f2d9d39a516",
+      "node_id": "node-focusa-0001",
+      "device_public_key_b64": "REREREREREREREREREREREREREREREREREREREREREQ=",
+      "wrong_device_public_key_b64": "R0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0c="
+    },
+    "uiai": {
+      "product_code": "uiai_operator_lifetime_v1",
+      "email_domain": "invalid.example",
+      "email_prefix_char": "u",
+      "email_digest": "3db35c0b0f3b54c2e462ff1f41f50e18758a85990474fb712b7fc2a513197acb",
+      "invalid_email_digest": "fe4c333e541798ce9cc1e164efb75f5bbb58604fc21b22fe406bd4e45b5be194",
+      "verification_code": "571864",
+      "customer_id": 2311,
+      "order_id": 9672,
+      "order_item_id": 96721,
+      "edd_license_id": 7875,
+      "payment_reference_digest": "c0d17e9a2be5d2257a0cbad114a07ff424d89fe655e9074630944f2d9d39a516",
+      "node_id": "node-uiai-0001",
+      "device_public_key_b64": "RUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUU=",
+      "wrong_device_public_key_b64": "R0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0c="
+    },
+    "bundle": {
+      "product_code": "focusa_uiai_operator_bundle_lifetime_v1",
+      "email_domain": "invalid.example",
+      "email_prefix_char": "b",
+      "email_digest": "57535a198686bb152622e8d9500fe8a20610a449e4a04207bb7e8a7c5954622b",
+      "invalid_email_digest": "fe4c333e541798ce9cc1e164efb75f5bbb58604fc21b22fe406bd4e45b5be194",
+      "verification_code": "659237",
+      "customer_id": 2442,
+      "order_id": 9785,
+      "order_item_id": 97851,
+      "edd_license_id": 7789,
+      "payment_reference_digest": "d0d17e9a2be5d2257a0cbad114a07ff424d89fe655e9074630944f2d9d39a516",
+      "node_id": "node-bundle-0001",
+      "device_public_key_b64": "RkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkY=",
+      "wrong_device_public_key_b64": "R0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0c="
+    },
+    "shared": {
+      "product_code": "focusa_operator_lifetime_v1",
+      "email_domain": "invalid.example",
+      "email_prefix_char": "b",
+      "email_digest": "57535a198686bb152622e8d9500fe8a20610a449e4a04207bb7e8a7c5954622b",
+      "invalid_email_digest": "fe4c333e541798ce9cc1e164efb75f5bbb58604fc21b22fe406bd4e45b5be194",
+      "verification_code": "741250",
+      "customer_id": 2442,
+      "order_id": 9596,
+      "order_item_id": 95961,
+      "edd_license_id": 7111,
+      "payment_reference_digest": "e0d17e9a2be5d2257a0cbad114a07ff424d89fe655e9074630944f2d9d39a516",
+      "node_id": "node-shared-0001",
+      "device_public_key_b64": "R0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0c=",
+      "wrong_device_public_key_b64": "SEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEg="
+    },
+    "partial": {
+      "product_code": "focusa_operator_lifetime_v1",
+      "email_domain": "invalid.example",
+      "email_prefix_char": "p",
+      "email_digest": "7881639f3fdb32b57cb918e52b7f9b48fe898afbeaeebe131a64c1d442b24419",
+      "invalid_email_digest": "fe4c333e541798ce9cc1e164efb75f5bbb58604fc21b22fe406bd4e45b5be194",
+      "verification_code": "826143",
+      "customer_id": 2065,
+      "order_id": 9896,
+      "order_item_id": 98961,
+      "edd_license_id": 7101,
+      "payment_reference_digest": "a1d17e9a2be5d2257a0cbad114a07ff424d89fe655e9074630944f2d9d39a516",
+      "node_id": "node-partial-0001",
+      "device_public_key_b64": "SEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEg=",
+      "wrong_device_public_key_b64": "SUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUk="
+    },
+    "reactivation": {
+      "product_code": "focusa_operator_lifetime_v1",
+      "email_domain": "invalid.example",
+      "email_prefix_char": "r",
+      "email_digest": "1320dfa002f7842e6505664551e7f75efb0c8aabba84960b5eb55c070653aba2",
+      "invalid_email_digest": "fe4c333e541798ce9cc1e164efb75f5bbb58604fc21b22fe406bd4e45b5be194",
+      "verification_code": "913456",
+      "customer_id": 2762,
+      "first": {
+        "order_id": 9578,
+        "order_item_id": 95781,
+        "edd_license_id": 7591
+      },
+      "second": {
+        "order_id": 9048,
+        "order_item_id": 90481,
+        "edd_license_id": 7806
+      },
+      "payment_reference_digest_first": "f0d17e9a2be5d2257a0cbad114a07ff424d89fe655e9074630944f2d9d39a516",
+      "payment_reference_digest_second": "f1d17e9a2be5d2257a0cbad114a07ff424d89fe655e9074630944f2d9d39a516",
+      "node_id": "node-reactivate-0001",
+      "device_public_key_b64": "SUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUk=",
+      "wrong_device_public_key_b64": "REREREREREREREREREREREREREREREREREREREREREQ="
+    }
+  },
+  "lease": {
+    "schema": "focusa.authority_lease.v1",
+    "domain": "FOCUSA-AUTHORITY-LEASE-V1\u0000",
+    "key_set_domain": "FOCUSA-AUTHORITY-KEY-SET-V1\u0000",
+    "root_key_id": "authority-root-2026-01",
+    "lease_key_id": "authority-lease-2026-01",
+    "root_public_key_b64": "IBLLkMpg6OXY2vZuInLSIz4EhtVX6MZhQe2JIBd9frc=",
+    "lease_public_key_b64": "knMI9T1nZVA9K2TBA6tapHIGqzlQLP6PmEQv21QxALc=",
+    "posture_paid": "paid",
+    "posture_bundle": "bundle",
+    "sequence_after_lease": 1,
+    "sequence_after_refund": 2,
+    "sequence_after_reactivation": 3
+  },
+  "child_token": {
+    "schema": "focusa.uiai_child_token.v1",
+    "max_ttl_minutes": 15,
+    "audience": "uiai-engine:operator",
+    "client_id": "uiai-engine:cli",
+    "features": [
+      "uiai_public_observation",
+      "uiai_browser_action",
+      "uiai_persistence",
+      "uiai_diagnostics",
+      "uiai_proof_packets",
+      "uiai_batch_responsive",
+      "uiai_supported_integrations"
+    ],
+    "limits": {
+      "node_limit": 3,
+      "operator_seats": 1
+    },
+    "storage": "digest_only_at_rest",
+    "focusa_only_denied": "CHILD_TOKEN_NOT_INCLUDED"
+  },
+  "journey": {
+    "states_focusa": [
+      "attempt_created",
+      "email_verified",
+      "account_promoted",
+      "checkout_pending",
+      "order_complete",
+      "entitlement_issued",
+      "delivered",
+      "device_registered",
+      "lease_issued",
+      "refunded"
+    ],
+    "states_uiai": [
+      "attempt_created",
+      "email_verified",
+      "account_promoted",
+      "checkout_pending",
+      "order_complete",
+      "entitlement_issued",
+      "delivered",
+      "device_registered",
+      "lease_issued",
+      "child_token_issued",
+      "refunded"
+    ],
+    "states_bundle": [
+      "attempt_created",
+      "email_verified",
+      "account_promoted",
+      "checkout_pending",
+      "order_complete",
+      "entitlement_issued",
+      "delivered",
+      "device_registered",
+      "lease_issued",
+      "child_token_issued",
+      "refunded"
+    ],
+    "states_shared": [
+      "attempt_created",
+      "email_verified",
+      "account_promoted",
+      "checkout_pending",
+      "order_complete",
+      "entitlement_issued",
+      "delivered",
+      "device_registered",
+      "lease_issued",
+      "refunded"
+    ],
+    "states_partial": [
+      "attempt_created",
+      "email_verified",
+      "account_promoted",
+      "checkout_pending",
+      "order_complete",
+      "entitlement_issued",
+      "delivery_partial",
+      "delivered",
+      "device_registered",
+      "lease_issued",
+      "refunded"
+    ],
+    "states_reactivation_first": [
+      "attempt_created",
+      "email_verified",
+      "account_promoted",
+      "checkout_pending",
+      "order_complete",
+      "entitlement_issued",
+      "delivered",
+      "device_registered",
+      "lease_issued",
+      "refunded"
+    ],
+    "states_reactivation_second": [
+      "attempt_created",
+      "email_verified",
+      "account_promoted",
+      "checkout_pending",
+      "order_complete",
+      "entitlement_issued",
+      "delivered",
+      "device_registered",
+      "lease_issued"
+    ],
+    "expectations": {
+      "focusa_grants_focusa_only": true,
+      "uiai_grants_uiai_only": true,
+      "bundle_grants_exact_union": true,
+      "bundle_one_human_key": true,
+      "bundle_one_verified_account": true,
+      "shared_identity_reuses_account": true,
+      "no_duplicate_customer_identity": true,
+      "wrong_product_fails_closed": true,
+      "no_cross_product_lease_or_downgrade": true,
+      "child_token_bounded_exact_subset": true,
+      "child_token_digest_only_at_rest": true,
+      "focusa_only_child_token_denied": true,
+      "partial_delivery_never_silent": true,
+      "partial_delivery_blocks_node_and_lease": true,
+      "recovery_retries_failed_channel_only": true,
+      "recovery_never_duplicates_key": true,
+      "pending_email_never_promotes": true,
+      "no_unverified_email_promotion": true,
+      "no_local_self_issued_entitlement": true,
+      "no_independent_facade_authority": true,
+      "client_price_grant_rejected": true,
+      "checkout_email_mismatch_holds_fulfillment": true,
+      "payment_alone_never_verifies": true,
+      "same_canonical_key_both_channels": true,
+      "signed_lease_verifies": true,
+      "refund_increments_sequence_and_preserves_truth": true,
+      "refunded_never_reactivates": true,
+      "reactivation_requires_new_purchase": true,
+      "receipt_redacted": true,
+      "spec158_excluded": true
+    },
+    "journal_vectors": {
+      "registrations": 7,
+      "identities": 5,
+      "accounts": 5,
+      "orders": 7,
+      "order_items": 7,
+      "licenses": 7,
+      "deliveries": 14,
+      "nodes": 7,
+      "leases": 7,
+      "sequences": 6,
+      "refunds": 6,
+      "child_tokens": 2,
+      "journal_events": 83
+    }
+  },
+  "receipt": {
+    "schema": "focusa.spec152e.uiai_bundle_receipt.v1",
+    "install_site_authority": "none",
+    "spec158": "excluded",
+    "redaction_fields": [
+      "raw_email",
+      "raw_key",
+      "payment_reference",
+      "child_token_secret"
+    ]
+  }
+}
