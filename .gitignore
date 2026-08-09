@@ -64,3 +64,5 @@ docs/evidence/transcripts/
 releases/*/focusa-daemon-linux-*
 releases/*/focusa-cli-linux-*
 releases/*/focusa-tui-linux-*
+
+error_log
