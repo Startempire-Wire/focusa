@@ -3,18 +3,27 @@
   import StatusBadge from '$lib/ui/StatusBadge.svelte';
   import PtyTerminal, { type PiTerminalBridge } from './PtyTerminal.svelte';
   import { hasExactPiAttachment, UNBOUND_PI_ATTACHMENT, type PiAttachmentProjection } from './pi-attachment-contract';
+  import { readPiAttachmentStore } from './pi-attachment-store.svelte';
+
+  const store = readPiAttachmentStore();
 
   let {
-    attachment = UNBOUND_PI_ATTACHMENT,
+    attachment,
     bridge
   }: {
     attachment?: PiAttachmentProjection;
     bridge?: PiTerminalBridge;
   } = $props();
 
+  // The store is the single source of truth: Mission Canvas and the Agent TUI
+  // always show the same Pi session and Attachment, and the attachment state
+  // survives view switches (Pi remains alive while Mission Canvas is visible).
+  const sharedAttachment = $derived(attachment ?? store.state);
+
   async function interrupt(): Promise<void> {
-    if (!bridge || !attachment.canInterrupt || !hasExactPiAttachment(attachment)) return;
-    await bridge.send({ kind: 'interrupt', attachment_id: attachment.identity.attachment_id });
+    const current = sharedAttachment;
+    if (!bridge || !current.canInterrupt || !hasExactPiAttachment(current)) return;
+    await bridge.send({ kind: 'interrupt', attachment_id: current.identity.attachment_id });
   }
 </script>
 
@@ -23,26 +32,26 @@
     <div class="agent-identity">
       <Icon name="terminal" size={18}/>
       <strong>Agent TUI</strong>
-      <span>{attachment.runtimeLabel}</span>
+      <span>{sharedAttachment.runtimeLabel}</span>
     </div>
     <div class="runtime-state">
-      <StatusBadge tone={attachment.state === 'attached' ? 'ready' : attachment.state === 'error' ? 'error' : 'neutral'} label={attachment.state}/>
-      {#if attachment.canInterrupt && bridge && hasExactPiAttachment(attachment)}
+      <StatusBadge tone={sharedAttachment.state === 'attached' ? 'ready' : sharedAttachment.state === 'error' ? 'error' : 'neutral'} label={sharedAttachment.state}/>
+      {#if sharedAttachment.canInterrupt && bridge && hasExactPiAttachment(sharedAttachment)}
         <button type="button" onclick={() => void interrupt()} aria-label="Interrupt Pi session">Interrupt</button>
       {/if}
     </div>
   </header>
 
-  {#if hasExactPiAttachment(attachment) && bridge}
+  {#if hasExactPiAttachment(sharedAttachment) && bridge}
     <div class="terminal-frame">
-      <PtyTerminal {attachment} {bridge}/>
+      <PtyTerminal attachment={sharedAttachment} {bridge}/>
     </div>
   {:else}
-    <div class="unavailable" role={attachment.state === 'error' ? 'alert' : 'status'}>
+    <div class="unavailable" role={sharedAttachment.state === 'error' ? 'alert' : 'status'}>
       <Icon name="terminal" size={20}/>
-      <strong>{attachment.runtimeLabel}</strong>
-      <span>{attachment.detail}</span>
-      {#if hasExactPiAttachment(attachment) && !bridge}
+      <strong>{sharedAttachment.runtimeLabel}</strong>
+      <span>{sharedAttachment.detail}</span>
+      {#if hasExactPiAttachment(sharedAttachment) && !bridge}
         <span>The native PTY bridge is unavailable in this host.</span>
       {/if}
     </div>
