@@ -18,6 +18,16 @@ spec152f_work_item_root: focusa-vbcqu.20.14
 spec152f_final_work_item: focusa-vbcqu.20.14.52
 spec152f_policy_status: implementation_open
 spec152f_task_count: 52
+spec152f_closure_status: accepted_with_receipts
+spec152f_closure_receipt: docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt
+spec152e_final_closure_dependency: focusa-vbcqu.20.14.52
+rel_gates:
+  - REL.4
+  - REL.5
+  - REL.6
+  - REL.7
+rel_gates_status: not_closed
+rel_gates_dependency: accepted Spec 152F closure and Spec 152E final closure focusa-vbcqu.20.13.63 before REL.4-REL.7 can pass at the final exact SHA
 spec172_registered: true
 spec172_authority: docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md
 spec172_work_item_root: focusa-vbcqu.20.15
@@ -32,5 +42,5 @@ edd_centered_identity_checkout_delivery_implemented: false
 migration_cutover_accepted: false
 all_platform_final_candidate_verified: false
 distribution_status: blocked
-next_action: complete the ordered Spec 152E, Spec 152F, and Spec 172 release-blocking implementation graphs
+next_action: Spec 152F closure accepted with receipts; complete the Spec 152E final release milestone (focusa-vbcqu.20.13.63) and REL.4-REL.7 acceptance at the final exact SHA; keep publication forbidden until those close
 publication_rule: forbidden until focusa-vbcqu.20.13.63 and focusa-vbcqu.20.14.52 close with linked acceptance evidence; the Spec 172 final acceptance work item must also close

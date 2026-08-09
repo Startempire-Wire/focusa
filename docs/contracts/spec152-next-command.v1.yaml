@@ -12,4 +12,10 @@ next_action: >-
 after_inventory: implement verified-mailbox pending registration and atomic EDD customer promotion in WPUIAI/wpuiai
 after_policy_registration: freeze the machine-readable base premium recovery and dormant-granularity policy in focusa-vbcqu.20.14.2
 publication: forbidden_until_focusa-vbcqu.20.13.63_and_focusa-vbcqu.20.14.52_close
+post_spec152f_closure: >-
+  Spec 152F closure is accepted with receipts (focusa-vbcqu.20.14.52,
+  docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt). The next
+  release-blocking commands are the Spec 152E final release milestone
+  (focusa-vbcqu.20.13.63) and REL.4-REL.7 governance acceptance at the final
+  exact SHA; publication stays forbidden until those close.
 spec_158: excluded

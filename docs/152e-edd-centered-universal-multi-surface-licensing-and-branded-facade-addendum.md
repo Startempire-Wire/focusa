@@ -480,5 +480,6 @@ This addendum is complete only when:
 9. source builds and agents use the same flow;
 10. installer-local Evaluation and split registries cannot issue new entitlement;
 11. migration and reconciliation prove no paid-user loss or authority rollback;
-12. the acceptance matrix passes with redacted, replayable evidence.
+12. the acceptance matrix passes with redacted, replayable evidence;
+13. the accepted Spec 152F closure (focusa-vbcqu.20.14.52, documented in docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt) and the REL.4–REL.7 governance acceptance have closed first — Spec152F cannot be bypassed by REL closure, the dependency graph has zero cycles, and stable publication still requires this exact final release acceptance.
 Until then, customer/evaluator distribution and stable-release claims remain blocked.
