@@ -1,0 +1,145 @@
+Spec 172 / Spec 152E overlay acceptance record
+Work item: focusa-vbcqu.20.15.11
+Title: 172.02.02 Issue, refresh, revoke, and recover limited-access assertions
+Lane / owner: spec152e / WPUIAI/wpuiai + Startempire-Wire/focusa
+Implementation commit: `107ec6073b8be06ad999c78b45169bc6b5dd3b36`
+
+Exact surfaces
+- docs/contracts/spec172-limited-access-assertion-service.v1.php
+  (WPUIAI limited-access assertion service/routes: pure-PHP RFC 8032 Ed25519
+  signer, issuer/verifier, and route table)
+- docs/contracts/spec172-focusa-authority-client.v1.php
+  (Focusa authority client/store: verify + persist only valid assertions)
+- docs/contracts/spec172-limited-access-assertion-vectors.v1.json
+  (cross-language fixture: fixed synthetic postures, canonical registries,
+  signed vectors)
+- tests/spec172_limited_assertion_test.php
+- tests/spec172_limited_assertion_vector_test.py
+
+Bounded result
+- Issue only after verified account and node binding: `issue()` requires an
+  active verified_no_license posture; the authority signs a real Ed25519
+  (RFC 8032) assertion over the canonical payload binding posture, account,
+  identity, product scope, node, family allowlist, monotonic sequence,
+  issue/refresh times, and server-owned signer. Sequence and allowlist are
+  server-owned; caller-supplied family input (`release_proof`) is ignored and
+  the posture allowlist is signed instead. Missing posture fails with
+  `EMAIL_VERIFICATION_REQUIRED`; post-revoke issuance fails with
+  `VERIFIED_LIMITED_ACCESS`.
+- Refresh rotates the bounded credential to the next monotonic sequence with a
+  fresh refresh window WITHOUT imposing any access expiry on the permanent
+  posture (status stays `issued`, expiry `none`) and WITHOUT widening the
+  family allowlist; replay returns the same credential.
+- Revoke (lost device / account abuse) is preservation-only: current assertion
+  and posture flip status with an explicit reason; every assertion and posture
+  row is preserved. Post-revoke verify fails with `VERIFIED_LIMITED_ACCESS`.
+- Recover from verified identity: the account must already hold a verified
+  posture for the product scope, that posture must be revoked/superseded, the
+  recovery proof must be a fresh canonical `verified_at` after the account's
+  latest posture change, and the node must be a fresh registration (max three
+  per account). The recovered posture starts at a strictly higher monotonic
+  account sequence with the same canonical limited-mode allowlist — recovery
+  never widens into paid families, never widens into a product scope the
+  account never held (`PRODUCT_NOT_INCLUDED`), never reactivates a registered
+  node (`NODE_LIMIT_REACHED`), and never creates an EDD key.
+- Verify fails closed on every acceptance vector: unverified
+  (`EMAIL_VERIFICATION_REQUIRED` / `ASSERTION_UNKNOWN` server-side), tampered
+  signature or payload (`SIGNATURE_INVALID`), stale pre-refresh sequence
+  (`ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED`), wrong node (`NODE_LIMIT_REACHED`),
+  unknown family and paid family (`CAPABILITY_FAMILY_NOT_INCLUDED`), wrong
+  product scope (`ENTITLEMENT_PRODUCT_MISMATCH`), wrong account binding
+  (`ASSERTION_TAMPERED`), revoked credential (`VERIFIED_LIMITED_ACCESS`), and
+  elapsed bounded refresh window (`CREDENTIAL_REFRESH_REQUIRED`). A validly
+  re-signed wrong-node/wrong-family/wrong-product claim still fails closed
+  (valid signatures do not grant policy).
+- The Focusa client/store evaluates presented claims against authoritative
+  posture state and persists ONLY verified assertions in a local mirror
+  (deduplicated by posture+sequence); revoked, unverified, self-issued, and
+  tampered claims are never persisted. It has no issue/sign capability: no
+  local/self-issued grant is possible.
+- Cross-language fixture: the PHP candidate regenerates the committed fixture
+  byte-identically (deterministic Ed25519 with a fixed synthetic seed), and
+  the Python vector test independently derives the same Ed25519 public key and
+  verifies all 13 valid signatures with Python cryptography before applying the
+  same fail-closed policy evaluation. Both implementations agree on every
+  verdict (4 valid, 11 denied).
+- No EDD Software Licensing key and no zero-dollar fake license is created:
+  `wp_edd_licenses` stays at zero and `assertEddFree()` passes by schema
+  introspection. No raw email, secret key, customer row, or credential data
+  appears in any returned envelope or the fixture.
+
+Exact verification (exit codes)
+1. `php tests/spec172_limited_assertion_test.php` — exit 0.
+   Bounded result (single JSON line):
+   {"schema":"focusa.spec172.limited_assertion_validation.v1","fixture":
+   "byte_exact_cross_language","vectors":15,"valid":4,"denied":11,"issues":2,
+   "refreshes":1,"revokes":1,"recoveries":1,"edd_licenses":0,"edd_free":true,
+   "client_stored":3,"checks":81,"result":"passed_fail_closed"}
+   - vectors=15 (4 valid round-trips incl. refresh/recover/uiai, 11 fail-closed
+     denials), issues=2, refreshes=1, revokes=1, recoveries=1, edd_licenses=0,
+     client_stored=3 (only valid assertions persisted, deduplicated by
+     posture+sequence), checks=81.
+2. `python3 tests/spec172_limited_assertion_vector_test.py` — exit 0.
+   Bounded result (single JSON line):
+   {"client_stored":3,"denied":11,"fixture":"byte_exact_cross_language",
+   "key_derivation":"cross_language_identical","negative_checks":0,
+   "positive_checks":60,"result":"passed_fail_closed","schema":
+   "focusa.spec172.limited_assertion_vector_validation.v1",
+   "signature_valid":13,"valid":4,"vectors":15}
+   - signature_valid=13 (all non-tampered vectors carry Ed25519 signatures
+     that Python cryptography verifies over the PHP-produced bytes),
+     key_derivation=cross_language_identical (PHP and Python derive the same
+     Ed25519 public key from the fixed seed), client_stored=3.
+
+Regression checks (exit codes)
+- `git diff --check` — exit 0, no whitespace errors.
+- `php -l` on the service, client/store, and PHP test — exit 0 each, no syntax
+  errors.
+- `python3 tests/spec172_limited_access_contract_test.py` — exit 0
+  (cases=30, postures=unverified,verified_no_license).
+- `php tests/spec172_verified_access_schema_test.php` — exit 0 (checks=66,
+  result=passed_fail_closed) — prior atom schema untouched and green.
+- `python3 tests/spec172_document_authority_test.py` — exit 0.
+- `python3 tests/spec172_call_stack_contract_test.py` — exit 0.
+- `python3 tests/spec172_family_inheritance_test.py` — exit 0.
+- `python3 tests/spec172_license_type_contract_test.py` — exit 0.
+- `python3 tests/spec152e_deployed_surface_inventory_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0.
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- Pre-existing unrelated failure confirmed at HEAD (not caused by this atom;
+  file untouched): `python3 tests/spec152e_document_authority_test.py` exits 1
+  because docs/contracts/spec152-final-audit-status.v1.yaml lacks a token
+  referencing atoms focusa-vbcqu.20.13.63 / focusa-vbcqu.20.14.52 (other
+  lanes' pending work).
+
+Tests added
+- tests/spec172_limited_assertion_test.php (81 checks): fixture byte-identical
+  regeneration; registries mirror server-owned canonical limited mode; issue
+  from verified posture with real Ed25519 signature; caller family input
+  ignored; unverified issue denied; round-trip verify; tampered signature and
+  payload; wrong-node/wrong-product unsigned and re-signed denial; refresh
+  without expiry/widening with idempotent replay; stale-sequence denial;
+  bounded-window denial; preservation-only revoke; recovery from verified
+  identity (fresh node, higher sequence, no widening) with stale/unknown/
+  cross-scope/node-reuse recovery denials; EDD-free introspection; client
+  store persists only valid assertions; routes dispatch + masked denials; no
+  raw email in envelopes; preservation-only rollback journaling.
+- tests/spec172_limited_assertion_vector_test.py (60 checks, 15 vectors):
+  fixture structural invariants; cross-language Ed25519 key derivation;
+  independent Python signature verification of all non-tampered vectors;
+  fail-closed client/store evaluation for every vector; persistence semantics;
+  hygiene (no secrets, no raw email, no secret key in fixture).
+
+Remaining blockers
+- None for this atom. Downstream atoms (172.02.03+ phase-02/03 work and the
+  172.05.02 verified no-license value proof) build on this issuer/verifier/
+  client vector set.
+
+Rollback
+- Revert only implementation commit `107ec6073b8be06ad999c78b45169bc6b5dd3b36`
+  (and this evidence record if removal is required). Preserve verified
+  identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, customer data, migration journals, and accepted unrelated work.
+  No data deletion is performed by this atom or its rollback.
+
+No push, deploy, release, merge, or Beads mutation was performed.
