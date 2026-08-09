@@ -1,0 +1,98 @@
+{
+  "schema": "focusa.spec152e.authority_cutover_fixture.v1",
+  "fixture_id": "focusa-vbcqu.20.13.53",
+  "authority": {
+    "canonical": "WPUIAI.com EDD",
+    "new_issuance": "edd_authority_only",
+    "facade_role": "presenter_and_bounded_proxy_only",
+    "install_site_role": "registered branded facade and bounded proxy",
+    "spec158": "excluded"
+  },
+  "cutover": {
+    "cutover_version": "focusa-vbcqu.20.13.53",
+    "effective_at": "2026-08-09T00:00:00Z",
+    "spec_section": "152E §22.3 cutover steps 7-10"
+  },
+  "redaction": {
+    "raw_email": "absent",
+    "raw_key": "absent",
+    "payment_id_stored": false,
+    "secret_material": "absent"
+  },
+  "denied_issuance_surfaces": [
+    { "surface": "install_site_create", "route": "/wpuiai-ai-cloud/v1/license/create" },
+    { "surface": "install_site_payment", "route": "/wpuiai-ai-cloud/v1/payment-intent" },
+    { "surface": "install_site_webhook", "route": "/wpuiai-ai-cloud/v1/stripe-webhook" },
+    { "surface": "wpuiai_custom_issue", "route": "/wpuiai-ai-cloud/v1/focusa/license/issue" },
+    { "surface": "stripe_direct_product", "route": "direct-stripe-product-flow" },
+    { "surface": "local_self_eval", "route": "local-eval-flag" }
+  ],
+  "legacy_read_only_tables": [
+    { "table": "wpuiai_licenses", "classification": "noncanonical_license_registry", "migration": "evidence_inventory_migrate_or_quarantine_then_read_only" },
+    { "table": "wpuiai_license_audit", "classification": "noncanonical_audit_evidence", "migration": "preserve_for_reconciliation" }
+  ],
+  "retained_recovery_surfaces": [
+    { "surface": "legacy_validate", "route": "/wpuiai-ai-cloud/v1/license/validate", "retained_for": "validation", "grants_entitlement": false },
+    { "surface": "legacy_keys_validate", "route": "/wpuiai-ai-cloud/v1/keys/validate", "retained_for": "validation", "grants_entitlement": false },
+    { "surface": "legacy_status", "route": "/wpuiai-ai-cloud/v1/license/status", "retained_for": "recovery", "grants_entitlement": false },
+    { "surface": "recovery_status", "route": "/v1/recovery/status", "retained_for": "recovery", "grants_entitlement": false },
+    { "surface": "recovery_export", "route": "/v1/recovery/export", "retained_for": "recovery", "grants_entitlement": false },
+    { "surface": "recovery_diagnostics", "route": "/v1/recovery/diagnostics", "retained_for": "recovery", "grants_entitlement": false },
+    { "surface": "recovery_repair", "route": "/v1/recovery/repair", "retained_for": "recovery", "grants_entitlement": false },
+    { "surface": "recovery_update", "route": "/v1/recovery/update", "retained_for": "recovery", "grants_entitlement": false },
+    { "surface": "recovery_uninstall", "route": "/v1/recovery/uninstall", "retained_for": "recovery", "grants_entitlement": false }
+  ],
+  "legacy_read_only_routes": [
+    { "route": "/wpuiai-ai-cloud/v1/license/validate", "surface": "legacy_validate" },
+    { "route": "/wpuiai-ai-cloud/v1/keys/validate", "surface": "legacy_keys_validate" },
+    { "route": "/wpuiai-ai-cloud/v1/license/status", "surface": "legacy_status" }
+  ],
+  "install_site_proxy_routes": [
+    { "action": "license_activate", "route": "/wpuiai-ai-cloud/v1/license/activate", "authority_route": "/v1/activation/existing-license" },
+    { "action": "license_deactivate", "route": "/wpuiai-ai-cloud/v1/license/deactivate", "authority_route": "/v1/nodes/deactivate" }
+  ],
+  "facade_proxy_routes": {
+    "activation_start": "/v1/activation/start",
+    "activation_verify": "/v1/activation/verify",
+    "activation_offers": "/v1/activation/offers",
+    "activation_select_offer": "/v1/activation/select-offer",
+    "activation_checkout": "/v1/activation/checkout",
+    "activation_existing_license": "/v1/activation/existing-license",
+    "activation_poll": "/v1/activation/poll",
+    "lease_refresh": "/v1/lease/refresh",
+    "nodes_list": "/v1/nodes",
+    "nodes_deactivate": "/v1/nodes/deactivate",
+    "account_manage_link": "/v1/account/manage-link"
+  },
+  "edd_authority_endpoints": {
+    "activation_start": "/v1/activation/start",
+    "activation_verify": "/v1/activation/verify",
+    "activation_offers": "/v1/activation/offers",
+    "activation_select_offer": "/v1/activation/select-offer",
+    "activation_checkout": "/v1/activation/checkout",
+    "activation_existing_license": "/v1/activation/existing-license",
+    "activation_poll": "/v1/activation/poll",
+    "lease_refresh": "/v1/lease/refresh",
+    "nodes_list": "/v1/nodes",
+    "nodes_deactivate": "/v1/nodes/deactivate",
+    "account_manage_link": "/v1/account/manage-link"
+  },
+  "expectations": {
+    "new_issuance_edd_authority_only": true,
+    "install_site_issuance_denied": true,
+    "stripe_direct_flow_denied": true,
+    "local_self_eval_denied": true,
+    "legacy_tables_read_only": true,
+    "legacy_validation_recovery_retained": true,
+    "facade_proxy_only": true,
+    "publication_idempotent_immutable": true,
+    "spec158_excluded": true,
+    "rollback_preservation_only": true
+  },
+  "journal_vectors": {
+    "publish": { "state_rows": 1, "journal_entries": 1 },
+    "denials": { "issuance": 4, "stripe": 1, "self_eval": 1, "journal_entries": 6, "denial_rows": 6 },
+    "replay": { "second_state_row": false, "second_journal_entry": false, "second_denial_row": false },
+    "rollback": { "delete_methods": 0, "preservation_only": true }
+  }
+}
