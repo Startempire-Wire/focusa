@@ -232,10 +232,11 @@
         "denied",
         "recovery_only"
       ],
-      "next_actions": ["activated", "recovery_only", "restart_or_recover_activation"],
+      "next_actions": ["activated", "recovery", "recovery_only", "restart_or_recover_activation"],
       "authority_error_codes": [
         "AUTHORITY_UNAVAILABLE",
         "EMAIL_REQUIRED",
+        "EMAIL_VERIFICATION_REQUIRED",
         "POLL_CREDENTIAL_EXPIRED",
         "POLL_CREDENTIAL_REQUIRED",
         "REFUNDED"

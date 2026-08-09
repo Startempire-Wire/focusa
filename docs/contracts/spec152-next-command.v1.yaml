@@ -18,4 +18,10 @@ post_spec152f_closure: >-
   release-blocking commands are the Spec 152E final release milestone
   (focusa-vbcqu.20.13.63) and REL.4-REL.7 governance acceptance at the final
   exact SHA; publication stays forbidden until those close.
+post_spec152e_closure: >-
+  Spec 152E correction closure is sealed with receipts (focusa-vbcqu.20.13.63,
+  docs/evidence/spec152f/focusa-vbcqu.20.13.63-acceptance.txt). The remaining
+  release-blocking commands are REL.4-REL.7 governance acceptance and live-server
+  deployment verification at the final exact SHA; publication stays forbidden
+  until those close.
 spec_158: excluded
