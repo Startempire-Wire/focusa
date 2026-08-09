@@ -27,7 +27,7 @@
   onMount(() => { void refresh(); });
 </script>
 
-<section class="entitlement-posture" aria-label="Entitlement posture">
+<section class="entitlement-posture" aria-label="Entitlement posture" role="status" aria-live="polite">
   <div class="heading">
     <h3>Entitlement</h3>
     <button class="refresh" disabled={loading} onclick={refresh}>Refresh</button>
@@ -47,7 +47,11 @@
     {/if}
     <p>{posture.recovery_policy}</p>
     <p class="dim">Marketing preference: managed separately from terms and entitlement.</p>
-    <p class="action">Action: <strong>{posture.action}</strong> through the authority account or <code>focusa license</code>.</p>
+    <div class="action" role="group" aria-label="Next entitlement action">
+      <p class="action-line">Next action: <strong>{posture.action_guide.label}</strong></p>
+      <p class="dim">{posture.action_guide.explanation}</p>
+      <p class="dim">Always reachable: {posture.always_reachable.join(', ')}</p>
+    </div>
   {/if}
   {#if error}<p class="error">{error}</p>{/if}
 </section>
@@ -61,4 +65,6 @@
   .dim { color: #9ca3af; }
   .error { color: #fca5a5; }
   .refresh { font: inherit; }
+  .action { margin-top: 8px; padding-top: 8px; border-top: 1px solid #374151; }
+  .action-line { margin: 0 0 6px; }
 </style>

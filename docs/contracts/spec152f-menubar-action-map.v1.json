@@ -20,6 +20,26 @@
     "canonical_operation actions inherit the invoked operation's family policy",
     "no raw keys, tokens, or customer PII in action map"
   ],
+  "accessibility_fixtures": {
+    "schema": "focusa.spec152f.menubar_action_map_accessibility.v1",
+    "always_reachable": [
+      "navigation",
+      "status",
+      "account",
+      "read",
+      "export",
+      "recovery",
+      "repair",
+      "update",
+      "uninstall"
+    ],
+    "rules": [
+      "no disabled control traps the customer away from data or purchase",
+      "denied value actions carry an accessible explanation and an Evaluation/purchase/recovery action",
+      "navigation, status, account, read, export, recovery, repair, update, and uninstall are never disabled by an entitlement decision",
+      "presenters inherit the canonical decision; they never own component-local commercial policy"
+    ]
+  },
   "action_classes": {
     "navigation_display": {
       "description": "UI state changes, tab switching, copy-to-clipboard, modal open/close, zoom reset. No daemon call; no entitlement check.",
