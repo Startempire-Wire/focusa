@@ -390,10 +390,10 @@ check("E_AUTHORITY_UNKNOWN_PREFLIGHT_FAMILY" in presenter_region,
 check('decision_label == "denied" || decision_label == "limited"' in presenter_region,
       "cli preflight fails closed on denied/limited gates")
 
-# CLI command map: 86 commands inherit canonical operations; no command row
+# CLI command map: 87 commands inherit canonical operations; no command row
 # carries product/price/grant selectors (no 395 paywalls).
 check(cli_op_map["schema"] == "focusa.spec152f.cli_operation_map.v1", "cli op map schema")
-check(cli_op_map["row_count"] == 86, "cli op map covers 86 commands")
+check(cli_op_map["row_count"] == 87, "cli op map covers 87 commands")
 for row in cli_op_map["rows"]:
     for forbidden in ["price", "grants", "product", "plan"]:
         check(forbidden not in row, f"cli op map row has no {forbidden} selector: {row['command_path']}")
@@ -409,12 +409,12 @@ for pattern in GRANT_PATTERNS:
 menubar = load_json(MENUBAR_MAP)
 check(menubar["schema"] == "focusa.spec152f.menubar_action_map.v1", "menubar map schema")
 actions = menubar["actions"]
-check(len(actions) == 83, "menubar action map covers 83 actions")
+check(len(actions) == 85, "menubar action map covers 85 actions")
 classes = {}
 for action in actions:
     classes[action["action_class"]] = classes.get(action["action_class"], 0) + 1
-check(classes == {"navigation_display": 48, "recovery_account": 26, "canonical_operation": 9},
-      "menubar action classes are the frozen 48/26/9 split")
+check(classes == {"navigation_display": 53, "recovery_account": 26, "canonical_operation": 6},
+      "menubar action classes are the current 53/26/6 split")
 check(menubar["accessibility_fixtures"]["always_reachable"] == ALWAYS_REACHABLE,
       "menubar always-reachable set matches the frozen 9")
 

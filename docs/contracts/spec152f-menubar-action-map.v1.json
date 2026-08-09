@@ -4,11 +4,11 @@
   "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
   "surface_group": "menubar",
   "baseline_source": "docs/contracts/spec152f-surface-reconciliation/menubar.v1.json",
-  "baseline_count": 83,
+  "baseline_count": 85,
   "classification_summary": {
-    "navigation_display": 48,
+    "navigation_display": 53,
     "recovery_account": 26,
-    "canonical_operation": 9
+    "canonical_operation": 6
   },
   "invariants": [
     "buttons never mint or reinterpret entitlement",
@@ -44,19 +44,39 @@
     "navigation_display": {
       "description": "UI state changes, tab switching, copy-to-clipboard, modal open/close, zoom reset. No daemon call; no entitlement check.",
       "policy": "no_entitlement_check_required",
-      "presenter_must_not": ["evaluate_entitlement", "reject_before_daemon_call", "mint_grants", "interpret_policy", "price_operation"]
+      "presenter_must_not": [
+        "evaluate_entitlement",
+        "reject_before_daemon_call",
+        "mint_grants",
+        "interpret_policy",
+        "price_operation"
+      ]
     },
     "recovery_account": {
       "description": "License/entitlement status refresh, connection management, pairing lifecycle, update operations, debug bundle copy. Always reachable per account_recovery family.",
       "policy_family": "account_recovery",
       "policy": "always_available_subject_to_security",
-      "presenter_must_not": ["evaluate_entitlement", "reject_before_daemon_call", "mint_grants", "interpret_policy"]
+      "presenter_must_not": [
+        "evaluate_entitlement",
+        "reject_before_daemon_call",
+        "mint_grants",
+        "interpret_policy"
+      ]
     },
     "canonical_operation": {
       "description": "Invokes a Focusa daemon operation with side effects. Policy inherited from the canonical operation's registered family.",
       "policy": "inherit_canonical_operation",
-      "presenter_must_not": ["evaluate_entitlement", "reject_before_daemon_call", "mint_grants", "interpret_policy", "price_operation"],
-      "presenter_must": ["forward_daemon_error_transparently", "preserve_recovery_paths"]
+      "presenter_must_not": [
+        "evaluate_entitlement",
+        "reject_before_daemon_call",
+        "mint_grants",
+        "interpret_policy",
+        "price_operation"
+      ],
+      "presenter_must": [
+        "forward_daemon_error_transparently",
+        "preserve_recovery_paths"
+      ]
     }
   },
   "canonical_operations": {
@@ -164,89 +184,771 @@
     }
   },
   "actions": [
-    {"baseline_id":"menubar:0a80179eec4ab3ee","source":"apps/menubar/src/lib/canvas/FocusCanvas.svelte","line":192,"handler":"handleFrameClick","action_class":"navigation_display","canonical_operation_id":null,"description":"Click a focus frame node to select it; no daemon call."},
-    {"baseline_id":"menubar:e884b951b4723c82","source":"apps/menubar/src/lib/canvas/FocusCanvas.svelte","line":328,"handler":"resetViewClick","action_class":"navigation_display","canonical_operation_id":null,"description":"Reset canvas zoom/pan to identity; no daemon call."},
-    {"baseline_id":"menubar:39160a60e2b2ae82","source":"apps/menubar/src/lib/canvas/Timeline.svelte","line":103,"handler":"handleEventClick","action_class":"navigation_display","canonical_operation_id":null,"description":"Select a timeline event; no daemon call."},
-    {"baseline_id":"menubar:1e0f7e7469b9d597","source":"apps/menubar/src/lib/components/AddPeerModal.svelte","line":138,"handler":"handleSubmit","action_class":"canonical_operation","canonical_operation_id":"focusa.sync.peers.add","description":"Add a sync peer via POST /v1/sync/peers."},
-    {"baseline_id":"menubar:337ffb71397ba266","source":"apps/menubar/src/lib/components/AddPeerModal.svelte","line":82,"handler":"closeModal","action_class":"navigation_display","canonical_operation_id":null,"description":"Close the add-peer modal dialog; no daemon call."},
-    {"baseline_id":"menubar:9a89b3b072b08b1f","source":"apps/menubar/src/lib/components/AddPeerModal.svelte","line":86,"handler":"formSubmit","action_class":"canonical_operation","canonical_operation_id":"focusa.sync.peers.add","description":"Form submit triggering peer add; inherits handleSubmit."},
-    {"baseline_id":"menubar:32827d96ed2fdb1d","source":"apps/menubar/src/lib/components/EntitlementPosture.svelte","line":33,"handler":"refreshEntitlement","action_class":"recovery_account","canonical_operation_id":"focusa.license.status","description":"Refresh entitlement posture via GET /v1/license/status."},
-    {"baseline_id":"menubar:79bd8786ac3a8423","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":705,"handler":"advanceToWelcome","action_class":"navigation_display","canonical_operation_id":null,"description":"Navigate to welcome step; no daemon call."},
-    {"baseline_id":"menubar:edc7a0ce492e0ce2","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":706,"handler":"advanceToVpsInstall","action_class":"navigation_display","canonical_operation_id":null,"description":"Navigate to VPS install step; no daemon call."},
-    {"baseline_id":"menubar:c639aedded4c8c7e","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":714,"handler":"skipToDiscovery","action_class":"navigation_display","canonical_operation_id":null,"description":"Skip to discovery step; no daemon call."},
-    {"baseline_id":"menubar:f478c32a68fb2f89","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":715,"handler":"advanceToVpsDiscover","action_class":"navigation_display","canonical_operation_id":null,"description":"Navigate to VPS discover step; no daemon call."},
-    {"baseline_id":"menubar:a7f128b9414b4ac2","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":716,"handler":"advanceToVpsInstall","action_class":"navigation_display","canonical_operation_id":null,"description":"Back to VPS install step; no daemon call."},
-    {"baseline_id":"menubar:818aa5937bc2be9f","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":730,"handler":"discoverVps","action_class":"recovery_account","canonical_operation_id":"focusa.connect.test","description":"Probe localhost/Tailscale/Bonjour for daemon; reads health endpoint."},
-    {"baseline_id":"menubar:66dfd999d4c0bc5b","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":737,"handler":"usePastedUrl","action_class":"recovery_account","canonical_operation_id":"focusa.connect.test","description":"Validate and persist a pasted daemon URL; probes health endpoint."},
-    {"baseline_id":"menubar:6f2bd50133bdc485","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":743,"handler":"startIdleQr","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.start","description":"Start idle QR flow for device pairing; triggers mac_offer generation."},
-    {"baseline_id":"menubar:dca491b1ad5326f0","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":749,"handler":"cancelIdle","action_class":"navigation_display","canonical_operation_id":null,"description":"Cancel idle QR and return to discovery; no daemon call."},
-    {"baseline_id":"menubar:0f47d0a0781711e5","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":767,"handler":"cancelWaitingPhone","action_class":"navigation_display","canonical_operation_id":null,"description":"Cancel waiting-phone polling and return to discovery; no daemon call."},
-    {"baseline_id":"menubar:50dc625046298167","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":771,"handler":"copyDebugBundle","action_class":"recovery_account","canonical_operation_id":"focusa.debug.bundle.copy","description":"Copy debug bundle to clipboard for diagnostics."},
-    {"baseline_id":"menubar:60361b6c1957cac5","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":781,"handler":"retryAuthority","action_class":"recovery_account","canonical_operation_id":"focusa.license.status","description":"Retry authority/entitlement refresh; accounts recovery path."},
-    {"baseline_id":"menubar:3f91245984eddae2","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":782,"handler":"selectManageLicense","action_class":"navigation_display","canonical_operation_id":null,"description":"Select 'manage' entitlement choice; local UI state change."},
-    {"baseline_id":"menubar:dc770fe23e062f01","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":790,"handler":"selectEvaluateLicense","action_class":"navigation_display","canonical_operation_id":null,"description":"Select 'evaluate' entitlement choice; local UI state change."},
-    {"baseline_id":"menubar:f53d0e5e68f4e18a","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":811,"handler":"selectActivateLicense","action_class":"navigation_display","canonical_operation_id":null,"description":"Select 'activate' entitlement choice; local UI state change."},
-    {"baseline_id":"menubar:b8dbde5e5ebcadd5","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":815,"handler":"selectManageLicenseFromChoice","action_class":"navigation_display","canonical_operation_id":null,"description":"Select manage from entitlement choice screen; local UI state change."},
-    {"baseline_id":"menubar:d61c8654b404b423","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":816,"handler":"verifySignedLease","action_class":"recovery_account","canonical_operation_id":"focusa.license.status","description":"Verify signed lease via license status check."},
-    {"baseline_id":"menubar:40050104e2e96290","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":838,"handler":"continueToPairing","action_class":"navigation_display","canonical_operation_id":null,"description":"Continue from optional UIAI to device pairing; local state advance."},
-    {"baseline_id":"menubar:45b6ffa3c0c7aa9f","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":840,"handler":"verifyProjectBinding","action_class":"canonical_operation","canonical_operation_id":"focusa.project.identity.verify","description":"Verify active project binding via GET /v1/project/current."},
-    {"baseline_id":"menubar:f22eb002a8e9a161","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":847,"handler":"verifyFirstWorkpoint","action_class":"canonical_operation","canonical_operation_id":"focusa.workpoint.current.verify","description":"Verify first workpoint via GET /v1/workpoint/current."},
-    {"baseline_id":"menubar:c163449e08aed871","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":859,"handler":"applyCompletionPayloadFallback","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.start","description":"Apply pasted completion payload for pairing fallback."},
-    {"baseline_id":"menubar:b943faabccde4eac","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":883,"handler":"restartPairingDegraded","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.start","description":"Restart pairing from degraded state; recovery path."},
-    {"baseline_id":"menubar:cb8a6160573ffab3","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":888,"handler":"copyDebugBundleDegraded","action_class":"recovery_account","canonical_operation_id":"focusa.debug.bundle.copy","description":"Copy debug bundle from degraded state for diagnostics."},
-    {"baseline_id":"menubar:fd3bcddcdc347199","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":896,"handler":"copyDebugBundleFooter","action_class":"recovery_account","canonical_operation_id":"focusa.debug.bundle.copy","description":"Copy debug bundle from wizard footer."},
-    {"baseline_id":"menubar:32b14f72e82d623f","source":"apps/menubar/src/lib/components/FirstRunWizard.svelte","line":898,"handler":"restartWizard","action_class":"navigation_display","canonical_operation_id":null,"description":"Restart wizard from footer; local state reset."},
-    {"baseline_id":"menubar:6c9625044fb7762b","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":124,"handler":"startPairingMain","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.start","description":"Show QR code and start device pairing."},
-    {"baseline_id":"menubar:a4c0b9e988aa2b0f","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":159,"handler":"selectScanQr","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to QR scan handoff mode; local UI."},
-    {"baseline_id":"menubar:924770e9b437a0ef","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":165,"handler":"selectOpenUrl","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to open URL handoff mode; local UI."},
-    {"baseline_id":"menubar:ab5ae19c1063c606","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":171,"handler":"selectManualCli","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to manual CLI handoff mode; local UI."},
-    {"baseline_id":"menubar:207a209cc45fd16d","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":178,"handler":"copyPairingCode","action_class":"navigation_display","canonical_operation_id":null,"description":"Copy pairing command/code to clipboard; no daemon call."},
-    {"baseline_id":"menubar:287c71edbcb58865","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":199,"handler":"cancelPairing","action_class":"navigation_display","canonical_operation_id":null,"description":"Cancel pairing and reset state; no daemon call."},
-    {"baseline_id":"menubar:e9adbcd6dd5ec4cd","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":214,"handler":"pairDifferentMac","action_class":"navigation_display","canonical_operation_id":null,"description":"Reset to pair a different Mac; local state change."},
-    {"baseline_id":"menubar:633d1f460fd4ca14","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":215,"handler":"revokePairing","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.revoke","description":"Revoke device pairing token."},
-    {"baseline_id":"menubar:3660b2c5f5e50e22","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":224,"handler":"generateNewCodeExpired","action_class":"navigation_display","canonical_operation_id":null,"description":"Reset from expired state to generate new code."},
-    {"baseline_id":"menubar:1ea7fb19bc28553d","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":240,"handler":"copyErrorLog","action_class":"recovery_account","canonical_operation_id":"focusa.debug.bundle.copy","description":"Copy error log to clipboard for diagnostics."},
-    {"baseline_id":"menubar:33e1d447df49964b","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":241,"handler":"copyDebugBundlePairing","action_class":"recovery_account","canonical_operation_id":"focusa.debug.bundle.copy","description":"Copy debug bundle from pairing panel for diagnostics."},
-    {"baseline_id":"menubar:9bf3ad04b6f6ab15","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":242,"handler":"retryPairing","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.start","description":"Retry pairing after error; recovery path."},
-    {"baseline_id":"menubar:9d1fff1e4b711a6b","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":262,"handler":"revokeDeviceActive","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.revoke","description":"Revoke an active paired device."},
-    {"baseline_id":"menubar:dec503d18f1113c8","source":"apps/menubar/src/lib/components/PairingPanel.svelte","line":279,"handler":"refreshDeviceList","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.list","description":"Refresh paired device list via GET /v1/pairing/devices."},
-    {"baseline_id":"menubar:2dd1712381421b5b","source":"apps/menubar/src/lib/components/RuntimeView.svelte","line":84,"handler":"copyResumeCommand","action_class":"navigation_display","canonical_operation_id":null,"description":"Copy resume command to clipboard; no daemon call."},
-    {"baseline_id":"menubar:8bdb6a944a2a2716","source":"apps/menubar/src/lib/components/SemanticPairPeek.svelte","line":105,"handler":"executeGovernedOperation","action_class":"canonical_operation","canonical_operation_id":"focusa.semantic_integrity.operation.invoke","description":"Execute selected semantic pair operation via POST /v1/semantic-integrity/operations/{id}."},
-    {"baseline_id":"menubar:ef57a4d6e12f7c44","source":"apps/menubar/src/lib/components/SemanticPairPeek.svelte","line":88,"handler":"selectSemanticOperation","action_class":"navigation_display","canonical_operation_id":null,"description":"Select a semantic operation from the list for inspection; no daemon call."},
-    {"baseline_id":"menubar:84d43133f5f09c52","source":"apps/menubar/src/lib/components/Settings.svelte","line":174,"handler":"quickConnect","action_class":"recovery_account","canonical_operation_id":"focusa.connect.test","description":"Quick-connect to a saved connection; probes health endpoint."},
-    {"baseline_id":"menubar:4e5ab485f4a615dc","source":"apps/menubar/src/lib/components/Settings.svelte","line":175,"handler":"disconnectSaved","action_class":"recovery_account","canonical_operation_id":"focusa.connection.save","description":"Forget a saved connection; local storage mutation."},
-    {"baseline_id":"menubar:8b282c78b2e975d3","source":"apps/menubar/src/lib/components/Settings.svelte","line":207,"handler":"setRemote","action_class":"navigation_display","canonical_operation_id":null,"description":"Show remote URL input; local UI toggle."},
-    {"baseline_id":"menubar:3b2df8a3a8132036","source":"apps/menubar/src/lib/components/Settings.svelte","line":208,"handler":"setLocal","action_class":"recovery_account","canonical_operation_id":"focusa.connect.test","description":"Set local URL and test connection; probes health endpoint."},
-    {"baseline_id":"menubar:ebb77096e1607239","source":"apps/menubar/src/lib/components/Settings.svelte","line":220,"handler":"confirmRemote","action_class":"recovery_account","canonical_operation_id":"focusa.connect.test","description":"Confirm remote URL and test connection."},
-    {"baseline_id":"menubar:d1b10a6ca841f6ea","source":"apps/menubar/src/lib/components/Settings.svelte","line":221,"handler":"cancelRemoteInput","action_class":"navigation_display","canonical_operation_id":null,"description":"Cancel remote URL input; local UI toggle."},
-    {"baseline_id":"menubar:6c28f586e697ecea","source":"apps/menubar/src/lib/components/Settings.svelte","line":226,"handler":"testConnection","action_class":"recovery_account","canonical_operation_id":"focusa.connect.test","description":"Test the entered connection URL; probes health endpoint."},
-    {"baseline_id":"menubar:95c893fd343435da","source":"apps/menubar/src/lib/components/Settings.svelte","line":229,"handler":"saveConnectionUrl","action_class":"recovery_account","canonical_operation_id":"focusa.connection.save","description":"Save the current connection URL to local storage."},
-    {"baseline_id":"menubar:ed03c7a72497c5f7","source":"apps/menubar/src/lib/components/Settings.svelte","line":238,"handler":"copyConnectionError","action_class":"navigation_display","canonical_operation_id":null,"description":"Copy connection error diagnostics to clipboard."},
-    {"baseline_id":"menubar:bfb2c65210f86770","source":"apps/menubar/src/lib/components/Settings.svelte","line":266,"handler":"checkForUpdate","action_class":"recovery_account","canonical_operation_id":"focusa.update.check","description":"Check for signed update; reads update notifications."},
-    {"baseline_id":"menubar:8bbfa66353b339df","source":"apps/menubar/src/lib/components/Settings.svelte","line":270,"handler":"installAndRelaunch","action_class":"recovery_account","canonical_operation_id":"focusa.update.install","description":"Install signed update and relaunch; stable security allowance."},
-    {"baseline_id":"menubar:0963c518d820dc1f","source":"apps/menubar/src/lib/components/SyncPanel.svelte","line":130,"handler":"openAddPeerModal","action_class":"navigation_display","canonical_operation_id":null,"description":"Open add peer modal dialog; local UI."},
-    {"baseline_id":"menubar:57fd648f231fceb0","source":"apps/menubar/src/lib/components/SyncPanel.svelte","line":146,"handler":"retryFetchPeers","action_class":"navigation_display","canonical_operation_id":null,"description":"Retry fetching peer list after error; triggers fetchPeers."},
-    {"baseline_id":"menubar:4ed0c2df598ee27f","source":"apps/menubar/src/lib/components/SyncPanel.svelte","line":152,"handler":"openAddPeerModalEmpty","action_class":"navigation_display","canonical_operation_id":null,"description":"Open add peer modal from empty state; local UI."},
-    {"baseline_id":"menubar:4f5e291f87afe55f","source":"apps/menubar/src/lib/components/SyncPanel.svelte","line":178,"handler":"retryPeerStatus","action_class":"navigation_display","canonical_operation_id":null,"description":"Retry fetching single peer status; triggers fetchPeerStatus."},
-    {"baseline_id":"menubar:788874435f195580","source":"apps/menubar/src/lib/components/SyncPanel.svelte","line":210,"handler":"requestPull","action_class":"canonical_operation","canonical_operation_id":"focusa.sync.pull","description":"Pull sync data from peer via POST /v1/sync/pull/{peer_id}."},
-    {"baseline_id":"menubar:93f1e116129b347a","source":"apps/menubar/src/lib/components/ToastContainer.svelte","line":21,"handler":"dismissToast","action_class":"navigation_display","canonical_operation_id":null,"description":"Dismiss a toast notification; local UI."},
-    {"baseline_id":"menubar:a26a380861513b83","source":"apps/menubar/src/lib/components/WorkpointPeek.svelte","line":164,"handler":"checkpointWorkpoint","action_class":"canonical_operation","canonical_operation_id":"focusa.workpoint.checkpoint","description":"Create workpoint checkpoint via POST /v1/workpoint/checkpoint."},
-    {"baseline_id":"menubar:684e932733e77180","source":"apps/menubar/src/lib/components/WorkpointPeek.svelte","line":167,"handler":"resumeWorkpoint","action_class":"canonical_operation","canonical_operation_id":"focusa.workpoint.resume","description":"Resume workpoint via POST /v1/workpoint/resume."},
-    {"baseline_id":"menubar:5aba8fe9e7d723cd","source":"apps/menubar/src/lib/components/WorkpointPeek.svelte","line":170,"handler":"toggleLinkEvidence","action_class":"navigation_display","canonical_operation_id":null,"description":"Toggle evidence link form; local UI."},
-    {"baseline_id":"menubar:1afb858825f8bd8d","source":"apps/menubar/src/lib/components/WorkpointPeek.svelte","line":186,"handler":"linkEvidenceToWorkpoint","action_class":"canonical_operation","canonical_operation_id":"focusa.workpoint.evidence.link","description":"Link evidence to workpoint via POST /v1/workpoint/evidence/link."},
-    {"baseline_id":"menubar:b0880be31ea0d7c2","source":"apps/menubar/src/lib/components/WorkpointPeek.svelte","line":189,"handler":"cancelLinkEvidence","action_class":"navigation_display","canonical_operation_id":null,"description":"Cancel evidence link form; local UI."},
-    {"baseline_id":"menubar:0942fd3dbb708659","source":"apps/menubar/src/routes/+page.svelte","line":208,"handler":"tabFocus","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Focus tab; local UI."},
-    {"baseline_id":"menubar:34b078c6fdc17dd6","source":"apps/menubar/src/routes/+page.svelte","line":211,"handler":"tabMissionCanvas","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Mission Canvas (Now) tab; local UI."},
-    {"baseline_id":"menubar:28f5093f38826df8","source":"apps/menubar/src/routes/+page.svelte","line":214,"handler":"tabTrajectory","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Trajectory (Path) tab; local UI."},
-    {"baseline_id":"menubar:71e9fd8d46971624","source":"apps/menubar/src/routes/+page.svelte","line":217,"handler":"tabWorkpoint","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Workpoint (WP) tab; local UI."},
-    {"baseline_id":"menubar:35bb16ad18624f72","source":"apps/menubar/src/routes/+page.svelte","line":220,"handler":"tabProof","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Proof tab; local UI."},
-    {"baseline_id":"menubar:a93a7ecdfc06337b","source":"apps/menubar/src/routes/+page.svelte","line":223,"handler":"tabWorkLoop","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Work Loop (Loop) tab; local UI."},
-    {"baseline_id":"menubar:9c70ac8380712d9d","source":"apps/menubar/src/routes/+page.svelte","line":226,"handler":"tabGate","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Gate tab; local UI."},
-    {"baseline_id":"menubar:d3e7d258b1270a3d","source":"apps/menubar/src/routes/+page.svelte","line":232,"handler":"tabSync","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Sync tab; local UI."},
-    {"baseline_id":"menubar:10d54693b532250d","source":"apps/menubar/src/routes/+page.svelte","line":235,"handler":"tabPair","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Pair tab; local UI."},
-    {"baseline_id":"menubar:0f74a306e1ec3c48","source":"apps/menubar/src/routes/+page.svelte","line":238,"handler":"tabSettings","action_class":"navigation_display","canonical_operation_id":null,"description":"Switch to Settings tab; local UI."},
-    {"baseline_id":"menubar:9e38907f3bbac4f2","source":"apps/menubar/src/routes/canvas/+page.svelte","line":47,"handler":"toggleAscc","action_class":"navigation_display","canonical_operation_id":null,"description":"Toggle ASCC panel visibility; local UI."},
-    {"baseline_id":"menubar:159d405f12a567d9","source":"apps/menubar/src/routes/canvas/+page.svelte","line":56,"handler":"toggleTimeline","action_class":"navigation_display","canonical_operation_id":null,"description":"Toggle Timeline panel visibility; local UI."}
+    {
+      "baseline_id": "menubar:0a80179eec4ab3ee",
+      "source": "apps/menubar/src/lib/canvas/FocusCanvas.svelte",
+      "line": 192,
+      "handler": "handleFrameClick",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Click a focus frame node to select it; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:e884b951b4723c82",
+      "source": "apps/menubar/src/lib/canvas/FocusCanvas.svelte",
+      "line": 328,
+      "handler": "resetViewClick",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Reset canvas zoom/pan to identity; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:39160a60e2b2ae82",
+      "source": "apps/menubar/src/lib/canvas/Timeline.svelte",
+      "line": 103,
+      "handler": "handleEventClick",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Select a timeline event; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:337ffb71397ba266",
+      "source": "apps/menubar/src/lib/components/AddPeerModal.svelte",
+      "line": 82,
+      "handler": "closeModal",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Close the add-peer modal backdrop; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:9a89b3b072b08b1f",
+      "source": "apps/menubar/src/lib/components/AddPeerModal.svelte",
+      "line": 86,
+      "handler": "closeModal",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Close the add-peer modal close button; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:1e0f7e7469b9d597",
+      "source": "apps/menubar/src/lib/components/AddPeerModal.svelte",
+      "line": 138,
+      "handler": "closeModal",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Cancel button closes the add-peer modal; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:c18f476e2cf100f8",
+      "source": "apps/menubar/src/lib/components/EntitlementPosture.svelte",
+      "line": 46,
+      "handler": "refreshEntitlement",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.license.status",
+      "description": "Refresh entitlement posture via GET /v1/license/status."
+    },
+    {
+      "baseline_id": "menubar:6f42a0d865f6b167",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 738,
+      "handler": "refreshEntitlement",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.license.status",
+      "description": "Refresh entitlement posture; accounts recovery path."
+    },
+    {
+      "baseline_id": "menubar:8db755d5decce98c",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 739,
+      "handler": "selectManageLicense",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Select 'manage' entitlement choice; local UI state change."
+    },
+    {
+      "baseline_id": "menubar:9b982db1b3282b51",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 748,
+      "handler": "retryAuthority",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.license.status",
+      "description": "Retry authority/entitlement refresh; accounts recovery path."
+    },
+    {
+      "baseline_id": "menubar:dca491b1ad5326f0",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 749,
+      "handler": "selectManageLicense",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Select 'manage' entitlement choice; local UI state change."
+    },
+    {
+      "baseline_id": "menubar:e52be62bc0c87942",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 757,
+      "handler": "selectEvaluateLicense",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Select 'evaluate' entitlement choice; local UI state change."
+    },
+    {
+      "baseline_id": "menubar:0704d79062edbc24",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 758,
+      "handler": "selectActivateLicense",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Select 'activate' entitlement choice; local UI state change."
+    },
+    {
+      "baseline_id": "menubar:d3df1eec116adb20",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 759,
+      "handler": "selectManageLicense",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Select 'manage' entitlement choice; local UI state change."
+    },
+    {
+      "baseline_id": "menubar:67203f66ff541d60",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 773,
+      "handler": "verifySignedLease",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.license.status",
+      "description": "Verify signed lease via license status check."
+    },
+    {
+      "baseline_id": "menubar:4cb70a52d655b10e",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 780,
+      "handler": "continueToPairing",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Continue from optional UIAI to device pairing; local state advance."
+    },
+    {
+      "baseline_id": "menubar:9e40f024f61e60c4",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 786,
+      "handler": "verifyProjectBinding",
+      "action_class": "canonical_operation",
+      "canonical_operation_id": "focusa.project.identity.verify",
+      "description": "Verify active project binding via GET /v1/project/identity."
+    },
+    {
+      "baseline_id": "menubar:06bb7c3528630c4a",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 792,
+      "handler": "verifyFirstWorkpoint",
+      "action_class": "canonical_operation",
+      "canonical_operation_id": "focusa.workpoint.current.verify",
+      "description": "Verify first workpoint via GET /v1/workpoint/current."
+    },
+    {
+      "baseline_id": "menubar:299887394a4907d5",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 810,
+      "handler": "advanceToVpsInstall",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Navigate to VPS install step; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:675adcdfa231e312",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 814,
+      "handler": "skipToDiscovery",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Skip to discovery step; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:101c2916b5711c59",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 824,
+      "handler": "advanceToVpsDiscover",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Navigate to VPS discover step; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:b776e51329b7b1d1",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 825,
+      "handler": "advanceToWelcome",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Back to welcome step; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:b8146bf3835fb3fe",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 833,
+      "handler": "discoverVps",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.connect.test",
+      "description": "Probe localhost/Tailscale/Bonjour for daemon; reads health endpoint."
+    },
+    {
+      "baseline_id": "menubar:dd7d4fada76ce5e7",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 854,
+      "handler": "usePastedUrl",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.connect.test",
+      "description": "Validate and persist a pasted daemon URL; probes health endpoint."
+    },
+    {
+      "baseline_id": "menubar:c873d5648e510254",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 858,
+      "handler": "startIdleQr",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.pairing.start",
+      "description": "Start idle QR flow for device pairing; triggers mac_offer generation."
+    },
+    {
+      "baseline_id": "menubar:c163449e08aed871",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 859,
+      "handler": "advanceToVpsInstall",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Back to VPS install step; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:3d16d46e369a09c3",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 881,
+      "handler": "applyCompletionPayloadFallback",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.pairing.start",
+      "description": "Apply pasted completion payload for pairing fallback."
+    },
+    {
+      "baseline_id": "menubar:b943faabccde4eac",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 883,
+      "handler": "cancelIdle",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Cancel idle QR/room discovery and return to discovery; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:444a8aea6fb48612",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 890,
+      "handler": "cancelWaitingPhone",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Cancel waiting-phone polling and return to discovery; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:9b4361a5fbd0e49a",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 902,
+      "handler": "copyDebugBundle",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.debug.bundle.copy",
+      "description": "Copy debug bundle to clipboard for diagnostics."
+    },
+    {
+      "baseline_id": "menubar:ed3967daf5dfc271",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 926,
+      "handler": "restartPairing",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Restart pairing from degraded state; local state reset."
+    },
+    {
+      "baseline_id": "menubar:0fcfe09a38423695",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 931,
+      "handler": "copyDebugBundleDegraded",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.debug.bundle.copy",
+      "description": "Copy debug bundle from degraded state for diagnostics."
+    },
+    {
+      "baseline_id": "menubar:26b6dd02a1a2f5de",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 939,
+      "handler": "copyDebugBundleFooter",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.debug.bundle.copy",
+      "description": "Copy debug bundle from wizard footer."
+    },
+    {
+      "baseline_id": "menubar:0534dd69b3b5392d",
+      "source": "apps/menubar/src/lib/components/FirstRunWizard.svelte",
+      "line": 941,
+      "handler": "restartWizard",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Restart wizard from footer; local state reset."
+    },
+    {
+      "baseline_id": "menubar:6c9625044fb7762b",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 124,
+      "handler": "startPairingMain",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.pairing.start",
+      "description": "Show QR code and start device pairing."
+    },
+    {
+      "baseline_id": "menubar:a4c0b9e988aa2b0f",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 159,
+      "handler": "selectScanQr",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to QR scan handoff mode; local UI."
+    },
+    {
+      "baseline_id": "menubar:924770e9b437a0ef",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 165,
+      "handler": "selectOpenUrl",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to open URL handoff mode; local UI."
+    },
+    {
+      "baseline_id": "menubar:ab5ae19c1063c606",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 171,
+      "handler": "selectManualCli",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to manual CLI handoff mode; local UI."
+    },
+    {
+      "baseline_id": "menubar:207a209cc45fd16d",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 178,
+      "handler": "copyPairingCode",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Copy pairing command/code to clipboard; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:287c71edbcb58865",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 199,
+      "handler": "cancelPairing",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Cancel pairing and reset state; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:e9adbcd6dd5ec4cd",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 214,
+      "handler": "pairDifferentMac",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Reset to pair a different Mac; local state change."
+    },
+    {
+      "baseline_id": "menubar:633d1f460fd4ca14",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 215,
+      "handler": "revokePairing",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.pairing.revoke",
+      "description": "Revoke device pairing token."
+    },
+    {
+      "baseline_id": "menubar:3660b2c5f5e50e22",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 224,
+      "handler": "generateNewCodeExpired",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Reset from expired state to generate new code."
+    },
+    {
+      "baseline_id": "menubar:1ea7fb19bc28553d",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 240,
+      "handler": "copyErrorLog",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.debug.bundle.copy",
+      "description": "Copy error log to clipboard for diagnostics."
+    },
+    {
+      "baseline_id": "menubar:33e1d447df49964b",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 241,
+      "handler": "copyDebugBundlePairing",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.debug.bundle.copy",
+      "description": "Copy debug bundle from pairing panel for diagnostics."
+    },
+    {
+      "baseline_id": "menubar:9bf3ad04b6f6ab15",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 242,
+      "handler": "retryPairing",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.pairing.start",
+      "description": "Retry pairing after error; recovery path."
+    },
+    {
+      "baseline_id": "menubar:9d1fff1e4b711a6b",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 262,
+      "handler": "revokeDeviceActive",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.pairing.revoke",
+      "description": "Revoke an active paired device."
+    },
+    {
+      "baseline_id": "menubar:dec503d18f1113c8",
+      "source": "apps/menubar/src/lib/components/PairingPanel.svelte",
+      "line": 279,
+      "handler": "refreshDeviceList",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.pairing.list",
+      "description": "Refresh paired device list via GET /v1/pairing/devices."
+    },
+    {
+      "baseline_id": "menubar:2dd1712381421b5b",
+      "source": "apps/menubar/src/lib/components/RuntimeView.svelte",
+      "line": 84,
+      "handler": "copyResumeCommand",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Copy resume command to clipboard; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:ef57a4d6e12f7c44",
+      "source": "apps/menubar/src/lib/components/SemanticPairPeek.svelte",
+      "line": 88,
+      "handler": "selectSemanticOperation",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Select a semantic operation from the list for inspection; no daemon call."
+    },
+    {
+      "baseline_id": "menubar:8bdb6a944a2a2716",
+      "source": "apps/menubar/src/lib/components/SemanticPairPeek.svelte",
+      "line": 105,
+      "handler": "cancelSemanticExecute",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Cancel semantic operation execute form; local UI."
+    },
+    {
+      "baseline_id": "menubar:84d43133f5f09c52",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 174,
+      "handler": "quickConnect",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.connect.test",
+      "description": "Quick-connect to a saved connection; probes health endpoint."
+    },
+    {
+      "baseline_id": "menubar:4e5ab485f4a615dc",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 175,
+      "handler": "disconnectSaved",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.connection.save",
+      "description": "Forget a saved connection; local storage mutation."
+    },
+    {
+      "baseline_id": "menubar:8b282c78b2e975d3",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 207,
+      "handler": "setRemote",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Show remote URL input; local UI toggle."
+    },
+    {
+      "baseline_id": "menubar:3b2df8a3a8132036",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 208,
+      "handler": "setLocal",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.connect.test",
+      "description": "Set local URL and test connection; probes health endpoint."
+    },
+    {
+      "baseline_id": "menubar:ebb77096e1607239",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 220,
+      "handler": "confirmRemote",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.connect.test",
+      "description": "Confirm remote URL and test connection."
+    },
+    {
+      "baseline_id": "menubar:d1b10a6ca841f6ea",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 221,
+      "handler": "cancelRemoteInput",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Cancel remote URL input; local UI toggle."
+    },
+    {
+      "baseline_id": "menubar:6c28f586e697ecea",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 226,
+      "handler": "testConnection",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.connect.test",
+      "description": "Test the entered connection URL; probes health endpoint."
+    },
+    {
+      "baseline_id": "menubar:95c893fd343435da",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 229,
+      "handler": "saveConnectionUrl",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.connection.save",
+      "description": "Save the current connection URL to local storage."
+    },
+    {
+      "baseline_id": "menubar:ed03c7a72497c5f7",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 238,
+      "handler": "copyConnectionError",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Copy connection error diagnostics to clipboard."
+    },
+    {
+      "baseline_id": "menubar:bfb2c65210f86770",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 266,
+      "handler": "checkForUpdate",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.update.check",
+      "description": "Check for signed update; reads update notifications."
+    },
+    {
+      "baseline_id": "menubar:8bbfa66353b339df",
+      "source": "apps/menubar/src/lib/components/Settings.svelte",
+      "line": 270,
+      "handler": "installAndRelaunch",
+      "action_class": "recovery_account",
+      "canonical_operation_id": "focusa.update.install",
+      "description": "Install signed update and relaunch; stable security allowance."
+    },
+    {
+      "baseline_id": "menubar:0963c518d820dc1f",
+      "source": "apps/menubar/src/lib/components/SyncPanel.svelte",
+      "line": 130,
+      "handler": "openAddPeerModal",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Open add peer modal dialog; local UI."
+    },
+    {
+      "baseline_id": "menubar:57fd648f231fceb0",
+      "source": "apps/menubar/src/lib/components/SyncPanel.svelte",
+      "line": 146,
+      "handler": "retryFetchPeers",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Retry fetching peer list after error; triggers fetchPeers."
+    },
+    {
+      "baseline_id": "menubar:4ed0c2df598ee27f",
+      "source": "apps/menubar/src/lib/components/SyncPanel.svelte",
+      "line": 152,
+      "handler": "openAddPeerModalEmpty",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Open add peer modal from empty state; local UI."
+    },
+    {
+      "baseline_id": "menubar:4f5e291f87afe55f",
+      "source": "apps/menubar/src/lib/components/SyncPanel.svelte",
+      "line": 178,
+      "handler": "retryPeerStatus",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Retry fetching single peer status; triggers fetchPeerStatus."
+    },
+    {
+      "baseline_id": "menubar:788874435f195580",
+      "source": "apps/menubar/src/lib/components/SyncPanel.svelte",
+      "line": 210,
+      "handler": "requestPull",
+      "action_class": "canonical_operation",
+      "canonical_operation_id": "focusa.sync.pull",
+      "description": "Pull sync data from peer via POST /v1/sync/pull/{peer_id}."
+    },
+    {
+      "baseline_id": "menubar:93f1e116129b347a",
+      "source": "apps/menubar/src/lib/components/ToastContainer.svelte",
+      "line": 21,
+      "handler": "dismissToast",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Dismiss a toast notification; local UI."
+    },
+    {
+      "baseline_id": "menubar:a26a380861513b83",
+      "source": "apps/menubar/src/lib/components/WorkpointPeek.svelte",
+      "line": 164,
+      "handler": "checkpointWorkpoint",
+      "action_class": "canonical_operation",
+      "canonical_operation_id": "focusa.workpoint.checkpoint",
+      "description": "Create workpoint checkpoint via POST /v1/workpoint/checkpoint."
+    },
+    {
+      "baseline_id": "menubar:684e932733e77180",
+      "source": "apps/menubar/src/lib/components/WorkpointPeek.svelte",
+      "line": 167,
+      "handler": "resumeWorkpoint",
+      "action_class": "canonical_operation",
+      "canonical_operation_id": "focusa.workpoint.resume",
+      "description": "Resume workpoint via POST /v1/workpoint/resume."
+    },
+    {
+      "baseline_id": "menubar:5aba8fe9e7d723cd",
+      "source": "apps/menubar/src/lib/components/WorkpointPeek.svelte",
+      "line": 170,
+      "handler": "toggleLinkEvidence",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Toggle evidence link form; local UI."
+    },
+    {
+      "baseline_id": "menubar:1afb858825f8bd8d",
+      "source": "apps/menubar/src/lib/components/WorkpointPeek.svelte",
+      "line": 186,
+      "handler": "linkEvidenceToWorkpoint",
+      "action_class": "canonical_operation",
+      "canonical_operation_id": "focusa.workpoint.evidence.link",
+      "description": "Link evidence to workpoint via POST /v1/workpoint/evidence/link."
+    },
+    {
+      "baseline_id": "menubar:b0880be31ea0d7c2",
+      "source": "apps/menubar/src/lib/components/WorkpointPeek.svelte",
+      "line": 189,
+      "handler": "cancelLinkEvidence",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Cancel evidence link form; local UI."
+    },
+    {
+      "baseline_id": "menubar:0942fd3dbb708659",
+      "source": "apps/menubar/src/routes/+page.svelte",
+      "line": 208,
+      "handler": "tabFocus",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to Focus tab; local UI."
+    },
+    {
+      "baseline_id": "menubar:34b078c6fdc17dd6",
+      "source": "apps/menubar/src/routes/+page.svelte",
+      "line": 211,
+      "handler": "tabMissionCanvas",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to Mission Canvas (Now) tab; local UI."
+    },
+    {
+      "baseline_id": "menubar:28f5093f38826df8",
+      "source": "apps/menubar/src/routes/+page.svelte",
+      "line": 214,
+      "handler": "tabTrajectory",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to Trajectory (Path) tab; local UI."
+    },
+    {
+      "baseline_id": "menubar:71e9fd8d46971624",
+      "source": "apps/menubar/src/routes/+page.svelte",
+      "line": 217,
+      "handler": "tabWorkpoint",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to Workpoint (WP) tab; local UI."
+    },
+    {
+      "baseline_id": "menubar:35bb16ad18624f72",
+      "source": "apps/menubar/src/routes/+page.svelte",
+      "line": 220,
+      "handler": "tabProof",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to Proof tab; local UI."
+    },
+    {
+      "baseline_id": "menubar:a93a7ecdfc06337b",
+      "source": "apps/menubar/src/routes/+page.svelte",
+      "line": 223,
+      "handler": "tabWorkLoop",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to Work Loop (Loop) tab; local UI."
+    },
+    {
+      "baseline_id": "menubar:9c70ac8380712d9d",
+      "source": "apps/menubar/src/routes/+page.svelte",
+      "line": 226,
+      "handler": "tabGate",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to Gate tab; local UI."
+    },
+    {
+      "baseline_id": "menubar:d3e7d258b1270a3d",
+      "source": "apps/menubar/src/routes/+page.svelte",
+      "line": 232,
+      "handler": "tabSync",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to Sync tab; local UI."
+    },
+    {
+      "baseline_id": "menubar:10d54693b532250d",
+      "source": "apps/menubar/src/routes/+page.svelte",
+      "line": 235,
+      "handler": "tabPair",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to Pair tab; local UI."
+    },
+    {
+      "baseline_id": "menubar:0f74a306e1ec3c48",
+      "source": "apps/menubar/src/routes/+page.svelte",
+      "line": 238,
+      "handler": "tabSettings",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Switch to Settings tab; local UI."
+    },
+    {
+      "baseline_id": "menubar:9e38907f3bbac4f2",
+      "source": "apps/menubar/src/routes/canvas/+page.svelte",
+      "line": 47,
+      "handler": "toggleAscc",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Toggle ASCC panel visibility; local UI."
+    },
+    {
+      "baseline_id": "menubar:159d405f12a567d9",
+      "source": "apps/menubar/src/routes/canvas/+page.svelte",
+      "line": 56,
+      "handler": "toggleTimeline",
+      "action_class": "navigation_display",
+      "canonical_operation_id": null,
+      "description": "Toggle Timeline panel visibility; local UI."
+    }
   ],
   "spec172": {
     "schema": "focusa.spec172.menubar_tui_presenter_parity.v1",
@@ -280,7 +982,11 @@
     "upgrade_display": {
       "source": "daemon_presenter_allowed_actions_only",
       "action": "activate_or_manage_entitlement",
-      "triggers": ["select_purchase", "open_checkout", "activate_or_manage_entitlement"],
+      "triggers": [
+        "select_purchase",
+        "open_checkout",
+        "activate_or_manage_entitlement"
+      ],
       "accurate_for": {
         "verified_no_license": "Operator upgrade available",
         "focusa_operator_lifetime_v1": "manage",
@@ -297,10 +1003,24 @@
       "schema": "focusa.spec172.locked_state_fixtures.v1",
       "upgrade_action": "activate_or_manage_entitlement",
       "always_reachable": [
-        "navigation", "status", "account", "read", "export",
-        "recovery", "repair", "update", "uninstall"
+        "navigation",
+        "status",
+        "account",
+        "read",
+        "export",
+        "recovery",
+        "repair",
+        "update",
+        "uninstall"
       ],
-      "never_disabled": ["read", "export", "recovery", "repair", "update", "uninstall"],
+      "never_disabled": [
+        "read",
+        "export",
+        "recovery",
+        "repair",
+        "update",
+        "uninstall"
+      ],
       "rules": [
         "denied value actions carry an accessible explanation and an Operator/Bundle upgrade or recovery action",
         "read, export, recovery, repair, update, and uninstall are never disabled by an entitlement decision",

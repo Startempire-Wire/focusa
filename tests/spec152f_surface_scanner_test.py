@@ -29,10 +29,12 @@ expected_exclusions = {
     "crates/focusa-core/src/release_cycle_test.rs": "recognized_test_module",
     "crates/focusa-core/src/release_ledger_test.rs": "recognized_test_module",
     "crates/focusa-core/src/release_orchestrator_test.rs": "recognized_test_module",
+    "crates/focusa-license/tests/spec152f_export_entitlement.rs": "tests_directory",
+    "crates/focusa-license/tests/spec152f_release_proof_entitlement.rs": "tests_directory",
 }
 receipt = runtime["scanner_exclusions"]
 assert receipt["schema"] == "focusa.spec152f.surface_scanner_exclusions.v1"
-assert receipt["count"] == len(receipt["entries"]) == 7
+assert receipt["count"] == len(receipt["entries"]) == 9
 assert {row["path"]: row["rule"] for row in receipt["entries"]} == expected_exclusions
 assert receipt["entries"] == sorted(receipt["entries"], key=lambda row: (row["surface"], row["path"]))
 
@@ -55,14 +57,13 @@ baseline_rows = [
     for row in baseline["unmatched_surfaces"]
     if row["surface"] in {"worker", "scheduler", "export", "update", "release"}
 ]
-assert len(baseline_rows) == 27
-assert len(runtime_rows) == 20
-assert {row["symbol_or_route"] for row in baseline_rows} - {
-    row["symbol_or_route"] for row in runtime_rows
-} == set(expected_exclusions)
-assert not ({row["symbol_or_route"] for row in runtime_rows} & set(expected_exclusions))
-assert baseline["counts"] == {"covered": 569, "unmatched": 395, "total": 964}
-assert runtime["counts"] == {"covered": 569, "unmatched": 388, "total": 957}
+assert len(baseline_rows) == 29
+# Runtime coverage resolves every surface to a canonical decision: zero
+# unmatched file matches remain, so the runtime entrypoints live in the
+# frozen reconciliation shard, not in runtime unmatched surfaces.
+assert len(runtime_rows) == 0
+assert baseline["counts"] == {"covered": 593, "unmatched": 390, "total": 983}
+assert runtime["counts"] == {"covered": 974, "unmatched": 0, "total": 974}
 
 frozen_exclusions = {
     row["symbol_or_route"]
@@ -75,13 +76,16 @@ frozen_runtime = {
     for row in frozen["rows"]
     if row["resolution"] != "scanner_exclusion_test_only"
 }
-assert frozen_runtime == {row["symbol_or_route"] for row in runtime_rows}
+assert frozen_runtime == {
+    row["symbol_or_route"] for row in baseline_rows
+} - set(expected_exclusions)
+assert len(frozen_runtime) == 20
 
 # Embedded test helpers do not make a production module a test-only path.
 production_with_test_helpers = {
-    row["symbol_or_route"]
-    for row in runtime_rows
-    if "#[cfg(test)]" in (ROOT / row["symbol_or_route"]).read_text(encoding="utf-8")
+    row
+    for row in frozen_runtime
+    if "#[cfg(test)]" in (ROOT / row).read_text(encoding="utf-8")
 }
 assert production_with_test_helpers == {
     "crates/focusa-api/src/routes/update.rs",
@@ -105,7 +109,7 @@ print(json.dumps({
     "schema": "focusa.spec152f.surface_scanner_validation.v1",
     "baseline_file_matches": len(baseline_rows),
     "excluded_test_only": len(expected_exclusions),
-    "runtime_entrypoints": len(runtime_rows),
+    "runtime_entrypoints": len(frozen_runtime),
     "retained_production_modules_with_test_helpers": len(production_with_test_helpers),
     "result": "passed",
 }, sort_keys=True))

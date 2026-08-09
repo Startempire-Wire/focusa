@@ -67,8 +67,8 @@ def _load_json(path: Path):
 def test_cli_map_exists_and_shape():
     raw, payload = _load_json(CLI_MAP_PATH)
     assert payload["schema"] == "focusa.spec152f.cli_operation_map.v1"
-    assert payload["row_count"] == len(payload["rows"]) == 86
-    assert len(payload["rows"]) == 86
+    assert payload["row_count"] == len(payload["rows"]) == 87
+    assert len(payload["rows"]) == 87
     assert len(raw) > 0
     assert len(hashlib.sha256(raw.encode()).hexdigest()) == 64
 
@@ -81,8 +81,8 @@ def test_cli_map_matches_reconciliation_shard():
     mapped = [row["command"] for row in map_payload["rows"]]
 
     assert sorted(cli_commands) == sorted(mapped)
-    assert len(mapped) == 86
-    assert map_payload["row_count"] == 86
+    assert len(mapped) == 87
+    assert map_payload["row_count"] == 87
 
 
 def test_cli_map_keys_and_classes_are_valid():
@@ -132,7 +132,13 @@ def test_cli_map_keys_and_classes_are_valid():
             assert row["command_path"] == "focusa pairing"
 
         if cmd == "WorkLoop":
-            raise AssertionError("WorkLoop is intentionally not represented in top-level CLI mapping")
+            # The 152e presenter unification made the reconciliation scanner
+            # discover WorkLoop as a top-level CLI command; the map mirrors the
+            # shard, so WorkLoop is represented as a canonical command bound to
+            # the governed work-loop operations (never an independent paywall).
+            assert row["command_class"] == "canonical"
+            assert row["operation_refs"] == ["focusa.work_loop.control", "focusa.work_loop.status"]
+            assert row["route_reference_count"] == 26
 
         if cmd == "Continue":
             assert row["recovery"] is True
