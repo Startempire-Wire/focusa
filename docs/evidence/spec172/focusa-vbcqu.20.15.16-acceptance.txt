@@ -1,0 +1,177 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.15.16
+Title: 172.02.07 Settle refund, chargeback, revoke, and whole-Bundle downgrade
+Implementation commit: `afcff601` (base HEAD `247ce84f`, branch
+atom/focusa-vbcqu.20.15.16, based on local/luna-152f-reducer)
+Recorded at: 2026-08-06 (worktree execution)
+
+Exact surfaces
+- EDD lifecycle projector/outbox/reconciler and account sequence:
+  `docs/contracts/spec172-refund-downgrade-settlement.v1.php`
+  (`FocusaSpec172RefundDowngradeMigration` settlement/outbox/delivery/reconciler
+  schema + `FocusaSpec172BundleRefundTruthAdapter` canonical 30-day whole-order
+  refund truth + `FocusaSpec172SettlementEventSigner` HMAC envelope signer +
+  `FocusaSpec172RefundDowngradeSettler` Bundle refund/chargeback/revoke settler +
+  `FocusaSpec172SettlementDispatcher` exactly-once dispatcher +
+  `FocusaSpec172SettlementReconciler` idempotent reconciler). The settler consumes
+  the accepted composite Bundle projection (shared `wpuiai_license_type_projections`
+  journal, product `focusa_uiai_operator_bundle_lifetime_v1`) and the canonical EDD
+  order/refund truth, settles each adverse event exactly once against the Bundle,
+  advances the account's monotonic authority sequence, appends a signed transactional
+  outbox envelope in the same transaction, preserves every account/customer/order/
+  license/refund/projection/audit row, and returns a still-mailbox-verified account
+  to `verified_no_license` limited mode.
+- Paid and limited assertion transition fixtures:
+  `docs/contracts/spec172-assertion-transition-fixture.v1.php`
+  (`FocusaSpec172AssertionTransitionFixture`: paid bundle signed lease credential
+  derived from the ACTIVE composite projection; verified_no_license limited assertion
+  derived from the applied terminal settlement with ONLY the frozen limited family
+  allowlists plus permanent safety allowances; stale paid credentials fail closed).
+- `tests/spec172_refund_downgrade_test.php` (exact verification).
+
+Bounded result
+- Lifecycle transition matrix (Spec 172 section 21) is the single authority:
+  `refund` -> refunded (terminal, adverse, sequence +1, 30-day window, whole-order
+  only), `chargeback` -> refunded (terminal, adverse, +1, no customer window),
+  `revoke` -> revoked (terminal, adverse, +1, no customer window), `complete` and
+  `unsuspend` are never adverse and can never run against a terminal Bundle.
+- 30-day whole-order Bundle refund only: the canonical EDD refund truth adapter
+  derives `scope=whole_order` exclusively from canonical rows (order status refunded
+  + exactly one complete whole-order refund row whose amount equals the order total);
+  a component-level (item-scoped) refund fails closed with COMPONENT_REFUND_UNSUPPORTED,
+  a refund outside the 30-day window fails closed with REFUND_WINDOW_EXPIRED, and
+  absent/partial/unmapped refund truth fails closed with REFUND_TRUTH_UNKNOWN — all
+  journaled `denied` with zero sequence bump and paid grants intact.
+- Each adverse event settles once; both Bundle grants revoke together: a whole-order
+  refund, a lost Stripe dispute (chargeback), and a manual revoke each produce
+  `decision=applied`, `to_state=refunded|revoked`, `grants_revoked=2`, and
+  `paid_grants_active=false` — the exact two underlying Operator v1 grants
+  (focusa_operator_lifetime_v1 + uiai_operator_lifetime_v1) are removed together.
+  The authority sequence advances by exactly one per applied settlement (projection
+  sequence 1 -> settlement sequence 2, verified per account). Duplicate redeliveries
+  (same event, new idempotency key), idempotency-key replays, and a second adverse
+  event on an already-terminal Bundle (e.g. revoke after refund) are journaled
+  `replayed` with zero bump and applied count stays exactly one per event.
+- Stale entitlement can never reactivate: after a terminal settlement, a stale
+  `complete`/`unsuspend` cache event fails closed with
+  LICENSE_TERMINAL_REACTIVATION_DENIED (zero state change, zero bump), a genuinely
+  new event whose authority ordinal is not newer than the account's highest sequence
+  fails closed with ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED, and the assertion
+  transition fixture rejects a stale paid credential captured before the settlement
+  (PAID_GRANT_REVOKED when terminal / STALE_CREDENTIAL_SUPERSEDED on higher
+  sequence). Chargeback/revoke therefore propagate through stale cache.
+- Customer data and recovery remain accessible: all 9 customers, 9 orders, 9 order
+  items, 9 canonical licenses, 6 refund rows, 9 Bundle projections, 9 authority
+  accounts, and 9 verified registrations are preserved (zero deletions); every
+  account stays `active`; registrations stay `mailbox_verified` at
+  `entitlement_issued`; and the limited posture keeps the permanent safety
+  allowances (read_projection, basic_customer_data_export, account_control,
+  device_control, license_status, diagnostics, repair, rollback,
+  stable_security_update, uninstall) so recovery/export/repair/rollback/security/
+  uninstall remain available. Still-verified accounts return to
+  `verified_no_license`; unverified accounts return to `unverified` (registration
+  only, never a grant).
+- Paid -> limited assertion transition fixture: the paid credential derives
+  exclusively from the ACTIVE composite projection (both grants, one human key,
+  whole-order 30-day refund policy, bounded 90-day refresh window) and can never be
+  derived after settlement; the limited assertion carries ONLY the frozen limited
+  families (6 Focusa manual_* + 6 UIAI public_* from
+  spec172-verified-limited-access.v1.yaml) plus the 10 permanent allowances, verifies
+  with the server-owned Ed25519 key, and rejects validly-signed widening
+  (LIMITED_FAMILY_WIDENING_DENIED) and tampering (LIMITED_SIGNATURE_INVALID).
+- Idempotent outbox and reconciliation proof: every applied settlement appends one
+  signed HMAC-SHA256 envelope in the same transaction as the sequence advance and
+  settlement row; dispatch is exactly-once through the UNIQUE delivery ledger (4
+  envelopes delivered, a tampered payload dead-letters on digest verification and is
+  never delivered, second dispatch of the same envelope is impossible). The reconciler
+  detects canonical refunded/revoked/disputed Bundle orders missing a settlement,
+  repairs them evidence-safe from canonical EDD truth (dry run applies nothing; apply
+  repairs exactly one missing settlement; a second apply run repairs zero —
+  converged=true), and stably quarantines component/out-of-window/unknown-truth
+  orders with their exact error code.
+- No anonymous product capability, no local/self-issued grant, no caller-controlled
+  product, price, refund scope/amount/date, License Type, grant, family, feature,
+  limit, node, or commercial right (client commerce fields, raw email, and idempotency
+  conflicts all fail closed), and no presenter-owned policy. No raw email, key,
+  token, customer row, credential, or card data in journals, decisions, outbox,
+  fixtures, or evidence (verified by regex scans).
+
+Exact verification (exit codes)
+Command (run literally from the canonical project root):
+  php tests/spec172_refund_downgrade_test.php
+Exit code: 0
+  schema=focusa.spec172.refund_downgrade_test.v1
+  positive_checks=198 negative_checks=23 applied_settlements=5
+  grants_revoked_per_settlement=2
+  grants=["focusa_operator_lifetime_v1","uiai_operator_lifetime_v1"]
+  refund_policy=whole_order_30_days component_refunds_allowed=false
+  limited_posture=verified_no_license
+  orders_settled={"refunded":"refunded","chargeback":"refunded","revoked":"revoked","reconciled":"refunded"}
+  outbox_deliveries=4 outbox_dead_letters=1 reconciliation_converged=true
+  preserved={"customers":9,"orders":9,"order_items":9,"licenses":9,"refunds":6,
+             "projections":9,"accounts":9,"registrations":9}
+  transition_matrix={complete:{active,terminal:false,adverse:false,+1,0d,no},
+                     refund:{refunded,terminal:true,adverse:true,+1,30d,whole_order},
+                     chargeback:{refunded,terminal:true,adverse:true,+1,0d,no},
+                     revoke:{revoked,terminal:true,adverse:true,+1,0d,no},
+                     unsuspend:{active,terminal:false,adverse:false,+1,0d,no}}
+  result=passed_fail_closed
+No cargo build was required: this atom's exact surfaces are PHP contracts plus the PHP
+test; the exact verification command is the PHP test above (PHP-only worktree, matching
+the prior 172.02.02/172.02.03/172.02.04/172.02.05/172.02.06 atoms).
+
+Regression checks (exit codes)
+- php tests/spec172_bundle_composition_test.php — exit 0 (prior atom, Bundle one
+  SKU/key two grants, shared projection journal).
+- php tests/spec172_focusa_operator_issuance_test.php — exit 0.
+- php tests/spec172_uiai_operator_issuance_test.php — exit 0.
+- php tests/spec172_edd_operator_products_test.php — exit 0 (dedicated Downloads).
+- php tests/spec172_limited_assertion_test.php — exit 0 (limited assertions).
+- php tests/spec172_verified_access_schema_test.php — exit 0.
+- php tests/spec152e_edd_lifecycle_projection_test.php — exit 0 (prior lifecycle
+  projector dependency).
+- php tests/spec152e_authority_outbox_test.php — exit 0 (prior outbox dependency).
+- php tests/spec152e_authority_reconciliation_test.php — exit 0 (prior reconciler).
+- php tests/spec152e_edd_license_issuance_test.php — exit 0 (SL issuance dependency).
+- php tests/spec152e_edd_order_binding_test.php — exit 0 (order binding dependency).
+- Full sweep of tests/spec172_*.php and tests/spec152e_*.php — all exit 0.
+- python3 tests/spec172_*.py (call_stack_contract, document_authority,
+  dynamic_operation_manifest, family_inheritance, focusa_limited_project,
+  license_type_contract, license_type_lifecycle, limited_access_contract,
+  limited_assertion_vector, no_sales_inventory, public_commerce_baseline,
+  taskgraph_contract) — all exit 0.
+
+Tests added
+- tests/spec172_refund_downgrade_test.php (221 checks: 198 positive + 23 negative):
+  transition-matrix invariants; 30-day whole-order refund applied (both grants
+  revoked, sequence 1->2, verified_no_license, preservation counts unchanged);
+  duplicate/redelivery/idempotency-key replays and cross-transition settle-once;
+  stale complete/unsuspend reactivation denial; sequence rollback denial;
+  component refund, out-of-window refund, and absent-truth denial; chargeback and
+  revoke applied; missing chargeback truth denial; exactly-once outbox dispatch
+  (delivery ledger unique, tampered payload dead-letters); reconciler dry-run/apply/
+  converge (second apply run repairs zero); paid -> limited assertion transition
+  fixtures (paid credential from active projection only, stale paid credential
+  rejected, limited assertion verifies and cannot widen or be tampered, unverified
+  posture); client commerce fields / raw email / idempotency conflict / non-adverse
+  transition / no-entitlement fail-closed; data and recovery preservation; full
+  redaction scans; rollback preservation event.
+
+Remaining blockers
+- None for this atom. The full Spec 172 EDD commerce matrix (172.02.08), the Bundle
+  price/union/shared-nodes/whole-refund proof (172.05.04), and the refund downgrade/
+  data-preservation/operator-selection proof (172.05.06) remain downstream approved
+  atoms.
+
+Rollback
+- Revert only this atom's commits (the Spec 172 refund/chargeback/revoke settlement
+  contract, the assertion transition fixture contract, the test, and this evidence
+  file). Preserve verified identities, customers, orders, refunds, License Types,
+  keys, nodes, sequences, customer data, migration journals, evidence, and accepted
+  unrelated work (including the prior atoms' Focusa/UIAI/Bundle projector contracts,
+  fixtures, tests, and evidence).
+- Rollback must not delete the settlement journals (preservation-only), must not
+  invent an implicit mapping for Download 453, and must not re-enable component
+  refunds or reactivate a settled Bundle.
+
+No push, deploy, release, merge, or Beads mutation was performed.
