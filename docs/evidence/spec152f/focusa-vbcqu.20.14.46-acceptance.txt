@@ -1,0 +1,152 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.46
+Title: 152F.06.04 Prove paid continuation and adverse lifecycle
+Implementation commit: `a22cf0d6`
+(feat(spec152f): prove paid continuation and adverse lifecycle E2E)
+
+Exact surfaces
+- branded EDD purchase: docs/contracts/spec152e-edd-order-binding.v1.php +
+  spec152e-edd-license-issuance.v1.php + spec172-edd-license-type-projector
+  .v1.php + spec172-bundle-edd-license-type-projector.v1.php +
+  spec172-edd-operator-v1-downloads.v1.php (frozen contracts read-only and
+  checkout-disabled; the harness adds explicitly operator-approved fixture
+  mappings 1001 focusa / 1002 uiai / 1003 bundle at the server-owned prices)
+- canonical customer/order/key/node/lease:
+  spec152e-edd-customer-adapter.v1.php + spec152e-activation-registration
+  .v1.php + spec152e-account-promotion.v1.php + spec152e-authority-account
+  .v1.php + spec152e-authority-node.v1.php + spec172-focusa-paid-lease-fixture
+  .v1.php + spec172-bundle-signed-lease-fixture.v1.php +
+  spec152e-edd-bound-lease-issuer.v1.php
+- existing Evaluation/project data: spec152e-evaluation-issuance.v1.php +
+  spec172-verified-access-posture.v1.php + spec172-signed-access-assertion
+  .v1.php + spec172-limited-access-assertion-service.v1.php
+- refund/revoke/expiry transitions: spec152e-edd-lifecycle-projection.v1.php +
+  spec152e-lease-refresh-service.v1.php + spec172-refund-downgrade-settlement
+  .v1.php + spec172-assertion-transition-fixture.v1.php
+- base Focusa product/family resolution (static cross-check):
+  crates/focusa-license/src/entitlement_policy.rs +
+  crates/focusa-core/src/license.rs +
+  docs/contracts/spec152f-entitlement-policy.v1.yaml +
+  docs/contracts/spec172-verified-limited-access.v1.yaml +
+  docs/contracts/spec152f-denial-ux-catalog.v1.json
+- new test: tests/spec152f_paid_lifecycle_e2e_test.py (the exact verification
+  surface; no production file was changed)
+
+Bounded result
+- Paid continuation proven end-to-end: one verified limited account (signed
+  verified_no_license posture + limited assertion, six manual project/evidence
+  rows, authority sequence 0) buys Focusa through the branded EDD purchase on
+  the SAME authority account/customer (no reinstall, no duplicate customer,
+  no duplicate key): offer_selected -> checkout_pending -> one bound order ->
+  one canonical EDD Software Licensing key -> one focusa_operator_lifetime_v1
+  projection (frozen five-family digest, server-owned 697.00 price version,
+  projection sequence 1). The purchase enables the base/purchased families
+  (base_focusa, automation, team_remote, release_proof, premium_updates) and
+  the same six project/evidence rows remain byte-identical; an Evaluation
+  retry is refused with PAID_POSTURE_PRESERVED (a paid posture is never
+  downgraded). The paid boundary is exactly five families — one small family
+  set, not 395 paywalls.
+- Expiry: the bounded lifetime credential degrades active -> offline_grace ->
+  expired (90-day refresh window + 30-day offline grace) while the lifetime
+  entitlement is preserved (the projection stays active and renewal issues a
+  replacement credential); the licensed-state expiry projection applies
+  expired / recovery_only at authority sequence 3 and refresh is denied with a
+  verified signed recovery-only EXPIRED refusal.
+- Renewal: order #2 issues a fresh canonical key + projection (sequence 4) and
+  a new signed lease (product-ledger sequence 6); the per-product lease ledger
+  is strictly monotonic (3 -> 6) and lease #1 (sequence 3) is superseded,
+  never rolled back.
+- Node removal: the license limit reserves exactly three slots; a fourth and
+  fifth concurrent node are denied (NODE_LIMIT_EXHAUSTED) with zero node rows;
+  explicit deactivation releases the slot exactly once; the freed slot is
+  re-reserved and settled through the explicit two-phase flow; project data is
+  preserved.
+- Refund: order #2 refunds at authority sequence 6 (refunded / recovery_only);
+  refresh is denied with a verified signed REFUNDED recovery-only refusal; the
+  lease settles refunded/edd_refunded; the still-verified account returns to
+  limited mode (paid families blocked again, all permanent recovery allowances
+  intact, the signed limited-access assertion is the valid credential again);
+  a refund replay never bumps the sequence and a completed order can never
+  reactivate a refunded license.
+- Repurchase: order #3 issues a fresh key + projection at authority sequence 7
+  (lifecycle completed at 8) and paid families are enabled again — the
+  authority sequence 0..8 is strictly monotonic and never rolled backward.
+- Bundle continuation: a second verified account goes limited -> Bundle order
+  #1 (ONE SKU, ONE human key, exact union of the two underlying Operator
+  grants, 1254.60 price version, paid credential from the active projection) ->
+  whole-order refund (both grants revoked together, result sequence 2,
+  verified_no_license limited posture carrying ONLY the frozen limited
+  families + permanent allowances, stale paid credential rejected with
+  PAID_GRANT_REVOKED) -> Bundle order #2 renewal (sequence 3, paid again) ->
+  revoke (sequence 4, limited again); a duplicate adverse event on the
+  terminal Bundle journals replayed with zero sequence bump (account B chain
+  0..4).
+- No caller-controlled product/price/grants anywhere:
+  CLIENT_COMMERCIAL_FIELDS_FORBIDDEN on binding/issuance/projection/
+  settlement/lifecycle surfaces and CALLER_CONTROLLED_GRANT_DENIED on lease
+  issuance; INPUT_RAW_EMAIL_FORBIDDEN on lifecycle events.
+- Preservation and redaction: exactly 2 customers, 7 registrations, 5 orders,
+  5 canonical EDD licenses, 5 paid projections, 3 settlement journal rows, 6
+  lifecycle events, and 6 project/evidence rows at the end; no raw email, no
+  full license key, no payment transaction id, no customer reference, and no
+  payment key in any journal; no real Stripe payment intent/charge id (no live
+  charge); projection and settlement rollback contracts are preservation-only.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_paid_lifecycle_e2e_test.py` — exit 0.
+   PASS (harness positive=196 negative=13; static positive=91 negative=7);
+   summary schema focusa.spec152f.paid_lifecycle_e2e_validation.v1,
+   result=passed; customers_total=2, orders_total=5, licenses_total=5,
+   projections_total=5; sequence_chains focusa_operator 0..8 / bundle 0..4;
+   paid_families exactly [base_focusa, automation, team_remote,
+   release_proof, premium_updates]; project_data_rows=6 preserved through
+   every transition; credential_window active/offline_grace/expired with
+   lifetime term preserved; expiry/refund refusals verified; renewal and
+   repurchase restore paid capability; node_removal released_once + slot
+   reused; bundle refund/renewal/revoke limited-mode transitions with stale
+   paid rejected and replay zero bump; harness output byte-identical across
+   two runs (harness_output_sha256
+   77da2c389c7e31be37a07fe333942b522541c1ec18b287c72c011cbf47a1d8ef).
+
+Regression checks (exit codes)
+- `python3 tests/spec152f_evaluation_first_value_e2e_test.py` — exit 0.
+- `python3 tests/spec172_license_type_lifecycle_test.py` — exit 0.
+- `php tests/spec172_refund_downgrade_test.php` — exit 0.
+- `php tests/spec172_edd_commerce_acceptance_test.php` — exit 0.
+- `php tests/spec172_bundle_composition_test.php` — exit 0.
+- `python3 tests/spec152f_entitlement_policy_vectors_test.py` — exit 0.
+- `python3 tests/spec152f_lifecycle_policy_test.py` — exit 0.
+
+Tests added
+- tests/spec152f_paid_lifecycle_e2e_test.py (single build-independent gate):
+  a deterministic php/sqlite journey (196 positive / 13 negative harness
+  checks, replayable byte-identically) covering the zero-customer baseline,
+  the verified limited first-value account, the branded EDD Focusa purchase
+  continuing the same account/customer/node, paid-family enablement, the
+  bounded credential expiry window plus licensed-state expiry with a verified
+  signed recovery-only refusal, renewal with a monotonic lease ledger, node
+  removal with slot release and reuse, refund returning the verified account
+  to limited mode, repurchase restoring paid capability, the Bundle
+  continuation matrix (purchase -> refund -> renewal -> revoke, both grants
+  revoked together, stale paid credentials rejected, replay zero bump),
+  caller-controlled commerce-field denials, preservation counts, redaction
+  scanning, and preservation-only rollback; plus static cross-checks of the
+  canonical policy grid (active_paid require_base/require_feature; expired
+  and refunded_or_revoked deny base and all paid families while keeping
+  recovery/read/export), the verified-limited-access registry, the Rust
+  base-product resolution (paid/offline-grace -> Entitled,
+  verified_no_license -> Limited, adverse states denied) and
+  require_base_product fail-closed, the Spec 172 settlement/transition/
+  projector/Bundle/lifecycle/refresh contracts, and the no-395-paywall denial
+  UX catalog.
+
+Rollback
+- Revert only implementation commit `a22cf0d6` (the new test file
+  tests/spec152f_paid_lifecycle_e2e_test.py) and this evidence record if
+  required. That reverts only the acceptance gate; no policy, resolver, guard,
+  route, presenter, installer, fixture, or contract behavior is reverted
+  because none was changed. Preserve customers, orders, refunds, licenses,
+  nodes, sequences, customer data, migration journals, evidence, and already
+  accepted authority behavior. No other atom's files were modified.
+
+No push, deploy, release, merge, or Beads mutation was performed.
