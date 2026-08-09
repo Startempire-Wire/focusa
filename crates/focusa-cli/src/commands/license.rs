@@ -45,6 +45,11 @@ pub enum LicenseCmd {
     Doctor,
     /// Check whether a specific feature is enabled by the current license.
     CheckFeature(CheckFeatureArgs),
+    /// Fast preflight against the canonical entitlement decision (Spec 152F
+    /// §6 chokepoint 4): renders base/premium/recovery reason and next action
+    /// from the authority snapshot only, and exits nonzero when the target
+    /// gate would deny. Never self-issues a grant.
+    Preflight(PreflightArgs),
     /// End-to-end license provisioning harness. Generates a fresh test
     /// key, validates it against the registry (dev_mode is acceptable for
     /// operator testing but downgrades commercial_use to false), writes
@@ -166,6 +171,15 @@ pub struct CheckFeatureArgs {
     /// Feature key (e.g. packaged_installer, public_stream).
     #[arg(value_name = "FEATURE")]
     pub feature: String,
+}
+
+#[derive(Args, Debug)]
+pub struct PreflightArgs {
+    /// Canonical operation family to preflight: base_focusa (default),
+    /// automation, team_remote, release_proof, premium_updates, or
+    /// customer_data_export.
+    #[arg(long, value_name = "FAMILY")]
+    pub family: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -543,6 +557,7 @@ pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
         LicenseCmd::Status => run_status(json_output).await,
         LicenseCmd::Doctor => run_doctor(json_output).await,
         LicenseCmd::CheckFeature(a) => run_check_feature(json_output, a).await,
+        LicenseCmd::Preflight(a) => run_preflight(json_output, a).await,
         LicenseCmd::ActivateFlow(a) => {
             if a.agent {
                 run_agent_activation_command(json_output, a).await
@@ -641,14 +656,282 @@ async fn run_activate(json_output: bool, args: ActivateArgs) -> anyhow::Result<(
     Ok(())
 }
 
+/// Canonical decision presenter (Spec 152F §5/§6). These helpers render the
+/// authority snapshot's base/premium/recovery decisions through the same
+/// projections the core, REST, TUI, and Pi surfaces inherit; the CLI never
+/// grants, prices, or reinterprets entitlement (Spec 152F P5/P9) and never
+/// exposes raw keys, tokens, or customer identity.
+///
+/// Render the canonical base-product decision plus the optional premium-family
+/// decisions and the permanent recovery allowance for one snapshot.
+fn canonical_decision_payload(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+) -> Value {
+    let base_product = match focusa_license::base_product_projection(snapshot) {
+        Ok(projection) => serde_json::to_value(projection)
+            .unwrap_or_else(|_| json!({ "decision": "denied", "permits_base_mutations": false })),
+        Err(_) => json!({
+            "schema": "focusa.base_product_projection.v1",
+            "product": "unknown",
+            "decision": "denied",
+            "permits_base_mutations": false,
+            "compatibility": {},
+        }),
+    };
+    json!({
+        "base_product": base_product,
+        "premium": canonical_premium_presenter(snapshot),
+        "recovery_allowance": canonical_recovery_presenter(snapshot),
+    })
+}
+
+/// Render the canonical optional-premium family decisions (Spec 152F §3/§4).
+/// Every decision is re-resolved from the authority snapshot only; the feature
+/// identifiers are the exact registered registry entries and can never request
+/// or expand a grant (Spec 152F P9).
+fn canonical_premium_presenter(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+) -> Vec<Value> {
+    let Some(snapshot) = snapshot else {
+        return Vec::new();
+    };
+    let now = chrono::Utc::now();
+    let mut rows = Vec::new();
+    for (family, feature) in [
+        (
+            focusa_license::CapabilityFamily::Automation,
+            "focusa.agent.silent_sessions",
+        ),
+        (
+            focusa_license::CapabilityFamily::TeamRemote,
+            "focusa.team.multi_operator",
+        ),
+        (
+            focusa_license::CapabilityFamily::ReleaseProof,
+            "focusa.release.proof",
+        ),
+        (
+            focusa_license::CapabilityFamily::PremiumUpdates,
+            "focusa.update.unattended",
+        ),
+        (
+            focusa_license::CapabilityFamily::CustomerDataExport,
+            "focusa.export.packaged",
+        ),
+    ] {
+        rows.push(render_premium_decision(snapshot, family, feature, now));
+    }
+    rows
+}
+
+/// Render one premium family decision with a stable reason and recovery action.
+fn render_premium_decision(
+    snapshot: &focusa_license::authority::EntitlementSnapshot,
+    family: focusa_license::CapabilityFamily,
+    feature: &str,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Value {
+    let decision = if family == focusa_license::CapabilityFamily::CustomerDataExport {
+        focusa_license::resolve_export_packaged(snapshot, feature, now)
+    } else {
+        focusa_license::resolve_premium_family(snapshot, family, feature, now)
+    };
+    let (decision_label, reason_code, recovery_action, offline_cached) = match &decision {
+        focusa_license::PremiumFamilyDecision::Feature { offline_cached, .. } => (
+            "feature",
+            focusa_license::DecisionReason::RequireFeature.label(),
+            focusa_license::DecisionReason::RequireFeature.recovery_action(),
+            *offline_cached,
+        ),
+        focusa_license::PremiumFamilyDecision::Denied(denial) => {
+            let (reason, recovery) = premium_denial_reason(denial);
+            ("denied", reason, recovery, false)
+        }
+    };
+    json!({
+        "family": family.label(),
+        "required_feature": feature,
+        "decision": decision_label,
+        "reason_code": reason_code,
+        "recovery_action": recovery_action,
+        "offline_cached": offline_cached,
+    })
+}
+
+/// Stable snake_case reason and canonical recovery action for one premium
+/// denial. Recovery guidance never exposes internal or raw authority material.
+fn premium_denial_reason(
+    denial: &focusa_license::PremiumFamilyDenial,
+) -> (&'static str, &'static str) {
+    use focusa_license::{DecisionReason, PremiumFamilyDenial};
+    match denial {
+        PremiumFamilyDenial::BaseProductRequired { .. } => (
+            "base_product_required",
+            DecisionReason::RequireBase.recovery_action(),
+        ),
+        PremiumFamilyDenial::MissingLeaseSequence => (
+            "missing_lease_sequence",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::MissingLeaseBinding => (
+            "missing_lease_binding",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::InvalidRequiredFeature { .. } => (
+            "invalid_required_feature",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::FeatureNotRegistered { .. } => (
+            "feature_not_registered",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::MissingFeature { .. } => (
+            "missing_feature",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::MissingCachedGrantExpiry => (
+            "missing_cached_grant_expiry",
+            DecisionReason::RequireCachedFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::CachedGrantExpired => (
+            "cached_grant_expired",
+            DecisionReason::RequireCachedFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::ActiveLeaseExpired => (
+            "active_lease_expired",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::EntitlementStateNotUsable { .. } => (
+            "entitlement_state_not_usable",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::NotPremiumFamily { .. } => (
+            "not_premium_family",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+    }
+}
+
+/// Render the permanent recovery allowance (Spec 152F §3 account_recovery,
+/// §3.1 stable updates/repair, §3.3 export). Recovery, read, export, repair,
+/// stable security update, rollback, and uninstall remain available regardless
+/// of commercial state; the CLI never blocks them.
+fn canonical_recovery_presenter(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+) -> Value {
+    let reason = snapshot
+        .and_then(|entry| entry.recovery_reason.clone())
+        .unwrap_or_else(|| "no_recovery_event".to_string());
+    json!({
+        "schema": "focusa.recovery_projection.v1",
+        "reason": reason,
+        "next_action": "recovery, export, repair, and uninstall remain available when execution is locked",
+        "always_available": true,
+    })
+}
+
+/// Fast preflight against the canonical entitlement decision (Spec 152F §6
+/// chokepoint 4). Renders the same base/premium/recovery envelope as `status`
+/// and exits nonzero when the target gate would deny, giving commands fast
+/// feedback before side effects. The decision is resolved from the authority
+/// snapshot only; no local grant is ever issued.
+async fn run_preflight(json_output: bool, args: PreflightArgs) -> anyhow::Result<()> {
+    let guard = focusa_license::resolve_license_guard();
+    let snapshot = guard.entitlement.as_ref();
+    let authority = focusa_license::entitlement_projection(snapshot)?;
+    let entitlement_decision = focusa_license::entitlement_decision_projection(snapshot)?;
+    let decision = canonical_decision_payload(snapshot);
+    let payload = json!({
+        "schema": "focusa.authority_preflight.v1",
+        "authority": authority,
+        "entitlement_decision": entitlement_decision,
+        "base_product": decision["base_product"],
+        "premium": decision["premium"],
+        "recovery_allowance": decision["recovery_allowance"],
+        "recovery_policy": "recovery, export, repair, and uninstall remain available when execution is locked",
+    });
+
+    let family = args.family.as_deref().unwrap_or("base_focusa");
+    let (decision_label, reason_code, next_action) = match family {
+        "base_focusa" => {
+            let label = decision["base_product"]["decision"]
+                .as_str()
+                .unwrap_or("denied")
+                .to_string();
+            (
+                label,
+                focusa_license::DecisionReason::RequireBase.label().to_string(),
+                focusa_license::DecisionReason::RequireBase.recovery_action().to_string(),
+            )
+        }
+        "automation" | "team_remote" | "release_proof" | "premium_updates"
+        | "customer_data_export" => {
+            let row = decision["premium"]
+                .as_array()
+                .and_then(|rows| rows.iter().find(|row| row["family"].as_str() == Some(family)))
+                .cloned()
+                .unwrap_or_else(|| {
+                    json!({
+                        "decision": "denied",
+                        "reason_code": "missing_feature",
+                        "recovery_action": "review_offer_or_manage_entitlement",
+                    })
+                });
+            let label = row["decision"].as_str().unwrap_or("denied").to_string();
+            let reason = row["reason_code"].as_str().unwrap_or("denied").to_string();
+            let next = row["recovery_action"]
+                .as_str()
+                .unwrap_or("license_status")
+                .to_string();
+            (label, reason, next)
+        }
+        _ => anyhow::bail!("E_AUTHORITY_UNKNOWN_PREFLIGHT_FAMILY: unknown family {family}"),
+    };
+
+    if json_output {
+        let mut out = payload;
+        out["preflight"] = json!({
+            "family": family,
+            "decision": decision_label,
+            "reason_code": reason_code,
+            "next_action": next_action,
+        });
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    } else {
+        println!("Focusa entitlement preflight");
+        println!("Family:         {family}");
+        println!("Decision:       {decision_label}");
+        println!("Reason:         {reason_code}");
+        println!("Next action:    {next_action}");
+        println!(
+            "Recovery:       {}",
+            decision["recovery_allowance"]["next_action"]
+                .as_str()
+                .unwrap_or("recovery, export, repair, and uninstall remain available when execution is locked")
+        );
+    }
+
+    // Nonzero exit semantics: a denied (or base-limited) gate fails closed.
+    if decision_label == "denied" || decision_label == "limited" {
+        anyhow::bail!(
+            "E_AUTHORITY_ENTITLEMENT_REQUIRED: family={family} decision={decision_label}"
+        );
+    }
+    Ok(())
+}
+
 async fn run_status(json_output: bool) -> anyhow::Result<()> {
     let guard = focusa_license::resolve_license_guard();
     let authority = focusa_license::entitlement_projection(guard.entitlement.as_ref())?;
     let entitlement_decision = focusa_license::entitlement_decision_projection(guard.entitlement.as_ref())?;
+    let decision = canonical_decision_payload(guard.entitlement.as_ref());
     let payload = json!({
         "schema": "focusa.authority_license_status.v1",
         "authority": authority,
         "entitlement_decision": entitlement_decision,
+        "base_product": decision["base_product"],
+        "premium": decision["premium"],
+        "recovery_allowance": decision["recovery_allowance"],
         "recovery_policy": "recovery, export, repair, and uninstall remain available when execution is locked",
         "marketing_preference": "managed_separately"
     });
@@ -678,6 +961,35 @@ async fn run_status(json_output: bool) -> anyhow::Result<()> {
         if let Some(sequence) = payload["authority"]["lease_sequence"].as_u64() {
             println!("Lease sequence: {sequence}");
         }
+        println!(
+            "Base product:   {} (product={})",
+            payload["base_product"]["decision"].as_str().unwrap_or("denied"),
+            payload["base_product"]["product"].as_str().unwrap_or("unknown")
+        );
+        let premium_summary = payload["premium"]
+            .as_array()
+            .map(|rows| {
+                rows.iter()
+                    .map(|row| {
+                        format!(
+                            "{}={}",
+                            row["family"].as_str().unwrap_or("unknown"),
+                            row["decision"].as_str().unwrap_or("denied")
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
+            .unwrap_or_default();
+        if !premium_summary.is_empty() {
+            println!("Premium:        {premium_summary}");
+        }
+        println!(
+            "Recovery:       {}",
+            payload["recovery_allowance"]["next_action"]
+                .as_str()
+                .unwrap_or("recovery, export, repair, and uninstall remain available when execution is locked")
+        );
         println!(
             "Recovery policy: {}",
             payload["recovery_policy"].as_str().unwrap_or_default()
