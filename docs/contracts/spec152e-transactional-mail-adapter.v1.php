@@ -8,6 +8,7 @@ final class FocusaSpec152eTransactionalMailAdapter
 {
     public const SCHEMA = 'focusa.spec152e.transactional_mail_adapter.v1';
     public const DELIVERY_TTL_SECONDS = 300;
+    public const LICENSE_KEY_PATTERN = '/^[0-9A-F]{8}-[0-9A-F]{8}-[0-9A-F]{8}-[0-9A-F]{8}$/D';
 
     /** @var Closure(string, string, string, string, string): bool */
     private Closure $send;
@@ -112,7 +113,143 @@ final class FocusaSpec152eTransactionalMailAdapter
         ];
     }
 
+    /**
+     * Send the EDD transactional license delivery email (spec §16.1). Approved
+     * transactional content only: product and order identity, the full human
+     * license key, safe installation/activation instructions, account-
+     * management and recovery links, and support information. No promotional
+     * content without separate consent. Delivery attempts, bounces, and
+     * suppression are recorded by the caller with masked outcomes only; this
+     * adapter never returns or logs the plaintext key.
+     *
+     * Required fields:
+     *   - facade:          full facade registry entry (sender identity, brand,
+     *                      paths, exact origin)
+     *   - to:              recipient email address (never logged)
+     *   - license_key:     the canonical EDD Software Licensing key (full)
+     *   - product_code:    public product code
+     *   - product_name:    human product name
+     *   - order_id:        EDD order reference
+     *   - order_item_id:   EDD order item reference
+     *   - registration_id: opaque registration UUID
+     *   - support_email:   support contact (optional)
+     *
+     * Returns the masked result only: sent, delivery_status, attempted_at.
+     */
+    public function sendLicenseDelivery(array $input): array
+    {
+        $facade = $input['facade'] ?? [];
+        if (!is_array($facade) || !isset($facade['facade_id'], $facade['sender'], $facade['brand'], $facade['paths'], $facade['exact_origins'])) {
+            throw new InvalidArgumentException('registered facade entry required');
+        }
+        $to = (string) ($input['to'] ?? '');
+        if ($to === '' || filter_var($to, FILTER_VALIDATE_EMAIL) === false) {
+            throw new InvalidArgumentException('valid recipient email required');
+        }
+        $licenseKey = (string) ($input['license_key'] ?? '');
+        if (preg_match(self::LICENSE_KEY_PATTERN, $licenseKey) !== 1) {
+            throw new InvalidArgumentException('canonical license key required');
+        }
+        $senderIdentity = (string) ($facade['sender']['identity'] ?? '');
+        $senderName = (string) ($facade['sender']['display_name'] ?? '');
+        $brandName = (string) ($facade['brand']['name'] ?? '');
+        if ($senderIdentity === '' || $senderName === '' || $brandName === '') {
+            throw new InvalidArgumentException('registered facade sender identity required');
+        }
+        $productCode = (string) ($input['product_code'] ?? '');
+        if (preg_match('/^[A-Za-z0-9_]{2,128}$/D', $productCode) !== 1) {
+            throw new InvalidArgumentException('bounded product code required');
+        }
+        $productName = (string) ($input['product_name'] ?? $productCode);
+        if ($productName === '' || strlen($productName) > 191 || preg_match('/[\r\n]/', $productName)) {
+            throw new InvalidArgumentException('bounded product name required');
+        }
+        $registrationId = (string) ($input['registration_id'] ?? '');
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $registrationId) !== 1) {
+            throw new InvalidArgumentException('bounded registration UUID required');
+        }
+
+        $now = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
+        $subject = $this->buildLicenseSubject($brandName, $productName);
+        $htmlBody = $this->buildLicenseHtml($brandName, $input, $licenseKey, $productName);
+        $textBody = $this->buildLicenseText($brandName, $input, $licenseKey, $productName);
+
+        $sent = ($this->send)($to, $subject, $htmlBody, $textBody, $senderIdentity);
+        return [
+            'sent' => $sent,
+            'delivery_status' => $sent ? 'attempted' : 'suppressed',
+            'attempted_at' => $now,
+        ];
+    }
+
     // ── template builders ──────────────────────────────────────────────
+
+    private function buildLicenseSubject(string $brandName, string $productName): string
+    {
+        return "{$brandName} — Your {$productName} license key";
+    }
+
+    private function buildLicenseHtml(string $brandName, array $input, string $licenseKey, string $productName): string
+    {
+        $facade = $input['facade'];
+        $origin = (string) ($facade['exact_origins'][0] ?? '');
+        $managePath = (string) ($facade['paths']['manage'] ?? '/account');
+        $recoveryPath = (string) ($facade['paths']['recovery'] ?? '/activate/recovery');
+        $manageUrl = self::escape($origin . $managePath);
+        $recoveryUrl = self::escape($origin . $recoveryPath);
+        $orderId = (int) ($input['order_id'] ?? 0);
+        $orderItemId = (int) ($input['order_item_id'] ?? 0);
+        $product = self::escape($productName);
+        $key = self::escape($licenseKey);
+        $support = self::escape((string) ($input['support_email'] ?? ''));
+        $supportLine = $support !== ''
+            ? "<p style=\"font-size:12px;color:#6b7280;\">Questions? Contact support at <a href=\"mailto:{$support}\">{$support}</a>.</p>"
+            : "<p style=\"font-size:12px;color:#6b7280;\">Questions? Contact support through your account.</p>";
+        $orderLine = '';
+        if ($orderId > 0 && $orderItemId > 0) {
+            $orderLine = "<p style=\"font-size:12px;color:#6b7280;\">Order #{$orderId} · item #{$orderItemId}</p>";
+        }
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Your license key</title></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+<h1 style="font-size:20px;color:#1a1a2e;">Your {$product} license is ready</h1>
+{$orderLine}
+<p>Keep this license key safe. It is your entitlement and recovery credential.</p>
+<div style="margin:24px 0;padding:16px 24px;background:#f3f4f6;border-radius:6px;text-align:center;">
+  <span style="font-size:24px;font-family:monospace;letter-spacing:2px;font-weight:700;">{$key}</span>
+</div>
+<p>Installation: follow the on-screen activation steps in the installer, or manage your license anytime:</p>
+<p style="margin:16px 0;"><a href="{$manageUrl}" style="color:#1a1a2e;">Manage your license and devices</a></p>
+<p style="margin:16px 0;"><a href="{$recoveryUrl}" style="color:#1a1a2e;">Recover a lost license</a></p>
+{$supportLine}
+</body>
+</html>
+HTML;
+    }
+
+    private function buildLicenseText(string $brandName, array $input, string $licenseKey, string $productName): string
+    {
+        $facade = $input['facade'];
+        $origin = (string) ($facade['exact_origins'][0] ?? '');
+        $manageUrl = $origin . (string) ($facade['paths']['manage'] ?? '/account');
+        $recoveryUrl = $origin . (string) ($facade['paths']['recovery'] ?? '/activate/recovery');
+        $orderId = (int) ($input['order_id'] ?? 0);
+        $orderItemId = (int) ($input['order_item_id'] ?? 0);
+        $support = (string) ($input['support_email'] ?? '');
+        $orderLine = '';
+        if ($orderId > 0 && $orderItemId > 0) {
+            $orderLine = " (order #{$orderId}, item #{$orderItemId})";
+        }
+        $supportLine = $support !== '' ? "Questions? Contact support at {$support}" : 'Questions? Contact support through your account.';
+        return "{$brandName} — Your {$productName} license key{$orderLine}\n\n"
+            . "Keep this license key safe. It is your entitlement and recovery credential.\n\n"
+            . "License key: {$licenseKey}\n\n"
+            . "Manage your license and devices: {$manageUrl}\n"
+            . "Recover a lost license: {$recoveryUrl}\n\n"
+            . $supportLine . "\n";
+    }
 
     private function buildSubject(string $kind, string $brandName): string
     {

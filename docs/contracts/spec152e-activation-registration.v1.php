@@ -170,6 +170,10 @@ final class FocusaSpec152eActivationRegistrationMigration
             delivery_ready_at VARCHAR(32) NULL,
             delivered_at VARCHAR(32) NULL,
             delivery_failure_reason VARCHAR(191) NULL,
+            email_delivery_status VARCHAR(16) NOT NULL DEFAULT 'none',
+            email_delivery_attempts BIGINT NOT NULL DEFAULT 0,
+            email_delivered_at VARCHAR(32) NULL,
+            email_delivery_outcome VARCHAR(64) NOT NULL DEFAULT 'none',
             request_id {$key} NOT NULL,
             idempotency_key {$key} NOT NULL,
             request_digest VARCHAR(64) NOT NULL,
@@ -235,6 +239,16 @@ final class FocusaSpec152eActivationRegistrationMigration
             ON {$registration} (poll_credential_hash)");
         $this->db->exec("CREATE INDEX IF NOT EXISTS {$this->prefix}wpuiai_activation_registration_request
             ON {$registration} (request_id)");
+        // Upgrade path: email delivery state columns introduced after the v1
+        // schema; existing deployments gain them without table rewrites.
+        foreach ([
+            "email_delivery_status VARCHAR(16) NOT NULL DEFAULT 'none'",
+            'email_delivery_attempts BIGINT NOT NULL DEFAULT 0',
+            'email_delivered_at VARCHAR(32) NULL',
+            "email_delivery_outcome VARCHAR(64) NOT NULL DEFAULT 'none'",
+        ] as $columnSql) {
+            $this->addColumnIfMissing($registration, $columnSql);
+        }
         $this->db->exec("CREATE INDEX IF NOT EXISTS {$this->prefix}wpuiai_activation_registration_transition_retention
             ON {$transitions} (retention_until)");
         $this->db->exec("CREATE INDEX IF NOT EXISTS {$this->prefix}wpuiai_activation_registration_idempotency_retention
@@ -280,6 +294,29 @@ final class FocusaSpec152eActivationRegistrationMigration
     public function table(string $name): string
     {
         return $this->prefix . $name;
+    }
+
+    /** Idempotent column addition for the registration table upgrade path. */
+    private function addColumnIfMissing(string $table, string $columnSql): void
+    {
+        $columnName = strtok($columnSql, ' ');
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'sqlite') {
+            foreach ($this->db->query("PRAGMA table_info({$table})")->fetchAll(PDO::FETCH_ASSOC) as $column) {
+                if ((string) $column['name'] === $columnName) {
+                    return;
+                }
+            }
+            $this->db->exec("ALTER TABLE {$table} ADD COLUMN {$columnSql}");
+            return;
+        }
+        try {
+            $this->db->exec("ALTER TABLE {$table} ADD COLUMN {$columnSql}");
+        } catch (PDOException $error) {
+            if (!str_contains(strtolower($error->getMessage()), 'duplicate column')) {
+                throw $error;
+            }
+        }
     }
 
     public static function assertTimestamp(string $timestamp): void
@@ -417,6 +454,7 @@ final class FocusaSpec152eActivationRegistrationPresenter
             'retry' => ['posture' => $terminal ? 'none' : 'safe_retry'],
             'next_action' => $terminal ? 'recover_or_manage_activation' : 'continue_activation',
             'terminal_delivery_status' => (string) $row['terminal_delivery_status'],
+            'email_delivery_status' => (string) ($row['email_delivery_status'] ?? 'none'),
             'node_id' => $row['node_uuid'] === null ? null : (string) $row['node_uuid'],
         ];
     }
@@ -843,6 +881,100 @@ final class FocusaSpec152eActivationRegistrationRepository
             }
             $updated = $this->findByUuid($registrationUuid);
             $this->recordIdempotency('bind_device_public_key', $idempotencyKey, $digest, $registrationUuid, $requestId, $updated, $now);
+            return ['registration' => $updated, 'replayed' => false];
+        });
+    }
+
+    /**
+     * Record the masked transactional email delivery state on the registration
+     * (spec §16.1): status, masked outcome (bounce/suppression/provider
+     * failure), and delivered-at. Bounded values only; the plaintext key and
+     * raw email never appear. Idempotent by request/idempotency key;
+     * delivery-relevant, mailbox-verified registrations only.
+     * $countsAsAttempt is true only for actual send events.
+     */
+    public function recordEmailDeliveryState(
+        string $registrationUuid,
+        string $status,
+        ?string $outcome,
+        string $occurredAt,
+        string $requestId,
+        string $idempotencyKey,
+        bool $countsAsAttempt = false,
+    ): array {
+        $this->assertUuid($registrationUuid, 'registration');
+        $this->assertRequestId($requestId);
+        $this->assertIdempotencyKey($idempotencyKey);
+        if (!in_array($status, ['none', 'sent', 'delivered', 'bounced', 'suppressed', 'failed'], true)) {
+            throw new InvalidArgumentException('bounded email delivery status required');
+        }
+        $outcome = $outcome ?? 'none';
+        if (!in_array($outcome, ['none', 'soft_bounce', 'hard_bounce', 'suppressed_transactional', 'suppressed_all', 'provider_failed'], true)) {
+            throw new InvalidArgumentException('bounded masked email outcome required');
+        }
+        FocusaSpec152eActivationRegistrationMigration::assertTimestamp($occurredAt);
+        if ($status === 'delivered' && $outcome !== 'none') {
+            throw new InvalidArgumentException('delivered email cannot carry a failure outcome');
+        }
+        $digest = $this->requestDigest([
+            'operation' => 'record_email_delivery_state',
+            'registration_uuid' => $registrationUuid,
+            'email_delivery_status' => $status,
+            'email_delivery_outcome' => $outcome,
+            'occurred_at' => $occurredAt,
+            'counts_as_attempt' => $countsAsAttempt,
+            'request_id' => $requestId,
+        ]);
+        return $this->transaction(function () use ($registrationUuid, $status, $outcome, $occurredAt, $requestId, $idempotencyKey, $countsAsAttempt, $digest): array {
+            $replay = $this->replay('record_email_delivery_state', $idempotencyKey, $digest);
+            if ($replay !== null) {
+                return ['registration' => $this->findByUuid($registrationUuid), 'replayed' => true];
+            }
+            $row = $this->findByUuid($registrationUuid);
+            $this->assertNotExpired($row, false);
+            if ((string) $row['verification_state'] !== 'mailbox_verified') {
+                throw new DomainException('EMAIL_VERIFICATION_REQUIRED');
+            }
+            if (!in_array((string) $row['state'], [
+                FocusaSpec152eActivationRegistrationState::ENTITLEMENT_ISSUED,
+                FocusaSpec152eActivationRegistrationState::TERMINAL_DELIVERY_READY,
+                FocusaSpec152eActivationRegistrationState::DEVICE_REGISTERED,
+                FocusaSpec152eActivationRegistrationState::LEASE_ISSUED,
+                FocusaSpec152eActivationRegistrationState::DELIVERED,
+            ], true)) {
+                throw new DomainException('LICENSE_DELIVERY_PENDING');
+            }
+            if ((int) ($row['edd_license_id'] ?? 0) < 1) {
+                throw new DomainException('EDD_LICENSE_PENDING');
+            }
+            $now = $this->now();
+            $set = ['email_delivery_status = :status', 'email_delivery_outcome = :outcome', 'updated_at = :updated'];
+            $params = [
+                ':status' => $status,
+                ':outcome' => $outcome,
+                ':updated' => $now,
+                ':registration' => $registrationUuid,
+                ':state' => $row['state'],
+                ':version' => $row['state_version'],
+            ];
+            if ($countsAsAttempt) {
+                $set[] = 'email_delivery_attempts = email_delivery_attempts + 1';
+            }
+            if ($status === 'delivered') {
+                $set[] = 'email_delivered_at = :delivered_at';
+                $params[':delivered_at'] = $occurredAt;
+            }
+            $set[] = 'state_version = state_version + 1';
+            $table = $this->schema->table('wpuiai_activation_registrations');
+            $sql = "UPDATE {$table} SET " . implode(', ', $set) . "
+                WHERE registration_uuid = :registration AND state = :state AND state_version = :version";
+            $statement = $this->db->prepare($sql);
+            $statement->execute($params);
+            if ($statement->rowCount() !== 1) {
+                throw new DomainException('REGISTRATION_STATE_CONFLICT');
+            }
+            $updated = $this->findByUuid($registrationUuid);
+            $this->recordIdempotency('record_email_delivery_state', $idempotencyKey, $digest, $registrationUuid, $requestId, $updated, $now);
             return ['registration' => $updated, 'replayed' => false];
         });
     }
