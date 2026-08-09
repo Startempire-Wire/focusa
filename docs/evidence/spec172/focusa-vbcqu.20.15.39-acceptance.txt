@@ -1,0 +1,129 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.39
+Title: 172.05.08 Capture UIAI public pricing, route, and contradiction-removal proof
+Implementation commit: `485f35b3` (redacted UIAI evidence packet + deterministic
+proof gate; see git log for this atom)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.15.39 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- Public Focusa/Engine/install/WPUIAI URLs (live reads of
+  focusa.dev, engine.focusa.dev, install.focusa.dev, wpuiai.com and the WPUIAI
+  EDD catalog, plus the Startempire-Wire/focusa public repo terms)
+- UIAI browser read/snapshot/diagnostics evidence (uiai-engine v2.0.0 at
+  localhost:7456, remote OVH browser plane; sessions, reads, snapshots,
+  diagnostics, and bounded navigation-error refs)
+- docs/contracts/spec172-public-commerce-baseline.v1.json (read-only
+  cross-check; NOT modified)
+- docs/contracts/spec172-uiai-public-proof.v1.json (NEW — redacted evidence
+  packet and deterministic proof index)
+- tests/spec172_public_uiai_proof_test.py (NEW — exact verification)
+
+Bounded result
+- Added the redacted UIAI evidence packet
+  (docs/contracts/spec172-uiai-public-proof.v1.json, schema
+  focusa.spec172_uiai_public_proof.v1): a bounded, redacted, unauthenticated
+  capture of the LIVE public surfaces on 2026-08-09. Capture method is
+  `uiai_engine_browser_read` (three successful UIAI browser sessions plus two
+  bounded UIAI navigation-timeout refs) with a documented supplemental
+  `live_origin_http_read` for the two surfaces the OVH browser plane cannot
+  reach (focusa.dev and install.focusa.dev are served from the KH origin;
+  the OVH plane to KH-origin route is blocked and recorded as
+  uiai-error:uiai-error-299 / uiai-error:uiai-error-1451).
+- UIAI session evidence: engine.focusa.dev session `-F_XF7e_`
+  (read 17,793 chars, 66 snapshot refs, diagnostics seq 45, 0 exceptions,
+  0 failed requests); wpuiai.com root session `HaIVG2Cs` (seq 27, 0
+  exceptions, favicon 404 only); WPUIAI EDD Download page session `J_vSHrjR`
+  (`$149.00 - Purchase` legacy credit-pack page, seq 20, 0 exceptions).
+- Verified canonical claims (10, V01-V10): $697.00 Operator prices live on all
+  four public surfaces (focusa/engine root/pricing/llms.txt/agent-commerce
+  69700 minor; install `$697 per product, lifetime`); Operator License Type
+  names published; machine commerce carries 69700 minor/697 USD for both
+  Operator offers; legacy WPUIAI catalog stays separate ($79/$149/$349 credit
+  packs on WPUIAI EDD only, no Focusa/UIAI Download); UIAI diagnostics clean;
+  focusa/engine local terms pages resolve (200); public repo LICENSE.md (BSL
+  1.1) and COMMERCIAL.md resolve (200); UIAI service healthy; no authenticated
+  or customer-data capture.
+- Remaining contradictions recorded honestly (9, R01-R09, each with a blocker
+  and live evidence refs; NOT claimed as removed): anonymous/local --eval and
+  `Eval mode (no license)` (focusa/engine/install); install `Bundle: Focusa +
+  UIAI Engine together for $1,097.` (required $1,254.60); install `No
+  telemetry, no phone home.`; Gravity Forms/direct Stripe entitlement rail
+  (agent-commerce payment_provider `Gravity Forms Stripe`, `Send the Gravity
+  form ... to start Stripe checkout` on focusa/engine); advertised
+  install.focusa.dev /focusa /bundle /engine /powershell /checksums routes all
+  return 404; advertised focusa.dev/engine.focusa.dev LICENSE and
+  COMMERCIAL.md URLs return 404 while repo terms resolve; no Focusa/UIAI EDD
+  Download exists so the EDD checkout destination is not live; engine
+  `Selected Focusa Operator Lifetime License holders may receive UIAI Engine
+  access` implicit-grant copy; no permanent verified limited-mode copy
+  published. Baseline codes classify every Section 18.1 observed claim:
+  `standalone_prices_697` and `legacy_wpuiai_prices` verified;
+  `conflicting_bundle_1097`, `anonymous_local_evaluation`, `no_phone_home`,
+  `gravity_stripe_positioning`, and `broken_routes_and_license_links` remain.
+- Deterministic proof index: sha256 claims digest recomputed by the gate from
+  the canonicalized claims sections
+  (`1e84621e836501d420bb3cbcbd583098ea6616a42c654df7ddb776b9a82e36d3`), one
+  index row per claim, counts frozen (10 verified, 9 remaining, 5 sessions,
+  29 origin reads). The gate fails closed if the digest drifts, a remaining
+  contradiction is dropped or re-labeled verified, the Bundle removal is
+  claimed without live evidence, or raw capture material appears.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_public_uiai_proof_test.py` — exit 0.
+   - Receipt: focusa.spec172_uiai_public_proof_validation.v1,
+     positive_checks 214, negative_checks 5, verified_claims 10,
+     remaining_contradictions 9, uiai_sessions 5, origin_reads 29,
+     claims_digest_sha256 1e84621e836501d420bb3cbcbd583098ea6616a42c654df7ddb776b9a82e36d3,
+     result passed_fail_closed.
+   - Output line: `Spec 172 UIAI public pricing, route, and contradiction-removal proof: PASS`
+
+Regression checks (exit codes)
+- `python3 tests/spec172_public_commerce_baseline_test.py` — exit 0
+  (`Spec 172 bounded UIAI public-commerce baseline: PASS`). The Section 18.1
+  baseline contract was not modified.
+- `python3 tests/spec172_public_facade_convergence_test.py` — exit 0
+  (`Spec 172 public facade and commerce convergence: PASS`). The convergence
+  contract (including its uiai_browser_proof_plan owned by this atom) was not
+  modified.
+- `python3 -c "import json; json.load(open('docs/contracts/spec172-uiai-public-proof.v1.json'))"` —
+  exit 0 (packet is valid JSON).
+- `git diff --check` — exit 0, no whitespace errors.
+
+Tests added
+- tests/spec172_public_uiai_proof_test.py — deterministic, offline, build-free
+  gate over the evidence packet: schema/authority identity; capture and
+  evidence posture; exact Section 18.1 source mirroring; UIAI session and
+  origin-read evidence consistency (engine/wpuiai reachable sessions clean,
+  focusa/install unreachable with timeout refs, 404 route statuses recorded);
+  verified claims V01-V10 with bounded evidence; remaining contradictions
+  R01-R09 mapped to baseline codes and Section 18.2 required corrections
+  verbatim; sha256 digest recomputation; convergence-contract cross-checks;
+  fail-closed mutation matrix (dropped/relabeled contradiction, digest drift,
+  fabricated Bundle removal, raw capture, contradictory verified price); and
+  redaction hygiene (no email, key, token, customer row, credential, or card
+  data).
+
+Remaining blockers (recorded, not closed)
+- The live public surfaces are NOT yet converged on Section 18.2: install
+  still advertises the $1,097 Bundle and `no phone home`; --eval and
+  anonymous evaluation copy remain on focusa/engine/install; the Gravity
+  Forms/direct Stripe rail remains the checkout path with no live Focusa/UIAI
+  EDD Download; advertised /focusa /bundle /engine /powershell /checksums
+  routes and site LICENSE/COMMERCIAL.md URLs return 404; engine keeps
+  implicit Focusa-to-UIAI access copy; no permanent verified limited-mode
+  copy is published. Each blocker is recorded in the packet with evidence
+  refs (R01-R09) and must be resolved by the site owners before the "every
+  public contradiction is absent" criterion can be marked satisfied. This
+  atom did not modify any live site.
+
+Rollback
+- Revert only this atom: `git revert 485f35b3` (drop
+  docs/contracts/spec172-uiai-public-proof.v1.json,
+  tests/spec172_public_uiai_proof_test.py, and
+  docs/evidence/spec172/focusa-vbcqu.20.15.39-acceptance.txt if required).
+  Preserve verified identities, customers, orders, refunds, License Types,
+  keys, nodes, sequences, data, migration journals, evidence, and accepted
+  unrelated work. No live public site or service was mutated by this atom.
+
+No push, deploy, release, merge, or Beads mutation was performed.
