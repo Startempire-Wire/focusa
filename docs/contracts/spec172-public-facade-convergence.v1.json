@@ -1,0 +1,347 @@
+{
+  "schema": "focusa.spec172.public_facade_convergence.v1",
+  "version": 1,
+  "owner": "WPUIAI/wpuiai + website/install facade owners",
+  "atom": "focusa-vbcqu.20.15.31",
+  "authority": {
+    "spec172": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+    "canonical_checkout_authority": "WPUIAI.com EDD",
+    "stripe_gateway": "edd_configured_stripe_gateway_only",
+    "facade_role": "presenter_and_bounded_proxy_only",
+    "facade_never_owns": [
+      "product", "price", "license_type", "capability_family", "feature",
+      "limit", "node_set", "commercial_right", "grant", "policy"
+    ],
+    "caller_controls_forbidden": [
+      "edd_download_id", "edd_price_id", "amount_minor", "price", "price_usd",
+      "currency", "tier", "product", "product_code", "products", "license_type",
+      "license_type_ref", "capability_family", "families", "features", "limits",
+      "node_limit", "node_set", "operator_seats", "sale_status", "refund_policy",
+      "refund_days", "license_duration", "license_length", "license_unit",
+      "activation_limit", "evaluation_duration", "checkout_enabled",
+      "future_products_included", "future_license_types_included",
+      "redirect_url", "success_url", "cancel_url", "callback_url",
+      "sender_email", "authority", "credential", "secret"
+    ],
+    "forbidden_implicit_download": 453,
+    "no_anonymous_product_capability": true,
+    "no_local_or_self_issued_grant": true,
+    "no_presenter_owned_policy": true,
+    "no_raw_customer_material_in_public_copy": true
+  },
+  "canonical_policy": {
+    "license_types": [
+      {
+        "public_code": "focusa_operator_lifetime_v1",
+        "human_name": "Focusa Operator Lifetime v1",
+        "product": "focusa",
+        "price_usd": "697.00",
+        "amount_minor": 69700,
+        "term": "lifetime",
+        "node_limit": 3,
+        "node_set": "operator_shared_v1",
+        "operator_seats": 1,
+        "refund_policy": "whole_order_30_days",
+        "checkout_enabled": false,
+        "sale_status": "approved_not_yet_enabled"
+      },
+      {
+        "public_code": "uiai_operator_lifetime_v1",
+        "human_name": "UIAI Engine Operator Lifetime v1",
+        "product": "uiai_engine",
+        "price_usd": "697.00",
+        "amount_minor": 69700,
+        "term": "lifetime",
+        "node_limit": 3,
+        "node_set": "operator_shared_v1",
+        "operator_seats": 1,
+        "refund_policy": "whole_order_30_days",
+        "checkout_enabled": false,
+        "sale_status": "approved_not_yet_enabled"
+      },
+      {
+        "public_code": "focusa_uiai_operator_bundle_lifetime_v1",
+        "human_name": "Focusa and UIAI Engine Operator Lifetime Bundle v1",
+        "product": ["focusa", "uiai_engine"],
+        "price_usd": "1254.60",
+        "amount_minor": 125460,
+        "term": "lifetime",
+        "grant_composition": "exact_union",
+        "grants": ["focusa_operator_lifetime_v1", "uiai_operator_lifetime_v1"],
+        "node_limit": 3,
+        "node_set": "operator_shared_v1",
+        "operator_seats": 1,
+        "refund_policy": "whole_order_30_days",
+        "component_refunds_allowed": false,
+        "checkout_enabled": false,
+        "sale_status": "approved_not_yet_enabled"
+      }
+    ],
+    "verified_limited_mode": {
+      "kind": "account_runtime_posture",
+      "is_license_type": false,
+      "creates_edd_key": false,
+      "expiry": "none",
+      "automatic_expiry": false,
+      "grant_source": "authority_signed_limited_access_assertion",
+      "public_copy": "Verified mailbox required for product capability; verified no-license accounts receive permanent feature-limited access with no countdown and no EDD license key."
+    },
+    "privacy_copy": {
+      "no_telemetry": "No telemetry; bounded authority communication for identity, activation, refresh, refund/revoke, and recovery"
+    },
+    "checkout": {
+      "authority": "WPUIAI.com EDD",
+      "stripe_gateway": "edd_configured_stripe_gateway_only",
+      "facade_collects_card_data": false,
+      "direct_gravity_or_stripe_entitlement": false,
+      "public_copy": "Paid checkout and key truth converge on WPUIAI EDD with configured Stripe gateway."
+    },
+    "product_isolation": {
+      "focusa_purchase_grants_uiai": false,
+      "uiai_requires": ["uiai_operator_lifetime_v1", "focusa_uiai_operator_bundle_lifetime_v1", "explicit_authority_grant"],
+      "public_copy": "Only the UIAI License Type, the Bundle, or an explicit authority grant provides UIAI paid capability; a Focusa-only purchase never grants UIAI Engine entitlement."
+    },
+    "future_boundaries": {
+      "new_family_default": "deny_pending_explicit_assignment",
+      "new_product_default": "excluded",
+      "new_license_type_default": "excluded",
+      "operator_name_preserved": true
+    },
+    "preserved_always_reachable": [
+      "basic_customer_data_export", "account_control", "device_control",
+      "license_status", "diagnostics", "repair", "rollback",
+      "stable_security_update", "uninstall", "emergency_customer_data_recovery"
+    ]
+  },
+  "facade_projection": {
+    "identical_current_policy": true,
+    "projection_keys": [
+      "license_types", "verified_limited_mode", "privacy_copy", "checkout",
+      "product_isolation", "future_boundaries", "preserved_always_reachable"
+    ],
+    "facades": [
+      {
+        "facade_id": "focusa_marketing_v1",
+        "origin": "https://focusa.dev",
+        "surface": "focusa_public",
+        "paths": {
+          "checkout": "/activate/checkout",
+          "verification": "/activate/verify",
+          "manage": "/account",
+          "recovery": "/activate/recovery",
+          "success": "/activate/success",
+          "cancel": "/activate/cancel"
+        },
+        "machine_commerce": [
+          "/pricing/", "/llms.txt", "/.well-known/agent-commerce.json"
+        ],
+        "products": ["focusa_operator_lifetime_v1", "focusa_uiai_operator_bundle_lifetime_v1"]
+      },
+      {
+        "facade_id": "uiai_engine_v1",
+        "origin": "https://engine.focusa.dev",
+        "surface": "engine_public",
+        "paths": {
+          "checkout": "/activate/checkout",
+          "verification": "/activate/verify",
+          "manage": "/account",
+          "recovery": "/activate/recovery",
+          "success": "/activate/success",
+          "cancel": "/activate/cancel"
+        },
+        "machine_commerce": [
+          "/pricing/", "/llms.txt", "/.well-known/agent-commerce.json"
+        ],
+        "products": ["uiai_operator_lifetime_v1", "focusa_uiai_operator_bundle_lifetime_v1"]
+      },
+      {
+        "facade_id": "focusa_install_v1",
+        "origin": "https://install.focusa.dev",
+        "surface": "install_public",
+        "paths": {
+          "checkout": "/activate/checkout",
+          "verification": "/activate/verify",
+          "manage": "/account",
+          "recovery": "/activate/recovery",
+          "success": "/activate/success",
+          "cancel": "/activate/cancel"
+        },
+        "convenience_routes": ["/focusa", "/bundle", "/engine", "/powershell"],
+        "products": ["focusa_operator_lifetime_v1", "uiai_operator_lifetime_v1", "focusa_uiai_operator_bundle_lifetime_v1"]
+      },
+      {
+        "facade_id": "focusa_forge_v1",
+        "origin": "https://forge.focusa.dev",
+        "surface": "focusa_public",
+        "paths": {
+          "checkout": "/activate/checkout",
+          "verification": "/activate/verify",
+          "manage": "/account",
+          "recovery": "/activate/recovery",
+          "success": "/activate/success",
+          "cancel": "/activate/cancel"
+        },
+        "products": ["focusa_operator_lifetime_v1", "focusa_uiai_operator_bundle_lifetime_v1"]
+      },
+      {
+        "facade_id": "focusa_arena_v1",
+        "origin": "https://arena.focusa.dev",
+        "surface": "focusa_public",
+        "paths": {
+          "checkout": "/activate/checkout",
+          "verification": "/activate/verify",
+          "manage": "/account",
+          "recovery": "/activate/recovery",
+          "success": "/activate/success",
+          "cancel": "/activate/cancel"
+        },
+        "products": ["focusa_operator_lifetime_v1", "focusa_uiai_operator_bundle_lifetime_v1"]
+      },
+      {
+        "facade_id": "wpuiai_public_v1",
+        "origin": "https://wpuiai.com",
+        "surface": "wpuiai_public",
+        "paths": {
+          "checkout": "/activate/checkout",
+          "verification": "/activate/verify",
+          "manage": "/account",
+          "recovery": "/activate/recovery",
+          "success": "/activate/success",
+          "cancel": "/activate/cancel"
+        },
+        "machine_commerce": ["/downloads/", "/wp-sitemap-posts-download-1.xml"],
+        "products": ["focusa_operator_lifetime_v1", "uiai_operator_lifetime_v1", "focusa_uiai_operator_bundle_lifetime_v1"]
+      }
+    ]
+  },
+  "edd_checkout_links": {
+    "authority": "WPUIAI.com EDD",
+    "proxy_route": "/v1/activation/checkout",
+    "all_facade_checkout_paths_identical": "/activate/checkout",
+    "checkout_enabled": false,
+    "checkout_block_reason": "awaiting_validation_pass",
+    "dedicated_downloads_contract": "docs/contracts/spec172-edd-operator-v1-downloads.v1.json",
+    "dedicated_edd_download_ids": [458, 459, 460],
+    "legacy_downloads_never_grant": true,
+    "no_contradictory_price_in_any_purchase_link": true
+  },
+  "route_link_fixtures": {
+    "install_convenience_routes": {
+      "contract": "docs/contracts/spec152e-installer-route-manifest.v1.json",
+      "routes": ["/focusa", "/bundle", "/engine", "/powershell"],
+      "all_resolve_200": true
+    },
+    "transactional_links": ["verify", "pay", "success", "manage", "recovery"],
+    "install_facade_routes_contract": "docs/contracts/spec152e-install-facade-routes.v1.php",
+    "no_broken_license_or_commerce_links": true,
+    "license_terms_link_status": "valid_or_removed_before_publication"
+  },
+  "removed_contradictions": [
+    {
+      "code": "anonymous_local_evaluation",
+      "removed": true,
+      "replacement": "Verified mailbox required for product capability",
+      "evidence_ref": "spec172:18.2:anonymous_evaluation"
+    },
+    {
+      "code": "local_self_issued_eval",
+      "removed": true,
+      "replacement": "Verified signed limited-access assertion; no local grant creation",
+      "evidence_ref": "spec172:18.2:local_eval"
+    },
+    {
+      "code": "timed_evaluation",
+      "removed": true,
+      "replacement": "Permanent verified no-license limited mode",
+      "evidence_ref": "spec172:18.2:timed_evaluation"
+    },
+    {
+      "code": "conflicting_bundle_1097",
+      "removed": true,
+      "replacement": "Bundle price $1,254.60",
+      "evidence_ref": "spec172:18.2:bundle_125460"
+    },
+    {
+      "code": "implicit_uiai_grant",
+      "removed": true,
+      "replacement": "Only UIAI License Type, Bundle, or explicit authority grant provides UIAI paid capability",
+      "evidence_ref": "spec172:18.2:implicit_uiai"
+    },
+    {
+      "code": "gravity_or_direct_stripe_entitlement",
+      "removed": true,
+      "replacement": "Paid checkout and key truth converge on WPUIAI EDD with configured Stripe gateway",
+      "evidence_ref": "spec172:18.2:gravity_stripe"
+    },
+    {
+      "code": "no_phone_home",
+      "removed": true,
+      "replacement": "No telemetry; bounded authority communication for identity, activation, refresh, refund/revoke, and recovery",
+      "evidence_ref": "spec172:18.2:no_phone_home"
+    },
+    {
+      "code": "broken_convenience_routes",
+      "removed": true,
+      "replacement": "Repair routes or remove claims before publication",
+      "evidence_ref": "spec172:18.2:broken_routes"
+    },
+    {
+      "code": "broken_license_links",
+      "removed": true,
+      "replacement": "Publish valid terms or remove broken links before publication",
+      "evidence_ref": "spec172:18.2:broken_license_links"
+    },
+    {
+      "code": "legacy_wpuiai_prices",
+      "removed": true,
+      "replacement": "Keep legacy WPUIAI catalog explicitly separate from Focusa/UIAI License Types",
+      "evidence_ref": "spec172:18.2:legacy_wpuiai"
+    }
+  ],
+  "uiai_browser_proof_plan": {
+    "owner": "focusa-vbcqu.20.15.39 (Capture UIAI public pricing, route, and contradiction-removal proof)",
+    "depends_on_service_availability": true,
+    "method": "uiai_engine_browser_read",
+    "authenticated_capture": false,
+    "anonymous_eval_or_local_grant_proof": "none",
+    "targets": [
+      "https://focusa.dev/", "https://focusa.dev/pricing/", "https://focusa.dev/llms.txt", "https://focusa.dev/.well-known/agent-commerce.json",
+      "https://engine.focusa.dev/", "https://engine.focusa.dev/pricing/", "https://engine.focusa.dev/llms.txt", "https://engine.focusa.dev/.well-known/agent-commerce.json",
+      "https://install.focusa.dev/", "https://install.focusa.dev/focusa", "https://install.focusa.dev/bundle",
+      "https://wpuiai.com/wp-sitemap-posts-download-1.xml"
+    ],
+    "claims_to_verify": [
+      "Operator names published",
+      "standalone price 697.00",
+      "bundle price 1254.60 and no 1097",
+      "verified limited mode and no anonymous eval",
+      "no telemetry bounded authority copy",
+      "EDD-backed checkout and no direct Gravity/Stripe entitlement",
+      "product isolation no implicit UIAI",
+      "valid license and install routes no 404"
+    ],
+    "evidence_posture": {
+      "classification": "bounded_redacted_public_claim_proof",
+      "raw_capture_embedded": false,
+      "raw_email_or_key_embedded": false,
+      "authenticated_or_customer_data_capture": false
+    },
+    "fail_closed_conditions": [
+      "any facade showing contradictory price or authority blocks convergence proof",
+      "any broken advertised route or license link blocks convergence proof",
+      "service unavailability is recorded as a blocker, never bypassed with authenticated or non-UIAI captures"
+    ]
+  },
+  "invariants": [
+    "all_registered_facades_project_identical_current_policy",
+    "no_payment_or_purchase_link_uses_contradictory_authority_or_price",
+    "operator_names_published_697_697_125460",
+    "verified_limited_mode_never_creates_edd_key",
+    "no_telemetry_bounded_authority_copy",
+    "edd_backed_checkout_only",
+    "focusa_purchase_never_grants_uiai",
+    "new_family_product_and_license_type_default_to_denial_or_exclusion",
+    "legacy_downloads_and_453_never_grant_operator_v1",
+    "no_raw_email_key_token_customer_row_credential_or_card_data_in_public_copy"
+  ]
+}
