@@ -17,6 +17,22 @@ export const DEFAULT_CONTRIBUTION_RENDERERS = [
     component: WorkSurfaceContribution
   },
   {
+    // Canonical project overview: the focused Work Surface for the software
+    // profile's overview activity (emitted by the daemon's builtin catalog).
+    rendererBindingId: 'renderer:project-overview',
+    semanticBindingIds: ['semantic:project-overview'],
+    contributionKinds: ['focused_work_surface'],
+    component: WorkSurfaceContribution
+  },
+  {
+    // Canonical toolbar controls contribution (e.g. profile/activity selectors)
+    // emitted by the daemon's builtin catalog.
+    rendererBindingId: 'renderer:controls',
+    semanticBindingIds: ['semantic:controls'],
+    contributionKinds: ['toolbar_control'],
+    component: CanonicalReferenceContribution
+  },
+  {
     rendererBindingId: 'renderer:document@v1',
     contributionKinds: ['focused_work_surface'],
     component: WorkSurfaceContribution

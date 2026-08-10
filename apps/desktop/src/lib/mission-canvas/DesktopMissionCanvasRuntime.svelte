@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
   import ActivityNavigation from './ActivityNavigation.svelte';
   import { CapabilityLossController } from './capability-loss-controller';
@@ -51,8 +51,19 @@
     }
     const boundAuthority = authority;
     const generation = ++controlsGeneration;
-    const snapshot = captureCurrentPresentation();
-    void controller.load(boundAuthority).then(() => {
+    // The presentation snapshot reads controller.state + presentationRoot; those
+    // are DOM/state snapshots, not effect dependencies. Reading them tracked
+    // made this effect depend on the very controller.state that load() writes,
+    // causing an infinite loading->ready->loading re-run loop in the browser
+    // (invisible to SSR where $effect never runs).
+    const snapshot = untrack(() => captureCurrentPresentation());
+    // controller.load() synchronously reads this.state (projectionForScope) and
+    // then writes a new loading/refreshing state object; if those reads were
+    // tracked, every state write would re-run this effect and restart the load
+    // forever. The effect must depend only on the binding props, not on the
+    // controller's own lifecycle state.
+    const loadPromise = untrack(() => controller.load(boundAuthority));
+    void loadPromise.then(() => {
       const loaded = controller.state;
       const projection = loaded.kind === 'ready' || loaded.kind === 'refreshing' || loaded.kind === 'stale'
         ? loaded.projection
