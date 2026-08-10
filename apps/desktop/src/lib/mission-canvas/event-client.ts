@@ -247,9 +247,17 @@ function isNonNegativeSafeInteger(value: unknown): value is number {
 }
 
 function freezeClone<T>(value: T): T {
-  const clone = typeof globalThis.structuredClone === 'function'
-    ? globalThis.structuredClone(value)
-    : JSON.parse(JSON.stringify(value)) as T;
+  let clone: T;
+  if (typeof globalThis.structuredClone === 'function') {
+    try {
+      clone = globalThis.structuredClone(value);
+    } catch {
+      // Svelte 5 $state proxies are not structured-cloneable.
+      clone = JSON.parse(JSON.stringify(value)) as T;
+    }
+  } else {
+    clone = JSON.parse(JSON.stringify(value)) as T;
+  }
   return deepFreeze(clone);
 }
 
