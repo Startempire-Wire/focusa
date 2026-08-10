@@ -7,7 +7,7 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-spec130a-runtime.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 cd "$PI_EXT"
-npx tsc -p tsconfig.json --noEmit false --outDir "$TMP/build" || /opt/cpanel/ea-nodejs20/bin/npx --no-install tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
+/opt/cpanel/ea-nodejs20/bin/npx --no-install tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
 ln -s "$PI_EXT/node_modules" "$TMP/build/node_modules"
 
 cat >"$TMP/runtime.mjs" <<'EOF'
@@ -50,6 +50,9 @@ function harness(
   const pi = {
     on(name, handler) {
       handlers.set(name, handler);
+    },
+    registerCommand(_command, _handler) {
+      /* extension command registration is exercised by the command-hierarchy tests */
     },
     appendEntry(type, data) {
       events.push({ type, data });
