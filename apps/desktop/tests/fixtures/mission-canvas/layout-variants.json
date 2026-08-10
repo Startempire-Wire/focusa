@@ -401,7 +401,7 @@
         },
         "accessibility": {
           "label": "Focusa Inspector",
-          "description": "Live transcript and governed prompt controls",
+          "description": "Canonical inspector for the focused Work Surface authority and state",
           "landmark_role": "region",
           "focus_semantic_id": "focus:pi-session",
           "live_region": "off",
@@ -680,7 +680,7 @@
         },
         "accessibility": {
           "label": "Focusa Inspector",
-          "description": "Live transcript and governed prompt controls",
+          "description": "Canonical inspector for the focused Work Surface authority and state",
           "landmark_role": "region",
           "focus_semantic_id": "focus:pi-session",
           "live_region": "off",
@@ -958,7 +958,7 @@
         },
         "accessibility": {
           "label": "Focusa Inspector",
-          "description": "Live transcript and governed prompt controls",
+          "description": "Canonical inspector for the focused Work Surface authority and state",
           "landmark_role": "region",
           "focus_semantic_id": "focus:pi-session",
           "live_region": "off",
@@ -1237,7 +1237,7 @@
         },
         "accessibility": {
           "label": "Focusa Inspector",
-          "description": "Live transcript and governed prompt controls",
+          "description": "Canonical inspector for the focused Work Surface authority and state",
           "landmark_role": "region",
           "focus_semantic_id": "focus:pi-session",
           "live_region": "off",
@@ -1507,7 +1507,7 @@
         },
         "accessibility": {
           "label": "Focusa Inspector",
-          "description": "Live transcript and governed prompt controls",
+          "description": "Canonical inspector for the focused Work Surface authority and state",
           "landmark_role": "region",
           "focus_semantic_id": "focus:pi-session",
           "live_region": "off",
