@@ -19,9 +19,8 @@
 
 <section class="queue" aria-label={contribution.accessibility.label} data-queue-kind={contribution.kind}>
   <div class="queue-copy">
-    <strong>{contribution.accessibility.label}</strong>
-    <span>{contribution.accessibility.description}</span>
-    <code>{contribution.data_ref.ref}</code>
+    <strong>{contribution.kind === 'steering_queue' ? 'Steering Queue' : 'Follow-up Queue'}</strong>
+    <span>{contribution.kind === 'steering_queue' ? 'Delivered at next safe active-turn boundary' : 'Delivered after current agent run completes'}</span>
   </div>
   {#if bindings.length > 0}
     <div class="queue-actions">

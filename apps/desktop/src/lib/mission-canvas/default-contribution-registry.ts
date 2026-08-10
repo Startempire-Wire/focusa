@@ -38,17 +38,17 @@ export const DEFAULT_CONTRIBUTION_RENDERERS = [
   {
     rendererBindingId: 'renderer:document@v1',
     contributionKinds: ['focused_work_surface'],
-    component: WorkSurfaceContribution
+    component: DomainContentContribution
   },
   {
     rendererBindingId: 'renderer:research@v1',
     contributionKinds: ['focused_work_surface'],
-    component: WorkSurfaceContribution
+    component: DomainContentContribution
   },
   {
     rendererBindingId: 'renderer:evidence@v1',
     contributionKinds: ['focused_work_surface'],
-    component: WorkSurfaceContribution
+    component: DomainContentContribution
   },
   {
     rendererBindingId: 'renderer:artifact:json@v1',
