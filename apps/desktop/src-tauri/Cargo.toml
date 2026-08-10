@@ -9,4 +9,5 @@ license-file = "../../../LICENSE.md"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+focusa-pty = { path = "../../../crates/focusa-pty" }
 tauri = { version = "2", features = [] }
