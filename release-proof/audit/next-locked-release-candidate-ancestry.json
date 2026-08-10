@@ -23,7 +23,7 @@
     "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:b5ad35676225b66c1369672d4ababd8033eb2b3af23cccc69b22a239c4cbd502",
+  "ancestry_digest": "sha256:5185d00ba910e4783697065b3b88ed04079506654174afb88ee8003ab8ec691a",
   "audit_errors": [],
   "candidate": {
     "audit_head": "581c65820f236049883c6db8e3fee286af13d895",
@@ -119,7 +119,6 @@
     "considered_tags": 145,
     "highest_patch": 143,
     "ignored_malformed_tags": [
-      "phase-1.1-focusa-legal",
       "spec-integration-v1",
       "spec-integraton-v1-start"
     ],

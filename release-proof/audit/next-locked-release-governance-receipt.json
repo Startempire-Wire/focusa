@@ -1179,7 +1179,7 @@
         "path": "release-proof/audit/next-locked-release-technical-closure-gate.json"
       },
       {
-        "digest": "sha256:4ed206687c982340bedd995e651ba05bc52ef0ced9a6cc415c164abe1ec7de73",
+        "digest": "sha256:1a67d1e1a26ad8d4bbebf006b74fad388e42a28ea93e4e3c8956ee981991a009",
         "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
       },
       {
@@ -1187,7 +1187,7 @@
         "path": "release-proof/audit/next-locked-release-v09143-published-assets.json"
       }
     ],
-    "input_artifacts_digest": "sha256:1ff3ed4ee62d57c9933c8596b2de336dcf3d746e69b59ba3b4b021304fc57546",
+    "input_artifacts_digest": "sha256:a49f558469042c2063732af726e872906730836cd29f891dd8d4af2558b3050b",
     "linkage": {
       "artifact_refs": [
         "release-proof/audit/next-locked-release-candidate-ancestry.json",
@@ -1394,7 +1394,7 @@
           "path": "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
         },
         {
-          "digest": "sha256:4ed206687c982340bedd995e651ba05bc52ef0ced9a6cc415c164abe1ec7de73",
+          "digest": "sha256:1a67d1e1a26ad8d4bbebf006b74fad388e42a28ea93e4e3c8956ee981991a009",
           "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
         },
         {
@@ -1508,7 +1508,7 @@
         "tests/spec52_onboarding_consolidation_gate.py"
       ]
     },
-    "linkage_digest": "sha256:34aba33bd526616953aa251cb1baf36b989d4ec2d668f144bb810bc29f0ca2d2",
+    "linkage_digest": "sha256:65d4c4332750aa8a9573f98fa7ee18f8c8a9df58ade4296587f151a4f72e7e8e",
     "mutation_policy": {
       "canonical_replay_required": true,
       "detached_signature_required": true,
@@ -1516,9 +1516,9 @@
       "provider_status_is_not_technical_proof": true,
       "rewrite_v0.9.143": false
     },
-    "payload_digest": "sha256:94e2011e79af4a92e95bd08b2172c34b2622e3c1a9d122f9ef5c93cccb47fae6",
+    "payload_digest": "sha256:51af707bc5b6e9a95fccab63a377bc92927424de4fa8eeb417fa08857ffc6160",
     "release_proof": {
-      "ancestry_digest": "sha256:b5ad35676225b66c1369672d4ababd8033eb2b3af23cccc69b22a239c4cbd502",
+      "ancestry_digest": "sha256:5185d00ba910e4783697065b3b88ed04079506654174afb88ee8003ab8ec691a",
       "candidate_source_commit": "581c65820f236049883c6db8e3fee286af13d895",
       "immutable_tag": "v0.9.143",
       "immutable_tag_commit": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
@@ -1552,8 +1552,8 @@
     "authority_boundary": "integrity and replay seal only; not release publication, entitlement, OTA, or production signing authority",
     "key_authority": "one_time_governance_integrity_seal",
     "private_key_persisted": false,
-    "public_key_base64": "0pgqtX91othrtDO3lJhdJgERB8nXEU4DrnzCsiA5ZtI=",
-    "public_key_fingerprint": "bba1a334670d862bfe04ec39810623264ee7de3d260573a0c727ba15616390fc",
+    "public_key_base64": "HUHLU9p9rP8pONi4xk6pt7ZfmPoGrVj/zVjfnWiHgMU=",
+    "public_key_fingerprint": "141dd6add676eab5569b42709cf3032762b1f75f4f639ca6a55666d373d87cf7",
     "signed_encoding": "canonical-json-sorted-keys-compact-utf8"
   }
 }
