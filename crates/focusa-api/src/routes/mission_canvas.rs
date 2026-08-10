@@ -700,6 +700,18 @@ fn resolver_candidates(
             })?;
         candidates.insert(candidate.contribution_id.clone(), candidate);
     }
+    // A fresh Workstream has no installed domain pack yet, so the store holds
+    // no candidate registry documents.  Fall back to the canonical builtin
+    // catalog so the FIRST resolve succeeds without requiring a prior
+    // install; otherwise the generated resolve path deadlocks (candidates
+    // only exist after a resolve that needs candidates).  Builtin candidates
+    // are scope-neutral generated DTOs and are still filtered by the exact
+    // profile/activity intersection below.
+    if candidates.is_empty() {
+        for candidate in focusa_core::mission_canvas::profiles::builtin_candidates() {
+            candidates.insert(candidate.contribution_id.clone(), candidate);
+        }
+    }
     let selected_ids = profile_ids
         .intersection(&activity_ids)
         .filter(|id| candidates.contains_key(*id))

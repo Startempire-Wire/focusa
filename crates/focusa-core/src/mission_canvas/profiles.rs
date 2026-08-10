@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use thiserror::Error;
 
+use super::model::{CandidateContribution, ContributionKind};
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WorkspaceProfileDefinition {
     pub profile_id: String,
@@ -605,6 +607,101 @@ fn registry_entry(kind: &str, id: &str, payload: Value) -> RegistryDefinition {
         enabled: true,
         payload,
     }
+}
+
+/// Canonical candidate catalog for the builtin registry.  These are the
+/// scope-neutral generated DTOs the resolver evaluates for a scope that has
+/// no installed domain pack yet — a fresh Workstream must resolve its first
+/// projection without requiring a prior install, otherwise the generated
+/// resolve endpoint deadlocks (candidates only exist after a resolve that
+/// needs candidates).
+pub fn builtin_candidates() -> Vec<CandidateContribution> {
+    let kind_of = |contribution_id: &str| -> ContributionKind {
+        match contribution_id {
+            "contribution:pi-session"
+            | "contribution:project-overview"
+            | "contribution:market-overview"
+            | "contribution:context"
+            | "contribution:role"
+            | "contribution:interview"
+            | "contribution:spec"
+            | "contribution:tasks"
+            | "contribution:silent-sessions"
+            | "contribution:document"
+            | "contribution:research"
+            | "contribution:evidence"
+            | "contribution:history" => ContributionKind::FocusedWorkSurface,
+            "contribution:focusa-inspector"
+            | "contribution:authority-inspector"
+            | "contribution:risk-inspector" => ContributionKind::Inspector,
+            "contribution:work-rail" => ContributionKind::WorkRail,
+            "contribution:steering-queue" => ContributionKind::SteeringQueue,
+            "contribution:follow-up-queue" => ContributionKind::FollowUpQueue,
+            "contribution:prompt-editor" => ContributionKind::PromptEditor,
+            "contribution:controls" => ContributionKind::ToolbarControl,
+            _ => ContributionKind::FocusedWorkSurface,
+        }
+    };
+    let renderer_of = |contribution_id: &str| -> String {
+        let known = [
+            ("contribution:pi-session", "renderer:pi-session@v1"),
+            ("contribution:focusa-inspector", "renderer:focusa-inspector@v1"),
+            ("contribution:work-rail", "renderer:work-rail@v1"),
+            ("contribution:document", "renderer:document@v1"),
+            ("contribution:research", "renderer:research@v1"),
+            ("contribution:evidence", "renderer:evidence@v1"),
+        ];
+        known
+            .iter()
+            .find(|(id, _)| *id == contribution_id)
+            .map(|(_, renderer)| renderer.to_string())
+            .unwrap_or_else(|| format!("renderer:{}", contribution_id.trim_start_matches("contribution:")))
+    };
+    let mut ids = BTreeSet::new();
+    for profile in builtin_profiles() {
+        ids.extend(profile.candidate_contribution_ids);
+    }
+    for activity in builtin_activities() {
+        ids.extend(activity.candidate_contribution_ids);
+    }
+    ids.into_iter()
+        .map(|contribution_id| {
+            let semantic = format!("semantic:{}", contribution_id.trim_start_matches("contribution:"));
+            let data_ref_kind = match kind_of(&contribution_id) {
+                ContributionKind::WorkRail => "work_rail",
+                ContributionKind::SteeringQueue | ContributionKind::FollowUpQueue => "queue",
+                ContributionKind::Inspector => "inspector",
+                _ => "work_surface",
+            };
+            CandidateContribution {
+                contribution_id: contribution_id.clone(),
+                kind: kind_of(&contribution_id),
+                semantic_binding_id: semantic,
+                renderer_binding_id: renderer_of(&contribution_id),
+                priority: 10,
+                applicable_profile_ids: vec![],
+                applicable_activity_mode_ids: vec![],
+                canonical_content_refs: vec![json!({
+                    "kind": data_ref_kind,
+                    "ref": format!("surface:{}", contribution_id.trim_start_matches("contribution:")),
+                    "revision": 1,
+                    "freshness": "current",
+                })],
+                required_capabilities: vec![],
+                required_permissions: vec![],
+                required_operations: vec![],
+                geometry: json!({
+                    "preferred_regions": ["primary", "inspector"],
+                    "minimum_span": 1,
+                    "maximum_span": 12,
+                    "preferred_order": 10,
+                    "merge_policy": "compatible",
+                    "tab_policy": "preferred",
+                    "inspector_side": "profile_default",
+                }),
+            }
+        })
+        .collect()
 }
 
 fn builtin_registry_entries() -> Vec<RegistryDefinition> {

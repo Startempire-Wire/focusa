@@ -233,9 +233,9 @@
       },
       "accessibility": {
         "label": "Active Pi session",
-        "description": "Live transcript and governed prompt controls",
+        "description": "Canonical inspector for the focused Work Surface authority and state",
         "landmark_role": "region",
-        "focus_semantic_id": "focus:pi-session",
+        "focus_semantic_id": "focus:focusa-inspector",
         "live_region": "off",
         "keyboard_operation_ids": [
           "focusa.agent_execution.prompt"

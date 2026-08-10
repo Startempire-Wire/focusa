@@ -14,6 +14,8 @@
   import CommandPalette from '$lib/ui/CommandPalette.svelte';
   import { installMotionPreference, scene, setMotionPreference } from '$lib/ui/motion';
   import type { PresentationCommand } from '$lib/shell/command-manifest';
+  import type { LiveCanvasBinding } from '$lib/mission-canvas/live-canvas-bridge';
+  import { resolveLiveCanvasBinding } from '$lib/mission-canvas/live-canvas-bridge';
   import type { ResolvedWorkspaceProjection } from '$lib/mission-canvas/types';
 
   const sidebarGroups: ReadonlyArray<{ id: string; label: string; workspaceIds: readonly string[] }> = [
@@ -38,6 +40,8 @@
   });
   let activeWorkspace = $derived(workspaceById(activeWorkspaceId));
   let developmentProjection = $state<ResolvedWorkspaceProjection>();
+  let liveBinding = $state<LiveCanvasBinding>();
+  let liveBindingState = $state<'idle' | 'checking' | 'live' | 'fixture'>('idle');
   let daemonOrbState = $derived<'idle' | 'loading' | 'error'>(daemon.kind === 'checking' ? 'loading' : daemon.kind === 'unavailable' ? 'error' : 'idle');
   let missionCanvasApiAvailable = $derived(supportsMissionCanvasApi('version' in daemon ? daemon.version : undefined));
   let sidebarMode = $state<DesktopSidebarMode>('expanded');
@@ -91,9 +95,24 @@
     const previewHost = shellMode === 'browser preview';
     let cancelled = false;
     developmentProjection = undefined;
+    liveBinding = undefined;
+    liveBindingState = 'idle';
     if (import.meta.env.DEV && previewHost) {
       void import('$lib/mission-canvas/development-preview').then((module) => {
         if (!cancelled) developmentProjection = module.developmentProjection(workspaceId);
+      });
+    }
+    if (previewHost && missionCanvasApiAvailable && workspaceId === 'mission-canvas') {
+      liveBindingState = 'checking';
+      void resolveLiveCanvasBinding().then((result) => {
+        if (cancelled) return;
+        if (result.kind === 'live' && result.binding) {
+          liveBinding = result.binding;
+          liveBindingState = 'live';
+        } else {
+          liveBinding = undefined;
+          liveBindingState = 'fixture';
+        }
       });
     }
     return () => { cancelled = true; };
@@ -220,16 +239,22 @@
     {#if uiMode === 'tui'}
       <AgentTuiSurface />
     {:else if activeWorkspace.id === 'mission-canvas' || developmentProjection}
-      {#if developmentProjection}
-        <div class="development-fixture-label" role="status">Schema fixture · noncanonical development preview</div>
-        {#if daemon.kind === 'read-only' && !missionCanvasApiAvailable}
-          <p class="infra-gap-notice" role="note">
-            Mission Canvas API requires Focusa daemon 0.9.143+ (running {daemon.version}). The canvas stays
-            read-only until the daemon is upgraded; no authority is invented.
-          </p>
+      {#if liveBinding}
+        <MissionCanvasShell authority={liveBinding.authority} client={liveBinding.client} />
+      {:else}
+        {#if developmentProjection}
+          <div class="development-fixture-label" role="status">Schema fixture · noncanonical development preview</div>
+          {#if liveBindingState === 'checking'}
+            <p class="infra-gap-notice" role="note">Connecting to the local daemon for a live canonical projection…</p>
+          {:else if daemon.kind === 'read-only' && !missionCanvasApiAvailable}
+            <p class="infra-gap-notice" role="note">
+              Mission Canvas API requires Focusa daemon 0.9.143+ (running {daemon.version}). The canvas stays
+              read-only until the daemon is upgraded; no authority is invented.
+            </p>
+          {/if}
         {/if}
+        <MissionCanvasShell projection={developmentProjection} />
       {/if}
-      <MissionCanvasShell projection={developmentProjection} />
     {:else}
       <section class="workspace-heading">
         <div>
