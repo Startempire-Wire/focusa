@@ -413,12 +413,11 @@ jobs:
             args: '--target aarch64-pc-windows-msvc'
             rust_target: aarch64-pc-windows-msvc
             windows_arm64: true
-    timeout-minutes: 12
 
     runs-on: ${{ matrix.platform }}
     # Desktop artifacts are mandatory on macOS and Windows. beta_ad_hoc works
     # before Apple revenue; production_notarized is selected explicitly.
-    timeout-minutes: 25
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
 
