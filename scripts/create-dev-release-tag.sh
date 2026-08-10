@@ -165,7 +165,7 @@ wait_for_source_workflow() {
       echo "source_gate_passed: workflow=${workflow} sha=${sha} url=${url}"
       return 0
     fi
-    if jq -e --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | length > 0 and (all(.conclusion != "success"))' <<<"$runs" >/dev/null; then
+    if jq -e --arg sha "$sha" 'map(select(.headSha == $sha)) | length > 0 and all(.status == "completed") and all(.conclusion != "success")' <<<"$runs" >/dev/null; then
       conclusion="$(jq -r --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | .[0].conclusion // ""' <<<"$runs")"
       url="$(jq -r --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | .[0].url // ""' <<<"$runs")"
       echo "source_gate_failed: workflow=${workflow} sha=${sha} conclusion=${conclusion} url=${url}" >&2
