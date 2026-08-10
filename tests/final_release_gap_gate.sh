@@ -65,6 +65,7 @@ python3 scripts/reduce-locked-release-technical-closure.py --check
 python3 tests/165_focusa_locked_release_technical_closure_reducer_test.py
 python3 tests/166_focusa_locked_release_candidate_ancestry_test.py
 python3 tests/167_focusa_locked_release_governance_receipt_test.py
+python3 tests/check_workset_evidence_integrity.py
 python3 tests/168_focusa_windows_native_ota_workflow_test.py
 python3 tests/169_focusa_rel4_candidate_artifact_workflow_test.py
 bash tests/authority_scope_static_test.sh
