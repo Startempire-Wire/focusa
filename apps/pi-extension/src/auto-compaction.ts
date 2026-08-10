@@ -1271,7 +1271,7 @@ export function registerAutoCompaction(
     return { action: "continue" as const };
   });
 
-  pi.on("session_compact", async (_event, ctx) => {
+  pi.on("session_compact", async (_event, _ctx) => {
     // The public ctx.compact callback owns an active process epoch. Native/manual
     // completion may reset observation state only when no Focusa call is active.
     if (processLease.inFlightEpochId) return;
