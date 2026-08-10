@@ -17,6 +17,16 @@
     return surface.data_ref.ref === projection.focused_work_surface_id
       || surface.contribution_id === projection.focused_work_surface_id;
   }
+
+  function displayLabel(surface: ResolvedContribution): string {
+    const label = surface.accessibility.label;
+    const source = label.startsWith('contribution:') ? surface.contribution_id : label;
+    return source
+      .replace(/^contribution:/, '')
+      .replace(/^surface:/, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
 </script>
 
 {#if surfaces.length > 0}
@@ -33,7 +43,7 @@
           disabled={!onSelect}
           onclick={() => onSelect?.(surface.contribution_id)}
         >
-          {surface.accessibility.label}
+          {displayLabel(surface)}
         </button>
       {/each}
     </div>
@@ -41,7 +51,7 @@
 {/if}
 
 <style>
-  .work-surface-strip{display:flex;align-items:center;gap:var(--space-2);min-width:0;padding:var(--space-1) var(--space-2);border-block-end:1px solid var(--color-border);background:var(--color-panel)}
+  .work-surface-strip{display:flex;align-items:center;gap:var(--space-2);min-width:0;min-height:34px;padding:3px 7px;border:1px solid var(--color-border);border-radius:7px;background:var(--color-panel)}
   .strip-label{flex-shrink:0;color:var(--color-text-tertiary);font:var(--type-overline);letter-spacing:.08em;text-transform:uppercase}
   [role='tablist']{display:flex;align-items:center;gap:var(--space-1);min-width:0;overflow-x:auto}
   button{min-height:28px;padding:0 var(--space-2);border:1px solid transparent;border-radius:var(--radius-control);background:transparent;color:var(--color-text-tertiary);font:var(--type-caption);white-space:nowrap;cursor:pointer}

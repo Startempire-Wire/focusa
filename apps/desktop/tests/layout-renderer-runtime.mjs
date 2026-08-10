@@ -847,11 +847,11 @@ try {
   const { default: MissionCanvasRenderer } = await server.ssrLoadModule('/src/lib/mission-canvas/MissionCanvasRenderer.svelte');
   const { body: productionProjection } = render(MissionCanvasRenderer, { props: { projection: fixture, registry: DEFAULT_CONTRIBUTION_REGISTRY } });
   assert.match(productionProjection, /aria-label="Mission Canvas context"/);
-  assert.match(productionProjection, />Profile</);
+  assert.match(productionProjection, />Workspace</);
   assert.match(productionProjection, />Activity</);
   assert.match(productionProjection, /aria-label="Work Surfaces"/);
   assert.match(productionProjection, /data-work-surface-id="surface:pi"/);
-  assert.match(productionProjection, /data-work-surface-ref="surface:pi"/);
+  assert.match(productionProjection, />Pi Session</);
   assert.match(productionProjection, /data-layout-node="layout:root"/);
   assert.match(productionProjection, /data-layout-orientation="horizontal"/);
   assert.match(productionProjection, /data-split-ratio="0.7"/);
@@ -919,7 +919,8 @@ try {
   const { body: workRailProjection } = render(WorkRailContribution, { props: { contribution: workRail, projection: twoQueueFixture } });
   assert.match(workRailProjection, /data-work-rail-ref="work-rail:project"/);
   assert.match(workRailProjection, />Focusa Work Rail</);
-  assert.match(workRailProjection, /revision 4/);
+  assert.match(workRailProjection, /data-work-rail-revision="4"/);
+  assert.match(workRailProjection, /Projection r12/);
   assert.doesNotMatch(workRailProjection, /New Workpoint/);
   const requestedUrls = [];
   const { MissionCanvasHttpTransport, MissionCanvasTransportError } = await server.ssrLoadModule('/src/lib/mission-canvas/http-transport.ts');

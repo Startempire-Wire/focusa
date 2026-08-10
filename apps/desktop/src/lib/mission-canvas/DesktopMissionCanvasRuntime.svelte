@@ -335,7 +335,7 @@
   bind:this={presentationRoot}
   class="desktop-canvas-runtime"
   data-presentation-root="true"
-  class:has-controls={profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION)}
+  class:has-controls={profiles.length > 1}
   class:mutation-pending={mutationInFlight}
   aria-busy={mutationInFlight}
   data-runtime-state={controller.state.kind}
@@ -343,15 +343,15 @@
   {#if capabilityNotice}
     <p class="capability-notice" role="status">{capabilityNotice}</p>
   {/if}
-  {#if profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION)}
+  {#if profiles.length > 1}
     <header class="workspace-controls">
-      <WorkspaceProfileSelector profiles={profiles} activeProfileId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.workspace_profile_id : ''} onSelect={(profile) => void selectProfile(profile)}/>
+      <WorkspaceProfileSelector profiles={profiles} activeProfileId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.workspace_profile_id : ''} enabled={operationEnabled(PROFILE_SELECT_OPERATION)} onSelect={(profile) => void selectProfile(profile)}/>
     </header>
   {/if}
-  <div class="workspace-body" class:has-activity-rail={activities.length > 1 && operationEnabled(ACTIVITY_SELECT_OPERATION)}>
-    {#if activities.length > 1 && operationEnabled(ACTIVITY_SELECT_OPERATION)}
+  <div class="workspace-body" class:has-activity-rail={activities.length > 1}>
+    {#if activities.length > 1}
       <aside class="activity-rail">
-        <ActivityNavigation activities={activities} activeActivityModeId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.activity_mode_id : ''} onSelect={(activity) => void selectActivity(activity)}/>
+        <ActivityNavigation activities={activities} activeActivityModeId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.activity_mode_id : ''} enabled={operationEnabled(ACTIVITY_SELECT_OPERATION)} onSelect={(activity) => void selectActivity(activity)}/>
       </aside>
     {/if}
     <div class="canvas-stage">

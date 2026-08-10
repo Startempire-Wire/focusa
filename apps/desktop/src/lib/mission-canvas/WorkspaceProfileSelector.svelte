@@ -5,11 +5,13 @@
   let {
     profiles,
     activeProfileId,
-    onSelect
+    onSelect,
+    enabled = true
   }: {
     profiles: readonly WorkspaceProfile[];
     activeProfileId: string;
     onSelect: (profile: WorkspaceProfile) => void;
+    enabled?: boolean;
   } = $props();
 
   // The profile list is already Core-resolved. These checks are only a
@@ -25,7 +27,7 @@
     const profileId = (event.currentTarget as HTMLSelectElement | null)?.value;
     if (!profileId) return;
     const profile = renderableProfiles.find((candidate) => candidate.profile_id === profileId);
-    if (profile) onSelect(profile);
+    if (enabled && profile) onSelect(profile);
   }
 
   function trustedProfiles(value: readonly WorkspaceProfile[]): readonly WorkspaceProfile[] {
@@ -58,6 +60,8 @@
     <select
       aria-label="Workspace profile"
       value={activeProfile.profile_id}
+      disabled={!enabled}
+      title={!enabled ? 'Workspace switching is unavailable for this attachment' : 'Workspace profile'}
       onchange={selectProfile}
     >
       {#each renderableProfiles as profile (profile.profile_id)}
@@ -71,4 +75,5 @@
   .profile-selector{display:flex;align-items:center;gap:var(--space-2);min-width:0;color:var(--color-text-tertiary);font:var(--type-caption)}
   .profile-selector span{white-space:nowrap}
   select{min-width:0;max-width:18rem;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:var(--space-2) var(--space-3);background:var(--color-raised);color:var(--color-text);font:inherit}
+  select:disabled{cursor:not-allowed;opacity:.68}
 </style>

@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use thiserror::Error;
 
 use super::model::{CandidateContribution, ContributionKind};
@@ -529,6 +529,8 @@ fn builtin_activities() -> Vec<ActivityModeDefinition> {
                 "contribution:project-overview",
                 "contribution:market-overview",
                 "contribution:work-rail",
+                "contribution:steering-queue",
+                "contribution:follow-up-queue",
                 "contribution:controls",
             ],
         ),
@@ -645,7 +647,10 @@ pub fn builtin_candidates() -> Vec<CandidateContribution> {
     let renderer_of = |contribution_id: &str| -> String {
         let known = [
             ("contribution:pi-session", "renderer:pi-session@v1"),
-            ("contribution:focusa-inspector", "renderer:focusa-inspector@v1"),
+            (
+                "contribution:focusa-inspector",
+                "renderer:focusa-inspector@v1",
+            ),
             ("contribution:work-rail", "renderer:work-rail@v1"),
             ("contribution:document", "renderer:document@v1"),
             ("contribution:research", "renderer:research@v1"),
@@ -655,7 +660,12 @@ pub fn builtin_candidates() -> Vec<CandidateContribution> {
             .iter()
             .find(|(id, _)| *id == contribution_id)
             .map(|(_, renderer)| renderer.to_string())
-            .unwrap_or_else(|| format!("renderer:{}", contribution_id.trim_start_matches("contribution:")))
+            .unwrap_or_else(|| {
+                format!(
+                    "renderer:{}",
+                    contribution_id.trim_start_matches("contribution:")
+                )
+            })
     };
     let mut ids = BTreeSet::new();
     for profile in builtin_profiles() {
@@ -664,6 +674,10 @@ pub fn builtin_candidates() -> Vec<CandidateContribution> {
     for activity in builtin_activities() {
         ids.extend(activity.candidate_contribution_ids);
     }
+    // Prompt Editor is a stable Mission Canvas lane. Exact target resolution
+    // and operation availability still gate interaction; empty applicability
+    // sets deliberately make the renderer available across all profiles/modes.
+    ids.insert("contribution:prompt-editor".into());
     ids.into_iter()
         .map(|contribution_id| {
             let semantic = format!("semantic:{}", contribution_id.trim_start_matches("contribution:"));
@@ -918,12 +932,14 @@ mod tests {
             },
         ];
 
-        assert!(meaningful_activities_for_projection(
-            &activities,
-            &profile,
-            &BTreeSet::from(["contribution:live".to_owned()]),
-        )
-        .is_empty());
+        assert!(
+            meaningful_activities_for_projection(
+                &activities,
+                &profile,
+                &BTreeSet::from(["contribution:live".to_owned()]),
+            )
+            .is_empty()
+        );
     }
 
     #[test]

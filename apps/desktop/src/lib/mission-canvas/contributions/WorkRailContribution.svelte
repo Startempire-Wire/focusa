@@ -35,7 +35,7 @@
 >
   <header>
     <div>
-      <strong>{contribution.accessibility.label}</strong>
+      <strong>Focusa Work Rail</strong>
       {#if contribution.accessibility.description}
         <span>{contribution.accessibility.description}</span>
       {/if}
@@ -47,10 +47,10 @@
 
   <div class="rail-row">
     <div class="rail-reference">
-      <span>{contribution.data_ref.kind}</span>
-      <code>{contribution.data_ref.ref}</code>
+      <span>{projection.workstream.scope.scope_key.canonical_name ?? 'Current project'}</span>
+      <strong>{projection.focused_semantic_target ? 'Current work focused' : 'Project work available'}</strong>
     </div>
-    <span class="revision">revision {contribution.data_ref.revision}</span>
+    <span class="revision">Projection r{projection.projection_revision}</span>
   </div>
 
   {#if bindings.length > 0}

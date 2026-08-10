@@ -114,34 +114,119 @@ pub fn resolve_layout(
         })
         .map(|candidate| candidate.contribution_id.clone())
         .collect::<Vec<_>>();
-    let primary_candidates = candidates
+    let content = candidates
         .iter()
         .filter(|candidate| {
-            !matches!(
+            matches!(
                 candidate.kind,
-                ContributionKind::Inspector | ContributionKind::InspectorSection
+                ContributionKind::FocusedWorkSurface
+                    | ContributionKind::GeneratedSurface
+                    | ContributionKind::ContextualAction
             )
         })
         .collect::<Vec<_>>();
-    let mut primary = layout_primary(&primary_candidates, constraints);
-    if primary_candidates.is_empty() {
-        let first = inspectors[0].clone();
-        primary = LayoutNode::Single {
-            node_id: "layout:primary-fallback".into(),
-            contribution_id: first,
-        };
+    let controls = candidates
+        .iter()
+        .filter(|candidate| {
+            matches!(
+                candidate.kind,
+                ContributionKind::ToolbarControl | ContributionKind::TransientNotification
+            )
+        })
+        .collect::<Vec<_>>();
+    let rails = candidates
+        .iter()
+        .filter(|candidate| candidate.kind == ContributionKind::WorkRail)
+        .collect::<Vec<_>>();
+    let queues = candidates
+        .iter()
+        .filter(|candidate| {
+            matches!(
+                candidate.kind,
+                ContributionKind::SteeringQueue | ContributionKind::FollowUpQueue
+            )
+        })
+        .collect::<Vec<_>>();
+    let composers = candidates
+        .iter()
+        .filter(|candidate| candidate.kind == ContributionKind::PromptEditor)
+        .collect::<Vec<_>>();
+    let shell = candidates
+        .iter()
+        .filter(|candidate| {
+            matches!(
+                candidate.kind,
+                ContributionKind::WorkSurfaceStrip
+                    | ContributionKind::ScopeBar
+                    | ContributionKind::ActivityNavigation
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let mut lanes = Vec::new();
+    lanes.extend(single_nodes(&controls, "control"));
+
+    if !content.is_empty() {
+        let mut primary = layout_primary(&content, constraints);
+        if !inspectors.is_empty() {
+            primary = LayoutNode::Inspector {
+                node_id: "layout:workspace".into(),
+                side: constraints.inspector_side,
+                primary: Box::new(primary),
+                inspector_contribution_ids: inspectors.clone(),
+                span: 3,
+            };
+        }
+        lanes.push(primary);
+    } else {
+        lanes.extend(single_ids(&inspectors, "inspector"));
     }
-    if !inspectors.is_empty() && !primary_candidates.is_empty() {
-        primary = LayoutNode::Inspector {
-            node_id: "layout:inspector".into(),
-            side: constraints.inspector_side,
-            primary: Box::new(primary),
-            inspector_contribution_ids: inspectors,
-            span: 3,
-        };
+
+    lanes.extend(single_nodes(&rails, "rail"));
+    if queues.len() > 1 {
+        lanes.push(LayoutNode::Split {
+            node_id: "layout:queues".into(),
+            orientation: SplitOrientation::Vertical,
+            ratio: 0.5,
+            children: single_nodes(&queues, "queue"),
+        });
+    } else {
+        lanes.extend(single_nodes(&queues, "queue"));
     }
-    validate_no_dead_chrome(&primary, &ids.iter().cloned().collect())?;
-    Ok(primary)
+    lanes.extend(single_nodes(&composers, "composer"));
+    lanes.extend(single_nodes(&shell, "shell"));
+
+    let root = if lanes.len() == 1 {
+        lanes.remove(0)
+    } else {
+        LayoutNode::Stack {
+            node_id: "layout:mission-canvas".into(),
+            children: lanes,
+        }
+    };
+    validate_no_dead_chrome(&root, &ids.iter().cloned().collect())?;
+    Ok(root)
+}
+
+fn single_nodes(candidates: &[&CandidateContribution], lane: &str) -> Vec<LayoutNode> {
+    candidates
+        .iter()
+        .enumerate()
+        .map(|(index, candidate)| LayoutNode::Single {
+            node_id: format!("layout:{lane}:{index}"),
+            contribution_id: candidate.contribution_id.clone(),
+        })
+        .collect()
+}
+
+fn single_ids(ids: &[String], lane: &str) -> Vec<LayoutNode> {
+    ids.iter()
+        .enumerate()
+        .map(|(index, contribution_id)| LayoutNode::Single {
+            node_id: format!("layout:{lane}:{index}"),
+            contribution_id: contribution_id.clone(),
+        })
+        .collect()
 }
 
 fn layout_primary(
@@ -335,6 +420,44 @@ mod tests {
         )
         .unwrap();
         assert!(matches!(layout, LayoutNode::Single { .. }));
+    }
+
+    #[test]
+    fn composes_authorized_mission_canvas_lanes_by_semantic_role() {
+        let values = vec![
+            candidate("contribution:controls", ContributionKind::ToolbarControl),
+            candidate("contribution:surface", ContributionKind::FocusedWorkSurface),
+            candidate("contribution:inspector", ContributionKind::Inspector),
+            candidate("contribution:rail", ContributionKind::WorkRail),
+            candidate("contribution:steering", ContributionKind::SteeringQueue),
+            candidate("contribution:follow-up", ContributionKind::FollowUpQueue),
+            candidate("contribution:prompt", ContributionKind::PromptEditor),
+        ];
+        let layout = resolve_layout(
+            &values,
+            &LayoutConstraints {
+                viewport_width: 1440,
+                viewport_height: 900,
+                minimum_primary_span: 7,
+                inspector_side: InspectorSide::End,
+                focused_contribution_id: Some("contribution:surface".into()),
+            },
+        )
+        .unwrap();
+        let LayoutNode::Stack { children, .. } = layout else {
+            panic!("authorized standard layout must be a semantic lane stack");
+        };
+        assert!(
+            matches!(children[0], LayoutNode::Single { ref contribution_id, .. } if contribution_id == "contribution:controls")
+        );
+        assert!(matches!(children[1], LayoutNode::Inspector { .. }));
+        assert!(
+            matches!(children[2], LayoutNode::Single { ref contribution_id, .. } if contribution_id == "contribution:rail")
+        );
+        assert!(matches!(children[3], LayoutNode::Split { .. }));
+        assert!(
+            matches!(children[4], LayoutNode::Single { ref contribution_id, .. } if contribution_id == "contribution:prompt")
+        );
     }
 
     #[test]
