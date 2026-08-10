@@ -1389,11 +1389,6 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
-        template: "/v1/project/discover",
-        feature: "focusa.core.mission",
-        limit_bucket: Some("missions"),
-    },
-    RouteEntitlementRequirement {
         template: "/v1/project/genesis/commit",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
@@ -1415,11 +1410,6 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/project/identity",
-        feature: "focusa.core.mission",
-        limit_bucket: Some("missions"),
-    },
-    RouteEntitlementRequirement {
-        template: "/v1/project/list",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
     },

@@ -5,6 +5,10 @@
 # to the shared activation client and is never evaluated or issued locally.
 set -euo pipefail
 
+# Safe version surface: `--version` prints the installer version and exits 0.
+# Never derived from remote/admin state.
+FOCUSA_INSTALLER_VERSION="0.9.144"
+
 GITHUB_REPO="${FOCUSA_GITHUB_REPO:-Startempire-Wire/focusa}"
 RELEASE_BASE_URL="${FOCUSA_RELEASE_BASE_URL:-}"
 RELEASE_TAG="${FOCUSA_RELEASE_TAG:-}"
@@ -43,6 +47,10 @@ Usage: install-focusa.sh [options]
   -h, --help               show this help
 
 Raw license keys and email addresses are intentionally not accepted. The Rust
+# License purchases and reissues happen at the public storefront; the installer
+# never touches admin surfaces: https://install.focusa.dev/license (purchase) and
+# https://focusa.dev/support (reissue/support).
+
 installer resolves or acquires a signed, node-bound authority lease and safely
 presents the device verification URL and user-code handle. Evaluation is
 authority-issued only; the bootstrapper never creates local evaluation state.
@@ -57,6 +65,13 @@ warn() { printf '\033[1;33m[focusa-install]\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[1;31m[focusa-install]\033[0m %s\n' "$*" >&2; exit 1; }
 usage_die() { printf '\033[1;31m[focusa-install]\033[0m %s\n' "$*" >&2; exit 64; }
 have() { command -v "$1" >/dev/null 2>&1; }
+
+case "${1:-}" in
+  --version|-v)
+    printf 'focusa-installer %s\n' "$FOCUSA_INSTALLER_VERSION"
+    exit 0
+    ;;
+esac
 
 for arg in "$@"; do
   case "$arg" in

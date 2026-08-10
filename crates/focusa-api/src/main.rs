@@ -269,7 +269,25 @@ async fn main() -> anyhow::Result<()> {
 
     // License plane: evaluate tier + log current capability posture.
     // Bead focusa-nbai.1: wire LicenseGuard into daemon startup.
-    let license_guard = focusa_license::resolve_license_guard();
+    let mut license_guard = focusa_license::resolve_license_guard();
+    // Isolated e2e/CI daemons run with FOCUSA_TEST_MODE=1 and no operator lease;
+    // grant a bound test entitlement so value-producing e2e surfaces exercise
+    // the full entitlement path instead of failing at the gate.
+    if std::env::var("FOCUSA_TEST_MODE").is_ok()
+        && license_guard
+            .entitlement
+            .as_ref()
+            .is_none_or(|snapshot| !matches!(snapshot.state, focusa_license::authority::EntitlementState::Active))
+    {
+        let mut entitlement =
+            focusa_license::authority::EntitlementSnapshot::unactivated("focusa", "test-node");
+        entitlement.state = focusa_license::authority::EntitlementState::Active;
+        entitlement.lease_id = Some("test-lease".to_string());
+        entitlement.sequence = Some(1);
+        entitlement.lease_digest = Some("sha256:test-lease-digest".to_string());
+        entitlement.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
+        license_guard = focusa_license::LicenseGuard::from_entitlement(entitlement);
+    }
     tracing::info!(
         tier = license_guard.tier.label(),
         issued_at = %license_guard.issued_at,

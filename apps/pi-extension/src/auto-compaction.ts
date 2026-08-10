@@ -159,6 +159,7 @@ type CompactionLeaseOwner = {
   nativeSession?: string;
   registeredHandlers: string[];
   moduleLoadId: string;
+  moduleIdentity?: string;
 };
 
 type CompactionOperatorOverride = {
@@ -465,9 +466,13 @@ function estimateEntryRange(entries: readonly BranchEntry[], start: number, end:
 // Stable across duplicate module loads (including ?duplicate-install query
 // instances): the first load owns the identity, so the duplicate-install guard
 // can detect re-registration instead of treating each copy as a new owner.
-const MODULE_LOAD_ID: string =
-  ((globalThis as any)[Symbol.for("focusa.compaction.module-load-id")] as string | undefined) ??
-  ((globalThis as any)[Symbol.for("focusa.compaction.module-load-id")] = `load-${randomUUID()}`);
+const MODULE_LOAD_ID = randomUUID();
+// Stable identity across duplicate loads of the same file (including query-string
+// re-imports): reloads of a different module path re-register; duplicates of the
+// same file are suppressed without re-registering handlers.
+const MODULE_IDENTITY: string =
+  ((globalThis as any)[Symbol.for("focusa.compaction.module-identity")] as string | undefined) ??
+  ((globalThis as any)[Symbol.for("focusa.compaction.module-identity")] = `focusa-compaction:${import.meta.url.split("?")[0]}`);
 
 /** Test-only: release the process compaction lease so a fresh harness can
  * register as a new owner. Never called in production paths. */
@@ -492,7 +497,10 @@ export function registerAutoCompaction(
 ): boolean {
   const processLease = processCompactionLease();
   if (processLease.owner) {
-    if (processLease.owner.moduleLoadId === MODULE_LOAD_ID) {
+    if (
+      processLease.owner.moduleLoadId === MODULE_LOAD_ID ||
+      processLease.owner.moduleIdentity === MODULE_IDENTITY
+    ) {
       if (!processLease.duplicateDiagnosticEmitted) {
         processLease.duplicateDiagnosticEmitted = true;
         console.warn(
@@ -518,6 +526,7 @@ export function registerAutoCompaction(
     attachmentId: `pending:${registrationId}`,
     registeredHandlers: [...REGISTERED_HANDLERS],
     moduleLoadId: MODULE_LOAD_ID,
+    moduleIdentity: MODULE_IDENTITY,
   };
   processLease.duplicateDiagnosticEmitted = false;
   const ownsRegistrationLease = (): boolean => processLease.owner?.registrationId === registrationId;
