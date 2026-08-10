@@ -132,6 +132,7 @@ jobs:
       - name: API contract probe
         env:
           FOCUSA_BIND: 127.0.0.1:18787
+          FOCUSA_TEST_MODE: "1"
         run: |
           set -euo pipefail
           cargo build -p focusa-api --release --bin focusa-daemon
@@ -167,4 +168,5 @@ jobs:
         env:
           FOCUSA_BASE_URL: http://127.0.0.1:18787
           FOCUSA_BIND: 127.0.0.1:18787
+          FOCUSA_TEST_MODE: "1"
         run: ./scripts/ci/run-spec-gates.sh
