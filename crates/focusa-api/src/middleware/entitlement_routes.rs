@@ -1519,29 +1519,19 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
-        template: "/v1/reflect/history",
-        feature: "focusa.core.mission",
-        limit_bucket: Some("missions"),
-    },
-    RouteEntitlementRequirement {
         template: "/v1/reflect/run",
         feature: "focusa.core.mission",
-        limit_bucket: Some("missions"),
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/reflect/scheduler",
         feature: "focusa.core.mission",
-        limit_bucket: Some("missions"),
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/reflect/scheduler/tick",
         feature: "focusa.core.mission",
-        limit_bucket: Some("missions"),
-    },
-    RouteEntitlementRequirement {
-        template: "/v1/reflect/status",
-        feature: "focusa.core.mission",
-        limit_bucket: Some("missions"),
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/release/proof/status",

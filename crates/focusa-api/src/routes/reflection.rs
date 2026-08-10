@@ -1293,6 +1293,10 @@ mod tests {
                 let mut entitlement =
                     focusa_license::authority::EntitlementSnapshot::unactivated("focusa", "test-node");
                 entitlement.state = focusa_license::authority::EntitlementState::Active;
+                entitlement.lease_id = Some("test-lease".to_string());
+                entitlement.sequence = Some(1);
+                entitlement.lease_digest = Some("sha256:test-lease-digest".to_string());
+                entitlement.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
                 focusa_license::LicenseGuard::from_entitlement(entitlement)
             },
             persistence,
@@ -1492,7 +1496,11 @@ mod tests {
                 .to_string(),
             ))
             .expect("run");
-        let _ = app.clone().oneshot(run).await.expect("run resp");
+        let run_r = app.clone().oneshot(run).await.expect("run resp");
+        let run_status = run_r.status();
+        let run_body = to_bytes(run_r.into_body(), usize::MAX).await.expect("run body");
+        eprintln!("RUN status: {:?} body: {}", run_status, String::from_utf8_lossy(&run_body).chars().take(300).collect::<String>());
+        let _ = run_body;
 
         let enable = Request::builder()
             .method("POST")
@@ -1510,7 +1518,9 @@ mod tests {
             .header("content-type", "application/json")
             .body(Body::from("{}"))
             .expect("tick");
-        let _ = app.clone().oneshot(tick).await.expect("tick resp");
+        let tick_r = app.clone().oneshot(tick).await.expect("tick resp");
+        eprintln!("TICK status: {:?}", tick_r.status());
+        let _ = tick_r;
 
         let hist = Request::builder()
             .method("GET")

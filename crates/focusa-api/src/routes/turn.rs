@@ -641,6 +641,10 @@ mod tests {
                 let mut entitlement =
                     focusa_license::authority::EntitlementSnapshot::unactivated("focusa", "test-node");
                 entitlement.state = focusa_license::authority::EntitlementState::Active;
+                entitlement.lease_id = Some("test-lease".to_string());
+                entitlement.sequence = Some(1);
+                entitlement.lease_digest = Some("sha256:test-lease-digest".to_string());
+                entitlement.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
                 focusa_license::LicenseGuard::from_entitlement(entitlement)
             },
             persistence: persistence.clone(),
