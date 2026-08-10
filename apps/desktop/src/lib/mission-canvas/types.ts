@@ -596,6 +596,14 @@ function count(value: unknown): number {
 }
 
 function cloneJson<T>(value: T): T {
-  if (typeof globalThis.structuredClone === 'function') return globalThis.structuredClone(value);
+  if (typeof globalThis.structuredClone === 'function') {
+    try {
+      return globalThis.structuredClone(value);
+    } catch {
+      // Svelte 5 $state proxies are not structured-cloneable; JSON round-trip
+      // strips the proxy and yields plain data.
+      return JSON.parse(JSON.stringify(value)) as T;
+    }
+  }
   return JSON.parse(JSON.stringify(value)) as T;
 }

@@ -471,7 +471,16 @@ function freezeProjection(projection: ResolvedWorkspaceProjection): ResolvedWork
 }
 
 function cloneJson<T>(value: T): T {
-  if (typeof globalThis.structuredClone === 'function') return globalThis.structuredClone(value);
+  if (typeof globalThis.structuredClone === 'function') {
+    try {
+      return globalThis.structuredClone(value);
+    } catch {
+      // Svelte 5 $state wraps values in reactive proxies that structuredClone
+      // cannot serialize (DataCloneError on internal functions). Fall back to
+      // JSON round-trip which strips the proxy and yields plain data.
+      return JSON.parse(JSON.stringify(value)) as T;
+    }
+  }
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
