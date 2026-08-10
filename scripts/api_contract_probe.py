@@ -537,6 +537,9 @@ def main():
             }
         )
     )
+    if report["failures"]:
+        for f in report["failures"]:
+            print(f"FAIL: {f['name']} -> {json.dumps(f['details'])[:400]}")
     return 0 if report["pass"] else 1
 
 
