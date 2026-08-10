@@ -152,7 +152,7 @@
   <title>Focusa Desktop</title>
 </svelte:head>
 
-<div class="desktop-shell" class:tui-mode={uiMode === 'tui'} class:sidebar-compact={sidebarMode === 'compact'} style={`--sidebar-width:${sidebarWidth}px`}>
+<div class="desktop-shell" class:tui-mode={uiMode === 'tui'} class:canvas-mode={uiMode === 'canvas'} class:sidebar-compact={sidebarMode === 'compact'} style={`--sidebar-width:${sidebarWidth}px`}>
   <header class="titlebar">
     <div class="brand-lockup" aria-label="Focusa Desktop">
       <span class="brand-mark" aria-hidden="true">F</span>

@@ -1,0 +1,20 @@
+{
+  "evidence_id": "LIVE-RECOMPOSE-001",
+  "schema": "focusa.evidence.v1",
+  "task": "LIVE-007",
+  "title": "Real-time dynamic recomposition proven live in a browser",
+  "result": "Same daemon + same Pi session, activity overview -> tasks: browser DOM rendered 4 contributions (controls, pi-session, project-overview, work-rail; 81,972B) then 1 contribution (work-rail; 78,416B). Projection revisions 6->7. profile.select software<->legal also changed composition (4 vs 2 contributions). Spec 135a #4: same projects/workstreams recompose without losing mission/queues/sessions/Work Surfaces.",
+  "evidence_refs": [
+    "browser:chrome-headless:domA:overview",
+    "browser:chrome-headless:domB:tasks",
+    "daemon:activity.select:tasks",
+    "daemon:profile.select:legal"
+  ],
+  "spec_refs": [
+    "docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md#16",
+    "docs/135a#801",
+    "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png",
+    "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png"
+  ],
+  "date": "2026-08-10"
+}

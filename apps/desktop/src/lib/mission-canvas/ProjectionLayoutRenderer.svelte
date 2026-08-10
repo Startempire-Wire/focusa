@@ -235,13 +235,14 @@
     }
   };
 
-  function stackRole(child: LayoutNode): 'rail' | 'queue' | 'composer' | 'content' {
+  function stackRole(child: LayoutNode): 'control' | 'rail' | 'queue' | 'composer' | 'content' {
     const ids = child.kind === 'single'
       ? [child.contribution_id]
       : child.kind === 'tabs'
         ? child.contribution_ids
         : [];
     const kinds = ids.map((id) => contribution(id)?.kind).filter(Boolean);
+    if (kinds.length > 0 && kinds.every((kind) => kind === 'toolbar_control' || kind === 'transient_notification')) return 'control';
     if (kinds.includes('work_rail')) return 'rail';
     if (kinds.length > 0 && kinds.every((kind) => kind === 'steering_queue' || kind === 'follow_up_queue')) return 'queue';
     if (kinds.includes('prompt_editor')) return 'composer';
@@ -289,7 +290,7 @@
 {:else if node.kind === 'stack'}
   <div class="layout-stack" data-layout-node={node.node_id} data-gap-token={stackGapToken(node)}>
     {#each node.children as child, index (`${child.node_id}:${index}`)}
-      <div data-stack-index={index} class="stack-child" class:rail-region={stackRole(child) === 'rail'} class:queue-region={stackRole(child) === 'queue'} class:composer-region={stackRole(child) === 'composer'}>
+      <div data-stack-index={index} class="stack-child" class:control-region={stackRole(child) === 'control'} class:rail-region={stackRole(child) === 'rail'} class:queue-region={stackRole(child) === 'queue'} class:composer-region={stackRole(child) === 'composer'}>
         <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab} {registry}/>
       </div>
     {/each}
@@ -364,7 +365,7 @@
   .layout-split.vertical{grid-template-columns:1fr;grid-template-rows:minmax(0,calc(var(--split-ratio) * 100%)) minmax(0,1fr)}
   .split-child{min-width:0;min-height:0}
   .layout-stack{min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;gap:var(--layout-cluster-gap)}
-  .stack-child{min-width:0;min-height:0;flex:1 1 auto}.stack-child.rail-region,.stack-child.queue-region{flex:0 0 auto}.stack-child.composer-region{flex:0 1 30%;min-height:140px}
+  .stack-child{min-width:0;min-height:0;flex:1 1 auto}.stack-child.control-region,.stack-child.rail-region,.stack-child.queue-region{flex:0 0 auto}.stack-child.composer-region{flex:0 1 30%;min-height:140px}
   .layout-grid{min-width:0;min-height:0;height:100%;display:grid;grid-template-columns:repeat(var(--layout-columns),minmax(0,1fr));gap:var(--layout-cluster-gap)}
   .grid-child{min-width:0;min-height:0}
   .layout-tabs{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr)}

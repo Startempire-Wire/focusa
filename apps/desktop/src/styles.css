@@ -21,6 +21,9 @@ button:focus-visible { outline: 2px solid var(--color-accent-bright); outline-of
 }
 
 .desktop-shell.sidebar-compact { grid-template-columns: minmax(0, 1fr) 64px; }
+.desktop-shell.canvas-mode { grid-template-columns: minmax(0, 1fr); }
+.desktop-shell.canvas-mode > .sidebar { display: none; }
+.desktop-shell.canvas-mode main { grid-column: 1; }
 .desktop-shell.tui-mode { grid-template-columns: minmax(0, 1fr); }
 .desktop-shell.tui-mode main { grid-column: 1; }
 

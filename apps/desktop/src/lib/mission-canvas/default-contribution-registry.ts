@@ -1,4 +1,7 @@
 import CanonicalReferenceContribution from './contributions/CanonicalReferenceContribution.svelte';
+import PiSessionContribution from './contributions/PiSessionContribution.svelte';
+import ProjectOverviewContribution from './contributions/ProjectOverviewContribution.svelte';
+import ProjectionControlsContribution from './contributions/ProjectionControlsContribution.svelte';
 import PromptEditorContribution from './contributions/PromptEditorContribution.svelte';
 import SteeringQueueContribution from './contributions/SteeringQueueContribution.svelte';
 import FollowUpQueueContribution from './contributions/FollowUpQueueContribution.svelte';
@@ -14,7 +17,7 @@ export const DEFAULT_CONTRIBUTION_RENDERERS = [
     rendererBindingId: 'renderer:pi-session@v1',
     semanticBindingIds: ['semantic:pi-session'],
     contributionKinds: ['focused_work_surface'],
-    component: WorkSurfaceContribution
+    component: PiSessionContribution
   },
   {
     // Canonical project overview: the focused Work Surface for the software
@@ -22,7 +25,7 @@ export const DEFAULT_CONTRIBUTION_RENDERERS = [
     rendererBindingId: 'renderer:project-overview',
     semanticBindingIds: ['semantic:project-overview'],
     contributionKinds: ['focused_work_surface'],
-    component: WorkSurfaceContribution
+    component: ProjectOverviewContribution
   },
   {
     // Canonical toolbar controls contribution (e.g. profile/activity selectors)
@@ -30,7 +33,7 @@ export const DEFAULT_CONTRIBUTION_RENDERERS = [
     rendererBindingId: 'renderer:controls',
     semanticBindingIds: ['semantic:controls'],
     contributionKinds: ['toolbar_control'],
-    component: CanonicalReferenceContribution
+    component: ProjectionControlsContribution
   },
   {
     rendererBindingId: 'renderer:document@v1',
