@@ -1,0 +1,18 @@
+{
+  "evidence_id": "LIVE-BROWSER-001",
+  "schema": "focusa.evidence.v1",
+  "task": "LIVE-006",
+  "title": "Live daemon projection renders in a real browser",
+  "result": "Chrome headless dump-dom 82KB: data-runtime-state=ready, no renderer-blocked banner, 4 live contributions (controls, pi-session, project-overview, work-rail) from daemon builtin catalog; screenshot 167KB with content in all viewport bands",
+  "evidence_refs": [
+    "browser:chrome-headless:dump-dom:1430",
+    "uiai-browser:live-projection"
+  ],
+  "root_causes_fixed": [
+    "effect loop (untrack controller.state reads in main effect)",
+    "renderer bindings for project-overview/controls",
+    "vite fs.allow for fixture imports",
+    "stale reduced-geometry projection in daemon sqlite store"
+  ],
+  "date": "2026-08-10"
+}
