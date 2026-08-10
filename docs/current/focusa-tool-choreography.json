@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 0,
+  "tool_count": 136,
   "edge_count": 384,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [

@@ -398,7 +398,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_daemon_routing_status",
     label: "Daemon Routing Status",
     purpose: "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
-    family: "project_identity" as const,
+    family: "project_identity",
     ontology_action: "daemon_routing.resolve",
     ontology_objects: ["ProjectIdentity", "DaemonRegistry"],
     api_routes: ["POST /v1/daemon-routing/resolve"],
@@ -607,7 +607,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     label: "Project Identity",
     purpose:
       "Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context.",
-    family: "project_identity" as const,
+    family: "project_identity",
     ontology_action: "project.identity",
     ontology_objects: ["ProjectIdentity"],
     api_routes: ["GET /v1/project/identity"],
@@ -628,7 +628,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     label: "Project Card",
     purpose:
       "Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap.",
-    family: "project_identity" as const,
+    family: "project_identity",
     ontology_action: "project.card",
     ontology_objects: [
       "ProjectIdentity",
@@ -655,7 +655,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     label: "Project Card Outcome",
     purpose:
       "Attach a verified result to a project-card algorithm_run_id so project-card learning weights and future bootstrap/sequence planning can improve.",
-    family: "project_identity" as const,
+    family: "project_identity",
     ontology_action: "project.card_outcome",
     ontology_objects: ["ProjectIdentity", "PredictionRecord", "MetacognitionStore", "EvidenceRef"],
     api_routes: ["POST /v1/project/card/outcome"],
@@ -709,7 +709,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     label: "Project Verify",
     purpose:
       "Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state.",
-    family: "project_identity" as const,
+    family: "project_identity",
     ontology_action: "project.verify",
     ontology_objects: ["ProjectIdentity"],
     api_routes: ["POST /v1/project/verify"],
@@ -729,7 +729,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     label: "Project Bootstrap",
     purpose:
       "Preview, apply, inspect, or repair an idempotent local project-discipline baseline with explicit Git/task choices, receipts, rollback, and Project Genesis handoff.",
-    family: "project_identity" as const,
+    family: "project_identity",
     ontology_action: "project.bootstrap",
     ontology_objects: [
       "ProjectIdentity",
@@ -762,7 +762,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     label: "Project Genesis",
     purpose:
       "Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.",
-    family: "project_identity" as const,
+    family: "project_identity",
     ontology_action: "project.genesis",
     ontology_objects: [
       "ProjectIdentity",

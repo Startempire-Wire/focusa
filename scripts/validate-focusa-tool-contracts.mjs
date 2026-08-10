@@ -57,7 +57,7 @@ if (toolNames.length !== uniqueToolNames.length) {
 
 const preloadMatch = contractsSrc.match(/const PRELOAD_TOOL_CONTRACTS: FocusaToolContract\[] = (\[[\s\S]*?\])\.map/);
 const agentRuntimeMatch = contractsSrc.match(/const AGENT_RUNTIME_TOOL_CONTRACTS: FocusaToolContract\[] = (\[[\s\S]*?\])\.map/);
-const jsonMatch = contractsSrc.match(/export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract\[] = ([\s\S]*?)\n\](?:\.map|\)|;)/);
+const jsonMatch = contractsSrc.match(/export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract\[] = ([\s\S]*?)\n\](?:\s*as\s+[\w\[\].]+\)?\.map|\.map|\)|;)/);
 if (!preloadMatch) {
   fail('could not parse PRELOAD_TOOL_CONTRACTS registry');
 }
@@ -120,7 +120,7 @@ if (preloadMatch && agentRuntimeMatch && jsonMatch) {
       ? { kind: 'canonical', path: '/v1/agent-runtime/delivery/commit' }
       : { kind: 'advisory_only' },
   }));
-  const baseContractsLiteral = jsonMatch[1]
+  const baseContractsLiteral = jsonMatch[1].replace(/^[(]/, "")
     .replace(/\.\.\.PRELOAD_TOOL_CONTRACTS\s*,?/, '')
     .replace(/\.\.\.AGENT_RUNTIME_TOOL_CONTRACTS\s*,?/, '');
   const baseContracts = parseJsonLikeTsLiteral(`${baseContractsLiteral}\n]`);
