@@ -1477,17 +1477,11 @@ pub fn is_focusa_verified_no_license_family_allowed(
             if family == "manual_project" {
                 return mutable_project_count <= 1;
             }
-            SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES
-                .iter()
-                .any(|allowed| *allowed == family)
+            SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES.contains(&family)
         }
         "uiai_engine" => {
-            SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES
-                .iter()
-                .any(|allowed| *allowed == family)
-                && !SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES
-                    .iter()
-                    .any(|blocked| *blocked == family)
+            SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES.contains(&family)
+                && !SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES.contains(&family)
         }
         _ => false,
     }

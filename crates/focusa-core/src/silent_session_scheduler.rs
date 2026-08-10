@@ -1,5 +1,8 @@
 //! Silent Session dispatch overlay for the one canonical Work Loop scheduler.
 
+// Dispatch denials intentionally retain their complete entitlement evidence.
+#![allow(clippy::result_large_err)]
+
 use crate::silent_session::SilentSessionId;
 use crate::silent_session_resources::ResourceAdmissionDecision;
 use crate::silent_session_writer::WriterAdmissionDecision;

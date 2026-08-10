@@ -2299,7 +2299,7 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
     let config_dir = home.join(".config/focusa");
     let required_feature = install_channel_feature(channel);
 
-    if let Some(snapshot) = resolve_installer_entitlement(&config_dir, &required_feature)? {
+    if let Some(snapshot) = resolve_installer_entitlement(&config_dir, required_feature)? {
         return Ok(format!(
             "authority_{}_sequence_{}",
             entitlement_state_label(snapshot.state),
@@ -2344,10 +2344,10 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
     if crate::commands::activation_flow::interactive_available() {
         authorize_installer_activation_flow(&config_dir, args, channel).await?;
     } else {
-        acquire_installer_entitlement(&config_dir, &required_feature, args.json).await?;
+        acquire_installer_entitlement(&config_dir, required_feature, args.json).await?;
     }
     let snapshot =
-        resolve_installer_entitlement(&config_dir, &required_feature)?.ok_or_else(|| {
+        resolve_installer_entitlement(&config_dir, required_feature)?.ok_or_else(|| {
             anyhow!(
                 "E_AUTHORITY_LEASE_UNUSABLE: authority authorization completed without a usable signed product/channel lease"
             )

@@ -92,6 +92,9 @@ impl LifetimeEntitlement {
     /// No caller-controlled product, License Type, term, price, family, limit,
     /// node, or commercial right is accepted: every field is validated against
     /// the canonical Operator lifetime registrations and fails closed.
+    ///
+    /// These parameters are the frozen lifetime credential contract.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         product: impl Into<String>,
         license_type: impl Into<String>,

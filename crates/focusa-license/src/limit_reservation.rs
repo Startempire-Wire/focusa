@@ -186,6 +186,9 @@ impl LimitReservationService {
     /// identifier used for replay detection; `now` is explicit so Offline Grace
     /// cannot be extended by a caller. Capacity comes only from
     /// `snapshot.limits`, which is authority-owned.
+    ///
+    /// These parameters are the frozen atomic reservation contract.
+    #[allow(clippy::too_many_arguments)]
     pub fn reserve(
         &mut self,
         snapshot: &EntitlementSnapshot,

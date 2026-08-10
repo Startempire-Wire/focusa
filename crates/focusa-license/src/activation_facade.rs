@@ -497,10 +497,10 @@ impl ActivationRequestContext {
             ));
         }
         if operation.is_mutation()
-            && !self
+            && self
                 .idempotency_key
                 .as_deref()
-                .is_some_and(|value| !value.trim().is_empty())
+                .is_none_or(|value| value.trim().is_empty())
         {
             return Err(ActivationError::new(
                 ActivationErrorCode::IdempotencyKeyRequired,

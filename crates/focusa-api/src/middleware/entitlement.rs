@@ -92,10 +92,10 @@ const ROUTE_UNCLASSIFIED_ERROR: &str =
 
 fn entitlement_metadata() -> Option<&'static EntitlementMetadata> {
     static ENTITLEMENT_METADATA: OnceLock<Result<EntitlementMetadata, String>> = OnceLock::new();
-    match ENTITLEMENT_METADATA.get_or_init(load_entitlement_metadata) {
-        Ok(metadata) => Some(metadata),
-        Err(_) => None,
-    }
+    ENTITLEMENT_METADATA
+        .get_or_init(load_entitlement_metadata)
+        .as_ref()
+        .ok()
 }
 
 fn load_entitlement_metadata() -> Result<EntitlementMetadata, String> {
@@ -445,9 +445,7 @@ fn route_entitlement_denial(
 
 fn resolve_route_entitlement_policy(method: &Method, path: &str) -> Option<RouteEntitlementPolicy> {
     if let Some(allowance) = route_recovery_allowance(path) {
-        let Some(capability_family) = allowance.implied_family() else {
-            return None;
-        };
+        let capability_family = allowance.implied_family()?;
         return Some(RouteEntitlementPolicy {
             operation_id: synthetic_operation_id(method, path),
             operation_class: focusa_license::OperationClass::Recovery,
@@ -566,8 +564,7 @@ fn synthetic_operation_id(method: &Method, path: &str) -> String {
     let segments = path
         .trim_matches('/')
         .replace('/', ".")
-        .replace('{', "")
-        .replace('}', "");
+        .replace(['{', '}'], "");
     let normalized = if segments.is_empty() {
         "root"
     } else {

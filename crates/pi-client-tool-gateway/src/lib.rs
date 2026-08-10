@@ -17,7 +17,7 @@ use std::{
 };
 use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ToolEntitlementPolicy {
     #[serde(default)]
     pub operation_class: Option<String>,
@@ -29,16 +29,6 @@ pub struct ToolEntitlementPolicy {
     pub limit_bucket: Option<String>,
 }
 
-impl Default for ToolEntitlementPolicy {
-    fn default() -> Self {
-        Self {
-            operation_class: None,
-            capability_family: None,
-            required_feature: None,
-            limit_bucket: None,
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ToolManifest {
@@ -130,18 +120,11 @@ fn entitlement_policy_for_manifest(
                 .as_deref()
                 .and_then(parse_operation_class)
         })
-        .or_else(|| {
-            if is_read_fallback {
-                Some(focusa_license::OperationClass::Read)
-            } else {
-                Some(focusa_license::OperationClass::ValueMutation)
-            }
-        })
-        .ok_or_else(|| {
-            GatewayError::ConstitutionDenied(
-                "ENTITLEMENT_ROUTE_UNCLASSIFIED: operation class is missing or unknown".into(),
-            )
-        })?;
+        .unwrap_or(if is_read_fallback {
+            focusa_license::OperationClass::Read
+        } else {
+            focusa_license::OperationClass::ValueMutation
+        });
     let capability_family = explicit
         .and_then(|policy| {
             policy
@@ -149,20 +132,13 @@ fn entitlement_policy_for_manifest(
                 .as_deref()
                 .and_then(parse_capability_family)
         })
-        .or_else(|| {
-            if is_automation {
-                Some(focusa_license::CapabilityFamily::Automation)
-            } else if is_read_fallback {
-                Some(focusa_license::CapabilityFamily::ReadProjection)
-            } else {
-                Some(focusa_license::CapabilityFamily::BaseFocusa)
-            }
-        })
-        .ok_or_else(|| {
-            GatewayError::ConstitutionDenied(
-                "ENTITLEMENT_ROUTE_UNCLASSIFIED: capability family is missing or unknown".into(),
-            )
-        })?;
+        .unwrap_or(if is_automation {
+            focusa_license::CapabilityFamily::Automation
+        } else if is_read_fallback {
+            focusa_license::CapabilityFamily::ReadProjection
+        } else {
+            focusa_license::CapabilityFamily::BaseFocusa
+        });
     let recovery_allowance = if operation_class == focusa_license::OperationClass::Read {
         focusa_license::RecoveryAllowance::ReadProjection
     } else {

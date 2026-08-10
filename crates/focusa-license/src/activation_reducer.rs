@@ -377,6 +377,9 @@ const ENVELOPE_SCHEMA: &str = "focusa.activation.response.v1";
 impl ActivationOutputEnvelope {
     /// Build a redacted envelope. `masked_email` must already be masked (the
     /// caller obtains it via `mask_email`); raw emails fail closed.
+    ///
+    /// The frozen presenter envelope has eleven independent contract fields.
+    #[allow(clippy::too_many_arguments)]
     pub fn build(
         request_id: &str,
         registration_id: &str,

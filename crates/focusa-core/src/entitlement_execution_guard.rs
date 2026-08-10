@@ -47,41 +47,35 @@ impl EntitlementExecutionPolicy {
             });
         }
 
-        let operation_family_compatible = match (self.capability_family, self.operation_class) {
-            (focusa_license::CapabilityFamily::AccountRecovery, focusa_license::OperationClass::Recovery) => true,
-            (focusa_license::CapabilityFamily::ReadProjection, focusa_license::OperationClass::Read) => true,
+        let operation_family_compatible = matches!(
+            (self.capability_family, self.operation_class),
             (
-                focusa_license::CapabilityFamily::CustomerDataExport,
-                focusa_license::OperationClass::Read
-                    | focusa_license::OperationClass::Recovery
-                    | focusa_license::OperationClass::ValueMutation
-            ) => true,
-            (
-                focusa_license::CapabilityFamily::InternalMaintenance,
-                focusa_license::OperationClass::InternalMaintenance
-            ) => true,
-            (
-                focusa_license::CapabilityFamily::BaseFocusa,
-                focusa_license::OperationClass::ValueMutation
-            ) => true,
-            (
-                focusa_license::CapabilityFamily::Automation,
-                focusa_license::OperationClass::ValueMutation
+                focusa_license::CapabilityFamily::AccountRecovery,
+                focusa_license::OperationClass::Recovery
             )
-            | (
-                focusa_license::CapabilityFamily::TeamRemote,
-                focusa_license::OperationClass::ValueMutation
-            )
-            | (
-                focusa_license::CapabilityFamily::ReleaseProof,
-                focusa_license::OperationClass::ValueMutation
-            )
-            | (
-                focusa_license::CapabilityFamily::PremiumUpdates,
-                focusa_license::OperationClass::ValueMutation
-            ) => true,
-            _ => false,
-        };
+                | (
+                    focusa_license::CapabilityFamily::ReadProjection,
+                    focusa_license::OperationClass::Read
+                )
+                | (
+                    focusa_license::CapabilityFamily::CustomerDataExport,
+                    focusa_license::OperationClass::Read
+                        | focusa_license::OperationClass::Recovery
+                        | focusa_license::OperationClass::ValueMutation
+                )
+                | (
+                    focusa_license::CapabilityFamily::InternalMaintenance,
+                    focusa_license::OperationClass::InternalMaintenance
+                )
+                | (
+                    focusa_license::CapabilityFamily::BaseFocusa
+                        | focusa_license::CapabilityFamily::Automation
+                        | focusa_license::CapabilityFamily::TeamRemote
+                        | focusa_license::CapabilityFamily::ReleaseProof
+                        | focusa_license::CapabilityFamily::PremiumUpdates,
+                    focusa_license::OperationClass::ValueMutation
+                )
+        );
         if !operation_family_compatible {
             return Err(EntitlementExecutionFailure {
                 code: ENTITLEMENT_ROUTE_UNCLASSIFIED.to_string(),

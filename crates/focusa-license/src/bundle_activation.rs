@@ -195,6 +195,8 @@ pub struct BundlePartialActivation {
 /// recoverable partial state. There is no third silent outcome.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
+// Boxing would alter the frozen public enum construction contract.
+#[allow(clippy::large_enum_variant)]
 pub enum BundleActivationOutcome {
     Activated(BundleActivationProjection),
     RecoverablePartial(BundlePartialActivation),

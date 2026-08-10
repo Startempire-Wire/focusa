@@ -167,7 +167,7 @@ impl ScriptedFlowInput {
 
 impl ActivationFlowInput for ScriptedFlowInput {
     fn prompt(&mut self, _label: &str) -> std::io::Result<String> {
-        Ok(self.answers.pop_front().unwrap_or_else(String::new))
+        Ok(self.answers.pop_front().unwrap_or_default())
     }
 }
 

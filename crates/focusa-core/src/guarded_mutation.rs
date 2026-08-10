@@ -19,6 +19,9 @@
 //! execution guard alone (Spec 172 §5.3, §17) so customer data is never
 //! trapped or deleted by a denial.
 
+// Structured denial receipts intentionally retain all fail-closed evidence.
+#![allow(clippy::result_large_err)]
+
 use crate::entitlement_execution_guard::{
     EntitlementExecutionContext, EntitlementExecutionDecision, EntitlementExecutionFailure,
     EntitlementExecutionPolicy, evaluate_entitlement_execution,
