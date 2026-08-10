@@ -157,14 +157,17 @@ wait_for_source_workflow() {
   while (( SECONDS < deadline )); do
     local runs
     runs="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json status,conclusion,url,headSha 2>/dev/null || echo '[]')"
-    status="$(jq -r 'map(select(.headSha == $sha)) | .[0].status // "missing"' --arg sha "$sha" <<<"$runs")"
-    conclusion="$(jq -r 'map(select(.headSha == $sha)) | .[0].conclusion // ""' --arg sha "$sha" <<<"$runs")"
-    url="$(jq -r 'map(select(.headSha == $sha)) | .[0].url // ""' --arg sha "$sha" <<<"$runs")"
-    if [[ "$status" == "completed" && "$conclusion" == "success" ]]; then
+    # Duplicate/superseded runs on the same SHA are possible (double dispatch,
+    # cache races). The gate passes when ANY completed run succeeded and fails
+    # only when every completed run failed.
+    if jq -e --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | any(.conclusion == "success")' <<<"$runs" >/dev/null; then
+      url="$(jq -r --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed" and .conclusion == "success")) | .[0].url // ""' <<<"$runs")"
       echo "source_gate_passed: workflow=${workflow} sha=${sha} url=${url}"
       return 0
     fi
-    if [[ "$status" == "completed" && "$conclusion" != "success" ]]; then
+    if jq -e --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | length > 0 and (all(.conclusion != "success"))' <<<"$runs" >/dev/null; then
+      conclusion="$(jq -r --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | .[0].conclusion // ""' <<<"$runs")"
+      url="$(jq -r --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | .[0].url // ""' <<<"$runs")"
       echo "source_gate_failed: workflow=${workflow} sha=${sha} conclusion=${conclusion} url=${url}" >&2
       return 1
     fi
