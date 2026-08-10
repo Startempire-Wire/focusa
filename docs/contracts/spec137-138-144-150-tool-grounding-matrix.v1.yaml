@@ -1,6 +1,6 @@
 schema: focusa.cross_spec_tool_grounding_matrix.v1
 source_contract_ref: docs/current/focusa-tool-contracts.json
-source_tool_count: 135
+source_tool_count: 136
 governing_specs: &id001
 - '137'
 - 137a
@@ -1009,6 +1009,33 @@ tools:
   evidence_refs:
   - docs/evidence/release/S138-E2E-01-runtime.txt
   - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_daemon_routing_status
+  family: project_identity
+  applicability_decision: applicable
+  applicable_specs:
+  - spec135
+  - spec158
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/contracts/spec135/generated-contract-v1/operation-registry.json
+  focus_stack_refs: &id002
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs: &id003
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs: &id004
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs: &id005
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/focusa-tools/tools/focusa_daemon_routing_status.md
+  recovery_refs: &id006
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs: &id007
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs: &id008
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/spec172/focusa-vbcqu.20.15.19-acceptance.txt
 - tool_name: focusa_decide
   family: focus_state
   applicability_decision: applicable
@@ -2367,22 +2394,15 @@ tools:
   machine_readable_contract_refs:
   - docs/current/focusa-tool-contracts.json
   - docs/focusa-tools/tools/focusa_project_bootstrap.md
-  focus_stack_refs:
-  - apps/pi-extension/src/tool-contracts.ts
-  reducer_event_refs:
-  - crates/focusa-core/src/reducer.rs
-  projection_replay_refs:
-  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
-  awareness_refs:
-  - apps/pi-extension/src/awareness.ts
+  focus_stack_refs: *id002
+  reducer_event_refs: *id003
+  projection_replay_refs: *id004
+  awareness_refs: *id005
   runbook_refs:
   - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
-  recovery_refs:
-  - docs/current/TROUBLESHOOTING_CURRENT.md
-  runtime_effect_refs:
-  - docs/current/focusa-tool-contracts.json
-  adversarial_test_refs:
-  - tests/spec141_agent_conformance_test.ts
+  recovery_refs: *id006
+  runtime_effect_refs: *id007
+  adversarial_test_refs: *id008
   evidence_refs:
   - docs/evidence/release/S138-E2E-01-runtime.txt
   - release-proof/audit/spec138-runtime-receipt.json
