@@ -462,7 +462,28 @@ function estimateEntryRange(entries: readonly BranchEntry[], start: number, end:
   return total;
 }
 
-const MODULE_LOAD_ID = randomUUID();
+// Stable across duplicate module loads (including ?duplicate-install query
+// instances): the first load owns the identity, so the duplicate-install guard
+// can detect re-registration instead of treating each copy as a new owner.
+const MODULE_LOAD_ID: string =
+  ((globalThis as any)[Symbol.for("focusa.compaction.module-load-id")] as string | undefined) ??
+  ((globalThis as any)[Symbol.for("focusa.compaction.module-load-id")] = `load-${randomUUID()}`);
+
+/** Test-only: release the process compaction lease so a fresh harness can
+ * register as a new owner. Never called in production paths. */
+export function resetCompactionLeaseForTest(): void {
+  const scope = globalThis as typeof globalThis & {
+    [PROCESS_LEASE_SYMBOL]?: ProcessCompactionLease;
+  };
+  if (scope[PROCESS_LEASE_SYMBOL]) {
+    scope[PROCESS_LEASE_SYMBOL].owner = undefined;
+    scope[PROCESS_LEASE_SYMBOL].duplicateDiagnosticEmitted = false;
+    scope[PROCESS_LEASE_SYMBOL].inFlightEpochId = undefined;
+    scope[PROCESS_LEASE_SYMBOL].retryOwnerId = undefined;
+    scope[PROCESS_LEASE_SYMBOL].attemptOwnerId = undefined;
+    scope[PROCESS_LEASE_SYMBOL].lastSuccessfulCompactionAt = undefined;
+  }
+}
 
 export function registerAutoCompaction(
   pi: ExtensionAPI,
