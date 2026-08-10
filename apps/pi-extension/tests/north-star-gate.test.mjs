@@ -123,7 +123,7 @@ test("operator ask changes demote stale action authority without false project b
 
 test("north-star card continuously refreshes at lifecycle boundaries", () => {
   assert.match(turns, /updateNorthStarCard\(_ctx, "operator_input"\)/);
-  assert.match(turns, /updateNorthStarCard\(_ctx, "model_switch"\)/);
+  assert.match(turns, /updateNorthStarCard\(ctx, "model_switch"\)/);
   assert.match(compaction, /updateNorthStarCard\(ctx, "post_compaction"\)/);
   assert.match(session, /updateNorthStarCard\(ctx, "session_start_ready_check"\)/);
   assert.match(northStar, /PROJECT .* → HLT/);

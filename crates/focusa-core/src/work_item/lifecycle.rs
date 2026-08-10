@@ -1309,7 +1309,9 @@ mod tests {
         std::fs::write(
             root.join("state.json"),
             serde_json::to_vec(&serde_json::json!([
-                {"id":"root","title":"root","status":"closed","priority":0},
+                {"id":"root","title":"root","status":"closed","priority":0,
+                 "dependents":[{"id":"a","dependency_type":"parent-child"},
+                               {"id":"b","dependency_type":"parent-child"}]},
                 {"id":"a","title":"first","status":"open","priority":0,
                  "dependencies":[{"depends_on_id":"root","type":"parent-child"}]},
                 {"id":"b","title":"second","status":"open","priority":1,

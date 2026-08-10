@@ -87,6 +87,7 @@ async function runEmergencyInput(autoCompaction, state, attachmentKey) {
       sentMessages.push(message);
     },
   };
+  autoCompaction.resetCompactionLeaseForTest();
   assert.equal(
     autoCompaction.registerAutoCompaction(pi, () => ({
       ...autoCompaction.DEFAULT_PROACTIVE_COMPACTION_POLICY,
@@ -123,6 +124,7 @@ async function runCheck(autoCompaction, compaction, state, attachmentKey, pct, c
     },
     appendEntry() {},
   };
+  autoCompaction.resetCompactionLeaseForTest();
   assert.equal(
     autoCompaction.registerAutoCompaction(pi, () => ({
       ...autoCompaction.DEFAULT_PROACTIVE_COMPACTION_POLICY,

@@ -1237,6 +1237,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
   }
 }
 
+// ── Periodic micro-compact ─────────────────────────────────────────────────────
 // Legacy fixed-cadence settings remain readable for migration diagnostics, but
 // automatic micro-compaction is pressure-driven by the sole coordinator.
 let legacyMicroCompactDiagnosticEmitted = false;

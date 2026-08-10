@@ -641,7 +641,8 @@ export function registerAutoCompaction(
     }
   };
 
-  pi.registerCommand("focusa-compaction-policy", {
+  if (typeof (pi as any).registerCommand === "function") {
+    pi.registerCommand("focusa-compaction-policy", {
     description: "Show or override the scoped adaptive compaction policy",
     handler: async (args, ctx) => {
       const [action = "status", route, ...reasonParts] = String(args || "")
@@ -679,6 +680,7 @@ export function registerAutoCompaction(
       if (ctx.hasUI) ctx.ui.notify(text, response ? "info" : "warning");
     },
   });
+  }
 
   const notifyOnce = (
     ctx: ExtensionContext,
