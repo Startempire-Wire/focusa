@@ -74,12 +74,14 @@ bash tests/spec130_rotating_continuity_transfer_static_test.sh
 pass 'worktree and authority gates'
 
 # Cache-safe prefix stabilization and automatic Pi activation runtime proof.
+# Run locally with the routed toolchain bypassed (the remote build host does not
+# carry the pi-extension node_modules).
 (
   cd apps/pi-extension
-  npm run test:cache-safe-context
-  npm run test:ota-activation
-  npm run test:spec104-attachment
-  npm run test:unbound-project
+  FOCUSA_ROUTE_DRY_RUN=1 npm run test:cache-safe-context
+  FOCUSA_ROUTE_DRY_RUN=1 npm run test:ota-activation
+  FOCUSA_ROUTE_DRY_RUN=1 npm run test:spec104-attachment
+  FOCUSA_ROUTE_DRY_RUN=1 npm run test:unbound-project
 )
 pass 'cache miss mitigation and Pi OTA activation gates'
 
