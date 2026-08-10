@@ -7,7 +7,12 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-spec130a-runtime.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 cd "$PI_EXT"
-/opt/cpanel/ea-nodejs20/bin/npx --no-install tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
+if [[ -x /opt/cpanel/ea-nodejs20/bin/npx ]]; then
+  NPX=/opt/cpanel/ea-nodejs20/bin/npx
+else
+  NPX="$(command -v npx)"
+fi
+"$NPX" --no-install tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
 ln -s "$PI_EXT/node_modules" "$TMP/build/node_modules"
 
 cat >"$TMP/runtime.mjs" <<'EOF'
