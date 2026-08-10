@@ -7,7 +7,7 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-spec130a-runtime.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 cd "$PI_EXT"
-npx tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
+npx tsc -p tsconfig.json --noEmit false --outDir "$TMP/build" || FOCUSA_ROUTE_DRY_RUN=1 npx --no-install tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
 ln -s "$PI_EXT/node_modules" "$TMP/build/node_modules"
 
 cat >"$TMP/runtime.mjs" <<'EOF'
