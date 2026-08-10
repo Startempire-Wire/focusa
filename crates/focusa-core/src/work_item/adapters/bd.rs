@@ -327,6 +327,10 @@ impl ProviderAdapter for BdAdapter {
             let Some(parent_value) = parent_values.first() else {
                 return Ok(Vec::new());
             };
+            // The parent itself must participate in the loaded closure so the
+            // readiness evaluator can resolve parent-child dependencies to a
+            // terminal item instead of reporting them as missing dependencies.
+            let mut values: Vec<serde_json::Value> = vec![parent_value.clone()];
             let mut child_ids: Vec<String> = parent_value
                 .get("dependents")
                 .and_then(serde_json::Value::as_array)
@@ -343,7 +347,7 @@ impl ProviderAdapter for BdAdapter {
                 .collect();
             child_ids.sort();
             child_ids.dedup();
-            let mut values = self.show_values(&query.project_root, &child_ids).await?;
+            values.extend(self.show_values(&query.project_root, &child_ids).await?);
             let child_id_set: std::collections::BTreeSet<_> = child_ids.iter().cloned().collect();
             let mut dependency_ids: Vec<String> = values
                 .iter()

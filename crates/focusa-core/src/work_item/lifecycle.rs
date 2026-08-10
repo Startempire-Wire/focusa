@@ -1331,9 +1331,10 @@ DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 case "${1:-}" in
   --version) echo 'bd fake 1';;
   list) cat "$DIR/state.json";;
-  show) python3 - "$DIR/state.json" "$2" <<'PY'
+  show) python3 - "$DIR/state.json" "$@" <<'PY'
 import json,sys
-xs=json.load(open(sys.argv[1])); print(json.dumps([x for x in xs if x['id']==sys.argv[2]]))
+xs=json.load(open(sys.argv[1])); ids=set(sys.argv[2:])
+print(json.dumps([x for x in xs if x['id'] in ids]))
 PY
   ;;
   close) python3 - "$DIR/state.json" "$2" <<'PY'
