@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en" data-motion="system"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0c111d">
+    <meta name="description" content="Focusa Desktop — durable Workstream workspace">
+    <link rel="stylesheet" href="/styles/tokens.css">
+    <link rel="stylesheet" href="/styles/primitives.css">
+    <title>Focusa Desktop</title>
+    
+  <style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/styles.css">:root {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-synthesis: none;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-width: 320px; min-height: 100%; background: var(--color-bg); }
+button { font: inherit; }
+button:focus-visible { outline: 2px solid var(--color-accent-bright); outline-offset: 2px; }
+
+.desktop-shell {
+  display: grid;
+  grid-template: 64px minmax(0, 1fr) 36px / minmax(0, 1fr) var(--sidebar-width, 248px);
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--gradient-ambient), var(--color-bg);
+}
+
+.desktop-shell.sidebar-compact { grid-template-columns: minmax(0, 1fr) 64px; }
+.desktop-shell.tui-mode { grid-template-columns: minmax(0, 1fr); }
+.desktop-shell.tui-mode main { grid-column: 1; }
+
+.titlebar {
+  position: relative;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 22px;
+  border-bottom: 1px solid rgba(162, 183, 221, 0.13);
+  background: rgba(9, 14, 23, 0.82);
+  backdrop-filter: blur(18px);
+  -webkit-app-region: drag;
+}
+
+.brand-lockup, .titlebar-status { display: flex; align-items: center; gap: 11px; }
+.brand-lockup div { display: grid; gap: 1px; }
+.brand-lockup strong { font-size: 14px; letter-spacing: 0.015em; }
+.brand-lockup span:not(.brand-mark) { color: var(--color-text-tertiary); font-size: 11px; }
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border-radius: 9px;
+  background: linear-gradient(145deg, var(--color-accent-bright), var(--color-accent));
+  box-shadow: 0 7px 22px rgba(72, 105, 191, 0.32);
+  color: white;
+  font-weight: 760;
+}
+
+.ui-mode-switch {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 218px;
+  padding: 3px;
+  border: 1px solid rgba(148, 164, 194, 0.13);
+  border-radius: 999px;
+  background: rgba(14, 20, 31, 0.72);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  -webkit-app-region: no-drag;
+}
+.ui-mode-switch i {
+  position: absolute;
+  inset: 3px auto 3px 3px;
+  width: calc(50% - 3px);
+  border: 1px solid rgba(141, 112, 225, 0.2);
+  border-radius: 999px;
+  background: rgba(104, 78, 175, 0.24);
+  box-shadow: 0 2px 9px rgba(76, 52, 145, 0.18);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), background 220ms ease;
+}
+.ui-mode-switch i.tui { transform: translateX(100%); }
+.ui-mode-switch button {
+  position: relative;
+  z-index: 1;
+  min-height: 25px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-text-tertiary);
+  background: transparent;
+  opacity: 0.42;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 680;
+  letter-spacing: 0.025em;
+  transition: color 180ms ease, opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ui-mode-switch button.active {
+  color: var(--color-text);
+  opacity: 1;
+  transform: translateY(-0.5px);
+  text-shadow: 0 1px 8px rgba(220, 229, 248, 0.16);
+}
+
+.mode-chip, .daemon-chip, .availability {
+  border: 1px solid rgba(159, 180, 219, 0.16);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--color-text-secondary);
+  background: rgba(23, 31, 47, 0.72);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.daemon-chip { display: flex; align-items: center; gap: 7px; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-warning); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-warning) 8%, transparent); }
+.daemon-chip.unavailable .status-dot { background: var(--color-error); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-error) 8%, transparent); }
+.daemon-chip.connected .status-dot { background: var(--color-success); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 8%, transparent); }
+
+.sidebar {
+  position: relative;
+  grid-row: 2;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px 10px 10px;
+  border-left: 1px solid rgba(162, 183, 221, 0.12);
+  background: rgba(10, 15, 24, 0.72);
+  box-shadow: -16px 0 48px rgba(0, 0, 0, 0.1);
+  transition: none;
+}
+.sidebar-heading { display: flex; align-items: center; justify-content: space-between; min-height: 32px; padding: 0 5px 8px 9px; color: var(--color-text-tertiary); font-size: 11px; font-weight: 650; }
+.sidebar-mode-button { display: grid; place-items: center; width: 27px; height: 27px; border: 0; border-radius: 7px; color: var(--color-text-tertiary); background: transparent; cursor: pointer; }
+.sidebar-mode-button:hover { color: var(--color-text); background: rgba(86, 108, 149, 0.12); }
+.workspace-groups { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; padding-top: 10px; scrollbar-width: thin; }
+.workspace-group { margin-bottom: 8px; }
+.group-heading { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 28px; padding: 4px 9px; border: 0; color: var(--color-text-tertiary); background: transparent; font-size: 10px; font-weight: 650; text-align: left; cursor: pointer; }
+.group-heading:hover { color: var(--color-text-soft); }
+.sidebar-resize-handle { position: absolute; top: 0; left: -3px; bottom: 0; z-index: 3; width: 6px; padding: 0; border: 0; background: transparent; cursor: col-resize; }
+.sidebar-resize-handle:hover, .sidebar-resize-handle:focus-visible { background: rgba(116, 151, 221, 0.3); outline: 0; }
+.scope-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 9px;
+  border: 1px solid rgba(149, 172, 215, 0.13);
+  border-radius: 10px;
+  color: var(--color-text-soft);
+  background: rgba(22, 30, 45, 0.56);
+  text-align: left;
+  cursor: pointer;
+}
+.scope-card:hover { background: rgba(33, 44, 65, 0.64); }
+.find-button { display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: 34px; margin-top: var(--space-2); padding: 0 9px; border: 0; border-radius: var(--radius-control); color: var(--color-text-tertiary); background: transparent; text-align: left; cursor: pointer; transition: color var(--motion-fast) var(--ease-out-quart), background var(--motion-fast) var(--ease-out-quart), transform var(--motion-micro) var(--ease-out-quart); }
+.find-button:hover { color: var(--color-text); background: color-mix(in srgb, var(--color-accent) 8%, transparent); }
+.find-button:active { transform: scale(.98); }
+.find-button span { font: var(--type-caption); }
+.find-button kbd { margin-left: auto; padding: 2px 4px; border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-tertiary); font-size: 9px; }
+.scope-icon { flex: 0 0 auto; width: 20px; color: var(--color-warning); text-align: center; }
+.scope-copy { min-width: 0; display: grid; gap: 1px; }
+.scope-card strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.scope-card small { overflow: hidden; color: var(--color-text-tertiary); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.eyebrow { color: var(--color-text-tertiary); font-size: 8px; font-weight: 720; letter-spacing: 0.1em; text-transform: uppercase; }
+nav { display: grid; gap: 3px; }
+nav button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 9px 10px;
+  color: var(--color-text-tertiary);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+nav button:hover { color: var(--color-text-soft); background: rgba(80, 104, 151, 0.1); }
+nav button.active { position: relative; color: var(--color-text); border-color: rgba(116, 151, 221, 0.18); background: rgba(71, 101, 162, 0.2); }
+nav button.active::before { position: absolute; inset-block: 8px; left: -1px; width: 2px; border-radius: 2px; background: var(--color-violet); content: ''; }
+.workspace-icon { display: grid; place-items: center; flex: 0 0 21px; width: 21px; height: 21px; color: currentColor; font-size: 8px; font-weight: 740; }
+.workspace-label { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+nav small { color: var(--color-text-tertiary); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; }
+nav button.active small { color: var(--color-accent-bright); }
+.sidebar.compact { padding-inline: 7px; }
+.sidebar.compact .sidebar-heading { justify-content: center; padding-inline: 0; }
+.sidebar.compact .sidebar-heading > span, .sidebar.compact .scope-copy, .sidebar.compact .group-heading, .sidebar.compact .workspace-label, .sidebar.compact nav small, .sidebar.compact .find-button span, .sidebar.compact .find-button kbd { display: none; }
+.sidebar.compact .scope-card, .sidebar.compact .find-button, .sidebar.compact nav button { justify-content: center; padding-inline: 5px; }
+.sidebar.compact .scope-card { min-height: 38px; }
+.sidebar.compact .workspace-groups { padding-top: 7px; }
+.sidebar.compact .workspace-group + .workspace-group { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(162, 183, 221, 0.09); }
+.sidebar.compact nav button.active::before { inset-block: 9px; }
+.sidebar.compact .workspace-icon { flex-basis: 26px; width: 26px; }
+
+main { grid-row: 2; grid-column: 1; min-width: 0; height: 100%; overflow: auto; padding: var(--space-6) clamp(var(--layout-page-gutter), 4vw, 52px); }
+main > .view-scene { display: flex; flex-direction: column; gap: var(--layout-section-gap); min-height: 100%; height: 100%; }
+.development-fixture-label { align-self: flex-start; border: 1px solid var(--color-warning); border-radius: var(--radius-control); padding: var(--space-1) var(--space-2); color: var(--color-warning); background: var(--color-panel); font: var(--type-caption); }
+.infra-gap-notice { margin: 0; max-width: 640px; color: var(--color-text-soft); font: var(--type-caption); line-height: 1.45; }
+.workspace-heading { display: flex; justify-content: space-between; gap: var(--space-6); align-items: flex-start; width: 100%; max-width: 1120px; margin: 0 auto; }
+h1 { margin: var(--space-1) 0 var(--space-2); color: var(--color-text); font: var(--type-display); letter-spacing: -0.02em; }
+.workspace-heading p { max-width: 68ch; margin: 0; color: var(--color-text-tertiary); font: var(--type-body); }
+.availability { margin-top: 7px; color: var(--color-success); border-color: rgba(95, 199, 156, 0.2); }
+.availability.planned { color: var(--color-text-secondary); border-color: rgba(159, 180, 219, 0.16); }
+
+.mission-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
+  gap: 16px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.mission-grid article, .empty-state {
+  border: 1px solid rgba(155, 180, 225, 0.13);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(24, 33, 50, 0.72), rgba(15, 22, 35, 0.74));
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.18);
+}
+.mission-grid article { padding: clamp(20px, 3vw, 30px); }
+.hero-card { grid-row: span 2; min-height: 330px; display: flex; flex-direction: column; justify-content: center; }
+h2 { margin: var(--space-2) 0 var(--space-3); color: var(--color-text-soft); font: var(--type-heading); letter-spacing: -0.015em; }
+.hero-card h2 { max-width: 520px; color: var(--color-text); font: var(--type-display); }
+.hero-card p, .status-card p, .empty-state p { max-width: 68ch; color: var(--color-text-tertiary); font: var(--type-body); }
+.identity-chain { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 28px; }
+.identity-chain span { padding: 7px 9px; border: 1px solid rgba(127, 159, 220, 0.18); border-radius: 7px; color: var(--color-text-soft); background: rgba(67, 90, 137, 0.16); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.identity-chain i { color: var(--color-text-tertiary); font-style: normal; }
+.card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.principle-card ul { display: grid; gap: 9px; margin: 18px 0 0; padding: 0; list-style: none; color: var(--color-text-secondary); font-size: 12px; }
+.principle-card li { display: flex; align-items: center; gap: var(--space-2); }
+.principle-card li svg { color: var(--color-success); }
+.secondary-button { border: 1px solid rgba(137, 166, 221, 0.22); border-radius: 8px; padding: 8px 11px; color: var(--color-text-soft); background: rgba(70, 94, 140, 0.2); cursor: pointer; }
+.secondary-button:hover:not(:disabled) { background: rgba(81, 111, 169, 0.3); }
+.secondary-button:disabled { opacity: 0.55; cursor: default; }
+.empty-state { max-width: 1120px; min-height: 360px; margin: 0 auto; padding: clamp(30px, 6vw, 72px); display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
+.planned-state { border-style: dashed; }
+footer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 0 18px;
+  border-top: 1px solid rgba(162, 183, 221, 0.11);
+  color: var(--color-text-tertiary);
+  background: rgba(8, 12, 20, 0.9);
+  font-size: 10px;
+}
+
+@media (max-width: 820px) {
+  .desktop-shell, .desktop-shell.sidebar-compact { grid-template: 58px minmax(0, 1fr) 34px / minmax(0, 1fr) 64px; }
+  .desktop-shell.tui-mode { grid-template: 58px minmax(0, 1fr) 34px / 1fr; }
+  .desktop-shell.tui-mode main { grid-row: 2; grid-column: 1; }
+  .desktop-shell.tui-mode footer { grid-row: 3; }
+  .titlebar { padding: 0 14px; }
+  .mode-chip { display: none; }
+  .ui-mode-switch { position: static; transform: none; margin-left: auto; }
+  .titlebar-status { margin-left: auto; }
+  .daemon-chip { display: none; }
+  .sidebar { grid-row: 2; grid-column: 1; padding-inline: 7px; }
+  .sidebar-heading { justify-content: center; padding-inline: 0; }
+  .sidebar-heading > span, .scope-copy, .group-heading, .workspace-label, .sidebar nav small, .sidebar-resize-handle, .find-button span, .find-button kbd { display: none; }
+  .scope-card, .find-button, .sidebar nav button { justify-content: center; padding-inline: 5px; }
+  .scope-card { min-height: 38px; }
+  .workspace-groups { padding-top: 7px; }
+  .workspace-group + .workspace-group { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(162, 183, 221, 0.09); }
+  main { grid-row: 2; grid-column: 2; padding: 24px 16px; }
+  .workspace-heading { display: block; }
+  .availability { display: inline-block; margin-top: 14px; }
+  .mission-grid { grid-template-columns: 1fr; }
+  .hero-card { grid-row: auto; min-height: 320px; }
+  footer { grid-row: 3; grid-column: 1 / -1; }
+  footer span:nth-child(2) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/ActivityNavigation.svelte?svelte&amp;type=style&amp;lang.css">
+  .activity-navigation.s-thGVXzW27NFx{display:flex;flex-direction:column;align-items:stretch;gap:var(--space-1);min-width:0;height:100%;overflow:auto;padding:var(--space-2);border-inline-end:1px solid var(--color-border);background:var(--color-panel)}
+  button.s-thGVXzW27NFx{appearance:none;border:0;border-radius:var(--radius-control);min-height:34px;padding:var(--space-2) var(--space-3);background:transparent;color:var(--color-text-tertiary);font:inherit;text-align:start;white-space:nowrap;cursor:pointer}
+  button.s-thGVXzW27NFx:hover{background:var(--color-raised);color:var(--color-text)}
+  button[aria-current='page'].s-thGVXzW27NFx{background:var(--color-elevated);color:var(--color-accent);font-weight:650}
+  @container mission-canvas (max-width:820px){
+    .activity-navigation.s-thGVXzW27NFx{flex-direction:row;height:auto;padding:var(--space-1);border-inline-end:0;border-block-end:1px solid var(--color-border)}
+    button.s-thGVXzW27NFx{min-height:30px;text-align:center}
+  }
+ .s-thGVXzW27NFx{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/ActualWorkSurfaceStrip.svelte?svelte&amp;type=style&amp;lang.css">
+  .work-surface-strip.s-smO_NhhHkf-y{display:flex;align-items:center;gap:var(--space-2);min-width:0;padding:var(--space-1) var(--space-2);border-block-end:1px solid var(--color-border);background:var(--color-panel)}
+  .strip-label.s-smO_NhhHkf-y{flex-shrink:0;color:var(--color-text-tertiary);font:var(--type-overline);letter-spacing:.08em;text-transform:uppercase}
+  [role='tablist'].s-smO_NhhHkf-y{display:flex;align-items:center;gap:var(--space-1);min-width:0;overflow-x:auto}
+  button.s-smO_NhhHkf-y{min-height:28px;padding:0 var(--space-2);border:1px solid transparent;border-radius:var(--radius-control);background:transparent;color:var(--color-text-tertiary);font:var(--type-caption);white-space:nowrap;cursor:pointer}
+  button[aria-selected='true'].s-smO_NhhHkf-y{border-color:var(--color-border-strong);background:var(--color-elevated);color:var(--color-text)}
+  button.s-smO_NhhHkf-y:disabled{cursor:default;opacity:1}
+ .s-smO_NhhHkf-y{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/MissionCanvasContextBar.svelte?svelte&amp;type=style&amp;lang.css">
+  .context-bar.s-sJJvRqX9mZkk{display:flex;align-items:center;gap:var(--space-1);min-width:0;overflow-x:auto;padding:var(--space-1) var(--space-2);border-block-end:1px solid var(--color-border);background:var(--color-panel)}
+  .context-item.s-sJJvRqX9mZkk{flex:1 1 0;display:grid;gap:1px;min-width:88px;max-width:190px;padding:var(--space-1) var(--space-2);border-inline-end:1px solid var(--color-border)}.context-revision.s-sJJvRqX9mZkk{display:grid;gap:1px;min-width:auto;padding:var(--space-1) var(--space-2);border-inline-end:0}
+  .context-revision.s-sJJvRqX9mZkk{min-width:auto;margin-inline-start:auto;border-inline-end:0}
+  span.s-sJJvRqX9mZkk{color:var(--color-text-tertiary);font:var(--type-overline);text-transform:uppercase;letter-spacing:.08em}
+  strong.s-sJJvRqX9mZkk{overflow:hidden;color:var(--color-text-secondary);font:var(--type-caption);font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+  @container mission-canvas (max-width:980px){.context-item.s-sJJvRqX9mZkk{min-width:78px}.context-item.s-sJJvRqX9mZkk:nth-of-type(2),.context-item.s-sJJvRqX9mZkk:nth-of-type(4),.context-item.s-sJJvRqX9mZkk:nth-of-type(5){display:none}}@container mission-canvas (max-width:820px){.context-item.s-sJJvRqX9mZkk{min-width:78px}.context-item.s-sJJvRqX9mZkk:nth-of-type(1),.context-item.s-sJJvRqX9mZkk:nth-of-type(3),.context-item.s-sJJvRqX9mZkk:nth-of-type(4){display:none}}
+ .s-sJJvRqX9mZkk{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/ui/StatusBadge.svelte?svelte&amp;type=style&amp;lang.css">span.s-xddwP7GavsAP{display:inline-flex;align-items:center;gap:6px;width:max-content;padding:4px 8px;border:1px solid var(--color-border);border-radius:var(--radius-pill);color:var(--color-text-tertiary);background:color-mix(in srgb,var(--color-raised) 82%,transparent);font:var(--type-caption)}i.s-xddwP7GavsAP{width:6px;height:6px;border-radius:50%;background:currentColor}.ready.s-xddwP7GavsAP{color:var(--color-success)}.watch.s-xddwP7GavsAP{color:var(--color-warning)}.blocked.s-xddwP7GavsAP,.error.s-xddwP7GavsAP{color:var(--color-error)} .s-xddwP7GavsAP{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/contributions/CanonicalReferenceContribution.svelte?svelte&amp;type=style&amp;lang.css">
+  .canonical-contribution.s-sukQuWKISDiL{display:grid;grid-template-rows:auto minmax(0,1fr);height:100%;min-height:0;border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-panel);overflow:hidden}
+  header.s-sukQuWKISDiL{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--color-border)}
+  header.s-sukQuWKISDiL div:where(.s-sukQuWKISDiL){display:grid;gap:var(--space-1);min-width:0}
+  header.s-sukQuWKISDiL strong:where(.s-sukQuWKISDiL){color:var(--color-text);font:var(--type-label)}
+  header.s-sukQuWKISDiL span:where(.s-sukQuWKISDiL){color:var(--color-text-tertiary);font:var(--type-caption)}
+  .reference.s-sukQuWKISDiL{align-self:center;justify-self:center;display:grid;justify-items:center;gap:var(--space-2);max-width:100%;padding:var(--layout-card-padding-roomy);color:var(--color-text-tertiary)}
+  .reference.s-sukQuWKISDiL span:where(.s-sukQuWKISDiL){font:var(--type-caption);text-transform:uppercase;letter-spacing:.08em}
+  code.s-sukQuWKISDiL{max-width:100%;overflow:hidden;color:var(--color-text-secondary);font:var(--type-code);text-overflow:ellipsis;white-space:nowrap}
+ .s-sukQuWKISDiL{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/contributions/PromptEditorContribution.svelte?svelte&amp;type=style&amp;lang.css">
+  .prompt-editor.s-_yKubo26JHHa{display:grid;gap:var(--space-2);height:100%;min-height:0;padding:var(--layout-card-padding);background:var(--color-panel)}
+  label.s-_yKubo26JHHa{color:var(--color-text);font:var(--type-label)}
+  textarea.s-_yKubo26JHHa{min-height:6rem;resize:none;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:var(--space-3);background:var(--color-bg);color:var(--color-text);font:var(--type-body)}
+  textarea.s-_yKubo26JHHa:focus{outline:2px solid var(--color-focus);outline-offset:1px}
+  textarea.s-_yKubo26JHHa:disabled{opacity:.64}
+  .prompt-actions.s-_yKubo26JHHa{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
+  .prompt-actions.s-_yKubo26JHHa span:where(.s-_yKubo26JHHa){min-width:0;overflow:hidden;color:var(--color-text-tertiary);font:var(--type-caption);text-overflow:ellipsis;white-space:nowrap}
+  .prompt-actions.s-_yKubo26JHHa span.error:where(.s-_yKubo26JHHa){color:var(--color-error)}
+  button.s-_yKubo26JHHa{border:0;border-radius:var(--radius-control);padding:var(--space-2) var(--space-4);background:var(--color-accent);color:var(--color-bg);font:var(--type-label);cursor:pointer}
+  button.s-_yKubo26JHHa:disabled{cursor:not-allowed;opacity:.45}
+ .s-_yKubo26JHHa{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/contributions/SteeringQueueContribution.svelte?svelte&amp;type=style&amp;lang.css">
+  .queue.s-hhNHsLq2LT5o{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-width:0;min-height:58px;padding:var(--space-2) var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-panel)}
+  .queue-copy.s-hhNHsLq2LT5o{display:grid;gap:2px;min-width:0}.queue.s-hhNHsLq2LT5o strong:where(.s-hhNHsLq2LT5o){color:var(--color-text);font:var(--type-label)}
+  .queue.s-hhNHsLq2LT5o span:where(.s-hhNHsLq2LT5o),.queue.s-hhNHsLq2LT5o code:where(.s-hhNHsLq2LT5o){overflow:hidden;color:var(--color-text-tertiary);font:var(--type-caption);text-overflow:ellipsis;white-space:nowrap}
+  .queue.s-hhNHsLq2LT5o code:where(.s-hhNHsLq2LT5o){color:var(--color-text-secondary)}.queue-actions.s-hhNHsLq2LT5o{display:flex;gap:var(--space-1);flex-shrink:0}
+  button.s-hhNHsLq2LT5o{border:1px solid var(--color-border);border-radius:999px;padding:3px var(--space-2);background:var(--color-elevated);color:var(--color-text-secondary);font:var(--type-caption);cursor:pointer}
+  button.s-hhNHsLq2LT5o:disabled{opacity:.45;cursor:not-allowed}
+ .s-hhNHsLq2LT5o{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/contributions/FollowUpQueueContribution.svelte?svelte&amp;type=style&amp;lang.css">
+  .queue.s-C6URO7xoQwq1{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-width:0;min-height:58px;padding:var(--space-2) var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-panel)}
+  .queue-copy.s-C6URO7xoQwq1{display:grid;gap:2px;min-width:0}.queue.s-C6URO7xoQwq1 strong:where(.s-C6URO7xoQwq1){color:var(--color-text);font:var(--type-label)}
+  .queue.s-C6URO7xoQwq1 span:where(.s-C6URO7xoQwq1),.queue.s-C6URO7xoQwq1 code:where(.s-C6URO7xoQwq1){overflow:hidden;color:var(--color-text-tertiary);font:var(--type-caption);text-overflow:ellipsis;white-space:nowrap}
+  .queue.s-C6URO7xoQwq1 code:where(.s-C6URO7xoQwq1){color:var(--color-text-secondary)}.queue-actions.s-C6URO7xoQwq1{display:flex;gap:var(--space-1);flex-shrink:0}
+  button.s-C6URO7xoQwq1{border:1px solid var(--color-border);border-radius:999px;padding:3px var(--space-2);background:var(--color-elevated);color:var(--color-text-secondary);font:var(--type-caption);cursor:pointer}
+  button.s-C6URO7xoQwq1:disabled{opacity:.45;cursor:not-allowed}
+ .s-C6URO7xoQwq1{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/contributions/WorkSurfaceContribution.svelte?svelte&amp;type=style&amp;lang.css">
+  .work-surface.s-MgtvwaG4JicV{display:grid;grid-template-rows:auto minmax(0,1fr);height:100%;min-height:0;border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-panel);overflow:hidden}
+  header.s-MgtvwaG4JicV,.actions.s-MgtvwaG4JicV{display:flex;align-items:center;gap:var(--space-2)}
+  header.s-MgtvwaG4JicV{justify-content:space-between;padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--color-border)}
+  .identity.s-MgtvwaG4JicV{display:grid;gap:var(--space-1);min-width:0}
+  .identity.s-MgtvwaG4JicV strong:where(.s-MgtvwaG4JicV){color:var(--color-text);font:var(--type-label)}
+  .identity.s-MgtvwaG4JicV span:where(.s-MgtvwaG4JicV){overflow:hidden;color:var(--color-text-tertiary);font:var(--type-caption);text-overflow:ellipsis;white-space:nowrap}
+  .actions.s-MgtvwaG4JicV{flex-shrink:0}
+  button.s-MgtvwaG4JicV{border:1px solid var(--color-border);border-radius:var(--radius-control);padding:var(--space-1) var(--space-2);background:transparent;color:var(--color-text-secondary);font:var(--type-caption);cursor:pointer}
+  button.s-MgtvwaG4JicV:disabled{cursor:not-allowed;opacity:.45}
+  .artifact-reference.s-MgtvwaG4JicV{align-self:center;justify-self:center;display:grid;justify-items:center;gap:var(--space-2);max-width:100%;padding:var(--layout-card-padding-roomy);color:var(--color-text-tertiary)}
+  .artifact-reference.s-MgtvwaG4JicV span:where(.s-MgtvwaG4JicV){font:var(--type-caption);letter-spacing:.08em;text-transform:uppercase}
+  code.s-MgtvwaG4JicV{max-width:100%;overflow:hidden;color:var(--color-text-secondary);font:var(--type-code);text-overflow:ellipsis;white-space:nowrap}
+  small.s-MgtvwaG4JicV{font:var(--type-caption)}
+ .s-MgtvwaG4JicV{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/contributions/BrowserArtifactContribution.svelte?svelte&amp;type=style&amp;lang.css">
+  .browser-artifact.s-QaHNi2cWeSOH{display:grid;grid-template-rows:auto 1fr;min-width:0;height:100%;border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-panel);overflow:hidden}
+  header.s-QaHNi2cWeSOH /* (unused) .actions*/{display:flex;align-items:center;gap:var(--space-2)}
+  header.s-QaHNi2cWeSOH{justify-content:space-between;padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--color-border)}
+  .identity.s-QaHNi2cWeSOH{display:grid;gap:var(--space-1);min-width:0}
+  .identity.s-QaHNi2cWeSOH strong:where(.s-QaHNi2cWeSOH){color:var(--color-text);font:var(--type-label)}
+  .identity.s-QaHNi2cWeSOH span:where(.s-QaHNi2cWeSOH){overflow:hidden;color:var(--color-text-tertiary);font:var(--type-caption);text-overflow:ellipsis;white-space:nowrap}
+  .artifact-card.s-QaHNi2cWeSOH{display:grid;gap:var(--space-3);padding:var(--layout-card-padding-roomy)}
+  .artifact-metadata.s-QaHNi2cWeSOH{display:grid;gap:var(--space-2)}
+  .artifact-metadata.s-QaHNi2cWeSOH p:where(.s-QaHNi2cWeSOH){font:var(--type-caption);color:var(--color-text-secondary);margin:0}
+  /* (unused) .artifact-metadata p strong{color:var(--color-text)}*/
+  .artifact-render-lines.s-QaHNi2cWeSOH{display:grid;gap:var(--space-1);white-space:pre-wrap;line-height:var(--line-height-body);font:var(--type-code);color:var(--color-text-tertiary);margin:0;padding:var(--space-2);border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-panel-2)}
+  .artifact-render-lines.s-QaHNi2cWeSOH span:where(.s-QaHNi2cWeSOH){display:block}
+  .policy-note.s-QaHNi2cWeSOH{margin:0;color:var(--color-text-tertiary);font:var(--type-caption)}
+ .s-QaHNi2cWeSOH{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte?svelte&amp;type=style&amp;lang.css">
+  .session-inventory.s-2ZUn9a8cyG47{display:grid;gap:var(--space-3);min-width:0;padding:var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-panel)}
+  header.s-2ZUn9a8cyG47,.row-heading.s-2ZUn9a8cyG47,.metadata.s-2ZUn9a8cyG47,.actions.s-2ZUn9a8cyG47{display:flex;align-items:center;gap:var(--space-3);min-width:0}
+  header.s-2ZUn9a8cyG47,.row-heading.s-2ZUn9a8cyG47{justify-content:space-between}
+  .heading.s-2ZUn9a8cyG47,.row-title.s-2ZUn9a8cyG47{display:grid;gap:var(--space-1);min-width:0}
+  strong.s-2ZUn9a8cyG47{color:var(--color-text);font:var(--type-label)}
+  header.s-2ZUn9a8cyG47 span:where(.s-2ZUn9a8cyG47),.row-title.s-2ZUn9a8cyG47 span:where(.s-2ZUn9a8cyG47),.metadata.s-2ZUn9a8cyG47 span:where(.s-2ZUn9a8cyG47),.compatibility-copy.s-2ZUn9a8cyG47{color:var(--color-text-tertiary);font:var(--type-caption)}
+  .focus-hint.s-2ZUn9a8cyG47{color:var(--color-text-tertiary);font:var(--type-caption)}
+  .inventory-scope.s-2ZUn9a8cyG47{flex-shrink:0;padding:2px var(--space-2);border:1px solid var(--color-border);border-radius:999px;color:var(--color-text-tertiary);font:var(--type-caption);text-transform:lowercase}
+  .freshness.s-2ZUn9a8cyG47,.row-status.s-2ZUn9a8cyG47{flex-shrink:0;padding:2px var(--space-2);border:1px solid var(--color-border);border-radius:999px;color:var(--color-success);font:var(--type-caption)}
+  .rows.s-2ZUn9a8cyG47{display:grid;gap:var(--space-2);margin:0;padding:0;list-style:none}
+  .rows.s-2ZUn9a8cyG47>li:where(.s-2ZUn9a8cyG47){display:grid;gap:var(--space-2);min-width:0;padding:var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-elevated)}
+  .rows.s-2ZUn9a8cyG47>li.compatibility:where(.s-2ZUn9a8cyG47),.rows.s-2ZUn9a8cyG47>li.quarantined:where(.s-2ZUn9a8cyG47),.rows.s-2ZUn9a8cyG47>li.stale:where(.s-2ZUn9a8cyG47){border-color:var(--color-warning)}
+  .row-status.s-2ZUn9a8cyG47{color:var(--color-text-secondary)}
+  .identity.s-2ZUn9a8cyG47{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-2);margin:0}
+  .identity.s-2ZUn9a8cyG47 div:where(.s-2ZUn9a8cyG47){display:grid;gap:2px;min-width:0}
+  dt.s-2ZUn9a8cyG47{color:var(--color-text-tertiary);font:var(--type-caption);text-transform:uppercase;letter-spacing:.06em}
+  dd.s-2ZUn9a8cyG47{margin:0;overflow:hidden;color:var(--color-text-secondary);font:var(--type-code);text-overflow:ellipsis;white-space:nowrap}
+  .metadata.s-2ZUn9a8cyG47{flex-wrap:wrap;padding-top:var(--space-2);border-top:1px solid var(--color-border)}
+  .metadata.s-2ZUn9a8cyG47 code:where(.s-2ZUn9a8cyG47),.metadata.s-2ZUn9a8cyG47 small:where(.s-2ZUn9a8cyG47){overflow:hidden;color:var(--color-text-tertiary);font:var(--type-caption);text-overflow:ellipsis;white-space:nowrap}
+  .compatibility-copy.s-2ZUn9a8cyG47{margin:0;line-height:1.5}
+  .actions.s-2ZUn9a8cyG47{justify-content:flex-end}
+  button.s-2ZUn9a8cyG47{border:1px solid var(--color-border);border-radius:var(--radius-control);padding:var(--space-1) var(--space-2);background:transparent;color:var(--color-text-secondary);font:var(--type-caption);cursor:pointer}
+  button.s-2ZUn9a8cyG47:disabled{cursor:not-allowed;opacity:.45}
+  @container mission-canvas (max-width: 760px){.identity.s-2ZUn9a8cyG47{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (prefers-reduced-motion: reduce){button.s-2ZUn9a8cyG47{transition:none}}
+ .s-2ZUn9a8cyG47{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/contributions/WorkRailContribution.svelte?svelte&amp;type=style&amp;lang.css">
+  .work-rail.s-T_vgYRmYtu60{display:grid;gap:var(--space-2);min-width:0;padding:var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-panel)}
+  header.s-T_vgYRmYtu60,.rail-row.s-T_vgYRmYtu60,.rail-actions.s-T_vgYRmYtu60{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-width:0}
+  header.s-T_vgYRmYtu60>div:where(.s-T_vgYRmYtu60),.rail-reference.s-T_vgYRmYtu60{display:grid;gap:2px;min-width:0}
+  strong.s-T_vgYRmYtu60{color:var(--color-text);font:var(--type-label)}
+  header.s-T_vgYRmYtu60 span:where(.s-T_vgYRmYtu60),.rail-row.s-T_vgYRmYtu60 span:where(.s-T_vgYRmYtu60),code.s-T_vgYRmYtu60{overflow:hidden;color:var(--color-text-tertiary);font:var(--type-caption);text-overflow:ellipsis;white-space:nowrap}
+  .freshness.s-T_vgYRmYtu60{flex-shrink:0;padding:2px var(--space-2);border:1px solid var(--color-border);border-radius:999px;color:var(--color-success)}
+  .freshness.stale.s-T_vgYRmYtu60{color:var(--color-warning)}
+  .rail-row.s-T_vgYRmYtu60{padding-block:var(--space-2);border-block:1px solid var(--color-border)}
+  .rail-reference.s-T_vgYRmYtu60 code:where(.s-T_vgYRmYtu60){color:var(--color-text-secondary)}.revision.s-T_vgYRmYtu60{flex-shrink:0}
+  .rail-actions.s-T_vgYRmYtu60{justify-content:flex-end}
+  button.s-T_vgYRmYtu60{border:1px solid var(--color-border);border-radius:999px;padding:3px var(--space-2);background:var(--color-elevated);color:var(--color-text-secondary);font:var(--type-caption);cursor:pointer}
+  button.s-T_vgYRmYtu60:disabled{opacity:.45;cursor:not-allowed}
+ .s-T_vgYRmYtu60{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/contributions/CanonicalEventHistoryContribution.svelte?svelte&amp;type=style&amp;lang.css">
+  .history.s-3NiJNKTjPepE{display:grid;gap:var(--space-2);padding:var(--space-2);min-width:0}
+  .history-header.s-3NiJNKTjPepE{display:grid;gap:2px}
+  .history-header.s-3NiJNKTjPepE strong:where(.s-3NiJNKTjPepE){color:var(--color-text);font:var(--type-label)}
+  .history-header.s-3NiJNKTjPepE span:where(.s-3NiJNKTjPepE),.history-header.s-3NiJNKTjPepE small:where(.s-3NiJNKTjPepE){color:var(--color-text-tertiary);font:var(--type-caption)}
+  .history-events.s-3NiJNKTjPepE{margin:0;padding-left:var(--space-4);display:grid;gap:var(--space-1)}
+  .history-events.s-3NiJNKTjPepE li:where(.s-3NiJNKTjPepE){display:grid;gap:3px;color:var(--color-text-secondary);font:var(--type-caption)}
+ .s-3NiJNKTjPepE{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte?svelte&amp;type=style&amp;lang.css">
+  .layout-single.s-55-r8BRjdXSt{min-width:0;min-height:0;height:100%}
+  .layout-split.s-55-r8BRjdXSt{min-width:0;min-height:0;height:100%;display:grid;grid-template-columns:minmax(0,calc(var(--split-ratio) * 100%)) minmax(0,1fr);gap:var(--layout-cluster-gap)}
+  .layout-split.vertical.s-55-r8BRjdXSt{grid-template-columns:1fr;grid-template-rows:minmax(0,calc(var(--split-ratio) * 100%)) minmax(0,1fr)}
+  .split-child.s-55-r8BRjdXSt{min-width:0;min-height:0}
+  .layout-stack.s-55-r8BRjdXSt{min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;gap:var(--layout-cluster-gap)}
+  .stack-child.s-55-r8BRjdXSt{min-width:0;min-height:0;flex:1 1 auto}.stack-child.rail-region.s-55-r8BRjdXSt,.stack-child.queue-region.s-55-r8BRjdXSt{flex:0 0 auto}.stack-child.composer-region.s-55-r8BRjdXSt{flex:0 1 30%;min-height:140px}
+  .layout-grid.s-55-r8BRjdXSt{min-width:0;min-height:0;height:100%;display:grid;grid-template-columns:repeat(var(--layout-columns),minmax(0,1fr));gap:var(--layout-cluster-gap)}
+  .grid-child.s-55-r8BRjdXSt{min-width:0;min-height:0}
+  .layout-tabs.s-55-r8BRjdXSt{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr)}
+  .layout-tabs.with-strip.s-55-r8BRjdXSt{grid-template-rows:auto minmax(0,1fr);gap:var(--space-2)}
+  .tab-list.s-55-r8BRjdXSt{display:flex;align-items:center;gap:var(--space-1);overflow-x:auto}
+  .tab-list.s-55-r8BRjdXSt button:where(.s-55-r8BRjdXSt){min-height:28px;padding:0 var(--space-2);border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-text-tertiary);background:transparent;font:var(--type-caption);white-space:nowrap;cursor:pointer}
+  .tab-list.s-55-r8BRjdXSt button[aria-selected='true']:where(.s-55-r8BRjdXSt){color:var(--color-text);border-color:var(--color-border-strong);background:var(--color-raised)}
+  .tab-list.s-55-r8BRjdXSt button:where(.s-55-r8BRjdXSt):disabled{cursor:default;opacity:1}
+  .layout-inspector.s-55-r8BRjdXSt{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr)}
+  .layout-inspector.has-inspector.end.s-55-r8BRjdXSt{grid-template-columns:minmax(0,1fr) minmax(220px,calc(var(--inspector-span) * 4%));gap:var(--layout-cluster-gap)}
+  .layout-inspector.has-inspector.s-55-r8BRjdXSt:not(.end){grid-template-columns:minmax(220px,calc(var(--inspector-span) * 4%)) minmax(0,1fr);gap:var(--layout-cluster-gap)}
+  .layout-inspector.has-inspector.s-55-r8BRjdXSt:not(.end)>main:where(.s-55-r8BRjdXSt){grid-column:2;grid-row:1}.layout-inspector.s-55-r8BRjdXSt:not(.end)>aside:where(.s-55-r8BRjdXSt){grid-column:1;grid-row:1}
+  .layout-inspector.s-55-r8BRjdXSt main:where(.s-55-r8BRjdXSt),.layout-inspector.s-55-r8BRjdXSt aside:where(.s-55-r8BRjdXSt){min-width:0;min-height:0}.layout-inspector.s-55-r8BRjdXSt aside:where(.s-55-r8BRjdXSt){display:grid;align-content:start;gap:var(--layout-cluster-gap)}
+  @container mission-canvas (max-width:820px){.layout-split.s-55-r8BRjdXSt{grid-template-columns:1fr;grid-template-rows:auto}.layout-grid.s-55-r8BRjdXSt{grid-template-columns:1fr}.layout-inspector.s-55-r8BRjdXSt,.layout-inspector.s-55-r8BRjdXSt:not(.end){grid-template-columns:1fr}.layout-inspector.s-55-r8BRjdXSt:not(.end)>main:where(.s-55-r8BRjdXSt),.layout-inspector.s-55-r8BRjdXSt:not(.end)>aside:where(.s-55-r8BRjdXSt){grid-column:1;grid-row:auto}}
+ .s-55-r8BRjdXSt{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/MissionCanvasFrame.svelte?svelte&amp;type=style&amp;lang.css">
+  .mission-canvas-frame.s-rL0-tX3AjTz7{container:mission-canvas / inline-size;min-width:0;min-height:0;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
+  .mission-canvas-frame.with-work-surfaces.s-rL0-tX3AjTz7{grid-template-rows:auto auto minmax(0,1fr)}
+  .projection-region.s-rL0-tX3AjTz7{min-width:0;min-height:0;overflow:auto}
+ .s-rL0-tX3AjTz7{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/MissionCanvasRenderer.svelte?svelte&amp;type=style&amp;lang.css">
+  .renderer-blocked.s-rCRZpd61VIg_{align-self:center;justify-self:center;display:grid;gap:var(--space-2);max-width:34rem;padding:var(--layout-card-padding-roomy);border:1px solid var(--color-warning);border-radius:var(--radius-card);background:var(--color-raised);color:var(--color-text)}
+  .renderer-blocked.s-rCRZpd61VIg_ span:where(.s-rCRZpd61VIg_),.renderer-blocked.s-rCRZpd61VIg_ li:where(.s-rCRZpd61VIg_){color:var(--color-text-secondary)}
+  .renderer-blocked.s-rCRZpd61VIg_ ul:where(.s-rCRZpd61VIg_){margin:0;padding-inline-start:var(--space-5)}
+ .s-rCRZpd61VIg_{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/OperationConfirmationDialog.svelte?svelte&amp;type=style&amp;lang.css">
+  .backdrop.s--OU2114JU3aX{position:absolute;z-index:10;inset:0;display:grid;place-items:center;padding:var(--space-5);background:color-mix(in srgb,var(--color-bg) 72%,transparent)}
+  .confirmation.s--OU2114JU3aX{display:grid;gap:var(--space-4);width:min(32rem,100%);padding:var(--layout-card-padding-roomy);border:1px solid var(--color-border-strong);border-radius:var(--radius-panel);background:var(--color-elevated);box-shadow:var(--shadow-popover);color:var(--color-text)}
+  .requirement.s--OU2114JU3aX{color:var(--color-warning);font:var(--type-eyebrow)}
+  h2.s--OU2114JU3aX{margin:0;font:var(--type-title)}
+  dl.s--OU2114JU3aX{display:grid;gap:var(--space-2);margin:0}
+  dl.s--OU2114JU3aX div:where(.s--OU2114JU3aX){display:grid;grid-template-columns:6rem minmax(0,1fr);gap:var(--space-2)}
+  dt.s--OU2114JU3aX{color:var(--color-text-tertiary)}dd.s--OU2114JU3aX{margin:0;overflow-wrap:anywhere;color:var(--color-text-secondary)}
+  .actions.s--OU2114JU3aX{display:flex;justify-content:flex-end;gap:var(--space-2)}
+  button.s--OU2114JU3aX{border-radius:var(--radius-control);padding:var(--space-2) var(--space-4);font:inherit;cursor:pointer}
+  .secondary.s--OU2114JU3aX{border:1px solid var(--color-border);background:transparent;color:var(--color-text)}
+  .primary.s--OU2114JU3aX{border:0;background:var(--color-accent);color:var(--color-bg);font-weight:700}
+ .s--OU2114JU3aX{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/WorkspaceProfileSelector.svelte?svelte&amp;type=style&amp;lang.css">
+  .profile-selector.s-RDyLPzJ0i9CG{display:flex;align-items:center;gap:var(--space-2);min-width:0;color:var(--color-text-tertiary);font:var(--type-caption)}
+  .profile-selector.s-RDyLPzJ0i9CG span:where(.s-RDyLPzJ0i9CG){white-space:nowrap}
+  select.s-RDyLPzJ0i9CG{min-width:0;max-width:18rem;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:var(--space-2) var(--space-3);background:var(--color-raised);color:var(--color-text);font:inherit}
+ .s-RDyLPzJ0i9CG{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/mission-canvas/DesktopMissionCanvasRuntime.svelte?svelte&amp;type=style&amp;lang.css">
+  .desktop-canvas-runtime.s-XQOtZiiSD1qG{container:mission-canvas / inline-size;position:relative;display:grid;grid-template-rows:minmax(0,1fr);min-width:0;min-height:0;height:100%}
+  .desktop-canvas-runtime.has-controls.s-XQOtZiiSD1qG{grid-template-rows:auto minmax(0,1fr)}
+  .workspace-controls.s-XQOtZiiSD1qG{display:flex;align-items:center;justify-content:flex-end;gap:var(--layout-control-gap);min-width:0;border-bottom:1px solid var(--color-border);background:var(--color-panel)}
+  .workspace-controls.s-XQOtZiiSD1qG label{padding-inline:var(--space-3)}
+  .workspace-body.s-XQOtZiiSD1qG{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;min-height:0;overflow:hidden}
+  .workspace-body.has-activity-rail.s-XQOtZiiSD1qG{grid-template-columns:minmax(132px,168px) minmax(0,1fr)}
+  .activity-rail.s-XQOtZiiSD1qG,.canvas-stage.s-XQOtZiiSD1qG{position:relative;min-width:0;min-height:0;overflow:hidden}
+  .canvas-stage.s-XQOtZiiSD1qG{display:grid}
+  @container mission-canvas (max-width:820px){.workspace-body.has-activity-rail.s-XQOtZiiSD1qG{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}}
+  .mutation-pending.s-XQOtZiiSD1qG .workspace-controls:where(.s-XQOtZiiSD1qG),.mutation-pending.s-XQOtZiiSD1qG [role='tablist']{pointer-events:none;opacity:.72}
+  .capability-notice.s-XQOtZiiSD1qG,.state-banner.s-XQOtZiiSD1qG{position:absolute;z-index:2;inset-block-start:var(--space-2);inset-inline:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--color-warning);border-radius:var(--radius-control);background:var(--color-raised);color:var(--color-warning);font:var(--type-caption)}
+  .capability-notice.s-XQOtZiiSD1qG{inset-inline-start:auto;max-width:min(30rem,calc(100% - var(--space-4)));margin:0}
+  .state-message.s-XQOtZiiSD1qG{align-self:center;justify-self:center;padding:var(--layout-card-padding);color:var(--color-text-secondary)}
+  .state-message.error.s-XQOtZiiSD1qG{max-width:34rem;border:1px solid var(--color-error);border-radius:var(--radius-card);background:var(--color-raised);color:var(--color-error)}
+ .s-XQOtZiiSD1qG{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/shell/MissionCanvasShell.svelte?svelte&amp;type=style&amp;lang.css">
+  .canvas-live.s-IM6WU_0lMtut,.canvas-unbound.s-IM6WU_0lMtut{flex:1;min-height:0;min-width:0;overflow:hidden}
+  .canvas-unbound.s-IM6WU_0lMtut{display:grid;place-content:center;gap:var(--space-2);padding:var(--layout-card-padding-roomy);border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-bg);color:var(--color-text);text-align:center}
+  .canvas-unbound.s-IM6WU_0lMtut span:where(.s-IM6WU_0lMtut){max-width:34rem;color:var(--color-text-secondary)}
+ .s-IM6WU_0lMtut{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/node_modules/@xterm/xterm/css/xterm.css">/**
+ * Copyright (c) 2014 The xterm.js authors. All rights reserved.
+ * Copyright (c) 2012-2013, Christopher Jeffrey (MIT License)
+ * https://github.com/chjj/term.js
+ * @license MIT
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * Originally forked from (with the author's permission):
+ *   Fabrice Bellard's javascript vt100 for jslinux:
+ *   http://bellard.org/jslinux/
+ *   Copyright (c) 2011 Fabrice Bellard
+ *   The original design remains. The terminal itself
+ *   has been extended to include xterm CSI codes, among
+ *   other features.
+ */
+
+/**
+ *  Default styles for xterm.js
+ */
+
+.xterm {
+    cursor: text;
+    position: relative;
+    user-select: none;
+    -ms-user-select: none;
+    -webkit-user-select: none;
+}
+
+.xterm.focus,
+.xterm:focus {
+    outline: none;
+}
+
+.xterm .xterm-helpers {
+    position: absolute;
+    top: 0;
+    /**
+     * The z-index of the helpers must be higher than the canvases in order for
+     * IMEs to appear on top.
+     */
+    z-index: 5;
+}
+
+.xterm .xterm-helper-textarea {
+    padding: 0;
+    border: 0;
+    margin: 0;
+    /* Move textarea out of the screen to the far left, so that the cursor is not visible */
+    position: absolute;
+    opacity: 0;
+    left: -9999em;
+    top: 0;
+    width: 0;
+    height: 0;
+    z-index: -5;
+    /** Prevent wrapping so the IME appears against the textarea at the correct position */
+    white-space: nowrap;
+    overflow: hidden;
+    resize: none;
+}
+
+.xterm .composition-view {
+    /* TODO: Composition position got messed up somewhere */
+    background: #000;
+    color: #FFF;
+    display: none;
+    position: absolute;
+    white-space: nowrap;
+    z-index: 1;
+}
+
+.xterm .composition-view.active {
+    display: block;
+}
+
+.xterm .xterm-viewport {
+    /* On OS X this is required in order for the scroll bar to appear fully opaque */
+    background-color: #000;
+    overflow-y: scroll;
+    cursor: default;
+    position: absolute;
+    right: 0;
+    left: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.xterm .xterm-screen {
+    position: relative;
+}
+
+.xterm .xterm-screen canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.xterm-char-measure-element {
+    display: inline-block;
+    visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: -9999em;
+    line-height: normal;
+}
+
+.xterm.enable-mouse-events {
+    /* When mouse events are enabled (eg. tmux), revert to the standard pointer cursor */
+    cursor: default;
+}
+
+.xterm.xterm-cursor-pointer,
+.xterm .xterm-cursor-pointer {
+    cursor: pointer;
+}
+
+.xterm.column-select.focus {
+    /* Column selection mode */
+    cursor: crosshair;
+}
+
+.xterm .xterm-accessibility:not(.debug),
+.xterm .xterm-message {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 10;
+    color: transparent;
+    pointer-events: none;
+}
+
+.xterm .xterm-accessibility-tree:not(.debug) *::selection {
+  color: transparent;
+}
+
+.xterm .xterm-accessibility-tree {
+  font-family: monospace;
+  user-select: text;
+  white-space: pre;
+}
+
+.xterm .xterm-accessibility-tree > div {
+  transform-origin: left;
+  width: fit-content;
+}
+
+.xterm .live-region {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.xterm-dim {
+    /* Dim should not apply to background, so the opacity of the foreground color is applied
+     * explicitly in the generated class and reset to 1 here */
+    opacity: 1 !important;
+}
+
+.xterm-underline-1 { text-decoration: underline; }
+.xterm-underline-2 { text-decoration: double underline; }
+.xterm-underline-3 { text-decoration: wavy underline; }
+.xterm-underline-4 { text-decoration: dotted underline; }
+.xterm-underline-5 { text-decoration: dashed underline; }
+
+.xterm-overline {
+    text-decoration: overline;
+}
+
+.xterm-overline.xterm-underline-1 { text-decoration: overline underline; }
+.xterm-overline.xterm-underline-2 { text-decoration: overline double underline; }
+.xterm-overline.xterm-underline-3 { text-decoration: overline wavy underline; }
+.xterm-overline.xterm-underline-4 { text-decoration: overline dotted underline; }
+.xterm-overline.xterm-underline-5 { text-decoration: overline dashed underline; }
+
+.xterm-strikethrough {
+    text-decoration: line-through;
+}
+
+.xterm-screen .xterm-decoration-container .xterm-decoration {
+	z-index: 6;
+	position: absolute;
+}
+
+.xterm-screen .xterm-decoration-container .xterm-decoration.xterm-decoration-top-layer {
+	z-index: 7;
+}
+
+.xterm-decoration-overview-ruler {
+    z-index: 8;
+    position: absolute;
+    top: 0;
+    right: 0;
+    pointer-events: none;
+}
+
+.xterm-decoration-top {
+    z-index: 2;
+    position: relative;
+}
+
+
+
+/* Derived from vs/base/browser/ui/scrollbar/media/scrollbar.css */
+
+/* xterm.js customization: Override xterm's cursor style */
+.xterm .xterm-scrollable-element > .scrollbar {
+    cursor: default;
+}
+
+/* Arrows */
+.xterm .xterm-scrollable-element > .scrollbar > .scra {
+	cursor: pointer;
+	font-size: 11px !important;
+}
+
+.xterm .xterm-scrollable-element > .visible {
+	opacity: 1;
+
+	/* Background rule added for IE9 - to allow clicks on dom node */
+	background:rgba(0,0,0,0);
+
+	transition: opacity 100ms linear;
+	/* In front of peek view */
+	z-index: 11;
+}
+.xterm .xterm-scrollable-element > .invisible {
+	opacity: 0;
+	pointer-events: none;
+}
+.xterm .xterm-scrollable-element > .invisible.fade {
+	transition: opacity 800ms linear;
+}
+
+/* Scrollable Content Inset Shadow */
+.xterm .xterm-scrollable-element > .shadow {
+	position: absolute;
+	display: none;
+}
+.xterm .xterm-scrollable-element > .shadow.top {
+	display: block;
+	top: 0;
+	left: 3px;
+	height: 3px;
+	width: 100%;
+	box-shadow: var(--vscode-scrollbar-shadow, #000) 0 6px 6px -6px inset;
+}
+.xterm .xterm-scrollable-element > .shadow.left {
+	display: block;
+	top: 3px;
+	left: 0;
+	height: 100%;
+	width: 3px;
+	box-shadow: var(--vscode-scrollbar-shadow, #000) 6px 0 6px -6px inset;
+}
+.xterm .xterm-scrollable-element > .shadow.top-left-corner {
+	display: block;
+	top: 0;
+	left: 0;
+	height: 3px;
+	width: 3px;
+}
+.xterm .xterm-scrollable-element > .shadow.top.left {
+	box-shadow: var(--vscode-scrollbar-shadow, #000) 6px 0 6px -6px inset;
+}
+</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/shell/PtyTerminal.svelte?svelte&amp;type=style&amp;lang.css">
+  .pty-terminal.s-vdc3LHdXd4B7{width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;border-radius:10px;background:var(--color-bg);text-align:left}
+  .pty-terminal.s-vdc3LHdXd4B7 .xterm{height:100%;padding:var(--space-3)}
+  .pty-terminal.s-vdc3LHdXd4B7 .xterm-viewport{scrollbar-width:thin;scrollbar-color:var(--color-border-strong) transparent}
+ .s-vdc3LHdXd4B7{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/shell/AgentTuiSurface.svelte?svelte&amp;type=style&amp;lang.css">
+  .agent-surface.s-dWy6tdRUytEy{display:grid;grid-template-rows:auto minmax(0,1fr);height:100%;min-height:0;overflow:hidden;background:var(--color-bg);color:var(--color-text)}
+  .agent-header.s-dWy6tdRUytEy{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);padding:var(--space-2) var(--space-4);border-bottom:1px solid var(--color-border);background:var(--color-panel)}
+  .agent-identity.s-dWy6tdRUytEy,.runtime-state.s-dWy6tdRUytEy{display:flex;align-items:center;gap:var(--space-2);min-width:0}
+  .agent-identity.s-dWy6tdRUytEy{color:var(--color-accent-bright)}
+  .agent-identity.s-dWy6tdRUytEy strong:where(.s-dWy6tdRUytEy){color:var(--color-text)}
+  .agent-identity.s-dWy6tdRUytEy span:where(.s-dWy6tdRUytEy){overflow:hidden;color:var(--color-text-tertiary);font:var(--type-caption);text-overflow:ellipsis;white-space:nowrap}
+  button.s-dWy6tdRUytEy{border:1px solid var(--color-border);border-radius:var(--radius-control);padding:var(--space-1) var(--space-3);background:transparent;color:var(--color-text-secondary);font:var(--type-caption);cursor:pointer}
+  button.s-dWy6tdRUytEy:hover{border-color:var(--color-border-strong);color:var(--color-text)}
+  .terminal-frame.s-dWy6tdRUytEy{min-width:0;min-height:0;padding:var(--space-2);background:var(--color-bg)}
+  .unavailable.s-dWy6tdRUytEy{align-self:center;justify-self:center;display:grid;justify-items:center;gap:var(--space-2);max-width:36rem;padding:var(--layout-card-padding-roomy);color:var(--color-text-secondary);text-align:center}
+  .unavailable.s-dWy6tdRUytEy strong:where(.s-dWy6tdRUytEy){color:var(--color-text)}
+ .s-dWy6tdRUytEy{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/ui/StatePanel.svelte?svelte&amp;type=style&amp;lang.css">section.s-A1hrspWc0Ro6{display:flex;align-items:flex-start;gap:var(--space-3);min-height:84px;padding:var(--layout-card-padding);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-panel)}.icon.s-A1hrspWc0Ro6{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;border-radius:var(--radius-control);color:var(--color-text-tertiary);background:var(--color-raised)}strong.s-A1hrspWc0Ro6{color:var(--color-text-soft);font:var(--type-title)}p.s-A1hrspWc0Ro6{max-width:68ch;margin:var(--space-1) 0 0;color:var(--color-text-tertiary);font:var(--type-body)}.ready.s-A1hrspWc0Ro6 .icon:where(.s-A1hrspWc0Ro6){color:var(--color-success)}.stale.s-A1hrspWc0Ro6 .icon:where(.s-A1hrspWc0Ro6){color:var(--color-warning)}.blocked.s-A1hrspWc0Ro6 .icon:where(.s-A1hrspWc0Ro6),.error.s-A1hrspWc0Ro6 .icon:where(.s-A1hrspWc0Ro6){color:var(--color-error)}.loading.s-A1hrspWc0Ro6 .icon:where(.s-A1hrspWc0Ro6){color:var(--color-accent)} .s-A1hrspWc0Ro6{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/shell/ContextControlPanel.svelte?svelte&amp;type=style&amp;lang.css">
+  .context-panel.s-wCJR_rWqD3Ai{position:fixed;top:116px;right:calc(var(--sidebar-width,248px) + 16px);z-index:45;width:min(390px,calc(100vw - var(--sidebar-width,248px) - 40px));max-height:calc(100vh - 140px);display:grid;gap:var(--space-3);overflow-y:auto;padding:var(--space-3);border:1px solid var(--color-border-strong);border-radius:var(--radius-card);color:var(--color-text);background:var(--color-elevated);box-shadow:var(--shadow-popover)}
+  header.s-wCJR_rWqD3Ai{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}header.s-wCJR_rWqD3Ai>div:where(.s-wCJR_rWqD3Ai){display:grid;gap:2px}header.s-wCJR_rWqD3Ai span:where(.s-wCJR_rWqD3Ai){color:var(--color-text-tertiary);font:var(--type-eyebrow);letter-spacing:.07em;text-transform:uppercase}header.s-wCJR_rWqD3Ai strong:where(.s-wCJR_rWqD3Ai){font:var(--type-title)}header.s-wCJR_rWqD3Ai button:where(.s-wCJR_rWqD3Ai){width:30px;height:30px;border:0;border-radius:var(--radius-control);color:var(--color-text-tertiary);background:transparent;font-size:18px;cursor:pointer}header.s-wCJR_rWqD3Ai button:where(.s-wCJR_rWqD3Ai):hover{color:var(--color-text);background:color-mix(in srgb,var(--color-accent) 8%,transparent)}
+  .node-status.s-wCJR_rWqD3Ai{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-panel)}.node-status.s-wCJR_rWqD3Ai>span:where(.s-wCJR_rWqD3Ai){min-width:0;display:flex;align-items:center;gap:var(--space-2);color:var(--color-accent-bright)}.node-status.s-wCJR_rWqD3Ai>span:where(.s-wCJR_rWqD3Ai)>span:where(.s-wCJR_rWqD3Ai){min-width:0;display:grid}.node-status.s-wCJR_rWqD3Ai strong:where(.s-wCJR_rWqD3Ai){color:var(--color-text-soft);font:var(--type-caption)}.node-status.s-wCJR_rWqD3Ai small:where(.s-wCJR_rWqD3Ai){overflow:hidden;color:var(--color-text-tertiary);font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+  .identity-ladder.s-wCJR_rWqD3Ai{display:grid;padding:var(--space-2);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-panel)}.identity-ladder.s-wCJR_rWqD3Ai>div:where(.s-wCJR_rWqD3Ai){position:relative;min-height:42px;display:grid;grid-template-columns:24px 1fr;align-items:center;gap:var(--space-2)}.step-icon.s-wCJR_rWqD3Ai{z-index:1;width:20px;height:20px;display:grid;place-items:center;border:1px solid var(--color-border-strong);border-radius:50%;color:var(--color-text-tertiary);background:var(--color-raised);font-size:9px;font-variant-numeric:tabular-nums}.identity-ladder.s-wCJR_rWqD3Ai>div:where(.s-wCJR_rWqD3Ai)>span:where(.s-wCJR_rWqD3Ai):nth-child(2){display:grid;gap:1px}.identity-ladder.s-wCJR_rWqD3Ai strong:where(.s-wCJR_rWqD3Ai){color:var(--color-text-soft);font:var(--type-caption)}.identity-ladder.s-wCJR_rWqD3Ai small:where(.s-wCJR_rWqD3Ai){color:var(--color-text-tertiary);font-size:9px}.identity-ladder.s-wCJR_rWqD3Ai i:where(.s-wCJR_rWqD3Ai){position:absolute;top:31px;bottom:-11px;left:9px;width:1px;background:var(--color-border)}
+  footer.s-wCJR_rWqD3Ai{display:grid;gap:var(--space-2);padding-top:var(--space-1);border-top:1px solid var(--color-border)}footer.s-wCJR_rWqD3Ai button:where(.s-wCJR_rWqD3Ai){min-height:34px;display:flex;align-items:center;justify-content:center;gap:var(--space-2);border:0;border-radius:var(--radius-control);color:var(--color-text-secondary);background:var(--color-raised);font:var(--type-caption)}footer.s-wCJR_rWqD3Ai button:where(.s-wCJR_rWqD3Ai):disabled{cursor:default;opacity:.48}footer.s-wCJR_rWqD3Ai small:where(.s-wCJR_rWqD3Ai){color:var(--color-text-tertiary);font-size:9px;text-align:center}
+  @media(max-width:820px){.context-panel.s-wCJR_rWqD3Ai{position:fixed;top:70px;left:76px;width:min(390px,calc(100vw - 92px));max-height:calc(100vh - 116px);right:auto}}
+ .s-wCJR_rWqD3Ai{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/ui/IconButton.svelte?svelte&amp;type=style&amp;lang.css">button.s-FwOxJJDNg-BD{width:30px;height:30px;display:grid;place-items:center;padding:0;border:1px solid transparent;border-radius:var(--radius-control);color:var(--color-text-tertiary);background:transparent;cursor:pointer;transition:color var(--motion-fast) var(--ease-out-quart),background var(--motion-fast) var(--ease-out-quart),border-color var(--motion-fast) var(--ease-out-quart),transform var(--motion-micro) var(--ease-out-quart)}button.s-FwOxJJDNg-BD:hover:not(:disabled),button[aria-pressed='true'].s-FwOxJJDNg-BD{color:var(--color-text);background:color-mix(in srgb,var(--color-accent) 9%,transparent)}button.s-FwOxJJDNg-BD:active:not(:disabled){transform:scale(.98)}button.s-FwOxJJDNg-BD:disabled{cursor:default;opacity:.45}button.s-FwOxJJDNg-BD:focus-visible{outline:2px solid var(--color-accent-bright);outline-offset:2px} .s-FwOxJJDNg-BD{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/ui/ThinkingOrb.svelte?svelte&amp;type=style&amp;lang.css">.orb.s-zk25HEzM-bT5{display:block;flex:0 0 auto}canvas.s-zk25HEzM-bT5{display:block;filter:drop-shadow(0 0 9px color-mix(in srgb,var(--color-accent) 18%,transparent))} .s-zk25HEzM-bT5{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/ui/MotionControl.svelte?svelte&amp;type=style&amp;lang.css">.motion-control.s-8_8bT9IKo0ZD{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-2);border-top:1px solid var(--color-border)}.motion-label.s-8_8bT9IKo0ZD{display:flex;align-items:center;gap:var(--space-2);color:var(--color-text-tertiary);font:var(--type-caption)}.motion-control.s-8_8bT9IKo0ZD>div:where(.s-8_8bT9IKo0ZD){display:flex;padding:2px;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:var(--color-panel)}button.s-8_8bT9IKo0ZD{min-height:24px;padding:0 7px;border:0;border-radius:var(--radius-pill);color:var(--color-text-tertiary);background:transparent;font-size:9px;text-transform:capitalize;cursor:pointer;transition:color var(--motion-fast) var(--ease-out-quart),background var(--motion-fast) var(--ease-out-quart),transform var(--motion-micro) var(--ease-out-quart)}button.s-8_8bT9IKo0ZD:hover{color:var(--color-text-soft)}button.active.s-8_8bT9IKo0ZD{color:var(--color-text);background:color-mix(in srgb,var(--color-accent) 14%,var(--color-raised))}button.s-8_8bT9IKo0ZD:active{transform:scale(.98)} .s-8_8bT9IKo0ZD{}</style><style type="text/css" data-vite-dev-id="/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/src/lib/ui/CommandPalette.svelte?svelte&amp;type=style&amp;lang.css">
+  .command-backdrop.s-F00whlqRjksq{position:fixed;inset:0;z-index:80;display:grid;place-items:start center;padding:clamp(90px,16vh,160px) var(--space-4);background:rgb(0 0 0 / 38%);backdrop-filter:blur(8px)}
+  .command-palette.s-F00whlqRjksq{position:relative;inset:auto;width:min(540px,calc(100vw - 32px));max-height:min(620px,calc(84vh - 32px));margin:0;display:flex;flex-direction:column;overflow:hidden;padding:0;border:1px solid var(--color-border-strong);border-radius:var(--radius-card);color:var(--color-text);background:var(--color-elevated);box-shadow:var(--shadow-popover);transform-origin:top center}
+  header.s-F00whlqRjksq{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4) var(--space-2);color:var(--color-text-tertiary);font:var(--type-caption)}header.s-F00whlqRjksq>span:where(.s-F00whlqRjksq){display:flex;align-items:center;gap:var(--space-2);margin-right:auto;color:var(--color-text-soft)}header.s-F00whlqRjksq small:where(.s-F00whlqRjksq){font-size:9px}kbd.s-F00whlqRjksq{padding:2px 5px;border:1px solid var(--color-border);border-radius:4px;color:var(--color-text-tertiary);background:var(--color-raised);font-size:9px}
+  .command-input.s-F00whlqRjksq{display:grid;grid-template-columns:22px 1fr;align-items:center;gap:var(--space-2);margin:0 var(--space-4);padding:var(--space-2) 0;border-bottom:1px solid var(--color-border);color:var(--color-accent-bright)}input.s-F00whlqRjksq{width:100%;padding:0;border:0;outline:0;color:var(--color-text);background:transparent;font:var(--type-body)}input.s-F00whlqRjksq::placeholder{color:var(--color-text-tertiary)}
+  .result-status.s-F00whlqRjksq{display:flex;justify-content:space-between;padding:var(--space-2) var(--space-4) var(--space-1);color:var(--color-text-tertiary);font-size:9px}.command-list.s-F00whlqRjksq{min-height:0;display:grid;gap:2px;overflow-y:auto;padding:var(--space-1) var(--space-2) var(--space-2);scrollbar-width:thin}.command-list.s-F00whlqRjksq button:where(.s-F00whlqRjksq){position:relative;min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);padding:var(--space-2) var(--space-3);border:0;border-radius:var(--radius-control);color:var(--color-text);background:transparent;text-align:left;cursor:pointer;transition:background var(--motion-fast) var(--ease-out-quart),transform var(--motion-micro) var(--ease-out-quart)}.command-list.s-F00whlqRjksq button:where(.s-F00whlqRjksq):hover,.command-list.s-F00whlqRjksq button.active:where(.s-F00whlqRjksq){background:color-mix(in srgb,var(--color-accent) 13%,var(--color-raised))}.command-list.s-F00whlqRjksq button.active:where(.s-F00whlqRjksq)::before{position:absolute;inset-block:9px;left:0;width:2px;border-radius:2px;background:var(--color-accent);content:''}.command-list.s-F00whlqRjksq button:where(.s-F00whlqRjksq):active{transform:scale(.98)}.command-list.s-F00whlqRjksq button:where(.s-F00whlqRjksq)>span:where(.s-F00whlqRjksq){min-width:0;display:grid;gap:1px}.command-list.s-F00whlqRjksq strong:where(.s-F00whlqRjksq){overflow:hidden;font:var(--type-caption);text-overflow:ellipsis;white-space:nowrap}.command-list.s-F00whlqRjksq small:where(.s-F00whlqRjksq){overflow:hidden;color:var(--color-text-tertiary);font-size:9px;text-overflow:ellipsis;white-space:nowrap}.command-list.s-F00whlqRjksq em:where(.s-F00whlqRjksq){flex:0 0 auto;color:var(--color-text-tertiary);font-size:8px;font-style:normal}.empty.s-F00whlqRjksq{margin:var(--space-4);color:var(--color-text-tertiary);font:var(--type-body)}
+ .s-F00whlqRjksq{}</style></head>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">
+			<script>
+				{
+					__sveltekit_dev = {
+						base: new URL(".", location).pathname.slice(0, -1),
+						env: {}
+					};
+
+					const element = document.currentScript.parentElement;
+
+					Promise.all([
+						import("/node_modules/@sveltejs/kit/src/runtime/client/entry.js"),
+						import("/@fs/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas/apps/desktop/.svelte-kit/generated/client/app.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element);
+					});
+				}
+			</script>
+		<!----><!----><!----><!----><div class="desktop-shell" style="--sidebar-width: 248px;"><header class="titlebar"><div class="brand-lockup" aria-label="Focusa Desktop"><span class="brand-mark" aria-hidden="true">F</span> <div><strong>Focusa Desktop</strong> <span>Workstream workspace</span></div></div> <div class="titlebar-status"><div class="ui-mode-switch" role="group" aria-label="Switch between Mission Canvas and Agent TUI"><i aria-hidden="true"></i> <button type="button" aria-pressed="true" class="active">Mission Canvas</button> <button type="button" aria-pressed="false">Agent TUI</button></div> <span class="mode-chip">browser preview</span> <span class="daemon-chip connected"><span class="status-dot" aria-hidden="true"></span>Daemon connected · read-only</span></div></header> <aside aria-label="Focusa workspaces" class="sidebar"><div class="sidebar-heading"><span>Workspaces</span> <button type="button" class="s-FwOxJJDNg-BD" aria-label="Collapse sidebar ([)" title="Collapse sidebar ([)" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16"></path><!----></svg><!----></button><!----></div> <button class="scope-card" type="button" aria-label="Context Control: Unbound" title="Context Control · Unbound" aria-expanded="false"><span class="scope-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" stroke-width="1.7" aria-hidden="true"><path d="M4 7h6l2 2h8v10H4z"></path><path d="M4 7V5h6l2 2"></path><!----></svg><!----></span> <span class="scope-copy"><span class="eyebrow">Context Control</span><strong>Unbound</strong><small>No exact Attachment selected.</small></span></button> <!----><!----> <button class="find-button" type="button" aria-label="Find or do"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" stroke-width="1.7" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path><!----></svg><!----><span>Find or do</span><kbd>⌘K</kbd></button> <div class="workspace-groups"><section class="workspace-group" aria-label="Orient workspaces"><button class="group-heading" type="button" aria-expanded="true"><span>Orient</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"></path><!----></svg><!----></button> <nav aria-label="Orient workspaces"><button type="button" aria-label="Mission Canvas" title="Mission Canvas" aria-current="page" class="active"><span class="workspace-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M8 4v16M8 10h13"></path><!----></svg><!----></span> <span class="workspace-label">Canvas</span> <small>live</small><!----></button><button type="button" aria-label="Mission Deck" title="Mission Deck"><span class="workspace-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="18" height="7" rx="1"></rect><!----></svg><!----></span> <span class="workspace-label">Deck</span> <small>live</small><!----></button></nav><!----></section><section class="workspace-group" aria-label="Work workspaces"><button class="group-heading" type="button" aria-expanded="false"><span>Work</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" stroke-width="1.7" aria-hidden="true"><path d="m9 18 6-6-6-6"></path><!----></svg><!----></button> <!----></section><section class="workspace-group" aria-label="Records workspaces"><button class="group-heading" type="button" aria-expanded="false"><span>Records</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" stroke-width="1.7" aria-hidden="true"><path d="m9 18 6-6-6-6"></path><!----></svg><!----></button> <!----></section><section class="workspace-group" aria-label="System workspaces"><button class="group-heading" type="button" aria-expanded="false"><span>System</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" stroke-width="1.7" aria-hidden="true"><path d="m9 18 6-6-6-6"></path><!----></svg><!----></button> <!----></section></div> <!----><div class="motion-control s-8_8bT9IKo0ZD"><span class="motion-label s-8_8bT9IKo0ZD"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1v.1h-4v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1-.4h-.1v-4H3A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1v-.1h4V3A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.4.28.73.62 1 .98.25.3.4.7.4 1.02v.1h.1v4h-.1a1.7 1.7 0 0 0-1.4 1.9z"></path><!----></svg><!----><span class="s-8_8bT9IKo0ZD">Motion</span></span> <div role="group" aria-label="Motion preference" class="s-8_8bT9IKo0ZD"><button type="button" aria-pressed="true" class="s-8_8bT9IKo0ZD active">system</button><button type="button" aria-pressed="false" class="s-8_8bT9IKo0ZD">full</button><button type="button" aria-pressed="false" class="s-8_8bT9IKo0ZD">reduced</button></div></div><!----> <button class="sidebar-resize-handle" type="button" aria-label="Resize sidebar"></button><!----></aside><!----> <main><div class="view-scene"><!----><!----><!----><section class="canvas-live s-IM6WU_0lMtut" aria-label="Focusa Mission Canvas workspace"><div data-presentation-root="true" class="desktop-canvas-runtime s-XQOtZiiSD1qG" aria-busy="false" data-runtime-state="ready"><!----> <!----> <div class="workspace-body s-XQOtZiiSD1qG"><!----> <div class="canvas-stage s-XQOtZiiSD1qG"><!----><!----><!----><section aria-label="Mission Canvas workspace" class="mission-canvas-frame s-rL0-tX3AjTz7 with-work-surfaces" data-profile="software" data-activity="overview" data-projection-revision="1" data-layout-revision="1"><header class="context-bar s-sJJvRqX9mZkk" aria-label="Mission Canvas context"><div class="context-item s-sJJvRqX9mZkk"><span class="s-sJJvRqX9mZkk">Project</span> <strong class="s-sJJvRqX9mZkk" title="/example/focusa">/example/focusa</strong></div><div class="context-item s-sJJvRqX9mZkk"><span class="s-sJJvRqX9mZkk">Workstream</span> <strong class="s-sJJvRqX9mZkk" title="ws:mission-canvas">ws:mission-canvas</strong></div><div class="context-item s-sJJvRqX9mZkk"><span class="s-sJJvRqX9mZkk">Profile</span> <strong class="s-sJJvRqX9mZkk" title="software">software</strong></div><div class="context-item s-sJJvRqX9mZkk"><span class="s-sJJvRqX9mZkk">Instance</span> <strong class="s-sJJvRqX9mZkk" title="instance:pi">instance:pi</strong></div><div class="context-item s-sJJvRqX9mZkk"><span class="s-sJJvRqX9mZkk">Session</span> <strong class="s-sJJvRqX9mZkk" title="session:pi">session:pi</strong></div><div class="context-item s-sJJvRqX9mZkk"><span class="s-sJJvRqX9mZkk">Attachment</span> <strong class="s-sJJvRqX9mZkk" title="attachment:pi">attachment:pi</strong></div><div class="context-item s-sJJvRqX9mZkk"><span class="s-sJJvRqX9mZkk">Workspace Binding</span> <strong class="s-sJJvRqX9mZkk" title="workspace:mission-canvas">workspace:mission-canvas</strong></div><div class="context-item s-sJJvRqX9mZkk"><span class="s-sJJvRqX9mZkk">Work Surface</span> <strong class="s-sJJvRqX9mZkk" title="surface:pi">surface:pi</strong></div><div class="context-item s-sJJvRqX9mZkk"><span class="s-sJJvRqX9mZkk">Focus</span> <strong class="s-sJJvRqX9mZkk" title="semantic:controls">semantic:controls</strong></div><div class="context-item s-sJJvRqX9mZkk"><span class="s-sJJvRqX9mZkk">Activity</span> <strong class="s-sJJvRqX9mZkk" title="overview">overview</strong></div><!----> <div class="context-revision s-sJJvRqX9mZkk" aria-label="Projection revision 1"><span class="s-sJJvRqX9mZkk">Projection</span> <strong class="s-sJJvRqX9mZkk">r1</strong></div></header><!----> <!----><nav class="work-surface-strip s-smO_NhhHkf-y" aria-label="Work Surfaces"><span class="strip-label s-smO_NhhHkf-y">Work Surfaces</span> <div role="tablist" aria-label="Actual Work Surfaces" class="s-smO_NhhHkf-y"><button type="button" role="tab" class="s-smO_NhhHkf-y" aria-selected="false" aria-controls="work-surface-contribution:pi-session" data-work-surface-id="surface:pi-session" disabled="">contribution:pi-session</button><button type="button" role="tab" class="s-smO_NhhHkf-y" aria-selected="false" aria-controls="work-surface-contribution:project-overview" data-work-surface-id="surface:project-overview" disabled="">contribution:project-overview</button></div></nav><!----> <div class="projection-region s-rL0-tX3AjTz7"><!----><!----><div class="layout-stack s-55-r8BRjdXSt" data-layout-node="layout:primary-stack" data-gap-token="default"><div data-stack-index="0" class="stack-child s-55-r8BRjdXSt"><!----><!----><!----><div class="layout-single s-55-r8BRjdXSt" data-layout-node="layout:item:0" data-contribution-id="contribution:controls"><!----><!----><section class="canonical-contribution s-sukQuWKISDiL" aria-label="contribution:controls" data-contribution-kind="toolbar_control"><header class="s-sukQuWKISDiL"><div class="s-sukQuWKISDiL"><strong class="s-sukQuWKISDiL">contribution:controls</strong> <!----></div> <span class="ready s-xddwP7GavsAP"><i aria-hidden="true" class="s-xddwP7GavsAP"></i>current</span><!----></header> <div class="reference s-sukQuWKISDiL" aria-label="Canonical content reference"><span class="s-sukQuWKISDiL">work_surface</span> <code class="s-sukQuWKISDiL">surface:controls</code></div></section><!----></div><!----></div><div data-stack-index="1" class="stack-child s-55-r8BRjdXSt"><!----><!----><!----><div class="layout-single s-55-r8BRjdXSt" data-layout-node="layout:item:1" data-contribution-id="contribution:pi-session"><!----><!----><section class="work-surface s-MgtvwaG4JicV" aria-label="contribution:pi-session" data-work-surface-ref="surface:pi-session"><header class="s-MgtvwaG4JicV"><div class="identity s-MgtvwaG4JicV"><strong class="s-MgtvwaG4JicV">contribution:pi-session</strong> <!----></div> <div class="actions s-MgtvwaG4JicV"><span class="ready s-xddwP7GavsAP"><i aria-hidden="true" class="s-xddwP7GavsAP"></i>current</span><!----> <!----></div></header> <div class="artifact-reference s-MgtvwaG4JicV"><span class="s-MgtvwaG4JicV">work_surface</span> <code class="s-MgtvwaG4JicV">surface:pi-session</code> <small class="s-MgtvwaG4JicV">revision 1</small></div></section><!----></div><!----></div><div data-stack-index="2" class="stack-child s-55-r8BRjdXSt"><!----><!----><!----><div class="layout-single s-55-r8BRjdXSt" data-layout-node="layout:item:2" data-contribution-id="contribution:project-overview"><!----><!----><section class="work-surface s-MgtvwaG4JicV" aria-label="contribution:project-overview" data-work-surface-ref="surface:project-overview"><header class="s-MgtvwaG4JicV"><div class="identity s-MgtvwaG4JicV"><strong class="s-MgtvwaG4JicV">contribution:project-overview</strong> <!----></div> <div class="actions s-MgtvwaG4JicV"><span class="ready s-xddwP7GavsAP"><i aria-hidden="true" class="s-xddwP7GavsAP"></i>current</span><!----> <!----></div></header> <div class="artifact-reference s-MgtvwaG4JicV"><span class="s-MgtvwaG4JicV">work_surface</span> <code class="s-MgtvwaG4JicV">surface:project-overview</code> <small class="s-MgtvwaG4JicV">revision 1</small></div></section><!----></div><!----></div><div data-stack-index="3" class="stack-child s-55-r8BRjdXSt rail-region"><!----><!----><!----><div class="layout-single s-55-r8BRjdXSt" data-layout-node="layout:item:3" data-contribution-id="contribution:work-rail"><!----><!----><section class="work-rail s-T_vgYRmYtu60" aria-label="contribution:work-rail" data-work-rail-ref="surface:work-rail" data-work-rail-revision="1"><header class="s-T_vgYRmYtu60"><div class="s-T_vgYRmYtu60"><strong class="s-T_vgYRmYtu60">contribution:work-rail</strong> <!----></div> <span class="freshness s-T_vgYRmYtu60">current</span></header> <div class="rail-row s-T_vgYRmYtu60"><div class="rail-reference s-T_vgYRmYtu60"><span class="s-T_vgYRmYtu60">work_rail</span> <code class="s-T_vgYRmYtu60">surface:work-rail</code></div> <span class="revision s-T_vgYRmYtu60">revision 1</span></div> <!----></section><!----></div><!----></div></div><!----></div></section><!----></div></div> <!----></div><!----></section><!----></div><!----></main> <footer><span>Focusa Desktop 0.9.143</span> <span>UIAI Engine browser proof</span> <span>No canonical state duplicated</span></footer></div> <!----><!----><!----> <div id="svelte-announcer" aria-live="assertive" aria-atomic="true" style="position: absolute; left: 0; top: 0; clip: rect(0 0 0 0); clip-path: inset(50%); overflow: hidden; white-space: nowrap; width: 1px; height: 1px"><!----></div><!----></div>
+  
+
+</body></html>
