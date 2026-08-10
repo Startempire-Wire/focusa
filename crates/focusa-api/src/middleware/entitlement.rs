@@ -645,6 +645,8 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
             || is_read_only_preflight(path)
             || is_recovery_export(path)
             || path.starts_with("/v1/license/")
+            || path.starts_with("/v1/reflect/history")
+            || path.starts_with("/v1/reflect/status")
             || route_is_known_read_without_side_effect(method, path)
         {
             return false;
