@@ -115,6 +115,7 @@ pub mod traverse;
 pub mod trust;
 pub mod turn;
 pub mod update;
+mod update_authority;
 pub mod utility;
 pub mod uxp;
 pub mod visual_workflow;

@@ -22,6 +22,11 @@ use std::time::Duration;
 use tokio::process::Command;
 use tokio::time::timeout;
 
+use super::update_authority::{
+    ApplyRequest as AuthorityApplyRequest, CliUpdateAuthority,
+    RollbackRequest as AuthorityRollbackRequest, UpdateRequest as AuthorityUpdateRequest,
+};
+
 pub fn router() -> Router<Arc<crate::server::AppState>> {
     Router::new()
         .route("/v1/update/status", get(update_status))
@@ -155,8 +160,11 @@ async fn update_check(Json(body): Json<UpdateQuery>) -> Json<Value> {
 }
 
 async fn update_plan_get(Query(query): Query<UpdateQuery>) -> Json<Value> {
-    let inventory = build_update_inventory("plan", query).await;
-    Json(build_update_plan(inventory))
+    Json(
+        CliUpdateAuthority::installed()
+            .plan(authority_update_request(query))
+            .await,
+    )
 }
 
 async fn update_plan(Json(body): Json<UpdateQuery>) -> Json<Value> {
@@ -164,14 +172,16 @@ async fn update_plan(Json(body): Json<UpdateQuery>) -> Json<Value> {
 }
 
 async fn update_apply(Json(body): Json<UpdateApplyBody>) -> Json<Value> {
-    let inventory = build_update_inventory("apply", body.query).await;
-    let plan = build_update_plan(inventory);
-    Json(build_apply_envelope(
-        plan,
-        body.dry_run,
-        body.yes,
-        body.allow_apply,
-    ))
+    Json(
+        CliUpdateAuthority::installed()
+            .apply(AuthorityApplyRequest {
+                update: authority_update_request(body.query),
+                dry_run: body.dry_run,
+                yes: body.yes,
+                allow_apply: body.allow_apply,
+            })
+            .await,
+    )
 }
 
 async fn update_history(Query(query): Query<UpdateHistoryQuery>) -> Json<Value> {
@@ -179,7 +189,22 @@ async fn update_history(Query(query): Query<UpdateHistoryQuery>) -> Json<Value> 
 }
 
 async fn update_rollback(Json(body): Json<UpdateRollbackBody>) -> Json<Value> {
-    Json(build_rollback_envelope(body))
+    Json(
+        CliUpdateAuthority::installed()
+            .rollback(AuthorityRollbackRequest {
+                part: body.part,
+                dry_run: body.dry_run,
+                yes: body.yes,
+            })
+            .await,
+    )
+}
+
+fn authority_update_request(query: UpdateQuery) -> AuthorityUpdateRequest {
+    AuthorityUpdateRequest {
+        channel: query.channel,
+        latest_version: query.latest_version,
+    }
 }
 
 async fn update_admin(Json(body): Json<UpdateAdminBody>) -> Json<Value> {
@@ -661,102 +686,6 @@ async fn build_update_inventory(command: &'static str, query: UpdateQuery) -> Va
     })
 }
 
-fn build_update_plan(inventory: Value) -> Value {
-    let latest_version = inventory
-        .pointer("/latest/version")
-        .and_then(Value::as_str)
-        .unwrap_or(env!("CARGO_PKG_VERSION"));
-    let policy_mode = inventory
-        .pointer("/policy/mode")
-        .and_then(Value::as_str)
-        .unwrap_or("manual");
-    let mut parts = Vec::new();
-    let mut order = 1u8;
-    if let Some(arr) = inventory.get("parts").and_then(Value::as_array) {
-        for part in arr
-            .iter()
-            .filter(|p| p.get("part").and_then(Value::as_str) != Some("daemon"))
-        {
-            parts.push(part_plan(part, latest_version, &mut order));
-        }
-        for part in arr
-            .iter()
-            .filter(|p| p.get("part").and_then(Value::as_str) == Some("daemon"))
-        {
-            parts.push(part_plan(part, latest_version, &mut order));
-        }
-    }
-    let daemon_restart = parts.iter().any(|p| {
-        p.get("part").and_then(Value::as_str) == Some("daemon")
-            && p.get("restart_required").and_then(Value::as_bool) == Some(true)
-    });
-    let blockers = vec![
-        "trusted_apply_requires_focusa_update_cli",
-        "self_replacement_is_not_daemon_api_authority",
-        "rollback_execution_requires_focusa_update_cli",
-    ];
-    json!({
-        "schema": "focusa.update_plan.v1",
-        "status": "planned_read_only",
-        "read_only": true,
-        "mutations_performed": false,
-        "apply_allowed": false,
-        "apply_blocked_until": blockers,
-        "channel": inventory.get("channel").cloned().unwrap_or_else(|| json!("dev")),
-        "latest": inventory.get("latest").cloned().unwrap_or_else(|| json!({"version": latest_version})),
-        "policy": inventory.get("policy").cloned().unwrap_or_else(|| json!({"mode":"manual"})),
-        "license": inventory.get("license").cloned().unwrap_or_else(|| json!({"level":"unknown"})),
-        "compatibility": {
-            "status": "blocked_until_apply_gates",
-            "daemon_api_contract": "focusa.api.v1",
-            "pi_tool_contract": "focusa.pi-tools.v1",
-            "data_schema": "focusa.data.v1",
-            "requires_migration": false,
-            "blockers": blockers,
-        },
-        "safety": build_safety_plan_json(),
-        "prompt": {
-            "mode": policy_mode,
-            "update_prompt_required": policy_mode != "automatic",
-            "daemon_restart_prompt_required": daemon_restart,
-            "copy": [
-                "Your Focusa data, projects, license, Workpoints, evidence, and .env files will not be overwritten by a valid update plan.",
-                "Daemon restart is shown separately because it may interrupt active sessions.",
-                "This route is read-only; it has not downloaded, installed, or restarted anything."
-            ],
-            "choices": ["show_details", "later", "skip_version", "disable_auto_update", "apply_when_available"]
-        },
-        "install_order": ["cli", "tui", "daemon_last"],
-        "parts": parts,
-        "warnings": inventory.get("warnings").cloned().unwrap_or_else(|| json!([])),
-        "next_tools": ["focusa update status --json", "focusa update plan --json"]
-    })
-}
-
-fn part_plan(part: &Value, target_version: &str, order: &mut u8) -> Value {
-    let part_name = part
-        .get("part")
-        .and_then(Value::as_str)
-        .unwrap_or("unknown");
-    let stale = part.get("stale").and_then(Value::as_bool);
-    let action = match stale {
-        Some(true) => "would_update",
-        Some(false) => "no_op",
-        None => "probe_required",
-    };
-    let value = json!({
-        "part": part_name,
-        "current_version": part.get("version").cloned().unwrap_or(Value::Null),
-        "target_version": target_version,
-        "action": action,
-        "reason": part.get("stale_reason").and_then(Value::as_str).unwrap_or("unknown"),
-        "restart_required": part_name == "daemon" && stale == Some(true),
-        "order": *order,
-    });
-    *order = order.saturating_add(1);
-    value
-}
-
 fn build_scheduler_envelope(channel: String) -> Value {
     json!({
         "schema": "focusa.update_scheduler.v1",
@@ -885,30 +814,6 @@ fn build_history_envelope(limit: usize) -> Value {
     })
 }
 
-fn build_rollback_envelope(body: UpdateRollbackBody) -> Value {
-    let restore_order = match body.part.as_str() {
-        "daemon" => json!(["daemon", "restart_daemon_after_health_contract_check"]),
-        "cli" => json!(["cli"]),
-        "tui" => json!(["tui"]),
-        _ => json!(["daemon", "tui", "cli", "health_contract_check"]),
-    };
-    json!({
-        "schema": "focusa.update_rollback.v1",
-        "status": "blocked_read_only",
-        "read_only": true,
-        "mutations_performed": false,
-        "rollback_executed": false,
-        "part": body.part,
-        "dry_run": body.dry_run,
-        "consent_yes": body.yes,
-        "blocked_reason": ["rollback_execution_requires_focusa_update_cli", "snapshot_integrity_verification_required", "admin_confirmation_required"],
-        "restore_order": restore_order,
-        "proof_required": ["snapshot_sha256_verified", "same_filesystem_atomic_rename_available", "post_rollback_version_matches_snapshot", "no_data_env_license_overwrite", "history_event_written"],
-        "data_safety": {"overwrite_data": false, "overwrite_env": false, "overwrite_license": false, "preserve": build_safety_plan_json().pointer("/preserves").cloned().unwrap_or_else(|| json!([]))},
-        "recovery_hint": "No rollback was executed by the planning API. Inspect update history/journal, then use focusa update rollback with explicit admin confirmation."
-    })
-}
-
 fn build_admin_envelope(body: UpdateAdminBody) -> Value {
     let mut requested = Vec::new();
     if let Some(version) = &body.pin_version {
@@ -947,81 +852,6 @@ fn build_admin_envelope(body: UpdateAdminBody) -> Value {
         "force_check_preview": body.force_check,
         "trusted_dev_force_latest_allowed": body.trusted_dev_force_latest && dev_mode,
         "blocked_reason": ["admin_mutation_requires_focusa_update_cli", "dry_run_preview_only"]
-    })
-}
-
-fn build_apply_envelope(plan: Value, dry_run: bool, yes: bool, allow_apply: bool) -> Value {
-    let mut blocked_reason = plan
-        .get("apply_blocked_until")
-        .and_then(Value::as_array)
-        .map(|arr| {
-            arr.iter()
-                .filter_map(Value::as_str)
-                .map(str::to_string)
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-    blocked_reason.push("trusted_apply_requires_focusa_update_cli".into());
-    if dry_run {
-        blocked_reason.push("dry_run_requested".into());
-    }
-    if !(yes && allow_apply) {
-        blocked_reason.push("explicit_yes_and_allow_apply_required".into());
-    }
-    let daemon_required = plan
-        .get("parts")
-        .and_then(Value::as_array)
-        .map(|parts| {
-            parts.iter().any(|part| {
-                part.get("part").and_then(Value::as_str) == Some("daemon")
-                    && part.get("action").and_then(Value::as_str) == Some("would_update")
-            })
-        })
-        .unwrap_or(false);
-    let preserve = plan
-        .pointer("/safety/preserves")
-        .cloned()
-        .unwrap_or_else(|| json!([]));
-    json!({
-        "schema": "focusa.update_apply.v1",
-        "status": "blocked_read_only",
-        "read_only": true,
-        "mutations_performed": false,
-        "apply_requested": yes || allow_apply || !dry_run,
-        "apply_executed": false,
-        "dry_run": dry_run,
-        "consent": {
-            "yes": yes,
-            "allow_apply": allow_apply,
-            "effective": yes && allow_apply && !dry_run,
-            "note": "daemon API records planning consent only; transactional binary mutation requires focusa update apply"
-        },
-        "plan": plan,
-        "execution_order": ["cli", "tui", "daemon_last", "restart_daemon_only_if_changed_and_allowed"],
-        "daemon_restart": {
-            "allowed": false,
-            "required": daemon_required,
-            "when": "after daemon binary promotion, policy approval, and health/version/contract proof",
-            "health_proof": "GET /v1/health version and API contract must match target release"
-        },
-        "data_safety": {
-            "overwrite_data": false,
-            "overwrite_env": false,
-            "overwrite_license": false,
-            "preserve": preserve
-        },
-        "proof_required": [
-            "release_manifest_signature_verified",
-            "asset_sha256_verified",
-            "cli_version_matches_target",
-            "tui_version_matches_target_or_not_installed",
-            "daemon_health_version_matches_target_when_daemon_changed",
-            "daemon_api_contract_matches_target_when_daemon_changed",
-            "no_data_env_license_overwrite",
-            "rollback_journal_written"
-        ],
-        "blocked_reason": blocked_reason,
-        "recovery_hint": "No update was applied. Use /v1/update/plan to inspect blockers; apply remains disabled until Spec128 apply gates are implemented."
     })
 }
 
@@ -1190,7 +1020,7 @@ fn license_summary_json() -> Value {
                 "dev_mode": dev_mode,
                 "features": status.features,
                 "source": "local_license_file",
-                "note": "policy defaults are derived from license, but update apply remains disabled until safety gates exist"
+                "note": "policy defaults are derived from license; canonical updater still enforces signed-release and transaction safety gates"
             })
         }
         Err(_) => json!({
