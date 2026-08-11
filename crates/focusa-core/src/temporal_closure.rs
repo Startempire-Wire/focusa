@@ -92,6 +92,11 @@ pub fn build_temporal_closure_receipt(
 ) -> TemporalClosureReceipt {
     let now = Utc::now();
     let (status, undelivered) = evaluate_temporal_closure(&deadline_records, now);
+    let recovery = if status != TemporalClosureStatus::TemporalComplete {
+        recovery_plan
+    } else {
+        None
+    };
     TemporalClosureReceipt {
         receipt_id: receipt_id.into(),
         closure_timestamp: now,
@@ -99,11 +104,7 @@ pub fn build_temporal_closure_receipt(
         overdue_delivery_count: undelivered.len(),
         undelivered_deadline_refs: undelivered,
         deadline_comparisons: deadline_records,
-        temporal_failure_recovery: if status == TemporalClosureStatus::TemporalComplete {
-            None
-        } else {
-            recovery_plan
-        },
+        temporal_failure_recovery: recovery,
     }
 }
 
