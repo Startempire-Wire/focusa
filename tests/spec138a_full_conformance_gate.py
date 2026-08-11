@@ -128,3 +128,11 @@ def test_typed_zero_deferral_validator_and_adversarial_tests_are_bound() -> None
         "validate_requirement_removal",
     ]:
         assert marker in text
+
+
+if __name__ == "__main__":
+    from run_spec137_138_full_conformance_gates import run_test_functions
+
+    raise SystemExit(
+        1 if run_test_functions(globals(), "tests/spec138a_full_conformance_gate.py") else 0
+    )

@@ -96,6 +96,8 @@ pass 'compaction and session-recovery gates'
 
 python3 tests/spec145_canonical_release_cycle_static_test.py
 python3 tests/spec146_release_intelligence_workflow_gate.py
+python3 ./tests/spec137_138_full_conformance_invocation_test.py
+python3 ./tests/run_spec137_138_full_conformance_gates.py
 python3 scripts/generate-spec150-complete-feature-ledger.py --check
 python3 scripts/generate-cross-spec-tool-grounding-matrix.py --check
 python3 scripts/audit-cross-spec-reality-grounding.py

@@ -119,3 +119,11 @@ def test_typed_profile_gate_is_fail_closed() -> None:
         "DurableHistoryRequired", "MigrationRequired", "ClientParityRequired",
         "SecurityRequired", "SubsetLabelRequired",
     ])
+
+
+if __name__ == "__main__":
+    from run_spec137_138_full_conformance_gates import run_test_functions
+
+    raise SystemExit(
+        1 if run_test_functions(globals(), "tests/spec138_full_conformance_gate.py") else 0
+    )
