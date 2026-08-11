@@ -499,6 +499,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
 fi
 
+STAMPED_RELEASE_SURFACES=0
 if [[ -n "$(git status --porcelain)" ]]; then
   git add Cargo.toml Cargo.lock README.md \
     docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
@@ -509,11 +510,13 @@ if [[ -n "$(git status --porcelain)" ]]; then
     apps/pi-extension/package.json apps/pi-extension/package-lock.json \
     apps/pi-extension/src/auto-compaction.ts
   git commit -m "chore: stamp release surfaces ${VERSION}"
+  STAMPED_RELEASE_SURFACES=1
 fi
 
 # Stable version stamping changes governed source surfaces. Re-seal the locked
 # candidate ancestry before source CI so proof never trails the stamped commit.
 if [[ "$PUSH" -eq 1 && "$RELEASE_CHANNEL" == "stable" && \
+      "$STAMPED_RELEASE_SURFACES" -eq 1 && \
       -f release-proof/audit/next-locked-release-candidate-ancestry.json ]]; then
   STAMPED_SOURCE_SHA="$(git rev-parse HEAD)"
   python3 scripts/generate-locked-release-candidate-ancestry.py \
