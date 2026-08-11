@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:ecf10520cd90d1cdfedb66ed6b505a2da36881fe694958695c5073e27467d1a3`
+Registry digest: `sha256:93e9d8e75d967ab88ec285075fa8f7e71e9a62aa72a0cd8b17dfb0bd6691f984`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -561,7 +561,7 @@ Invoke one exact generated Spec 138/138A operation through durable typed API aut
 - Family: `metacognition`
 - Side effects: `typed_read_or_canonical_epistemic_mutation`, `typed_read_or_canonical_epistemic_mutation`
 - Skills: `skill:focusa`, `skill:focusa-metacognition`
-- Dependencies/next: `focusa_predict_evaluate`, `focusa_metacog_retrieve`, `focusa_workpoint_resume`
+- Dependencies/next: `focusa_prediction_authority`, `focusa_metacog_retrieve`, `focusa_trajectory_view`
 - Documentation: `docs/focusa-tools/tools/focusa_epistemic_operation.md`
 
 ## focusa_evidence_capture

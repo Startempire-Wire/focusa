@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:ecf10520cd90d1cdfedb66ed6b505a2da36881fe694958695c5073e27467d1a3",
+  "registry_digest": "sha256:93e9d8e75d967ab88ec285075fa8f7e71e9a62aa72a0cd8b17dfb0bd6691f984",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -5950,6 +5950,46 @@
               {
                 "const": "settle-closure",
                 "type": "string"
+              },
+              {
+                "const": "time-now",
+                "type": "string"
+              },
+              {
+                "const": "time-status",
+                "type": "string"
+              },
+              {
+                "const": "deadline-list",
+                "type": "string"
+              },
+              {
+                "const": "deadline-inspect",
+                "type": "string"
+              },
+              {
+                "const": "deadline-conflicts",
+                "type": "string"
+              },
+              {
+                "const": "progress-status",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-list",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-inspect",
+                "type": "string"
+              },
+              {
+                "const": "opportunity-inspect",
+                "type": "string"
+              },
+              {
+                "const": "cancellation-inspect",
+                "type": "string"
               }
             ]
           },
@@ -5972,6 +6012,406 @@
             "type": "string"
           },
           "task_id": {
+            "type": "string"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "deadline_id": {
+            "type": "string"
+          },
+          "incident_id": {
+            "type": "string"
+          },
+          "cancellation_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "as_of": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "forecast_authority": {
+            "type": "object",
+            "required": [
+              "claim_kind",
+              "target_state",
+              "scope_revision",
+              "expires_at",
+              "estimator_version",
+              "cohort",
+              "evidence_basis",
+              "comparable_sample_count",
+              "all_attempt_sample_count",
+              "censoring_method",
+              "correlation_method",
+              "calibration_profile",
+              "grounding_status",
+              "baseline_ref",
+              "drift_policy_ref"
+            ],
+            "properties": {
+              "claim_kind": {
+                "const": "forecast",
+                "type": "string"
+              },
+              "target_state": {
+                "type": "string"
+              },
+              "scope_revision": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "estimator_version": {
+                "type": "string"
+              },
+              "cohort": {
+                "type": "string"
+              },
+              "evidence_basis": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "comparable_sample_count": {
+                "type": "number"
+              },
+              "all_attempt_sample_count": {
+                "type": "number"
+              },
+              "censoring_method": {
+                "type": "string"
+              },
+              "correlation_method": {
+                "type": "string"
+              },
+              "calibration_profile": {
+                "type": "string"
+              },
+              "grounding_status": {
+                "const": "grounded",
+                "type": "string"
+              },
+              "baseline_ref": {
+                "type": "string"
+              },
+              "drift_policy_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "forecast_evaluation": {},
+          "high_consequence_packet": {},
+          "civil_time_packet": {},
+          "temporal_priority_packet": {},
+          "closure_packet": {},
+          "duration_ms": {
+            "type": "number"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "actual_ms": {
+            "type": "number"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "claim": {
+            "type": "object",
+            "required": [
+              "claim_id",
+              "revision",
+              "scope",
+              "kind",
+              "status",
+              "subject_ref",
+              "timezone",
+              "source",
+              "operator_confirmed",
+              "confidence",
+              "observed_at",
+              "effective_at",
+              "evidence_refs"
+            ],
+            "properties": {
+              "claim_id": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "number"
+              },
+              "scope": {
+                "type": "object",
+                "required": [
+                  "project_root",
+                  "continuity_id"
+                ],
+                "properties": {
+                  "project_root": {
+                    "type": "string"
+                  },
+                  "continuity_id": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "operator_id": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "kind": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "subject_ref": {
+                "type": "string"
+              },
+              "target_at": {
+                "type": "string"
+              },
+              "duration_ms": {
+                "type": "number"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "source_ref": {
+                "type": "string"
+              },
+              "operator_confirmed": {
+                "type": "boolean"
+              },
+              "confidence": {
+                "type": "string"
+              },
+              "uncertainty": {
+                "type": "object",
+                "properties": {
+                  "earliest_at": {
+                    "type": "string"
+                  },
+                  "latest_at": {
+                    "type": "string"
+                  },
+                  "coverage_probability": {
+                    "type": "number"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "observed_at": {
+                "type": "string"
+              },
+              "effective_at": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "supersedes_revision": {
+                "type": "number"
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "reason_code": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "status_preflight_read_or_confirmed_claim_write_or_observation",
+        "status_preflight_read_or_confirmed_claim_write_or_observation"
+      ],
+      "examples": [
+        {
+          "description": "Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency.",
+          "arguments": {},
+          "human_invocation": "focusa temporal status|commit|revise|observe|forecast|preflight",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_temporal_authority.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa time|deadline|estimate|progress|no-progress|lost-time|opportunity|cancellation",
+      "capability_id": "focusa.temporal.authority",
+      "summary": "Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "description": "Temporal operation; defaults to status.",
+            "anyOf": [
+              {
+                "const": "status",
+                "type": "string"
+              },
+              {
+                "const": "commit",
+                "type": "string"
+              },
+              {
+                "const": "revise",
+                "type": "string"
+              },
+              {
+                "const": "observe",
+                "type": "string"
+              },
+              {
+                "const": "forecast",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "migrate-signatures",
+                "type": "string"
+              },
+              {
+                "const": "high-consequence-preflight",
+                "type": "string"
+              },
+              {
+                "const": "capture-clock",
+                "type": "string"
+              },
+              {
+                "const": "resolve-civil-time",
+                "type": "string"
+              },
+              {
+                "const": "commit-priority",
+                "type": "string"
+              },
+              {
+                "const": "settle-closure",
+                "type": "string"
+              },
+              {
+                "const": "time-now",
+                "type": "string"
+              },
+              {
+                "const": "time-status",
+                "type": "string"
+              },
+              {
+                "const": "deadline-list",
+                "type": "string"
+              },
+              {
+                "const": "deadline-inspect",
+                "type": "string"
+              },
+              {
+                "const": "deadline-conflicts",
+                "type": "string"
+              },
+              {
+                "const": "progress-status",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-list",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-inspect",
+                "type": "string"
+              },
+              {
+                "const": "opportunity-inspect",
+                "type": "string"
+              },
+              {
+                "const": "cancellation-inspect",
+                "type": "string"
+              }
+            ]
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "deadline_id": {
+            "type": "string"
+          },
+          "incident_id": {
+            "type": "string"
+          },
+          "cancellation_id": {
             "type": "string"
           },
           "idempotency_key": {

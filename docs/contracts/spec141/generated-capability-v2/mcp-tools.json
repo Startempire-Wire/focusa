@@ -1,6 +1,6 @@
 {
   "schema": "focusa.mcp_tool_projection.v2",
-  "registry_digest": "sha256:ecf10520cd90d1cdfedb66ed6b505a2da36881fe694958695c5073e27467d1a3",
+  "registry_digest": "sha256:93e9d8e75d967ab88ec285075fa8f7e71e9a62aa72a0cd8b17dfb0bd6691f984",
   "tools": [
     {
       "name": "focusa.active.object.resolve",
@@ -22933,6 +22933,46 @@
               {
                 "const": "settle-closure",
                 "type": "string"
+              },
+              {
+                "const": "time-now",
+                "type": "string"
+              },
+              {
+                "const": "time-status",
+                "type": "string"
+              },
+              {
+                "const": "deadline-list",
+                "type": "string"
+              },
+              {
+                "const": "deadline-inspect",
+                "type": "string"
+              },
+              {
+                "const": "deadline-conflicts",
+                "type": "string"
+              },
+              {
+                "const": "progress-status",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-list",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-inspect",
+                "type": "string"
+              },
+              {
+                "const": "opportunity-inspect",
+                "type": "string"
+              },
+              {
+                "const": "cancellation-inspect",
+                "type": "string"
               }
             ]
           },
@@ -22955,6 +22995,18 @@
             "type": "string"
           },
           "task_id": {
+            "type": "string"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "deadline_id": {
+            "type": "string"
+          },
+          "incident_id": {
+            "type": "string"
+          },
+          "cancellation_id": {
             "type": "string"
           },
           "idempotency_key": {
@@ -23393,6 +23445,134 @@
           {
             "method": "POST",
             "path": "/v1/temporal/forecast"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/temporal/preflight"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/now"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/awareness"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/status"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/trust"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/samples"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/capabilities"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/stream"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/deadline/set"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/deadline/revise"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/deadline/clear"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/deadlines"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/deadline/{id}"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/deadline/resolve-civil"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/deadline/conflicts"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/deadline/propagate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/temporal/guard/issue"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/temporal/guard/validate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/temporal/guard/revoke"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/cancellation/request"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/cancellation/{id}"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/estimate/request"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/estimate/validate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/estimate/evaluate"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/estimate/{id}"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/estimate/history"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/response/temporal-claims/validate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/progress/record"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/progress/status"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/no-progress/incidents"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/lost-time/incidents"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/opportunities"
           },
           {
             "method": "POST",

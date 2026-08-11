@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 136,
-  "edge_count": 384,
+  "tool_count": 137,
+  "edge_count": 387,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -270,6 +270,11 @@
       "focusa_trajectory_view",
       "focusa_workpoint_resume",
       "focusa_project_verify"
+    ],
+    "focusa_epistemic_operation": [
+      "focusa_prediction_authority",
+      "focusa_metacog_retrieve",
+      "focusa_trajectory_view"
     ],
     "focusa_trajectory_view": [
       "focusa_temporal_authority",
@@ -1295,6 +1300,21 @@
     {
       "from": "focusa_temporal_authority",
       "to": "focusa_project_verify",
+      "weight": 1
+    },
+    {
+      "from": "focusa_epistemic_operation",
+      "to": "focusa_prediction_authority",
+      "weight": 1
+    },
+    {
+      "from": "focusa_epistemic_operation",
+      "to": "focusa_metacog_retrieve",
+      "weight": 1
+    },
+    {
+      "from": "focusa_epistemic_operation",
+      "to": "focusa_trajectory_view",
       "weight": 1
     },
     {

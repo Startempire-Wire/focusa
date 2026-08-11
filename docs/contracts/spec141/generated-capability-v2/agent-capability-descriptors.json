@@ -23900,7 +23900,7 @@
       ],
       "dependencies": [
         {
-          "capability": "focusa_predict_evaluate",
+          "capability": "focusa_prediction_authority",
           "relation": "likely_next"
         },
         {
@@ -23908,14 +23908,14 @@
           "relation": "likely_next"
         },
         {
-          "capability": "focusa_workpoint_resume",
+          "capability": "focusa_trajectory_view",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
-        "focusa_predict_evaluate",
+        "focusa_prediction_authority",
         "focusa_metacog_retrieve",
-        "focusa_workpoint_resume"
+        "focusa_trajectory_view"
       ],
       "skill_refs": [
         "skill:focusa",
@@ -23950,7 +23950,7 @@
         "snippet": "Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:05a6f418b2a0a133ca9ec113d8be584e7505dfac518efec1cd889ec92543da1c"
+      "descriptor_digest": "sha256:8661883bf0e88f0654e0c4efec6bc0d9a9381dbf2de3e3c0fbe383649faa376f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -51630,7 +51630,8 @@
         "mcp": "focusa.temporal.authority",
         "openai": "focusa_temporal_authority",
         "cli": [
-          "focusa temporal status|commit|revise|observe|forecast|preflight"
+          "focusa temporal status|commit|revise|observe|forecast|preflight",
+          "focusa time|deadline|estimate|progress|no-progress|lost-time|opportunity|cancellation"
         ],
         "rest": [
           {
@@ -51652,6 +51653,134 @@
           {
             "method": "POST",
             "path": "/v1/temporal/forecast"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/temporal/preflight"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/now"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/awareness"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/status"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/trust"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/samples"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/capabilities"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/time/stream"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/deadline/set"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/deadline/revise"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/deadline/clear"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/deadlines"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/deadline/{id}"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/deadline/resolve-civil"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/deadline/conflicts"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/deadline/propagate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/temporal/guard/issue"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/temporal/guard/validate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/temporal/guard/revoke"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/cancellation/request"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/cancellation/{id}"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/estimate/request"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/estimate/validate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/estimate/evaluate"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/estimate/{id}"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/estimate/history"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/response/temporal-claims/validate"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/progress/record"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/progress/status"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/no-progress/incidents"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/lost-time/incidents"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/opportunities"
           },
           {
             "method": "POST",
@@ -51763,6 +51892,454 @@
           "recovery_allowance": "read_projection",
           "source_owner": "temporal",
           "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.time.now",
+          "method": "GET",
+          "path": "/v1/time/now",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "GET",
+          "path": "/v1/time/awareness",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.time.status",
+          "method": "GET",
+          "path": "/v1/time/status",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.time.trust.inspect",
+          "method": "GET",
+          "path": "/v1/time/trust",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.time.samples.list",
+          "method": "GET",
+          "path": "/v1/time/samples",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.time.capabilities",
+          "method": "GET",
+          "path": "/v1/time/capabilities",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "GET",
+          "path": "/v1/time/stream",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.deadline.set",
+          "method": "POST",
+          "path": "/v1/deadline/set",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.deadline.revise",
+          "method": "POST",
+          "path": "/v1/deadline/revise",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.deadline.clear",
+          "method": "POST",
+          "path": "/v1/deadline/clear",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.deadline.list",
+          "method": "GET",
+          "path": "/v1/deadlines",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.deadline.inspect",
+          "method": "GET",
+          "path": "/v1/deadline/{id}",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/deadline/resolve-civil",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.deadline.conflicts",
+          "method": "GET",
+          "path": "/v1/deadline/conflicts",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/deadline/propagate",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/temporal/guard/issue",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/temporal/guard/validate",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/temporal/guard/revoke",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/cancellation/request",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.cancellation.inspect",
+          "method": "GET",
+          "path": "/v1/cancellation/{id}",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.estimate.request",
+          "method": "POST",
+          "path": "/v1/estimate/request",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.estimate.validate",
+          "method": "POST",
+          "path": "/v1/estimate/validate",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.estimate.evaluate",
+          "method": "POST",
+          "path": "/v1/estimate/evaluate",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.estimate.inspect",
+          "method": "GET",
+          "path": "/v1/estimate/{id}",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.estimate.history",
+          "method": "GET",
+          "path": "/v1/estimate/history",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/response/temporal-claims/validate",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.progress.record",
+          "method": "POST",
+          "path": "/v1/progress/record",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.progress.status",
+          "method": "GET",
+          "path": "/v1/progress/status",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.no_progress.inspect",
+          "method": "GET",
+          "path": "/v1/no-progress/incidents",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.lost_time.list",
+          "method": "GET",
+          "path": "/v1/lost-time/incidents",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "GET",
+          "path": "/v1/opportunities",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": "focusa.temporal.preflight",
+          "method": "POST",
+          "path": "/v1/temporal/preflight",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver"
         }
       ],
       "operation_class": "read",
@@ -51839,6 +52416,46 @@
               {
                 "const": "settle-closure",
                 "type": "string"
+              },
+              {
+                "const": "time-now",
+                "type": "string"
+              },
+              {
+                "const": "time-status",
+                "type": "string"
+              },
+              {
+                "const": "deadline-list",
+                "type": "string"
+              },
+              {
+                "const": "deadline-inspect",
+                "type": "string"
+              },
+              {
+                "const": "deadline-conflicts",
+                "type": "string"
+              },
+              {
+                "const": "progress-status",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-list",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-inspect",
+                "type": "string"
+              },
+              {
+                "const": "opportunity-inspect",
+                "type": "string"
+              },
+              {
+                "const": "cancellation-inspect",
+                "type": "string"
               }
             ]
           },
@@ -51861,6 +52478,18 @@
             "type": "string"
           },
           "task_id": {
+            "type": "string"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "deadline_id": {
+            "type": "string"
+          },
+          "incident_id": {
+            "type": "string"
+          },
+          "cancellation_id": {
             "type": "string"
           },
           "idempotency_key": {
@@ -52362,6 +52991,230 @@
             "kind": "write",
             "route_family": "explicit_project_continuity"
           }
+        },
+        {
+          "route": "GET /v1/time/now",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/time/awareness",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/time/status",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/time/trust",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/time/samples",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/time/capabilities",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/time/stream",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/deadline/set",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/deadline/revise",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/deadline/clear",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/deadlines",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/deadline/{id}",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/deadline/resolve-civil",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/deadline/conflicts",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/deadline/propagate",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/temporal/guard/issue",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/temporal/guard/validate",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/temporal/guard/revoke",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/cancellation/request",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/cancellation/{id}",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/estimate/request",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/estimate/validate",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/estimate/evaluate",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/estimate/{id}",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/estimate/history",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/response/temporal-claims/validate",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/progress/record",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/progress/status",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/no-progress/incidents",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/lost-time/incidents",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/opportunities",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/temporal/preflight",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
         }
       ],
       "annotations": {
@@ -52486,7 +53339,7 @@
         "snippet": "Use status first; external commitments require explicit confirmation/evidence, forecasts remain non-canonical ranges, and scope mismatch fails closed.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9c66829f36481dd67cd96dcb3030a55b2b7ae7c08dd62103e1e58cbffa67955e"
+      "descriptor_digest": "sha256:072e0151e09ee8e27e9caa66a4b271433969fd8349d00dca9b28cf406922cab7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -66381,5 +67234,5 @@
       "descriptor_digest": "sha256:89b987ae8ef2b4206a82f44c79c0ac40fc8ea51f46675d412fc3233472e52ae0"
     }
   ],
-  "registry_digest": "sha256:ecf10520cd90d1cdfedb66ed6b505a2da36881fe694958695c5073e27467d1a3"
+  "registry_digest": "sha256:93e9d8e75d967ab88ec285075fa8f7e71e9a62aa72a0cd8b17dfb0bd6691f984"
 }

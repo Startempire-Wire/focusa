@@ -10,7 +10,7 @@ Read, commit, revise, observe, forecast, or preflight project-scoped temporal cl
 
 ## Parameters and strict input schema
 
-- `action` (optional; string | string | string | string | string | string | string | string | string | string | string | string): Temporal operation; defaults to status.
+- `action` (optional; string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string): Temporal operation; defaults to status.
 - `project_root` (optional; string): See the strict descriptor schema.
 - `continuity_id` (optional; string): See the strict descriptor schema.
 - `host_id` (optional; string): See the strict descriptor schema.
@@ -18,6 +18,10 @@ Read, commit, revise, observe, forecast, or preflight project-scoped temporal cl
 - `workpoint_id` (optional; string): See the strict descriptor schema.
 - `item_id` (optional; string): See the strict descriptor schema.
 - `task_id` (optional; string): See the strict descriptor schema.
+- `subject_ref` (optional; string): See the strict descriptor schema.
+- `deadline_id` (optional; string): See the strict descriptor schema.
+- `incident_id` (optional; string): See the strict descriptor schema.
+- `cancellation_id` (optional; string): See the strict descriptor schema.
 - `idempotency_key` (optional; string): See the strict descriptor schema.
 - `confirm` (optional; boolean): See the strict descriptor schema.
 - `as_of` (optional; string): See the strict descriptor schema.
@@ -95,7 +99,7 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_projec
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Runbooks: `runbook:trajectory`
 - Pi: `focusa_temporal_authority`; MCP: `focusa.temporal.authority`; OpenAI: `focusa_temporal_authority`.
-- CLI: `focusa temporal status|commit|revise|observe|forecast|preflight`.
-- REST: `GET /v1/temporal/status`, `POST /v1/temporal/commit`, `POST /v1/temporal/revise`, `POST /v1/temporal/observe`, `POST /v1/temporal/forecast`, `POST /v1/temporal/preflight`.
+- CLI: `focusa temporal status|commit|revise|observe|forecast|preflight`, `focusa time|deadline|estimate|progress|no-progress|lost-time|opportunity|cancellation`.
+- REST: `GET /v1/temporal/status`, `POST /v1/temporal/commit`, `POST /v1/temporal/revise`, `POST /v1/temporal/observe`, `POST /v1/temporal/forecast`, `POST /v1/temporal/preflight`, `GET /v1/time/now`, `GET /v1/time/awareness`, `GET /v1/time/status`, `GET /v1/time/trust`, `GET /v1/time/samples`, `GET /v1/time/capabilities`, `GET /v1/time/stream`, `POST /v1/deadline/set`, `POST /v1/deadline/revise`, `POST /v1/deadline/clear`, `GET /v1/deadlines`, `GET /v1/deadline/{id}`, `POST /v1/deadline/resolve-civil`, `GET /v1/deadline/conflicts`, `POST /v1/deadline/propagate`, `POST /v1/temporal/guard/issue`, `POST /v1/temporal/guard/validate`, `POST /v1/temporal/guard/revoke`, `POST /v1/cancellation/request`, `GET /v1/cancellation/{id}`, `POST /v1/estimate/request`, `POST /v1/estimate/validate`, `POST /v1/estimate/evaluate`, `GET /v1/estimate/{id}`, `GET /v1/estimate/history`, `POST /v1/response/temporal-claims/validate`, `POST /v1/progress/record`, `GET /v1/progress/status`, `GET /v1/no-progress/incidents`, `GET /v1/lost-time/incidents`, `GET /v1/opportunities`, `POST /v1/temporal/preflight`.
 - Specification: `docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md`.
-- Descriptor digest: `sha256:9c66829f36481dd67cd96dcb3030a55b2b7ae7c08dd62103e1e58cbffa67955e`.
+- Descriptor digest: `sha256:072e0151e09ee8e27e9caa66a4b271433969fd8349d00dca9b28cf406922cab7`.

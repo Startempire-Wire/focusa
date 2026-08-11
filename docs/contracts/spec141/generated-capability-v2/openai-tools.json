@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:ecf10520cd90d1cdfedb66ed6b505a2da36881fe694958695c5073e27467d1a3",
+  "registry_digest": "sha256:93e9d8e75d967ab88ec285075fa8f7e71e9a62aa72a0cd8b17dfb0bd6691f984",
   "tools": [
     {
       "type": "function",
@@ -4060,6 +4060,46 @@
                 {
                   "const": "settle-closure",
                   "type": "string"
+                },
+                {
+                  "const": "time-now",
+                  "type": "string"
+                },
+                {
+                  "const": "time-status",
+                  "type": "string"
+                },
+                {
+                  "const": "deadline-list",
+                  "type": "string"
+                },
+                {
+                  "const": "deadline-inspect",
+                  "type": "string"
+                },
+                {
+                  "const": "deadline-conflicts",
+                  "type": "string"
+                },
+                {
+                  "const": "progress-status",
+                  "type": "string"
+                },
+                {
+                  "const": "lost-time-list",
+                  "type": "string"
+                },
+                {
+                  "const": "lost-time-inspect",
+                  "type": "string"
+                },
+                {
+                  "const": "opportunity-inspect",
+                  "type": "string"
+                },
+                {
+                  "const": "cancellation-inspect",
+                  "type": "string"
                 }
               ]
             },
@@ -4082,6 +4122,18 @@
               "type": "string"
             },
             "task_id": {
+              "type": "string"
+            },
+            "subject_ref": {
+              "type": "string"
+            },
+            "deadline_id": {
+              "type": "string"
+            },
+            "incident_id": {
+              "type": "string"
+            },
+            "cancellation_id": {
               "type": "string"
             },
             "idempotency_key": {

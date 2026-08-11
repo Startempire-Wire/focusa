@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 136,
+  "tool_count": 137,
   "contracts": [
     {
       "name": "focusa_agent_runtime_effective",
@@ -1412,10 +1412,43 @@
         "POST /v1/temporal/revise",
         "POST /v1/temporal/observe",
         "POST /v1/temporal/forecast",
+        "POST /v1/temporal/preflight",
+        "GET /v1/time/now",
+        "GET /v1/time/awareness",
+        "GET /v1/time/status",
+        "GET /v1/time/trust",
+        "GET /v1/time/samples",
+        "GET /v1/time/capabilities",
+        "GET /v1/time/stream",
+        "POST /v1/deadline/set",
+        "POST /v1/deadline/revise",
+        "POST /v1/deadline/clear",
+        "GET /v1/deadlines",
+        "GET /v1/deadline/{id}",
+        "POST /v1/deadline/resolve-civil",
+        "GET /v1/deadline/conflicts",
+        "POST /v1/deadline/propagate",
+        "POST /v1/temporal/guard/issue",
+        "POST /v1/temporal/guard/validate",
+        "POST /v1/temporal/guard/revoke",
+        "POST /v1/cancellation/request",
+        "GET /v1/cancellation/{id}",
+        "POST /v1/estimate/request",
+        "POST /v1/estimate/validate",
+        "POST /v1/estimate/evaluate",
+        "GET /v1/estimate/{id}",
+        "GET /v1/estimate/history",
+        "POST /v1/response/temporal-claims/validate",
+        "POST /v1/progress/record",
+        "GET /v1/progress/status",
+        "GET /v1/no-progress/incidents",
+        "GET /v1/lost-time/incidents",
+        "GET /v1/opportunities",
         "POST /v1/temporal/preflight"
       ],
       "cli_commands": [
-        "focusa temporal status|commit|revise|observe|forecast|preflight"
+        "focusa temporal status|commit|revise|observe|forecast|preflight",
+        "focusa time|deadline|estimate|progress|no-progress|lost-time|opportunity|cancellation"
       ],
       "core_surface": "Spec137 temporal authority, ledger, claims, preflight, forecasting, and release timing",
       "doc_path": "docs/focusa-tools/tools/focusa_temporal_authority.md",
@@ -4352,6 +4385,63 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_epistemic_operation",
+      "label": "Epistemic Operation",
+      "purpose": "Invoke one exact generated Spec 138/138A operation through durable typed API authority.",
+      "family": "metacognition",
+      "ontology_action": "epistemic.operation.invoke",
+      "ontology_objects": [
+        "Spec138OperationDescriptor",
+        "ScopedAuthorityEvent"
+      ],
+      "api_routes": [
+        "POST /v1/prediction-questions",
+        "POST /v1/information-sets",
+        "POST /v1/predictions/commit",
+        "POST /v1/predictions/{id}/supersede",
+        "GET /v1/predictions/{id}",
+        "GET /v1/predictions/recent",
+        "POST /v1/outcomes/claim",
+        "POST /v1/outcomes/{id}/dispute",
+        "POST /v1/outcomes/resolve",
+        "POST /v1/outcomes/{id}/correct",
+        "POST /v1/evaluations/predictions",
+        "GET /v1/calibration/reports",
+        "POST /v1/metacognition/signals",
+        "POST /v1/metacognition/reflections",
+        "POST /v1/metacognition/adjustments",
+        "POST /v1/metacognition/evaluations",
+        "POST /v1/learning/candidates/{id}/decide",
+        "POST /v1/learning/{id}/apply",
+        "POST /v1/learning/transfers/resolve",
+        "GET /v1/learning/retrieve",
+        "GET /v1/learning/conflicts",
+        "POST /v1/learning/{id}/expire",
+        "POST /v1/learning/{id}/supersede",
+        "POST /v1/learning/{id}/revoke",
+        "POST /v1/learning/{id}/rollback",
+        "POST /v1/learning/consolidate",
+        "GET /v1/self-model"
+      ],
+      "cli_commands": [
+        "focusa predict operation --operation <operation-id>"
+      ],
+      "core_surface": "Generated Spec 138 operation registry and durable scoped prediction authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_epistemic_operation.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "typed_read_or_canonical_epistemic_mutation",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "generated 27-operation parity gate plus typed API route tests",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "prediction-authority:operation"
+      },
+      "authority_requirement": {
+        "kind": "canonical_write"
       }
     },
     {

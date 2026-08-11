@@ -41,7 +41,7 @@
       "guided_orientation_optional": true
     }
   },
-  "registry_digest": "sha256:ecf10520cd90d1cdfedb66ed6b505a2da36881fe694958695c5073e27467d1a3",
+  "registry_digest": "sha256:93e9d8e75d967ab88ec285075fa8f7e71e9a62aa72a0cd8b17dfb0bd6691f984",
   "pi_tool_count": 137,
   "pi_tool_docs_count": 137,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
@@ -383,5 +383,5 @@
     "workpoint"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:28c53cefb2df37ac1412fcc3cb9d7f900fbf43d9312514c2e15e5a3754c722b5"
+  "card_digest": "sha256:e905d0b3921acdca7d0154c91a1d26287d4c147eb5ebb35f1bc3f765c4f47d35"
 }

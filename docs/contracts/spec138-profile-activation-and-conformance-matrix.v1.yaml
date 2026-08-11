@@ -1,7 +1,7 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
   "generated_at": "2026-07-31T17:03:56+00:00",
-  "runtime_claim": "activated",
+  "runtime_claim": "full_spec138_conformance",
   "runtime_status": "verified_complete",
   "schema": "focusa.spec138_profile_activation_and_conformance_matrix.v1",
   "profiles": [
