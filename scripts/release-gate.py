@@ -19,6 +19,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 SIGNIFICANT_SCORE = 8
+RELEASE_WORKFLOW_SCORE = 8
 WINDOW_SCORE = 4
 STALE_HOURS = 24
 WINDOW_TOLERANCE_MINUTES = 30
@@ -106,6 +107,8 @@ def score_path(path: str) -> ScoredPath:
     name = Path(path).name
     if contains_any(path, CRITICAL_PATTERNS):
         return ScoredPath(path, "critical_security_install_signing_checksum", 10)
+    if path == ".github/workflows/release.yml":
+        return ScoredPath(path, "release_deploy_system", RELEASE_WORKFLOW_SCORE)
     if path.startswith(RELEASE_SYSTEM_PREFIXES):
         return ScoredPath(path, "release_deploy_system", 6)
     if path.startswith(UI_PREFIXES):
