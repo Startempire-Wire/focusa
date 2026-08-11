@@ -170,6 +170,7 @@ pub mod sync;
 pub mod telemetry;
 pub mod temporal;
 pub mod temporal_authority;
+pub mod temporal_calibration_loop;
 pub mod temporal_claims;
 pub mod temporal_clock;
 pub mod temporal_closure;
