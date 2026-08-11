@@ -169,4 +169,6 @@ jobs:
           FOCUSA_BASE_URL: http://127.0.0.1:18787
           FOCUSA_BIND: 127.0.0.1:18787
           FOCUSA_TEST_MODE: "1"
-        run: ./scripts/ci/run-spec-gates.sh
+        run: |
+          rm -f target/release/focusa-daemon
+          ./scripts/ci/run-spec-gates.sh
