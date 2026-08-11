@@ -118,6 +118,15 @@ def source_versions(ref: str) -> dict[str, str]:
     return versions
 
 
+def tags_before_candidate_publication(
+    all_tags: list[str], candidate_tag: str, candidate_tag_commit: str, audit_head: str
+) -> list[str]:
+    """Keep a pre-tag receipt stable after its exact audited tag is published."""
+    if candidate_tag_commit == audit_head:
+        return [tag for tag in all_tags if tag != candidate_tag]
+    return all_tags
+
+
 def build(candidate_ref: str, audit_ref: str) -> dict:
     candidate = git("rev-parse", f"{candidate_ref}^{{commit}}")
     head = git("rev-parse", f"{audit_ref}^{{commit}}")
@@ -189,7 +198,16 @@ def build(candidate_ref: str, audit_ref: str) -> dict:
     version_module = load_module(
         ROOT / "scripts" / "select-release-version.py", "focusa_version_selection"
     )
-    all_tags = git("tag", "--list").splitlines()
+    candidate_version = next(iter(candidate_versions)) if version_agreement else ""
+    candidate_tag = f"v{candidate_version}" if candidate_version else ""
+    candidate_tag_commit = (
+        git("rev-parse", f"{candidate_tag}^{{commit}}", check=False)
+        if candidate_tag
+        else ""
+    )
+    all_tags = tags_before_candidate_publication(
+        git("tag", "--list").splitlines(), candidate_tag, candidate_tag_commit, head
+    )
     next_selection = version_module.select_version("0.9", None, all_tags)
     next_stable_tag = f"v0.9.{next_selection['selected_patch']}"
     next_stable_version = next_stable_tag.removeprefix("v")

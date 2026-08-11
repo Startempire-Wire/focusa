@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 from pathlib import Path
@@ -12,6 +13,10 @@ AUDIT = ROOT / "release-proof" / "audit"
 ANCESTRY_PATH = AUDIT / "next-locked-release-candidate-ancestry.json"
 ASSETS_PATH = AUDIT / "next-locked-release-v09143-published-assets.json"
 SCRIPT = ROOT / "scripts" / "generate-locked-release-candidate-ancestry.py"
+spec = importlib.util.spec_from_file_location("candidate_ancestry", SCRIPT)
+module = importlib.util.module_from_spec(spec)
+assert spec.loader
+spec.loader.exec_module(module)
 
 ancestry = json.loads(ANCESTRY_PATH.read_text())
 assets = json.loads(ASSETS_PATH.read_text())
@@ -56,13 +61,24 @@ assert "focusa-generated-clients-v0.9.143.tar.gz" in missing
 assert "focusa-installer-v0.9.143.ps1" in missing
 assert all("windows" not in row["name"].lower() for row in assets["assets"])
 
-assert set(ancestry["source_versions"].values()) == {"0.9.144"}
+source_versions = set(ancestry["source_versions"].values())
+assert len(source_versions) == 1
+source_version = next(iter(source_versions))
 assert ancestry["source_version_agreement"] is True
-assert ancestry["next_version_selection"]["selected_tag"] == "v0.9.144-dev"
-assert ancestry["next_stable_tag"] == "v0.9.144"
+assert ancestry["next_version_selection"]["selected_tag"] == f"v{source_version}-dev"
+assert ancestry["next_stable_tag"] == f"v{source_version}"
 assert ancestry["release_blockers"] == ["technical_acceptance_pending"]
 assert "immutable_v0.9.143_missing_required_assets" not in ancestry["release_blockers"]
-assert "source_version_must_advance_to_v0.9.144" not in ancestry["release_blockers"]
+assert not any(
+    blocker.startswith("source_version_must_advance_to_")
+    for blocker in ancestry["release_blockers"]
+)
+assert module.tags_before_candidate_publication(
+    ["v0.9.144", f"v{source_version}"],
+    f"v{source_version}",
+    audit_head,
+    audit_head,
+) == ["v0.9.144"]
 
 for channel in ("stable", "dev"):
     assert ancestry["tag_chain"][channel]
