@@ -152,3 +152,124 @@ impl TemporalLedger {
             .collect())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::temporal::{TemporalEvent, TemporalEventKind, TemporalScope, seal_event};
+    use std::fs;
+
+    fn test_scope() -> TemporalScope {
+        let root = format!("/tmp/focusa-test-ledger-{}", uuid::Uuid::now_v7());
+        fs::create_dir_all(&root).unwrap();
+        TemporalScope {
+            project_root: root,
+            continuity_id: "test".into(),
+            host_id: None, operator_id: None, workpoint_id: None, item_id: None, task_id: None,
+        }
+    }
+
+    fn test_event(scope: &TemporalScope, kind: TemporalEventKind) -> TemporalEvent {
+        TemporalEvent {
+            event_id: uuid::Uuid::now_v7().to_string(),
+            sequence: 0,
+            event_kind: kind,
+            scope: scope.clone(),
+            claim: None, clock_sample: None,
+            metadata: std::collections::BTreeMap::new(),
+            signature: None, predecessor_digest: None,
+            recorded_at: chrono::Utc::now(),
+            idempotency_key: String::new(),
+            digest: String::new(),
+        }
+    }
+
+    #[test]
+    fn ledger_rejects_root_path() {
+        let scope = TemporalScope { project_root: "/tmp".into(), ..test_scope() };
+        assert!(TemporalLedger::for_project(scope).is_err());
+    }
+
+    #[test]
+    fn ledger_read_all_returns_empty_for_new_scope() {
+        let scope = test_scope();
+        let ledger = TemporalLedger::for_project(scope.clone()).unwrap();
+        let events = ledger.read_all().unwrap();
+        assert!(events.is_empty());
+        fs::remove_dir_all(&scope.project_root).unwrap();
+    }
+
+    #[test]
+    fn ledger_append_and_read_roundtrip() {
+        let scope = test_scope();
+        let project_root = scope.project_root.clone();
+        let ledger = TemporalLedger::for_project(scope.clone()).unwrap();
+        let events: Vec<TemporalEvent> = (0..3).map(|i| {
+            let mut e = test_event(&scope, TemporalEventKind::ClaimCommitted);
+            e.event_id = format!("ev-{}", i);
+            e
+        }).collect();
+        let sealed = ledger.append_batch("key-1", events).unwrap();
+        assert_eq!(sealed.len(), 3);
+        assert!(sealed[0].sequence > 0);
+        assert!(sealed[2].predecessor_digest.is_some());
+        let read = ledger.read_all().unwrap();
+        assert_eq!(read.len(), 3);
+        fs::remove_dir_all(&project_root).unwrap();
+    }
+
+    #[test]
+    fn ledger_rejects_empty_batch() {
+        let scope = test_scope();
+        let project_root = scope.project_root.clone();
+        let ledger = TemporalLedger::for_project(scope).unwrap();
+        assert!(ledger.append_batch("key-1", vec![]).is_err());
+        fs::remove_dir_all(&project_root).unwrap();
+    }
+
+    #[test]
+    fn ledger_as_of_filters_by_time() {
+        let scope = test_scope();
+        let project_root = scope.project_root.clone();
+        let ledger = TemporalLedger::for_project(scope.clone()).unwrap();
+        let past = chrono::Utc::now() - chrono::Duration::hours(1);
+        let now = chrono::Utc::now();
+        let mut e1 = test_event(&scope, TemporalEventKind::ClaimCommitted);
+        e1.recorded_at = past;
+        let mut e2 = test_event(&scope, TemporalEventKind::TargetSatisfied);
+        e2.recorded_at = now;
+        ledger.append_batch("key-2", vec![e1, e2]).unwrap();
+        let as_of_past = ledger.as_of(past + chrono::Duration::seconds(1)).unwrap();
+        assert_eq!(as_of_past.len(), 1);
+        let as_of_now = ledger.as_of(now).unwrap();
+        assert_eq!(as_of_now.len(), 2);
+        fs::remove_dir_all(&project_root).unwrap();
+    }
+
+    #[test]
+    fn ledger_idempotency_replays_existing_events() {
+        let scope = test_scope();
+        let project_root = scope.project_root.clone();
+        let ledger = TemporalLedger::for_project(scope.clone()).unwrap();
+        let events = vec![test_event(&scope, TemporalEventKind::ClaimCommitted)];
+        let first = ledger.append_batch("key-3", events.clone()).unwrap();
+        let replay = ledger.append_batch("key-3", events).unwrap();
+        assert_eq!(first[0].digest, replay[0].digest);
+        assert_eq!(first.len(), replay.len());
+        fs::remove_dir_all(&project_root).unwrap();
+    }
+
+    #[test]
+    fn ledger_rejects_cross_scope_events() {
+        let scope = test_scope();
+        let project_root = scope.project_root.clone();
+        let other_root = format!("/tmp/focusa-test-ledger-other-{}", uuid::Uuid::now_v7());
+        fs::create_dir_all(&other_root).unwrap();
+        let other_scope = TemporalScope { project_root: other_root.clone(), ..scope.clone() };
+        let ledger = TemporalLedger::for_project(scope.clone()).unwrap();
+        let events = vec![test_event(&other_scope, TemporalEventKind::ClaimCommitted)];
+        assert!(ledger.append_batch("key-4", events).is_err());
+        fs::remove_dir_all(&project_root).unwrap();
+        fs::remove_dir_all(&other_root).unwrap();
+    }
+}
