@@ -271,14 +271,25 @@
       <section class="mission-grid" aria-label="Mission Deck shell">
         <article class="hero-card">
           <span class="eyebrow">Canonical authority</span>
-          <h2>No Workstream attached</h2>
-          <p>
-            Desktop will not derive authority from the current tab, local directory, last project,
-            latest record, or daemon-global selection.
-          </p>
-          <div class="identity-chain" aria-label="Required canonical identity chain">
-            <span>ScopeRef</span><i><Icon name="chevron-right" size={14}/></i><span>WorkstreamId</span><i><Icon name="chevron-right" size={14}/></i><span>ContinuityId</span><i><Icon name="chevron-right" size={14}/></i><span>AttachmentKey</span>
-          </div>
+          {#if liveBinding}
+            <h2>Workstream bound</h2>
+            <p>
+              {liveBinding.projection.workspace_profile_id} · {liveBinding.projection.activity_mode_id} · revision {liveBinding.projection.projection_revision}
+            </p>
+            <div class="identity-chain" aria-label="Resolved canonical identity chain">
+              <span class="resolved">{liveBinding.authority.workstream.scope.scope_key.scope_id ?? 'Scope'}</span><i><Icon name="chevron-right" size={14}/></i><span class="resolved">{liveBinding.authority.workstream.workstream_id}</span><i><Icon name="chevron-right" size={14}/></i><span class="resolved">{liveBinding.authority.continuity_id ?? '—'}</span><i><Icon name="chevron-right" size={14}/></i><span class="resolved">{liveBinding.authority.attachment?.attachment_id ?? '—'}</span>
+            </div>
+            <button class="secondary-button" type="button" onclick={() => (activeWorkspaceId = 'mission-canvas')}>Open Mission Canvas</button>
+          {:else}
+            <h2>No Workstream attached</h2>
+            <p>
+              Desktop will not derive authority from the current tab, local directory, last project,
+              latest record, or daemon-global selection.
+            </p>
+            <div class="identity-chain" aria-label="Required canonical identity chain">
+              <span>ScopeRef</span><i><Icon name="chevron-right" size={14}/></i><span>WorkstreamId</span><i><Icon name="chevron-right" size={14}/></i><span>ContinuityId</span><i><Icon name="chevron-right" size={14}/></i><span>AttachmentKey</span>
+            </div>
+          {/if}
         </article>
         <article class="status-card">
           <div class="card-heading">
