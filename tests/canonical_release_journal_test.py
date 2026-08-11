@@ -24,6 +24,15 @@ finally:
     else:
         module.os.environ["FOCUSA_AUTH_TOKEN"] = original_focusa_token
 
+original_focusa_get = module.focusa_get
+try:
+    module.focusa_get = lambda _path: (_ for _ in ()).throw(
+        module.urllib.error.HTTPError("http://focusa.test", 403, "Forbidden", {}, None)
+    )
+    assert module.record_release_predictions("v0.9.151") == {}
+finally:
+    module.focusa_get = original_focusa_get
+
 improved = module.metric_comparison(80, 100, "seconds", True)
 assert improved == {
     "current": 80,

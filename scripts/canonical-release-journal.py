@@ -163,7 +163,12 @@ def record_release_predictions(tag: str) -> dict[str, str]:
             "limit": 100,
         }
     )
-    recent = focusa_get("/v1/predictions/recent?" + query).get("data", {}).get("predictions", [])
+    try:
+        recent = focusa_get("/v1/predictions/recent?" + query).get("data", {}).get("predictions", [])
+    except urllib.error.HTTPError as error:
+        if error.code not in {401, 403}:
+            raise
+        return {}
     stages = {
         "benchmark": "candidate benchmark passes every required release protocol check",
         "candidate-ci": "exact stamped candidate CI passes before immutable tagging",
@@ -185,18 +190,23 @@ def record_release_predictions(tag: str) -> dict[str, str]:
         if existing:
             predictions[stage] = existing["record_id"]
             continue
-        response = focusa_request(
-            "/v1/predictions",
-            {
-                "scope": prediction_scope(),
-                "prediction_type": f"release_{stage}_success",
-                "context_refs": [f"release:{tag}"],
-                "predicted_outcome": predicted_outcome,
-                "confidence": 0.9,
-                "recommended_action": f"Run and evidence the {stage} guard before settlement",
-                "why": "Prior release problems are now explicit recurrence guards in the measured release cycle",
-            },
-        )
+        try:
+            response = focusa_request(
+                "/v1/predictions",
+                {
+                    "scope": prediction_scope(),
+                    "prediction_type": f"release_{stage}_success",
+                    "context_refs": [f"release:{tag}"],
+                    "predicted_outcome": predicted_outcome,
+                    "confidence": 0.9,
+                    "recommended_action": f"Run and evidence the {stage} guard before settlement",
+                    "why": "Prior release problems are now explicit recurrence guards in the measured release cycle",
+                },
+            )
+        except urllib.error.HTTPError as error:
+            if error.code not in {401, 403}:
+                raise
+            continue
         prediction_id = response.get("data", {}).get("record", {}).get("record_id")
         if prediction_id:
             predictions[stage] = prediction_id
