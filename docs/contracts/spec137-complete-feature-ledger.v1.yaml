@@ -1,6 +1,6 @@
 schema: focusa.spec137_complete_feature_ledger.v1
 spec_ref: docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md
-source_spec_sha256: 915bed65583e8c80ad5b2d741fa1c9d0b7d1a87f3c66786832570f3c4ec70e5b
+source_spec_sha256: 35f78d1d2d25786dc230bfac10f54eab353ba287d12b6cc8a8525898fb864ae6
 generated_at: '2026-07-30T09:09:32.365590+00:00'
 status: verified_complete
 authority: Spec 137 acceptance criteria normalize detailed normative clauses; implementation truth remains Evidence/Receipt-gated; Specs 130A,
