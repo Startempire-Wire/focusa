@@ -66,6 +66,7 @@ require(
         "STAMPED_SOURCE_SHA=\"$(git rev-parse HEAD)\"",
         "scripts/generate-locked-release-candidate-ancestry.py",
         "scripts/generate-locked-release-governance-receipt.py",
+        "CANDIDATE_CHANGED_PATHS=\"$(git diff --name-only",
         "ensure_source_workflow \"Spec 132 terminal matrix\" \"$HEAD_SHA\"",
         "source_gate_dispatch_blocked",
         'git push origin "${TAG}"',
@@ -225,6 +226,19 @@ require(
 )
 assert "Release cargo test" not in RELEASE, "Release duplicates source/tag CI cargo tests on the critical path"
 assert "Release clippy" not in RELEASE, "Release duplicates source/tag CI clippy on the critical path"
+require(
+    RELEASE,
+    [
+        "--json number,mergeCommit,mergedAt,baseRefName",
+        'select(.baseRefName == "main" and .mergedAt > $since)',
+        'candidate_changed_paths="$(git diff --name-only',
+    ],
+    "main-scoped PR and Spec132 inclusion gates",
+)
+final_gap = RELEASE[
+    RELEASE.index("final-release-gap-gate:") : RELEASE.index("# Create the GitHub Release")
+]
+assert "fetch-depth: 0" in final_gap, "release final-gap proof checkout lacks full history"
 require(
     SPEC132,
     [

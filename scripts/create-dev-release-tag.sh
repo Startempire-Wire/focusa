@@ -541,8 +541,10 @@ if [[ "$PUSH" -eq 1 ]]; then
       --details "exact stamped candidate passed pre-tag CI" \
       --evidence-ref "github:commit:${HEAD_SHA}"
   fi
-  if git diff --name-only "${PREVIOUS_TAG:-HEAD^}"..HEAD | grep -Eq \
-    '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
+  CANDIDATE_CHANGED_PATHS="$(git diff --name-only "${PREVIOUS_TAG:-HEAD^}"..HEAD)"
+  if grep -Eq \
+    '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)' \
+    <<<"$CANDIDATE_CHANGED_PATHS"; then
     ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
     wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
   fi

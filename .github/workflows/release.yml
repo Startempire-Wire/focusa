@@ -67,8 +67,8 @@ jobs:
           previous=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -1 || true)
           since=$(if [ -n "$previous" ]; then git log -1 --format=%cI "$previous"; else echo '1970-01-01T00:00:00Z'; fi)
           gh pr list --repo "$REPOSITORY" --state merged --limit 500 \
-            --search "merged:>=${since%%T*}" --json number,mergeCommit,mergedAt \
-            | jq -r --arg since "$since" '.[] | select(.mergedAt > $since) | [.number,.mergeCommit.oid] | @tsv' \
+            --search "merged:>=${since%%T*}" --json number,mergeCommit,mergedAt,baseRefName \
+            | jq -r --arg since "$since" '.[] | select(.baseRefName == "main" and .mergedAt > $since) | [.number,.mergeCommit.oid] | @tsv' \
             | while IFS=$'\t' read -r number commit; do
                 [ -n "$commit" ] || { echo "::error::PR #$number has no merge commit"; exit 1; }
                 git merge-base --is-ancestor "$commit" "$TAG" || {
@@ -109,8 +109,10 @@ jobs:
           }
           require_success "CI"
           previous=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1 || true)
-          if git diff --name-only "${previous:-HEAD^}"..HEAD | grep -Eq \
-            '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
+          candidate_changed_paths="$(git diff --name-only "${previous:-HEAD^}"..HEAD)"
+          if grep -Eq \
+            '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)' \
+            <<<"$candidate_changed_paths"; then
             require_success "Spec 132 terminal matrix"
           fi
       - name: OTA installability release contract gate
@@ -161,6 +163,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Install release gate dependencies
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
       - uses: actions/setup-node@v6
