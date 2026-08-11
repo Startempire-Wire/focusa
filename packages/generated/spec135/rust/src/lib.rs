@@ -1,5 +1,6 @@
 //! Generated Spec144 semantic-pair client DTO parity.
 use serde::{Deserialize, Serialize};
+pub mod temporal;
 use serde_json::Value;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

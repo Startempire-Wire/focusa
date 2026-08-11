@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-08-02T14:32:52.996466+00:00",
-  "operation_count": 108,
+  "operation_count": 132,
   "operations": [
     {
       "alias_of": null,
@@ -9692,6 +9692,2190 @@
       "source_owner": "workspace_artifact",
       "policy_owner": "entitlement_policy_resolver",
       "spec172_family": "manual_basic_evidence",
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.time.now",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.time.now",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/time/now",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Time Now",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.time.status",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.time.status",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/time/status",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Time Status",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.time.trust.inspect",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.time.trust.inspect",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/time/trust",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Clock Trust",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.time.samples.list",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.time.samples.list",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/time/samples",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Clock Samples",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.time.capabilities",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.time.capabilities",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/time/capabilities",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Clock Capabilities",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.time.doctor",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.time.doctor",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/time/doctor",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Time Doctor",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.deadline.list",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.deadline.list",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/deadlines",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Deadline List",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.deadline.inspect",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.deadline.inspect",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/deadline/{id}",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Deadline Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.deadline.conflicts",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.deadline.conflicts",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/deadline/conflicts",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Deadline Conflicts",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "consequential",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Commit",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.deadline.set",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.deadline.set",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/deadline/set",
+      "permissions_required": [
+        "temporal:write"
+      ],
+      "request_schema_ref": "focusa.temporal_commit.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_commit.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_commit.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "append_only_temporal_event",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Set Deadline",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "local"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "consequential",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Commit",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.deadline.revise",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.deadline.revise",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/deadline/revise",
+      "permissions_required": [
+        "temporal:write"
+      ],
+      "request_schema_ref": "focusa.temporal_commit.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_commit.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_commit.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "append_only_temporal_event",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Revise Deadline",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "local"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "consequential",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Commit",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.deadline.clear",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.deadline.clear",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/deadline/clear",
+      "permissions_required": [
+        "temporal:write"
+      ],
+      "request_schema_ref": "focusa.temporal_commit.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_commit.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_commit.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "append_only_temporal_event",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Clear Deadline",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "local"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Commit",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.estimate.request",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.estimate.request",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/estimate/request",
+      "permissions_required": [
+        "temporal:write"
+      ],
+      "request_schema_ref": "focusa.temporal_commit.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_commit.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_commit.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "append_only_temporal_event",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Request Estimate",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "local"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.estimate.inspect",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.estimate.inspect",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/estimate/{id}",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Estimate Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Commit",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.estimate.validate",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.estimate.validate",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/estimate/validate",
+      "permissions_required": [
+        "temporal:write"
+      ],
+      "request_schema_ref": "focusa.temporal_commit.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_commit.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_commit.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "append_only_temporal_event",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Validate Estimate",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "local"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Commit",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.estimate.evaluate",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.estimate.evaluate",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/estimate/evaluate",
+      "permissions_required": [
+        "temporal:write"
+      ],
+      "request_schema_ref": "focusa.temporal_commit.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_commit.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_commit.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "append_only_temporal_event",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Evaluate Estimate",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "local"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.estimate.history",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.estimate.history",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/estimate/history",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Estimate History",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Commit",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.progress.record",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.progress.record",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/progress/record",
+      "permissions_required": [
+        "temporal:write"
+      ],
+      "request_schema_ref": "focusa.temporal_commit.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_commit.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_commit.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "append_only_temporal_event",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Record Progress",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "local"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.progress.status",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.progress.status",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/progress/status",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Progress Status",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.no_progress.inspect",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.no_progress.inspect",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/no-progress/incidents",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "No Progress Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.lost_time.list",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.lost_time.list",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/lost-time/incidents",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Lost Time List",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.lost_time.inspect",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.lost_time.inspect",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/lost-time/incidents/{id}",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Lost Time Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.opportunity.inspect",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.opportunity.inspect",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/opportunities/{subject}",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Opportunity Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "temporal:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "temporal",
+      "label": "Temporal Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.cancellation.inspect",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.cancellation.inspect",
+        "subsystem": "temporal"
+      },
+      "path": "/v1/cancellation/{id}",
+      "permissions_required": [
+        "temporal:read"
+      ],
+      "request_schema_ref": "focusa.temporal_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.temporal_status.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.temporal_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_or_advisory_projection",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Cancellation Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "temporal",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
       "product_owner": "focusa",
       "side_effect_class": "none"
     }

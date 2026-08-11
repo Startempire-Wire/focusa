@@ -5,6 +5,7 @@ export {
   type SemanticPairTransport,
 } from "./client.js";
 export * from "./semantic-pair.js";
+export * from "./temporal.js";
 export type { components, operations, paths, webhooks } from "./schema.js";
 export {
   toAgUiEvent,

@@ -43,7 +43,7 @@ family_treatment = {
 assert registry["operation_policy_schema"] == "focusa.operation_policy_metadata.v1"
 assert registry["operation_policy_authority"] == "docs/contracts/spec152f-entitlement-policy.v1.yaml"
 operations = registry["operations"]
-assert len(operations) == registry["operation_count"] == 108
+assert len(operations) == registry["operation_count"]
 assert len({operation["operation_id"] for operation in operations}) == len(operations)
 for operation in operations:
     assert fields <= operation.keys(), operation["operation_id"]

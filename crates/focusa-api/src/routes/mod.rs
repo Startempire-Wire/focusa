@@ -110,6 +110,7 @@ mod temporal_canonical_operations;
 mod temporal_canonical_read;
 #[cfg(test)]
 mod temporal_canonical_test;
+pub mod temporal_clients;
 pub mod temporal_closure;
 pub mod temporal_conformance;
 pub mod temporal_context;

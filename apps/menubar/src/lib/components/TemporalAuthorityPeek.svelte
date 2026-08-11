@@ -27,6 +27,11 @@
     forecast ? `${value(forecast.p50_ms)}–${value(forecast.p95_ms)} ms (${value(forecast.confidence)})` : 'none'
   );
   let urgency = $derived(temporal.urgency?.subject_ref ?? temporal.urgency?.reason_code ?? 'none');
+  let lastProgress = $derived(value(temporal.last_material_progress_at, 'unknown'));
+  let noProgressAge = $derived(value(temporal.no_progress_age_ms, 'unknown'));
+  let lostTime = $derived(value(temporal.lost_time_incident_count, '0'));
+  let opportunity = $derived(value(temporal.opportunity_posture, 'unknown'));
+  let cancellation = $derived(value(temporal.cancellation_state, 'none'));
   let conformanceStatus = $derived(value(conformance.full_conformance_status, 'unknown'));
   let warnings = $derived([
     ...(Array.isArray(temporal.warnings) ? temporal.warnings : []),
@@ -49,6 +54,11 @@
     <div><dt>Conflict</dt><dd>{conflict}</dd></div>
     <div><dt>Forecast</dt><dd>{forecastLabel}</dd></div>
     <div><dt>Urgency</dt><dd>{value(urgency)}</dd></div>
+    <div><dt>Last progress</dt><dd>{lastProgress}</dd></div>
+    <div><dt>No-progress age</dt><dd>{noProgressAge} ms</dd></div>
+    <div><dt>Lost-time incidents</dt><dd>{lostTime}</dd></div>
+    <div><dt>Opportunity</dt><dd>{opportunity}</dd></div>
+    <div><dt>Cancellation</dt><dd>{cancellation}</dd></div>
     <div><dt>Conformance</dt><dd>{conformanceStatus}</dd></div>
   </dl>
   {#if warnings.length}

@@ -593,6 +593,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::agent_runtime_studio::router())
         .merge(routes::telemetry::router())
         .merge(routes::temporal::router())
+        .merge(routes::temporal_clients::router())
         .merge(routes::trust::router())
         .merge(routes::threads::router())
         .merge(routes::proposals::router())

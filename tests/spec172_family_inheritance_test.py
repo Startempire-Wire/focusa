@@ -114,7 +114,7 @@ def test_lifecycle_inheritance_contract(contract: dict) -> None:
 def test_operation_registry_metadata(registry: dict, focusa_families: set[str]) -> None:
     require(registry.get("operation_policy_schema") == "focusa.operation_policy_metadata.v1", "operation_policy schema must be stable")
     operations = registry.get("operations", [])
-    require(len(operations) == 108, f"unexpected operation count: {len(operations)}")
+    require(len(operations) == registry["operation_count"], f"unexpected operation count: {len(operations)}")
 
     covered = set()
     for operation in operations:

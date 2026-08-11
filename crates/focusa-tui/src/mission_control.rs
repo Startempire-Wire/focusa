@@ -99,13 +99,17 @@ fn project_label(app: &App) -> String {
     "focusa".to_string()
 }
 
-fn temporal_status_fields(temporal: Option<&Value>) -> [String; 4] {
+fn temporal_status_fields(temporal: Option<&Value>) -> [String; 9] {
     let field = |name: &str, fallback: &str| {
         temporal
             .and_then(|value| value.get(name))
-            .and_then(Value::as_str)
-            .unwrap_or(fallback)
-            .to_string()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(str::to_string)
+                    .unwrap_or_else(|| value.to_string())
+            })
+            .unwrap_or_else(|| fallback.to_string())
     };
     let urgency = temporal
         .and_then(|value| value.get("urgency"))
@@ -128,6 +132,11 @@ fn temporal_status_fields(temporal: Option<&Value>) -> [String; 4] {
         field("deadline_conflict_state", "unknown"),
         urgency,
         conformance,
+        field("last_material_progress_at", "unknown"),
+        field("no_progress_age_ms", "unknown"),
+        field("lost_time_incident_count", "0"),
+        field("opportunity_posture", "unknown"),
+        field("cancellation_state", "none"),
     ]
 }
 
@@ -260,7 +269,17 @@ fn render_proof_scope_blocks(app: &App, frame: &mut ratatui::Frame, area: Rect) 
                 .get("temporal")
                 .and_then(|value| value.as_ref())
         });
-    let [deadline, conflict, urgency, conformance] = temporal_status_fields(temporal);
+    let [
+        deadline,
+        conflict,
+        urgency,
+        conformance,
+        progress,
+        no_progress,
+        lost_time,
+        opportunity,
+        cancellation,
+    ] = temporal_status_fields(temporal);
     let prediction_authority = app
         .extra_data
         .get("prediction_authority")
@@ -291,6 +310,9 @@ fn render_proof_scope_blocks(app: &App, frame: &mut ratatui::Frame, area: Rect) 
         Line::from(format!("precedence  {}", scope.precedence_frame)),
         Line::from(format!(
             "time  deadline={deadline} conflict={conflict} urgency={urgency} conformance={conformance}"
+        )),
+        Line::from(format!(
+            "progress  last={progress} no_progress_ms={no_progress} lost_time={lost_time} opportunity={opportunity} cancellation={cancellation}"
         )),
         Line::from(format!(
             "epistemic  events={epistemic_events} conformance={epistemic_conformance} operations={} daemon_authority=true",
@@ -549,11 +571,31 @@ mod tests {
         });
         assert_eq!(
             temporal_status_fields(Some(&temporal)),
-            ["none", "feasible", "none", "blocked_live_proof_required"]
+            [
+                "none",
+                "feasible",
+                "none",
+                "blocked_live_proof_required",
+                "unknown",
+                "unknown",
+                "0",
+                "unknown",
+                "none"
+            ]
         );
         assert_eq!(
             temporal_status_fields(None),
-            ["unavailable", "unknown", "none", "unknown"]
+            [
+                "unavailable",
+                "unknown",
+                "none",
+                "unknown",
+                "unknown",
+                "unknown",
+                "0",
+                "unknown",
+                "none"
+            ]
         );
     }
 

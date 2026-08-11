@@ -6622,6 +6622,16 @@ export function registerTools(pi: ExtensionAPI) {
             Type.Literal("resolve-civil-time"),
             Type.Literal("commit-priority"),
             Type.Literal("settle-closure"),
+            Type.Literal("time-now"),
+            Type.Literal("time-status"),
+            Type.Literal("deadline-list"),
+            Type.Literal("deadline-inspect"),
+            Type.Literal("deadline-conflicts"),
+            Type.Literal("progress-status"),
+            Type.Literal("lost-time-list"),
+            Type.Literal("lost-time-inspect"),
+            Type.Literal("opportunity-inspect"),
+            Type.Literal("cancellation-inspect"),
           ],
           { description: "Temporal operation; defaults to status." }
         )
@@ -6633,6 +6643,10 @@ export function registerTools(pi: ExtensionAPI) {
       workpoint_id: Type.Optional(Type.String()),
       item_id: Type.Optional(Type.String()),
       task_id: Type.Optional(Type.String()),
+      subject_ref: Type.Optional(Type.String()),
+      deadline_id: Type.Optional(Type.String()),
+      incident_id: Type.Optional(Type.String()),
+      cancellation_id: Type.Optional(Type.String()),
       idempotency_key: Type.Optional(Type.String()),
       confirm: Type.Optional(Type.Boolean()),
       as_of: Type.Optional(Type.String()),
@@ -6801,12 +6815,28 @@ export function registerTools(pi: ExtensionAPI) {
         params.forecast_evaluation = undefined;
       }
       let result: any;
-      if (action === "status") {
+      const canonicalReads: Record<string, { path: string; required?: string }> = {
+        "time-now": { path: "/time/now" },
+        "time-status": { path: "/time/status" },
+        "deadline-list": { path: "/deadlines" },
+        "deadline-inspect": { path: `/deadline/${encodeURIComponent(params.deadline_id || "")}`, required: "deadline_id" },
+        "deadline-conflicts": { path: "/deadline/conflicts" },
+        "progress-status": { path: "/progress/status", required: "item_id" },
+        "lost-time-list": { path: "/lost-time/incidents", required: "subject_ref" },
+        "lost-time-inspect": { path: `/lost-time/incidents/${encodeURIComponent(params.incident_id || "")}`, required: "incident_id" },
+        "opportunity-inspect": { path: `/opportunities/${encodeURIComponent(params.subject_ref || "")}`, required: "subject_ref" },
+        "cancellation-inspect": { path: `/cancellation/${encodeURIComponent(params.cancellation_id || "")}`, required: "cancellation_id" },
+      };
+      if (action === "status" || canonicalReads[action]) {
+        const read = canonicalReads[action];
+        if (read?.required && !params[read.required]) {
+          return { content: [{ type: "text", text: `temporal ${action} → blocked: ${read.required} required` }], details: { status: "blocked", failure_class: "temporal_identifier_required", canonical: false } } as any;
+        }
         const query = new URLSearchParams({ project_root: projectRoot, continuity_id: continuityId });
-        for (const key of ["host_id", "operator_id", "workpoint_id", "item_id", "task_id", "as_of"]) {
+        for (const key of ["host_id", "operator_id", "workpoint_id", "item_id", "task_id", "subject_ref", "as_of"]) {
           if (params[key]) query.set(key, String(params[key]));
         }
-        result = await focusaFetchDetailed(`/temporal/status?${query.toString()}`);
+        result = await focusaFetchDetailed(`${read?.path || "/temporal/status"}?${query.toString()}`);
       } else {
         const actionPath =
           action === "high-consequence-preflight"
@@ -6851,7 +6881,7 @@ export function registerTools(pi: ExtensionAPI) {
         details: {
           ok: result.ok,
           status,
-          canonical: action === "commit" || action === "revise" ? body.canonical === true : false,
+          canonical: body.canonical === true,
           project_root: projectRoot,
           continuity_id: continuityId,
           temporal_packet: compactApiEcho(body),

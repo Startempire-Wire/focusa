@@ -71,6 +71,7 @@ mod silent_render;
 pub mod skills;
 pub mod telemetry;
 pub mod temporal;
+pub mod temporal_clients;
 pub mod threads;
 pub mod tokens;
 pub mod trajectory;

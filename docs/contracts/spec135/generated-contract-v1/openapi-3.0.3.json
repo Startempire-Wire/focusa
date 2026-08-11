@@ -24026,6 +24026,2099 @@
           "side_effect_class": "local"
         }
       }
+    },
+    "/v1/time/now": {
+      "get": {
+        "operationId": "focusa.time.now",
+        "summary": "Time Now",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.time.now",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Time Now",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Time Now \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/time/status": {
+      "get": {
+        "operationId": "focusa.time.status",
+        "summary": "Time Status",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.time.status",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Time Status",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Time Status \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/time/trust": {
+      "get": {
+        "operationId": "focusa.time.trust.inspect",
+        "summary": "Clock Trust",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.time.trust.inspect",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Clock Trust",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Clock Trust \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/time/samples": {
+      "get": {
+        "operationId": "focusa.time.samples.list",
+        "summary": "Clock Samples",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.time.samples.list",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Clock Samples",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Clock Samples \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/time/capabilities": {
+      "get": {
+        "operationId": "focusa.time.capabilities",
+        "summary": "Clock Capabilities",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.time.capabilities",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Clock Capabilities",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Clock Capabilities \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/time/doctor": {
+      "get": {
+        "operationId": "focusa.time.doctor",
+        "summary": "Time Doctor",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.time.doctor",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Time Doctor",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Time Doctor \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/deadlines": {
+      "get": {
+        "operationId": "focusa.deadline.list",
+        "summary": "Deadline List",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.deadline.list",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Deadline List",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Deadline List \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/deadline/{id}": {
+      "get": {
+        "operationId": "focusa.deadline.inspect",
+        "summary": "Deadline Inspect",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.deadline.inspect",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Deadline Inspect",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Deadline Inspect \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/deadline/conflicts": {
+      "get": {
+        "operationId": "focusa.deadline.conflicts",
+        "summary": "Deadline Conflicts",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.deadline.conflicts",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Deadline Conflicts",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Deadline Conflicts \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/deadline/set": {
+      "post": {
+        "operationId": "focusa.deadline.set",
+        "summary": "Set Deadline",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_commit_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_commit_request_v1"
+              }
+            }
+          }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.deadline.set",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Set Deadline",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "local"
+        },
+        "description": "Set Deadline \u2014 canonical Spec 137 temporal authority operation",
+        "parameters": []
+      }
+    },
+    "/v1/deadline/revise": {
+      "post": {
+        "operationId": "focusa.deadline.revise",
+        "summary": "Revise Deadline",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_commit_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_commit_request_v1"
+              }
+            }
+          }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.deadline.revise",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Revise Deadline",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "local"
+        },
+        "description": "Revise Deadline \u2014 canonical Spec 137 temporal authority operation",
+        "parameters": []
+      }
+    },
+    "/v1/deadline/clear": {
+      "post": {
+        "operationId": "focusa.deadline.clear",
+        "summary": "Clear Deadline",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_commit_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_commit_request_v1"
+              }
+            }
+          }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.deadline.clear",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Clear Deadline",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "local"
+        },
+        "description": "Clear Deadline \u2014 canonical Spec 137 temporal authority operation",
+        "parameters": []
+      }
+    },
+    "/v1/estimate/request": {
+      "post": {
+        "operationId": "focusa.estimate.request",
+        "summary": "Request Estimate",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_commit_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_commit_request_v1"
+              }
+            }
+          }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.estimate.request",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Request Estimate",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "local"
+        },
+        "description": "Request Estimate \u2014 canonical Spec 137 temporal authority operation",
+        "parameters": []
+      }
+    },
+    "/v1/estimate/{id}": {
+      "get": {
+        "operationId": "focusa.estimate.inspect",
+        "summary": "Estimate Inspect",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.estimate.inspect",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Estimate Inspect",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Estimate Inspect \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/estimate/validate": {
+      "post": {
+        "operationId": "focusa.estimate.validate",
+        "summary": "Validate Estimate",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_commit_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_commit_request_v1"
+              }
+            }
+          }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.estimate.validate",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Validate Estimate",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "local"
+        },
+        "description": "Validate Estimate \u2014 canonical Spec 137 temporal authority operation",
+        "parameters": []
+      }
+    },
+    "/v1/estimate/evaluate": {
+      "post": {
+        "operationId": "focusa.estimate.evaluate",
+        "summary": "Evaluate Estimate",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_commit_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_commit_request_v1"
+              }
+            }
+          }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.estimate.evaluate",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Evaluate Estimate",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "local"
+        },
+        "description": "Evaluate Estimate \u2014 canonical Spec 137 temporal authority operation",
+        "parameters": []
+      }
+    },
+    "/v1/estimate/history": {
+      "get": {
+        "operationId": "focusa.estimate.history",
+        "summary": "Estimate History",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.estimate.history",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Estimate History",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Estimate History \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/progress/record": {
+      "post": {
+        "operationId": "focusa.progress.record",
+        "summary": "Record Progress",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_commit_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_commit_request_v1"
+              }
+            }
+          }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.progress.record",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Record Progress",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "local"
+        },
+        "description": "Record Progress \u2014 canonical Spec 137 temporal authority operation",
+        "parameters": []
+      }
+    },
+    "/v1/progress/status": {
+      "get": {
+        "operationId": "focusa.progress.status",
+        "summary": "Progress Status",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.progress.status",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Progress Status",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Progress Status \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/no-progress/incidents": {
+      "get": {
+        "operationId": "focusa.no_progress.inspect",
+        "summary": "No Progress Inspect",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.no_progress.inspect",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "No Progress Inspect",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "No Progress Inspect \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/lost-time/incidents": {
+      "get": {
+        "operationId": "focusa.lost_time.list",
+        "summary": "Lost Time List",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.lost_time.list",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Lost Time List",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Lost Time List \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/lost-time/incidents/{id}": {
+      "get": {
+        "operationId": "focusa.lost_time.inspect",
+        "summary": "Lost Time Inspect",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.lost_time.inspect",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Lost Time Inspect",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Lost Time Inspect \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/opportunities/{subject}": {
+      "get": {
+        "operationId": "focusa.opportunity.inspect",
+        "summary": "Opportunity Inspect",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.opportunity.inspect",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Opportunity Inspect",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Opportunity Inspect \u2014 canonical Spec 137 temporal authority operation"
+      }
+    },
+    "/v1/cancellation/{id}": {
+      "get": {
+        "operationId": "focusa.cancellation.inspect",
+        "summary": "Cancellation Inspect",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.cancellation.inspect",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Cancellation Inspect",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "temporal",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "temporal",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "description": "Cancellation Inspect \u2014 canonical Spec 137 temporal authority operation"
+      }
     }
   },
   "servers": [

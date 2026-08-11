@@ -402,6 +402,31 @@ enum Commands {
     #[command(subcommand)]
     Temporal(commands::temporal::TemporalCmd),
 
+    /// Trusted clock facts and awareness (Spec137).
+    #[command(subcommand)]
+    Time(commands::temporal_clients::TimeCmd),
+    /// Canonical external deadline authority (Spec137).
+    #[command(subcommand)]
+    Deadline(commands::temporal_clients::DeadlineCmd),
+    /// Grounded estimate and calibration authority (Spec137).
+    #[command(subcommand)]
+    Estimate(commands::temporal_clients::EstimateCmd),
+    /// Evidence-backed material progress (Spec137).
+    #[command(subcommand)]
+    Progress(commands::temporal_clients::ProgressCmd),
+    /// No-progress incident inspection (Spec137).
+    #[command(subcommand, name = "no-progress")]
+    NoProgress(commands::temporal_clients::NoProgressCmd),
+    /// Lost-time incident inspection (Spec137).
+    #[command(subcommand, name = "lost-time")]
+    LostTime(commands::temporal_clients::LostTimeCmd),
+    /// Opportunity posture inspection (Spec137).
+    #[command(subcommand)]
+    Opportunity(commands::temporal_clients::OpportunityCmd),
+    /// Distributed cancellation inspection (Spec137).
+    #[command(subcommand)]
+    Cancellation(commands::temporal_clients::CancellationCmd),
+
     /// Per-project Trajectory Projection (Spec96).
     #[command(subcommand)]
     Trajectory(commands::trajectory::TrajectoryCmd),
@@ -1141,6 +1166,20 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Project(cmd) => commands::project::run(cmd, cli.json).await,
         Commands::Resource(cmd) => commands::resource::run(cmd, cli.json).await,
         Commands::Temporal(cmd) => commands::temporal::run(cmd, cli.json).await,
+        Commands::Time(cmd) => commands::temporal_clients::run_time(cmd, cli.json).await,
+        Commands::Deadline(cmd) => commands::temporal_clients::run_deadline(cmd, cli.json).await,
+        Commands::Estimate(cmd) => commands::temporal_clients::run_estimate(cmd, cli.json).await,
+        Commands::Progress(cmd) => commands::temporal_clients::run_progress(cmd, cli.json).await,
+        Commands::NoProgress(cmd) => {
+            commands::temporal_clients::run_no_progress(cmd, cli.json).await
+        }
+        Commands::LostTime(cmd) => commands::temporal_clients::run_lost_time(cmd, cli.json).await,
+        Commands::Opportunity(cmd) => {
+            commands::temporal_clients::run_opportunity(cmd, cli.json).await
+        }
+        Commands::Cancellation(cmd) => {
+            commands::temporal_clients::run_cancellation(cmd, cli.json).await
+        }
         Commands::Trajectory(cmd) => commands::trajectory::run(cmd, cli.json).await,
         Commands::Hlt(cmd) => commands::hlt::run(cmd, cli.json).await,
         Commands::Traverse(cmd) => commands::traverse::run(cmd, cli.json).await,

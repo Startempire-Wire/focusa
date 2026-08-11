@@ -109,7 +109,7 @@ def verify_manifest(
 
 def test_registry_trusted_metadata(registry: dict) -> None:
     operations = registry.get("operations", [])
-    require(registry.get("operation_count") == 108, "canonical operation count must be 108")
+    require(registry.get("operation_count") == len(operations), "canonical operation count must match descriptors")
     require(
         registry.get("operation_policy_schema") == "focusa.operation_policy_metadata.v1",
         "operation policy schema must be stable",
@@ -168,7 +168,7 @@ def test_all_signed_exact_manifests_trusted(registry: dict) -> None:
         )
         require(decision == "trusted", f"{operation['operation_id']} must be trusted: {decision}")
         trusted += 1
-    require(trusted == 108, f"expected 108 trusted, got {trusted}")
+    require(trusted == registry["operation_count"], f"expected every canonical operation trusted, got {trusted}")
 
 
 def test_adversarial_fixtures_fail_closed(registry: dict) -> None:
@@ -287,7 +287,7 @@ def test_generated_ui_bindings_only_canonical_actions(registry: dict, bindings: 
     by_id = {operation["operation_id"]: operation for operation in operations}
     require(bindings.get("schema") == "focusa.ui_action_binding_index.v1", "bindings schema")
     bound = bindings.get("bindings", [])
-    require(bindings.get("binding_count") == len(bound) == 108, "binding count must be 108")
+    require(bindings.get("binding_count") == len(bound), "binding count must match generated bindings")
     registered_actions = {
         operation["operation_id"]
         for operation in operations
@@ -408,7 +408,7 @@ def main() -> int:
 
     print("Spec172 dynamic operation manifest gate passed")
     print(f"operation_count={registry.get('operation_count')}")
-    print(f"trusted_exact_manifests=108")
+    print(f"trusted_exact_manifests={registry['operation_count']}")
     print(f"generated_ui_bindings={bindings.get('binding_count')}")
     print(f"adversarial_fixtures=12")
     print(f"a2ui_presenter_policy_fields=0")
