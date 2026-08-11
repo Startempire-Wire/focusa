@@ -3,8 +3,8 @@
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
 - Classified paths: `606`
-- Agent eligible: `138`
-- Operator only: `456`
+- Agent eligible: `164`
+- Operator only: `430`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -859,10 +859,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/calibration/reports`
 
 - Methods: `GET /v1/calibration/reports`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.calibration.report`
 
 ### `/v1/call-stack/design`
 
@@ -1739,10 +1739,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/evaluations/predictions`
 
 - Methods: `POST /v1/evaluations/predictions`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.prediction.evaluate`
 
 ### `/v1/events/health`
 
@@ -2027,10 +2027,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/information-sets`
 
 - Methods: `POST /v1/information-sets`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.prediction.information_set.commit`
 
 ### `/v1/installations/convergence/plan`
 
@@ -2123,82 +2123,82 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/learning/candidates/{id}/decide`
 
 - Methods: `POST /v1/learning/candidates/{id}/decide`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.learning.candidate.decide`
 
 ### `/v1/learning/conflicts`
 
 - Methods: `GET /v1/learning/conflicts`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.learning.conflicts`
 
 ### `/v1/learning/consolidate`
 
 - Methods: `POST /v1/learning/consolidate`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.learning.consolidate`
 
 ### `/v1/learning/retrieve`
 
 - Methods: `GET /v1/learning/retrieve`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.learning.retrieve`
 
 ### `/v1/learning/transfers/resolve`
 
 - Methods: `POST /v1/learning/transfers/resolve`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.learning.transfer.resolve`
 
 ### `/v1/learning/{id}/apply`
 
 - Methods: `POST /v1/learning/{id}/apply`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.learning.apply`
 
 ### `/v1/learning/{id}/expire`
 
 - Methods: `POST /v1/learning/{id}/expire`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.learning.expire`
 
 ### `/v1/learning/{id}/revoke`
 
 - Methods: `POST /v1/learning/{id}/revoke`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.learning.revoke`
 
 ### `/v1/learning/{id}/rollback`
 
 - Methods: `POST /v1/learning/{id}/rollback`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.learning.rollback`
 
 ### `/v1/learning/{id}/supersede`
 
 - Methods: `POST /v1/learning/{id}/supersede`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.learning.supersede`
 
 ### `/v1/license/status`
 
@@ -2331,10 +2331,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/metacognition/adjustments`
 
 - Methods: `POST /v1/metacognition/adjustments`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.metacognition.adjustment.propose`
 
 ### `/v1/metacognition/adjustments/recent`
 
@@ -2371,10 +2371,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/metacognition/evaluations`
 
 - Methods: `POST /v1/metacognition/evaluations`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.metacognition.adjustment.evaluate`
 
 ### `/v1/metacognition/evaluations/recent`
 
@@ -2395,10 +2395,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/metacognition/reflections`
 
 - Methods: `POST /v1/metacognition/reflections`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.metacognition.reflect`
 
 ### `/v1/metacognition/reflections/recent`
 
@@ -2419,10 +2419,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/metacognition/signals`
 
 - Methods: `POST /v1/metacognition/signals`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.metacognition.signal.capture`
 
 ### `/v1/metacognition/status`
 
@@ -2707,34 +2707,34 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/outcomes/claim`
 
 - Methods: `POST /v1/outcomes/claim`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.outcome.claim`
 
 ### `/v1/outcomes/resolve`
 
 - Methods: `POST /v1/outcomes/resolve`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.outcome.resolve`
 
 ### `/v1/outcomes/{id}/correct`
 
 - Methods: `POST /v1/outcomes/{id}/correct`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.outcome.correct`
 
 ### `/v1/outcomes/{id}/dispute`
 
 - Methods: `POST /v1/outcomes/{id}/dispute`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.outcome.dispute`
 
 ### `/v1/prediction-authority/events`
 
@@ -2755,10 +2755,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/prediction-questions`
 
 - Methods: `POST /v1/prediction-questions`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.prediction.question.create`
 
 ### `/v1/predictions`
 
@@ -2779,10 +2779,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/predictions/commit`
 
 - Methods: `POST /v1/predictions/commit`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.prediction.commit`
 
 ### `/v1/predictions/recent`
 
@@ -2790,7 +2790,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Classification: `agent_eligible`
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: `focusa.prediction.recent`
+- Agent operations: `focusa.prediction.list`
 
 ### `/v1/predictions/stats`
 
@@ -2803,18 +2803,18 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/predictions/{id}`
 
 - Methods: `GET /v1/predictions/{id}`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.prediction.get`
 
 ### `/v1/predictions/{id}/supersede`
 
 - Methods: `POST /v1/predictions/{id}/supersede`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.prediction.supersede`
 
 ### `/v1/predictions/{prediction_id}/evaluate`
 
@@ -3331,10 +3331,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/self-model`
 
 - Methods: `GET /v1/self-model`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority_canonical.rs`
-- Agent operations: none
+- Agent operations: `focusa.self_model.get`
 
 ### `/v1/semantic-integrity/artifacts`
 

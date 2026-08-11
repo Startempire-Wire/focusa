@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:93e9d8e75d967ab88ec285075fa8f7e71e9a62aa72a0cd8b17dfb0bd6691f984",
+  "registry_digest": "sha256:e66e33d5ce48ea86030e8f5e000fc86cc8721ae5be29df8247ae0b3fe7ac54f5",
   "operations": [
     {
       "method": "POST",
@@ -14488,7 +14488,7 @@
       "path": "/v1/prediction-questions",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.prediction.question.create",
       "input_schema": {
         "type": "object",
         "required": [
@@ -15034,7 +15034,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -15042,7 +15042,7 @@
       "path": "/v1/information-sets",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.prediction.information_set.commit",
       "input_schema": {
         "type": "object",
         "required": [
@@ -15588,7 +15588,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -15596,7 +15596,7 @@
       "path": "/v1/predictions/commit",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.prediction.commit",
       "input_schema": {
         "type": "object",
         "required": [
@@ -16142,7 +16142,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -16150,7 +16150,7 @@
       "path": "/v1/predictions/{id}/supersede",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.prediction.supersede",
       "input_schema": {
         "type": "object",
         "required": [
@@ -16696,7 +16696,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -16704,561 +16704,7 @@
       "path": "/v1/predictions/{id}",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
-      "input_schema": {
-        "type": "object",
-        "required": [
-          "operation_id"
-        ],
-        "properties": {
-          "operation_id": {
-            "anyOf": [
-              {
-                "const": "prediction.question.create",
-                "type": "string"
-              },
-              {
-                "const": "prediction.information_set.commit",
-                "type": "string"
-              },
-              {
-                "const": "prediction.commit",
-                "type": "string"
-              },
-              {
-                "const": "prediction.supersede",
-                "type": "string"
-              },
-              {
-                "const": "prediction.get",
-                "type": "string"
-              },
-              {
-                "const": "prediction.list",
-                "type": "string"
-              },
-              {
-                "const": "outcome.claim",
-                "type": "string"
-              },
-              {
-                "const": "outcome.dispute",
-                "type": "string"
-              },
-              {
-                "const": "outcome.resolve",
-                "type": "string"
-              },
-              {
-                "const": "outcome.correct",
-                "type": "string"
-              },
-              {
-                "const": "prediction.evaluate",
-                "type": "string"
-              },
-              {
-                "const": "calibration.report",
-                "type": "string"
-              },
-              {
-                "const": "metacognition.signal.capture",
-                "type": "string"
-              },
-              {
-                "const": "metacognition.reflect",
-                "type": "string"
-              },
-              {
-                "const": "metacognition.adjustment.propose",
-                "type": "string"
-              },
-              {
-                "const": "metacognition.adjustment.evaluate",
-                "type": "string"
-              },
-              {
-                "const": "learning.candidate.decide",
-                "type": "string"
-              },
-              {
-                "const": "learning.apply",
-                "type": "string"
-              },
-              {
-                "const": "learning.transfer.resolve",
-                "type": "string"
-              },
-              {
-                "const": "learning.retrieve",
-                "type": "string"
-              },
-              {
-                "const": "learning.conflicts",
-                "type": "string"
-              },
-              {
-                "const": "learning.expire",
-                "type": "string"
-              },
-              {
-                "const": "learning.supersede",
-                "type": "string"
-              },
-              {
-                "const": "learning.revoke",
-                "type": "string"
-              },
-              {
-                "const": "learning.rollback",
-                "type": "string"
-              },
-              {
-                "const": "learning.consolidate",
-                "type": "string"
-              },
-              {
-                "const": "self_model.get",
-                "type": "string"
-              }
-            ]
-          },
-          "id": {
-            "description": "Value for canonical {id} path segments.",
-            "type": "string"
-          },
-          "event": {
-            "description": "Typed ScopedAuthorityEvent required for mutations."
-          },
-          "project_root": {
-            "description": "Explicit or current verified project root.",
-            "type": "string"
-          },
-          "continuity_id": {
-            "description": "Explicit or current continuity id.",
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "additionalProperties": false,
-              "type": "object",
-              "required": [
-                "type",
-                "text"
-              ],
-              "properties": {
-                "type": {
-                  "const": "text",
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {
-              "tool_result_v1": {
-                "additionalProperties": false,
-                "type": "object",
-                "required": [
-                  "schema",
-                  "ok",
-                  "status",
-                  "failure_class",
-                  "canonical",
-                  "degraded",
-                  "summary",
-                  "retry",
-                  "side_effects",
-                  "evidence_refs",
-                  "next_tools"
-                ],
-                "properties": {
-                  "schema": {
-                    "const": "focusa.tool_result.v1",
-                    "type": "string"
-                  },
-                  "ok": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "const": "accepted",
-                        "type": "string"
-                      },
-                      {
-                        "const": "completed",
-                        "type": "string"
-                      },
-                      {
-                        "const": "no_op",
-                        "type": "string"
-                      },
-                      {
-                        "const": "blocked",
-                        "type": "string"
-                      },
-                      {
-                        "const": "validation_rejected",
-                        "type": "string"
-                      },
-                      {
-                        "const": "degraded",
-                        "type": "string"
-                      },
-                      {
-                        "const": "offline",
-                        "type": "string"
-                      },
-                      {
-                        "const": "error",
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "failure_class": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "entitlement_decision": {},
-                  "canonical": {
-                    "type": "boolean"
-                  },
-                  "degraded": {
-                    "type": "boolean"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "retry": {
-                    "additionalProperties": false,
-                    "type": "object",
-                    "required": [
-                      "safe",
-                      "posture"
-                    ],
-                    "properties": {
-                      "safe": {
-                        "type": "boolean"
-                      },
-                      "posture": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "side_effects": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidence_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "next_tools": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "recovery_hint": {
-                    "type": "string"
-                  },
-                  "misuse_hint": {
-                    "type": "string"
-                  },
-                  "details": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "error_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "failure_class",
-          "retryable",
-          "posture",
-          "recovery"
-        ],
-        "properties": {
-          "failure_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "posture": {
-            "type": "string",
-            "enum": [
-              "safe_retry",
-              "retry_with_idempotency_key",
-              "check_side_effects_first",
-              "do_not_retry_unchanged",
-              "operator_required"
-            ]
-          },
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "recovery": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "authority": {
-        "kind": "canonical_write"
-      },
-      "permissions": [
-        {
-          "route": "POST /v1/prediction-questions",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/information-sets",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/predictions/commit",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/predictions/{id}/supersede",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "GET /v1/predictions/{id}",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "GET /v1/predictions/recent",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/outcomes/claim",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/outcomes/{id}/dispute",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/outcomes/resolve",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/outcomes/{id}/correct",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/evaluations/predictions",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "GET /v1/calibration/reports",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/metacognition/signals",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/metacognition/reflections",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/metacognition/adjustments",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/metacognition/evaluations",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/learning/candidates/{id}/decide",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/learning/{id}/apply",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/learning/transfers/resolve",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "GET /v1/learning/retrieve",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "GET /v1/learning/conflicts",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/learning/{id}/expire",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/learning/{id}/supersede",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/learning/{id}/revoke",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/learning/{id}/rollback",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "POST /v1/learning/consolidate",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        },
-        {
-          "route": "GET /v1/self-model",
-          "scope": {
-            "kind": "write",
-            "route_family": "prediction-authority:operation"
-          }
-        }
-      ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_epistemic_operation.md",
-      "operation_class": "value_mutation",
-      "capability_family": "base_focusa",
-      "commercial_treatment": "base_entitlement",
-      "policy_activation": "active",
-      "required_feature": null,
-      "limit_bucket": null,
-      "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
-      "policy_owner": "entitlement_policy_resolver"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/predictions/recent",
-      "capability_id": "focusa.epistemic.operation",
-      "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": "focusa.prediction.recent",
+      "canonical_operation_id": "focusa.prediction.get",
       "input_schema": {
         "type": "object",
         "required": [
@@ -17804,7 +17250,561 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "read_projection",
-      "source_owner": "prediction",
+      "source_owner": "prediction_authority",
+      "policy_owner": "entitlement_policy_resolver"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/predictions/recent",
+      "capability_id": "focusa.epistemic.operation",
+      "operation_id": "focusa_epistemic_operation",
+      "canonical_operation_id": "focusa.prediction.list",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "operation_id"
+        ],
+        "properties": {
+          "operation_id": {
+            "anyOf": [
+              {
+                "const": "prediction.question.create",
+                "type": "string"
+              },
+              {
+                "const": "prediction.information_set.commit",
+                "type": "string"
+              },
+              {
+                "const": "prediction.commit",
+                "type": "string"
+              },
+              {
+                "const": "prediction.supersede",
+                "type": "string"
+              },
+              {
+                "const": "prediction.get",
+                "type": "string"
+              },
+              {
+                "const": "prediction.list",
+                "type": "string"
+              },
+              {
+                "const": "outcome.claim",
+                "type": "string"
+              },
+              {
+                "const": "outcome.dispute",
+                "type": "string"
+              },
+              {
+                "const": "outcome.resolve",
+                "type": "string"
+              },
+              {
+                "const": "outcome.correct",
+                "type": "string"
+              },
+              {
+                "const": "prediction.evaluate",
+                "type": "string"
+              },
+              {
+                "const": "calibration.report",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.signal.capture",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.reflect",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.adjustment.propose",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.adjustment.evaluate",
+                "type": "string"
+              },
+              {
+                "const": "learning.candidate.decide",
+                "type": "string"
+              },
+              {
+                "const": "learning.apply",
+                "type": "string"
+              },
+              {
+                "const": "learning.transfer.resolve",
+                "type": "string"
+              },
+              {
+                "const": "learning.retrieve",
+                "type": "string"
+              },
+              {
+                "const": "learning.conflicts",
+                "type": "string"
+              },
+              {
+                "const": "learning.expire",
+                "type": "string"
+              },
+              {
+                "const": "learning.supersede",
+                "type": "string"
+              },
+              {
+                "const": "learning.revoke",
+                "type": "string"
+              },
+              {
+                "const": "learning.rollback",
+                "type": "string"
+              },
+              {
+                "const": "learning.consolidate",
+                "type": "string"
+              },
+              {
+                "const": "self_model.get",
+                "type": "string"
+              }
+            ]
+          },
+          "id": {
+            "description": "Value for canonical {id} path segments.",
+            "type": "string"
+          },
+          "event": {
+            "description": "Typed ScopedAuthorityEvent required for mutations."
+          },
+          "project_root": {
+            "description": "Explicit or current verified project root.",
+            "type": "string"
+          },
+          "continuity_id": {
+            "description": "Explicit or current continuity id.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "canonical_write"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/prediction-questions",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/information-sets",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/predictions/commit",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/predictions/{id}/supersede",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "GET /v1/predictions/{id}",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "GET /v1/predictions/recent",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/outcomes/claim",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/outcomes/{id}/dispute",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/outcomes/resolve",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/outcomes/{id}/correct",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/evaluations/predictions",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "GET /v1/calibration/reports",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/metacognition/signals",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/metacognition/reflections",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/metacognition/adjustments",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/metacognition/evaluations",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/learning/candidates/{id}/decide",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/learning/{id}/apply",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/learning/transfers/resolve",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "GET /v1/learning/retrieve",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "GET /v1/learning/conflicts",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/learning/{id}/expire",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/learning/{id}/supersede",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/learning/{id}/revoke",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/learning/{id}/rollback",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "POST /v1/learning/consolidate",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        },
+        {
+          "route": "GET /v1/self-model",
+          "scope": {
+            "kind": "write",
+            "route_family": "prediction-authority:operation"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_epistemic_operation.md",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -17812,7 +17812,7 @@
       "path": "/v1/outcomes/claim",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.outcome.claim",
       "input_schema": {
         "type": "object",
         "required": [
@@ -18358,7 +18358,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -18366,7 +18366,7 @@
       "path": "/v1/outcomes/{id}/dispute",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.outcome.dispute",
       "input_schema": {
         "type": "object",
         "required": [
@@ -18912,7 +18912,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -18920,7 +18920,7 @@
       "path": "/v1/outcomes/resolve",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.outcome.resolve",
       "input_schema": {
         "type": "object",
         "required": [
@@ -19466,7 +19466,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -19474,7 +19474,7 @@
       "path": "/v1/outcomes/{id}/correct",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.outcome.correct",
       "input_schema": {
         "type": "object",
         "required": [
@@ -20020,7 +20020,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -20028,7 +20028,7 @@
       "path": "/v1/evaluations/predictions",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.prediction.evaluate",
       "input_schema": {
         "type": "object",
         "required": [
@@ -20574,7 +20574,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -20582,7 +20582,7 @@
       "path": "/v1/calibration/reports",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.calibration.report",
       "input_schema": {
         "type": "object",
         "required": [
@@ -21121,14 +21121,14 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_epistemic_operation.md",
-      "operation_class": "value_mutation",
-      "capability_family": "base_focusa",
-      "commercial_treatment": "base_entitlement",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
       "policy_activation": "active",
       "required_feature": null,
       "limit_bucket": null,
-      "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "recovery_allowance": "read_projection",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -21136,7 +21136,7 @@
       "path": "/v1/metacognition/signals",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.metacognition.signal.capture",
       "input_schema": {
         "type": "object",
         "required": [
@@ -21682,7 +21682,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -21690,7 +21690,7 @@
       "path": "/v1/metacognition/reflections",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.metacognition.reflect",
       "input_schema": {
         "type": "object",
         "required": [
@@ -22236,7 +22236,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -22244,7 +22244,7 @@
       "path": "/v1/metacognition/adjustments",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.metacognition.adjustment.propose",
       "input_schema": {
         "type": "object",
         "required": [
@@ -22790,7 +22790,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -22798,7 +22798,7 @@
       "path": "/v1/metacognition/evaluations",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.metacognition.adjustment.evaluate",
       "input_schema": {
         "type": "object",
         "required": [
@@ -23344,7 +23344,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -23352,7 +23352,7 @@
       "path": "/v1/learning/candidates/{id}/decide",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.learning.candidate.decide",
       "input_schema": {
         "type": "object",
         "required": [
@@ -23898,7 +23898,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -23906,7 +23906,7 @@
       "path": "/v1/learning/{id}/apply",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.learning.apply",
       "input_schema": {
         "type": "object",
         "required": [
@@ -24452,7 +24452,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -24460,7 +24460,7 @@
       "path": "/v1/learning/transfers/resolve",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.learning.transfer.resolve",
       "input_schema": {
         "type": "object",
         "required": [
@@ -25006,7 +25006,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -25014,7 +25014,7 @@
       "path": "/v1/learning/retrieve",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.learning.retrieve",
       "input_schema": {
         "type": "object",
         "required": [
@@ -25553,14 +25553,14 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_epistemic_operation.md",
-      "operation_class": "value_mutation",
-      "capability_family": "base_focusa",
-      "commercial_treatment": "base_entitlement",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
       "policy_activation": "active",
       "required_feature": null,
       "limit_bucket": null,
-      "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "recovery_allowance": "read_projection",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -25568,7 +25568,7 @@
       "path": "/v1/learning/conflicts",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.learning.conflicts",
       "input_schema": {
         "type": "object",
         "required": [
@@ -26107,14 +26107,14 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_epistemic_operation.md",
-      "operation_class": "value_mutation",
-      "capability_family": "base_focusa",
-      "commercial_treatment": "base_entitlement",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
       "policy_activation": "active",
       "required_feature": null,
       "limit_bucket": null,
-      "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "recovery_allowance": "read_projection",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -26122,7 +26122,7 @@
       "path": "/v1/learning/{id}/expire",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.learning.expire",
       "input_schema": {
         "type": "object",
         "required": [
@@ -26668,7 +26668,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -26676,7 +26676,7 @@
       "path": "/v1/learning/{id}/supersede",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.learning.supersede",
       "input_schema": {
         "type": "object",
         "required": [
@@ -27222,7 +27222,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -27230,7 +27230,7 @@
       "path": "/v1/learning/{id}/revoke",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.learning.revoke",
       "input_schema": {
         "type": "object",
         "required": [
@@ -27776,7 +27776,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -27784,7 +27784,7 @@
       "path": "/v1/learning/{id}/rollback",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.learning.rollback",
       "input_schema": {
         "type": "object",
         "required": [
@@ -28330,7 +28330,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -28338,7 +28338,7 @@
       "path": "/v1/learning/consolidate",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.learning.consolidate",
       "input_schema": {
         "type": "object",
         "required": [
@@ -28884,7 +28884,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -28892,7 +28892,7 @@
       "path": "/v1/self-model",
       "capability_id": "focusa.epistemic.operation",
       "operation_id": "focusa_epistemic_operation",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.self_model.get",
       "input_schema": {
         "type": "object",
         "required": [
@@ -29431,14 +29431,14 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_epistemic_operation.md",
-      "operation_class": "value_mutation",
-      "capability_family": "base_focusa",
-      "commercial_treatment": "base_entitlement",
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
       "policy_activation": "active",
       "required_feature": null,
       "limit_bucket": null,
-      "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "recovery_allowance": "read_projection",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -38273,7 +38273,7 @@
       "path": "/v1/predictions/recent",
       "capability_id": "focusa.predict.recent",
       "operation_id": "focusa_predict_recent",
-      "canonical_operation_id": "focusa.prediction.recent",
+      "canonical_operation_id": "focusa.prediction.list",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -38519,7 +38519,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "read_projection",
-      "source_owner": "prediction",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver"
     },
     {

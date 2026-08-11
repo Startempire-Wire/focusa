@@ -1,6 +1,6 @@
 {
   "attachment_id": "example",
-  "binding_count": 132,
+  "binding_count": 157,
   "bindings": [
     {
       "action_id": "focusa.agent_execution.abort",
@@ -263,6 +263,50 @@
       }
     },
     {
+      "action_id": "focusa.calibration.report",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.calibration.report",
+      "permission_scopes": [
+        "prediction:read"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Calibration Report",
+        "plain_language_description": "calibration.report",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
       "action_id": "focusa.call_stack.design",
       "canonical_revision": "1.0.0",
       "capability_refs": [
@@ -343,6 +387,52 @@
         "project_root": "/example",
         "required_keys": [
           "project_root"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.cancellation.inspect",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.cancellation.inspect",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Cancellation Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
         ]
       }
     },
@@ -794,6 +884,282 @@
       }
     },
     {
+      "action_id": "focusa.deadline.clear",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.clear",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Clear Deadline",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.deadline.conflicts",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.conflicts",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Deadline Conflicts",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.deadline.inspect",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.inspect",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Deadline Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.deadline.list",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.list",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Deadline List",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.deadline.revise",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.revise",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Revise Deadline",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.deadline.set",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.set",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Set Deadline",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
       "action_id": "focusa.device_pair.start",
       "canonical_revision": "1.0.0",
       "capability_refs": [
@@ -910,6 +1276,236 @@
         "project_root": "/example",
         "required_keys": [
           "project_root"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.estimate.evaluate",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.estimate.evaluate",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Evaluate Estimate",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.estimate.history",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.estimate.history",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Estimate History",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.estimate.inspect",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.estimate.inspect",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Estimate Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.estimate.request",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.estimate.request",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Request Estimate",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.estimate.validate",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.estimate.validate",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Validate Estimate",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
         ]
       }
     },
@@ -1220,6 +1816,446 @@
       }
     },
     {
+      "action_id": "focusa.learning.apply",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.learning.apply",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Learning Apply",
+        "plain_language_description": "learning.apply",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.learning.candidate.decide",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.learning.candidate.decide",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Learning Candidate Decide",
+        "plain_language_description": "learning.candidate.decide",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.learning.conflicts",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.learning.conflicts",
+      "permission_scopes": [
+        "prediction:read"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Learning Conflicts",
+        "plain_language_description": "learning.conflicts",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.learning.consolidate",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.learning.consolidate",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Learning Consolidate",
+        "plain_language_description": "learning.consolidate",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.learning.expire",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.learning.expire",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Learning Expire",
+        "plain_language_description": "learning.expire",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.learning.retrieve",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.learning.retrieve",
+      "permission_scopes": [
+        "prediction:read"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Learning Retrieve",
+        "plain_language_description": "learning.retrieve",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.learning.revoke",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.learning.revoke",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Learning Revoke",
+        "plain_language_description": "learning.revoke",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.learning.rollback",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.learning.rollback",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Learning Rollback",
+        "plain_language_description": "learning.rollback",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.learning.supersede",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.learning.supersede",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Learning Supersede",
+        "plain_language_description": "learning.supersede",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.learning.transfer.resolve",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.learning.transfer.resolve",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Learning Transfer Resolve",
+        "plain_language_description": "learning.transfer.resolve",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
       "action_id": "focusa.license.validate",
       "canonical_revision": "1.0.0",
       "capability_refs": [
@@ -1339,6 +2375,98 @@
         "project_root": "/example",
         "required_keys": [
           "project_root"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.lost_time.inspect",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.lost_time.inspect",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Lost Time Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.lost_time.list",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.lost_time.list",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Lost Time List",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
         ]
       }
     },
@@ -1695,6 +2823,182 @@
       }
     },
     {
+      "action_id": "focusa.metacognition.adjustment.evaluate",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.metacognition.adjustment.evaluate",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Metacognition Adjustment Evaluate",
+        "plain_language_description": "metacognition.adjustment.evaluate",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.metacognition.adjustment.propose",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.metacognition.adjustment.propose",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Metacognition Adjustment Propose",
+        "plain_language_description": "metacognition.adjustment.propose",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.metacognition.reflect",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.metacognition.reflect",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Metacognition Reflect",
+        "plain_language_description": "metacognition.reflect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.metacognition.signal.capture",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.metacognition.signal.capture",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Metacognition Signal Capture",
+        "plain_language_description": "metacognition.signal.capture",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
       "action_id": "focusa.mission_canvas.state.get",
       "canonical_revision": "1.0.0",
       "capability_refs": [
@@ -1983,6 +3287,52 @@
       }
     },
     {
+      "action_id": "focusa.no_progress.inspect",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.no_progress.inspect",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "No Progress Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
       "action_id": "focusa.operation_registry.read",
       "canonical_revision": "1.0.0",
       "capability_refs": [
@@ -2023,15 +3373,61 @@
       }
     },
     {
-      "action_id": "focusa.prediction.evaluate",
+      "action_id": "focusa.opportunity.inspect",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.opportunity.inspect",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Opportunity Inspect",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.outcome.claim",
       "canonical_revision": "1.0.0",
       "capability_refs": [
         "prediction"
       ],
       "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.prediction_evaluate.request.v1",
-        "output_schema_ref": "focusa.prediction_evaluate.response.v1"
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
       },
       "control": {
         "confirmation": "none",
@@ -2041,16 +3437,16 @@
         "receipt_required": true,
         "reversible": false
       },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.prediction.evaluate",
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.outcome.claim",
       "permission_scopes": [
         "prediction:write"
       ],
       "presentation": {
-        "advanced_only": false,
         "allowed_in_generated_ui": true,
-        "default_label": "Prediction Evaluate",
+        "advanced_only": false,
+        "default_label": "Outcome Claim",
+        "plain_language_description": "outcome.claim",
         "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Prediction Evaluate",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       },
@@ -2067,15 +3463,235 @@
       }
     },
     {
-      "action_id": "focusa.prediction.recent",
+      "action_id": "focusa.outcome.correct",
       "canonical_revision": "1.0.0",
       "capability_refs": [
         "prediction"
       ],
       "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.prediction_recent.request.v1",
-        "output_schema_ref": "focusa.prediction_recent.response.v1"
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.outcome.correct",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Outcome Correct",
+        "plain_language_description": "outcome.correct",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.outcome.dispute",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.outcome.dispute",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Outcome Dispute",
+        "plain_language_description": "outcome.dispute",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.outcome.resolve",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.outcome.resolve",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Outcome Resolve",
+        "plain_language_description": "outcome.resolve",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.prediction.commit",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.prediction.commit",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Prediction Commit",
+        "plain_language_description": "prediction.commit",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.prediction.evaluate",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.prediction.evaluate",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Prediction Evaluate",
+        "plain_language_description": "prediction.evaluate",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.prediction.get",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
       },
       "control": {
         "confirmation": "none",
@@ -2085,18 +3701,150 @@
         "receipt_required": false,
         "reversible": false
       },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.prediction.recent",
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.prediction.get",
       "permission_scopes": [
         "prediction:read"
       ],
       "presentation": {
-        "advanced_only": false,
         "allowed_in_generated_ui": true,
-        "default_label": "Prediction Recent",
+        "advanced_only": false,
+        "default_label": "Prediction Get",
+        "plain_language_description": "prediction.get",
         "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Prediction Recent",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.prediction.information_set.commit",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.prediction.information_set.commit",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Prediction Information set Commit",
+        "plain_language_description": "prediction.information_set.commit",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.prediction.list",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.prediction.list",
+      "permission_scopes": [
+        "prediction:read"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Prediction List",
+        "plain_language_description": "prediction.list",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.prediction.question.create",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.prediction.question.create",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Prediction Question Create",
+        "plain_language_description": "prediction.question.create",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
       },
       "recovery_envelope_ref": "focusa.tool_result.v1",
       "result_envelope_ref": "focusa.tool_result.v1",
@@ -2139,6 +3887,50 @@
         "default_label": "Prediction Record",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Prediction Record",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.prediction.supersede",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.prediction.supersede",
+      "permission_scopes": [
+        "prediction:write"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Prediction Supersede",
+        "plain_language_description": "prediction.supersede",
+        "input_presentation_ref": "focusa.generated_form.v1",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       },
@@ -2235,6 +4027,98 @@
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine",
         "label": "Prediction authority projection"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.progress.record",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_commit.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.progress.record",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Record Progress",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.progress.status",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.progress.status",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Progress Status",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
       },
       "recovery_envelope_ref": "focusa.tool_result.v1",
       "result_envelope_ref": "focusa.tool_result.v1",
@@ -3009,6 +4893,50 @@
           "project_root",
           "continuity_id",
           "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.self_model.get",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "prediction"
+      ],
+      "contracts": {
+        "input_schema_ref": "focusa.spec138_operation.request.v1",
+        "output_schema_ref": "focusa.spec138_operation.response.v1",
+        "error_schema_ref": "focusa.tool_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.self_model.get",
+      "permission_scopes": [
+        "prediction:read"
+      ],
+      "presentation": {
+        "allowed_in_generated_ui": true,
+        "advanced_only": false,
+        "default_label": "Self model Get",
+        "plain_language_description": "self_model.get",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
         ]
       }
     },
@@ -3819,6 +5747,282 @@
         "advanced_only": false,
         "allowed_in_generated_ui": true,
         "default_label": "Temporal Status",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.time.capabilities",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.capabilities",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Clock Capabilities",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.time.doctor",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.doctor",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Time Doctor",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.time.now",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.now",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Time Now",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.time.samples.list",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.samples.list",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Clock Samples",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.time.status",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.status",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Time Status",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.time.trust.inspect",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_status.request.v1",
+        "output_schema_ref": "focusa.temporal_status.response.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.trust.inspect",
+      "permission_scopes": [
+        "temporal:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Clock Trust",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Temporal Status",
         "result_presentation_ref": "focusa.generated_result.v1",
@@ -4809,1110 +7013,6 @@
           "project_root",
           "continuity_id",
           "attachment_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.time.now",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.now",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Time Now",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.time.status",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.status",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Time Status",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.time.trust.inspect",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.trust.inspect",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Clock Trust",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.time.samples.list",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.samples.list",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Clock Samples",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.time.capabilities",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.capabilities",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Clock Capabilities",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.time.doctor",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.time.doctor",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Time Doctor",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.deadline.list",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.list",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Deadline List",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.deadline.inspect",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.inspect",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Deadline Inspect",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.deadline.conflicts",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.conflicts",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Deadline Conflicts",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.deadline.set",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_commit.request.v1",
-        "output_schema_ref": "focusa.temporal_commit.response.v1"
-      },
-      "control": {
-        "confirmation": "explicit",
-        "idempotency_required": true,
-        "mode": "write",
-        "optimistic_concurrency_required": false,
-        "receipt_required": true,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.set",
-      "permission_scopes": [
-        "temporal:write"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Set Deadline",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Commit",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "consequential"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.deadline.revise",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_commit.request.v1",
-        "output_schema_ref": "focusa.temporal_commit.response.v1"
-      },
-      "control": {
-        "confirmation": "explicit",
-        "idempotency_required": true,
-        "mode": "write",
-        "optimistic_concurrency_required": false,
-        "receipt_required": true,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.revise",
-      "permission_scopes": [
-        "temporal:write"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Revise Deadline",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Commit",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "consequential"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.deadline.clear",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_commit.request.v1",
-        "output_schema_ref": "focusa.temporal_commit.response.v1"
-      },
-      "control": {
-        "confirmation": "explicit",
-        "idempotency_required": true,
-        "mode": "write",
-        "optimistic_concurrency_required": false,
-        "receipt_required": true,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.deadline.clear",
-      "permission_scopes": [
-        "temporal:write"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Clear Deadline",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Commit",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "consequential"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.estimate.request",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_commit.request.v1",
-        "output_schema_ref": "focusa.temporal_commit.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": true,
-        "mode": "write",
-        "optimistic_concurrency_required": false,
-        "receipt_required": true,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.estimate.request",
-      "permission_scopes": [
-        "temporal:write"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Request Estimate",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Commit",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "consequential"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.estimate.inspect",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.estimate.inspect",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Estimate Inspect",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.estimate.validate",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_commit.request.v1",
-        "output_schema_ref": "focusa.temporal_commit.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": true,
-        "mode": "write",
-        "optimistic_concurrency_required": false,
-        "receipt_required": true,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.estimate.validate",
-      "permission_scopes": [
-        "temporal:write"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Validate Estimate",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Commit",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "consequential"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.estimate.evaluate",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_commit.request.v1",
-        "output_schema_ref": "focusa.temporal_commit.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": true,
-        "mode": "write",
-        "optimistic_concurrency_required": false,
-        "receipt_required": true,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.estimate.evaluate",
-      "permission_scopes": [
-        "temporal:write"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Evaluate Estimate",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Commit",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "consequential"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.estimate.history",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.estimate.history",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Estimate History",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.progress.record",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_commit.request.v1",
-        "output_schema_ref": "focusa.temporal_commit.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": true,
-        "mode": "write",
-        "optimistic_concurrency_required": false,
-        "receipt_required": true,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.progress.record",
-      "permission_scopes": [
-        "temporal:write"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Record Progress",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Commit",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "consequential"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.progress.status",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.progress.status",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Progress Status",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.no_progress.inspect",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.no_progress.inspect",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "No Progress Inspect",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.lost_time.list",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.lost_time.list",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Lost Time List",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.lost_time.inspect",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.lost_time.inspect",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Lost Time Inspect",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.opportunity.inspect",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.opportunity.inspect",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Opportunity Inspect",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
-        ]
-      }
-    },
-    {
-      "action_id": "focusa.cancellation.inspect",
-      "canonical_revision": "1.0.0",
-      "capability_refs": [
-        "trajectory",
-        "workpoint",
-        "release"
-      ],
-      "contracts": {
-        "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa.temporal_status.request.v1",
-        "output_schema_ref": "focusa.temporal_status.response.v1"
-      },
-      "control": {
-        "confirmation": "none",
-        "idempotency_required": false,
-        "mode": "read",
-        "optimistic_concurrency_required": false,
-        "receipt_required": false,
-        "reversible": false
-      },
-      "operation_descriptor_ref": "/v1/agent/operations#focusa.cancellation.inspect",
-      "permission_scopes": [
-        "temporal:read"
-      ],
-      "presentation": {
-        "advanced_only": false,
-        "allowed_in_generated_ui": true,
-        "default_label": "Cancellation Inspect",
-        "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Temporal Status",
-        "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
-      },
-      "recovery_envelope_ref": "focusa.tool_result.v1",
-      "result_envelope_ref": "focusa.tool_result.v1",
-      "schema": "focusa.ui_action_binding.v1",
-      "scope": {
-        "project_root": "/example",
-        "continuity_id": "example",
-        "required_keys": [
-          "project_root",
-          "continuity_id"
         ]
       }
     }

@@ -69,6 +69,13 @@ def test_canonical_contract_matches_matrix_and_api_vocabulary() -> None:
     registry = load_json("docs/contracts/spec135/generated-contract-v1/operation-registry.json")
     assert registry["spec138_operation_contract_schema"] == contract["schema"]
     assert tuples(registry["spec138_operations"]) == EXPECTED
+    descriptors = {row["operation_id"]: row for row in registry["operations"]}
+    for operation_id, method, path in EXPECTED:
+        descriptor = descriptors[f"focusa.{operation_id}"]
+        assert (descriptor["method"], descriptor["path"], descriptor["canonical"]) == (method, path, True)
+    openapi = load_json("docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json")
+    for operation_id, method, path in EXPECTED:
+        assert openapi["paths"][path][method.lower()]["operationId"] == f"focusa.{operation_id}"
 
 
 def test_generated_rust_pi_and_menubar_tables_are_exact() -> None:
@@ -88,8 +95,8 @@ def test_generated_rust_pi_and_menubar_tables_are_exact() -> None:
 def test_api_cli_and_pi_invoke_generated_descriptors() -> None:
     api = (ROOT / "crates/focusa-api/src/routes/prediction_authority_canonical.rs").read_text()
     for _, method, path in EXPECTED:
-        route = f'.route("{path}", {method.lower()}('
-        assert route in api, f"canonical API route missing: {method} {path}"
+        route = rf'\.route\(\s*"{re.escape(path)}"\s*,\s*{method.lower()}\('
+        assert re.search(route, api), f"canonical API route missing: {method} {path}"
     assert "route does not accept this ScopedAuthorityEvent variant" in api
     assert "path id is not referenced by the authority event" in api
     assert "append_batch(vec![body.event.clone()])" in api

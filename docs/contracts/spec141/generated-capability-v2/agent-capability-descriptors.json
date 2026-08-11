@@ -22874,7 +22874,7 @@
       "family": "metacognition",
       "namespace": "focusa.metacognition",
       "operation_policy": {
-        "operation_id": null,
+        "operation_id": "focusa.prediction.question.create",
         "method": "POST",
         "path": "/v1/prediction-questions",
         "operation_class": "value_mutation",
@@ -22884,12 +22884,12 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "none",
-        "source_owner": "agent_capability_contracts",
+        "source_owner": "prediction_authority",
         "policy_owner": "entitlement_policy_resolver"
       },
       "operation_policies": [
         {
-          "operation_id": null,
+          "operation_id": "focusa.prediction.question.create",
           "method": "POST",
           "path": "/v1/prediction-questions",
           "operation_class": "value_mutation",
@@ -22899,11 +22899,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.prediction.information_set.commit",
           "method": "POST",
           "path": "/v1/information-sets",
           "operation_class": "value_mutation",
@@ -22913,11 +22913,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.prediction.commit",
           "method": "POST",
           "path": "/v1/predictions/commit",
           "operation_class": "value_mutation",
@@ -22927,11 +22927,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.prediction.supersede",
           "method": "POST",
           "path": "/v1/predictions/{id}/supersede",
           "operation_class": "value_mutation",
@@ -22941,25 +22941,25 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.prediction.get",
           "method": "GET",
           "path": "/v1/predictions/{id}",
-          "operation_class": "value_mutation",
-          "capability_family": "base_focusa",
-          "commercial_treatment": "base_entitlement",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
           "policy_activation": "active",
           "required_feature": null,
           "limit_bucket": null,
-          "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "recovery_allowance": "read_projection",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": "focusa.prediction.recent",
+          "operation_id": "focusa.prediction.list",
           "method": "GET",
           "path": "/v1/predictions/recent",
           "operation_class": "read",
@@ -22969,11 +22969,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "read_projection",
-          "source_owner": "prediction",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.outcome.claim",
           "method": "POST",
           "path": "/v1/outcomes/claim",
           "operation_class": "value_mutation",
@@ -22983,11 +22983,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.outcome.dispute",
           "method": "POST",
           "path": "/v1/outcomes/{id}/dispute",
           "operation_class": "value_mutation",
@@ -22997,11 +22997,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.outcome.resolve",
           "method": "POST",
           "path": "/v1/outcomes/resolve",
           "operation_class": "value_mutation",
@@ -23011,11 +23011,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.outcome.correct",
           "method": "POST",
           "path": "/v1/outcomes/{id}/correct",
           "operation_class": "value_mutation",
@@ -23025,11 +23025,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.prediction.evaluate",
           "method": "POST",
           "path": "/v1/evaluations/predictions",
           "operation_class": "value_mutation",
@@ -23039,25 +23039,25 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.calibration.report",
           "method": "GET",
           "path": "/v1/calibration/reports",
-          "operation_class": "value_mutation",
-          "capability_family": "base_focusa",
-          "commercial_treatment": "base_entitlement",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
           "policy_activation": "active",
           "required_feature": null,
           "limit_bucket": null,
-          "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "recovery_allowance": "read_projection",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.metacognition.signal.capture",
           "method": "POST",
           "path": "/v1/metacognition/signals",
           "operation_class": "value_mutation",
@@ -23067,11 +23067,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.metacognition.reflect",
           "method": "POST",
           "path": "/v1/metacognition/reflections",
           "operation_class": "value_mutation",
@@ -23081,11 +23081,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.metacognition.adjustment.propose",
           "method": "POST",
           "path": "/v1/metacognition/adjustments",
           "operation_class": "value_mutation",
@@ -23095,11 +23095,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.metacognition.adjustment.evaluate",
           "method": "POST",
           "path": "/v1/metacognition/evaluations",
           "operation_class": "value_mutation",
@@ -23109,11 +23109,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.learning.candidate.decide",
           "method": "POST",
           "path": "/v1/learning/candidates/{id}/decide",
           "operation_class": "value_mutation",
@@ -23123,11 +23123,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.learning.apply",
           "method": "POST",
           "path": "/v1/learning/{id}/apply",
           "operation_class": "value_mutation",
@@ -23137,11 +23137,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.learning.transfer.resolve",
           "method": "POST",
           "path": "/v1/learning/transfers/resolve",
           "operation_class": "value_mutation",
@@ -23151,39 +23151,39 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.learning.retrieve",
           "method": "GET",
           "path": "/v1/learning/retrieve",
-          "operation_class": "value_mutation",
-          "capability_family": "base_focusa",
-          "commercial_treatment": "base_entitlement",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
           "policy_activation": "active",
           "required_feature": null,
           "limit_bucket": null,
-          "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "recovery_allowance": "read_projection",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.learning.conflicts",
           "method": "GET",
           "path": "/v1/learning/conflicts",
-          "operation_class": "value_mutation",
-          "capability_family": "base_focusa",
-          "commercial_treatment": "base_entitlement",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
           "policy_activation": "active",
           "required_feature": null,
           "limit_bucket": null,
-          "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "recovery_allowance": "read_projection",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.learning.expire",
           "method": "POST",
           "path": "/v1/learning/{id}/expire",
           "operation_class": "value_mutation",
@@ -23193,11 +23193,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.learning.supersede",
           "method": "POST",
           "path": "/v1/learning/{id}/supersede",
           "operation_class": "value_mutation",
@@ -23207,11 +23207,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.learning.revoke",
           "method": "POST",
           "path": "/v1/learning/{id}/revoke",
           "operation_class": "value_mutation",
@@ -23221,11 +23221,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.learning.rollback",
           "method": "POST",
           "path": "/v1/learning/{id}/rollback",
           "operation_class": "value_mutation",
@@ -23235,11 +23235,11 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.learning.consolidate",
           "method": "POST",
           "path": "/v1/learning/consolidate",
           "operation_class": "value_mutation",
@@ -23249,21 +23249,21 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.self_model.get",
           "method": "GET",
           "path": "/v1/self-model",
-          "operation_class": "value_mutation",
-          "capability_family": "base_focusa",
-          "commercial_treatment": "base_entitlement",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
           "policy_activation": "active",
           "required_feature": null,
           "limit_bucket": null,
-          "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "recovery_allowance": "read_projection",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         }
       ],
@@ -23274,7 +23274,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
         "requires_daemon": true,
@@ -23950,7 +23950,7 @@
         "snippet": "Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:8661883bf0e88f0654e0c4efec6bc0d9a9381dbf2de3e3c0fbe383649faa376f"
+      "descriptor_digest": "sha256:69cbeba5730967988645fb6f67c5f05be5bd8635152d09c526752303028e9f58"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -36672,7 +36672,7 @@
       "family": "metacognition",
       "namespace": "focusa.metacognition",
       "operation_policy": {
-        "operation_id": "focusa.prediction.recent",
+        "operation_id": "focusa.prediction.list",
         "method": "GET",
         "path": "/v1/predictions/recent",
         "operation_class": "read",
@@ -36682,12 +36682,12 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "read_projection",
-        "source_owner": "prediction",
+        "source_owner": "prediction_authority",
         "policy_owner": "entitlement_policy_resolver"
       },
       "operation_policies": [
         {
-          "operation_id": "focusa.prediction.recent",
+          "operation_id": "focusa.prediction.list",
           "method": "GET",
           "path": "/v1/predictions/recent",
           "operation_class": "read",
@@ -36697,7 +36697,7 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "read_projection",
-          "source_owner": "prediction",
+          "source_owner": "prediction_authority",
           "policy_owner": "entitlement_policy_resolver"
         }
       ],
@@ -36708,7 +36708,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "read_projection",
-      "source_owner": "prediction",
+      "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
         "requires_daemon": true,
@@ -37081,7 +37081,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3865273eddeb8d09ab616a8495ca4ceaa4287f24278324bfe28c00d3c962c2a5"
+      "descriptor_digest": "sha256:f956babeecf635cc93e0eb18c6fdc4c4e9edd536cf0795867c1c78f682a181db"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -67234,5 +67234,5 @@
       "descriptor_digest": "sha256:89b987ae8ef2b4206a82f44c79c0ac40fc8ea51f46675d412fc3233472e52ae0"
     }
   ],
-  "registry_digest": "sha256:93e9d8e75d967ab88ec285075fa8f7e71e9a62aa72a0cd8b17dfb0bd6691f984"
+  "registry_digest": "sha256:e66e33d5ce48ea86030e8f5e000fc86cc8721ae5be29df8247ae0b3fe7ac54f5"
 }
