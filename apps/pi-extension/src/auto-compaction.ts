@@ -190,6 +190,7 @@ type ProcessCompactionLease = {
 
 const PROCESS_LEASE_SYMBOL = Symbol.for("focusa.compaction.coordinator.v1");
 const PI_TOOL_BOUNDARY_COMPACTION_SYMBOL = Symbol.for("focusa.pi.tool-boundary-compaction.v1");
+const MODULE_IDENTITY_SYMBOL = Symbol.for("focusa.compaction.module-identity");
 const EXTENSION_BUILD = "focusa-pi-bridge@0.9.144";
 const REGISTRATION_SOURCE = import.meta.url;
 const REGISTERED_HANDLERS = [
@@ -239,7 +240,10 @@ function policyOverride(value: any): CompactionOperatorOverride | undefined {
 }
 
 function piSupportsToolBoundaryCompaction(): boolean {
-  return Boolean((globalThis as any)[PI_TOOL_BOUNDARY_COMPACTION_SYMBOL]);
+  const scope = globalThis as typeof globalThis & {
+    [PI_TOOL_BOUNDARY_COMPACTION_SYMBOL]?: boolean;
+  };
+  return Boolean(scope[PI_TOOL_BOUNDARY_COMPACTION_SYMBOL]);
 }
 
 function processCompactionLease(): ProcessCompactionLease {
@@ -470,9 +474,13 @@ const MODULE_LOAD_ID = randomUUID();
 // Stable identity across duplicate loads of the same file (including query-string
 // re-imports): reloads of a different module path re-register; duplicates of the
 // same file are suppressed without re-registering handlers.
+const moduleIdentityScope = globalThis as typeof globalThis & {
+  [MODULE_IDENTITY_SYMBOL]?: string;
+};
 const MODULE_IDENTITY: string =
-  ((globalThis as any)[Symbol.for("focusa.compaction.module-identity")] as string | undefined) ??
-  ((globalThis as any)[Symbol.for("focusa.compaction.module-identity")] = `focusa-compaction:${import.meta.url.split("?")[0]}`);
+  moduleIdentityScope[MODULE_IDENTITY_SYMBOL] ??
+  (moduleIdentityScope[MODULE_IDENTITY_SYMBOL] =
+    `focusa-compaction:${import.meta.url.split("?")[0]}`);
 
 /** Test-only: release the process compaction lease so a fresh harness can
  * register as a new owner. Never called in production paths. */
@@ -641,7 +649,7 @@ export function registerAutoCompaction(
     }
   };
 
-  if (typeof (pi as any).registerCommand === "function") {
+  if (typeof pi.registerCommand === "function") {
     pi.registerCommand("focusa-compaction-policy", {
     description: "Show or override the scoped adaptive compaction policy",
     handler: async (args, ctx) => {
