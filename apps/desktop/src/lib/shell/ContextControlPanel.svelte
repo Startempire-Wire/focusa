@@ -10,11 +10,13 @@
   let {
     open = $bindable(false),
     daemon,
-    authority = undefined as WorkstreamAuthorityContext | undefined
+    authority = undefined as WorkstreamAuthorityContext | undefined,
+    onResolve = undefined as (() => void) | undefined
   }: {
     open?: boolean;
     daemon: DaemonReadStatus;
     authority?: WorkstreamAuthorityContext;
+    onResolve?: () => void;
   } = $props();
 
   const identity = $derived(resolveIdentityChain(authority, daemon));
@@ -33,7 +35,13 @@
       {/each}
     </div>
     <StatePanel state="blocked" title="Exact authority required" description="Desktop cannot infer authority from the current tab, CWD, latest record, remembered selection, or daemon-global state."/>
-    <footer><button type="button" disabled><Icon name="scope" size={16}/>Connect verified Workstream</button><small>Unavailable until an exact generated identity binding is supplied.</small></footer>
+    {#if identity.overall === 'resolved'}
+      <footer><button type="button" onclick={() => { open = false; onResolve?.(); }}><Icon name="refresh-cw" size={16}/>Re-resolve binding</button><small>Canonical identity chain is complete.</small></footer>
+    {:else if identity.overall === 'partial'}
+      <footer><button type="button" onclick={() => { open = false; onResolve?.(); }}><Icon name="scope" size={16}/>Complete binding</button><small>{identity.steps.filter(s => !s.resolved).length} of {identity.steps.length} steps unresolved.</small></footer>
+    {:else}
+      <footer><button type="button" disabled><Icon name="scope" size={16}/>Connect verified Workstream</button><small>Navigate to Mission Canvas to establish canonical binding.</small></footer>
+    {/if}
   </div>
 {/if}
 

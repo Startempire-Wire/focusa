@@ -199,7 +199,7 @@
       <span class="scope-icon" aria-hidden="true"><Icon name="scope" size={18} /></span>
       <span class="scope-copy"><span class="eyebrow">Context Control</span><strong>{liveBinding ? 'Bound' : 'Unbound'}</strong><small>{liveBinding?.authority?.attachment?.attachment_id ?? 'No exact Attachment selected.'}</small></span>
     </button>
-    <ContextControlPanel bind:open={contextOpen} {daemon} authority={liveBinding?.authority}/>
+    <ContextControlPanel bind:open={contextOpen} {daemon} authority={liveBinding?.authority} onResolve={() => (activeWorkspaceId = 'mission-canvas')}/>
     <button class="find-button" type="button" aria-label="Find or do" onclick={() => (commandOpen = true)}><Icon name="search" size={16}/><span>Find or do</span><kbd>⌘K</kbd></button>
     <div class="workspace-groups">
       {#each sidebarGroups as group}
