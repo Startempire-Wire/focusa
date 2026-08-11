@@ -128,7 +128,7 @@ assert_grep 'apps/pi-extension/package.json apps/pi-extension/package-lock.json'
 [[ "$(grep -o 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh | wc -l)" -ge 2 ]] \
   || fail 'Pi extension version surfaces must appear in both commit and dry-run rollback sets'
 assert_grep 'timeout-minutes: 12' .github/workflows/release.yml 'Release macOS/Tauri job timeout must stay bounded'
-assert_grep 'timeout-minutes: 15' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
+assert_grep 'timeout-minutes: 30' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
 assert_grep 'Release workflow validation' .github/workflows/release.yml 'release workflow needs unconditional validation step to avoid No jobs were run'
 assert_grep "- 'v*'" .github/workflows/release.yml 'release workflow must trigger for immutable stable and preview tags'
 assert_grep 'scripts/verify-release-tag-trigger.py' scripts/create-dev-release-tag.sh 'release helper must verify trigger compatibility before immutable tagging'
