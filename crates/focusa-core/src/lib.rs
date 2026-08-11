@@ -172,6 +172,7 @@ pub mod temporal;
 pub mod temporal_authority;
 pub mod temporal_claims;
 pub mod temporal_clock;
+pub mod temporal_closure;
 pub mod temporal_conformance;
 pub mod temporal_deadline;
 pub mod temporal_forecast;
