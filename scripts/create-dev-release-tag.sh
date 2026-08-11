@@ -511,6 +511,23 @@ if [[ -n "$(git status --porcelain)" ]]; then
   git commit -m "chore: stamp release surfaces ${VERSION}"
 fi
 
+# Stable version stamping changes governed source surfaces. Re-seal the locked
+# candidate ancestry before source CI so proof never trails the stamped commit.
+if [[ "$PUSH" -eq 1 && "$RELEASE_CHANNEL" == "stable" && \
+      -f release-proof/audit/next-locked-release-candidate-ancestry.json ]]; then
+  STAMPED_SOURCE_SHA="$(git rev-parse HEAD)"
+  python3 scripts/generate-locked-release-candidate-ancestry.py \
+    --candidate-ref "$STAMPED_SOURCE_SHA" \
+    --audit-ref "$STAMPED_SOURCE_SHA"
+  python3 scripts/generate-locked-release-governance-receipt.py \
+    --generate-ephemeral \
+    --governance-source-commit "$STAMPED_SOURCE_SHA"
+  if [[ -n "$(git status --porcelain -- release-proof/audit/)" ]]; then
+    git add release-proof/audit/
+    git commit -m "chore(release): anchor stamped candidate proof"
+  fi
+fi
+
 if [[ "$PUSH" -eq 1 ]]; then
   push_candidate_main_with_auto_rebase
   HEAD_SHA=$(git rev-parse HEAD)

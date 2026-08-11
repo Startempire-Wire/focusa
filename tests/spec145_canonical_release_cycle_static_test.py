@@ -63,6 +63,9 @@ require(
         "push_candidate_main_with_auto_rebase",
         "Waiting for exact stamped-candidate preflight before immutable tag",
         "Release surfaces already stamped ${VERSION}; preserving exact retry SHA.",
+        "STAMPED_SOURCE_SHA=\"$(git rev-parse HEAD)\"",
+        "scripts/generate-locked-release-candidate-ancestry.py",
+        "scripts/generate-locked-release-governance-receipt.py",
         "ensure_source_workflow \"Spec 132 terminal matrix\" \"$HEAD_SHA\"",
         "source_gate_dispatch_blocked",
         'git push origin "${TAG}"',
@@ -87,7 +90,11 @@ require(
     ],
     "monotonic release version selection",
 )
-assert TAG_SCRIPT.index("  push_candidate_main_with_auto_rebase\n") < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before candidate preflight"
+proof_reseal = TAG_SCRIPT.index("python3 scripts/generate-locked-release-candidate-ancestry.py")
+stamp_commit = TAG_SCRIPT.index('git commit -m "chore: stamp release surfaces ${VERSION}"')
+candidate_push = TAG_SCRIPT.index("  push_candidate_main_with_auto_rebase\n", proof_reseal)
+assert stamp_commit < proof_reseal < candidate_push, "stamped candidate proof is not resealed before source CI"
+assert candidate_push < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before candidate preflight"
 assert TAG_SCRIPT.index('ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"') < TAG_SCRIPT.index('wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"'), "Spec132 wait begins before missing-run dispatch"
 require(
     RELEASE_CLI,
