@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_SUITES = (
     "tests/spec137_full_conformance_gate.py",
+    "tests/spec137a_applicability_decision_gate.py",
     "tests/spec138_full_conformance_gate.py",
     "tests/spec138a_full_conformance_gate.py",
 )

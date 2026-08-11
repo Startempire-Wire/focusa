@@ -9,10 +9,11 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNNER_PATH = ROOT / "tests/run_spec137_138_full_conformance_gates.py"
 EXPECTED_SUITES = (
     "tests/spec137_full_conformance_gate.py",
+    "tests/spec137a_applicability_decision_gate.py",
     "tests/spec138_full_conformance_gate.py",
     "tests/spec138a_full_conformance_gate.py",
 )
-FUNCTION_SUITES = EXPECTED_SUITES[1:]
+FUNCTION_SUITES = EXPECTED_SUITES[2:]
 CANONICAL_INVOCATION = "python3 ./tests/run_spec137_138_full_conformance_gates.py"
 
 spec = importlib.util.spec_from_file_location("full_conformance_runner", RUNNER_PATH)
@@ -24,12 +25,14 @@ assert runner.REQUIRED_SUITES == EXPECTED_SUITES
 assert runner.FUNCTION_SUITES == frozenset(FUNCTION_SUITES)
 runner.validate_suite_manifest(EXPECTED_SUITES)
 
-try:
-    runner.validate_suite_manifest(EXPECTED_SUITES[:-1])
-except RuntimeError as error:
-    assert "missing=['tests/spec138a_full_conformance_gate.py']" in str(error)
-else:
-    raise AssertionError("omitting a required full-conformance suite did not fail")
+for omitted in EXPECTED_SUITES:
+    incomplete = tuple(suite for suite in EXPECTED_SUITES if suite != omitted)
+    try:
+        runner.validate_suite_manifest(incomplete)
+    except RuntimeError as error:
+        assert omitted in str(error)
+    else:
+        raise AssertionError(f"omitting required suite {omitted} did not fail")
 
 try:
     runner.run_test_functions({}, "empty_fixture.py")
