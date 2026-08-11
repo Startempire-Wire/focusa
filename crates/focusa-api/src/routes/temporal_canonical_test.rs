@@ -94,7 +94,11 @@ fn signed_mutation_replay_is_idempotent_and_updates_projection_source() {
 
 #[test]
 fn canonical_route_inventory_covers_spec137_without_stealing_spec131_ownership() {
-    let router_source = include_str!("temporal.rs");
+    let router_source = format!(
+        "{}\n{}",
+        include_str!("temporal.rs"),
+        include_str!("temporal_clients.rs")
+    );
     for route in [
         "/v1/time/now",
         "/v1/time/awareness",
