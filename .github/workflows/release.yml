@@ -16,6 +16,9 @@ permissions:
   issues: read
   pull-requests: read
 
+env:
+  NODE_OPTIONS: --use-system-ca
+
 jobs:
   # Durable release boundary: any open issue with a release-gate:* label blocks a tag.
   open-issue-release-gate:

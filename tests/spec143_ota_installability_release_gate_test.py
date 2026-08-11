@@ -19,6 +19,7 @@ assert '-f asset_suffix="x86_64-unknown-linux-gnu"' not in release
 assert "cross build --release --target ${{ matrix.target }}" in release
 assert "if: ${{ startsWith(github.ref, 'refs/tags/') }}" in release
 assert "startsWith(github.ref, refs/tags/)" not in release
+assert "NODE_OPTIONS: --use-system-ca" in release
 rust_release = release[release.index("  rust-release:") : release.index("  pi-extension-release:")]
 assert "timeout-minutes: 30" in rust_release
 
