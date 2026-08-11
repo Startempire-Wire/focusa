@@ -3612,10 +3612,11 @@ mod tests {
 
     #[test]
     fn trajectory_view_syncs_focus_current_focus_and_short_term_goal_projection() {
-        let mut state = state_with_workpoint("/tmp/focusa-test");
+        let root = format!("/tmp/focusa-test-{}", uuid::Uuid::now_v7());
+        let mut state = state_with_workpoint(&root);
         add_active_frame(
             &mut state,
-            "/tmp/focusa-test",
+            &root,
             "cont-a",
             "Frame title fallback",
         );
@@ -3626,7 +3627,7 @@ mod tests {
         let payload = trajectory_view_payload(
             &state,
             &TrajectoryViewQuery {
-                project_root: Some("/tmp/focusa-test".to_string()),
+                project_root: Some(root.clone()),
                 continuity_id: Some("cont-a".to_string()),
                 session_id: None,
                 mode: None,
@@ -3640,12 +3641,12 @@ mod tests {
             Some("none")
         );
 
-        let mut state = state_with_workpoint("/tmp/focusa-test");
-        add_defined_trajectory(&mut state, "/tmp/focusa-test", "cont-a");
+        let mut state = state_with_workpoint(&root);
+        add_defined_trajectory(&mut state, &root, "cont-a");
         let payload = trajectory_view_payload(
             &state,
             &TrajectoryViewQuery {
-                project_root: Some("/tmp/focusa-test".to_string()),
+                project_root: Some(root.clone()),
                 continuity_id: Some("cont-a".to_string()),
                 session_id: None,
                 mode: None,
