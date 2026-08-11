@@ -29,6 +29,7 @@ pub mod lifecycle;
 pub mod policy;
 pub mod scheduler;
 pub mod storage;
+pub mod temporal_policy;
 pub mod types;
 
 pub use adapter::{ProviderAdapter, ProviderRegistry, RegistryError, RegistryResult};

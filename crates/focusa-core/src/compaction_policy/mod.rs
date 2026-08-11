@@ -10,6 +10,7 @@ mod provider_strategies;
 mod registry;
 mod selector;
 mod semantic_pressure;
+mod temporal;
 #[cfg(test)]
 mod tests;
 
