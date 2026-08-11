@@ -64,6 +64,7 @@ enum Operation {
     OutcomeClaim,
     OutcomeDispute,
     OutcomeResolve,
+    OutcomeCorrect,
     Evaluation,
     MetacogSignal,
     Reflection,
@@ -73,6 +74,7 @@ enum Operation {
     LearningApply,
     TransferResolve,
     LearningExpire,
+    LearningSupersede,
     LearningRevoke,
     LearningRollback,
     LearningConsolidate,
@@ -88,6 +90,7 @@ impl Operation {
             Self::OutcomeClaim => matches!(event, PredictionAuthorityEvent::OutcomeClaim(_)),
             Self::OutcomeDispute => matches!(event, PredictionAuthorityEvent::OutcomeAuthority(value) if matches!(value.action, focusa_core::outcome_resolution::OutcomeAuthorityAction::Dispute { .. })),
             Self::OutcomeResolve => matches!(event, PredictionAuthorityEvent::OutcomeResolution(_) | PredictionAuthorityEvent::OutcomeAuthority(_)),
+            Self::OutcomeCorrect => matches!(event, PredictionAuthorityEvent::OutcomeAuthority(value) if matches!(value.action, focusa_core::outcome_resolution::OutcomeAuthorityAction::Correct { .. })),
             Self::Evaluation => matches!(event, PredictionAuthorityEvent::Evaluation(_)),
             Self::MetacogSignal => matches!(event, PredictionAuthorityEvent::EpistemicPrimitive(_)),
             Self::Reflection => matches!(event, PredictionAuthorityEvent::ReflectionClaim(_)),
@@ -97,7 +100,7 @@ impl Operation {
             }
             Self::LearningApply => matches!(event, PredictionAuthorityEvent::LearningRecord(_)),
             Self::TransferResolve => matches!(event, PredictionAuthorityEvent::TransferOutcome(_)),
-            Self::LearningExpire | Self::LearningRevoke | Self::LearningRollback => {
+            Self::LearningExpire | Self::LearningSupersede | Self::LearningRevoke | Self::LearningRollback => {
                 matches!(event, PredictionAuthorityEvent::LearningRecord(_) | PredictionAuthorityEvent::MemoryLifecycle(_))
             }
             Self::LearningConsolidate => {
@@ -205,6 +208,7 @@ path_write_handler!(prediction_supersede, Operation::Supersede);
 write_handler!(outcome_claim, Operation::OutcomeClaim);
 path_write_handler!(outcome_dispute, Operation::OutcomeDispute);
 write_handler!(outcome_resolve, Operation::OutcomeResolve);
+path_write_handler!(outcome_correct, Operation::OutcomeCorrect);
 write_handler!(prediction_evaluate, Operation::Evaluation);
 write_handler!(metacog_signal, Operation::MetacogSignal);
 write_handler!(metacog_reflection, Operation::Reflection);
@@ -214,6 +218,7 @@ path_write_handler!(candidate_decide, Operation::CandidateDecision);
 path_write_handler!(learning_apply, Operation::LearningApply);
 write_handler!(transfer_resolve, Operation::TransferResolve);
 path_write_handler!(learning_expire, Operation::LearningExpire);
+path_write_handler!(learning_supersede, Operation::LearningSupersede);
 path_write_handler!(learning_revoke, Operation::LearningRevoke);
 path_write_handler!(learning_rollback, Operation::LearningRollback);
 write_handler!(learning_consolidate, Operation::LearningConsolidate);
@@ -296,6 +301,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/outcomes/claim", post(outcome_claim))
         .route("/v1/outcomes/{id}/dispute", post(outcome_dispute))
         .route("/v1/outcomes/resolve", post(outcome_resolve))
+        .route("/v1/outcomes/{id}/correct", post(outcome_correct))
         .route("/v1/evaluations/predictions", post(prediction_evaluate))
         .route("/v1/calibration/reports", get(calibration_reports))
         .route("/v1/metacognition/signals", post(metacog_signal))
@@ -308,6 +314,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/learning/retrieve", get(learning_retrieve))
         .route("/v1/learning/conflicts", get(learning_conflicts))
         .route("/v1/learning/{id}/expire", post(learning_expire))
+        .route("/v1/learning/{id}/supersede", post(learning_supersede))
         .route("/v1/learning/{id}/revoke", post(learning_revoke))
         .route("/v1/learning/{id}/rollback", post(learning_rollback))
         .route("/v1/learning/consolidate", post(learning_consolidate))

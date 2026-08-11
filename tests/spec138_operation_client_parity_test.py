@@ -86,15 +86,14 @@ def test_generated_rust_pi_and_menubar_tables_are_exact() -> None:
 
 
 def test_api_cli_and_pi_invoke_generated_descriptors() -> None:
-    api = (ROOT / "crates/focusa-api/src/routes/prediction_authority.rs").read_text()
-    assert "for descriptor in SPEC138_OPERATIONS.iter().copied()" in api
-    assert "post(canonical_mutation)" in api and "get(canonical_read)" in api
-    assert "event_kind_not_allowed_for_operation" in api and "operation_id_mismatch" in api
-    assert "append_scoped_event(state, body.scope, body.event" in api
-    legacy = (ROOT / "crates/focusa-api/src/routes/predictions.rs").read_text()
-    assert '.route("/v1/predictions/recent", get(recent))' in legacy
-    assert '"operation_id":"prediction.list"' in legacy
-    assert "PersistentPredictionAuthorityLedger::for_scope" in legacy
+    api = (ROOT / "crates/focusa-api/src/routes/prediction_authority_canonical.rs").read_text()
+    for _, method, path in EXPECTED:
+        route = f'.route("{path}", {method.lower()}('
+        assert route in api, f"canonical API route missing: {method} {path}"
+    assert "route does not accept this ScopedAuthorityEvent variant" in api
+    assert "path id is not referenced by the authority event" in api
+    assert "append_batch(vec![body.event.clone()])" in api
+    assert "PersistentPredictionAuthorityLedger::for_scope" in api
     cli = (ROOT / "crates/focusa-cli/src/commands/predict.rs").read_text()
     assert "spec138_operation(&operation)" in cli and "descriptor.method == \"GET\"" in cli
     pi = (ROOT / "apps/pi-extension/src/tools.ts").read_text()
@@ -126,3 +125,12 @@ def test_ui_affordances_are_exact_and_non_authoritative() -> None:
     assert "requestSpec138Operation" in menubar_api and "if (!event)" in menubar_api
     assert "SPEC138_OPERATIONS.length" in menubar_ui
     assert "spec138-generated-operation-contracts.v1.json" in tui and "daemon_authority=true" in tui
+
+
+if __name__ == "__main__":
+    tests = sorted((name, value) for name, value in globals().items() if name.startswith("test_") and callable(value))
+    assert tests, "no Spec138 operation parity tests discovered"
+    for name, test in tests:
+        test()
+        print(f"PASS {name}")
+    print(f"Spec138 operation client parity: PASS ({len(tests)} tests, {len(EXPECTED)} operations)")
