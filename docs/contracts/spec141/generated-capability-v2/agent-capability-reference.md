@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:2519b77379d539a2e01863c4a315a27c113ce00f6142d12b9aba4c0f28bca25f`
+Registry digest: `sha256:ecf10520cd90d1cdfedb66ed6b505a2da36881fe694958695c5073e27467d1a3`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -552,6 +552,17 @@ Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DX
 - Skills: `skill:focusa`, `skill:focusa-troubleshooting`
 - Dependencies/next: `focusa_dxux_report`, `focusa_dxux_digest`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_dxux_requirement.md`
+
+## focusa_epistemic_operation
+
+Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.epistemic.operation`
+- Family: `metacognition`
+- Side effects: `typed_read_or_canonical_epistemic_mutation`, `typed_read_or_canonical_epistemic_mutation`
+- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Dependencies/next: `focusa_predict_evaluate`, `focusa_metacog_retrieve`, `focusa_workpoint_resume`
+- Documentation: `docs/focusa-tools/tools/focusa_epistemic_operation.md`
 
 ## focusa_evidence_capture
 

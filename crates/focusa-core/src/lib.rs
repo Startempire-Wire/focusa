@@ -108,6 +108,7 @@ pub mod prediction_migration;
 pub mod prediction_profiles;
 pub mod prediction_scoring;
 pub mod prediction_scoring_algorithms;
+pub mod spec138_operations;
 pub mod provider_execution;
 pub mod reducer;
 pub mod reference;

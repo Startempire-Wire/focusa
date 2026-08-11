@@ -1,5 +1,7 @@
 // Generated/maintained for Spec90. Keep this registry current with apps/pi-extension/src/tools.ts.
 
+import { SPEC138_OPERATIONS } from "./generated/spec138-operations.js";
+
 export type FocusaToolFamily =
   | "focus_state"
   | "workpoint"
@@ -2749,6 +2751,25 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     live_check: "contract_static plus GET /v1/awareness/packet returns schema focusa.awareness_packet.v1",
     scope_requirement: { kind: "read", route_family: "awareness:read" },
     authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_epistemic_operation",
+    label: "Epistemic Operation",
+    purpose: "Invoke one exact generated Spec 138/138A operation through durable typed API authority.",
+    family: "metacognition",
+    ontology_action: "epistemic.operation.invoke",
+    ontology_objects: ["Spec138OperationDescriptor", "ScopedAuthorityEvent"],
+    api_routes: SPEC138_OPERATIONS.map((row) => `${row.method} ${row.path}`),
+    cli_commands: ["focusa predict operation --operation <operation-id>"],
+    core_surface: "Generated Spec 138 operation registry and durable scoped prediction authority",
+    doc_path: "docs/focusa-tools/tools/focusa_epistemic_operation.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "typed_read_or_canonical_epistemic_mutation",
+    parity_status: "full",
+    exemptions: [],
+    live_check: "generated 27-operation parity gate plus typed API route tests",
+    scope_requirement: { kind: "write", route_family: "prediction-authority:operation" },
+    authority_requirement: { kind: "canonical_write" },
   },
   {
     name: "focusa_prediction_authority",

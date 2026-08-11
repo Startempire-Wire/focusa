@@ -293,7 +293,10 @@ fn render_proof_scope_blocks(app: &App, frame: &mut ratatui::Frame, area: Rect) 
             "time  deadline={deadline} conflict={conflict} urgency={urgency} conformance={conformance}"
         )),
         Line::from(format!(
-            "epistemic  events={epistemic_events} conformance={epistemic_conformance}"
+            "epistemic  events={epistemic_events} conformance={epistemic_conformance} operations={} daemon_authority=true",
+            include_str!("../../../docs/contracts/spec138-generated-operation-contracts.v1.json")
+                .matches("\"operation_id\":")
+                .count()
         )),
         Line::from(format!(
             "instruction  guard={instruction_status} outage={instruction_outage} canvas_authority=false"

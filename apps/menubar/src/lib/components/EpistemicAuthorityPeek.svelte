@@ -1,5 +1,6 @@
 <script lang="ts">
   import { runtimeStore } from '../stores/runtime.svelte';
+  import { SPEC138_OPERATIONS } from '../generated/spec138-operations';
 
   const value = (input: any, fallback = 'unknown') =>
     input === null || input === undefined || input === '' ? fallback : String(input);
@@ -42,6 +43,14 @@
       {#each warnings as warning}<li>{value(warning)}</li>{/each}
     </ul>
   {/if}
+  <details>
+    <summary>{SPEC138_OPERATIONS.length} canonical operations · daemon authority</summary>
+    <ul class="operations" aria-label="Canonical epistemic operations">
+      {#each SPEC138_OPERATIONS as operation}
+        <li><code>{operation.operation_id}</code> · {operation.method} {operation.path}</li>
+      {/each}
+    </ul>
+  </details>
   {#if source.status !== 'completed'}
     <p class="recovery">Verify project scope, then use <code>focusa_prediction_authority</code> projection.</p>
   {/if}
@@ -55,5 +64,7 @@
   dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem .8rem; margin: .65rem 0 0; }
   dl div { min-width: 0; } dt { color: #94a3b8; font-size: .7rem; } dd { margin: .1rem 0 0; overflow-wrap: anywhere; }
   ul, .recovery { margin: .55rem 0 0; color: #fbbf24; font-size: .75rem; }
+  details { margin-top: .65rem; font-size: .75rem; color: #94a3b8; }
+  .operations { max-height: 10rem; overflow: auto; padding-left: 1.1rem; }
   code { color: #c4b5fd; }
 </style>

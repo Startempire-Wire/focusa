@@ -13,6 +13,11 @@ import { Type } from "@sinclair/typebox";
 import { createHash } from "crypto";
 import { registerAgentRuntimeTools } from "./agent-runtime-tools.js";
 import {
+  SPEC138_OPERATIONS,
+  bindSpec138OperationPath,
+  spec138Operation,
+} from "./generated/spec138-operations.js";
+import {
   getAttachmentRuntime,
   checkFocusa,
   focusaFetch,
@@ -14675,6 +14680,67 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           ...((body as any).data || (body as any).stats || {}),
           scope,
           next_tools: ["focusa_predict_record", "focusa_predict_recent"],
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_epistemic_operation",
+    label: "Epistemic Operation",
+    description:
+      "Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally.",
+    parameters: Type.Object({
+      operation_id: Type.Union(SPEC138_OPERATIONS.map((row) => Type.Literal(row.operation_id)) as any),
+      id: Type.Optional(Type.String({ description: "Value for canonical {id} path segments." })),
+      event: Type.Optional(Type.Any({ description: "Typed ScopedAuthorityEvent required for mutations." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit or current verified project root." })),
+      continuity_id: Type.Optional(Type.String({ description: "Explicit or current continuity id." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const descriptor = spec138Operation(String(p.operation_id || ""));
+      if (!descriptor)
+        return blockedToolResponse(
+          "focusa_epistemic_operation", "metacognition", "epistemic operation blocked → unknown operation id",
+          "validation_rejected", {}, ["focusa_tool_describe"]
+        );
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const gate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (gate) return gate;
+      const continuityId = String(p.continuity_id || getContinuityId() || "").trim();
+      if (!continuityId)
+        return blockedToolResponse(
+          "focusa_epistemic_operation", "metacognition", "epistemic operation blocked → typed continuity scope required",
+          "scope_mismatch", {}, ["focusa_workpoint_resume"]
+        );
+      if (descriptor.method === "POST" && !p.event)
+        return blockedToolResponse(
+          "focusa_epistemic_operation", "metacognition", "epistemic mutation blocked → typed event required",
+          "validation_rejected", { operation_id: descriptor.operation_id }, ["focusa_tool_describe"]
+        );
+      let path: string;
+      try { path = bindSpec138OperationPath(descriptor.path, p.id); }
+      catch (error) {
+        return blockedToolResponse(
+          "focusa_epistemic_operation", "metacognition", `epistemic operation blocked → ${String(error)}`,
+          "validation_rejected", { operation_id: descriptor.operation_id }, ["focusa_tool_describe"]
+        );
+      }
+      const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
+      const endpoint = descriptor.method === "GET"
+        ? `${path}?${scopedQueryParams(scope).toString()}`
+        : path;
+      const res = await focusaFetchDetailed(endpoint, descriptor.method === "POST" ? {
+        method: "POST",
+        body: JSON.stringify({ operation_id: descriptor.operation_id, scope, event: p.event }),
+      } : undefined);
+      return {
+        content: [{ type: "text", text: `${descriptor.label} → ${res.body?.status || (res.ok ? "completed" : "blocked")}` }],
+        details: {
+          ok: res.ok, status: res.body?.status, operation: descriptor,
+          authority: res.body?.authority, response: res.body,
+          project_root: projectRoot, continuity_id: continuityId,
         },
       } as any;
     },

@@ -2,6 +2,7 @@
 // Spec: docs/44-pi-focusa-integration-spec.md
 
 import { AsyncLocalStorage } from "async_hooks";
+import { SPEC138_OPERATIONS } from "./generated/spec138-operations.js";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "fs";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -5115,4 +5116,19 @@ export function setInToolContext(v: boolean): void {
  */
 export function resetAllScopeStores(): void {
   scopeStoreRegistry.clearAll();
+}
+
+/** Focus Slice affordances are descriptor projections only; daemon responses remain authoritative. */
+export function spec138FocusSliceAffordances(canMutate: boolean) {
+  return SPEC138_OPERATIONS.map((operation) => ({
+    operation_id: operation.operation_id,
+    method: operation.method,
+    path: operation.path,
+    label: operation.label,
+    available: operation.mode === "read" || canMutate,
+    disabled_reason: operation.mode === "canonical_mutation" && !canMutate
+      ? "canonical_daemon_authority_required"
+      : undefined,
+    client_authority: false as const,
+  }));
 }

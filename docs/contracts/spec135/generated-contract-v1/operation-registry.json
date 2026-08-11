@@ -9699,5 +9699,496 @@
   "registry_version": "1.0.0",
   "schema": "focusa.operation_registry.v1",
   "operation_policy_schema": "focusa.operation_policy_metadata.v1",
-  "operation_policy_authority": "docs/contracts/spec152f-entitlement-policy.v1.yaml"
+  "operation_policy_authority": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
+  "spec138_operation_contract_schema": "focusa.spec138_generated_operation_contracts.v1",
+  "spec138_operations": [
+    {
+      "operation_id": "prediction.question.create",
+      "method": "POST",
+      "path": "/v1/prediction-questions",
+      "label": "Create prediction question",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "question"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "prediction.information_set.commit",
+      "method": "POST",
+      "path": "/v1/information-sets",
+      "label": "Commit information set",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "epistemic_primitive"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "prediction.commit",
+      "method": "POST",
+      "path": "/v1/predictions/commit",
+      "label": "Commit prediction",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "commitment",
+        "action_commitment"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "prediction.supersede",
+      "method": "POST",
+      "path": "/v1/predictions/{id}/supersede",
+      "label": "Supersede prediction",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "commitment",
+        "memory_lifecycle"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "prediction.get",
+      "method": "GET",
+      "path": "/v1/predictions/{id}",
+      "label": "Get prediction",
+      "mode": "read",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_read.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [],
+      "client_authority": false
+    },
+    {
+      "operation_id": "prediction.list",
+      "method": "GET",
+      "path": "/v1/predictions/recent",
+      "label": "List recent predictions",
+      "mode": "read",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_read.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [],
+      "client_authority": false
+    },
+    {
+      "operation_id": "outcome.claim",
+      "method": "POST",
+      "path": "/v1/outcomes/claim",
+      "label": "Claim outcome",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "outcome_claim",
+        "outcome_authority"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "outcome.dispute",
+      "method": "POST",
+      "path": "/v1/outcomes/{id}/dispute",
+      "label": "Dispute outcome",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "outcome_authority"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "outcome.resolve",
+      "method": "POST",
+      "path": "/v1/outcomes/resolve",
+      "label": "Resolve outcome",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "outcome_resolution",
+        "outcome_authority",
+        "action_outcome"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "outcome.correct",
+      "method": "POST",
+      "path": "/v1/outcomes/{id}/correct",
+      "label": "Correct outcome",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "outcome_authority"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "prediction.evaluate",
+      "method": "POST",
+      "path": "/v1/evaluations/predictions",
+      "label": "Evaluate prediction",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "evaluation"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "calibration.report",
+      "method": "GET",
+      "path": "/v1/calibration/reports",
+      "label": "Read calibration report",
+      "mode": "read",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_read.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [],
+      "client_authority": false
+    },
+    {
+      "operation_id": "metacognition.signal.capture",
+      "method": "POST",
+      "path": "/v1/metacognition/signals",
+      "label": "Capture metacognitive signal",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "epistemic_primitive",
+        "reflection_claim"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "metacognition.reflect",
+      "method": "POST",
+      "path": "/v1/metacognition/reflections",
+      "label": "Record reflection",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "reflection_claim"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "metacognition.adjustment.propose",
+      "method": "POST",
+      "path": "/v1/metacognition/adjustments",
+      "label": "Propose adjustment",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "promotion_assessment",
+        "learning_candidate"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "metacognition.adjustment.evaluate",
+      "method": "POST",
+      "path": "/v1/metacognition/evaluations",
+      "label": "Evaluate adjustment",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "promotion_assessment",
+        "learning_settlement"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "learning.candidate.decide",
+      "method": "POST",
+      "path": "/v1/learning/candidates/{id}/decide",
+      "label": "Decide learning candidate",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "promotion_decision",
+        "learning_settlement"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "learning.apply",
+      "method": "POST",
+      "path": "/v1/learning/{id}/apply",
+      "label": "Apply learning",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "learning_record",
+        "learning_settlement"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "learning.transfer.resolve",
+      "method": "POST",
+      "path": "/v1/learning/transfers/resolve",
+      "label": "Resolve learning transfer",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "transfer_evaluation",
+        "transfer_outcome"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "learning.retrieve",
+      "method": "GET",
+      "path": "/v1/learning/retrieve",
+      "label": "Retrieve learning",
+      "mode": "read",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_read.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [],
+      "client_authority": false
+    },
+    {
+      "operation_id": "learning.conflicts",
+      "method": "GET",
+      "path": "/v1/learning/conflicts",
+      "label": "Read learning conflicts",
+      "mode": "read",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_read.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [],
+      "client_authority": false
+    },
+    {
+      "operation_id": "learning.expire",
+      "method": "POST",
+      "path": "/v1/learning/{id}/expire",
+      "label": "Expire learning",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "memory_lifecycle"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "learning.supersede",
+      "method": "POST",
+      "path": "/v1/learning/{id}/supersede",
+      "label": "Supersede learning",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "memory_lifecycle",
+        "learning_record"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "learning.revoke",
+      "method": "POST",
+      "path": "/v1/learning/{id}/revoke",
+      "label": "Revoke learning",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "memory_lifecycle"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "learning.rollback",
+      "method": "POST",
+      "path": "/v1/learning/{id}/rollback",
+      "label": "Roll back learning",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "memory_lifecycle",
+        "learning_settlement"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "learning.consolidate",
+      "method": "POST",
+      "path": "/v1/learning/consolidate",
+      "label": "Consolidate learning",
+      "mode": "canonical_mutation",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_mutation.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [
+        "learning_record",
+        "learning_settlement"
+      ],
+      "client_authority": false
+    },
+    {
+      "operation_id": "self_model.get",
+      "method": "GET",
+      "path": "/v1/self-model",
+      "label": "Read self model",
+      "mode": "read",
+      "authority": "durable_scoped_prediction_authority",
+      "scope": [
+        "project_root",
+        "continuity_id"
+      ],
+      "request_contract": "focusa.spec138_operation_read.v1",
+      "response_contract": "focusa.spec138_operation_result.v1",
+      "accepted_event_kinds": [],
+      "client_authority": false
+    }
+  ]
 }

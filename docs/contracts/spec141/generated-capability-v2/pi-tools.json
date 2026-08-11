@@ -1,6 +1,6 @@
 {
   "schema": "focusa.pi_tool_projection.v2",
-  "registry_digest": "sha256:2519b77379d539a2e01863c4a315a27c113ce00f6142d12b9aba4c0f28bca25f",
+  "registry_digest": "sha256:ecf10520cd90d1cdfedb66ed6b505a2da36881fe694958695c5073e27467d1a3",
   "tools": [
     {
       "name": "focusa_active_object_resolve",
@@ -9447,6 +9447,313 @@
         "focusa_dxux_report",
         "focusa_dxux_digest",
         "focusa_evidence_capture"
+      ]
+    },
+    {
+      "name": "focusa_epistemic_operation",
+      "label": "Epistemic Operation",
+      "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "parameters": {
+        "type": "object",
+        "required": [
+          "operation_id"
+        ],
+        "properties": {
+          "operation_id": {
+            "anyOf": [
+              {
+                "const": "prediction.question.create",
+                "type": "string"
+              },
+              {
+                "const": "prediction.information_set.commit",
+                "type": "string"
+              },
+              {
+                "const": "prediction.commit",
+                "type": "string"
+              },
+              {
+                "const": "prediction.supersede",
+                "type": "string"
+              },
+              {
+                "const": "prediction.get",
+                "type": "string"
+              },
+              {
+                "const": "prediction.list",
+                "type": "string"
+              },
+              {
+                "const": "outcome.claim",
+                "type": "string"
+              },
+              {
+                "const": "outcome.dispute",
+                "type": "string"
+              },
+              {
+                "const": "outcome.resolve",
+                "type": "string"
+              },
+              {
+                "const": "outcome.correct",
+                "type": "string"
+              },
+              {
+                "const": "prediction.evaluate",
+                "type": "string"
+              },
+              {
+                "const": "calibration.report",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.signal.capture",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.reflect",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.adjustment.propose",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.adjustment.evaluate",
+                "type": "string"
+              },
+              {
+                "const": "learning.candidate.decide",
+                "type": "string"
+              },
+              {
+                "const": "learning.apply",
+                "type": "string"
+              },
+              {
+                "const": "learning.transfer.resolve",
+                "type": "string"
+              },
+              {
+                "const": "learning.retrieve",
+                "type": "string"
+              },
+              {
+                "const": "learning.conflicts",
+                "type": "string"
+              },
+              {
+                "const": "learning.expire",
+                "type": "string"
+              },
+              {
+                "const": "learning.supersede",
+                "type": "string"
+              },
+              {
+                "const": "learning.revoke",
+                "type": "string"
+              },
+              {
+                "const": "learning.rollback",
+                "type": "string"
+              },
+              {
+                "const": "learning.consolidate",
+                "type": "string"
+              },
+              {
+                "const": "self_model.get",
+                "type": "string"
+              }
+            ]
+          },
+          "id": {
+            "description": "Value for canonical {id} path segments.",
+            "type": "string"
+          },
+          "event": {
+            "description": "Typed ScopedAuthorityEvent required for mutations."
+          },
+          "project_root": {
+            "description": "Explicit or current verified project root.",
+            "type": "string"
+          },
+          "continuity_id": {
+            "description": "Explicit or current continuity id.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "next_tools": [
+        "focusa_predict_evaluate",
+        "focusa_metacog_retrieve",
+        "focusa_workpoint_resume"
       ]
     },
     {

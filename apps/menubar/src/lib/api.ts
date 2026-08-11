@@ -2,6 +2,7 @@ import { diagnosticsStore } from '$lib/stores/diagnostics.svelte';
 import { getCurrentAuthToken } from '$lib/stores/pairing.svelte';
 import type { ScopeContext } from '$lib/projectContext.svelte';
 import type { SemanticPairActionRequest, SemanticPairStatus } from './types/focus-canvas';
+import { bindSpec138OperationPath, spec138Operation } from './generated/spec138-operations';
 
 export const DEFAULT_API_URL = 'http://127.0.0.1:8787';
 export const SAVED_CONNECTIONS_KEY = 'focusa_saved_connections_v1';
@@ -69,6 +70,52 @@ export function hasEverConnected(): boolean {
   } catch {
     return false;
   }
+}
+
+export interface EpistemicScopeIdentity {
+  project_root: string;
+  project_id?: string;
+  scope_id?: string;
+  canonical_name: string;
+  fingerprint: string;
+}
+
+/** Invoke generated Spec138 operations; only daemon results carry authority. */
+export async function requestSpec138Operation(
+  operationId: string,
+  identity: EpistemicScopeIdentity,
+  continuityId: string,
+  id?: string,
+  event?: unknown,
+): Promise<unknown> {
+  const descriptor = spec138Operation(operationId);
+  if (!descriptor) throw new Error(`Unknown Spec138 operation: ${operationId}`);
+  const scopeId = String(identity.scope_id || identity.project_id || '').trim();
+  if (!identity.project_root || !identity.canonical_name || !identity.fingerprint || !scopeId || !continuityId.trim()) {
+    throw new Error('Canonical Spec138 operation requires complete typed project scope');
+  }
+  const path = bindSpec138OperationPath(descriptor.path, id);
+  const rootScope = {
+    scope_kind: 'project', scope_id: scopeId, root_path: identity.project_root,
+    canonical_name: identity.canonical_name, fingerprint: identity.fingerprint,
+  };
+  if (descriptor.method === 'GET') {
+    const query = new URLSearchParams({
+      scope_kind: 'project', scope_id: scopeId, root_path: identity.project_root,
+      canonical_name: identity.canonical_name, fingerprint: identity.fingerprint,
+      continuity_id: continuityId,
+    });
+    return requestJson(`${path}?${query.toString()}`);
+  }
+  if (!event) throw new Error(`${operationId} requires a typed ScopedAuthorityEvent`);
+  return requestJson(path, {
+    method: 'POST',
+    body: {
+      operation_id: descriptor.operation_id,
+      scope: { root_scope: rootScope, continuity_id: continuityId },
+      event,
+    },
+  });
 }
 
 export interface ApiRequestOptions {

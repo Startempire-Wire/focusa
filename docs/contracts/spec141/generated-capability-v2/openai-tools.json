@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:2519b77379d539a2e01863c4a315a27c113ce00f6142d12b9aba4c0f28bca25f",
+  "registry_digest": "sha256:ecf10520cd90d1cdfedb66ed6b505a2da36881fe694958695c5073e27467d1a3",
   "tools": [
     {
       "type": "function",
@@ -1470,6 +1470,150 @@
               "minLength": 1,
               "maxLength": 40,
               "description": "Requirement id, e.g. DXUX-004.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_epistemic_operation",
+        "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "operation_id"
+          ],
+          "properties": {
+            "operation_id": {
+              "anyOf": [
+                {
+                  "const": "prediction.question.create",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.information_set.commit",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.commit",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.supersede",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.get",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.list",
+                  "type": "string"
+                },
+                {
+                  "const": "outcome.claim",
+                  "type": "string"
+                },
+                {
+                  "const": "outcome.dispute",
+                  "type": "string"
+                },
+                {
+                  "const": "outcome.resolve",
+                  "type": "string"
+                },
+                {
+                  "const": "outcome.correct",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.evaluate",
+                  "type": "string"
+                },
+                {
+                  "const": "calibration.report",
+                  "type": "string"
+                },
+                {
+                  "const": "metacognition.signal.capture",
+                  "type": "string"
+                },
+                {
+                  "const": "metacognition.reflect",
+                  "type": "string"
+                },
+                {
+                  "const": "metacognition.adjustment.propose",
+                  "type": "string"
+                },
+                {
+                  "const": "metacognition.adjustment.evaluate",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.candidate.decide",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.apply",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.transfer.resolve",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.retrieve",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.conflicts",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.expire",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.supersede",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.revoke",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.rollback",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.consolidate",
+                  "type": "string"
+                },
+                {
+                  "const": "self_model.get",
+                  "type": "string"
+                }
+              ]
+            },
+            "id": {
+              "description": "Value for canonical {id} path segments.",
+              "type": "string"
+            },
+            "event": {
+              "description": "Typed ScopedAuthorityEvent required for mutations."
+            },
+            "project_root": {
+              "description": "Explicit or current verified project root.",
+              "type": "string"
+            },
+            "continuity_id": {
+              "description": "Explicit or current continuity id.",
               "type": "string"
             }
           },
