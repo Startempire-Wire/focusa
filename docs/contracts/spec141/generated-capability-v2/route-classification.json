@@ -1,6 +1,6 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 539,
+  "route_count": 540,
   "classification_counts": {
     "agent_eligible": 108,
     "internal": 6,
