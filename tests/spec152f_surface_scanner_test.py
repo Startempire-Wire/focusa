@@ -62,8 +62,8 @@ assert len(baseline_rows) == 29
 # unmatched file matches remain, so the runtime entrypoints live in the
 # frozen reconciliation shard, not in runtime unmatched surfaces.
 assert len(runtime_rows) == 0
-assert baseline["counts"] == {"covered": 593, "unmatched": 390, "total": 983}
-assert runtime["counts"] == {"covered": 974, "unmatched": 0, "total": 974}
+assert baseline["counts"] == {"covered": 600, "unmatched": 390, "total": 990}
+assert runtime["counts"] == {"covered": 981, "unmatched": 0, "total": 981}
 
 frozen_exclusions = {
     row["symbol_or_route"]

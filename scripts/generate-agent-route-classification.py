@@ -26,14 +26,39 @@ def main() -> int:
     for source in source_files:
         body = source.read_text(errors="replace")
         relative_source = str(source.relative_to(ROOT))
+        string_constants = dict(
+            re.findall(
+                r'^\s*(?:pub(?:\([^)]*\))?\s+)?const\s+([A-Z][A-Z0-9_]*)\s*:\s*&str\s*=\s*"([^"]+)"\s*;',
+                body,
+                re.M,
+            )
+        )
+        constant_route_names = re.findall(
+            r'^\s*\.route\(\s*([A-Z][A-Z0-9_]*)\s*,', body, re.M
+        )
+        unresolved = sorted(set(constant_route_names) - string_constants.keys())
+        if unresolved:
+            raise SystemExit(
+                f"{relative_source}: unresolved route path constants: {', '.join(unresolved)}"
+            )
+
         for path in re.findall(r'\.route\(\s*"([^"]+)"', body, re.S):
             paths.setdefault(path, set()).add(relative_source)
+        for constant_name in constant_route_names:
+            paths.setdefault(string_constants[constant_name], set()).add(relative_source)
+
         for path, method in re.findall(
             r'\.route\(\s*"([^"]+)"\s*,\s*(?:axum::routing::)?(get|post|patch|delete|put|head|options)\(',
             body,
             re.S,
         ):
             methods.setdefault(path, set()).add(method.upper())
+        for constant_name, method in re.findall(
+            r'^\s*\.route\(\s*([A-Z][A-Z0-9_]*)\s*,\s*(?:axum::routing::)?(get|post|patch|delete|put|head|options)\(',
+            body,
+            re.M | re.S,
+        ):
+            methods.setdefault(string_constants[constant_name], set()).add(method.upper())
 
     registry = json.loads(
         (

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the deterministic 395-row Spec 152F reconciliation baseline."""
+"""Validate the deterministic 390-row Spec 152F reconciliation frontier."""
 
 import hashlib
 import importlib.util
@@ -28,7 +28,7 @@ assert index["schema"] == "focusa.spec152f.surface_reconciliation.v1"
 assert index["authority"] == "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md"
 assert index["policy"] == "docs/contracts/spec152f-entitlement-policy.v1.yaml"
 assert index["baseline_coverage"] == "docs/contracts/spec152-entitlement-coverage.v1.json"
-assert index["baseline_counts"] == {"covered": 593, "unmatched": 390, "total": 983}
+assert index["baseline_counts"] == {"covered": 600, "unmatched": 390, "total": 990}
 assert index["surface_counts"] == {
     "rest": 189,
     "cli": 87,

@@ -362,8 +362,9 @@ def _render_shard(payload):
 
 
 def build_reconciliation():
-    # Spec 152F.00.04 freezes the original 395-row baseline, including the seven
-    # now-proven scanner false positives. Runtime coverage excludes them.
+    # Spec 152F.00.04 freezes the unmatched reconciliation frontier. Newly
+    # discovered covered routes may grow the total inventory without changing
+    # those reconciliation rows. Runtime coverage excludes test-only matches.
     coverage = build(include_test_files=True)
     rows = []
     for source_row in coverage["unmatched_surfaces"]:

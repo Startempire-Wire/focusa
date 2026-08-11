@@ -2,8 +2,8 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `539`
-- Agent eligible: `108`
+- Classified paths: `545`
+- Agent eligible: `114`
 - Operator only: `419`
 - Public health/pairing: `6`
 - Internal: `6`
@@ -1936,6 +1936,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/interview_sessions.rs`
 - Agent operations: `focusa.interview.session.list`
 
+### `/v1/interviews/sessions/mutate`
+
+- Methods: `POST /v1/interviews/sessions/mutate`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/interview_sessions.rs`
+- Agent operations: `focusa.interview.session.mutate`
+
 ### `/v1/intuition/patterns`
 
 - Methods: `GET /v1/intuition/patterns`
@@ -2184,6 +2192,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/mission_canvas_surfaces.rs`
 - Agent operations: `focusa.mission_canvas.state.get`
 
+### `/v1/mission-canvas/state/mutate`
+
+- Methods: `POST /v1/mission-canvas/state/mutate`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/mission_canvas_surfaces.rs`
+- Agent operations: `focusa.mission_canvas.state.mutate`
+
 ### `/v1/mission-canvas/surface-bindings`
 
 - Methods: `GET /v1/mission-canvas/surface-bindings`
@@ -2207,6 +2223,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/mission_canvas_surfaces.rs`
 - Agent operations: `focusa.mission_canvas.surface.list`
+
+### `/v1/mission-canvas/surfaces/mutate`
+
+- Methods: `POST /v1/mission-canvas/surfaces/mutate`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/mission_canvas_surfaces.rs`
+- Agent operations: `focusa.mission_canvas.surface.mutate`
 
 ### `/v1/ontology/actions`
 
@@ -3248,6 +3272,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/skills.rs`
 - Agent operations: none
 
+### `/v1/spec-workbench/session/mutate`
+
+- Methods: `POST /v1/spec-workbench/session/mutate`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/spec_workbench.rs`
+- Agent operations: `focusa.spec_workbench.session.mutate`
+
 ### `/v1/spec-workbench/sessions`
 
 - Methods: `GET /v1/spec-workbench/sessions`
@@ -3415,6 +3447,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/task_plans.rs`
 - Agent operations: `focusa.task_plan.materialize.beads`
+
+### `/v1/task-plans/mutate`
+
+- Methods: `POST /v1/task-plans/mutate`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/task_plans.rs`
+- Agent operations: `focusa.task_plan.mutate`
 
 ### `/v1/telemetry/activity`
 
@@ -4247,6 +4287,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/work_rail.rs`
 - Agent operations: `focusa.work_rail.list`
+
+### `/v1/work-rail/mutate`
+
+- Methods: `POST /v1/work-rail/mutate`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/work_rail.rs`
+- Agent operations: `focusa.work_rail.mutate`
 
 ### `/v1/workpoint/active-object/resolve`
 

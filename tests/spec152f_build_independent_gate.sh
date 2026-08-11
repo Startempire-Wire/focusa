@@ -145,12 +145,12 @@ python3 - "$ROOT_DIR" <<'PY' || fail "Spec 152F coverage contract is stale or ha
 import json, sys
 root = sys.argv[1]
 coverage = json.load(open(root + "/docs/contracts/spec152-entitlement-coverage.v1.json"))
-assert coverage["counts"]["covered"] == 974
+assert coverage["counts"]["covered"] == 981
 assert coverage["counts"]["unmatched"] == 0, "unmatched surfaces remain (no 395 independent paywalls)"
-assert coverage["counts"]["total"] == 974
+assert coverage["counts"]["total"] == 981
 assert coverage["scanner_exclusions"]["count"] == 9
 PY
-pass "coverage contract current: covered=974 unmatched=0 total=974 exclusions=9"
+pass "coverage contract current: covered=981 unmatched=0 total=981 exclusions=9"
 
 # Taskgraph generated artifacts must be current: the index pins per-phase
 # sha256 digests; recompute them byte-exactly.

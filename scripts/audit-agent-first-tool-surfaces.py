@@ -99,10 +99,7 @@ def main() -> int:
     mcp_src = text("crates/focusa-api/src/routes/mcp.rs")
     cli_help_src = text("crates/focusa-cli/src/commands/help.rs")
     cli_main_src = text("crates/focusa-cli/src/main.rs")
-    rust_api_src = "\n".join(
-        p.read_text(errors="replace")
-        for p in (ROOT / "crates/focusa-api/src").rglob("*.rs")
-    )
+    rust_api_sources = sorted((ROOT / "crates/focusa-api/src").rglob("*.rs"))
 
     operation_registry = json.loads(
         text("docs/contracts/spec135/generated-contract-v1/operation-registry.json")
@@ -112,7 +109,28 @@ def main() -> int:
     )
     operations = operation_registry["operations"]
 
-    route_paths = set(re.findall(r'\.route\(\s*"([^"]+)"', rust_api_src, re.S))
+    route_paths = set()
+    for source in rust_api_sources:
+        body = source.read_text(errors="replace")
+        string_constants = dict(
+            re.findall(
+                r'^\s*(?:pub(?:\([^)]*\))?\s+)?const\s+([A-Z][A-Z0-9_]*)\s*:\s*&str\s*=\s*"([^"]+)"\s*;',
+                body,
+                re.M,
+            )
+        )
+        constant_route_names = re.findall(
+            r'^\s*\.route\(\s*([A-Z][A-Z0-9_]*)\s*,', body, re.M
+        )
+        unresolved = sorted(set(constant_route_names) - string_constants.keys())
+        if unresolved:
+            relative_source = source.relative_to(ROOT)
+            raise ValueError(
+                f"{relative_source}: unresolved route path constants: {', '.join(unresolved)}"
+            )
+        route_paths.update(re.findall(r'\.route\(\s*"([^"]+)"', body, re.S))
+        route_paths.update(string_constants[name] for name in constant_route_names)
+
     route_classification_path = capability_dir / "route-classification.json"
     route_classification = (
         json.loads(route_classification_path.read_text())

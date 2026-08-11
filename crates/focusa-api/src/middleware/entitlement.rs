@@ -655,7 +655,6 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
             || is_read_only_preflight(path)
             || is_recovery_export(path)
             || path.starts_with("/v1/license/")
-            || path.starts_with("/v1/spec-workbench/")
             || path.starts_with("/v1/reflect/history")
             || path.starts_with("/v1/reflect/status")
             || path.starts_with("/v1/project/list")
@@ -681,8 +680,7 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
         || is_read_only_preflight(path)
         || is_recovery_export(path)
         || is_export_manifest_read(path)
-        || path.starts_with("/v1/license/")
-        || path.starts_with("/v1/spec-workbench/");
+        || path.starts_with("/v1/license/");
     !recovery_path
 }
 
@@ -742,6 +740,12 @@ mod tests {
         for path in [
             "/v1/workpoint/checkpoint",
             "/v1/evidence/capture",
+            "/v1/interviews/sessions/mutate",
+            "/v1/mission-canvas/surfaces/mutate",
+            "/v1/mission-canvas/state/mutate",
+            "/v1/spec-workbench/session/mutate",
+            "/v1/task-plans/mutate",
+            "/v1/work-rail/mutate",
             "/v1/turn",
             "/v1/silent-sessions/start",
             "/v1/update/apply",
@@ -1485,14 +1489,36 @@ mod tests {
     }
 
     #[test]
-    fn spec_workbench_mutate_resolves_through_classification() {
-        let policy = resolve_route_entitlement_policy(
-            &Method::POST,
-            "/v1/spec-workbench/session/mutate",
-        );
-        let op_id = policy.as_ref().map(|p| p.operation_id.as_str()).unwrap_or("NONE");
-        assert_eq!(op_id, "focusa.spec_workbench.session.mutate",
-            "spec-workbench mutate resolved to: {op_id}");
+    fn constant_backed_mutation_routes_resolve_through_classification() {
+        let cases = [
+            (
+                "/v1/interviews/sessions/mutate",
+                "focusa.interview.session.mutate",
+            ),
+            (
+                "/v1/mission-canvas/surfaces/mutate",
+                "focusa.mission_canvas.surface.mutate",
+            ),
+            (
+                "/v1/mission-canvas/state/mutate",
+                "focusa.mission_canvas.state.mutate",
+            ),
+            (
+                "/v1/spec-workbench/session/mutate",
+                "focusa.spec_workbench.session.mutate",
+            ),
+            ("/v1/task-plans/mutate", "focusa.task_plan.mutate"),
+            ("/v1/work-rail/mutate", "focusa.work_rail.mutate"),
+        ];
+
+        for (path, expected_operation) in cases {
+            let policy = resolve_route_entitlement_policy(&Method::POST, path);
+            let operation_id = policy
+                .as_ref()
+                .map(|policy| policy.operation_id.as_str())
+                .unwrap_or("NONE");
+            assert_eq!(operation_id, expected_operation, "route: {path}");
+        }
     }
 }
 

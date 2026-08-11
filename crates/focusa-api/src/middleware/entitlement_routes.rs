@@ -1029,6 +1029,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/interviews/sessions/mutate",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/intuition/patterns",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
@@ -1159,6 +1164,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/mission-canvas/state/mutate",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/mission-canvas/surface-bindings",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
@@ -1170,6 +1180,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/mission-canvas/surfaces",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/mission-canvas/surfaces/mutate",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
     },
@@ -1389,6 +1404,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/project/discover",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/project/genesis/commit",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
@@ -1410,6 +1430,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/project/identity",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/project/list",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
     },
@@ -1509,19 +1534,29 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/reflect/history",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/reflect/run",
         feature: "focusa.core.mission",
-        limit_bucket: None,
+        limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
         template: "/v1/reflect/scheduler",
         feature: "focusa.core.mission",
-        limit_bucket: None,
+        limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
         template: "/v1/reflect/scheduler/tick",
         feature: "focusa.core.mission",
-        limit_bucket: None,
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/reflect/status",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
         template: "/v1/release/proof/status",
@@ -1754,6 +1789,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("silent_session_runs"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/spec-workbench/session/mutate",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/spec-workbench/sessions",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
@@ -1845,6 +1885,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/task-plans/materialize/beads",
+        feature: "focusa.core.mission",
+        limit_bucket: Some("missions"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/task-plans/mutate",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
     },
@@ -2325,6 +2370,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/work-rail",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/work-rail/mutate",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
     },

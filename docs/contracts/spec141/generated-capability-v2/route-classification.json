@@ -1,8 +1,8 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 540,
+  "route_count": 545,
   "classification_counts": {
-    "agent_eligible": 108,
+    "agent_eligible": 114,
     "internal": 6,
     "operator_only": 419,
     "public_pairing": 6
@@ -2952,6 +2952,20 @@
       ]
     },
     {
+      "path": "/v1/interviews/sessions/mutate",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/interview_sessions.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.interview.session.mutate"
+      ]
+    },
+    {
       "path": "/v1/intuition/patterns",
       "classification": "operator_only",
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
@@ -3344,6 +3358,20 @@
       ]
     },
     {
+      "path": "/v1/mission-canvas/state/mutate",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/mission_canvas_surfaces.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.mission_canvas.state.mutate"
+      ]
+    },
+    {
       "path": "/v1/mission-canvas/surface-bindings",
       "classification": "agent_eligible",
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
@@ -3383,6 +3411,20 @@
       ],
       "operation_refs": [
         "focusa.mission_canvas.surface.list"
+      ]
+    },
+    {
+      "path": "/v1/mission-canvas/surfaces/mutate",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/mission_canvas_surfaces.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.mission_canvas.surface.mutate"
       ]
     },
     {
@@ -4986,6 +5028,20 @@
       "operation_refs": []
     },
     {
+      "path": "/v1/spec-workbench/session/mutate",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/spec_workbench.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.spec_workbench.session.mutate"
+      ]
+    },
+    {
       "path": "/v1/spec-workbench/sessions",
       "classification": "agent_eligible",
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
@@ -5243,6 +5299,20 @@
       ],
       "operation_refs": [
         "focusa.task_plan.materialize.beads"
+      ]
+    },
+    {
+      "path": "/v1/task-plans/mutate",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/task_plans.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.task_plan.mutate"
       ]
     },
     {
@@ -6551,6 +6621,20 @@
       ]
     },
     {
+      "path": "/v1/work-rail/mutate",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/work_rail.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.work_rail.mutate"
+      ]
+    },
+    {
       "path": "/v1/workpoint/active-object/resolve",
       "classification": "operator_only",
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
@@ -6677,20 +6761,6 @@
       ],
       "operation_refs": [
         "focusa.workspace.artifact.intake"
-      ]
-    },
-    {
-      "path": "/v1/spec-workbench/session/mutate",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry (focusa.spec_workbench.session.mutate).",
-      "sources": [
-        "crates/focusa-api/src/routes/spec_workbench.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.spec_workbench.session.mutate"
       ]
     }
   ]

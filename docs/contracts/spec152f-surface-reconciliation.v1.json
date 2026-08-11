@@ -1,12 +1,12 @@
 {
   "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
   "baseline_counts": {
-    "covered": 593,
-    "total": 983,
+    "covered": 600,
+    "total": 990,
     "unmatched": 390
   },
   "baseline_coverage": "docs/contracts/spec152-entitlement-coverage.v1.json",
-  "coverage_canonical_sha256": "31f536189d8436e8dd8d179dd7fec5ba003ecc5d9406ff47a1a3b82edd90dcef",
+  "coverage_canonical_sha256": "3a30097c77bc2610c2e305784f8e032235cfc0d09ab4ff81865ed175e02903fe",
   "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
   "policy_file_sha256": "7aa11eae5eb360325b23441f9c67554604d476027a4a343e5d0fb263f4c4df87",
   "resolution_counts": {
@@ -50,8 +50,8 @@
   },
   "source_digests": {
     "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "d0ad2aa6cbd85cea96cea9f03165882dd57c310b8bd7f455a3efb2dc714169eb",
-    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "215ec6bc5cc4f910c87c377c23cb7abae3d7ba09ba08f0bb7bca46e1d4e55822",
-    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "ab7e1bef639dc294f176bbc86076ec983a897dbc86d227c2d9068831d0e786fa"
+    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "36b4b293a3eedd8d8e011160d578f1ce0864fa9835c1c36697c39afbb522221b",
+    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "2522c1d4d8fc6c25d591ef4cc086e4e9fd810b08ac15b1648fb0ad19fefd7764"
   },
   "surface_counts": {
     "cli": 87,

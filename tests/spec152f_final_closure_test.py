@@ -33,7 +33,7 @@ Fail-closed invariants (152F.06.09 done condition):
   Beads mutation was performed.").
 - Zero unmatched surfaces remain: the committed Spec 152 entitlement-coverage
   contract regenerates byte-identically (generator --check) and reports
-  covered=974 total=974 unmatched=0 exclusions=9; the surface-reconciliation
+  covered=981 total=981 unmatched=0 exclusions=9; the surface-reconciliation
   contract reports unknown_method_routes=0.
 - Recovery and simple commercial model are proven: the recovery matrix, paid
   lifecycle, first-value Evaluation, and offline adversarial tests are
@@ -141,12 +141,12 @@ def git_tracked(path: Path) -> bool:
 
 coverage = json.loads(COVERAGE.read_text())
 assert coverage["schema"] == "focusa.entitlement_coverage.v1"
-assert coverage["counts"]["covered"] == 974
-assert coverage["counts"]["total"] == 974
+assert coverage["counts"]["covered"] == 981
+assert coverage["counts"]["total"] == 981
 assert coverage["counts"]["unmatched"] == 0, "unmatched surfaces remain"
 assert coverage["scanner_exclusions"]["count"] == 9
 run("python3", str(COVERAGE_GENERATOR), "--check")
-print("coverage ledger current and complete: covered=974 total=974 unmatched=0 exclusions=9")
+print("coverage ledger current and complete: covered=981 total=981 unmatched=0 exclusions=9")
 
 reconciliation = json.loads(RECONCILIATION.read_text())
 assert reconciliation["schema"] == "focusa.spec152f.surface_reconciliation.v1"
@@ -302,6 +302,6 @@ print(f"  sha256 head={head}")
 print(f"  sha256 spec152-entitlement-coverage.v1.json={coverage_sha}")
 print(f"  sha256 next-locked-release-technical-closure-gate.json={gate_sha}")
 print(f"  tasks={taskgraph['task_count']} evidenced={len(evidence_tasks) - len(UNCLOSED_SEAL_TASKS)}")
-print(f"  coverage=covered:974 unmatched:0 exclusions:9")
+print("  coverage=covered:981 unmatched:0 exclusions:9")
 print(f"  governance=verified invalid_closed:0 pending:{gate['technically_pending_count']}")
 print("✓ spec152f_final_closure PASS")

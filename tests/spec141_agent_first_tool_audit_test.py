@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -32,6 +33,46 @@ with tempfile.TemporaryDirectory(prefix="focusa-spec141-") as tmp:
         check=True,
     )
     report = json.loads(report_path.read_text())
+    subprocess.run(
+        [
+            "python3",
+            str(ROOT / "scripts/generate-agent-route-classification.py"),
+            "--check",
+        ],
+        cwd=ROOT,
+        check=True,
+    )
+    classification = json.loads(
+        (
+            ROOT
+            / "docs/contracts/spec141/generated-capability-v2/route-classification.json"
+        ).read_text()
+    )
+    classified_paths = {item["path"] for item in classification["routes"]}
+    constant_route_paths = set()
+    for source in sorted((ROOT / "crates/focusa-api/src").rglob("*.rs")):
+        body = source.read_text(errors="replace")
+        constants = dict(
+            re.findall(
+                r'^\s*(?:pub(?:\([^)]*\))?\s+)?const\s+([A-Z][A-Z0-9_]*)\s*:\s*&str\s*=\s*"([^"]+)"\s*;',
+                body,
+                re.M,
+            )
+        )
+        route_constants = set(
+            re.findall(r'^\s*\.route\(\s*([A-Z][A-Z0-9_]*)\s*,', body, re.M)
+        )
+        assert route_constants <= constants.keys(), (
+            f"{source.relative_to(ROOT)} has unresolved route constants: "
+            f"{sorted(route_constants - constants.keys())}"
+        )
+        constant_route_paths.update(constants[name] for name in route_constants)
+    assert constant_route_paths <= classified_paths, (
+        "constant-backed Axum routes missing from classification: "
+        f"{sorted(constant_route_paths - classified_paths)}"
+    )
+    assert "/v1/task-plans/mutate" in constant_route_paths
+
     assert report["schema"] == "focusa.agent_first_tool_audit.v1"
     assert report["status"] in {"pass", "gaps_found"}
     assert report["release_gate"] in {"pass", "fail"}
