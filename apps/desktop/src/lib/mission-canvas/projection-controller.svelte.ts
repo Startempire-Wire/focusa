@@ -7,6 +7,7 @@ import type {
   MissionCanvasOperationInput
 } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
 import { authorityFromProjection, sameWorkstreamAuthority as sameScope } from './exact-scope';
+import { normalizeLabels } from './labels';
 import { collectLayoutContributionIds, validateLayoutIntegrity } from './layout-references';
 import type { ResolvedWorkspaceProjection, WorkstreamAuthorityContext } from './types';
 
@@ -230,7 +231,7 @@ export class MissionCanvasProjectionController {
         return;
       }
 
-      this.state = { kind: 'ready', scope, projection: freezeProjection(validation.projection) };
+      this.state = { kind: 'ready', scope, projection: freezeProjection(normalizeLabels(validation.projection)) };
     } catch (error) {
       if (generation !== this.#requestGeneration) return;
       const reason = error instanceof Error ? error.message : 'projection_load_failed';
@@ -268,7 +269,7 @@ export class MissionCanvasProjectionController {
       return false;
     }
 
-    this.state = { kind: 'ready', scope, projection: freezeProjection(validation.projection) };
+    this.state = { kind: 'ready', scope, projection: freezeProjection(normalizeLabels(validation.projection)) };
     return true;
   }
 
