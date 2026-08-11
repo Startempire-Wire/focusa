@@ -239,6 +239,9 @@ h2 { margin: var(--space-2) 0 var(--space-3); color: var(--color-text-soft); fon
 .secondary-button { border: 1px solid rgba(137, 166, 221, 0.22); border-radius: 8px; padding: 8px 11px; color: var(--color-text-soft); background: rgba(70, 94, 140, 0.2); cursor: pointer; }
 .secondary-button:hover:not(:disabled) { background: rgba(81, 111, 169, 0.3); }
 .secondary-button:disabled { opacity: 0.55; cursor: default; }
+.daemon-stats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.daemon-stats span { padding: 3px 7px; border-radius: 5px; background: rgba(67, 90, 137, 0.14); color: var(--color-text-tertiary); font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.daemon-stats span.clean { color: var(--color-success); }
 .empty-state { max-width: 1120px; min-height: 360px; margin: 0 auto; padding: clamp(30px, 6vw, 72px); display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
 .planned-state { border-style: dashed; }
 footer {

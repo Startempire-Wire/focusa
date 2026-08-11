@@ -1,7 +1,7 @@
 export type DaemonReadStatus =
   | { kind: 'checking'; label: 'Checking daemon'; detail: string }
   | { kind: 'unavailable'; label: 'Daemon unavailable'; detail: string; version?: string }
-  | { kind: 'read-only'; label: 'Daemon connected · read-only'; detail: string; version?: string };
+  | { kind: 'read-only'; label: 'Daemon connected · read-only'; detail: string; version?: string; uptimeMs?: number; snapshotMb?: number; failuresTotal?: number };
 
 const DEFAULT_DAEMON_URL = 'http://127.0.0.1:8787';
 
@@ -40,13 +40,21 @@ export async function readDaemonHealth(baseUrl = DEFAULT_DAEMON_URL): Promise<Da
         detail: `Health returned HTTP ${response.status}. No cognitive state was requested.`
       };
     }
-    const body = await response.json() as { version?: unknown };
+    const body = await response.json() as { version?: unknown; uptime_ms?: unknown; persistence?: { snapshot_bytes?: unknown; failures_total?: unknown } };
     const version = typeof body.version === 'string' ? body.version : undefined;
+    const uptimeMs = typeof body.uptime_ms === 'number' ? body.uptime_ms : undefined;
+    const snapshotMb = typeof body.persistence?.snapshot_bytes === 'number'
+      ? Math.round(body.persistence.snapshot_bytes / 1024 / 1024) : undefined;
+    const failuresTotal = typeof body.persistence?.failures_total === 'number'
+      ? body.persistence.failures_total : undefined;
     return {
       kind: 'read-only',
       label: 'Daemon connected · read-only',
       detail: 'Infrastructure health is reachable. No Workstream is attached and no canonical mutation is enabled.',
-      version
+      version,
+      uptimeMs,
+      snapshotMb,
+      failuresTotal
     };
   } catch {
     return {

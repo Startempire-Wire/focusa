@@ -300,6 +300,14 @@
             <ThinkingOrb state={daemonOrbState} size={28} label="Daemon infrastructure" />
           </div>
           <p>{daemon.detail}</p>
+          {#if daemon.kind === 'read-only' && daemon.version}
+            <div class="daemon-stats" aria-label="Daemon infrastructure stats">
+              <span>v{daemon.version}</span>
+              {#if daemon.uptimeMs !== undefined}<span>{Math.round(daemon.uptimeMs / 1000 / 60 / 60)}h uptime</span>{/if}
+              {#if daemon.snapshotMb !== undefined}<span>{daemon.snapshotMb} MB store</span>{/if}
+              {#if daemon.failuresTotal !== undefined && daemon.failuresTotal === 0}<span class="clean">0 failures</span>{/if}
+            </div>
+          {/if}
           <button class="secondary-button" type="button" onclick={refreshDaemon} disabled={daemon.kind === 'checking'}>
             {daemon.kind === 'checking' ? 'Checking…' : 'Refresh health'}
           </button>
