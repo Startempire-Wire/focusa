@@ -751,5 +751,5 @@ async fn mutate(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/spec-workbench/sessions", get(list))
-        .route(ENDPOINT, post(mutate))
+        .route("/v1/spec-workbench/session/mutate", post(mutate))
 }
