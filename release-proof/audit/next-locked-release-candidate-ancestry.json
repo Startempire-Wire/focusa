@@ -23,12 +23,12 @@
     "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:a375ffd6397fac0fdae5b36bb1d0667860d794ae9a925dcbd27dec80e32bb514",
+  "ancestry_digest": "sha256:a50a3bbd5d956571289990d02b2d5362d1eb669ec9d427d22800ce233beac33d",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "bf0906135f93f7ab9916f165ec2385961e6cc219",
+    "audit_head": "542bc81c78181a1daf2d8c295962ee10625072bb",
     "changed_after_source_commit": [],
-    "source_commit": "bf0906135f93f7ab9916f165ec2385961e6cc219",
+    "source_commit": "542bc81c78181a1daf2d8c295962ee10625072bb",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
