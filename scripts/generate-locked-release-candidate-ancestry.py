@@ -119,10 +119,10 @@ def source_versions(ref: str) -> dict[str, str]:
 
 
 def tags_before_candidate_publication(
-    all_tags: list[str], candidate_tag: str, candidate_tag_commit: str, audit_head: str
+    all_tags: list[str], candidate_tag: str, candidate_tag_closes_audit: bool
 ) -> list[str]:
-    """Keep a pre-tag receipt stable after its exact audited tag is published."""
-    if candidate_tag_commit == audit_head:
+    """Keep a pre-tag receipt stable after its bounded proof tag is published."""
+    if candidate_tag_closes_audit:
         return [tag for tag in all_tags if tag != candidate_tag]
     return all_tags
 
@@ -206,8 +206,22 @@ def build(candidate_ref: str, audit_ref: str) -> dict:
         if candidate_tag
         else ""
     )
+    candidate_tag_closes_audit = bool(
+        candidate_tag_commit
+        and is_ancestor(head, candidate_tag_commit)
+        and not (
+            {
+                path
+                for path in git(
+                    "diff", "--name-only", f"{head}..{candidate_tag_commit}"
+                ).splitlines()
+                if path
+            }
+            - ALLOWED_RECEIPT_PATHS
+        )
+    )
     all_tags = tags_before_candidate_publication(
-        git("tag", "--list").splitlines(), candidate_tag, candidate_tag_commit, head
+        git("tag", "--list").splitlines(), candidate_tag, candidate_tag_closes_audit
     )
     next_selection = version_module.select_version("0.9", None, all_tags)
     next_stable_tag = f"v0.9.{next_selection['selected_patch']}"

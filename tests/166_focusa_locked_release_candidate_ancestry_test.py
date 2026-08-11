@@ -74,11 +74,11 @@ assert not any(
     for blocker in ancestry["release_blockers"]
 )
 assert module.tags_before_candidate_publication(
-    ["v0.9.144", f"v{source_version}"],
-    f"v{source_version}",
-    audit_head,
-    audit_head,
+    ["v0.9.144", f"v{source_version}"], f"v{source_version}", True
 ) == ["v0.9.144"]
+assert module.tags_before_candidate_publication(
+    ["v0.9.144", f"v{source_version}"], f"v{source_version}", False
+) == ["v0.9.144", f"v{source_version}"]
 
 for channel in ("stable", "dev"):
     assert ancestry["tag_chain"][channel]
