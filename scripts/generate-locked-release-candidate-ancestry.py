@@ -192,7 +192,8 @@ def build(candidate_ref: str, audit_ref: str) -> dict:
     )
 
     versions = source_versions(candidate)
-    version_agreement = len(set(versions.values())) == 1
+    candidate_versions = set(versions.values())
+    version_agreement = len(candidate_versions) == 1
     published_version = "0.9.143"
 
     version_module = load_module(
@@ -211,7 +212,6 @@ def build(candidate_ref: str, audit_ref: str) -> dict:
     next_selection = version_module.select_version("0.9", None, all_tags)
     next_stable_tag = f"v0.9.{next_selection['selected_patch']}"
     next_stable_version = next_stable_tag.removeprefix("v")
-    candidate_versions = set(versions.values())
     if not version_agreement:
         ancestry_errors.append("candidate_source_versions_disagree")
     elif candidate_versions not in ({published_version}, {next_stable_version}):
