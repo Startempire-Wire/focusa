@@ -11,8 +11,8 @@
 //   - an accurate upgrade display derived ONLY from the daemon presenter's
 //     own allowed-actions vocabulary — a presenter never invents an upgrade;
 //   - the frozen node semantics (Spec 172 §7.3): CLI, TUI, Pi, menubar,
-//     Focusa Desktop, and Cockpit clients on the same node do NOT consume
-//     separate nodes;
+//     Focusa Desktop, and other approved clients on the same node do NOT
+//     consume separate nodes;
 //   - the frozen retained/always-reachable controls (Spec 172 §5.3, §6.2):
 //     navigation, status, account, read, export, recovery, repair, update,
 //     and uninstall are never disabled by an entitlement decision.
@@ -58,7 +58,7 @@ export const VERIFIED_NO_LICENSE_LABEL =
  * do not consume separate nodes. Rendering sentence only — node truth lives
  * in the authority, never in a presenter counter. */
 export const SPEC172_NODE_SEMANTICS =
-  'One verified operator seat and up to three registered operator nodes; CLI, TUI, Pi, menubar, Focusa Desktop, and Cockpit clients on the same node do not consume separate nodes.';
+  'One verified operator seat and up to three registered operator nodes; CLI, TUI, Pi, menubar, Focusa Desktop, and other approved clients on the same node do not consume separate nodes.';
 
 /** Frozen presenter-not-product sentence (Spec 172 §15). */
 export const SPEC172_PRESENTER_NOT_PRODUCT =
