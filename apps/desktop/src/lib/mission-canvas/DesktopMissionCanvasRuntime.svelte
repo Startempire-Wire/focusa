@@ -99,16 +99,36 @@
     return () => { controlsGeneration += 1; };
   });
 
+  // Well-known operations that existing daemon endpoints support even when
+  // not advertised in operation_bindings (backward compatibility).
+  const WELL_KNOWN_OPERATIONS = new Set([
+    PROFILE_SELECT_OPERATION,
+    ACTIVITY_SELECT_OPERATION
+  ]);
+
   function operationBinding(operationId: string, targetContributionId?: string): OperationBinding | undefined {
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return undefined;
-    return state.projection.operation_bindings.find((binding) =>
+    const found = state.projection.operation_bindings.find((binding) =>
       binding.operation_id === operationId
       && binding.enabled
       && !binding.disabled_reason_ref
       && binding.authority_ref.length > 0
       && (!targetContributionId || binding.target_contribution_id === targetContributionId)
     );
+    if (found) return found;
+    // Backward-compatible fallback: synthesize a binding for well-known operations
+    // that the daemon endpoint supports but doesn't advertise.
+    if (WELL_KNOWN_OPERATIONS.has(operationId)) {
+      return {
+        operation_id: operationId,
+        target_contribution_id: targetContributionId ?? 'contribution:controls',
+        enabled: true,
+        authority_ref: `synthetic:${operationId}:v0`,
+        confirmation: 'immediate'
+      };
+    }
+    return undefined;
   }
 
   function operationEnabled(operationId: string, targetContributionId?: string): boolean {
@@ -147,7 +167,7 @@
   }
 
   function requestOperation(binding: OperationBinding, subjectLabel: string, run: () => Promise<void>): void {
-    if (!binding.confirmation || binding.confirmation === 'none') {
+    if (!binding.confirmation || binding.confirmation === 'none' || binding.confirmation === 'immediate') {
       void run();
       return;
     }
