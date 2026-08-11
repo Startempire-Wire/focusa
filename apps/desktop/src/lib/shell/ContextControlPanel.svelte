@@ -3,27 +3,33 @@
   import StatusBadge from '$lib/ui/StatusBadge.svelte';
   import StatePanel from '$lib/ui/StatePanel.svelte';
   import type { DaemonReadStatus } from './daemon-health';
+  import type { IdentityChainState } from './identity-chain';
+  import { resolveIdentityChain } from './identity-chain';
+  import type { WorkstreamAuthorityContext } from '../mission-canvas/types';
 
-  let { open = $bindable(false), daemon }: { open?: boolean; daemon: DaemonReadStatus } = $props();
-  const identitySteps = [
-    ['ScopeRef / ProjectRootKey', 'No verified project scope'],
-    ['WorkstreamId', 'No canonical Workstream selected'],
-    ['ContinuityId (optional)', 'Lineage inside the Workstream'],
-    ['AttachmentKey', 'No exact runtime Attachment'],
-    ['SessionId / InstanceId', 'No temporal runtime identity'],
-    ['WorkspaceBindingId', 'No Desktop workspace binding'],
-    ['RuntimeObject', 'No bound runtime object'],
-    ['WorkSurfaceId', 'No presentation surface binding']
-  ] as const;
+  let {
+    open = $bindable(false),
+    daemon,
+    authority = undefined as WorkstreamAuthorityContext | undefined
+  }: {
+    open?: boolean;
+    daemon: DaemonReadStatus;
+    authority?: WorkstreamAuthorityContext;
+  } = $props();
+
+  const identity = $derived(resolveIdentityChain(authority, daemon));
+  const overallLabel = $derived(
+    identity.overall === 'resolved' ? 'Bound' : identity.overall === 'partial' ? 'Partial' : 'Unbound'
+  );
 </script>
 
 {#if open}
   <div class="context-panel" role="dialog" aria-label="Context Control">
-    <header><div><span>Context Control</span><strong>Unbound authority</strong></div><button type="button" aria-label="Close Context Control" onclick={() => (open = false)}><Icon name="x" size={16}/></button></header>
+    <header><div><span>Context Control</span><strong>{overallLabel} authority</strong></div><button type="button" aria-label="Close Context Control" onclick={() => (open = false)}><Icon name="x" size={16}/></button></header>
     <div class="node-status"><span><Icon name="runtime" size={16}/><span><strong>Focusa daemon</strong><small>{daemon.detail}</small></span></span><StatusBadge tone={daemon.kind === 'read-only' ? 'ready' : daemon.kind === 'checking' ? 'watch' : 'error'} label={daemon.kind === 'read-only' ? 'Connected · read-only' : daemon.kind === 'checking' ? 'Checking' : 'Unavailable'}/></div>
     <div class="identity-ladder" aria-label="Required canonical identity">
-      {#each identitySteps as step, index}
-        <div><span class="step-icon">{index + 1}</span><span><strong>{step[0]}</strong><small>{step[1]}</small></span>{#if index < identitySteps.length - 1}<i aria-hidden="true"></i>{/if}</div>
+      {#each identity.steps as step, index}
+        <div class:resolved={step.resolved}><span class="step-icon">{#if step.resolved}<Icon name="check" size={14}/>{:else}{index + 1}{/if}</span><span><strong>{step.label}</strong>{#if step.value}<code>{step.value}</code>{/if}<small>{step.detail}</small></span>{#if index < identity.steps.length - 1}<i aria-hidden="true"></i>{/if}</div>
       {/each}
     </div>
     <StatePanel state="blocked" title="Exact authority required" description="Desktop cannot infer authority from the current tab, CWD, latest record, remembered selection, or daemon-global state."/>

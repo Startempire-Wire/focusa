@@ -195,11 +195,11 @@
         onclick={() => setSidebarMode(sidebarMode === 'compact' ? 'expanded' : 'compact')}
       />
     </div>
-    <button class="scope-card" type="button" aria-label="Context Control: Unbound" aria-expanded={contextOpen} title="Context Control · Unbound" onclick={() => (contextOpen = !contextOpen)}>
+    <button class="scope-card" type="button" aria-label="Context Control" aria-expanded={contextOpen} title="Context Control" onclick={() => (contextOpen = !contextOpen)}>
       <span class="scope-icon" aria-hidden="true"><Icon name="scope" size={18} /></span>
-      <span class="scope-copy"><span class="eyebrow">Context Control</span><strong>Unbound</strong><small>No exact Attachment selected.</small></span>
+      <span class="scope-copy"><span class="eyebrow">Context Control</span><strong>{liveBinding ? 'Bound' : 'Unbound'}</strong><small>{liveBinding?.authority?.attachment?.attachment_id ?? 'No exact Attachment selected.'}</small></span>
     </button>
-    <ContextControlPanel bind:open={contextOpen} {daemon}/>
+    <ContextControlPanel bind:open={contextOpen} {daemon} authority={liveBinding?.authority}/>
     <button class="find-button" type="button" aria-label="Find or do" onclick={() => (commandOpen = true)}><Icon name="search" size={16}/><span>Find or do</span><kbd>⌘K</kbd></button>
     <div class="workspace-groups">
       {#each sidebarGroups as group}
