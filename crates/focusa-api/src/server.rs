@@ -570,6 +570,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::bloatgaurd::router())
         .merge(routes::focus::router())
         .merge(routes::work_items::router())
+        .merge(routes::work_item_temporal::router())
         .merge(routes::gate::router())
         .merge(routes::ecs::router())
         .merge(routes::memory::router())

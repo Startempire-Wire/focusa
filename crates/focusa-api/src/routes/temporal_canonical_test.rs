@@ -144,4 +144,10 @@ fn canonical_route_inventory_covers_spec137_without_stealing_spec131_ownership()
             .iter()
             .all(|route| !router_source.contains(route))
     );
+    let spec131_source = include_str!("work_item_temporal.rs");
+    assert!(
+        SPEC131_OWNED_ROUTES
+            .iter()
+            .all(|route| spec131_source.contains(route))
+    );
 }

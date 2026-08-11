@@ -128,6 +128,7 @@ pub mod utility;
 pub mod uxp;
 pub mod visual_workflow;
 pub mod work_items;
+pub mod work_item_temporal;
 pub mod work_loop;
 pub mod work_rail;
 pub mod workpoint;

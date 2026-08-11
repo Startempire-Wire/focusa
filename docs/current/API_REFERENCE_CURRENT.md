@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `606`
+- Classified paths: `616`
 - Agent eligible: `164`
-- Operator only: `430`
+- Operator only: `440`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -3856,6 +3856,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/task_plans.rs`
 - Agent operations: `focusa.task_plan.mutate`
 
+### `/v1/task/closure/check`
+
+- Methods: `POST /v1/task/closure/check`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/work_item_temporal.rs`
+- Agent operations: none
+
 ### `/v1/telemetry/activity`
 
 - Methods: `POST /v1/telemetry/activity`
@@ -4784,6 +4792,22 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/work_rail.rs`
 - Agent operations: `focusa.work_rail.mutate`
 
+### `/v1/work/timing/status`
+
+- Methods: `GET /v1/work/timing/status`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/work_item_temporal.rs`
+- Agent operations: none
+
+### `/v1/work/velocity`
+
+- Methods: `GET /v1/work/velocity`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/work_item_temporal.rs`
+- Agent operations: none
+
 ### `/v1/workpoint/active-object/resolve`
 
 - Methods: `POST /v1/workpoint/active-object/resolve`
@@ -4830,6 +4854,62 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/workpoint.rs`
+- Agent operations: none
+
+### `/v1/workpoint/item/close-check`
+
+- Methods: `POST /v1/workpoint/item/close-check`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/work_item_temporal.rs`
+- Agent operations: none
+
+### `/v1/workpoint/item/complete`
+
+- Methods: `POST /v1/workpoint/item/complete`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/work_item_temporal.rs`
+- Agent operations: none
+
+### `/v1/workpoint/item/create`
+
+- Methods: `POST /v1/workpoint/item/create`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/work_item_temporal.rs`
+- Agent operations: none
+
+### `/v1/workpoint/item/pause`
+
+- Methods: `POST /v1/workpoint/item/pause`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/work_item_temporal.rs`
+- Agent operations: none
+
+### `/v1/workpoint/item/resume`
+
+- Methods: `POST /v1/workpoint/item/resume`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/work_item_temporal.rs`
+- Agent operations: none
+
+### `/v1/workpoint/item/start`
+
+- Methods: `POST /v1/workpoint/item/start`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/work_item_temporal.rs`
+- Agent operations: none
+
+### `/v1/workpoint/items`
+
+- Methods: `GET /v1/workpoint/items`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/work_item_temporal.rs`
 - Agent operations: none
 
 ### `/v1/workpoint/resume`
