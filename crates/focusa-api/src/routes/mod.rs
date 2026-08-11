@@ -105,9 +105,15 @@ pub mod temporal;
 mod temporal_advanced;
 #[cfg(test)]
 mod temporal_advanced_test;
+mod temporal_canonical_mutation;
+mod temporal_canonical_operations;
+mod temporal_canonical_read;
+#[cfg(test)]
+mod temporal_canonical_test;
 pub mod temporal_closure;
 pub mod temporal_conformance;
 pub mod temporal_context;
+mod temporal_persistence;
 pub mod threads;
 pub mod tokens;
 pub mod training;

@@ -7,7 +7,6 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
-use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::Utc;
 use focusa_core::{
     temporal::{
@@ -45,25 +44,25 @@ use super::temporal_conformance::spec137a_conformance_surface;
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct TemporalScopeDimensions {
     #[serde(default)]
-    host_id: Option<String>,
+    pub(super) host_id: Option<String>,
     #[serde(default)]
-    operator_id: Option<String>,
+    pub(super) operator_id: Option<String>,
     #[serde(default)]
-    workpoint_id: Option<String>,
+    pub(super) workpoint_id: Option<String>,
     #[serde(default)]
-    item_id: Option<String>,
+    pub(super) item_id: Option<String>,
     #[serde(default)]
-    task_id: Option<String>,
+    pub(super) task_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct TemporalStatusQuery {
-    project_root: String,
-    continuity_id: String,
+    pub(super) project_root: String,
+    pub(super) continuity_id: String,
     #[serde(flatten)]
-    dimensions: TemporalScopeDimensions,
+    pub(super) dimensions: TemporalScopeDimensions,
     #[serde(default)]
-    as_of: Option<String>,
+    pub(super) as_of: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -104,11 +103,9 @@ pub struct TemporalPreflightRequest {
     envelope: Option<TemporalClaimEnvelope>,
 }
 
-pub(super) fn fail(
-    status: StatusCode,
-    code: &str,
-    message: impl Into<String>,
-) -> (StatusCode, Json<Value>) {
+pub(super) type ApiFailure = (StatusCode, Json<Value>);
+
+pub(super) fn fail(status: StatusCode, code: &str, message: impl Into<String>) -> ApiFailure {
     (
         status,
         Json(json!({
@@ -133,58 +130,8 @@ pub(super) fn scope(
     scope
 }
 
-pub(crate) fn temporal_signing_key()
--> Result<(String, ed25519_dalek::SigningKey), (StatusCode, Json<Value>)> {
-    match (
-        std::env::var("FOCUSA_TEMPORAL_SIGNING_KEY_ID").ok(),
-        std::env::var("FOCUSA_TEMPORAL_SIGNING_KEY").ok(),
-    ) {
-        (Some(key_id), Some(encoded)) => {
-            let bytes: [u8; 32] = STANDARD
-                .decode(encoded)
-                .ok()
-                .and_then(|bytes| bytes.try_into().ok())
-                .ok_or_else(|| {
-                    fail(
-                        StatusCode::SERVICE_UNAVAILABLE,
-                        "temporal_signing_key_invalid",
-                        "temporal signing key must be base64-encoded 32-byte Ed25519 material",
-                    )
-                })?;
-            Ok((key_id, ed25519_dalek::SigningKey::from_bytes(&bytes)))
-        }
-        (None, None) => focusa_core::temporal_integrity::load_or_create_temporal_signing_key()
-            .map_err(|error| {
-                fail(
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    "temporal_signing_key_unavailable",
-                    format!("host temporal signing key unavailable: {error:?}"),
-                )
-            }),
-        _ => Err(fail(
-            StatusCode::SERVICE_UNAVAILABLE,
-            "temporal_signing_key_incomplete",
-            "set both temporal signing key environment variables or neither",
-        )),
-    }
-}
-
-pub(super) fn append_signed_events(
-    ledger: &TemporalLedger,
-    idempotency_key: &str,
-    events: Vec<TemporalEvent>,
-) -> Result<Vec<TemporalEvent>, (StatusCode, Json<Value>)> {
-    let (key_id, signing_key) = temporal_signing_key()?;
-    ledger
-        .append_signed_batch(idempotency_key, events, &key_id, &signing_key)
-        .map_err(|error| {
-            fail(
-                StatusCode::PRECONDITION_FAILED,
-                "temporal_ledger_append_failed",
-                format!("{error:?}"),
-            )
-        })
-}
+pub(crate) use super::temporal_persistence::temporal_signing_key;
+pub(super) use super::temporal_persistence::{append_signed_events, idempotent_replay_matches};
 
 pub(super) use super::focus::project_active_temporal_frame as project_active_focus_frame;
 
@@ -232,9 +179,9 @@ pub(super) fn read_events(
     })
 }
 
-async fn status(
+pub(super) async fn status(
     Query(query): Query<TemporalStatusQuery>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+) -> Result<Json<Value>, ApiFailure> {
     let project_root = query.project_root.clone();
     let scope = scope(query.project_root, query.continuity_id, query.dimensions);
     let ledger = ledger(scope.clone())?;
@@ -445,7 +392,51 @@ async fn preflight(Json(req): Json<TemporalPreflightRequest>) -> Json<Value> {
 }
 
 pub fn router() -> Router<Arc<AppState>> {
+    use super::{
+        temporal_canonical_mutation as mutation, temporal_canonical_operations as operations,
+        temporal_canonical_read as read,
+    };
     Router::new()
+        .route("/v1/time/now", get(read::now))
+        .route("/v1/time/awareness", get(read::awareness))
+        .route("/v1/time/status", get(read::time_status))
+        .route("/v1/time/trust", get(read::trust))
+        .route("/v1/time/samples", get(read::samples))
+        .route("/v1/time/capabilities", get(read::capabilities))
+        .route("/v1/time/stream", get(read::stream))
+        .route("/v1/deadline/set", post(mutation::deadline_set))
+        .route("/v1/deadline/revise", post(mutation::deadline_revise))
+        .route("/v1/deadline/clear", post(mutation::deadline_clear))
+        .route("/v1/deadlines", get(read::deadlines))
+        .route(
+            "/v1/deadline/resolve-civil",
+            post(operations::resolve_civil),
+        )
+        .route("/v1/deadline/conflicts", get(read::conflicts))
+        .route("/v1/deadline/propagate", post(operations::propagate))
+        .route("/v1/deadline/{id}", get(read::deadline))
+        .route("/v1/temporal/guard/issue", post(mutation::guard_issue))
+        .route(
+            "/v1/temporal/guard/validate",
+            post(operations::validate_guard),
+        )
+        .route("/v1/temporal/guard/revoke", post(mutation::guard_revoke))
+        .route("/v1/cancellation/request", post(operations::cancellation))
+        .route("/v1/cancellation/{id}", get(read::entity))
+        .route("/v1/estimate/request", post(operations::estimate_request))
+        .route("/v1/estimate/validate", post(operations::validate_claims))
+        .route("/v1/estimate/evaluate", post(operations::estimate_evaluate))
+        .route("/v1/estimate/history", get(read::estimates))
+        .route("/v1/estimate/{id}", get(read::entity))
+        .route(
+            "/v1/response/temporal-claims/validate",
+            post(operations::validate_claims),
+        )
+        .route("/v1/progress/record", post(operations::progress_record))
+        .route("/v1/progress/status", get(read::progress))
+        .route("/v1/no-progress/incidents", get(read::no_progress))
+        .route("/v1/lost-time/incidents", get(read::lost_time))
+        .route("/v1/opportunities", get(read::opportunities))
         .route("/v1/temporal/status", get(status))
         .route("/v1/temporal/commit", post(commit))
         .route("/v1/temporal/revise", post(revise))
