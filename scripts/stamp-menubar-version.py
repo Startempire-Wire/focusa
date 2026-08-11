@@ -47,7 +47,7 @@ def parse_version(raw: str) -> str:
 
 def replace_json_version(path: str, version: str) -> None:
     file_path = ROOT / path
-    data = json.loads(file_path.read_text())
+    data = json.loads(file_path.read_text(encoding="utf-8"))
     data["version"] = version
     if path.endswith("package-lock.json"):
         packages = data.get("packages")
@@ -55,12 +55,12 @@ def replace_json_version(path: str, version: str) -> None:
             root_pkg = packages.get("")
             if isinstance(root_pkg, dict):
                 root_pkg["version"] = version
-    file_path.write_text(json.dumps(data, indent=2) + "\n")
+    file_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
 def replace_key_value_version(path: str, version: str) -> None:
     file_path = ROOT / path
-    text = file_path.read_text()
+    text = file_path.read_text(encoding="utf-8")
     next_text, count = re.subn(
         r'(?m)^version\s*=\s*"[^"]+"',
         f'version = "{version}"',
@@ -69,23 +69,37 @@ def replace_key_value_version(path: str, version: str) -> None:
     )
     if count != 1:
         raise SystemExit(f"Expected one top-level version in {path}")
-    file_path.write_text(next_text)
+    file_path.write_text(next_text, encoding="utf-8")
+
+
+def replace_installer_version(path: str, version: str) -> None:
+    file_path = ROOT / path
+    text = file_path.read_text(encoding="utf-8")
+    next_text, count = re.subn(
+        r'(?m)^FOCUSA_INSTALLER_VERSION="[^"]+"$',
+        f'FOCUSA_INSTALLER_VERSION="{version}"',
+        text,
+        count=1,
+    )
+    if count != 1:
+        raise SystemExit(f"Expected one installer version in {path}")
+    file_path.write_text(next_text, encoding="utf-8")
 
 
 def replace_display_version(path: str, version: str) -> None:
     file_path = ROOT / path
-    text = file_path.read_text()
+    text = file_path.read_text(encoding="utf-8")
     next_text, count = re.subn(
         r"Focusa v" + OLD_VERSION_RE.pattern, f"Focusa v{version}", text
     )
     if count < 1:
         raise SystemExit(f"Expected Focusa display version in {path}")
-    file_path.write_text(next_text)
+    file_path.write_text(next_text, encoding="utf-8")
 
 
 def replace_extension_build(path: str, package_name: str, version: str) -> None:
     file_path = ROOT / path
-    text = file_path.read_text()
+    text = file_path.read_text(encoding="utf-8")
     next_text, count = re.subn(
         rf'const EXTENSION_BUILD = "{re.escape(package_name)}@{OLD_VERSION_RE.pattern}"',
         f'const EXTENSION_BUILD = "{package_name}@{version}"',
@@ -94,12 +108,12 @@ def replace_extension_build(path: str, package_name: str, version: str) -> None:
     )
     if count != 1:
         raise SystemExit(f"Expected one EXTENSION_BUILD identity in {path}")
-    file_path.write_text(next_text)
+    file_path.write_text(next_text, encoding="utf-8")
 
 
 def replace_agent_card_version(path: str, version: str) -> None:
     file_path = ROOT / path
-    card = json.loads(file_path.read_text())
+    card = json.loads(file_path.read_text(encoding="utf-8"))
     if not isinstance(card, dict) or "card_digest" not in card:
         raise SystemExit(f"Expected generated Agent Card with card_digest in {path}")
     card["version"] = version
@@ -111,7 +125,9 @@ def replace_agent_card_version(path: str, version: str) -> None:
         separators=(",", ":"),
     )
     card["card_digest"] = "sha256:" + hashlib.sha256(stable.encode()).hexdigest()
-    file_path.write_text(json.dumps(card, ensure_ascii=False, indent=2) + "\n")
+    file_path.write_text(
+        json.dumps(card, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def replace_lock_package_versions(
@@ -123,7 +139,7 @@ def replace_lock_package_versions(
     line in a lockfile, which can corrupt unrelated dependency packages.
     """
     file_path = ROOT / path
-    lines = file_path.read_text().splitlines(keepends=True)
+    lines = file_path.read_text(encoding="utf-8").splitlines(keepends=True)
     current_name: str | None = None
     updated: set[str] = set()
     out: list[str] = []
@@ -147,7 +163,7 @@ def replace_lock_package_versions(
     missing = package_names - updated
     if missing:
         raise SystemExit(f"Missing package(s) in {path}: {', '.join(sorted(missing))}")
-    file_path.write_text("".join(out))
+    file_path.write_text("".join(out), encoding="utf-8")
 
 
 def main() -> int:
@@ -168,6 +184,9 @@ def main() -> int:
     replace_agent_card_version(
         "docs/contracts/spec141/generated-capability-v2/agent-card.json", version
     )
+
+    # Standalone installer surface shipped by the Pi extension release job.
+    replace_installer_version("scripts/install-focusa.sh", version)
 
     # Menubar web/Tauri surfaces.
     replace_json_version("apps/menubar/package.json", version)

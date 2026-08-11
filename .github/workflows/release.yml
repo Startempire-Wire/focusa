@@ -795,7 +795,6 @@ jobs:
             docs/contracts/spec135/generated-contract-v1
           cp scripts/install-focusa.sh "focusa-installer-${TAG}.sh"
           cp scripts/install-focusa.ps1 "focusa-installer-${TAG}.ps1"
-          sed -i "s/FOCUSA_INSTALLER_VERSION=\"dev-source\"/FOCUSA_INSTALLER_VERSION=\"${TAG#v}\"/" "focusa-installer-${TAG}.sh"
           chmod 0755 "focusa-installer-${TAG}.sh"
           "./focusa-installer-${TAG}.sh" --version | grep -F "${TAG#v}"
           mkdir -p bundle/focusa-agent-context/skills bundle/focusa-agent-context/bin
@@ -805,7 +804,7 @@ jobs:
           chmod 0755 bundle/focusa-agent-context/bin/focusa-skill-doctor
           test -f bundle/focusa-agent-context/AGENTS.md
           test -x bundle/focusa-agent-context/bin/focusa-skill-doctor
-          find bundle/focusa-agent-context/skills -name SKILL.md -type f | grep -q .
+          test -n "$(find bundle/focusa-agent-context/skills -name SKILL.md -type f -print -quit)"
           tar -C bundle -czf "focusa-agent-context-${TAG}.tar.gz" focusa-agent-context
       - name: Upload Pi extension, installers, generated clients, and agent context archives
         uses: softprops/action-gh-release@v2

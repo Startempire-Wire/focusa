@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import ast
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,6 +56,29 @@ assert "apps/pi-extension/src/auto-compaction.ts" in stamp
 assert "read_extension_build_version" in verify
 assert "replace_agent_card_version" in stamp
 assert "docs/contracts/spec141/generated-capability-v2/agent-card.json" in verify
+text_io_calls = [
+    node
+    for node in ast.walk(ast.parse(stamp))
+    if isinstance(node, ast.Call)
+    and isinstance(node.func, ast.Attribute)
+    and node.func.attr in {"read_text", "write_text"}
+]
+assert text_io_calls
+assert all(
+    any(
+        keyword.arg == "encoding"
+        and getattr(keyword.value, "value", None) == "utf-8"
+        for keyword in node.keywords
+    )
+    for node in text_io_calls
+), "release stamper text I/O must be explicit UTF-8 for Windows runners"
+assert "replace_installer_version" in stamp
+assert 'replace_installer_version("scripts/install-focusa.sh", version)' in stamp
+assert "read_installer_version" in verify
+assert "scripts/install-focusa.sh::FOCUSA_INSTALLER_VERSION" in verify
+assert 'sed -i "s/FOCUSA_INSTALLER_VERSION=' not in release
+assert 'find bundle/focusa-agent-context/skills -name SKILL.md -type f | grep -q .' not in release
+assert 'find bundle/focusa-agent-context/skills -name SKILL.md -type f -print -quit' in release
 assert tag_script.count("apps/pi-extension/src/auto-compaction.ts") >= 2
 assert tag_script.count("docs/contracts/spec141/generated-capability-v2/agent-card.json") >= 2
 assert "scripts/stamp-release-version" in tag_script

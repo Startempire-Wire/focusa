@@ -71,6 +71,14 @@ def read_extension_build_version(path: str, package_name: str) -> str:
     return match.group(1)
 
 
+def read_installer_version(path: str) -> str:
+    text = (ROOT / path).read_text(encoding="utf-8")
+    match = re.search(r'(?m)^FOCUSA_INSTALLER_VERSION="([^"]+)"$', text)
+    if not match:
+        raise SystemExit(f"installer version not found: {path}")
+    return match.group(1)
+
+
 def read_lock_versions(path: str, package_names: set[str]) -> dict[str, str]:
     current_name: str | None = None
     versions: dict[str, str] = {}
@@ -118,6 +126,10 @@ def main() -> int:
             read_json_version(
                 "docs/contracts/spec141/generated-capability-v2/agent-card.json"
             ),
+        ),
+        (
+            "scripts/install-focusa.sh::FOCUSA_INSTALLER_VERSION",
+            read_installer_version("scripts/install-focusa.sh"),
         ),
         ("apps/menubar/package.json", read_json_version("apps/menubar/package.json")),
         (
