@@ -1,6 +1,6 @@
 schema: focusa.cross_spec_tool_grounding_matrix.v1
 source_contract_ref: docs/current/focusa-tool-contracts.json
-source_tool_count: 136
+source_tool_count: 137
 governing_specs: &id001
 - '137'
 - 137a
@@ -1330,6 +1330,44 @@ tools:
   - docs/current/focusa-tool-contracts.json
   adversarial_test_refs:
   - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_epistemic_operation
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs:
+  - '137'
+  - 137a
+  - '138'
+  - 138a
+  - '144'
+  - '150'
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_epistemic_operation.md
+  - docs/contracts/spec138-generated-operation-contracts.v1.json
+  focus_stack_refs:
+  - apps/pi-extension/src/tools.ts
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/prediction_authority_ledger.rs
+  projection_replay_refs:
+  - crates/focusa-core/src/prediction_authority_storage.rs
+  - crates/focusa-core/src/prediction_authority_runtime_tests.rs
+  awareness_refs:
+  - apps/pi-extension/src/mission-canvas-model.ts
+  - apps/menubar/src/lib/components/EpistemicAuthorityPeek.svelte
+  runbook_refs:
+  - docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md
+  recovery_refs:
+  - crates/focusa-core/src/prediction_authority_storage.rs
+  runtime_effect_refs:
+  - crates/focusa-api/src/routes/prediction_authority_canonical.rs
+  adversarial_test_refs:
+  - crates/focusa-core/src/prediction_authority_runtime_tests.rs
+  - tests/spec138_operation_client_parity_test.py
   evidence_refs:
   - docs/evidence/release/S138-E2E-01-runtime.txt
   - release-proof/audit/spec138-runtime-receipt.json
@@ -3769,7 +3807,7 @@ internal_families:
   - docs/evidence/release/S138-E2E-01-runtime.txt
   - release-proof/audit/spec138-runtime-receipt.json
 - family: metacognition
-  tool_count: 14
+  tool_count: 15
   applicability_decision: applicable
   status: verified_complete
   focus_stack_refs:
