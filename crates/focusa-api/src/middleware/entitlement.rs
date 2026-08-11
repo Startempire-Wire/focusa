@@ -659,7 +659,6 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
             || path.starts_with("/v1/reflect/status")
             || path.starts_with("/v1/project/list")
             || path.starts_with("/v1/project/discover")
-            || path.starts_with("/v1/spec-workbench/")
             || route_is_known_read_without_side_effect(method, path)
         {
             return false;
@@ -681,8 +680,7 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
         || is_read_only_preflight(path)
         || is_recovery_export(path)
         || is_export_manifest_read(path)
-        || path.starts_with("/v1/license/")
-        || path.starts_with("/v1/spec-workbench/");
+        || path.starts_with("/v1/license/");
     !recovery_path
 }
 

@@ -6678,6 +6678,20 @@
       "operation_refs": [
         "focusa.workspace.artifact.intake"
       ]
+    },
+    {
+      "path": "/v1/spec-workbench/session/mutate",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry (focusa.spec_workbench.session.mutate).",
+      "sources": [
+        "crates/focusa-api/src/routes/spec_workbench.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.spec_workbench.session.mutate"
+      ]
     }
   ]
 }
