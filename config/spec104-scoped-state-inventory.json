@@ -644,6 +644,86 @@
       "status": "infra_allowed",
       "target": "Process-local immutable monotonic origin used only by non-Unix temporal fallback sampling",
       "acceptance_test": "cross-platform temporal clock compilation plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-12",
+      "path": "crates/focusa-api/src/middleware/entitlement.rs",
+      "symbol": "ENTITLEMENT_METADATA",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Validated immutable embedded route and operation metadata; signed request snapshots remain the only entitlement authority",
+      "acceptance_test": "entitlement metadata cache determinism unit test plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-12",
+      "path": "crates/focusa-api/src/middleware/entitlement.rs",
+      "symbol": "GUIDANCE",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Validated immutable recovery-guidance metadata; it formats denials without granting request authority",
+      "acceptance_test": "recovery guidance contract test plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-09",
+      "path": "crates/focusa-api/src/routes/agent_capabilities.rs",
+      "symbol": "CANONICAL_OPERATION_REGISTRY",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Generated immutable Spec135 operation registry; execution authority remains request-scoped",
+      "acceptance_test": "Spec135 operation registry parity plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-14",
+      "path": "crates/focusa-api/src/routes/compaction_policy.rs",
+      "symbol": "STORE_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Synchronization-only lock for atomic policy-status file I/O; typed ScopeKey records remain authoritative",
+      "acceptance_test": "compaction policy scope-isolation tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-13",
+      "path": "crates/focusa-api/src/routes/compaction_policy_store.rs",
+      "symbol": "STORE_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Synchronization-only lock for atomic controller-store I/O; scope-keyed records remain authoritative",
+      "acceptance_test": "compaction controller concurrency tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-01",
+      "path": "crates/focusa-cli/src/commands/install.rs",
+      "symbol": "ENV_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Cfg-Windows-test-only process environment serialization lock",
+      "acceptance_test": "Windows dependency preflight test plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-16",
+      "path": "crates/focusa-license/src/denial_ux.rs",
+      "symbol": "CATALOG",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Immutable embedded presenter catalog; upstream entitlement decisions remain authoritative",
+      "acceptance_test": "denial UX catalog tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-15",
+      "path": "crates/focusa-license/src/entitlement_policy.rs",
+      "symbol": "REGISTRY",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Digest-validated immutable entitlement-policy registry; signed snapshots and authority sequence remain request-specific",
+      "acceptance_test": "embedded policy registry validation tests plus Spec104 singleton inventory gate"
     }
   ]
 }
