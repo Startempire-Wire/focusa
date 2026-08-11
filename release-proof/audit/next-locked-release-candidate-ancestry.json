@@ -23,12 +23,12 @@
     "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:8c489af47f3188e785ec1e9e435e15493d985ba4e6a9499a200711e5229a560b",
+  "ancestry_digest": "sha256:2b0858616624cf92c809d4aa64598fa2121efa9fb65acd63191dba035e429733",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "90782438fd528cbac5ad7eb2941bc20c5e6ee2d8",
+    "audit_head": "e3ff67d8b19251d8ffffc4357631aab23a680dd9",
     "changed_after_source_commit": [],
-    "source_commit": "90782438fd528cbac5ad7eb2941bc20c5e6ee2d8",
+    "source_commit": "e3ff67d8b19251d8ffffc4357631aab23a680dd9",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
@@ -107,17 +107,17 @@
     "publish_release": false,
     "rewrite_v0.9.143": false
   },
-  "next_stable_tag": "v0.9.147",
+  "next_stable_tag": "v0.9.148",
   "next_version_selection": {
     "base": "0.9",
     "channel_maxima": {
       "dev": 137,
       "preview": null,
       "rc": null,
-      "stable": 146
+      "stable": 147
     },
-    "considered_tags": 148,
-    "highest_patch": 146,
+    "considered_tags": 149,
+    "highest_patch": 147,
     "ignored_malformed_tags": [
       "spec-integration-v1",
       "spec-integraton-v1-start"
@@ -126,9 +126,9 @@
     "monotonic": true,
     "schema": "focusa.release_version_selection.v1",
     "selected_channel": "dev",
-    "selected_patch": 147,
-    "selected_tag": "v0.9.147-dev",
-    "selected_version": "0.9.147-dev",
+    "selected_patch": 148,
+    "selected_tag": "v0.9.148-dev",
+    "selected_version": "0.9.148-dev",
     "status": "completed"
   },
   "pull_request_ancestry": [
@@ -145,9 +145,9 @@
   "schema": "focusa.locked_release_candidate_ancestry.v1",
   "source_version_agreement": true,
   "source_versions": {
-    "menubar": "0.9.147",
-    "pi_extension": "0.9.147",
-    "workspace": "0.9.147"
+    "menubar": "0.9.148",
+    "pi_extension": "0.9.148",
+    "workspace": "0.9.148"
   },
   "status": "verified",
   "tag_chain": {
