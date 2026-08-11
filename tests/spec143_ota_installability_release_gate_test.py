@@ -26,7 +26,8 @@ assert ".latest.trust.deploy_proof_verified == true" in deploy
 assert ".apply_allowed == true" in deploy
 assert "ota-installability-proof-${{ steps.cfg.outputs.tag }}" in deploy
 
-assert 'Linux-x86_64)   TRIPLE="x86_64-unknown-linux-musl"' in installer
+assert 'Linux:x86_64|Linux:amd64) TRIPLE="x86_64-unknown-linux-musl"' in installer
+assert 'x86_64|amd64) TRIPLE="x86_64-unknown-linux-musl"' in installer
 assert 'InstallTarget::Linux => "x86_64-unknown-linux-musl".to_string()' in install_rs
 assert '"deploy-success.json"' in trust
 assert '"deploy-success.json.sig"' in trust
