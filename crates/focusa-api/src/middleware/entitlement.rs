@@ -1483,6 +1483,17 @@ mod tests {
         snapshot.expires_at = Some(chrono::Utc::now() + chrono::Duration::minutes(5));
         snapshot
     }
+
+    #[test]
+    fn spec_workbench_mutate_resolves_through_classification() {
+        let policy = resolve_route_entitlement_policy(
+            &Method::POST,
+            "/v1/spec-workbench/session/mutate",
+        );
+        let op_id = policy.as_ref().map(|p| p.operation_id.as_str()).unwrap_or("NONE");
+        assert_eq!(op_id, "focusa.spec_workbench.session.mutate",
+            "spec-workbench mutate resolved to: {op_id}");
+    }
 }
 
 #[cfg(test)]
