@@ -268,3 +268,146 @@ pub fn dispatch_policy_for(
         preserve_settlement: true,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Duration;
+
+    fn test_contract(deadline_at: DateTime<Utc>) -> DeadlineContract {
+        DeadlineContract {
+            contract_id: "test-contract".into(),
+            scope: crate::temporal::TemporalScope {
+                project_root: "/tmp/test".into(),
+                continuity_id: "test".into(),
+                host_id: None, operator_id: None, workpoint_id: None, item_id: None, task_id: None,
+            },
+            kind: DeadlineContractKind::ReadinessTarget,
+            deadline_at,
+            readiness_at: None,
+            boundary_policy: DeadlineBoundaryPolicy::Inclusive,
+            source_authority: "operator".into(),
+            immutable_external_boundary: false,
+            inheritance_source_ref: None,
+            working_window_ref: None,
+            conflict_refs: vec![],
+            uncertainty: None,
+            revision: 1,
+            reducer_receipt_ref: "receipt/1".into(),
+            cas_token: "cas-1".into(),
+        }
+    }
+
+    #[test]
+    fn compare_deadline_on_time_before_readiness() {
+        let now = chrono::Utc::now();
+        let contract = DeadlineContract {
+            deadline_at: now + Duration::hours(2),
+            readiness_at: Some(now + Duration::hours(1)),
+            ..test_contract(now + Duration::hours(2))
+        };
+        let result = compare_deadline(&contract, Some(now), Some(now));
+        assert_eq!(result, DeadlineComparison::OnTime);
+    }
+
+    #[test]
+    fn compare_deadline_breached_after_deadline() {
+        let now = chrono::Utc::now();
+        let contract = DeadlineContract {
+            deadline_at: now - Duration::hours(1),
+            boundary_policy: DeadlineBoundaryPolicy::Exclusive,
+            ..test_contract(now - Duration::hours(1))
+        };
+        let result = compare_deadline(&contract, Some(now), Some(now));
+        assert_eq!(result, DeadlineComparison::Breached);
+    }
+
+    #[test]
+    fn compare_deadline_indeterminate_without_observations() {
+        let now = chrono::Utc::now();
+        let contract = test_contract(now + Duration::hours(1));
+        let result = compare_deadline(&contract, None, Some(now));
+        assert_eq!(result, DeadlineComparison::Indeterminate);
+    }
+
+    #[test]
+    fn validate_contract_rejects_readiness_after_deadline() {
+        let now = chrono::Utc::now();
+        let contract = DeadlineContract {
+            readiness_at: Some(now + Duration::hours(2)),
+            deadline_at: now + Duration::hours(1),
+            ..test_contract(now + Duration::hours(1))
+        };
+        assert!(validate_deadline_contract(&contract).is_err());
+    }
+
+    #[test]
+    fn validate_contract_rejects_empty_reducer() {
+        let now = chrono::Utc::now();
+        let contract = DeadlineContract {
+            reducer_receipt_ref: "  ".into(),
+            ..test_contract(now + Duration::hours(1))
+        };
+        assert!(validate_deadline_contract(&contract).is_err());
+    }
+
+    #[test]
+    fn validate_immutable_external_without_external_kind() {
+        let now = chrono::Utc::now();
+        let contract = DeadlineContract {
+            immutable_external_boundary: true,
+            kind: DeadlineContractKind::ReadinessTarget,
+            ..test_contract(now + Duration::hours(1))
+        };
+        assert!(validate_deadline_contract(&contract).is_err());
+    }
+
+    #[test]
+    fn validate_civil_time_rejects_empty_expression() {
+        let intent = CivilTimeIntent {
+            intent_id: "test-intent".into(),
+            original_expression: "  ".into(),
+            timezone: "America/Los_Angeles".into(),
+            tzdb_version: "2024a".into(),
+            calendar: "gregorian".into(),
+            calendar_version: "v1".into(),
+            jurisdiction: None,
+            jurisdiction_rule_version: None,
+            fold_policy: "first".into(),
+            gap_policy: "shift_forward".into(),
+            recurrence_rule: None,
+            floating: false,
+            resolution_receipt_refs: vec![],
+            resolved_instants: vec![],
+            supersedes_resolution_ref: None,
+        };
+        assert!(validate_civil_time_intent(&intent).is_err());
+    }
+
+    #[test]
+    fn dispatch_blocks_on_breach() {
+        let policy = dispatch_policy_for(DeadlineComparison::Breached, Some("safe/path".into()));
+        assert!(policy.expired_dispatch_blocked);
+        assert!(policy.preserve_evidence);
+        assert_eq!(policy.pinned_delivery_path_ref, Some("safe/path".into()));
+    }
+
+    #[test]
+    fn dispatch_allows_on_time() {
+        let policy = dispatch_policy_for(DeadlineComparison::OnTime, None);
+        assert!(!policy.expired_dispatch_blocked);
+        assert!(!policy.harmful_dispatch_blocked);
+    }
+
+    #[test]
+    fn compare_deadline_possibly_crossed_when_earliest_before_but_latest_after() {
+        let now = chrono::Utc::now();
+        let contract = DeadlineContract {
+            deadline_at: now + Duration::hours(1),
+            boundary_policy: DeadlineBoundaryPolicy::Exclusive,
+            ..test_contract(now + Duration::hours(1))
+        };
+        let result = compare_deadline(&contract, Some(now), Some(now + Duration::hours(2)));
+        assert_eq!(result, DeadlineComparison::PossiblyCrossed);
+    }
+}

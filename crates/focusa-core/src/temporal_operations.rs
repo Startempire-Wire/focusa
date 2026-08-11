@@ -259,3 +259,168 @@ pub fn dependency_is_activated(contract: &DependencyActivationContract) -> bool 
         .iter()
         .all(|value| !value.trim().is_empty())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Duration;
+
+    fn test_scope() -> TemporalScope {
+        TemporalScope {
+            project_root: "/tmp/test".into(),
+            continuity_id: "test".into(),
+            host_id: None, operator_id: None, workpoint_id: None, item_id: None, task_id: None,
+        }
+    }
+
+    fn test_calendar(expires_at: DateTime<Utc>) -> HumanCalendarContext {
+        HumanCalendarContext {
+            context_id: "cal-1".into(), operator_id: "op-1".into(),
+            timezone: "America/Los_Angeles".into(), tzdb_version: "2024a".into(),
+            availability_policy_ref: "avail-1".into(), quiet_hours_policy_ref: "quiet-1".into(),
+            resolved_boundary_refs: vec![], generated_at: chrono::Utc::now(),
+            expires_at, private_detail_rehydrate_refs: vec![],
+        }
+    }
+
+    fn test_frame(expires_at: DateTime<Utc>) -> TemporalPriorityFrame {
+        TemporalPriorityFrame {
+            frame_id: "f-1".into(), scope: test_scope(),
+            operator_ask_digest: "ask-1".into(), primary_objective_ref: "obj-1".into(),
+            approaching_deadline_refs: vec![], conflict_state: DeadlineConflictState::Feasible,
+            consequence_summary: "test".into(), safer_sequence_refs: vec![],
+            generated_at: chrono::Utc::now(), expires_at, evidence_refs: vec![],
+        }
+    }
+
+    #[test]
+    fn authorize_rejects_stale_calendar() {
+        let now = chrono::Utc::now();
+        let calendar = test_calendar(now - Duration::hours(1));
+        let frame = test_frame(now + Duration::hours(1));
+        let guard = TemporalExecutionGuard {
+            guard_id: "g-1".into(), scope: test_scope(), priority_frame_ref: "f-1".into(),
+            authorized_action_refs: vec!["a-1".into()], deterministic_critical_path: false,
+            preauthorized: true, issued_at: now, expires_at: now + Duration::hours(1),
+            policy_version: "v1".into(), receipt_ref: "rec-1".into(),
+        };
+        let result = authorize_temporal_action(&calendar, &frame, Some(&guard), &test_scope(), "ask-1", "a-1", now);
+        assert!(matches!(result, Err(TemporalContextError::StaleCalendar)));
+    }
+
+    #[test]
+    fn authorize_rejects_guard_missing() {
+        let now = chrono::Utc::now();
+        let result = authorize_temporal_action(&test_calendar(now + Duration::hours(1)), &test_frame(now + Duration::hours(1)), None, &test_scope(), "ask-1", "a-1", now);
+        assert!(matches!(result, Err(TemporalContextError::GuardMissing)));
+    }
+
+    #[test]
+    fn authorize_rejects_ask_mismatch() {
+        let now = chrono::Utc::now();
+        let guard = TemporalExecutionGuard {
+            guard_id: "g-1".into(), scope: test_scope(), priority_frame_ref: "f-1".into(),
+            authorized_action_refs: vec!["a-1".into()], deterministic_critical_path: false,
+            preauthorized: true, issued_at: now, expires_at: now + Duration::hours(1),
+            policy_version: "v1".into(), receipt_ref: "rec-1".into(),
+        };
+        let result = authorize_temporal_action(&test_calendar(now + Duration::hours(1)), &test_frame(now + Duration::hours(1)), Some(&guard), &test_scope(), "wrong-ask", "a-1", now);
+        assert!(matches!(result, Err(TemporalContextError::AskMismatch)));
+    }
+
+    #[test]
+    fn authorize_rejects_unpreauthorized_guard() {
+        let now = chrono::Utc::now();
+        let guard = TemporalExecutionGuard {
+            guard_id: "g-1".into(), scope: test_scope(), priority_frame_ref: "f-1".into(),
+            authorized_action_refs: vec!["a-1".into()], deterministic_critical_path: false,
+            preauthorized: false, issued_at: now, expires_at: now + Duration::hours(1),
+            policy_version: "v1".into(), receipt_ref: "rec-1".into(),
+        };
+        let result = authorize_temporal_action(&test_calendar(now + Duration::hours(1)), &test_frame(now + Duration::hours(1)), Some(&guard), &test_scope(), "ask-1", "a-1", now);
+        assert!(matches!(result, Err(TemporalContextError::GuardNotPreauthorized)));
+    }
+
+    #[test]
+    fn authorize_rejects_action_not_listed() {
+        let now = chrono::Utc::now();
+        let guard = TemporalExecutionGuard {
+            guard_id: "g-1".into(), scope: test_scope(), priority_frame_ref: "f-1".into(),
+            authorized_action_refs: vec!["a-1".into()], deterministic_critical_path: false,
+            preauthorized: true, issued_at: now, expires_at: now + Duration::hours(1),
+            policy_version: "v1".into(), receipt_ref: "rec-1".into(),
+        };
+        let result = authorize_temporal_action(&test_calendar(now + Duration::hours(1)), &test_frame(now + Duration::hours(1)), Some(&guard), &test_scope(), "ask-1", "a-2", now);
+        assert!(matches!(result, Err(TemporalContextError::ActionNotAuthorized)));
+    }
+
+    #[test]
+    fn validate_child_budget_rejects_parent_cap_exceeded() {
+        let budget = ChildTimeoutBudget {
+            budget_id: "b-1".into(), parent_budget_ref: "p-1".into(),
+            original_deadline_monotonic_ns: 1000, dispatched_at_monotonic_ns: 500,
+            remaining_ns: 600, elapsed_deducted_ns: 300, retry_count: 0,
+            cancellation_requested: false, cancellation_acknowledged: false,
+            cancellation_effective: false, possible_effect_requires_reconciliation: false,
+        };
+        assert!(matches!(validate_child_budget(&budget), Err(ChildBudgetError::ParentCapExceeded)));
+    }
+
+    #[test]
+    fn validate_child_budget_passes_valid() {
+        let budget = ChildTimeoutBudget {
+            budget_id: "b-1".into(), parent_budget_ref: "p-1".into(),
+            original_deadline_monotonic_ns: 1000, dispatched_at_monotonic_ns: 500,
+            remaining_ns: 400, elapsed_deducted_ns: 100, retry_count: 0,
+            cancellation_requested: false, cancellation_acknowledged: false,
+            cancellation_effective: false, possible_effect_requires_reconciliation: false,
+        };
+        assert!(validate_child_budget(&budget).is_ok());
+    }
+
+    #[test]
+    fn validate_closure_rejects_non_completion_rollup() {
+        let posture = ClosureTemporalPosture {
+            factual_status: "cancelled".into(), operator_disposition: None,
+            amendment_ref: None, degraded_posture: None, rollup_eligible: true,
+            temporal_failure: false, spec131_closure_ref: "spec131-ref".into(),
+            spec137_temporal_refs: vec![], receipt_refs: vec![],
+        };
+        assert!(matches!(validate_closure_posture(&posture), Err(ClosurePostureError::NonCompletionMasqueradesAsCompletion)));
+    }
+
+    #[test]
+    fn validate_closure_rejects_empty_spec131_ref() {
+        let posture = ClosureTemporalPosture {
+            factual_status: "completed".into(), operator_disposition: None,
+            amendment_ref: None, degraded_posture: None, rollup_eligible: false,
+            temporal_failure: false, spec131_closure_ref: "  ".into(),
+            spec137_temporal_refs: vec![], receipt_refs: vec![],
+        };
+        assert!(matches!(validate_closure_posture(&posture), Err(ClosurePostureError::MissingSpec131Authority)));
+    }
+
+    #[test]
+    fn dependency_activation_requires_all_fields() {
+        let contract = DependencyActivationContract {
+            dependency_name: "spec136".into(), source_commit: "abc123".into(),
+            document_hash: "def456".into(), schema_ref: "schema".into(),
+            ownership_ref: "owner".into(), migration_ref: "migrate".into(),
+            conformance_ref: "conform".into(), approval_receipt_ref: "rec".into(),
+            immutable: true,
+        };
+        assert!(dependency_is_activated(&contract));
+    }
+
+    #[test]
+    fn dependency_activation_rejects_empty_fields() {
+        let contract = DependencyActivationContract {
+            dependency_name: "spec136".into(), source_commit: "  ".into(),
+            document_hash: "def456".into(), schema_ref: "schema".into(),
+            ownership_ref: "owner".into(), migration_ref: "migrate".into(),
+            conformance_ref: "conform".into(), approval_receipt_ref: "rec".into(),
+            immutable: true,
+        };
+        assert!(!dependency_is_activated(&contract));
+    }
+}
