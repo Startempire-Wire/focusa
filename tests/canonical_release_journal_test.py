@@ -14,6 +14,16 @@ module = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
 spec.loader.exec_module(module)
 
+original_focusa_token = module.os.environ.get("FOCUSA_AUTH_TOKEN")
+try:
+    module.os.environ["FOCUSA_AUTH_TOKEN"] = "test-release-token"
+    assert module.focusa_headers()["Authorization"] == "Bearer test-release-token"
+finally:
+    if original_focusa_token is None:
+        module.os.environ.pop("FOCUSA_AUTH_TOKEN", None)
+    else:
+        module.os.environ["FOCUSA_AUTH_TOKEN"] = original_focusa_token
+
 improved = module.metric_comparison(80, 100, "seconds", True)
 assert improved == {
     "current": 80,

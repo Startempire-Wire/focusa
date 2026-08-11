@@ -79,17 +79,25 @@ def api_request(method: str, path: str, payload: dict[str, Any] | None = None) -
         raise RuntimeError(f"agent-kb-api {error.code}: {detail}") from error
 
 
+def focusa_headers() -> dict[str, str]:
+    headers = {
+        "Content-Type": "application/json",
+        "x-scope-project-root": FOCUSA_PROJECT_ROOT,
+        "x-scope-continuity-id": FOCUSA_CONTINUITY_ID,
+    }
+    auth_token = os.environ.get("FOCUSA_AUTH_TOKEN", "").strip()
+    if auth_token:
+        headers["Authorization"] = f"Bearer {auth_token}"
+    return headers
+
+
 def focusa_request(path: str, payload: dict[str, Any]) -> dict[str, Any]:
     base = os.environ.get("FOCUSA_API_URL", DEFAULT_FOCUSA_API).rstrip("/")
     request = urllib.request.Request(
         base + path,
         data=json.dumps(payload, sort_keys=True).encode(),
         method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "x-scope-project-root": FOCUSA_PROJECT_ROOT,
-            "x-scope-continuity-id": FOCUSA_CONTINUITY_ID,
-        },
+        headers=focusa_headers(),
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         return json.loads(response.read())
@@ -97,7 +105,8 @@ def focusa_request(path: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 def focusa_get(path: str) -> dict[str, Any]:
     base = os.environ.get("FOCUSA_API_URL", DEFAULT_FOCUSA_API).rstrip("/")
-    with urllib.request.urlopen(base + path, timeout=30) as response:
+    request = urllib.request.Request(base + path, headers=focusa_headers())
+    with urllib.request.urlopen(request, timeout=30) as response:
         return json.loads(response.read())
 
 
