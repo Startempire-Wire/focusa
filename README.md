@@ -12,13 +12,13 @@
 <p align="center">
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml/badge.svg"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.9.150-blue">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.9.151-blue">
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.91%2B-dea584?logo=rust">
   <img alt="License" src="https://img.shields.io/badge/license-BSL--1.1-orange">
   <img alt="Local first" src="https://img.shields.io/badge/local--first-proof%20layer-2b82ff">
 </p>
 
-Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.150`.
+Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.151`.
 
 > **Evaluator/customer distribution status:** Focusa's lifecycle, release, Workpoint, Evidence, Pi, TUI, and Mission Canvas foundations are advanced, but mandatory authority-issued licensing is not yet implemented end to end. The current Bash/PowerShell `--eval` path self-issues local Evaluation and is now release-blocked. New evaluator/customer installs must wait for Spec 152, Spec 150A, and applicable Spec 152A proof rather than using that legacy bypass.
 
