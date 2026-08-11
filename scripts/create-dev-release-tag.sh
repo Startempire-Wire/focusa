@@ -480,11 +480,6 @@ python3 scripts/verify-version-surfaces.py "${TAG}"
 scripts/verify-doc-version-consistency
 node scripts/validate-docs-runtime-parity.mjs
 
-if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
-  journal_client benchmark --tag "$TAG" --channel "$RELEASE_CHANNEL"
-  echo "Canonical pre-release benchmark accepted for ${TAG}."
-fi
-
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
   git checkout -- Cargo.toml Cargo.lock README.md \
@@ -529,6 +524,13 @@ if [[ "$PUSH" -eq 1 && "$RELEASE_CHANNEL" == "stable" && \
     git add release-proof/audit/
     git commit -m "chore(release): anchor stamped candidate proof"
   fi
+fi
+
+# The benchmark includes final release-gap ancestry checks, so it must observe
+# the committed stamped source and its freshly sealed proof.
+if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
+  journal_client benchmark --tag "$TAG" --channel "$RELEASE_CHANNEL"
+  echo "Canonical pre-release benchmark accepted for ${TAG}."
 fi
 
 if [[ "$PUSH" -eq 1 ]]; then

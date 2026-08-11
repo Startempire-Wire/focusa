@@ -94,7 +94,8 @@ require(
 proof_reseal = TAG_SCRIPT.index("python3 scripts/generate-locked-release-candidate-ancestry.py")
 stamp_commit = TAG_SCRIPT.index('git commit -m "chore: stamp release surfaces ${VERSION}"')
 candidate_push = TAG_SCRIPT.index("  push_candidate_main_with_auto_rebase\n", proof_reseal)
-assert stamp_commit < proof_reseal < candidate_push, "stamped candidate proof is not resealed before source CI"
+benchmark = TAG_SCRIPT.index("journal_client benchmark --tag")
+assert stamp_commit < proof_reseal < benchmark < candidate_push, "benchmark does not use sealed stamped proof"
 assert candidate_push < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before candidate preflight"
 assert TAG_SCRIPT.index('ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"') < TAG_SCRIPT.index('wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"'), "Spec132 wait begins before missing-run dispatch"
 require(
