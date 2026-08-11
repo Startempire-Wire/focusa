@@ -42,6 +42,50 @@ assert payload["phase"] == "plan"
 assert payload["sequence"] == 1
 json.dumps(payload, sort_keys=True)
 
+api_calls = []
+replication_reads = iter(
+    [
+        {"status": "pending", "state": "local_durable"},
+        {
+            "status": "ok",
+            "state": "master_accepted",
+            "master_event_hash": "master-hash",
+        },
+    ]
+)
+original_api_request = module.api_request
+original_sleep = module.time.sleep
+original_ack_setting = module.os.environ.get("AGENT_KB_REQUIRE_MASTER_ACK")
+
+
+def fake_api_request(method, path, body=None):
+    api_calls.append((method, path, body))
+    if method == "POST":
+        return {"status": "appended", "event_hash": "local-hash"}
+    return next(replication_reads)
+
+
+try:
+    module.api_request = fake_api_request
+    module.time.sleep = lambda _seconds: None
+    module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = "1"
+    receipt = module.publish(payload)
+finally:
+    module.api_request = original_api_request
+    module.time.sleep = original_sleep
+    if original_ack_setting is None:
+        module.os.environ.pop("AGENT_KB_REQUIRE_MASTER_ACK", None)
+    else:
+        module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = original_ack_setting
+
+assert receipt["master_acknowledged"] is True
+assert receipt["replication"]["state"] == "master_accepted"
+assert api_calls[1][1].startswith(
+    "/v1/releases/journal?view=replication&event_id="
+)
+assert "focusa%3Av0.9.136%3Aplan%3Atest" in api_calls[1][1]
+assert "view=projection" not in SCRIPT.read_text()
+
 actuals = {"total_elapsed_seconds": 900, "remote_pipeline_seconds": 600, "asset_count": 60, "problems_count": 1}
 estimates = {"total_elapsed_seconds": 1200, "remote_pipeline_seconds": 500, "asset_count": 60, "problems_count": 0}
 deltas = module.estimate_deltas(actuals, estimates)

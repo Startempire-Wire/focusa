@@ -81,6 +81,7 @@ assert 'find bundle/focusa-agent-context/skills -name SKILL.md -type f | grep -q
 assert 'find bundle/focusa-agent-context/skills -name SKILL.md -type f -print -quit' in release
 assert tag_script.count("apps/pi-extension/src/auto-compaction.ts") >= 2
 assert tag_script.count("docs/contracts/spec141/generated-capability-v2/agent-card.json") >= 2
+assert tag_script.count("scripts/install-focusa.sh") >= 2
 assert "scripts/stamp-release-version" in tag_script
 assert "scripts/verify-doc-version-consistency" in tag_script
 assert "validate-docs-runtime-parity.mjs" in tag_script

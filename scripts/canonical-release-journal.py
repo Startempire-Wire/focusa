@@ -12,7 +12,6 @@ import re
 import statistics
 import subprocess
 import sys
-import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -300,16 +299,33 @@ def event(
 def publish(payload: dict[str, Any]) -> dict[str, Any]:
     receipt = api_request("POST", "/v1/releases/journal", payload)
     if os.environ.get("AGENT_KB_REQUIRE_MASTER_ACK", "1") != "0":
+        event_id = str(payload.get("event_id", "")).strip()
+        if not event_id:
+            raise RuntimeError("release journal event_id required for master acknowledgement")
+        replication_path = (
+            "/v1/releases/journal?view=replication&event_id="
+            + urllib.parse.quote(event_id, safe="")
+        )
         deadline = time.monotonic() + 45
         while time.monotonic() < deadline:
-            projection = api_request("GET", "/v1/releases/journal?view=projection").get("projection", {})
-            if projection.get("status") == "ok" and projection.get("replication_pending") == 0:
+            replication = api_request("GET", replication_path)
+            if (
+                replication.get("status") == "ok"
+                and replication.get("state") == "master_accepted"
+                and replication.get("master_event_hash")
+            ):
                 receipt["master_acknowledged"] = True
-                receipt["projection"] = projection
+                receipt["replication"] = replication
                 break
+            if replication.get("status") == "conflict":
+                raise RuntimeError(
+                    f"agent-kb master rejected conflicting event_id {event_id}"
+                )
             time.sleep(1)
         else:
-            raise RuntimeError("agent-kb master acknowledgement timed out")
+            raise RuntimeError(
+                f"agent-kb master acknowledgement timed out for event_id {event_id}"
+            )
     return receipt
 
 
