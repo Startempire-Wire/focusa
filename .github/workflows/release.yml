@@ -360,8 +360,12 @@ jobs:
           | macOS Intel | \`focusa-tui-${TAG}-x86_64-apple-darwin\` | TUI dashboard |
           | macOS Apple Silicon / Intel | \`Focusa_*\` DMG / app archives | Menubar app |
           | Linux x64 glibc | \`focusa-${TAG}-x86_64-unknown-linux-gnu\` | CLI |
+          | Linux x64 musl | \`focusa-${TAG}-x86_64-unknown-linux-musl\` | Portable CLI bootstrap |
+          | Linux ARM64 glibc | \`focusa-${TAG}-aarch64-unknown-linux-gnu\` | CLI |
           | Linux x64 glibc | \`focusa-daemon-${TAG}-x86_64-unknown-linux-gnu\` | API daemon |
+          | Linux ARM64 glibc | \`focusa-daemon-${TAG}-aarch64-unknown-linux-gnu\` | API daemon |
           | Linux x64 glibc | \`focusa-tui-${TAG}-x86_64-unknown-linux-gnu\` | TUI dashboard |
+          | Linux ARM64 glibc | \`focusa-tui-${TAG}-aarch64-unknown-linux-gnu\` | TUI dashboard |
           | Windows x64 | \`focusa-${TAG}-x86_64-pc-windows-msvc.exe\` | CLI |
           | Windows ARM64 | \`focusa-${TAG}-aarch64-pc-windows-msvc.exe\` | CLI |
           | Windows x64 / ARM64 | \`focusa-daemon-${TAG}-*-pc-windows-msvc.exe\` | API daemon |
