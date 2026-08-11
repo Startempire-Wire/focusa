@@ -92,8 +92,6 @@ if ($Target -eq "auto") {
   $ResolvedTarget = "windows-x64"
   $Triple = "x86_64-pc-windows-msvc"
 }
-$AssetName = "focusa-$Triple.exe"
-
 if ($DryRun) {
   $Plan = [ordered]@{
     schema = "focusa.windows_verified_bootstrap_plan.v1"
@@ -115,6 +113,11 @@ function Get-ReleaseAssetUrl([string]$Tag, [string]$Name) {
   return "https://github.com/$GitHubRepo/releases/download/$Tag/$Name"
 }
 
+function Get-BootstrapAssetName([string]$Tag) {
+  # Keep installer lookup identical to immutable release packaging.
+  return "focusa-$Tag-$Triple.exe"
+}
+
 function Get-CompleteRelease {
   if ($ReleaseTag) { return $ReleaseTag }
   $Headers = @{ "User-Agent" = "focusa-installer" }
@@ -127,13 +130,15 @@ function Get-CompleteRelease {
       "nightly" { $Tag -match '^v\d+\.\d+\.\d+-nightly(\..*)?$' }
     }
     if (-not $ChannelMatch) { continue }
+    $AssetName = Get-BootstrapAssetName $Tag
     $Names = @($Release.assets | ForEach-Object { $_.name })
     if ($Names -contains $AssetName -and $Names -contains "SHA256SUMS.txt") { return $Tag }
   }
-  Die "no complete immutable $Channel release contains $AssetName and SHA256SUMS.txt"
+  Die "no complete immutable $Channel release contains a versioned Focusa bootstrap asset and SHA256SUMS.txt"
 }
 
 $Tag = Get-CompleteRelease
+$AssetName = Get-BootstrapAssetName $Tag
 $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("focusa-bootstrap-" + [Guid]::NewGuid().ToString("N"))
 $Bootstrap = Join-Path $TempRoot $AssetName
 $Checksums = Join-Path $TempRoot "SHA256SUMS.txt"
@@ -186,8 +191,18 @@ try {
   if ($NoService) { $Args += "--no-service" }
 
   $Focusa = $Bootstrap
-  & $Focusa @Args
-  if ($LASTEXITCODE -ne 0) { Die "E_INSTALL_INTERRUPTED: focusa install failed with exit code $LASTEXITCODE; prior installation and recovery data remain authoritative" }
+  $PriorReleaseTag = $env:FOCUSA_RELEASE_TAG
+  $PriorReleaseBaseUrl = $env:FOCUSA_RELEASE_BASE_URL
+  try {
+    $env:FOCUSA_RELEASE_TAG = $Tag
+    $env:FOCUSA_RELEASE_BASE_URL = $ReleaseBaseUrl
+    & $Focusa @Args
+    $InstallExitCode = $LASTEXITCODE
+  } finally {
+    $env:FOCUSA_RELEASE_TAG = $PriorReleaseTag
+    $env:FOCUSA_RELEASE_BASE_URL = $PriorReleaseBaseUrl
+  }
+  if ($InstallExitCode -ne 0) { Die "E_INSTALL_INTERRUPTED: focusa install failed with exit code $InstallExitCode; prior installation and recovery data remain authoritative" }
   $Interrupted = $false
   Log "Focusa installation completed through the canonical Rust flow"
 } finally {

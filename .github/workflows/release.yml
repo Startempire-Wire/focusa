@@ -696,6 +696,9 @@ jobs:
             os: macos-latest
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            cross: true
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             musl: true
@@ -725,8 +728,8 @@ jobs:
         with:
           arch: amd64_arm64
 
-      - name: Install cross for musl target
-        if: ${{ matrix.musl == true }}
+      - name: Install cross for cross-compiled target
+        if: ${{ matrix.musl == true || matrix.cross == true }}
         uses: taiki-e/install-action@v2
         with:
           tool: cross
@@ -744,6 +747,8 @@ jobs:
           EOF
             export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
             trap 'rm -f Cross.toml' EXIT
+            cross build --release --target ${{ matrix.target }}
+          elif [ "${{ matrix.cross || false }}" = "true" ]; then
             cross build --release --target ${{ matrix.target }}
           else
             cargo build --release --target ${{ matrix.target }}

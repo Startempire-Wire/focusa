@@ -381,6 +381,8 @@ jobs:
           esac
           TRIPLE='x86_64-unknown-linux-musl'
           RELEASED_CLI="focusa-${TAG}-${TRIPLE}"
+          PUBLISHED_INSTALLER="focusa-installer-${TAG}.sh"
+          PUBLISHED_PS1="focusa-installer-${TAG}.ps1"
           ASSETS="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
           for required in \
             deploy-success.json deploy-success.json.sig \
@@ -388,6 +390,7 @@ jobs:
             release-provenance.json release-provenance.json.sig \
             focusa-trusted-release-keys.json focusa-trusted-release-keys.json.sig \
             SHA256SUMS.txt SHA256SUMS.txt.sig \
+            "$PUBLISHED_INSTALLER" "$PUBLISHED_PS1" \
             "$RELEASED_CLI" "${RELEASED_CLI}.sig"; do
             grep -Fxq "$required" <<<"$ASSETS" || {
               echo "OTA release gate: missing required asset $required" >&2
@@ -397,8 +400,37 @@ jobs:
           gh release download "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --pattern "$RELEASED_CLI" \
+            --pattern "$PUBLISHED_INSTALLER" \
+            --pattern "$PUBLISHED_PS1" \
+            --pattern 'SHA256SUMS.txt' \
+            --pattern 'release-manifest.json' \
             --dir /tmp/focusa-release \
             --clobber
+
+          echo "Gate published bootstrapper asset resolution"
+          grep -Fq 'ASSET="focusa-${RELEASE_TAG}-${TRIPLE}"' "/tmp/focusa-release/$PUBLISHED_INSTALLER"
+          grep -Fq 'return "focusa-$Tag-$Triple.exe"' "/tmp/focusa-release/$PUBLISHED_PS1"
+          for triple in \
+            x86_64-unknown-linux-musl aarch64-unknown-linux-gnu \
+            x86_64-apple-darwin aarch64-apple-darwin \
+            x86_64-pc-windows-msvc aarch64-pc-windows-msvc; do
+            ASSET="focusa-${TAG}-${triple}"
+            case "$triple" in *-pc-windows-msvc) ASSET="${ASSET}.exe" ;; esac
+            grep -Fxq "$ASSET" <<<"$ASSETS" || {
+              echo "published bootstrapper gate: missing $ASSET" >&2
+              exit 1
+            }
+            awk -v asset="$ASSET" \
+              '$2 == asset || $2 == "*" asset { found=1 } END { exit !found }' \
+              /tmp/focusa-release/SHA256SUMS.txt
+            jq -e --arg asset "$ASSET" \
+              '.assets[$asset].sha256 | type == "string" and length == 64' \
+              /tmp/focusa-release/release-manifest.json >/dev/null
+            curl --http1.1 -fsSIL --retry 3 --retry-delay 2 \
+              "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ASSET}" \
+              >/dev/null
+          done
+
           chmod 0755 "/tmp/focusa-release/$RELEASED_CLI"
           "/tmp/focusa-release/$RELEASED_CLI" update plan \
             --channel "$CHANNEL" \

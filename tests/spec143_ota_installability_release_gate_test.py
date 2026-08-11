@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 release = (ROOT / ".github/workflows/release.yml").read_text()
 deploy = (ROOT / ".github/workflows/deploy-live-daemon.yml").read_text()
 installer = (ROOT / "scripts/install-focusa.sh").read_text()
+installer_ps1 = (ROOT / "scripts/install-focusa.ps1").read_text()
 install_rs = (ROOT / "crates/focusa-cli/src/commands/install.rs").read_text()
 update = (ROOT / "crates/focusa-cli/src/commands/update.rs").read_text()
 trust = (ROOT / "crates/focusa-cli/src/commands/update_trust.rs").read_text()
@@ -17,6 +18,8 @@ assert "musl: true" in release
 assert '-f asset_suffix="x86_64-unknown-linux-musl"' in release
 assert '-f asset_suffix="x86_64-unknown-linux-gnu"' not in release
 assert "cross build --release --target ${{ matrix.target }}" in release
+assert "target: aarch64-unknown-linux-gnu" in release
+assert "matrix.musl == true || matrix.cross == true" in release
 assert "if: ${{ startsWith(github.ref, 'refs/tags/') }}" in release
 assert "startsWith(github.ref, refs/tags/)" not in release
 assert "NODE_OPTIONS: --use-system-ca" in release
@@ -29,6 +32,14 @@ assert "ota-update-plan.json" in deploy
 assert ".latest.trust.deploy_proof_verified == true" in deploy
 assert ".apply_allowed == true" in deploy
 assert "ota-installability-proof-${{ steps.cfg.outputs.tag }}" in deploy
+assert "Gate published bootstrapper asset resolution" in deploy
+assert 'PUBLISHED_INSTALLER="focusa-installer-${TAG}.sh"' in deploy
+assert 'PUBLISHED_PS1="focusa-installer-${TAG}.ps1"' in deploy
+assert 'ASSET="focusa-${TAG}-${triple}"' in deploy
+assert "x86_64-unknown-linux-musl" in deploy
+assert "aarch64-apple-darwin" in deploy
+assert "x86_64-pc-windows-msvc" in deploy
+assert "curl --http1.1 -fsSIL" in deploy
 assert "/home/focusadev/install.focusa.dev/public_html/focusa" in deploy
 assert 'curl -fsSL "https://install.focusa.dev/focusa?deploy_run=${GITHUB_RUN_ID}"' in deploy
 sync_installer = (ROOT / "scripts/sync-install-bootstrapper.sh").read_text()
@@ -38,6 +49,13 @@ assert 'for target in "$LIVE" "$ALIAS"' in sync_installer
 
 assert 'Linux:x86_64|Linux:amd64) TRIPLE="x86_64-unknown-linux-musl"' in installer
 assert 'x86_64|amd64) TRIPLE="x86_64-unknown-linux-musl"' in installer
+assert 'ASSET="focusa-${RELEASE_TAG}-${TRIPLE}"' in installer
+assert 'ASSET="focusa-${TRIPLE}"' not in installer
+assert 'export FOCUSA_RELEASE_TAG="$RELEASE_TAG"' in installer
+assert 'export FOCUSA_RELEASE_BASE_URL="$RELEASE_BASE_URL"' in installer
+assert 'return "focusa-$Tag-$Triple.exe"' in installer_ps1
+assert '$AssetName = "focusa-$Triple.exe"' not in installer_ps1
+assert '$env:FOCUSA_RELEASE_TAG = $Tag' in installer_ps1
 assert 'InstallTarget::Linux => "x86_64-unknown-linux-musl".to_string()' in install_rs
 assert '"deploy-success.json"' in trust
 assert '"deploy-success.json.sig"' in trust

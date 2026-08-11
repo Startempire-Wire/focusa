@@ -70,6 +70,25 @@ grep -qi 'checksum mismatch' "$PS1" \
   || fail "install-focusa.ps1 missing checksum mismatch failure path"
 pass "checksum verification failure paths retained in Rust + thin scripts"
 
+# Release packaging publishes immutable-tag-qualified CLI binaries. The public
+# bootstrappers must request those exact names and pin the Rust handoff to the
+# same release instead of the removed unversioned aliases.
+grep -qF 'ASSET="focusa-${RELEASE_TAG}-${TRIPLE}"' "$SH" \
+  || fail "install-focusa.sh does not request the versioned release CLI asset"
+! grep -qF 'ASSET="focusa-${TRIPLE}"' "$SH" \
+  || fail "install-focusa.sh still requests the missing unversioned CLI asset"
+grep -qF 'export FOCUSA_RELEASE_TAG="$RELEASE_TAG"' "$SH" \
+  || fail "install-focusa.sh does not pin Rust delegation to the verified release"
+grep -qF 'export FOCUSA_RELEASE_BASE_URL="$RELEASE_BASE_URL"' "$SH" \
+  || fail "install-focusa.sh does not pin Rust delegation to the verified mirror"
+grep -qF 'return "focusa-$Tag-$Triple.exe"' "$PS1" \
+  || fail "install-focusa.ps1 does not request the versioned release CLI asset"
+! grep -qF '$AssetName = "focusa-$Triple.exe"' "$PS1" \
+  || fail "install-focusa.ps1 still requests the missing unversioned CLI asset"
+grep -qF '$env:FOCUSA_RELEASE_TAG = $Tag' "$PS1" \
+  || fail "install-focusa.ps1 does not pin Rust delegation to the verified release"
+pass "Unix and Windows bootstrappers match immutable release asset naming"
+
 # Thin bootstrapper contract: scripts download focusa, then delegate to Rust install.
 # Bash invokes directly so it can preserve the exact Rust exit status and recovery hint.
 for marker in 'ARGS=(install --target="$RUST_TARGET"' 'if "$BOOTSTRAP_BIN" "${ARGS[@]}"; then' \

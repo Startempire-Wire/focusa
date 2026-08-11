@@ -205,7 +205,9 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-bootstrap.XXXXXX")"
 cleanup() { rm -rf -- "$TMP"; }
 trap cleanup EXIT INT TERM
 
-ASSET="focusa-${TRIPLE}"
+# Canonical release binaries are immutable-tag qualified. Keep the bootstrap
+# lookup identical to release packaging and the signed checksum manifest.
+ASSET="focusa-${RELEASE_TAG}-${TRIPLE}"
 [ "$RUST_TARGET" != "windows-x64" ] && [ "$RUST_TARGET" != "windows-arm64" ] || ASSET="${ASSET}.exe"
 BOOTSTRAP_BIN="$TMP/$ASSET"
 CHECKSUM_MANIFEST="$TMP/SHA256SUMS.txt"
@@ -258,6 +260,8 @@ restore_bootstrap_stash() {
 
 # The Rust installer performs entitlement acquisition before product asset download,
 # atomically activates assets, verifies daemon lease parity, and emits recovery hints.
+export FOCUSA_RELEASE_TAG="$RELEASE_TAG"
+export FOCUSA_RELEASE_BASE_URL="$RELEASE_BASE_URL"
 if "$BOOTSTRAP_BIN" "${ARGS[@]}"; then
   rm -rf "$BOOTSTRAP_STASH"
   log "Focusa installation completed through the canonical Rust flow"

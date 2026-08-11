@@ -32,11 +32,11 @@ pub enum UpdateCmd {
     Check(UpdateStatusArgs),
     /// Read-only update plan. Shows what would change, prompts, compatibility gates, and restart impact.
     Plan(UpdateStatusArgs),
-    /// Guarded update apply surface. Defaults to dry-run/blocked; no mutation until all gates are wired.
+    /// Guarded update apply. Mutates only with explicit consent and complete signed-release trust.
     Apply(UpdateApplyArgs),
     /// Read-only update history/observability view.
     History(UpdateHistoryArgs),
-    /// Read-only rollback plan. Does not restore binaries unless future gates are wired.
+    /// Guarded rollback. Defaults to dry-run and restores only SHA-verified backups with consent.
     Rollback(UpdateRollbackArgs),
     /// Read-only admin control preview: pin/skip/pause/resume/force-check/trusted-dev-force-latest.
     Admin(UpdateAdminArgs),
@@ -155,7 +155,7 @@ pub struct UpdateApplyArgs {
     #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
     pub dry_run: bool,
 
-    /// Explicit operator consent for future apply. Still blocked until implementation gates pass.
+    /// Explicit operator consent. Required with --allow-apply and --dry-run=false.
     #[arg(long)]
     pub yes: bool,
 
@@ -2523,7 +2523,7 @@ fn part_plan(part: &InstalledPart, latest: &LatestVersion, order: &mut u8) -> Pa
 fn print_plan_human(plan: &UpdatePlanEnvelope) {
     println!("Focusa update plan (read-only)");
     println!("channel: {} target: {}", plan.channel, plan.latest.version);
-    println!("apply_allowed: false");
+    println!("apply_allowed: {}", plan.apply_allowed);
     println!("compatibility: {}", plan.compatibility.status);
     if !plan.apply_blocked_until.is_empty() {
         println!("blocked_until: {}", plan.apply_blocked_until.join(", "));

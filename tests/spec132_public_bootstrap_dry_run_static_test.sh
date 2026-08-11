@@ -21,7 +21,9 @@ assert 'entitlement: signed authority lease' in dry_run_block
 # The delegation call must be constructed only after the dry-run guard.
 delegate_index = text.index('ARGS=(install ')
 assert delegate_index > dry_run_end, "delegation precedes dry-run guard"
-assert 'exec' in text[delegate_index:delegate_index + 600] or 'BOOTSTRAP_BIN' in text[delegate_index:delegate_index + 800], "delegation does not run the Rust installer"
+delegate_tail = text[delegate_index:]
+assert 'if "$BOOTSTRAP_BIN" "${ARGS[@]}"; then' in delegate_tail, "delegation does not run the Rust installer"
+assert delegate_tail.count('if "$BOOTSTRAP_BIN" "${ARGS[@]}"; then') == 1, "delegation must execute exactly once"
 
 # Uninstall delegation preserves data by default (Spec 132).
 assert 'uninstall --yes' in text
