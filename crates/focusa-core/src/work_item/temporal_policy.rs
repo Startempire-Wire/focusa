@@ -31,6 +31,7 @@ pub enum TemporalSelectionPolicy {
 ///
 /// Returns the scheduling policy based on deadline comparison, time budget,
 /// and operator priority frame validity.
+#[allow(clippy::too_many_arguments)]
 pub fn evaluate_temporal_selection_policy(
     now: DateTime<Utc>,
     item_deadline_at: Option<DateTime<Utc>>,
