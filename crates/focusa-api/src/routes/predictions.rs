@@ -71,8 +71,6 @@ struct ScopedPredictionQuery {
     canonical_name: String,
     fingerprint: String,
     continuity_id: String,
-    #[serde(default)]
-    limit: Option<usize>,
 }
 
 impl ScopedPredictionQuery {
@@ -322,54 +320,6 @@ async fn record(
     }
 }
 
-async fn recent(
-    request_scope: ScopeContext,
-    State(state): State<Arc<AppState>>,
-    Query(query): Query<ScopedPredictionQuery>,
-) -> Json<Value> {
-    let scope = match query.workstream() {
-        Ok(scope) => scope,
-        Err(error) => {
-            let fallback = WorkstreamKey {
-                root_scope: ScopeRef {
-                    scope_kind: query.scope_kind,
-                    scope_id: query.scope_id,
-                    root_path: query.root_path.into(),
-                    canonical_name: query.canonical_name,
-                    fingerprint: query.fingerprint,
-                },
-                continuity_id: query.continuity_id,
-            };
-            return blocked(fallback, "Prediction query scope is invalid", error);
-        }
-    };
-    if !request_scope_matches(&request_scope, &scope) {
-        return blocked(
-            scope,
-            "Request scope and prediction query scope differ",
-            "typed request scope mismatch",
-        );
-    }
-    let limit = query.limit.unwrap_or(20).clamp(1, 100);
-    match state.prediction_store.recent(&scope, limit).await {
-        Ok(records) => {
-            let hint = evaluate_hint(&records);
-            response(
-                scope,
-                AuthorityStatus::Canonical,
-                "completed",
-                format!("{} scoped prediction record(s)", records.len()),
-                hint.get("next_tool")
-                    .and_then(Value::as_str)
-                    .unwrap_or("focusa_predict_record"),
-                "Only records from the exact typed workstream were queried.",
-                json!({"predictions":records.iter().map(compact_record).collect::<Vec<_>>(),"evaluate_hint":hint}),
-                vec![],
-            )
-        }
-        Err(error) => blocked(scope, "Prediction read failed", error.to_string()),
-    }
-}
 async fn evaluate(
     request_scope: ScopeContext,
     State(state): State<Arc<AppState>>,
@@ -639,7 +589,6 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/predictions", post(record))
         .route("/v1/predictions/capture-outcome", post(capture_outcome))
-        .route("/v1/predictions/recent", get(recent))
         .route("/v1/predictions/stats", get(stats))
         .route("/v1/predictions/{prediction_id}/evaluate", post(evaluate))
 }

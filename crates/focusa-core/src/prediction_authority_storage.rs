@@ -1,6 +1,4 @@
-use crate::prediction_authority_ledger::{
-    PredictionAuthorityLedger, PredictionAuthorityProjection,
-};
+use crate::prediction_authority_ledger::{PredictionAuthorityLedger, PredictionAuthorityProjection};
 use crate::{
     prediction_authority::{EpistemicScope, PredictionAuthorityEvent, ScopedAuthorityEvent},
     scoped_state::ScopeKind,
@@ -202,6 +200,8 @@ impl PersistentPredictionAuthorityLedger {
         if event.receipt_ref.trim().is_empty() {
             return Err(PredictionStorageError::MissingReceipt);
         }
+        crate::prediction_authority_validation::validate_scoped_authority_event(event)
+            .map_err(PredictionStorageError::InvalidPrimitive)?;
         match &event.event {
             PredictionAuthorityEvent::EpistemicPrimitive(record) => {
                 crate::epistemic_primitives::validate_epistemic_primitive(record).map_err(

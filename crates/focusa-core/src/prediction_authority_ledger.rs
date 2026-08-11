@@ -37,8 +37,13 @@ pub struct PredictionAuthorityProjection {
     pub action_outcomes: BTreeMap<String, ActionOutcomeObservation>,
     pub action_patterns: BTreeMap<String, ActionDeltaPattern>,
     pub resolutions: BTreeMap<String, OutcomeResolution>,
+    pub outcome_claims: BTreeMap<String, OutcomeClaim>,
+    pub scoring_policies: BTreeMap<String, ScoringPolicy>,
     pub evaluations: BTreeMap<String, PredictionEvaluation>,
+    pub learning_candidates: BTreeMap<String, LearningCandidate>,
+    pub promotion_decisions: BTreeMap<String, PromotionDecision>,
     pub learning: BTreeMap<String, LearningRecord>,
+    pub transfer_predictions: BTreeMap<String, TransferPrediction>,
     pub transfers: BTreeMap<String, TransferOutcome>,
 }
 
@@ -50,9 +55,7 @@ pub struct PredictionAuthorityLedger {
 
 impl PredictionAuthorityLedger {
     pub fn append(&mut self, event: ScopedAuthorityEvent) -> Result<(), String> {
-        if event.scope.validate().is_err() {
-            return Err("typed project/workstream scope required".into());
-        }
+        crate::prediction_authority_validation::validate_scoped_authority_event(&event)?;
         if self.event_ids.contains(&event.event_id) {
             return Err("append-only event id already exists".into());
         }
@@ -159,27 +162,51 @@ impl PredictionAuthorityLedger {
                         .action_patterns
                         .insert(value.pattern_id.clone(), value.clone());
                 }
+                PredictionAuthorityEvent::OutcomeClaim(value) => {
+                    projection
+                        .outcome_claims
+                        .insert(value.claim_id.clone(), value.clone());
+                }
                 PredictionAuthorityEvent::OutcomeResolution(value) => {
                     projection
                         .resolutions
                         .insert(value.resolution_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::ScoringPolicy(value) => {
+                    projection
+                        .scoring_policies
+                        .insert(value.policy_ref(), value.clone());
                 }
                 PredictionAuthorityEvent::Evaluation(value) => {
                     projection
                         .evaluations
                         .insert(value.evaluation_id.clone(), value.clone());
                 }
+                PredictionAuthorityEvent::LearningCandidate(value) => {
+                    projection
+                        .learning_candidates
+                        .insert(value.candidate_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::PromotionDecision(value) => {
+                    projection
+                        .promotion_decisions
+                        .insert(value.decision_id.clone(), value.clone());
+                }
                 PredictionAuthorityEvent::LearningRecord(value) => {
                     projection
                         .learning
                         .insert(value.learning_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::TransferPrediction(value) => {
+                    projection
+                        .transfer_predictions
+                        .insert(value.transfer_id.clone(), value.clone());
                 }
                 PredictionAuthorityEvent::TransferOutcome(value) => {
                     projection
                         .transfers
                         .insert(value.outcome_id.clone(), value.clone());
                 }
-                _ => {}
             }
         }
         projection

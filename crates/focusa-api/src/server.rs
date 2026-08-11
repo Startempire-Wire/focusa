@@ -601,6 +601,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::project_genesis::router())
         .merge(routes::predictions::router())
         .merge(routes::prediction_authority::router())
+        .merge(routes::prediction_authority_canonical::router())
         .merge(routes::rfm::router())
         .merge(routes::resource::router())
         .merge(routes::reflection::router())

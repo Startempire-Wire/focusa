@@ -59,6 +59,7 @@ pub mod mission_canvas_surfaces;
 pub mod ontology;
 pub mod permissions;
 pub mod prediction_authority;
+pub mod prediction_authority_canonical;
 pub mod predictions;
 pub mod preload;
 pub mod project;
