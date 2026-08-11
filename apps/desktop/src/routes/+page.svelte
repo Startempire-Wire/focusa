@@ -30,7 +30,7 @@
     contention: 'approvals', evidence: 'evidence', documents: 'documents', research: 'research', 'agent-runtime': 'runtime'
   };
 
-  let activeWorkspaceId = $state('mission-canvas');
+  let activeWorkspaceId = $state('mission-deck');
   let uiMode = $state<'tui' | 'canvas'>('canvas');
   let shellMode = $state<'browser preview' | 'native desktop'>('browser preview');
   let daemon = $state<DaemonReadStatus>({
