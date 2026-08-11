@@ -397,21 +397,10 @@ pub fn router() -> Router<Arc<AppState>> {
         temporal_canonical_read as read,
     };
     Router::new()
-        .route("/v1/time/now", get(read::now))
         .route("/v1/time/awareness", get(read::awareness))
         .route("/v1/time/status", get(read::time_status))
-        .route("/v1/time/trust", get(read::trust))
-        .route("/v1/time/samples", get(read::samples))
-        .route("/v1/time/capabilities", get(read::capabilities))
         .route("/v1/time/stream", get(read::stream))
-        .route("/v1/deadline/set", post(mutation::deadline_set))
-        .route("/v1/deadline/revise", post(mutation::deadline_revise))
-        .route("/v1/deadline/clear", post(mutation::deadline_clear))
         .route("/v1/deadlines", get(read::deadlines))
-        .route(
-            "/v1/deadline/resolve-civil",
-            post(operations::resolve_civil),
-        )
         .route("/v1/deadline/conflicts", get(read::conflicts))
         .route("/v1/deadline/propagate", post(operations::propagate))
         .route("/v1/deadline/{id}", get(read::deadline))
@@ -422,17 +411,12 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         .route("/v1/temporal/guard/revoke", post(mutation::guard_revoke))
         .route("/v1/cancellation/request", post(operations::cancellation))
-        .route("/v1/cancellation/{id}", get(read::entity))
-        .route("/v1/estimate/request", post(operations::estimate_request))
-        .route("/v1/estimate/validate", post(operations::validate_claims))
-        .route("/v1/estimate/evaluate", post(operations::estimate_evaluate))
         .route("/v1/estimate/history", get(read::estimates))
         .route("/v1/estimate/{id}", get(read::entity))
         .route(
             "/v1/response/temporal-claims/validate",
             post(operations::validate_claims),
         )
-        .route("/v1/progress/record", post(operations::progress_record))
         .route("/v1/progress/status", get(read::progress))
         .route("/v1/no-progress/incidents", get(read::no_progress))
         .route("/v1/lost-time/incidents", get(read::lost_time))

@@ -5,7 +5,10 @@ from pathlib import Path
 R = Path(__file__).resolve().parents[1]
 cli = (R / "crates/focusa-cli/src/commands/temporal_clients.rs").read_text()
 main = (R / "crates/focusa-cli/src/main.rs").read_text()
-api = (R / "crates/focusa-api/src/routes/temporal_clients.rs").read_text()
+api = "\n".join([
+    (R / "crates/focusa-api/src/routes/temporal.rs").read_text(),
+    (R / "crates/focusa-api/src/routes/temporal_clients.rs").read_text(),
+])
 pi = (R / "apps/pi-extension/src/tools.ts").read_text()
 tui = (R / "crates/focusa-tui/src/mission_control.rs").read_text()
 menubar = (R / "apps/menubar/src/lib/components/TemporalAuthorityPeek.svelte").read_text()

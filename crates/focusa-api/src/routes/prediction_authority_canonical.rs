@@ -84,13 +84,25 @@ impl Operation {
     fn accepts(self, event: &PredictionAuthorityEvent) -> bool {
         match self {
             Self::Question => matches!(event, PredictionAuthorityEvent::Question(_)),
-            Self::InformationSet => matches!(event, PredictionAuthorityEvent::EpistemicPrimitive(value) if value.descriptor.family_section == 7),
+            Self::InformationSet => {
+                matches!(event, PredictionAuthorityEvent::EpistemicPrimitive(value) if value.descriptor.family_section == 7)
+            }
             Self::Commitment => matches!(event, PredictionAuthorityEvent::Commitment(_)),
-            Self::Supersede => matches!(event, PredictionAuthorityEvent::EpistemicPrimitive(value) if value.descriptor.primitive == "PredictionSupersession"),
+            Self::Supersede => {
+                matches!(event, PredictionAuthorityEvent::EpistemicPrimitive(value) if value.descriptor.primitive == "PredictionSupersession")
+            }
             Self::OutcomeClaim => matches!(event, PredictionAuthorityEvent::OutcomeClaim(_)),
-            Self::OutcomeDispute => matches!(event, PredictionAuthorityEvent::OutcomeAuthority(value) if matches!(value.action, focusa_core::outcome_resolution::OutcomeAuthorityAction::Dispute { .. })),
-            Self::OutcomeResolve => matches!(event, PredictionAuthorityEvent::OutcomeResolution(_) | PredictionAuthorityEvent::OutcomeAuthority(_)),
-            Self::OutcomeCorrect => matches!(event, PredictionAuthorityEvent::OutcomeAuthority(value) if matches!(value.action, focusa_core::outcome_resolution::OutcomeAuthorityAction::Correct { .. })),
+            Self::OutcomeDispute => {
+                matches!(event, PredictionAuthorityEvent::OutcomeAuthority(value) if matches!(value.action, focusa_core::outcome_resolution::OutcomeAuthorityAction::Dispute { .. }))
+            }
+            Self::OutcomeResolve => matches!(
+                event,
+                PredictionAuthorityEvent::OutcomeResolution(_)
+                    | PredictionAuthorityEvent::OutcomeAuthority(_)
+            ),
+            Self::OutcomeCorrect => {
+                matches!(event, PredictionAuthorityEvent::OutcomeAuthority(value) if matches!(value.action, focusa_core::outcome_resolution::OutcomeAuthorityAction::Correct { .. }))
+            }
             Self::Evaluation => matches!(event, PredictionAuthorityEvent::Evaluation(_)),
             Self::MetacogSignal => matches!(event, PredictionAuthorityEvent::EpistemicPrimitive(_)),
             Self::Reflection => matches!(event, PredictionAuthorityEvent::ReflectionClaim(_)),
@@ -100,11 +112,22 @@ impl Operation {
             }
             Self::LearningApply => matches!(event, PredictionAuthorityEvent::LearningRecord(_)),
             Self::TransferResolve => matches!(event, PredictionAuthorityEvent::TransferOutcome(_)),
-            Self::LearningExpire | Self::LearningSupersede | Self::LearningRevoke | Self::LearningRollback => {
-                matches!(event, PredictionAuthorityEvent::LearningRecord(_) | PredictionAuthorityEvent::MemoryLifecycle(_))
+            Self::LearningExpire
+            | Self::LearningSupersede
+            | Self::LearningRevoke
+            | Self::LearningRollback => {
+                matches!(
+                    event,
+                    PredictionAuthorityEvent::LearningRecord(_)
+                        | PredictionAuthorityEvent::MemoryLifecycle(_)
+                )
             }
             Self::LearningConsolidate => {
-                matches!(event, PredictionAuthorityEvent::LearningSettlement(_) | PredictionAuthorityEvent::MemoryLifecycle(_))
+                matches!(
+                    event,
+                    PredictionAuthorityEvent::LearningSettlement(_)
+                        | PredictionAuthorityEvent::MemoryLifecycle(_)
+                )
             }
         }
     }
@@ -117,7 +140,10 @@ async fn append(
     path_id: Option<&str>,
 ) -> ApiResult {
     if body.scope != body.event.scope {
-        return Err(invalid("scope_mismatch", "body scope and event scope differ"));
+        return Err(invalid(
+            "scope_mismatch",
+            "body scope and event scope differ",
+        ));
     }
     if !operation.accepts(&body.event.event) {
         return Err(invalid(
@@ -168,7 +194,11 @@ fn event_references_id(event: &PredictionAuthorityEvent, id: &str) -> bool {
         }
         PredictionAuthorityEvent::EpistemicPrimitive(value) => {
             value.value.get("prediction_id").and_then(Value::as_str) == Some(id)
-                || value.value.get("supersedes_prediction_id").and_then(Value::as_str) == Some(id)
+                || value
+                    .value
+                    .get("supersedes_prediction_id")
+                    .and_then(Value::as_str)
+                    == Some(id)
                 || value.value.get("commitment_id").and_then(Value::as_str) == Some(id)
         }
         PredictionAuthorityEvent::OutcomeAuthority(value) => {
@@ -183,7 +213,10 @@ fn event_references_id(event: &PredictionAuthorityEvent, id: &str) -> bool {
 
 macro_rules! write_handler {
     ($name:ident, $operation:expr) => {
-        async fn $name(State(state): State<Arc<AppState>>, Json(body): Json<WriteBody>) -> ApiResult {
+        async fn $name(
+            State(state): State<Arc<AppState>>,
+            Json(body): Json<WriteBody>,
+        ) -> ApiResult {
             append(state, body, $operation, None).await
         }
     };
@@ -223,7 +256,10 @@ path_write_handler!(learning_revoke, Operation::LearningRevoke);
 path_write_handler!(learning_rollback, Operation::LearningRollback);
 write_handler!(learning_consolidate, Operation::LearningConsolidate);
 
-fn projection(state: &AppState, scope: WorkstreamKey) -> Result<focusa_core::prediction_authority_ledger::PredictionAuthorityProjection, ApiError> {
+fn projection(
+    state: &AppState,
+    scope: WorkstreamKey,
+) -> Result<focusa_core::prediction_authority_ledger::PredictionAuthorityProjection, ApiError> {
     PersistentPredictionAuthorityLedger::for_scope(scope, Some(&state.config.data_dir))
         .map_err(storage_error)?
         .projection()
@@ -243,12 +279,20 @@ async fn prediction_get(
         .ok_or_else(|| (StatusCode::NOT_FOUND, Json(json!({"status":"blocked","error":"prediction_not_found"}))))
 }
 
-async fn predictions_recent(State(state): State<Arc<AppState>>, Query(query): Query<ScopeQuery>) -> ApiResult {
+async fn predictions_recent(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ScopeQuery>,
+) -> ApiResult {
     let projection = projection(&state, query.scope()?)?;
-    Ok(Json(json!({"status":"completed","canonical":true,"predictions":projection.commitments.values().collect::<Vec<_>>(),"sequence":projection.sequence})))
+    Ok(Json(
+        json!({"status":"completed","canonical":true,"predictions":projection.commitments.values().collect::<Vec<_>>(),"sequence":projection.sequence}),
+    ))
 }
 
-async fn calibration_reports(State(state): State<Arc<AppState>>, Query(query): Query<ScopeQuery>) -> ApiResult {
+async fn calibration_reports(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ScopeQuery>,
+) -> ApiResult {
     let projection = projection(&state, query.scope()?)?;
     let value = serde_json::to_value(&projection)
         .map_err(|error| invalid("projection_encoding_failed", error.to_string()))?;
@@ -259,7 +303,10 @@ async fn calibration_reports(State(state): State<Arc<AppState>>, Query(query): Q
     })))
 }
 
-async fn learning_retrieve(State(state): State<Arc<AppState>>, Query(query): Query<ScopeQuery>) -> ApiResult {
+async fn learning_retrieve(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ScopeQuery>,
+) -> ApiResult {
     let projection = projection(&state, query.scope()?)?;
     let value = serde_json::to_value(&projection)
         .map_err(|error| invalid("projection_encoding_failed", error.to_string()))?;
@@ -271,23 +318,45 @@ async fn learning_retrieve(State(state): State<Arc<AppState>>, Query(query): Que
     })))
 }
 
-async fn learning_conflicts(State(state): State<Arc<AppState>>, Query(query): Query<ScopeQuery>) -> ApiResult {
+async fn learning_conflicts(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ScopeQuery>,
+) -> ApiResult {
     let projection = projection(&state, query.scope()?)?;
-    let conflicts = projection.learning.values().filter(|record| !record.applicability.excludes.is_empty()).collect::<Vec<_>>();
-    Ok(Json(json!({"status":"completed","canonical":true,"conflicts":conflicts,"sequence":projection.sequence})))
+    let conflicts = projection
+        .learning
+        .values()
+        .filter(|record| !record.applicability.excludes.is_empty())
+        .collect::<Vec<_>>();
+    Ok(Json(
+        json!({"status":"completed","canonical":true,"conflicts":conflicts,"sequence":projection.sequence}),
+    ))
 }
 
-async fn self_model(State(state): State<Arc<AppState>>, Query(query): Query<ScopeQuery>) -> ApiResult {
+async fn self_model(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ScopeQuery>,
+) -> ApiResult {
     let projection = projection(&state, query.scope()?)?;
-    Ok(Json(json!({"status":"completed","canonical":true,"self_model":projection.self_model,"sequence":projection.sequence})))
+    Ok(Json(
+        json!({"status":"completed","canonical":true,"self_model":projection.self_model,"sequence":projection.sequence}),
+    ))
 }
 
 fn invalid(code: &str, reason: impl Into<String>) -> ApiError {
-    (StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"status":"blocked","error":code,"reason":reason.into()})))
+    (
+        StatusCode::UNPROCESSABLE_ENTITY,
+        Json(json!({"status":"blocked","error":code,"reason":reason.into()})),
+    )
 }
 
 fn storage_error(error: PredictionStorageError) -> ApiError {
-    (StatusCode::CONFLICT, Json(json!({"status":"blocked","failure_class":"prediction_authority_storage","error":format!("{error:?}")})))
+    (
+        StatusCode::CONFLICT,
+        Json(
+            json!({"status":"blocked","failure_class":"prediction_authority_storage","error":format!("{error:?}")}),
+        ),
+    )
 }
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -308,7 +377,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/metacognition/reflections", post(metacog_reflection))
         .route("/v1/metacognition/adjustments", post(metacog_adjustment))
         .route("/v1/metacognition/evaluations", post(metacog_evaluation))
-        .route("/v1/learning/candidates/{id}/decide", post(candidate_decide))
+        .route(
+            "/v1/learning/candidates/{id}/decide",
+            post(candidate_decide),
+        )
         .route("/v1/learning/{id}/apply", post(learning_apply))
         .route("/v1/learning/transfers/resolve", post(transfer_resolve))
         .route("/v1/learning/retrieve", get(learning_retrieve))
