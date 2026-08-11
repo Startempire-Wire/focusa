@@ -19,8 +19,10 @@ set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 SRC="${REPO_ROOT}/scripts/install-focusa.sh"
-LIVE_DIR="/home/focusadev/install.focusa.dev/public_html/installers"
+DOCROOT="/home/focusadev/install.focusa.dev/public_html"
+LIVE_DIR="${DOCROOT}/installers"
 LIVE="${LIVE_DIR}/install-focusa.sh"
+ALIAS="${DOCROOT}/focusa"
 
 # Live docroot is owned by focusadev; mutate it as that user so the deploy
 # runner never creates root/wirebot-owned files in a cPanel account.
@@ -35,6 +37,7 @@ as_focusadev() {
 sync_copy() {
   as_focusadev mkdir -p "$LIVE_DIR"
   as_focusadev install -m 0755 "$SRC" "$LIVE"
+  as_focusadev install -m 0755 "$SRC" "$ALIAS"
 }
 
 mode="sync"
@@ -54,14 +57,20 @@ if [ "$mode" = "check" ]; then
     exit 1
   fi
   source_sha="$(sha256sum "$SRC" | awk '{print $1}')"
-  live_sha="$(as_focusadev sha256sum "$LIVE" | awk '{print $1}')"
-  if [ "$source_sha" != "$live_sha" ]; then
-    [ "$quiet" = "1" ] || echo "[sync-install-bootstrapper] DRIFT: $SRC != $LIVE" >&2
-    exit 1
-  fi
-  [ "$quiet" = "1" ] || echo "[sync-install-bootstrapper] OK: $SRC == $LIVE" >&2
+  for target in "$LIVE" "$ALIAS"; do
+    if ! as_focusadev test -f "$target"; then
+      [ "$quiet" = "1" ] || echo "[sync-install-bootstrapper] live not found: $target" >&2
+      exit 1
+    fi
+    target_sha="$(as_focusadev sha256sum "$target" | awk '{print $1}')"
+    if [ "$source_sha" != "$target_sha" ]; then
+      [ "$quiet" = "1" ] || echo "[sync-install-bootstrapper] DRIFT: $SRC != $target" >&2
+      exit 1
+    fi
+  done
+  [ "$quiet" = "1" ] || echo "[sync-install-bootstrapper] OK: in-repo matches live + docroot alias" >&2
   exit 0
 fi
 
 sync_copy
-echo "[sync-install-bootstrapper] synced: $SRC → $LIVE"
+echo "[sync-install-bootstrapper] synced: $SRC → $LIVE (+ $ALIAS)"

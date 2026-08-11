@@ -190,6 +190,9 @@ jobs:
             sudo -n /usr/bin/install -m 0755 -o focusadev -g focusadev \
               scripts/install-focusa.sh \
               /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.sh
+            sudo -n /usr/bin/install -m 0755 -o focusadev -g focusadev \
+              scripts/install-focusa.sh \
+              /home/focusadev/install.focusa.dev/public_html/focusa
             sudo -n /usr/bin/install -m 0644 -o focusadev -g focusadev \
               scripts/install-focusa.ps1 \
               /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.ps1

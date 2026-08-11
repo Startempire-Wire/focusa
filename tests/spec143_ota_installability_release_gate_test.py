@@ -28,6 +28,12 @@ assert "ota-update-plan.json" in deploy
 assert ".latest.trust.deploy_proof_verified == true" in deploy
 assert ".apply_allowed == true" in deploy
 assert "ota-installability-proof-${{ steps.cfg.outputs.tag }}" in deploy
+assert "/home/focusadev/install.focusa.dev/public_html/focusa" in deploy
+assert 'curl -fsSL "https://install.focusa.dev/focusa?deploy_run=${GITHUB_RUN_ID}"' in deploy
+sync_installer = (ROOT / "scripts/sync-install-bootstrapper.sh").read_text()
+assert 'ALIAS="${DOCROOT}/focusa"' in sync_installer
+assert 'as_focusadev install -m 0755 "$SRC" "$ALIAS"' in sync_installer
+assert 'for target in "$LIVE" "$ALIAS"' in sync_installer
 
 assert 'Linux:x86_64|Linux:amd64) TRIPLE="x86_64-unknown-linux-musl"' in installer
 assert 'x86_64|amd64) TRIPLE="x86_64-unknown-linux-musl"' in installer
