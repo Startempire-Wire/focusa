@@ -1,0 +1,435 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "activated",
+  "runtime_status": "verified_complete",
+  "schema": "focusa.spec138_scorer_and_calibration_matrix.v1",
+  "scorers": [
+    {
+      "id": "binary_accuracy",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#binary_accuracy"
+    },
+    {
+      "id": "multiclass_accuracy",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#multiclass_accuracy"
+    },
+    {
+      "id": "brier_score",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#brier_score"
+    },
+    {
+      "id": "multiclass_brier_score",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#multiclass_brier_score"
+    },
+    {
+      "id": "log_loss",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#log_loss"
+    },
+    {
+      "id": "multiclass_log_loss",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#multiclass_log_loss"
+    },
+    {
+      "id": "spherical_score",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#spherical_score"
+    },
+    {
+      "id": "continuous_ranked_probability_score",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#continuous_ranked_probability_score"
+    },
+    {
+      "id": "mean_absolute_error",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#mean_absolute_error"
+    },
+    {
+      "id": "mean_squared_error",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#mean_squared_error"
+    },
+    {
+      "id": "root_mean_squared_error",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#root_mean_squared_error"
+    },
+    {
+      "id": "mean_absolute_percentage_error",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#mean_absolute_percentage_error"
+    },
+    {
+      "id": "symmetric_mape",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#symmetric_mape"
+    },
+    {
+      "id": "quantile_pinball_loss",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#quantile_pinball_loss"
+    },
+    {
+      "id": "interval_coverage",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#interval_coverage"
+    },
+    {
+      "id": "interval_width",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#interval_width"
+    },
+    {
+      "id": "winkler_interval_score",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#winkler_interval_score"
+    },
+    {
+      "id": "rank_correlation",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#rank_correlation"
+    },
+    {
+      "id": "information_coefficient",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#information_coefficient"
+    },
+    {
+      "id": "top_k_precision",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#top_k_precision"
+    },
+    {
+      "id": "top_k_recall",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#top_k_recall"
+    },
+    {
+      "id": "ndcg",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#ndcg"
+    },
+    {
+      "id": "concordance_index",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#concordance_index"
+    },
+    {
+      "id": "survival_brier_score",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#survival_brier_score"
+    },
+    {
+      "id": "expected_calibration_error",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#expected_calibration_error"
+    },
+    {
+      "id": "maximum_calibration_error",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#maximum_calibration_error"
+    },
+    {
+      "id": "adaptive_calibration_error",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#adaptive_calibration_error"
+    },
+    {
+      "id": "skill_score",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#skill_score"
+    },
+    {
+      "id": "expected_utility",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#expected_utility"
+    },
+    {
+      "id": "realized_regret",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#realized_regret"
+    },
+    {
+      "id": "custom_registered",
+      "registry_required": true,
+      "shape_applicability": "explicit",
+      "versioned": true,
+      "fixtures_required": true,
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "fixture_ref": "tests/fixtures/spec138/scorer-registry-v1.json#custom_registered"
+    }
+  ],
+  "calibration_dimensions": [
+    "target",
+    "horizon",
+    "entity",
+    "cohort",
+    "sources",
+    "features",
+    "model",
+    "prompt",
+    "policy",
+    "scorer",
+    "forecaster",
+    "probability_bucket",
+    "regime",
+    "scenario",
+    "trajectory",
+    "environment",
+    "time_period",
+    "transfer_context",
+    "verifier_capability"
+  ],
+  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "calibration_status": "verified_complete"
+}

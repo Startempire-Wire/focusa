@@ -1,0 +1,110 @@
+{
+  "schema": "focusa.spec137a_surface_parity.v1",
+  "status": "implemented",
+  "full_conformance_status": "blocked_live_proof_required",
+  "required_surfaces": [
+    "api",
+    "operation_registry",
+    "cli",
+    "pi",
+    "menubar_ui",
+    "tui",
+    "notification",
+    "platform_domain",
+    "degraded_unsupported_unknown"
+  ],
+  "records": [
+    {
+      "surface": "api",
+      "state": "implemented",
+      "behavior_ref": "GET /v1/temporal/status#conformance",
+      "evidence_refs": [
+        "tests/spec137a_surface_parity_gate.py"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "operation_registry",
+      "state": "implemented",
+      "behavior_ref": "focusa.temporal.status",
+      "evidence_refs": [
+        "docs/contracts/spec135/generated-contract-v1/operation-registry.json"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "cli",
+      "state": "implemented",
+      "behavior_ref": "focusa temporal status",
+      "evidence_refs": [
+        "crates/focusa-cli/src/commands/temporal.rs"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "pi",
+      "state": "implemented",
+      "behavior_ref": "focusa_temporal_authority action=status",
+      "evidence_refs": [
+        "apps/pi-extension/src/tools.ts"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "menubar_ui",
+      "state": "implemented",
+      "behavior_ref": "TemporalAuthorityPeek renders grounded projection and fail-closed unavailable state",
+      "evidence_refs": [
+        "apps/menubar/src/lib/components/TemporalAuthorityPeek.svelte",
+        "apps/menubar/tests/temporal-authority-peek.mjs"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "tui",
+      "state": "implemented",
+      "behavior_ref": "mission control renders bounded deadline, conflict, urgency, and conformance or truthful unknown",
+      "evidence_refs": [
+        "crates/focusa-tui/src/mission_control.rs#bounded_temporal_context_renders_exact_status_without_inferred_urgency"
+      ],
+      "recovery_ref": "focusa temporal status --project-root <root> --continuity-id <id>"
+    },
+    {
+      "surface": "notification",
+      "state": "implemented",
+      "behavior_ref": "aria-live temporal warnings plus calm dwell, budget, focus, and backpressure pulse policy",
+      "evidence_refs": [
+        "apps/menubar/tests/temporal-authority-peek.mjs",
+        "crates/focusa-core/src/temporal_full_tests.rs#temporal_pulse_notifies_only_for_grounded_urgency_within_focus_and_budget",
+        "crates/focusa-core/src/temporal_full_tests.rs#alert_overload_obeys_backpressure_and_notification_budget"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "platform_domain",
+      "state": "implemented",
+      "behavior_ref": "declared platforms/domains explicit",
+      "evidence_refs": [
+        "docs/evidence/spec137a/S137A-applicability-decisions.txt"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "degraded_unsupported_unknown",
+      "state": "implemented",
+      "behavior_ref": "unknown or unsupported remains open and blocks closure",
+      "evidence_refs": [
+        "crates/focusa-core/src/temporal_conformance.rs"
+      ],
+      "recovery_ref": "focusa_temporal_authority action=status"
+    }
+  ],
+  "warnings": [
+    "Full conformance remains blocked until two clean exact-scope installed-surface E2E runs pass."
+  ],
+  "recovery_tools": [
+    "focusa_temporal_authority",
+    "focusa_project_verify",
+    "focusa_tool_doctor"
+  ]
+}

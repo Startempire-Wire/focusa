@@ -1,0 +1,73 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "activated",
+  "runtime_status": "verified_complete",
+  "schema": "focusa.spec138_primitive_ownership_matrix.v1",
+  "rows": [
+    {
+      "family": "time_deadlines_freshness",
+      "owner": "Spec 137 + 137A",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
+    },
+    {
+      "family": "semantic_identity_domain_packs",
+      "owner": "Specs 45-50 and 135F",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "evidence_receipts",
+      "owner": "Specs 119 and Evidence primitives",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "proposal_to_settlement",
+      "owner": "Spec 136",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "prediction_outcome_scoring_calibration_learning_transfer",
+      "owner": "Spec 138 + 138A",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "verification_routing",
+      "owner": "Spec 144",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "environment_placement",
+      "owner": "Spec 139",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    }
+  ],
+  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
+}

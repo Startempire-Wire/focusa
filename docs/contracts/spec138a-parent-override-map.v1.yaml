@@ -1,0 +1,55 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "activated",
+  "runtime_status": "verified_complete",
+  "schema": "focusa.spec138a_parent_override_map.v1",
+  "overrides": [
+    {
+      "parent": "staged_activation",
+      "rule": "runtime_sequence_only_all_profiles_remain_full_conformance_blockers",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
+    },
+    {
+      "parent": "MAY_activate_primitive_families",
+      "rule": "per_scope_enablement_only_not_implementation_omission",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "parent": "SHOULD_append_only_events",
+      "rule": "MUST_or_equivalent_stronger",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "parent": "SHOULD_API_CLI_UI_migration",
+      "rule": "operation_capabilities_and_migration_mandatory_for_applicable_scope",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "parent": "eventually",
+      "rule": "not_a_disposition",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    }
+  ],
+  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
+}

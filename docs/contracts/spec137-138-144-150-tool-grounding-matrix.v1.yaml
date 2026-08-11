@@ -1,0 +1,3978 @@
+schema: focusa.cross_spec_tool_grounding_matrix.v1
+source_contract_ref: docs/current/focusa-tool-contracts.json
+source_tool_count: 136
+governing_specs: &id001
+- '137'
+- 137a
+- '138'
+- 138a
+- '144'
+- '150'
+status: verified_complete
+tools:
+- tool_name: focusa_active_object_resolve
+  family: workpoint
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_active_object_resolve.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_agent_artifact_delivery
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_agent_artifact_delivery.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_agent_artifact_preview
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_agent_artifact_preview.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_agent_artifact_verify
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_agent_artifact_verify.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_agent_card
+  family: awareness
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_agent_card.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_agent_prompt
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_agent_prompt.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_agent_runtime_doctor
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_agent_runtime_doctor.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_agent_runtime_effective
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_agent_runtime_effective.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_agent_runtime_headless_verify
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_awareness_packet
+  family: awareness
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_awareness_packet.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_domain
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_domain.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_gate_mode
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_gate_modes
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_profile
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_profile.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_profiles
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_report
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_report.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_rollout
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_routine
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_routine.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_routines
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_routines.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_tokenbloat_domain
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_bloatgaurd_tokenbloat_report
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_browser_capabilities_intake
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_browser_capabilities_intake.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_browser_diagnostics_intake
+  family: workpoint
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_browser_workflow_plan
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_browser_workflow_plan.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_call_stack_design
+  family: workpoint
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_call_stack_design.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_call_stack_verify
+  family: workpoint
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_call_stack_verify.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_canonical_instruction_amendment_activate
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_canonical_instruction_amendment_activate.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_canonical_instruction_amendment_propose
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_constraint
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_constraint.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_context_cognition
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_context_cognition.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_context_cognition_curate
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_context_cognition_curate.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_context_cognition_curate_eval
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_context_cognition_curate_optimize
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_context_cognition_optimizer_artifacts
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_context_cognition_proof
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_context_cognition_proof.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_context_cognition_render
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_context_cognition_render.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_current_focus
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_current_focus.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_daemon_routing_status
+  family: project_identity
+  applicability_decision: applicable
+  applicable_specs:
+  - spec135
+  - spec158
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/contracts/spec135/generated-contract-v1/operation-registry.json
+  focus_stack_refs: &id002
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs: &id003
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs: &id004
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs: &id005
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/focusa-tools/tools/focusa_daemon_routing_status.md
+  recovery_refs: &id006
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs: &id007
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs: &id008
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/spec172/focusa-vbcqu.20.15.19-acceptance.txt
+- tool_name: focusa_decide
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_decide.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_device_pair_complete
+  family: session_transfer
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_device_pair_complete.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_device_pair_list
+  family: session_transfer
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_device_pair_list.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_device_pair_qr
+  family: session_transfer
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_device_pair_qr.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_device_pair_revoke
+  family: session_transfer
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_device_pair_revoke.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_device_pair_start
+  family: session_transfer
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_device_pair_start.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_device_pair_status
+  family: session_transfer
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_device_pair_status.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_dxux_digest
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_dxux_digest.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_dxux_explain
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_dxux_explain.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_dxux_report
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_dxux_report.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_dxux_requirement
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_dxux_requirement.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_evidence_capture
+  family: workpoint
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_evidence_capture.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_failure
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_failure.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_hlt_history
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_hlt_history.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_instruction_conflicts
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_instruction_conflicts.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_instruction_explain
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_instruction_explain.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_instruction_integrity_evaluate
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_instruction_integrity_evaluate.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_instruction_integrity_status
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_instruction_integrity_status.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_instruction_simulate
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_instruction_simulate.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_instruction_sources
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_instruction_sources.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_intent
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_intent.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_li_tree_extract
+  family: tree_lineage
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_li_tree_extract.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_lineage_tree
+  family: tree_lineage
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_lineage_tree.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_metacog_capture
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_metacog_capture.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_metacog_doctor
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_metacog_doctor.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_metacog_evaluate_outcome
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_metacog_loop_run
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_metacog_loop_run.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_metacog_plan_adjust
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_metacog_plan_adjust.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_metacog_recent_adjustments
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_metacog_recent_reflections
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_metacog_recent_reflections.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_metacog_reflect
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_metacog_reflect.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_metacog_retrieve
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_metacog_retrieve.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_next_step
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_next_step.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_north_star_gate
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_north_star_gate.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_note
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_note.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_ontology_scope_migration
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_ontology_scope_migration.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_open_question
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_open_question.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_predict_evaluate
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_predict_evaluate.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_predict_recent
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_predict_recent.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_predict_record
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_predict_record.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_predict_stats
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_predict_stats.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_prediction_authority
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_prediction_authority.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_preload_build
+  family: preload
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_preload_build.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_preload_doctor
+  family: preload
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_preload_doctor.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_preload_profiles
+  family: preload
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_preload_profiles.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_preload_receipt_commit
+  family: preload
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_preload_receipt_commit.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_preload_receipt_preview
+  family: preload
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_preload_receipt_preview.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_preload_render
+  family: preload
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_preload_render.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_preload_verify
+  family: preload
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_preload_verify.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_preload_write
+  family: preload
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_preload_write.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_project_bootstrap
+  family: project_identity
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_project_bootstrap.md
+  focus_stack_refs: *id002
+  reducer_event_refs: *id003
+  projection_replay_refs: *id004
+  awareness_refs: *id005
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs: *id006
+  runtime_effect_refs: *id007
+  adversarial_test_refs: *id008
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_project_card
+  family: project_identity
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_project_card.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_project_card_outcome
+  family: project_identity
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_project_card_outcome.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_project_genesis
+  family: project_identity
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_project_genesis.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_project_identity
+  family: project_identity
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_project_identity.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_project_verify
+  family: project_identity
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_project_verify.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_prompt_variant_diff
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_prompt_variant_diff.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_prompt_variant_preview
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_prompt_variant_preview.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_recent_result
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_recent_result.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_reflex_primitives
+  family: traversal
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_reflex_primitives.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_resource_mode
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_resource_mode.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_runtime_constitution_preview
+  family: agent_runtime
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_runtime_constitution_preview.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_scratch
+  family: focus_state
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_scratch.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_session_transfer
+  family: workpoint
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_session_transfer.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_silent_sessions
+  family: work_loop
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_silent_sessions.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_state_hygiene_apply
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_state_hygiene_apply.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_state_hygiene_doctor
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_state_hygiene_doctor.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_state_hygiene_plan
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_state_hygiene_plan.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_temporal_authority
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_temporal_authority.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tool_bundle
+  family: traversal
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tool_bundle.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tool_describe
+  family: traversal
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tool_describe.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tool_doctor
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tool_doctor.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tool_graph
+  family: traversal
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tool_graph.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tool_search
+  family: traversal
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tool_search.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_trajectory_assess
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_trajectory_assess.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_trajectory_checkpoint
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_trajectory_checkpoint.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_trajectory_define_goal
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_trajectory_define_goal.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_trajectory_propose_workpoint
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_trajectory_resume
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_trajectory_resume.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_trajectory_view
+  family: trajectory
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_trajectory_view.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_traverse
+  family: traversal
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_traverse.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tree_diff_context
+  family: tree_lineage
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tree_diff_context.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tree_head
+  family: tree_lineage
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tree_head.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tree_path
+  family: tree_lineage
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tree_path.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tree_recent_snapshots
+  family: tree_lineage
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tree_recent_snapshots.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tree_restore_state
+  family: tree_lineage
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tree_restore_state.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tree_snapshot_compare_latest
+  family: tree_lineage
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_tree_snapshot_state
+  family: tree_lineage
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_tree_snapshot_state.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_utility_card
+  family: diagnostics_hygiene
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_utility_card.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_work_loop_checkpoint
+  family: work_loop
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_work_loop_checkpoint.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_work_loop_context
+  family: work_loop
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_work_loop_context.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_work_loop_control
+  family: work_loop
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_work_loop_control.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_work_loop_select_next
+  family: work_loop
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_work_loop_select_next.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_work_loop_status
+  family: work_loop
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_work_loop_status.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_work_loop_writer_status
+  family: work_loop
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_work_loop_writer_status.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_workpoint_checkpoint
+  family: workpoint
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_workpoint_checkpoint.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_workpoint_link_evidence
+  family: workpoint
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_workpoint_link_evidence.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_workpoint_resume
+  family: workpoint
+  applicability_decision: applicable
+  applicable_specs: *id001
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_workpoint_resume.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+internal_families:
+- family: agent_runtime
+  tool_count: 17
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: awareness
+  tool_count: 2
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: diagnostics_hygiene
+  tool_count: 24
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: focus_state
+  tool_count: 11
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: metacognition
+  tool_count: 14
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: preload
+  tool_count: 8
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: project_identity
+  tool_count: 6
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: session_transfer
+  tool_count: 6
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: trajectory
+  tool_count: 16
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: traversal
+  tool_count: 6
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: tree_lineage
+  tool_count: 9
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: work_loop
+  tool_count: 7
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- family: workpoint
+  tool_count: 9
+  applicability_decision: applicable
+  status: verified_complete
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+activation_receipt_ref: release-proof/audit/spec138-runtime-receipt.json

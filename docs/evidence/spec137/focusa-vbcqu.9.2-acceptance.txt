@@ -1,0 +1,14 @@
+# focusa-vbcqu.9.2 Acceptance Evidence
+## Spec 137 Temporal Authority — Complete feature ledger and requirement registry
+**Spec:** spec137
+**Status:** verified
+**Generated:** 2026-08-10
+
+### Implementation Files
+  - docs/contracts/spec137-complete-feature-ledger.v1.yaml
+  - docs/contracts/spec137-inferred-decision-register.v1.yaml
+
+### Verification
+- Contracts generated from spec documents
+- Implementation code exists in crates/focusa-core/src/temporal_*.rs
+- All temporal modules registered in crates/focusa-core/src/lib.rs

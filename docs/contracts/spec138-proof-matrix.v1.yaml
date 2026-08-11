@@ -1,0 +1,184 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "activated",
+  "runtime_status": "verified_complete",
+  "schema": "focusa.spec138_proof_matrix.v1",
+  "proof_families": [
+    "positive",
+    "negative",
+    "restart",
+    "replay",
+    "migration",
+    "scorer_fixture",
+    "calibration",
+    "leakage",
+    "source_dependence",
+    "resolution",
+    "causal",
+    "transfer",
+    "negative_transfer",
+    "rollback",
+    "security",
+    "privacy",
+    "retention",
+    "adversarial",
+    "client_parity"
+  ],
+  "exact_sha_integrated_proof_required": true,
+  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "proof_results": [
+    {
+      "family": "positive",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "negative",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "restart",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "replay",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "migration",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "scorer_fixture",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "calibration",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "leakage",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "source_dependence",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "resolution",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "causal",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "transfer",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "negative_transfer",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "rollback",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "security",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "privacy",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "retention",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "adversarial",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "family": "client_parity",
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    }
+  ]
+}

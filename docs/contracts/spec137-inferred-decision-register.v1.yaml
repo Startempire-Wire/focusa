@@ -1,0 +1,317 @@
+schema: focusa.spec137_inferred_decision_register.v1
+spec_ref: docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md
+source_audit_ref: docs/evidence/spec137-temporal-authority-research-audit-2026-07-20.md
+requirement_ledger_ref: docs/contracts/spec137-complete-feature-ledger.v1.yaml
+incorporated_spec_sha256: ac99e2c365c3fb238affecf19697c7c9316cdaa69e973cce3c0a689ad2c6582c
+normalized_requirement_count: 86
+created_at: "2026-07-20T17:07:17-07:00"
+status: incorporated_into_normative_draft
+confidence_semantics:
+  kind: judgmental_operator_intent_alignment
+  calibrated_probability: false
+  meaning: >-
+    Confidence estimates how strongly the decision follows the operator's stated intent,
+    existing Focusa authority boundaries, internal consistency, and cited standards. It is
+    not a forecast of implementation success, a duration estimate, or proof of completion.
+operator_directives:
+  - "Use absolute disclosure and clear language for material uncertainty."
+  - "Clear language includes coherent descriptions, evidence, assumptions, alternatives, and consequences."
+  - "Confidence percentages are permitted when their object and basis are explicit."
+  - "Infer reversible architecture decisions and ask only for genuinely operator-owned policy, legal, activation, or irreversible choices."
+  - "Do not activate proposed Spec 136 before its stated gates or claim implementation/live-market/release readiness."
+reserved_operator_choices:
+  - choice: external_deadline_and_review_margin
+    status: unknown_not_inferred
+    reason: No applicable external deadline or protected review margin was supplied.
+  - choice: deployment_risk_appetite_and_required_forecast_quantiles
+    status: policy_required_value_not_inferred
+    reason: The spec requires a versioned policy, but numeric thresholds depend on consequence and deployment.
+  - choice: regulated_jurisdictions_venues_accounts_and_activity_classes
+    status: policy_required_value_not_inferred
+    reason: Legal and regulatory applicability cannot be invented.
+  - choice: legal_retention_deletion_and_hold_periods
+    status: policy_required_value_not_inferred
+    reason: Retention periods depend on jurisdiction and business obligations.
+  - choice: operator_quiet_hours_notification_consent_and_escalation_contacts
+    status: policy_required_value_not_inferred
+    reason: Personal availability and notification consent remain operator-owned.
+  - choice: spec136_adoption_or_merge
+    status: explicit_approval_required
+    reason: Spec 136 is present as a proposal; activation remains gated and cannot be inferred from repository presence.
+  - choice: live_market_activation
+    status: explicit_approval_required_after_proof
+    reason: Architecture text and simulation can never activate external financial mutation.
+
+decisions:
+  - id: C-01
+    decision: Separate verified completion from operator disposition; no override, waiver, degraded posture, or Receipt may manufacture evidence-backed completion.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Core temporal laws, Closure Authority, Workpoint Item, Final closure law]
+  - id: C-02
+    decision: Preserve RFC normative classes with explicit required, conditional, optional, and verified-not-applicable ledger states.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [Completeness non-deferral and omission firewall, Machine-readable delivery artifacts]
+  - id: C-03
+    decision: Confine monotonic intervals to one boot epoch and represent inter-epoch time as separate bounded or unknown wall-derived gaps.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Trusted clock and temporal authority, Spec 131 timing and closure integration]
+  - id: C-04
+    decision: Preserve future civil-time intent, timezone/calendar versions, ambiguity policy, and resolution history instead of reducing every commitment to one fixed UTC instant.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Deadline and calendar contract, Civil-time intent and resolution]
+  - id: C-05
+    decision: Critical mode has one primary objective while preserving non-preemptible obligations and explicitly recording feasible, infeasible, or unknown multi-deadline conflict.
+    confidence_pct: 95
+    status: incorporated
+    spec_sections: [Deadline inheritance probabilistic slack and conflict, Calm focus gradient]
+  - id: C-06
+    decision: Keep slack knowledge, evidence confidence, and urgency risk separate; unknown slack is never silently treated as healthy or positive.
+    confidence_pct: 97
+    status: incorporated
+    spec_sections: [Deadline inheritance probabilistic slack and conflict, Temporal pressure and urgency policy]
+  - id: C-07
+    decision: Use signed pre-authorized local TemporalExecutionGuards for latency-critical deterministic dispatch instead of synchronous model, UI, calendar, or daemon refreshes.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [Deterministic execution boundary, Time-sensitive action law, Mandatory use]
+  - id: C-08
+    decision: Type forecasts, operator expectations, deadlines, readiness targets, commitments, budgets, and observed progress separately with distinct display and authority behavior.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Temporal claim types Estimate Claim and conversational response gate]
+
+  - id: A-01
+    decision: Define operation-class frame freshness, bounded cache validity, local validation, and no-recursion temporal-repair bootstrap semantics.
+    confidence_pct: 94
+    status: incorporated
+    spec_sections: [Mandatory use]
+  - id: A-02
+    decision: Use signed minimal context hashes or guard refs for privacy-irrelevant reducer and hot-path records rather than copying detailed calendar context everywhere.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [Human calendar grounding, Temporal security privacy integrity and retention]
+  - id: A-03
+    decision: Route completion-fraction language through ProgressClaim validation and time-to-completion language through forecast validation.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Temporal claim types Estimate Claim and conversational response gate]
+  - id: A-04
+    decision: Define required acceptance, safety, security, reconciliation, and regression proof before urgency may suppress optional testing.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [Calm focus gradient, Closure Authority]
+  - id: A-05
+    decision: Bound pulse and notification behavior with hysteresis, dwell, debounce, deduplication, backpressure, and notification budgets.
+    confidence_pct: 97
+    status: incorporated
+    spec_sections: [Temporal pulse policy, Calm focus gradient]
+  - id: A-06
+    decision: Pressure-driven narrowing must preserve disconfirming evidence, protected checklists, stop-work authority, and independent review where required.
+    confidence_pct: 95
+    status: incorporated
+    spec_sections: [Calm focus gradient]
+  - id: A-07
+    decision: Make operator-silence escalation subordinate to availability, quiet-hours, severity, consent, and escalation policy without inventing their actual values.
+    confidence_pct: 90
+    status: incorporated_structure_policy_value_reserved
+    spec_sections: [Calm focus gradient]
+  - id: A-08
+    decision: Report velocity distributions, tails, cohort/sample counts, censoring, uncertainty, and baselines rather than averages alone.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [Spec 131 closure velocity and Spec 137 forecast history]
+  - id: A-09
+    decision: Version decomposition policy and prevent raw Workpoint Item counts or split/merge behavior from proving improvement.
+    confidence_pct: 97
+    status: incorporated
+    spec_sections: [Spec 131 closure velocity and Spec 137 forecast history]
+
+  - id: G-01
+    decision: Require authenticated, monitored, independent and diverse time sources with explicit disagreement and source-quarantine policy.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Trusted clock and temporal authority]
+  - id: G-02
+    decision: Model clock error using offset, delay, jitter, dispersion, root distance, frequency, holdover, uncertainty components, method, and coverage.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Trusted clock and temporal authority, Precision accuracy resolution and uncertainty]
+  - id: G-03
+    decision: Maintain tested platform capability profiles for realtime, suspend-excluding monotonic, suspend-aware, CPU, and TAI behavior and fallback.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Trusted clock and temporal authority]
+  - id: G-04
+    decision: Base authoritative wall/monotonic conversion on paired samples with capture latency, boot identity, profiles, uncertainty, and provenance.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Trusted clock and temporal authority]
+  - id: G-05
+    decision: Compare uncertainty intervals to boundaries using definitely-before, possibly-crossed, definitely-crossed, and indeterminate states.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [Precision accuracy resolution and uncertainty, Deadline and calendar contract]
+  - id: G-06
+    decision: Scope and coarsen high-resolution time by audience and capability to limit fingerprinting, surveillance, strategy leakage, and timing side channels.
+    confidence_pct: 96
+    status: incorporated
+    spec_sections: [Precision accuracy resolution and uncertainty, Temporal security privacy integrity and retention]
+  - id: G-07
+    decision: Store original civil expression, IANA zone, tzdb/calendar/jurisdiction versions, fold/gap policy, recurrence/floating kind, and resolution lineage.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Civil-time intent and resolution]
+  - id: G-08
+    decision: Re-resolve future civil projections after material rule changes while preserving old/new values and requiring review where policy demands.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Civil-time intent and resolution]
+  - id: G-09
+    decision: Type inclusive/exclusive window boundaries and whether completion means submitted, accepted, acknowledged, effective, reconciled, or settled.
+    confidence_pct: 97
+    status: incorporated
+    spec_sections: [Deadline and calendar contract]
+  - id: G-10
+    decision: Separate authority to correct Focusa's deadline record from authority to change a real external, legal, regulatory, or venue boundary.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Deadline and calendar contract]
+  - id: G-11
+    decision: Version calendar sources and define precedence, freshness, authentication, jurisdiction, disagreement, and fail-mode policy.
+    confidence_pct: 96
+    status: incorporated
+    spec_sections: [Civil-time intent and resolution]
+  - id: G-12
+    decision: Propagate remaining monotonic timeout with elapsed deducted and cap children by parent remaining time, child policy, and budget.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Distributed deadline cancellation and retry propagation]
+  - id: G-13
+    decision: Track cancellation requested, observed, effective, forced, cleanup, possible effect, and reconciliation states across child work.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Distributed deadline cancellation and retry propagation]
+  - id: G-14
+    decision: Share retries within the original deadline and retry budget; require reconciliation or idempotency evidence after possible external effect.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Distributed deadline cancellation and retry propagation]
+  - id: G-15
+    decision: Represent causal and sequence lineage explicitly and never infer distributed causality from wall-clock timestamp order.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Precision accuracy resolution and uncertainty, Spec 131 timing and closure integration]
+  - id: G-16
+    decision: Map leases, authority expiry, security TTL, evidence freshness, and deadline enforcement to operation-appropriate suspend/reboot clock semantics.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [Clock domains, Trusted clock and temporal authority]
+  - id: G-17
+    decision: Evaluate forecasts with reliability, bias, coverage, sharpness, skill baseline, proper scoring, and decision value instead of one calibration scalar.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [ForecastCalibrationProfile, Spec 131 closure velocity and Spec 137 forecast history]
+  - id: G-18
+    decision: Require policy-selected tail quantiles and asymmetric loss while reserving actual risk thresholds for deployment/operator policy.
+    confidence_pct: 97
+    status: incorporated_structure_policy_value_reserved
+    spec_sections: [ForecastCalibrationProfile, Deadline inheritance probabilistic slack and conflict]
+  - id: G-19
+    decision: Report forecast sample size, error bounds, observation/target uncertainty, missingness, and cohort drift.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [ForecastCalibrationProfile]
+  - id: G-20
+    decision: Declare censoring and correlated dependency-DAG methods and prohibit naive summation of independent ranges.
+    confidence_pct: 95
+    status: incorporated
+    spec_sections: [EstimateClaim, Deadline inheritance probabilistic slack and conflict]
+  - id: G-21
+    decision: Bind qualitative confidence levels to an explicit confidence policy or refuse authority-bearing qualitative confidence.
+    confidence_pct: 96
+    status: incorporated
+    spec_sections: [EstimateClaim]
+  - id: G-22
+    decision: Evaluate forecast decision value under stated costs in addition to statistical quality.
+    confidence_pct: 95
+    status: incorporated
+    spec_sections: [ForecastCalibrationProfile]
+  - id: G-23
+    decision: Add enter/exit hysteresis, dwell, debounce, deduplication, backpressure, and resource/notification budgets to pressure transitions.
+    confidence_pct: 97
+    status: incorporated
+    spec_sections: [Temporal pulse policy]
+  - id: G-24
+    decision: Preserve mandatory challenge checks, disconfirming evidence, independent review, and stop-work authority under time pressure.
+    confidence_pct: 96
+    status: incorporated
+    spec_sections: [Calm focus gradient]
+  - id: G-25
+    decision: Require workload, sustained-critical-duration, fatigue/attention, fresh-reviewer, and handoff policy while reserving actual limits for domain policy.
+    confidence_pct: 85
+    status: incorporated_structure_policy_value_reserved
+    spec_sections: [Calm focus gradient]
+  - id: G-26
+    decision: Require direct control ownership, documented delegation due diligence, written review, remediation, certification, and retention for market access controls.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Live-market activation firewall]
+  - id: G-27
+    decision: Require capacity, integrity, resilience, availability, security, BCDR, RTO/RPO, geographically diverse recovery, disruption testing, and incident policy while reserving applicable targets.
+    confidence_pct: 98
+    status: incorporated_structure_policy_value_reserved
+    spec_sections: [Live-market activation firewall]
+  - id: G-28
+    decision: Identify and prove stable exact timestamp application points with UTC traceability design and periodic review.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Live-market activation firewall]
+  - id: G-29
+    decision: Bind accuracy, divergence, and granularity thresholds to jurisdiction, venue, activity, and system class rather than timestamp formatting.
+    confidence_pct: 99
+    status: incorporated_structure_policy_value_reserved
+    spec_sections: [Live-market activation firewall]
+  - id: G-30
+    decision: Version regulatory applicability, effective dates, reviewer/certifier, retention, supersession, and migration evidence.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [Live-market activation firewall]
+  - id: G-31
+    decision: Require temporal-data classification, least privilege, encryption, redaction/coarsening, retention/deletion/legal hold, export, aggregation, and audit access while reserving legal periods.
+    confidence_pct: 98
+    status: incorporated_structure_policy_value_reserved
+    spec_sections: [Temporal security privacy integrity and retention]
+  - id: G-32
+    decision: Sign or hash-chain authoritative temporal events and test source authentication separately from ledger integrity.
+    confidence_pct: 97
+    status: incorporated
+    spec_sections: [Temporal security privacy integrity and retention]
+  - id: G-33
+    decision: Require cohorts, distributions, tails, uncertainty, baselines, policy versions, exclusions, and split/merge anti-gaming in metrics.
+    confidence_pct: 98
+    status: incorporated
+    spec_sections: [Spec 131 closure velocity and Spec 137 forecast history]
+  - id: G-34
+    decision: Keep Spec 136 integration blocked until an approved immutable local dependency contract pins source commit, document hash, schema, ownership, migration, and conformance; do not merge by inference.
+    confidence_pct: 100
+    status: incorporated_operator_directive
+    spec_sections: [Status, Spec 136 proposal-to-settlement integration]
+  - id: G-35
+    decision: Require deterministic fault injection for clock, calendar, suspend/reboot, source-security, propagation, queue, cancellation, stale-data, and pressure-overload failures.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Acceptance criteria, Slice 11]
+  - id: G-36
+    decision: Record exact schema, policy, adapter, clock, calendar/tzdb, and estimator versions for replay and settlement.
+    confidence_pct: 99
+    status: incorporated
+    spec_sections: [Acceptance criteria, Storage]
+  - id: G-37
+    decision: Apply CRDT proof only to declared replicated or portable merge surfaces; canonical temporal mutation remains reducer, CAS, lease, and fencing authority.
+    confidence_pct: 92
+    status: incorporated
+    spec_sections: [Cross-system coherence requirements, Machine-readable delivery artifacts]

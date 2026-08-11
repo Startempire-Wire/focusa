@@ -1,0 +1,38 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "activated",
+  "runtime_status": "verified_complete",
+  "schema": "focusa.spec138_outcome_resolution_authority_matrix.v1",
+  "states": [
+    "claimed",
+    "disputed",
+    "pending_authority",
+    "resolved",
+    "corrected",
+    "void",
+    "censored"
+  ],
+  "authorities": [
+    "registered_resolver",
+    "operator",
+    "external_authority",
+    "reducer"
+  ],
+  "rules": [
+    "outcome_resolution_precedes_scoring",
+    "caller_score_is_advisory",
+    "corrections_append",
+    "resolution_policy_frozen"
+  ],
+  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "state_statuses": {
+    "claimed": "verified_complete",
+    "disputed": "verified_complete",
+    "pending_authority": "verified_complete",
+    "resolved": "verified_complete",
+    "corrected": "verified_complete",
+    "void": "verified_complete",
+    "censored": "verified_complete"
+  }
+}

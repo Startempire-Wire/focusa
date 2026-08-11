@@ -1,0 +1,24 @@
+schema: focusa.spec138_scoring_calibration_receipt.v1
+status: verified_slice
+full_conformance_status: open
+required_scorer_count: 31
+calibration_dimension_count: 19
+runtime_refs:
+  - crates/focusa-core/src/prediction_scoring.rs
+  - crates/focusa-core/src/prediction_scoring_algorithms.rs
+  - crates/focusa-core/src/prediction_calibration.rs
+proof_refs:
+  - tests/spec138_scoring_calibration_gate.py
+  - docs/evidence/spec138/S138-scoring-calibration-acceptance.txt
+authority_invariants:
+  - scorer_identity_and_version_bound
+  - scoring_policy_locked_no_later_than_commitment
+  - outcome_resolution_authority_required
+  - cohort_dimensions_explicit
+  - small_samples_fail_closed
+  - custom_scorers_require_fixtures_and_evidence
+remaining_open_slices:
+  - learning_promotion_rollback
+  - transfer_self_model_scenarios
+  - lifecycle_security_retention
+  - surfaces_migration_full_profiles

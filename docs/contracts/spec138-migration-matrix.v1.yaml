@@ -1,0 +1,28 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "activated",
+  "runtime_status": "verified_complete",
+  "schema": "focusa.spec138_migration_matrix.v1",
+  "sources": [
+    "PredictionValue_v1",
+    "Metacognition_capture_v1",
+    "reflection_v1",
+    "adjustment_v1",
+    "evaluation_v1",
+    "legacy_scores",
+    "legacy_promotions"
+  ],
+  "requirements": [
+    "readable",
+    "lineage_preserved",
+    "ambiguity_labeled",
+    "no_manufactured_authority",
+    "restart",
+    "replay",
+    "rollback",
+    "receipt"
+  ],
+  "status": "verified_complete",
+  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
+}

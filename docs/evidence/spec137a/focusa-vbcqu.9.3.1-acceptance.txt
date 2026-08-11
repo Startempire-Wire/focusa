@@ -1,0 +1,14 @@
+# focusa-vbcqu.9.3.1 Acceptance Evidence
+## 137a applicability matrix and normative source coverage
+**Spec:** spec137a
+**Status:** verified
+**Generated:** 2026-08-10
+
+### Implementation Files
+  - docs/contracts/spec137a-normative-source-coverage.v1.yaml
+  - docs/contracts/spec137a-applicability-matrix.v1.yaml
+
+### Verification
+- Contracts generated from spec documents
+- Implementation code exists in crates/focusa-core/src/temporal_*.rs
+- All temporal modules registered in crates/focusa-core/src/lib.rs

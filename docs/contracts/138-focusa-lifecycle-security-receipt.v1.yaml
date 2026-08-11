@@ -1,0 +1,23 @@
+schema: focusa.spec138_lifecycle_security_receipt.v1
+status: verified_slice
+full_conformance_status: open
+runtime_refs:
+  - crates/focusa-core/src/epistemic_memory_lifecycle.rs
+  - crates/focusa-core/src/epistemic_security.rs
+  - crates/focusa-core/src/prediction_authority.rs
+  - crates/focusa-core/src/prediction_authority_ledger.rs
+  - crates/focusa-core/src/prediction_authority_storage.rs
+proof_refs:
+  - tests/spec138_lifecycle_security_gate.py
+  - docs/evidence/spec138/S138-lifecycle-security-acceptance.txt
+invariants:
+  - consolidation_preserves_exceptions_conflicts_and_provenance
+  - forgetting_is_governed_and_append_only
+  - legal_hold_blocks_deletion
+  - reactivation_requires_new_evaluation_and_evidence
+  - adversarial_sources_quarantine_or_reject
+  - raw_public_summary_content_is_prohibited
+  - sensitive_data_is_encrypted_and_least_privilege
+  - audit_export_is_encrypted_evidence_backed_and_receipted
+remaining_open_slices:
+  - surfaces_migration_full_profiles

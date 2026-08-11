@@ -1,0 +1,32 @@
+schema: focusa.spec137a_zero_omission_receipt.v1
+source_spec: docs/137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md
+source_sha256: 2747f7f1ff7417c4541d7223199b3a480128ca049c9fe4a45859028af99a8419
+requirement_count: 172
+status: verified_complete
+closure_rule: every row requires runtime, evidence, receipt, documentation, applicability, parity, positive, negative, and recovery proof
+runtime_validator: crates/focusa-core/src/temporal_foundation.rs#validate_spec137a_closure
+proof_map: docs/contracts/spec137a-runtime-proof-map.v1.yaml
+acceptance_gate: tests/spec137a_zero_omission_runtime_gate.py
+proof:
+  documentation_architecture: passed
+  source_hashes: passed
+  applicability_matrix: passed
+  root_delivery_dag: passed
+  omission_variance_firewall: passed
+  tranche_settlement_release_gate: passed
+  runtime_rows: passed
+  evidence_rows: passed
+  receipt_rows: passed
+  parity_rows: passed
+  adversarial_rows: passed
+  restart_recovery_rows: passed
+evidence_refs:
+- docs/contracts/spec137a-applicability-matrix.v1.yaml
+- docs/contracts/spec137a-normative-source-coverage.v1.yaml
+- tests/spec137a_138a_144_documentation_closure_gate.py
+- tests/spec137a_zero_omission_runtime_gate.py
+- crates/focusa-core/src/temporal_foundation.rs
+- docs/evidence/spec137a/S137A-combined-acceptance.txt
+- docs/contracts/spec137a-root-delivery-dag.v1.yaml
+- docs/contracts/spec137a-runtime-proof-map.v1.yaml
+- docs/contracts/spec137a-surface-parity.v1.yaml
