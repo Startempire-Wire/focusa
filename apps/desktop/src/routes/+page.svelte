@@ -370,6 +370,37 @@
           {daemon.kind === 'checking' ? 'Checking…' : 'Refresh health'}
         </button>
       </section>
+    {:else if activeWorkspace.id === 'sessions'}
+      <section class="empty-state" aria-label="Sessions workspace">
+        <span class="eyebrow">Canonical Sessions</span>
+        <h2>Workstream Attachments</h2>
+        {#if liveBinding}
+          <p>{liveBinding.authority.attachment?.attachment_id ?? 'No attachment'} · {liveBinding.authority.continuity_id ?? 'No continuity'}</p>
+          <div class="identity-chain" aria-label="Attachment details">
+            <span class="resolved">{liveBinding.authority.attachment?.kind ?? 'runtime'}</span><i>/</i>
+            <span class="resolved">{liveBinding.authority.attachment?.instance_id ?? 'no instance'}</span><i>/</i>
+            <span class="resolved">{liveBinding.authority.attachment?.session_id ?? 'no session'}</span>
+          </div>
+          <p class="field-note">Full session inventory requires the <code>focusa.mission_canvas.session.inventory</code> daemon endpoint.</p>
+        {:else}
+          <p>Open Mission Canvas to bind a Workstream first.</p>
+        {/if}
+      </section>
+    {:else if activeWorkspace.id === 'context-role' || activeWorkspace.id === 'workpoints' || activeWorkspace.id === 'trajectory' || activeWorkspace.id === 'evidence'}
+      <section class="empty-state" aria-label={`${activeWorkspace.label} workspace`}>
+        <span class="eyebrow">{activeWorkspace.label} workspace</span>
+        <h2>{activeWorkspace.description}</h2>
+        {#if liveBinding}
+          <div class="identity-chain" aria-label="Current binding">
+            <span class="resolved">{liveBinding.authority.workstream.workstream_id}</span><i>·</i>
+            <span>r{liveBinding.projection.projection_revision}</span><i>·</i>
+            <span>{liveBinding.projection.workspace_profile_id}/{liveBinding.projection.activity_mode_id}</span>
+          </div>
+          <p class="field-note">Requires daemon endpoint for {activeWorkspace.id}. Renderer registered and ready.</p>
+        {:else}
+          <p>Open Mission Canvas to bind a Workstream first.</p>
+        {/if}
+      </section>
     {:else}
       <StatePanel
         state="blocked"
