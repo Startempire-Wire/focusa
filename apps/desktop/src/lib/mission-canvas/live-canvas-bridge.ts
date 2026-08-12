@@ -2,6 +2,7 @@ import { MissionCanvasClient, type MissionCanvasOperationInput } from '../../../
 import type { ResolvedWorkspaceProjection, WorkstreamAuthorityContext } from './types';
 import { MissionCanvasHttpTransport, MissionCanvasTransportError } from './http-transport';
 import { validateMissionCanvasContract } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
+import { cacheProjection, getCachedProjection } from '../shell/offline-cache';
 
 export interface LiveCanvasBinding {
   authority: WorkstreamAuthorityContext;
@@ -121,14 +122,21 @@ export async function resolveLiveCanvasBinding(
     // preview idempotent across reloads instead of conflicting on revision.
     try {
       const existing = await client.projectionGet({ ...authority });
+      cacheProjection(existing);
       return { binding: { authority, client, projection: existing }, kind: 'live' };
     } catch (getError) {
       const isNotFound = getError instanceof MissionCanvasTransportError && getError.status === 404;
       if (!isNotFound) throw getError;
     }
     const projection = await client.projectionResolve(input);
+    cacheProjection(projection);
     return { binding: { authority, client, projection }, kind: 'live' };
   } catch (error) {
+    // Offline fallback: use cached projection if daemon is unreachable
+    const cached = getCachedProjection();
+    if (cached) {
+      return { binding: { authority, client, projection: cached.projection }, kind: 'live' };
+    }
     const reason = error instanceof MissionCanvasTransportError
       ? error.message
       : error instanceof Error
