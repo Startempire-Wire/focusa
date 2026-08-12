@@ -11,26 +11,29 @@
     onOperation?: (binding: OperationBinding) => void | Promise<void>;
   } = $props();
 
-  const bindings = $derived(projection.operation_bindings.filter((binding) =>
-    binding.target_contribution_id === contribution.contribution_id
-    && contribution.operation_ids.includes(binding.operation_id)
-  ));
+  // Steering queue: show operations requiring explicit operator confirmation.
+  // Follow-up queue: show preview/discovery operations the operator may want to review.
+  const isSteering = $derived(contribution.kind === 'steering_queue');
+  const items = $derived(projection.operation_bindings.filter((binding) => {
+    if (isSteering) return binding.confirmation === 'confirm' && binding.enabled;
+    return binding.confirmation === 'preview' || (binding.confirmation === 'confirm' && !binding.enabled);
+  }));
+  const count = $derived(items.length);
 </script>
 
 <section class="queue" aria-label={contribution.accessibility.label} data-queue-kind={contribution.kind}>
   <div class="queue-copy">
     <strong>{contribution.accessibility.label}</strong>
-    <span>{contribution.accessibility.description}</span>
-    <code>{contribution.data_ref.ref}</code>
+    <span>{count === 0 ? 'No items pending' : `${count} pending item${count !== 1 ? 's' : ''}`}</span>
   </div>
-  {#if bindings.length > 0}
+  {#if items.length > 0}
     <div class="queue-actions">
-      {#each bindings as binding (binding.operation_id)}
+      {#each items as item (item.operation_id)}
         <button
           type="button"
-          disabled={!onOperation || !binding.enabled || !binding.authority_ref || Boolean(binding.disabled_reason_ref) || binding.confirmation === 'preview'}
-          onclick={() => void onOperation?.(binding)}
-        >{binding.operation_id.split('.').at(-1)}</button>
+          disabled={!onOperation || !item.enabled}
+          onclick={() => void onOperation?.(item)}
+        >{item.display?.label ?? item.operation_id.split('.').at(-1)}</button>
       {/each}
     </div>
   {/if}
