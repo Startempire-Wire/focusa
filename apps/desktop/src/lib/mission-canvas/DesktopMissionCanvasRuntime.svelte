@@ -1,6 +1,8 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte';
+  import { createLivePoller } from './live-poller';
   import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
+  import { MissionCanvasTransportError } from './http-transport';
   import ActivityNavigation from './ActivityNavigation.svelte';
   import { CapabilityLossController } from './capability-loss-controller';
   import type { ContributionRendererRegistry } from './contribution-renderers';
@@ -341,7 +343,32 @@
       }
     });
     events.start();
+    // Live projection poller: checks daemon every 10s for revision changes.
+    // Pauses when tab hidden, stops when authority cleared.
+    const poller = createLivePoller({
+      intervalMs: 10000,
+      fetchRevision: async () => {
+        if (!boundAuthority) return null;
+        try {
+          const p = await client.projectionGet({ ...boundAuthority });
+          return p.projection_revision;
+        } catch (e) {
+          // 404 = not found, don't error
+          if (e instanceof MissionCanvasTransportError && e.status === 404) return null;
+          throw e;
+        }
+      },
+      currentRevision: () => {
+        const state = controller.state;
+        return state.kind === 'ready' || state.kind === 'refreshing' || state.kind === 'stale'
+          ? state.projection.projection_revision : 0;
+      },
+      onProjectionChange: () => { void refreshProjection(); },
+      onMaxErrors: () => { capabilityNotice = 'Live projection polling stopped after repeated errors'; }
+    });
+    poller.start();
     return () => {
+      poller.stop();
       unsubscribe();
       events.stop();
       capabilityLoss.cancel();
