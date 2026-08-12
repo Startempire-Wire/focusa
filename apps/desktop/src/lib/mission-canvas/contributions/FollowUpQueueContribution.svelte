@@ -18,22 +18,23 @@
     return false;
   }));
   const count = $derived(items.length);
+  const visible = $derived(items.slice(0, 3));
+  const overflow = $derived(Math.max(0, count - 3));
 </script>
 
 <section class="queue" aria-label={contribution.accessibility.label} data-queue-kind={contribution.kind}>
   <div class="queue-copy">
     <strong>{contribution.accessibility.label}</strong>
-    <span>{count === 0 ? 'No items pending' : `${count} pending item${count !== 1 ? 's' : ''}`}</span>
+    <span>{count === 0 ? 'No items pending' : `${count} item${count !== 1 ? 's' : ''}`}</span>
   </div>
-  {#if items.length > 0}
+  {#if visible.length > 0}
     <div class="queue-actions">
-      {#each items as item (item.operation_id)}
-        <button
-          type="button"
-          disabled={!onOperation || !item.enabled}
-          onclick={() => void onOperation?.(item)}
-        >{item.display?.label ?? item.operation_id.split('.').at(-1)}</button>
+      {#each visible as item (item.operation_id)}
+        <span class="preview-chip">{item.display?.label ?? item.operation_id.split('.').at(-1)}</span>
       {/each}
+      {#if overflow > 0}
+        <span class="overflow-chip">+{overflow} more</span>
+      {/if}
     </div>
   {/if}
 </section>

@@ -10,6 +10,7 @@ import { authorityFromProjection, sameWorkstreamAuthority as sameScope } from '.
 import { normalizeLabels } from './labels';
 import { collectLayoutContributionIds, validateLayoutIntegrity } from './layout-references';
 import type { ResolvedWorkspaceProjection, WorkstreamAuthorityContext } from './types';
+import { synthesizeMissingContributions } from './contribution-catalog';
 
 export type ProjectionState =
   | { kind: 'unbound' }
@@ -231,7 +232,8 @@ export class MissionCanvasProjectionController {
         return;
       }
 
-      this.state = { kind: 'ready', scope, projection: freezeProjection(normalizeLabels(validation.projection)) };
+      const enriched = enrichContributions(validation.projection);
+      this.state = { kind: 'ready', scope, projection: freezeProjection(normalizeLabels(enriched)) };
     } catch (error) {
       if (generation !== this.#requestGeneration) return;
       const reason = error instanceof Error ? error.message : 'projection_load_failed';
@@ -269,7 +271,8 @@ export class MissionCanvasProjectionController {
       return false;
     }
 
-    this.state = { kind: 'ready', scope, projection: freezeProjection(normalizeLabels(validation.projection)) };
+    const enriched2 = enrichContributions(validation.projection);
+    this.state = { kind: 'ready', scope, projection: freezeProjection(normalizeLabels(enriched2)) };
     return true;
   }
 
@@ -465,6 +468,23 @@ function cloneAndFreezeScope(scope: unknown): WorkstreamAuthorityContext | undef
   } catch {
     return undefined;
   }
+}
+
+// Fill missing contributions from the Core-defined catalog.
+// When the old daemon returns sparse eligible_contributions (e.g., 4 for overview
+// instead of 7), the Desktop synthesizes the expected ones using the same
+// definitions Core uses in profiles.rs.  This is backward-compatible:
+// when the daemon updates, its canonical contributions replace the synthetics.
+function enrichContributions(projection: ResolvedWorkspaceProjection): ResolvedWorkspaceProjection {
+  const activity = projection.activity_mode_id ?? 'overview';
+  const enriched = synthesizeMissingContributions(
+    projection.eligible_contributions ?? [],
+    activity
+  );
+  if (enriched.length === (projection.eligible_contributions?.length ?? 0)) {
+    return projection;
+  }
+  return { ...projection, eligible_contributions: enriched };
 }
 
 function freezeProjection(projection: ResolvedWorkspaceProjection): ResolvedWorkspaceProjection {

@@ -396,7 +396,15 @@
             <span>r{liveBinding.projection.projection_revision}</span><i>·</i>
             <span>{liveBinding.projection.workspace_profile_id}/{liveBinding.projection.activity_mode_id}</span>
           </div>
-          <p class="field-note">Requires daemon endpoint for {activeWorkspace.id}. Renderer registered and ready.</p>
+          {#if activeWorkspace.id === 'context-role'}
+            <p>The current role is derived from the Workstream profile and activity mode. Full C.R.I.S.T. Context/Role/Interview/Spec/Tasks projection requires the <code>focusa.mission_canvas.generated_surface.resolve</code> daemon endpoint.</p>
+          {:else if activeWorkspace.id === 'workpoints'}
+            <p>Workpoint state and verification posture require the <code>focusa.mission_canvas.workpoint.list</code> endpoint. The Work Rail contribution already renders live workpoint data from the projection.</p>
+          {:else if activeWorkspace.id === 'trajectory'}
+            <p>Tactical Workstream Trajectory (HLT/MLG/STG/waypoints) requires the <code>focusa.mission_canvas.trajectory.view</code> endpoint. Open Mission Canvas for live trajectory contributions.</p>
+          {:else if activeWorkspace.id === 'evidence'}
+            <p>Evidence, Receipts, and closure proof require the <code>focusa.mission_canvas.recomposition.evidence.get</code> endpoint. Evidence refs from the projection: {liveBinding.projection.evidence_refs.length ?? 0} available.</p>
+          {/if}
         {:else}
           <p>Open Mission Canvas to bind a Workstream first.</p>
         {/if}

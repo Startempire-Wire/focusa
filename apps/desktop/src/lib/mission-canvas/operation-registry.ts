@@ -52,6 +52,16 @@ const REGISTRY: ReadonlyArray<OperationRegistryEntry> = [
   { operation_id: 'focusa.mission_canvas.pi_session.event.append', confirmation: 'none', target_contribution_id: 'contribution:pi-session', display_label: 'Append Pi Event', enabled: true },
   // Events
   { operation_id: 'focusa.mission_canvas.events.stream', confirmation: 'none', target_contribution_id: 'contribution:controls', display_label: 'Stream Events', enabled: true },
+  // Preview operations — confirmed but disabled bindings that populate the Follow-Up
+  // Queue. These are Spec 135 operations expected when the daemon updates.
+  { operation_id: 'focusa.mission_canvas.workpoint.list', confirmation: 'confirm', target_contribution_id: 'contribution:work-rail', display_label: 'Workpoint List', enabled: false },
+  { operation_id: 'focusa.mission_canvas.workpoint.checkpoint', confirmation: 'confirm', target_contribution_id: 'contribution:work-rail', display_label: 'Workpoint Checkpoint', enabled: false },
+  { operation_id: 'focusa.mission_canvas.workpoint.resume', confirmation: 'confirm', target_contribution_id: 'contribution:work-rail', display_label: 'Workpoint Resume', enabled: false },
+  { operation_id: 'focusa.mission_canvas.workpoint.link_evidence', confirmation: 'confirm', target_contribution_id: 'contribution:evidence-stream', display_label: 'Link Evidence', enabled: false },
+  { operation_id: 'focusa.mission_canvas.trajectory.view', confirmation: 'confirm', target_contribution_id: 'contribution:project-overview', display_label: 'Trajectory View', enabled: false },
+  { operation_id: 'focusa.mission_canvas.trajectory.assess', confirmation: 'confirm', target_contribution_id: 'contribution:project-overview', display_label: 'Trajectory Assess', enabled: false },
+  { operation_id: 'focusa.mission_canvas.session.inventory', confirmation: 'confirm', target_contribution_id: 'contribution:silent-sessions', display_label: 'Session Inventory', enabled: false },
+  { operation_id: 'focusa.mission_canvas.recomposition.evidence.get', confirmation: 'confirm', target_contribution_id: 'contribution:evidence-stream', display_label: 'Recomposition Evidence', enabled: false },
 ];
 
 export function getOperationRegistry(): ReadonlyArray<OperationRegistryEntry> {

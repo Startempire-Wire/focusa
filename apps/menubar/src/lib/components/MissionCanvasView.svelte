@@ -36,6 +36,30 @@
   export function bindHandoffContext(context: unknown): void {
     handoffContext = context;
   }
+
+  // Listen for Desktop bridge messages via custom events.
+  // Desktop web app dispatches 'focusa-menubar-message' with typed payload.
+  $effect(() => {
+    function onMessage(event: Event) {
+      const detail = (event as CustomEvent).detail;
+      if (!detail) return;
+      if (detail.kind === 'workspace_bound') {
+        handoffContext = {
+          workstream: {
+            scope: { scope_kind: 'project', scope_key: { scope_id: detail.workstreamId } },
+            workstream_id: detail.workstreamId
+          },
+          continuity_id: detail.continuityId,
+          workspace_binding_id: undefined,
+          work_surface_id: undefined
+        };
+      } else if (detail.kind === 'workspace_unbound') {
+        handoffContext = undefined;
+      }
+    }
+    window.addEventListener('focusa-menubar-message', onMessage);
+    return () => window.removeEventListener('focusa-menubar-message', onMessage);
+  });
 </script>
 
 <section
