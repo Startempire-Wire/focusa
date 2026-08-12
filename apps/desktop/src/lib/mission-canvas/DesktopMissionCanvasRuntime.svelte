@@ -107,6 +107,33 @@
     PROFILE_SELECT_OPERATION,
     ACTIVITY_SELECT_OPERATION
   ]);
+  // Steering operations merged into the projection so queues show pending items.
+  // These are Spec 135 operations known to the Desktop; they appear in Steering /
+  // Follow-Up queues until the daemon provides canonical bindings.
+  const ENRICHED_OPERATIONS = $derived.by(() => {
+    const s = controller.state;
+    if (s.kind !== 'ready' && s.kind !== 'refreshing' && s.kind !== 'stale') return [];
+    const p = s.projection;
+    const base = p.operation_bindings ?? [];
+    const hasPromptExec = base.some(o => o.operation_id === 'focusa.agent_execution.prompt');
+    if (hasPromptExec) return base;
+    return [...base, {
+      operation_id: 'focusa.agent_execution.prompt',
+      target_contribution_id: 'contribution:prompt-editor',
+      enabled: true,
+      authority_ref: 'synthetic:agent_execution.prompt:v0',
+      confirmation: 'confirm' as const,
+      display: { label: 'Execute Prompt', description: 'Route the staged prompt through the canonical Workstream' },
+      input_schema_ref: 'v1'
+    }];
+  });
+  // Projection enriched with synthetic operations for queue population
+  const enrichedProjection = $derived.by(() => {
+    const s = controller.state;
+    if (s.kind !== 'ready' && s.kind !== 'refreshing' && s.kind !== 'stale') return null;
+    if (ENRICHED_OPERATIONS.length === s.projection.operation_bindings.length) return s.projection;
+    return { ...s.projection, operation_bindings: ENRICHED_OPERATIONS };
+  });
 
   function operationBinding(operationId: string, targetContributionId?: string): OperationBinding | undefined {
     const state = controller.state;
@@ -403,13 +430,13 @@
     {/if}
     <div class="canvas-stage">
       {#if controller.state.kind === 'ready'}
-        <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
+        <MissionCanvasRenderer projection={enrichedProjection ?? controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
       {:else if controller.state.kind === 'refreshing'}
         <div class="state-banner" role="status">Refreshing canonical workspace…</div>
-        <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
+        <MissionCanvasRenderer projection={enrichedProjection ?? controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
       {:else if controller.state.kind === 'stale'}
         <div class="state-banner" role="status">{controller.state.reason}</div>
-        <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
+        <MissionCanvasRenderer projection={enrichedProjection ?? controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
       {:else if controller.state.kind === 'loading'}
         <div class="state-message" role="status">Loading canonical workspace…</div>
       {:else if controller.state.kind === 'blocked' || controller.state.kind === 'error'}
