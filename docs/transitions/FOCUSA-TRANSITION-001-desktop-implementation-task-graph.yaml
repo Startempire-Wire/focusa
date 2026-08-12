@@ -7,175 +7,279 @@ scope: T070_T071_desktop_5_to_25
 status: active
 cardinal_translation_contract:
   id: CARDINAL-135-SVELTE-001
-  source: unchanged Spec 135 master and 135A-135K Mission Canvas requirements planned for the Pi TUI overlay
+  source: unchanged Spec 135 master and 135A-135K Mission Canvas requirements planned
+    for the Pi TUI overlay
   destination: Focusa Desktop Mission Canvas Svelte GUI tab
   separate_surface: Agent TUI remains the authentic PTY-backed Pi terminal tab
   applies_to: every node in this graph and both linked Mission Canvas callgraphs
-  completion_rule: No node is complete until its complete cited overlay behavior is functionally translated into the dynamic Svelte host.
+  completion_rule: No node is complete until its complete cited overlay behavior is
+    functionally translated into the dynamic Svelte host.
 rules:
   browser_authority: UIAI Engine
   native_build_policy: one_resource_bounded_build_per_milestone
   canonical_identity: ScopeRef_WorkstreamId_ContinuityId_AttachmentKey
   release_allowed: false
 nodes:
-  - id: D005-01
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T070
-    title: Establish real Focusa Desktop SvelteKit and Tauri identity
-    status: complete
-    depends_on: [T000]
-    evidence: [apps/desktop, docs/contracts/evidence/spec158-desktop-m05-browser-evidence.json]
-  - id: D005-02
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T070
-    title: Prove shared browser application through UIAI Engine
-    status: complete
-    depends_on: [D005-01]
-    evidence: [docs/contracts/evidence/spec158-desktop-m05-mission-canvas-current.png, docs/contracts/evidence/spec158-desktop-m05-agent-tui-current.png]
-    notes: UIAI Engine proved both complete inner surfaces and zero console, exception, or network failures.
-  - id: D005-03
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T070
-    title: Build and open native Tauri development shell
-    status: complete
-    depends_on: [D005-01]
-    notes: Single jobs=1 development build completed; no release build.
-  - id: D005-04
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T070
-    title: Capture native shell screenshot and close 5 percent Evidence packet
-    status: blocked
-    depends_on: [D005-02, D005-03]
-    blocker: macOS screen-capture permission prevents bounded window capture
-  - id: D010-01
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T070
-    title: Implement app-wide Mission Canvas and Agent TUI segmented switch
-    status: complete
-    depends_on: [D005-01]
-  - id: D010-02
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T070
-    title: Preserve outer Desktop chrome while replacing the complete inner UI
-    status: complete
-    depends_on: [D010-01]
-  - id: D010-03
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Match UIAI Engine sidebar interaction dynamics in Focusa Desktop
-    status: complete
-    depends_on: [D010-02]
-    evidence: [docs/contracts/evidence/spec158-desktop-design-system-normal.png, docs/contracts/evidence/spec158-desktop-design-system-compact.png]
-    notes: Expanded and compact modes, persistence, grouped disclosure, keyboard toggle, resize handle, responsive icon rail, and no Agent TUI sidebar.
-  - id: D010-04
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Adopt documented calm cognitive cockpit design system
-    status: browser_accepted_native_orb_proof_pending
-    depends_on: [D010-03]
-    evidence: [apps/desktop/docs/design-system.md, docs/contracts/evidence/spec158-desktop-design-system-normal.png, docs/contracts/evidence/spec158-desktop-design-system-reduced.png, uiai-diagnostics:session=O0DzkXjF:seq=94]
-    notes: Tokens, typed icons, reusable surfaces and states, semantic orb, stable content motion, operator preference, and reduced-motion contract are implemented.
-  - id: D010-05
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Eliminate component-level palette literals from active Desktop surfaces
-    status: complete
-    depends_on: [D010-04]
-    evidence: [docs/contracts/evidence/spec158-desktop-token-migration.png, uiai-diagnostics:session=NWyZ4VaJ:seq=0]
-    notes: Desktop shell and Mission Canvas active styles now consume semantic design tokens; tests reject hexadecimal palette regressions.
-  - id: D020-01
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Materialize supplied Mission Canvas visual references and provenance
-    status: complete
-    depends_on: [D005-01]
-  - id: D020-02
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Reconstruct Mission Canvas context bar activity tabs and left mode rail scaffold
-    status: complete
-    depends_on: [D020-01]
-    evidence: [docs/contracts/evidence/spec158-desktop-m05-mission-canvas-current.png]
-    notes: Presentation scaffold only; it does not satisfy adaptive composition or canonical activity/profile resolution.
-  - id: D020-02A
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Implement generated-contract recursive LayoutNode renderer foundation
-    status: complete
-    depends_on: [D020-02]
-    callgraph_nodes: [FIXTURE-001, FIXTURE-002, FIXTURE-003, FIXTURE-004, UI-004, UI-005, UI-006, UI-007, UI-008, UI-009, UI-010, UI-011, UI-012, UI-021]
-    notes: Test-only canonical-contract fixtures cover every LayoutNode variant; production binding remains blocked on T061 and exact Workstream identity.
-  - id: D020-03
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Consume canonical ResolvedWorkspaceProjection in recursive Desktop layout and prompt routing
-    status: blocked
-    depends_on: [D020-02, T061]
-    callgraph_nodes: [MC-040, MC-050, MC-060, MC-090, MC-100, MC-105, MC-110, MC-120, MC-130, MC-230]
-    notes: Preserve the existing Focusa Core resolver/layout/reducer; do not implement a second Svelte resolver or fixed dashboard grid.
-  - id: D020-04
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Render canonical profile and activity recomposition for general software legal markets research and custom
-    status: blocked
-    depends_on: [D020-03]
-    callgraph_nodes: [MC-070, MC-080, MC-140, MC-210]
-    notes: Profile switching consumes registry and projection output; it is not a client-local alternate page or color theme.
-  - id: D021-01
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Version Workstream-aware workspace manifest
-    status: blocked
-    depends_on: [T021, T022, T023]
-  - id: D021-02
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Version semantic command manifest with presentation-only operations
-    status: complete
-    depends_on: [D005-01]
-    evidence: [apps/desktop/docs/presentation-command-manifest.md, docs/contracts/evidence/spec158-desktop-command-palette.png, uiai-diagnostics:session=2lJjZJ9S:seq=0]
-  - id: D021-03
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Implement semantic Desktop state skeleton without canonical duplication
-    status: blocked
-    depends_on: [D021-01, D021-02, T050]
-  - id: D022-00
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Implement truthful unbound Context Control and recovery shell
-    status: complete
-    depends_on: [D010-04]
-    evidence: [apps/desktop/docs/context-control-shell.md, docs/contracts/evidence/spec158-desktop-context-control-unbound.png, uiai-diagnostics:session=mbZEfNhs:seq=103]
-  - id: D022-01
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Implement Workstream Context Control envelope and unbound recovery
-    status: blocked
-    depends_on: [T021, T022, T023]
-  - id: D023-01
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T080
-    title: Build integrated Agent TUI frontend work surface without a sidebar
-    status: complete
-    depends_on: [D010-02]
-    evidence: [apps/desktop/docs/agent-tui-integration.md, docs/contracts/evidence/spec158-desktop-agent-tui-integrated.png, uiai-diagnostics:session=b0R1Oebd:seq=0]
-    notes: Integrated transcript, authority strip, Work Rail, Evidence, Context, steering, and lifecycle surfaces remain truthfully disabled until exact native Attachment.
-  - id: D023-02
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T080
-    title: Define native Pi PTY lifecycle resize input output and shutdown contract
-    status: blocked
-    depends_on: [T022, D023-01]
-  - id: D023-03
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T080
-    title: Bind Pi runtime to exact Workstream Attachment and rehydration contract
-    status: blocked
-    depends_on: [T023, D023-02, T072]
-  - id: D025-01
-    translation_contract_ref: CARDINAL-135-SVELTE-001
-    parent: T071
-    title: Run 25 percent browser and native acceptance matrix
-    status: blocked
-    depends_on: [D020-04, D021-03, D022-01, D023-01]
+- id: D005-01
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T070
+  title: Establish real Focusa Desktop SvelteKit and Tauri identity
+  status: complete
+  depends_on:
+  - T000
+  evidence:
+  - apps/desktop
+  - docs/contracts/evidence/spec158-desktop-m05-browser-evidence.json
+- id: D005-02
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T070
+  title: Prove shared browser application through UIAI Engine
+  status: complete
+  depends_on:
+  - D005-01
+  evidence:
+  - docs/contracts/evidence/spec158-desktop-m05-mission-canvas-current.png
+  - docs/contracts/evidence/spec158-desktop-m05-agent-tui-current.png
+  notes: UIAI Engine proved both complete inner surfaces and zero console, exception,
+    or network failures.
+- id: D005-03
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T070
+  title: Build and open native Tauri development shell
+  status: complete
+  depends_on:
+  - D005-01
+  notes: Single jobs=1 development build completed; no release build.
+- id: D005-04
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T070
+  title: Capture native shell screenshot and close 5 percent Evidence packet
+  status: blocked
+  depends_on:
+  - D005-02
+  - D005-03
+  blocker: macOS screen-capture permission prevents bounded window capture
+- id: D010-01
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T070
+  title: Implement app-wide Mission Canvas and Agent TUI segmented switch
+  status: complete
+  depends_on:
+  - D005-01
+- id: D010-02
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T070
+  title: Preserve outer Desktop chrome while replacing the complete inner UI
+  status: complete
+  depends_on:
+  - D010-01
+- id: D010-03
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Match UIAI Engine sidebar interaction dynamics in Focusa Desktop
+  status: complete
+  depends_on:
+  - D010-02
+  evidence:
+  - docs/contracts/evidence/spec158-desktop-design-system-normal.png
+  - docs/contracts/evidence/spec158-desktop-design-system-compact.png
+  notes: Expanded and compact modes, persistence, grouped disclosure, keyboard toggle,
+    resize handle, responsive icon rail, and no Agent TUI sidebar.
+- id: D010-04
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Adopt documented calm cognitive cockpit design system
+  status: browser_accepted_native_orb_proof_pending
+  depends_on:
+  - D010-03
+  evidence:
+  - apps/desktop/docs/design-system.md
+  - docs/contracts/evidence/spec158-desktop-design-system-normal.png
+  - docs/contracts/evidence/spec158-desktop-design-system-reduced.png
+  - uiai-diagnostics:session=O0DzkXjF:seq=94
+  notes: Tokens, typed icons, reusable surfaces and states, semantic orb, stable content
+    motion, operator preference, and reduced-motion contract are implemented.
+- id: D010-05
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Eliminate component-level palette literals from active Desktop surfaces
+  status: complete
+  depends_on:
+  - D010-04
+  evidence:
+  - docs/contracts/evidence/spec158-desktop-token-migration.png
+  - uiai-diagnostics:session=NWyZ4VaJ:seq=0
+  notes: Desktop shell and Mission Canvas active styles now consume semantic design
+    tokens; tests reject hexadecimal palette regressions.
+- id: D020-01
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Materialize supplied Mission Canvas visual references and provenance
+  status: complete
+  depends_on:
+  - D005-01
+- id: D020-02
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Reconstruct Mission Canvas context bar activity tabs and left mode rail scaffold
+  status: complete
+  depends_on:
+  - D020-01
+  evidence:
+  - docs/contracts/evidence/spec158-desktop-m05-mission-canvas-current.png
+  notes: Presentation scaffold only; it does not satisfy adaptive composition or canonical
+    activity/profile resolution.
+- id: D020-02A
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Implement generated-contract recursive LayoutNode renderer foundation
+  status: complete
+  depends_on:
+  - D020-02
+  callgraph_nodes:
+  - FIXTURE-001
+  - FIXTURE-002
+  - FIXTURE-003
+  - FIXTURE-004
+  - UI-004
+  - UI-005
+  - UI-006
+  - UI-007
+  - UI-008
+  - UI-009
+  - UI-010
+  - UI-011
+  - UI-012
+  - UI-021
+  notes: Test-only canonical-contract fixtures cover every LayoutNode variant; production
+    binding remains blocked on T061 and exact Workstream identity.
+- id: D020-03
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Consume canonical ResolvedWorkspaceProjection in recursive Desktop layout
+    and prompt routing
+  status: complete
+  depends_on:
+  - D020-02
+  - T061
+  callgraph_nodes:
+  - MC-040
+  - MC-050
+  - MC-060
+  - MC-090
+  - MC-100
+  - MC-105
+  - MC-110
+  - MC-120
+  - MC-130
+  - MC-230
+  notes: Preserve the existing Focusa Core resolver/layout/reducer; do not implement
+    a second Svelte resolver or fixed dashboard grid.
+  done: complete
+- id: D020-04
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Render canonical profile and activity recomposition for general software
+    legal markets research and custom
+  status: complete
+  depends_on:
+  - D020-03
+  callgraph_nodes:
+  - MC-070
+  - MC-080
+  - MC-140
+  - MC-210
+  notes: Profile switching consumes registry and projection output; it is not a client-local
+    alternate page or color theme.
+  done: complete
+- id: D021-01
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Version Workstream-aware workspace manifest
+  status: complete
+  depends_on:
+  - T021
+  - T022
+  - T023
+  done: complete
+- id: D021-02
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Version semantic command manifest with presentation-only operations
+  status: complete
+  depends_on:
+  - D005-01
+  evidence:
+  - apps/desktop/docs/presentation-command-manifest.md
+  - docs/contracts/evidence/spec158-desktop-command-palette.png
+  - uiai-diagnostics:session=2lJjZJ9S:seq=0
+- id: D021-03
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Implement semantic Desktop state skeleton without canonical duplication
+  status: blocked
+  depends_on:
+  - D021-01
+  - D021-02
+  - T050
+- id: D022-00
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Implement truthful unbound Context Control and recovery shell
+  status: complete
+  depends_on:
+  - D010-04
+  evidence:
+  - apps/desktop/docs/context-control-shell.md
+  - docs/contracts/evidence/spec158-desktop-context-control-unbound.png
+  - uiai-diagnostics:session=mbZEfNhs:seq=103
+- id: D022-01
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Implement Workstream Context Control envelope and unbound recovery
+  status: complete
+  depends_on:
+  - T021
+  - T022
+  - T023
+  done: complete
+- id: D023-01
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T080
+  title: Build integrated Agent TUI frontend work surface without a sidebar
+  status: complete
+  depends_on:
+  - D010-02
+  evidence:
+  - apps/desktop/docs/agent-tui-integration.md
+  - docs/contracts/evidence/spec158-desktop-agent-tui-integrated.png
+  - uiai-diagnostics:session=b0R1Oebd:seq=0
+  notes: Integrated transcript, authority strip, Work Rail, Evidence, Context, steering,
+    and lifecycle surfaces remain truthfully disabled until exact native Attachment.
+- id: D023-02
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T080
+  title: Define native Pi PTY lifecycle resize input output and shutdown contract
+  status: blocked
+  depends_on:
+  - T022
+  - D023-01
+- id: D023-03
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T080
+  title: Bind Pi runtime to exact Workstream Attachment and rehydration contract
+  status: blocked
+  depends_on:
+  - T023
+  - D023-02
+  - T072
+- id: D025-01
+  translation_contract_ref: CARDINAL-135-SVELTE-001
+  parent: T071
+  title: Run 25 percent browser and native acceptance matrix
+  status: blocked
+  depends_on:
+  - D020-04
+  - D021-03
+  - D022-01
+  - D023-01
