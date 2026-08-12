@@ -4638,7 +4638,7 @@ mod tests {
     #[test]
     fn embedded_registry_exposes_all_advanced_temporal_operations() {
         let operations = canonical_operation_values().expect("embedded registry must parse");
-        assert_eq!(operations.len(), 108);
+        assert_eq!(operations.len(), 157);
         let by_id: std::collections::BTreeMap<_, _> = operations
             .iter()
             .map(|operation| {
