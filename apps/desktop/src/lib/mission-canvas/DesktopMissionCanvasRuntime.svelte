@@ -3,6 +3,7 @@
   import { createLivePoller } from './live-poller';
   import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
   import { MissionCanvasTransportError } from './http-transport';
+  import { synthesizeAllOperationBindings } from './operation-registry';
   import ActivityNavigation from './ActivityNavigation.svelte';
   import { CapabilityLossController } from './capability-loss-controller';
   import type { ContributionRendererRegistry } from './contribution-renderers';
@@ -107,32 +108,15 @@
     PROFILE_SELECT_OPERATION,
     ACTIVITY_SELECT_OPERATION
   ]);
-  // Steering operations merged into the projection so queues show pending items.
-  // These are Spec 135 operations known to the Desktop; they appear in Steering /
-  // Follow-Up queues until the daemon provides canonical bindings.
-  const ENRICHED_OPERATIONS = $derived.by(() => {
-    const s = controller.state;
-    if (s.kind !== 'ready' && s.kind !== 'refreshing' && s.kind !== 'stale') return [];
-    const p = s.projection;
-    const base = p.operation_bindings ?? [];
-    const hasPromptExec = base.some(o => o.operation_id === 'focusa.agent_execution.prompt');
-    if (hasPromptExec) return base;
-    return [...base, {
-      operation_id: 'focusa.agent_execution.prompt',
-      target_contribution_id: 'contribution:prompt-editor',
-      enabled: true,
-      authority_ref: 'synthetic:agent_execution.prompt:v0',
-      confirmation: 'confirm' as const,
-      display: { label: 'Execute Prompt', description: 'Route the staged prompt through the canonical Workstream' },
-      input_schema_ref: 'v1'
-    }];
-  });
-  // Projection enriched with synthetic operations for queue population
+  // Projection enriched with canonical operation registry bindings.
+  // The 25-operation Spec 135 registry is the authority; synthesized bindings
+  // fill gaps when the daemon provides sparse or empty operation_bindings.
   const enrichedProjection = $derived.by(() => {
     const s = controller.state;
     if (s.kind !== 'ready' && s.kind !== 'refreshing' && s.kind !== 'stale') return null;
-    if (ENRICHED_OPERATIONS.length === s.projection.operation_bindings.length) return s.projection;
-    return { ...s.projection, operation_bindings: ENRICHED_OPERATIONS };
+    const allBindings = synthesizeAllOperationBindings(s.projection.operation_bindings ?? []);
+    if (allBindings.length === (s.projection.operation_bindings?.length ?? 0)) return s.projection;
+    return { ...s.projection, operation_bindings: allBindings };
   });
 
   function operationBinding(operationId: string, targetContributionId?: string): OperationBinding | undefined {
