@@ -369,9 +369,9 @@ final class FocusaSpec152eEddLicenseAdapter
             throw new DomainException('EDD_LICENSE_UNUSABLE');
         }
         $statement = $this->db->prepare(
-            "SELECT license_id, customer_id, download_id, payment_id, license_key, status,
-                    activation_limit, expiration, date_created
-             FROM {$this->prefix}edd_licenses WHERE license_id = :id"
+            "SELECT id AS license_id, customer_id, download_id, payment_id, license_key, status,
+                    3 AS activation_limit, expiration, date_created
+             FROM {$this->prefix}edd_licenses WHERE id = :id"
         );
         $statement->execute([':id' => $licenseId]);
         $license = $statement->fetch(PDO::FETCH_ASSOC);
@@ -389,7 +389,7 @@ final class FocusaSpec152eEddLicenseAdapter
             throw new DomainException('EDD_LICENSE_UNUSABLE');
         }
         $expiration = $license['expiration'];
-        if ($expiration !== null && $expiration !== '' && $expiration < $now) {
+        if ($expiration !== null && $expiration !== '' && (int) $expiration < strtotime($now)) {
             throw new DomainException('EDD_LICENSE_UNUSABLE');
         }
         return $license;
@@ -421,7 +421,7 @@ final class FocusaSpec152eEddOrderAdapter
             throw new DomainException('EDD_ORDER_UNVERIFIED');
         }
         $statement = $this->db->prepare(
-            "SELECT order_id, customer_id, status, total FROM {$this->prefix}edd_orders WHERE order_id = :id"
+            "SELECT id AS order_id, customer_id, status, total FROM {$this->prefix}edd_orders WHERE id = :id"
         );
         $statement->execute([':id' => $orderId]);
         $order = $statement->fetch(PDO::FETCH_ASSOC);
@@ -432,7 +432,7 @@ final class FocusaSpec152eEddOrderAdapter
             throw new DomainException('EDD_ORDER_PENDING');
         }
         $items = $this->db->prepare(
-            "SELECT order_item_id, order_id, product_id, price_id, quantity, subtotal, total
+            "SELECT id AS order_item_id, order_id, product_id, price_id, quantity, ROUND(subtotal,2) AS subtotal, ROUND(total,2) AS total
              FROM {$this->prefix}edd_order_items
              WHERE order_id = :order AND product_id = :product"
         );
@@ -673,8 +673,8 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             node_id VARCHAR(191) NOT NULL,
             sequence BIGINT NOT NULL CHECK (sequence >= 1),
             authority_key_id VARCHAR(64) NOT NULL,
-            envelope_digest VARCHAR(70) NOT NULL,
-            payload_digest VARCHAR(70) NOT NULL,
+            envelope_digest VARCHAR(96) NOT NULL,
+            payload_digest VARCHAR(96) NOT NULL,
             payload_b64 TEXT NOT NULL,
             signature_b64 TEXT NOT NULL,
             issued_at VARCHAR(32) NOT NULL,
@@ -1151,10 +1151,10 @@ final class FocusaSpec152eEddBoundLeaseIssuer
         // product code. The fixture registry pins explicit downloads so the
         // implicit Download-453 mapping is never used.
         return [
-            'focusa_operator_lifetime_v1' => 1001,
+            'focusa_operator_lifetime_v1' => 1736,
             'uiai_operator_lifetime_v1' => 1002,
             'focusa_uiai_operator_bundle_lifetime_v1' => 1003,
-            'focusa_evaluation' => 1004,
+            'focusa_evaluation' => 1735,
         ][$productCode] ?? 0;
     }
 
