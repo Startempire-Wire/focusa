@@ -2119,7 +2119,7 @@ async fn run_activation_flow_command(
         .map_err(|error| anyhow::anyhow!("{error}"))?;
 
     let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN").unwrap_or_else(|_| {
-        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/authority/".to_string()
+        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string()
     });
     let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
     let policy = ActivationHttpPolicy {
@@ -2230,7 +2230,7 @@ async fn run_agent_activation_command(
         .map_err(|error| anyhow::anyhow!("{error}"))?;
 
     let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN").unwrap_or_else(|_| {
-        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/authority/".to_string()
+        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string()
     });
     let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
     let policy = ActivationHttpPolicy {

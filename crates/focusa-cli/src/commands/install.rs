@@ -2499,7 +2499,7 @@ async fn acquire_installer_entitlement(
         requested_features: vec![required_feature.into()],
     };
     let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
-        .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/authority/".into());
+        .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".into());
     let origin = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
     let endpoints = AuthorityEndpointSet {
         start: origin.join("device/start")?,
@@ -2641,7 +2641,7 @@ async fn authorize_installer_activation_flow(
     let identity = resolve_flow_node_identity(config_dir)
         .map_err(|error| anyhow!(error.to_string()))?;
     let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN").unwrap_or_else(|_| {
-        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/authority/".to_string()
+        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string()
     });
     let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
     let policy = ActivationHttpPolicy {
