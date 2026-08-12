@@ -12,6 +12,8 @@ export type WorkSurfaceKind =
   | "custom";
 
 export interface WorkSurfaceProjection {
+  /** Spec 158 canonical Workstream identity. */
+  workstreamId: string;
   workSurfaceId: string;
   displayName: string;
   kind: WorkSurfaceKind;

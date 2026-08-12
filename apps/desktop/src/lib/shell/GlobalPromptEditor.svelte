@@ -11,14 +11,18 @@
     client?: MissionCanvasClient;
   } = $props();
 
+  // The recipient is resolved from the authority's WorkSurfaceId.
+  // PromptEditorContribution routes drafts to projection.focused_work_surface_id.
+  // Follows Spec 135J: recipient must be exact, never a surface/CWD guess.
+  const resolvedRecipient = $derived(authority.work_surface_id ?? authority.attachment?.workspace_binding_id ?? null);
+
   // Minimal projection envelope constructed from authority.
-  // The prompt editor only needs workstream, continuity, attachment for routing.
   const projection = $derived({
     workstream: authority.workstream,
     continuity_id: authority.continuity_id,
     attachment: authority.attachment ?? null,
-    workspace_profile_id: 'software',
-    activity_mode_id: 'prompt-editor',
+    workspace_profile_id: authority.workspace_profile_id ?? 'software',
+    activity_mode_id: authority.activity_mode_id ?? 'overview',
     projection_revision: 0,
     layout_revision: 0,
     eligible_contributions: [] as ResolvedContribution[],
@@ -29,7 +33,7 @@
     durable_event_cursor: '',
     evidence_refs: [] as string[],
     focused_semantic_target: null as string | null,
-    focused_work_surface_id: null as string | null,
+    focused_work_surface_id: resolvedRecipient,
     layout_tree: null as any,
     omission_diagnostics: [] as any[],
     projection_digest: '',

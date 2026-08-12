@@ -1,6 +1,8 @@
 import { MAX_MISSION_CANVAS_ROWS, type WorkSurfaceProjection } from "./mission-canvas-model.js";
 
 export interface MissionCanvasSessionInventoryRow {
+  /** Spec 158 canonical Workstream identifier. */
+  workstreamId: string;
   kind: string;
   projectRoot: string;
   continuityId: string;
