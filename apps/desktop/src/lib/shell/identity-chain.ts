@@ -71,9 +71,21 @@ export function resolveIdentityChain(
         label: 'AttachmentKey',
         value: att?.attachment_id ?? null,
         detail: att?.attachment_id
-          ? `${att.instance_id ?? ''} · ${att.session_id ?? ''}`
+          ? `Bound to ${att.kind ?? 'runtime'}`
           : 'No exact runtime Attachment',
         resolved: !!att?.attachment_id
+      },
+      {
+        label: 'InstanceId',
+        value: att?.instance_id ?? null,
+        detail: att?.instance_id ? 'Pi runtime instance bound' : 'Awaiting Pi attachment',
+        resolved: !!att?.instance_id
+      },
+      {
+        label: 'SessionId',
+        value: att?.session_id ?? null,
+        detail: att?.session_id ? 'Temporal session bound' : 'Awaiting Pi attachment',
+        resolved: !!att?.session_id
       },
       {
         label: 'WorkSurfaceId',
