@@ -78,7 +78,7 @@ fn spec172_family_inheritance_registry_is_fail_closed_default() {
         .get("operations")
         .and_then(serde_json::Value::as_array)
         .expect("operations list");
-    assert_eq!(registry.get("operation_count"), Some(&serde_json::Value::from(108_u64)));
+    assert_eq!(registry.get("operation_count"), Some(&serde_json::Value::from(157_u64)));
 
     let allowed: HashSet<&str> = allowed_focusa_families().iter().copied().collect();
     let mut covered = HashSet::new();
