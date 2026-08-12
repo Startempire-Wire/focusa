@@ -55,8 +55,9 @@ for rel in required:
         ("none", "implementation_open"),
         ("none", "not_activated"),
         ("activated", "verified_complete"),
+        ("full_spec138_conformance", "verified_complete"),
     }, rel
-    if claim == "activated":
+    if claim in {"activated", "full_spec138_conformance"}:
         assert data.get("activation_receipt_ref") == "release-proof/audit/spec144-spec150-double-e2e-receipt.json", rel
 
 s137 = (ROOT / "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md").read_text()

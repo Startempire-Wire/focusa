@@ -96,7 +96,7 @@ fn spec172_dynamic_operation_manifest_registry_metadata_uses_registered_vocabula
     // exact Spec 172 Section 12 vocabulary (operation_id, product_owner,
     // operation_class, capability_family, side_effect_class).
     let operations = registry_operations();
-    assert_eq!(operations.len(), 108, "canonical operation count");
+    assert_eq!(operations.len(), 157, "canonical operation count");
     let mut owners = HashSet::new();
     let mut classes = HashSet::new();
     let mut side_effects = HashSet::new();
@@ -139,7 +139,7 @@ fn spec172_dynamic_operation_manifest_registry_metadata_uses_registered_vocabula
 #[test]
 fn spec172_dynamic_operation_manifest_all_registry_operations_trusted_when_signed() {
     // A signed manifest whose claims match the canonical registry exactly is
-    // trusted for all 108 operations: trusted operations inherit canonical
+    // trusted for all 157 operations: trusted operations inherit canonical
     // policy and never become limited/paid by client metadata.
     let operations = registry_operations();
     for operation in &operations {
@@ -352,7 +352,7 @@ fn spec172_dynamic_operation_manifest_generated_ui_only_canonical_registered_act
         .map(|operation| (operation["operation_id"].as_str().unwrap(), operation))
         .collect();
     let bindings = ui_bindings();
-    assert_eq!(bindings.len(), 108, "generated UI binding count");
+    assert_eq!(bindings.len(), 157, "generated UI binding count");
     let canonical_actions: Vec<&str> = bindings
         .iter()
         .map(|binding| binding["action_id"].as_str().unwrap())
