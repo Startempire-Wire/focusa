@@ -354,8 +354,13 @@
 
   <footer>
     <span>Focusa Desktop 0.9.143</span>
-    <span>UIAI Engine browser proof</span>
-    <span>No canonical state duplicated</span>
+    {#if liveBinding}
+      <span>{liveBinding.authority.workstream.scope.scope_key.canonical_name ?? 'Focusa'} · {liveBinding.authority.workstream.workstream_id}</span>
+      <span>r{liveBinding.projection.projection_revision} · {liveBinding.projection.workspace_profile_id}/{liveBinding.projection.activity_mode_id}</span>
+    {:else}
+      <span>{daemon.kind === 'read-only' ? 'Daemon connected' : daemon.label}</span>
+      <span>No canonical state duplicated</span>
+    {/if}
   </footer>
 </div>
 <CommandPalette bind:open={commandOpen} onSelect={executePresentationCommand}/>
