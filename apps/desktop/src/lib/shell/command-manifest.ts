@@ -6,7 +6,9 @@ export type PresentationCommandAction =
   | { kind: 'navigate-workspace'; workspaceId: string }
   | { kind: 'set-interface'; interfaceMode: 'canvas' | 'tui' }
   | { kind: 'set-sidebar'; sidebarMode: DesktopSidebarMode }
-  | { kind: 'set-motion'; motionMode: MotionMode };
+  | { kind: 'set-motion'; motionMode: MotionMode }
+  | { kind: 'select-profile'; profileId: string }
+  | { kind: 'select-activity'; activityId: string };
 
 export interface PresentationCommand {
   id: string;

@@ -206,9 +206,11 @@
   function confirmOperation(): void {
     const pending = pendingConfirmation;
     pendingConfirmation = undefined;
-    if (!pending || pending.binding.confirmation !== 'explicit') return;
+    if (!pending) return;
+    const c = pending.binding.confirmation;
+    if (c !== 'explicit' && c !== 'confirm') return;
     const current = operationBinding(pending.binding.operation_id, pending.binding.target_contribution_id);
-    if (!current || current.authority_ref !== pending.binding.authority_ref || current.confirmation !== 'explicit') return;
+    if (!current || current.authority_ref !== pending.binding.authority_ref || (current.confirmation !== 'explicit' && current.confirmation !== 'confirm')) return;
     void pending.run();
   }
 
