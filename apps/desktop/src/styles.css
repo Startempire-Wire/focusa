@@ -236,6 +236,7 @@ h2 { margin: var(--space-2) 0 var(--space-3); color: var(--color-text-soft); fon
 .principle-card ul { display: grid; gap: 9px; margin: 18px 0 0; padding: 0; list-style: none; color: var(--color-text-secondary); font-size: 12px; }
 .principle-card li { display: flex; align-items: center; gap: var(--space-2); }
 .principle-card li svg { color: var(--color-success); }
+.notes-card { grid-column: 1/-1; } .notes-area { width: 100%; min-height: 80px; padding: 10px; border: 1px solid var(--color-border); border-radius: 7px; background: var(--color-bg); color: var(--color-text); font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; resize: vertical; } .notes-area::placeholder { color: var(--color-text-tertiary); } .notes-card small { display: block; margin-top: 6px; color: var(--color-text-tertiary); font-size: 10px; }
 .secondary-button { border: 1px solid rgba(137, 166, 221, 0.22); border-radius: 8px; padding: 8px 11px; color: var(--color-text-soft); background: rgba(70, 94, 140, 0.2); cursor: pointer; }
 .secondary-button:hover:not(:disabled) { background: rgba(81, 111, 169, 0.3); }
 .secondary-button:disabled { opacity: 0.55; cursor: default; }

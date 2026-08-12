@@ -48,6 +48,7 @@
   let sidebarWidth = $state(248);
   let collapsedSidebarGroups = $state<string[]>([]);
   let commandOpen = $state(false);
+  let workNotes = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('focusa-desktop-notes') ?? '') : '');
   let contextOpen = $state(false);
   let sidebarResizeStart: { x: number; width: number } | null = null;
 
@@ -321,6 +322,13 @@
             <li><Icon name="check" size={14}/>No implicit active Workstream</li>
             <li><Icon name="check" size={14}/>No domain mutation</li>
           </ul>
+        </article>
+        <article class="notes-card">
+          <span class="eyebrow">Work notes</span>
+          <h2>Quick capture</h2>
+          <p>Local scratchpad — never synced, never canonical.</p>
+          <textarea class="notes-area" placeholder="Jot down a thought, task, or reminder…" aria-label="Work notes scratchpad" rows={4} bind:value={workNotes} oninput={() => { try { localStorage.setItem('focusa-desktop-notes', workNotes); } catch { /* quota */ } }}></textarea>
+          <small>Stored in localStorage. Cleared when you clear browser data.</small>
         </article>
       </section>
     {:else if activeWorkspace.id === 'agent-runtime'}
