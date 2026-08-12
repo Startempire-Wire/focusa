@@ -17,6 +17,7 @@
   import type { LiveCanvasBinding } from '$lib/mission-canvas/live-canvas-bridge';
   import { resolveLiveCanvasBinding } from '$lib/mission-canvas/live-canvas-bridge';
   import type { ResolvedWorkspaceProjection } from '$lib/mission-canvas/types';
+  import { createMenubarBridge } from '$lib/shell/menubar-bridge';
 
   const sidebarGroups: ReadonlyArray<{ id: string; label: string; workspaceIds: readonly string[] }> = [
     { id: 'orient', label: 'Orient', workspaceIds: ['mission-canvas', 'mission-deck'] },
@@ -51,6 +52,30 @@
   let workNotes = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('focusa-desktop-notes') ?? '') : '');
   let contextOpen = $state(false);
   let sidebarResizeStart: { x: number; width: number } | null = null;
+  const menubar = createMenubarBridge();
+
+  // Push workspace binding to menubar when live binding changes
+  $effect(() => {
+    const lb = liveBinding;
+    if (lb && menubar.available) {
+      menubar.send({
+        kind: 'workspace_bound',
+        workstreamId: lb.authority.workstream.workstream_id,
+        continuityId: lb.authority.continuity_id ?? '',
+        profileId: lb.projection.workspace_profile_id,
+        activityId: lb.projection.activity_mode_id
+      });
+    } else if (menubar.available) {
+      menubar.send({ kind: 'workspace_unbound' });
+    }
+  });
+
+  // Push daemon health to menubar
+  $effect(() => {
+    if (daemon.version && menubar.available) {
+      menubar.send({ kind: 'health_ping', daemonVersion: daemon.version, uptimeMs: daemon.uptimeMs });
+    }
+  });
 
   async function refreshDaemon(): Promise<void> {
     daemon = { kind: 'checking', label: 'Checking daemon', detail: 'Reading infrastructure health only.' };
@@ -230,6 +255,11 @@
       {/each}
     </div>
     {#if sidebarMode === 'expanded'}<MotionControl />{/if}
+    {#if menubar.available}
+      <div class="menubar-status" aria-label="Menubar active">
+        <span class="dot"></span>Menubar
+      </div>
+    {/if}
     {#if sidebarMode === 'expanded'}<button class="sidebar-resize-handle" type="button" aria-label="Resize sidebar" onpointerdown={beginSidebarResize}></button>{/if}
   </aside>
   {/if}

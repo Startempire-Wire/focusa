@@ -144,6 +144,7 @@ button:focus-visible { outline: 2px solid var(--color-accent-bright); outline-of
 .group-heading:hover { color: var(--color-text-soft); }
 .sidebar-resize-handle { position: absolute; top: 0; left: -3px; bottom: 0; z-index: 3; width: 6px; padding: 0; border: 0; background: transparent; cursor: col-resize; }
 .sidebar-resize-handle:hover, .sidebar-resize-handle:focus-visible { background: rgba(116, 151, 221, 0.3); outline: 0; }
+.menubar-status{display:flex;align-items:center;gap:6px;padding:6px 10px;font:var(--type-caption);color:var(--color-text-tertiary)}.menubar-status .dot{width:6px;height:6px;border-radius:50%;background:var(--color-accent)}
 .scope-card {
   display: flex;
   align-items: center;
