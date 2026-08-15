@@ -13,7 +13,7 @@ workflow = RELEASE_WORKFLOW.read_text()
 assert "open-issue-release-gate:" in workflow
 assert 'startswith("release-gate:")' in workflow
 assert (
-    "needs: [rust-check, final-release-gap-gate, open-issue-release-gate, pull-request-release-gate]"
+    "needs: [rust-check, final-release-gap-gate, open-issue-release-gate, pull-request-release-gate, version-policy]"
     in workflow
 )
 
