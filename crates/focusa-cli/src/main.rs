@@ -382,6 +382,11 @@ enum Commands {
     #[command(subcommand)]
     Cache(commands::cache::CacheCmd),
 
+    /// Ontology working-set surface: scoped members, membership classes, freshness (Spec 49).
+    #[command(name = "working-set")]
+    #[command(subcommand)]
+    WorkingSet(commands::working_set::WorkingSetCmd),
+
     /// Guided evaluator workflow: project selection → Workpoint → proof → Mission Deck handoff.
     #[command(name = "first-mission")]
     FirstMission(commands::first_mission::FirstMissionArgs),
@@ -1161,6 +1166,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Export(cmd) => commands::export::run(cmd, cli.json).await,
         Commands::Contribute(cmd) => commands::contribute::run(cmd, cli.json).await,
         Commands::Cache(cmd) => commands::cache::run(cmd, cli.json).await,
+        Commands::WorkingSet(cmd) => commands::working_set::run(cmd, cli.json).await,
         Commands::FirstMission(args) => commands::first_mission::run(args, cli.json).await,
         Commands::Setup(cmd) => commands::setup::run(cmd, cli.json).await,
         Commands::Project(cmd) => commands::project::run(cmd, cli.json).await,

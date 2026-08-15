@@ -8,6 +8,7 @@ pub mod awareness;
 pub mod binary;
 pub mod bloatgaurd;
 pub mod cache;
+pub mod working_set;
 pub mod call_stack;
 pub mod claim;
 pub mod cleanup;
