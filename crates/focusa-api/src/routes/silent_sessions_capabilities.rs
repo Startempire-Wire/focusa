@@ -53,11 +53,16 @@ const PI_OBSERVED_CAPABILITIES: &[&str] = &[
 ];
 
 fn command_available(name: &str) -> bool {
-    env::var_os("PATH").is_some_and(|path| {
-        env::split_paths(&path).any(|directory| {
-            let candidate = directory.join(name);
-            candidate.is_file() && executable(&candidate)
-        })
+    command_available_on(&env::split_paths(&env::var_os("PATH").unwrap_or_default()).collect::<Vec<_>>(), name)
+}
+
+/// Pure probe: is `name` an executable anywhere on the given path list?
+/// Split out so the #195 catalog-probe behavior is deterministically
+/// testable without mutating process env.
+fn command_available_on(paths: &[std::path::PathBuf], name: &str) -> bool {
+    paths.iter().any(|directory| {
+        let candidate = directory.join(name);
+        candidate.is_file() && executable(&candidate)
     })
 }
 
@@ -594,5 +599,43 @@ mod tests {
         assert_eq!(relaxed.status, PreflightStatus::Unknown);
         assert!(!strict.mutation_allowed);
         assert!(!relaxed.mutation_allowed);
+    }
+
+    #[test]
+    fn catalog_probe_finds_harness_only_on_executable_path() {
+        // #195 regression: the daemon catalog is probe-derived, so a harness
+        // on the daemon PATH must resolve to observed, not unknown.
+        let dir = std::env::temp_dir().join(format!("focusa-probe-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let bin = dir.join("fake-harness");
+        std::fs::write(&bin, "#!/bin/sh\nexit 0").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        assert!(command_available_on(&[dir.clone()], "fake-harness"));
+        // A non-executable sibling must NOT satisfy the probe.
+        let plain = dir.join("plain-harness");
+        std::fs::write(&plain, "#!/bin/sh\nexit 0").unwrap();
+        assert!(!command_available_on(&[dir.clone()], "plain-harness"));
+        assert!(!command_available_on(&[dir.clone()], "missing-harness"));
+        assert!(!command_available_on(&[], "fake-harness"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn observed_pi_catalog_reports_supported_adapter_and_capabilities() {
+        let catalog = observed_pi_catalog();
+        assert_eq!(catalog.harness, HarnessKind::Pi);
+        assert_eq!(catalog.adapter_registered.state, CapabilityFactState::Supported);
+        for name in PI_OBSERVED_CAPABILITIES {
+            assert_eq!(
+                catalog.capabilities.get(*name).map(|fact| fact.state),
+                Some(CapabilityFactState::Supported),
+                "capability {name} must probe as supported"
+            );
+        }
+        assert_eq!(catalog.catalog_freshness, CatalogFreshness::Fresh);
     }
 }
