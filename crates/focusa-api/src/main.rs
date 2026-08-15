@@ -316,9 +316,23 @@ async fn main() -> anyhow::Result<()> {
     // wizard can auto-discover this daemon on the LAN without operator input.
     // The TXT record carries the `url` so the Mac can skip the Tailscale
     // round-trip when on the same LAN. (G08)
+    //
+    // #251: mDNS availability must never threaten the daemon. Honoring
+    // FOCUSA_DISABLE_MDNS skips advertisement entirely; any registration
+    // failure is logged and the daemon keeps serving.
+    let mdns_disabled = std::env::var("FOCUSA_DISABLE_MDNS")
+        .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
     let _bonjour_handle = tokio::spawn(async move {
-        if let Err(e) = focusa_core::bonjour::advertise("_focusa._tcp.local.", bonjour_port).await {
-            tracing::warn!(error = %e, "Bonjour advertisement ended (non-fatal)");
+        if mdns_disabled {
+            tracing::info!("mDNS advertisement disabled via FOCUSA_DISABLE_MDNS");
+            return;
+        }
+        match focusa_core::bonjour::advertise("_focusa._tcp.local.", bonjour_port).await {
+            Ok(_service) => {}
+            Err(error) => {
+                tracing::warn!(error = %error, "Bonjour advertisement failed (non-fatal); daemon continues without LAN discovery. Set FOCUSA_DISABLE_MDNS=1 to silence.");
+            }
         }
     });
 
