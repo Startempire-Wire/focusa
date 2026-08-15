@@ -17,6 +17,21 @@ Before broad Focusa code changes or after context loss, read `docs/agent/01-focu
 
 Current surfaces: Mission Canvas/Work Rail and generated UI (`docs/135-series-current-manifest.md`), Silent Sessions (`docs/133-silent-sessions-final-release-proof.md`), all-tool/skill machine contracts (`docs/contracts/spec141/generated-capability-v2/`), and public onboarding (`README.md`, `docs/current/FOCUSA_FRIENDLY_ONBOARDING.md`).
 
+## Terminal-blocking queries (TBQs) must run asynchronously (mandatory)
+
+The operator terminal must never stop flowing. Any terminal-blocking query —
+builds, test suites, migrations, long scans, waits for remote jobs — MUST be
+dispatched to an asynchronous background process (setsid/nohup with a log
+file, a Silent Session, or a Herdr pane), and the agent must continue other
+work immediately. `sleep`-polling loops are not a substitute for backgrounding;
+they are only the last-resort status check while the completion-reporting
+surface (issue #311 — silent-session completion notification) is built.
+Background terminals must auto-write their completion result back into the
+originating terminal/agent surface when they finish.
+
+Blocking is allowed only for sub-second commands and commands with an
+explicit short bound whose output is required immediately.
+
 ## Pre-work rule: always check remote first (mandatory)
 
 Before any durable state change (commit, push, branch switch, merge, rebase, tag), or before resuming work after a session reload, agent context drift, or gap in continuity:
