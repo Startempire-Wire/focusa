@@ -38,7 +38,7 @@
     "test:unbound-project": "node tests/unbound-project-binding-guidance.test.mjs",
     "test:pi-security": "node tests/pi-sdk-security.test.mjs",
     "test:menu-audit": "node tests/menu-audit-gate.test.mjs",
-    "test:mission-canvas": "node tests/mission-canvas-pi-surface.test.mjs && node tests/mission-canvas-mode-precedence.test.mjs && node tests/mission-canvas-session-inventory.test.mjs && node tests/mission-canvas-performance.test.mjs"
+    "test:mission-canvas": "node tests/mission-canvas-pi-surface.test.mjs && node tests/mission-canvas-context-lifecycle.test.mjs && node tests/mission-canvas-mode-precedence.test.mjs && node tests/mission-canvas-session-inventory.test.mjs && node tests/mission-canvas-performance.test.mjs"
   },
   "dependencies": {
     "@sinclair/typebox": "^0.34.0"
