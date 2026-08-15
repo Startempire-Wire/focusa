@@ -617,19 +617,33 @@ async function promptForProjectVerifyIfNeeded(
     event_type: "pi_vital_project_verify_failed",
     payload: { reason, project_root: projectRoot, status, mode },
   });
-  if (mode === "warn_only" || mode === "notify") return false;
-  const ok = await ctx.ui.confirm(
-    "Focusa project verify needs attention",
-    `Project root is confirmed, but project_verify is ${status}. Continue scope-limited with this project_root?`
-  );
-  if (ok) {
-    ctx.ui.setWidget("focusa-vital", undefined);
-    focusaPost("/telemetry/trace", {
-      event_type: "pi_vital_project_verify_operator_continue",
-      payload: { reason, project_root: projectRoot, status },
-    });
-  }
-  return ok;
+  // Verification uncertainty must never seize the operator input surface.
+  // Conversation and diagnosis continue, while durable project writes remain
+  // fail-closed until the agent follows the machine-readable recovery route.
+  const advisoryKey = `project_verify_recovery:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${projectRoot}:${status}`;
+  const pi = getAttachmentRuntime().pi;
+  const outcome = pi
+    ? queueLifecycleAdvisory(pi, ctx, {
+        advisoryKey,
+        advisoryKind: "project_verify_recovery",
+        title: "Focusa project verification needs agent recovery",
+        content: [
+          `project_root=${projectRoot}; status=${status}`,
+          "Conversation and read-only diagnosis continue without an operator modal.",
+          "Durable project-aware writes remain blocked until verification is canonical.",
+          "Agent route: focusa_project_identity -> focusa_project_verify -> focusa_workpoint_checkpoint/resume.",
+          `Recovery detail: ${recovery}`,
+        ].join("\n"),
+        reason,
+        projectRoot,
+        sessionId: getAttachmentRuntime().sessionFrameKey,
+      })
+    : "pi_runtime_unavailable";
+  focusaPost("/telemetry/trace", {
+    event_type: "pi_vital_project_verify_recovery_queued",
+    payload: { reason, project_root: projectRoot, status, mode, outcome, advisory_key: advisoryKey },
+  });
+  return false;
 }
 
 async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<boolean> {
@@ -905,6 +919,22 @@ function handleSSEEvent(evt: any) {
         getAttachmentRuntime()
           .pi?.exec("echo", [], { timeout: 1 })
           .catch(() => {}); // no-op to access ctx
+      }
+      break;
+    case "silent_session_completed":
+      // #311: background terminal-blocking queries report their completion
+      // back into this terminal instead of the agent polling for them.
+      try {
+        const session = String(evt?.session_id || "").slice(0, 8);
+        const status = String(evt?.status || "completed");
+        const kind = status === "failed" || status === "cancelled" ? "warning" : "info";
+        const summary = String(evt?.summary || "").slice(0, 120);
+        getAttachmentRuntime().uiCtx?.notify(
+          `Silent session ${session} ${status}${summary ? `: ${summary}` : ""}`,
+          kind
+        );
+      } catch {
+        /* §30: fail silent; notification must never crash Pi */
       }
       break;
     case "trajectory_goal_defined":

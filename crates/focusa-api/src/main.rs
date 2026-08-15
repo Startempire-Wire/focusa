@@ -265,6 +265,7 @@ async fn main() -> anyhow::Result<()> {
     ));
     let command_tx = daemon.command_sender();
     let events_tx_for_api = events_tx.clone();
+    let events_tx_for_completion_sweep = events_tx.clone();
 
     // One bounded persistence actor serves daemon and direct API writers.
     let persistence = daemon.persistence();
@@ -291,6 +292,9 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
+    let completion_sweep_db = resolved_data_dir(&config).join("focusa.sqlite");
+    let retention_data_dir_hoisted = resolved_data_dir(&config);
+
     // Start API server (blocks until shutdown).
     let api_handle = tokio::spawn(async move {
         if let Err(e) = server::run(
@@ -315,6 +319,88 @@ async fn main() -> anyhow::Result<()> {
     let _bonjour_handle = tokio::spawn(async move {
         if let Err(e) = focusa_core::bonjour::advertise("_focusa._tcp.local.", bonjour_port).await {
             tracing::warn!(error = %e, "Bonjour advertisement ended (non-fatal)");
+        }
+    });
+
+    // Event-ledger retention sweep. First tick fires immediately; subsequent
+    // sweeps run daily. Bounded batches keep the daemon writer responsive and
+    // cold export lands in <data>/events-cold. Disable with
+    // FOCUSA_EVENT_RETENTION_DISABLED=1; window via FOCUSA_EVENT_RETENTION_DAYS.
+    let retention_data_dir = retention_data_dir_hoisted;
+    let _retention_handle = tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(86_400));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            if std::env::var(focusa_core::runtime::event_retention::RETENTION_ENV_DISABLED)
+                .map(|value| value == "1" || value == "true")
+                .unwrap_or(false)
+            {
+                tracing::info!("event retention disabled via environment");
+            } else {
+                let data_dir = retention_data_dir.clone();
+                let result = tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
+                    let db_path = data_dir.join("focusa.sqlite");
+                    let conn = rusqlite::Connection::open(&db_path)?;
+                    conn.busy_timeout(std::time::Duration::from_secs(30))?;
+                    let days: u32 = std::env::var(
+                        focusa_core::runtime::event_retention::RETENTION_ENV_DAYS,
+                    )
+                    .ok()
+                    .and_then(|value| value.parse().ok())
+                    .unwrap_or(focusa_core::runtime::event_retention::DEFAULT_RETENTION_DAYS);
+                    let cutoff = focusa_core::runtime::event_retention::retention_cutoff(days);
+                    let export = data_dir.join("events-cold");
+                    let summary = focusa_core::runtime::event_retention::prune_before(
+                        &conn,
+                        &cutoff,
+                        Some(&export),
+                        5_000,
+                    )?;
+                    tracing::info!(
+                        deleted = summary.deleted_events,
+                        exported = summary.exported_events,
+                        anchor = summary.anchor_chain_index,
+                        cutoff = %summary.cutoff_ts,
+                        "event retention sweep complete"
+                    );
+                    Ok(())
+                })
+                .await;
+                if let Err(error) = result {
+                    tracing::warn!(error = %error, "event retention sweep failed");
+                }
+            }
+            interval.tick().await;
+        }
+    });
+
+    // Silent-session completion sweeper (issue #311): every 30 seconds, scan
+    // settled sessions, record their durable completion events, and broadcast
+    // them over SSE so agents are notified instead of polling. Missed events
+    // remain recoverable through the completions backfill route.
+    let _completion_sweep_handle = tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            interval.tick().await;
+            let db = completion_sweep_db.clone();
+            let tx = events_tx_for_completion_sweep.clone();
+            let result = tokio::task::spawn_blocking(move || {
+                crate::routes::silent_sessions_wait::sweep_completions(&db, &tx)
+            })
+            .await;
+            match result {
+                Ok(Ok(emitted)) if emitted > 0 => {
+                    tracing::info!(emitted, "silent session completion sweep emitted events");
+                }
+                Ok(Ok(_)) => {}
+                Ok(Err(error)) => {
+                    tracing::warn!(error = %error, "silent session completion sweep failed");
+                }
+                Err(error) => {
+                    tracing::warn!(error = %error, "silent session completion sweep join failed");
+                }
+            }
         }
     });
 

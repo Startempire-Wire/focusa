@@ -16,6 +16,22 @@ pub enum EventsCmd {
         /// Event ID.
         event_id: String,
     },
+    /// Prune the event ledger: drop epoch-junk placeholders, or export and
+    /// prune events older than the hot window (default 30 days).
+    Prune {
+        /// Remove placeholder events carrying epoch-0 timestamps.
+        #[arg(long)]
+        epoch_junk: bool,
+        /// Retain this many days of hot events.
+        #[arg(long, default_value = "30")]
+        before_days: u32,
+        /// Skip cold JSONL export for the pruned events.
+        #[arg(long)]
+        no_export: bool,
+        /// Show what would be pruned without mutating.
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -93,6 +109,25 @@ pub async fn run_events(cmd: EventsCmd, json_mode: bool) -> anyhow::Result<()> {
                     None => println!("No events"),
                 }
             }
+        }
+        EventsCmd::Prune {
+            epoch_junk,
+            before_days,
+            no_export,
+            dry_run,
+        } => {
+            let response = api
+                .post(
+                    "/v1/events/prune",
+                    &serde_json::json!({
+                        "epoch_junk": epoch_junk,
+                        "before_days": before_days,
+                        "export": !no_export,
+                        "dry_run": dry_run,
+                    }),
+                )
+                .await?;
+            println!("{}", serde_json::to_string_pretty(&response)?);
         }
         EventsCmd::Show { event_id } => {
             let resp = api.get(&format!("/v1/events/{}", event_id)).await?;
