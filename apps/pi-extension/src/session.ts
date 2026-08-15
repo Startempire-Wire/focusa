@@ -894,7 +894,8 @@ function connectSSE() {
 
 // §30: Metacognitive awareness indicators + §37.10: Cross-surface events
 function handleSSEEvent(evt: any) {
-  switch (evt.type) {
+  // #45: the daemon SSE envelope carries `event_type` (focusa.stream_event.v1).
+  switch (evt.event_type || evt.type) {
     case "worker_started":
       getAttachmentRuntime().lastMetacogEvent = "thinking...";
       break;
