@@ -139,6 +139,13 @@ test("delivery outcome and pending epoch state are typed and operator-supersedab
   assert.match(turnsSource, /compactResumeDeliveryState = "superseded_by_operator"/);
   assert.match(turnsSource, /focusa-compaction-delivery-outcome/);
   assert.match(extensionSource, /compactResumeDeliveryState === "superseded_by_operator"/);
+  // An already-acknowledged delivery (delivered at agent_start) is supporting
+  // context under new steering; it must never be falsely superseded.
+  assert.match(turnsSource, /\["pending", "unknown_completion", "deferred_to_next_turn"\]/);
+  assert.doesNotMatch(
+    turnsSource,
+    /\["pending", "unknown_completion", "deferred_to_next_turn", "delivered"\]/
+  );
 });
 
 test("daemon exposes bounded prepare and verify routes off the async core writer", () => {
