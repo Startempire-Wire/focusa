@@ -3114,7 +3114,16 @@ export function registerTools(pi: ExtensionAPI) {
       return `blocked: scope mismatch on ${field} expected=${expected} packet=${actual}; ${hint}`;
     }
     if (result.status === 0) return "blocked: daemon unavailable";
-    return `blocked: ${result.body?.error || `request failed (${result.status})`}`;
+    // #266: daemon envelopes may carry error as an object {code, message};
+    // never interpolate a raw object into human text.
+    const rawError = result.body?.error;
+    const errorText =
+      typeof rawError === "string"
+        ? rawError
+        : rawError && typeof rawError === "object"
+          ? String(rawError.message || rawError.code || "").trim()
+          : "";
+    return `blocked: ${errorText || `request failed (${result.status})`}`;
   }
 
   function trajectoryTimeoutFallbackResult(
