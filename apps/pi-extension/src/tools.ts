@@ -1013,6 +1013,25 @@ function focusaEvidenceCaptureSuggestion(input: {
   };
 }
 
+/** Render an unknown error/reason payload as readable text; objects are
+ *  compact-JSON-stringified so nested reasons never render as "[object Object]"
+ *  (see #266: the daemon returns structured error bodies that the old template
+ *  interpolation flattened into [object Object], hiding the real blocker). */
+function safeErrorText(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    try {
+      const compact = JSON.stringify(value);
+      if (!compact) return "";
+      return compact.length > 240 ? `${compact.slice(0, 240)}…` : compact;
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
 function blockedToolResponse(
   tool: string,
   family: string,
@@ -3356,7 +3375,7 @@ export function registerTools(pi: ExtensionAPI) {
     fallback: string
   ): string {
     if (result.ok) return fallback;
-    const msg = String(result.body?.error || "").toLowerCase();
+    const msg = safeErrorText(result.body?.error).toLowerCase();
     const activeWriter = result.body?.active_writer ? ` (${result.body.active_writer})` : "";
     if (msg.includes("claimed by another writer"))
       return `blocked: loop controlled by another session${activeWriter}`;
@@ -3389,7 +3408,8 @@ export function registerTools(pi: ExtensionAPI) {
       return `blocked: scope mismatch on ${field} expected=${expected} packet=${actual}; ${hint}`;
     }
     if (result.status === 0) return "blocked: daemon unavailable";
-    return `blocked: ${result.body?.error || `request failed (${result.status})`}`;
+    const errorText = safeErrorText(result.body?.error);
+    return `blocked: ${errorText || `request failed (${result.status})`}`;
   }
 
   function trajectoryTimeoutFallbackResult(
@@ -4372,7 +4392,7 @@ export function registerTools(pi: ExtensionAPI) {
             type: "text",
             text: accepted
               ? "state hygiene apply → recorded non-destructive Focus State note"
-              : `state hygiene apply blocked → ${String(result.body?.reason || result.body?.status || result.status)}`,
+              : `state hygiene apply blocked → ${safeErrorText(result.body?.reason) || String(result.body?.status || result.status)}`,
           },
         ],
         details: {
@@ -4405,7 +4425,9 @@ export function registerTools(pi: ExtensionAPI) {
               ? null
               : {
                   code: "focus_update_unavailable",
-                  message: String(result.body?.reason || result.body?.status || result.status),
+                  message:
+                    safeErrorText(result.body?.reason) ||
+                    String(result.body?.status || result.status),
                 },
           },
         },
