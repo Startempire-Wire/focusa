@@ -53,7 +53,10 @@ const PI_OBSERVED_CAPABILITIES: &[&str] = &[
 ];
 
 fn command_available(name: &str) -> bool {
-    command_available_on(&env::split_paths(&env::var_os("PATH").unwrap_or_default()).collect::<Vec<_>>(), name)
+    command_available_on(
+        &env::split_paths(&env::var_os("PATH").unwrap_or_default()).collect::<Vec<_>>(),
+        name,
+    )
 }
 
 /// Pure probe: is `name` an executable anywhere on the given path list?
@@ -628,7 +631,10 @@ mod tests {
     fn observed_pi_catalog_reports_supported_adapter_and_capabilities() {
         let catalog = observed_pi_catalog();
         assert_eq!(catalog.harness, HarnessKind::Pi);
-        assert_eq!(catalog.adapter_registered.state, CapabilityFactState::Supported);
+        assert_eq!(
+            catalog.adapter_registered.state,
+            CapabilityFactState::Supported
+        );
         for name in PI_OBSERVED_CAPABILITIES {
             assert_eq!(
                 catalog.capabilities.get(*name).map(|fact| fact.state),
