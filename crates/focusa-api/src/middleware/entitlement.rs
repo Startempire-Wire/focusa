@@ -241,11 +241,26 @@ pub async fn entitlement_gate_layer(
 ) -> Response {
     let method = request.method().clone();
     let path = request.uri().path();
-    let requires_entitlement = route_requires_entitlement(&method, path);
-    let policy = resolve_route_entitlement_policy(&method, path);
+    // #266 first-Workpoint bootstrap: creating the FIRST canonical Workpoint
+    // must not require the entitlement lease or idempotency reservation that
+    // only becomes reachable through a working Workpoint lifecycle. Once any
+    // canonical Workpoint exists, every checkpoint mutation keeps the full gate.
+    let bootstrap_exempt = first_workpoint_bootstrap_exempt(
+        &method,
+        &path,
+        state_has_canonical_workpoint(&state).await,
+    );
+    let requires_entitlement = route_requires_entitlement(&method, path) && !bootstrap_exempt;
+    let policy = if bootstrap_exempt {
+        None
+    } else {
+        resolve_route_entitlement_policy(&method, path)
+    };
 
-    if let Some(denial) = route_entitlement_denial(&state.license_guard, &method, path) {
-        return denial_response(&state, denial);
+    if !bootstrap_exempt {
+        if let Some(denial) = route_entitlement_denial(&state.license_guard, &method, path) {
+            return denial_response(&state, denial);
+        }
     }
 
     let reservation = if requires_entitlement {
@@ -307,6 +322,28 @@ fn denial_response(state: &AppState, denial: RouteEntitlementDenial) -> Response
         })),
     )
         .into_response()
+}
+
+/// #266 first-Workpoint bootstrap exemption predicate (pure, unit-tested).
+/// Only the very first canonical Workpoint creation (POST /v1/workpoint/checkpoint
+/// while no canonical Workpoint exists anywhere in state) bypasses the
+/// entitlement lease + idempotency reservation gates; the handler still
+/// enforces scope safety, payload validation, and session identity.
+fn first_workpoint_bootstrap_exempt(
+    method: &Method,
+    path: &str,
+    has_canonical_workpoint: bool,
+) -> bool {
+    method == &Method::POST && path == "/v1/workpoint/checkpoint" && !has_canonical_workpoint
+}
+
+async fn state_has_canonical_workpoint(state: &Arc<AppState>) -> bool {
+    let focusa = state.focusa.read().await;
+    focusa
+        .workpoint
+        .records
+        .iter()
+        .any(|record| record.canonical)
 }
 
 fn reserve_route_limit(
@@ -1475,6 +1512,48 @@ mod tests {
         .expect("premium without feature must deny");
         assert_eq!(premium.code, "ENTITLEMENT_FEATURE_REQUIRED");
         assert!(premium.required_feature.is_some());
+    }
+
+    #[test]
+    fn first_workpoint_bootstrap_exempts_only_the_first_checkpoint() {
+        // Fresh daemon (no canonical Workpoint): first checkpoint is exempt.
+        assert!(first_workpoint_bootstrap_exempt(
+            &Method::POST,
+            "/v1/workpoint/checkpoint",
+            false
+        ));
+        // Once any canonical Workpoint exists the full gate returns.
+        assert!(!first_workpoint_bootstrap_exempt(
+            &Method::POST,
+            "/v1/workpoint/checkpoint",
+            true
+        ));
+        // Only the exact checkpoint mutation is exempt.
+        assert!(!first_workpoint_bootstrap_exempt(
+            &Method::GET,
+            "/v1/workpoint/checkpoint",
+            false
+        ));
+        assert!(!first_workpoint_bootstrap_exempt(
+            &Method::POST,
+            "/v1/workpoint/resume",
+            false
+        ));
+        assert!(!first_workpoint_bootstrap_exempt(
+            &Method::POST,
+            "/v1/evidence/capture",
+            false
+        ));
+        // The underlying denial still exists for non-exempt paths.
+        assert_eq!(
+            route_entitlement_denial(
+                &LicenseGuard::eval(7),
+                &Method::POST,
+                "/v1/workpoint/checkpoint"
+            )
+            .map(|denial| denial.code),
+            Some("ENTITLEMENT_BASE_REQUIRED".to_string())
+        );
     }
 
     fn active_signed_snapshot() -> focusa_license::authority::EntitlementSnapshot {

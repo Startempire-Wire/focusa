@@ -11016,7 +11016,13 @@ mod tests {
     #[test]
     fn working_set_membership_class_is_enum_and_never_null() {
         // Explicit enum values are honored.
-        for allowed in ["pinned", "deterministic", "verified", "inferred", "provisional"] {
+        for allowed in [
+            "pinned",
+            "deterministic",
+            "verified",
+            "inferred",
+            "provisional",
+        ] {
             let object = json!({"membership_class": allowed});
             assert_eq!(
                 derived_membership_class(&object, false, false).as_str(),
@@ -11085,18 +11091,24 @@ mod tests {
     #[test]
     fn working_set_index_uses_latest_delta_and_derived_staleness() {
         let mut focusa = FocusaState::default();
-        focusa.ontology.delta_log.push(focusa_core::types::OntologyDeltaRecord {
-            workstream: None,
-            delta_kind: "first".to_string(),
-            payload: json!({}),
-            timestamp: None,
-        });
-        focusa.ontology.delta_log.push(focusa_core::types::OntologyDeltaRecord {
-            workstream: None,
-            delta_kind: "latest".to_string(),
-            payload: json!({}),
-            timestamp: None,
-        });
+        focusa
+            .ontology
+            .delta_log
+            .push(focusa_core::types::OntologyDeltaRecord {
+                workstream: None,
+                delta_kind: "first".to_string(),
+                payload: json!({}),
+                timestamp: None,
+            });
+        focusa
+            .ontology
+            .delta_log
+            .push(focusa_core::types::OntologyDeltaRecord {
+                workstream: None,
+                delta_kind: "latest".to_string(),
+                payload: json!({}),
+                timestamp: None,
+            });
         let payload = working_set_payload(
             &focusa,
             WorkingSetPayloadParams {
@@ -11122,6 +11134,12 @@ mod tests {
             .and_then(|v| v.get("freshness"))
             .expect("index freshness envelope present");
         assert_eq!(freshness.get("derived"), Some(&json!(true)));
-        assert!(freshness.get("age_seconds").and_then(|v| v.as_i64()).unwrap_or(-1) >= 0);
+        assert!(
+            freshness
+                .get("age_seconds")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(-1)
+                >= 0
+        );
     }
 }
