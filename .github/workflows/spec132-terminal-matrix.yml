@@ -274,10 +274,11 @@ jobs:
       - name: Install locked dependencies
         working-directory: apps/pi-extension
         run: npm ci --ignore-scripts
-      - name: Typecheck, lint, and Spec101 bloatgaurd detail routes
+      - name: Typecheck, lint, Mission Canvas lifecycle, and Spec101 bloatgaurd detail routes
         run: |
           npm --prefix apps/pi-extension run typecheck
           npm --prefix apps/pi-extension run lint
+          npm --prefix apps/pi-extension run test:mission-canvas
           node apps/pi-extension/tests/spec101-bloatgaurd-details-route.test.mjs
           node apps/pi-extension/tests/spec101-bloatgaurd-profile-runtime.test.mjs
           node apps/pi-extension/tests/spec101-bloatgaurd-pressure-circuit-runtime.test.mjs
