@@ -874,6 +874,24 @@ function formatResumePacketV2ForPrompt(packet: any): string {
     .join("\n");
 }
 
+// Pure decision: may the harness acknowledge delivery of the queued resume
+// packet? sendMessage() returns void, so receipt is only observable via the
+// harness lifecycle: the queued nextTurn message is consumed when the next
+// agent turn starts. That is only truthful for the session that queued the
+// delivery, so the delivery key must end with the current session frame key.
+export function compactionDeliveryAckEligible(
+  deliveryKey: string | undefined,
+  deliveryState: string | undefined,
+  frameKey: string
+): boolean {
+  if (deliveryState !== "unknown_completion" && deliveryState !== "deferred_to_next_turn") {
+    return false;
+  }
+  if (!deliveryKey) return false;
+  const suffix = `:${frameKey || "session"}`;
+  return deliveryKey.endsWith(suffix);
+}
+
 function queueCompactionResumeContext(ctx: any, resumeProjection: string): boolean {
   const runtime = getAttachmentRuntime();
   const pi2 = runtime.pi;
@@ -1141,6 +1159,31 @@ export function registerCompaction(pi: ExtensionAPI) {
         }
       });
     }, 0);
+  });
+
+  // ── Delivery acknowledgment ───────────────────────────────────────────
+  // The queued nextTurn resume packet is consumed by the next agent turn;
+  // that turn's start is the harness-level receipt signal. Flip the delivery
+  // state to delivered so continuation is never stuck at unknown_completion.
+  // Same-session guard: only the session that queued the delivery acks it.
+  pi.on("agent_start", (_event, _ctx) => {
+    const runtime = getAttachmentRuntime();
+    if (
+      !compactionDeliveryAckEligible(
+        runtime.compactResumeDeliveryKey,
+        runtime.compactResumeDeliveryState,
+        getSessionFrameKey() || "session"
+      )
+    ) {
+      return;
+    }
+    runtime.compactResumeDeliveryState = "delivered";
+    persistState();
+    pi.appendEntry("focusa-compaction-delivery-acknowledged", {
+      schema: "focusa.compaction_delivery_ack.v1",
+      delivery_key: runtime.compactResumeDeliveryKey,
+      acknowledged_at: new Date().toISOString(),
+    });
   });
 }
 
