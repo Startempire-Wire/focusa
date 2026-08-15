@@ -3141,6 +3141,71 @@ fn rename_pi_extension_path(source: &std::path::Path, destination: &std::path::P
     unreachable!("bounded Pi extension rename loop always returns")
 }
 
+fn retired_focusa_pi_extension_name(name: &str) -> bool {
+    [
+        "focusa.legacy-",
+        "focusa-runtime.legacy-",
+        "focusa-pi-bridge.legacy-",
+    ]
+    .iter()
+    .any(|prefix| name.starts_with(prefix))
+}
+
+fn focusa_pi_bridge_package(path: &std::path::Path) -> bool {
+    std::fs::read(path.join("package.json"))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+        .and_then(|value| value.get("name")?.as_str().map(str::to_string))
+        .is_some_and(|name| name == "focusa-pi-bridge")
+}
+
+/// Move retired Focusa extension packages outside Pi's auto-discovery root.
+///
+/// A backup name such as `focusa-runtime.legacy-0.9.143` does not disable the
+/// package: Pi sees its `pi.extensions` manifest and registers every tool a
+/// second time. Preserve verified Focusa packages for recovery, but never
+/// leave them under `~/.pi/agent/extensions` where they can break startup.
+fn quarantine_retired_focusa_pi_extensions(
+    extensions_root: &std::path::Path,
+) -> Result<Vec<std::path::PathBuf>> {
+    if !extensions_root.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut retired = Vec::new();
+    for entry in std::fs::read_dir(extensions_root)
+        .with_context(|| format!("inspect Pi extension root {}", extensions_root.display()))?
+    {
+        let entry = entry?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        let candidate = entry.path();
+        if !retired_focusa_pi_extension_name(name) || !focusa_pi_bridge_package(&candidate) {
+            continue;
+        }
+        let retired_root = extensions_root
+            .parent()
+            .unwrap_or(extensions_root)
+            .join("retired-extensions");
+        std::fs::create_dir_all(&retired_root).with_context(|| {
+            format!(
+                "create retired Pi extension root {}",
+                retired_root.display()
+            )
+        })?;
+        let destination = retired_root.join(format!("{name}-{}", uuid::Uuid::now_v7()));
+        rename_pi_extension_path(&candidate, &destination).with_context(|| {
+            format!(
+                "quarantine retired Focusa extension {} outside Pi auto-discovery",
+                candidate.display()
+            )
+        })?;
+        retired.push(destination);
+    }
+    Ok(retired)
+}
+
 pub(crate) fn integrate_pi_extension(
     asset: &InstalledAsset,
     install_root: &std::path::Path,
@@ -3259,6 +3324,8 @@ pub(crate) fn integrate_pi_extension(
         .ok_or_else(|| anyhow!("HOME is unavailable; cannot locate Pi extensions"))?;
     std::fs::create_dir_all(&root)
         .with_context(|| format!("create Pi extension root {}", root.display()))?;
+    quarantine_retired_focusa_pi_extensions(&root)
+        .context("quarantine retired Focusa Pi extension packages")?;
     let destination = root.join("focusa");
     let backup = root.join(format!(".focusa-backup-{}", uuid::Uuid::now_v7()));
     if destination.exists() {
@@ -4723,6 +4790,13 @@ mod tests {
         let extensions = fixture.join("extensions");
         std::fs::create_dir_all(&package).unwrap();
         std::fs::create_dir_all(&fake_bin).unwrap();
+        let legacy = extensions.join("focusa-runtime.legacy-0.9.143");
+        std::fs::create_dir_all(&legacy).unwrap();
+        std::fs::write(
+            legacy.join("package.json"),
+            r#"{"name":"focusa-pi-bridge","version":"0.9.143","pi":{"extensions":["./src/index.ts"]}}"#,
+        )
+        .unwrap();
         std::fs::write(
             package.join("package.json"),
             r#"{"name":"focusa-pi-bridge"}"#,
@@ -4773,9 +4847,52 @@ mod tests {
                 .join("focusa/node_modules/.focusa-smoke")
                 .is_file()
         );
+        assert!(!legacy.exists());
+        let retired = std::fs::read_dir(fixture.join("retired-extensions"))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert_eq!(retired.len(), 1);
+        assert!(retired[0].path().join("package.json").is_file());
         println!(
             "E6_PI_PRESENT_SUCCESS destination_preserved={destination_preserved} package_json={package_json_present} smoke_marker={smoke_marker_present}"
         );
+        let _ = std::fs::remove_dir_all(fixture);
+    }
+
+    #[test]
+    fn retired_focusa_pi_extension_is_preserved_outside_auto_discovery() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-retired-pi-extension-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let extensions = fixture.join("extensions");
+        let legacy = extensions.join("focusa-runtime.legacy-0.9.143");
+        let unrelated = extensions.join("vendor.legacy-1");
+        std::fs::create_dir_all(&legacy).unwrap();
+        std::fs::create_dir_all(&unrelated).unwrap();
+        std::fs::write(
+            legacy.join("package.json"),
+            r#"{"name":"focusa-pi-bridge","version":"0.9.143","pi":{"extensions":["./src/index.ts"]}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            unrelated.join("package.json"),
+            r#"{"name":"vendor-extension"}"#,
+        )
+        .unwrap();
+
+        let retired = quarantine_retired_focusa_pi_extensions(&extensions).unwrap();
+
+        assert_eq!(retired.len(), 1);
+        assert!(!legacy.exists());
+        assert!(unrelated.is_dir());
+        assert!(retired[0].starts_with(fixture.join("retired-extensions")));
+        assert!(retired[0].join("package.json").is_file());
+        let package: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(retired[0].join("package.json")).unwrap())
+                .unwrap();
+        assert_eq!(package["version"], "0.9.143");
         let _ = std::fs::remove_dir_all(fixture);
     }
 
