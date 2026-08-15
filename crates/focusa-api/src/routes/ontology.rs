@@ -5698,7 +5698,7 @@ fn ontology_reducer_event_id(focusa: &FocusaState) -> Option<String> {
     focusa
         .ontology
         .delta_log
-        .first()
+        .last()
         .map(|delta| format!("{}:{:?}", delta.delta_kind, delta.timestamp))
 }
 
@@ -6169,6 +6169,63 @@ struct WorkingSetPayloadParams<'a> {
     scope: Option<&'a ScopeContext>,
 }
 
+const ALLOWED_MEMBERSHIP_CLASSES: &[&str] = &[
+    "pinned",
+    "deterministic",
+    "verified",
+    "inferred",
+    "provisional",
+];
+
+/// Spec 49: every working-set member carries one of the five membership
+/// classes. Explicit values are honored only when they are in the enum;
+/// otherwise the class is derived deterministically from verification
+/// handles, provenance, and ask evidence — never `null`.
+fn derived_membership_class(object: &Value, verified: bool, ask_matched: bool) -> Value {
+    let explicit = object
+        .get("membership_class")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default();
+    if ALLOWED_MEMBERSHIP_CLASSES.contains(&explicit) {
+        return json!(explicit);
+    }
+    if verified {
+        return json!("verified");
+    }
+    if object
+        .get("provenance_class")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default()
+        == "parser_derived"
+    {
+        return json!("deterministic");
+    }
+    if ask_matched {
+        return json!("inferred");
+    }
+    json!("provisional")
+}
+
+/// Member freshness is derived, never defaulted to `fresh`. An explicit
+/// `fresh` field is honored but downgraded when the read index is stale;
+/// members without a tracked field fall back to evidence/index age.
+fn member_freshness(object: &Value, index_stale: bool, verified: bool) -> Value {
+    let explicit_fresh = object.get("fresh").and_then(|value| value.as_bool());
+    let status = match explicit_fresh {
+        Some(true) if !index_stale => "fresh",
+        Some(false) => "stale",
+        Some(true) => "degraded",
+        None if index_stale => "degraded",
+        None if verified => "fresh",
+        None => "provisional",
+    };
+    json!({
+        "status": status,
+        "derived": explicit_fresh.is_none(),
+        "source": if explicit_fresh.is_some() { "member_field" } else { "read_index_age_and_evidence" },
+    })
+}
+
 fn working_set_payload(focusa: &FocusaState, params: WorkingSetPayloadParams<'_>) -> Value {
     let WorkingSetPayloadParams {
         frame_id,
@@ -6184,6 +6241,8 @@ fn working_set_payload(focusa: &FocusaState, params: WorkingSetPayloadParams<'_>
     let resolved_slice_type = infer_slice_type_from_operator_context(focusa, slice_type);
     let capped_limit = limit.clamp(1, 50);
     let mut scored = Vec::new();
+    let index_age_seconds = (Utc::now() - index.generated_at).num_seconds().max(0);
+    let index_stale = index_age_seconds >= index.ttl_seconds as i64;
     let ask_lc = ask.unwrap_or_default().to_ascii_lowercase();
     let object_scan_limit = if target_ref.is_some() || !ask_lc.is_empty() {
         512
@@ -6205,10 +6264,12 @@ fn working_set_payload(focusa: &FocusaState, params: WorkingSetPayloadParams<'_>
             continue;
         }
         let mut score = slice_object_relevance_score(object_type, resolved_slice_type);
+        let mut ask_matched = false;
         if !ask_lc.is_empty()
             && (id.to_ascii_lowercase().contains(&ask_lc)
                 || object_type.to_ascii_lowercase().contains(&ask_lc))
         {
+            ask_matched = true;
             score += 75;
         }
         let mut related_links = Vec::new();
@@ -6274,12 +6335,16 @@ fn working_set_payload(focusa: &FocusaState, params: WorkingSetPayloadParams<'_>
                 "id": id,
                 "object_type": object_type,
                 "status": object.get("status").cloned().unwrap_or(Value::Null),
-                "membership_class": object.get("membership_class").cloned().unwrap_or(Value::Null),
+                "membership_class": derived_membership_class(
+                    object,
+                    !verification_handles.is_empty(),
+                    ask_matched,
+                ),
                 "provenance_handles": [object.get("provenance_class").cloned().unwrap_or(Value::Null)],
                 "verification_handles": verification_handles,
                 "verification_status": verification_status,
                 "confidence": (score.max(0) as f64 / 100.0).min(1.0),
-                "freshness": object.get("fresh").cloned().unwrap_or(json!(true)),
+                "freshness": member_freshness(object, index_stale, !verification_handles.is_empty()),
                 "action_affordance_ids": action_affordance_ids,
                 "score": score,
                 "reason_count": reasons.len(),
@@ -6313,9 +6378,16 @@ fn working_set_payload(focusa: &FocusaState, params: WorkingSetPayloadParams<'_>
         "index": {
             "projection_kind": "combined_projection_full_world_semantics",
             "source_reducer_version": focusa.version,
-            "last_reducer_event_id": focusa.ontology.delta_log.first().map(|delta| delta.delta_kind.clone()),
+            "last_reducer_event_id": ontology_reducer_event_id(focusa),
             "canonical_truth_mutation": false,
-            "stale": false
+            "stale": index_stale,
+            "freshness": {
+                "status": if index_stale { "stale" } else { "fresh" },
+                "age_seconds": index_age_seconds,
+                "ttl_seconds": index.ttl_seconds,
+                "derived": true,
+                "derived_from": "read_index_generated_at_and_reducer_delta_log",
+            },
         },
         "slice_type": resolved_slice_type,
         "requested_slice_type": slice_type,
@@ -10939,5 +11011,117 @@ mod tests {
             &cargo_manifest_precondition_id,
             &build_rust_affordance_id
         ));
+    }
+
+    #[test]
+    fn working_set_membership_class_is_enum_and_never_null() {
+        // Explicit enum values are honored.
+        for allowed in ["pinned", "deterministic", "verified", "inferred", "provisional"] {
+            let object = json!({"membership_class": allowed});
+            assert_eq!(
+                derived_membership_class(&object, false, false).as_str(),
+                Some(allowed)
+            );
+        }
+        // Arbitrary / missing values are derived, never passed through or nulled.
+        let garbage = json!({"membership_class": "definitely-not-an-enum"});
+        assert_eq!(
+            derived_membership_class(&garbage, true, false).as_str(),
+            Some("verified")
+        );
+        let unverified = json!({"membership_class": null});
+        assert_eq!(
+            derived_membership_class(&unverified, false, false).as_str(),
+            Some("provisional")
+        );
+        let parser = json!({"provenance_class": "parser_derived"});
+        assert_eq!(
+            derived_membership_class(&parser, false, false).as_str(),
+            Some("deterministic")
+        );
+        let asked = json!({"id": "module:a", "object_type": "module"});
+        assert_eq!(
+            derived_membership_class(&asked, false, true).as_str(),
+            Some("inferred")
+        );
+        let verified_first = json!({"provenance_class": "parser_derived"});
+        assert_eq!(
+            derived_membership_class(&verified_first, true, true).as_str(),
+            Some("verified")
+        );
+    }
+
+    #[test]
+    fn working_set_member_freshness_is_derived_not_defaulted() {
+        // A member without a tracked fresh field must not fabricate `fresh`.
+        let untracked = json!({"id": "module:a"});
+        assert_eq!(
+            member_freshness(&untracked, false, false)
+                .get("status")
+                .and_then(|v| v.as_str()),
+            Some("provisional")
+        );
+        assert_eq!(
+            member_freshness(&untracked, false, true)
+                .get("status")
+                .and_then(|v| v.as_str()),
+            Some("fresh")
+        );
+        // A stale read index degrades members even when a field says fresh.
+        assert_eq!(
+            member_freshness(&json!({"fresh": true}), true, true)
+                .get("status")
+                .and_then(|v| v.as_str()),
+            Some("degraded")
+        );
+        assert_eq!(
+            member_freshness(&json!({"fresh": false}), false, false)
+                .get("status")
+                .and_then(|v| v.as_str()),
+            Some("stale")
+        );
+    }
+
+    #[test]
+    fn working_set_index_uses_latest_delta_and_derived_staleness() {
+        let mut focusa = FocusaState::default();
+        focusa.ontology.delta_log.push(focusa_core::types::OntologyDeltaRecord {
+            workstream: None,
+            delta_kind: "first".to_string(),
+            payload: json!({}),
+            timestamp: None,
+        });
+        focusa.ontology.delta_log.push(focusa_core::types::OntologyDeltaRecord {
+            workstream: None,
+            delta_kind: "latest".to_string(),
+            payload: json!({}),
+            timestamp: None,
+        });
+        let payload = working_set_payload(
+            &focusa,
+            WorkingSetPayloadParams {
+                frame_id: None,
+                ask: None,
+                target_ref: None,
+                slice_type: "active_mission",
+                limit: 20,
+                include_reasons: false,
+                cursor: 0,
+                scope: None,
+            },
+        );
+        assert_eq!(
+            payload
+                .get("index")
+                .and_then(|v| v.get("last_reducer_event_id"))
+                .and_then(|v| v.as_str()),
+            Some("latest:None")
+        );
+        let freshness = payload
+            .get("index")
+            .and_then(|v| v.get("freshness"))
+            .expect("index freshness envelope present");
+        assert_eq!(freshness.get("derived"), Some(&json!(true)));
+        assert!(freshness.get("age_seconds").and_then(|v| v.as_i64()).unwrap_or(-1) >= 0);
     }
 }
