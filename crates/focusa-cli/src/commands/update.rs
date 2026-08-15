@@ -170,9 +170,10 @@ pub struct UpdateApplyArgs {
 
 #[derive(Args, Debug, Clone)]
 pub struct UpdateStatusArgs {
-    /// Release channel to compare against.
-    #[arg(long, default_value = "dev")]
-    pub channel: String,
+    /// Release channel to compare against. Defaults to the update policy
+    /// channel when omitted.
+    #[arg(long)]
+    pub channel: Option<String>,
 
     /// Latest eligible version/tag override. Defaults to FOCUSA_LATEST_VERSION,
     /// then FOCUSA_UPDATE_LATEST_TAG, then this CLI package version.
@@ -772,7 +773,8 @@ async fn build_inventory(
     command_name: &'static str,
     args: UpdateStatusArgs,
 ) -> anyhow::Result<UpdateInventoryEnvelope> {
-    let latest = resolve_latest(&args.channel, args.latest_version.as_deref()).await;
+    let channel = args.channel.clone().unwrap_or_else(effective_channel);
+    let latest = resolve_latest(&channel, args.latest_version.as_deref()).await;
     let daemon_health = probe_daemon_health(&args.daemon_health_url).await;
     let parts = vec![
         inspect_cli(&latest.version).await?,
@@ -816,7 +818,7 @@ async fn build_inventory(
         command: command_name,
         read_only: true,
         mutations_performed: false,
-        channel: args.channel,
+        channel,
         latest,
         policy: update_policy_summary(),
         license: license_summary(),
@@ -2667,7 +2669,9 @@ async fn resolve_latest_github(
     for release in releases {
         let normalized_tag = normalize_version(&release.tag_name);
         if release.draft
-            || !release_tag_matches_channel(&release.tag_name, channel)
+            || !(release_tag_matches_channel(&release.tag_name, channel)
+                || (channel != "stable"
+                    && release_tag_matches_channel(&release.tag_name, "stable")))
             || pinned_version.is_some_and(|pinned| normalize_version(pinned) != normalized_tag)
             || skipped_versions.contains(&normalized_tag)
         {
@@ -3056,6 +3060,16 @@ fn default_policy_from_license() -> UpdatePolicy {
     }
 }
 
+/// Default update channel: the policy file's channel when present, else the
+/// license-derived default. Replaces the historical hardcoded "dev" default
+/// that made status/check disagree with the configured policy channel.
+fn effective_channel() -> String {
+    match read_update_policy() {
+        Ok(policy) => policy.channel.label().to_string(),
+        Err(_) => default_policy_from_license().channel.label().to_string(),
+    }
+}
+
 fn read_update_policy() -> anyhow::Result<UpdatePolicy> {
     let path = update_policy_path();
     let raw = std::fs::read_to_string(&path)
@@ -3235,7 +3249,7 @@ fn pi_extension_package_from_agent_dir(agent_dir: &Path) -> Option<PathBuf> {
     if let Some(package) = pi_extension_package_from_settings(&settings) {
         return Some(package);
     }
-    ["focusa-runtime", "focusa-pi-bridge"]
+    ["focusa", "focusa-runtime", "focusa-pi-bridge"]
         .iter()
         .map(|name| agent_dir.join("extensions").join(name).join("package.json"))
         .find(|package| {
@@ -3264,7 +3278,7 @@ fn configured_pi_extension_package_json() -> PathBuf {
     }
     agent_dir
         .unwrap_or_else(|| PathBuf::from(".pi/agent"))
-        .join("extensions/focusa-runtime/package.json")
+        .join("extensions/focusa/package.json")
 }
 
 fn inspect_package_part(
@@ -3301,14 +3315,15 @@ fn inspect_package_part(
     let sha256 = sha256_file(&package_json).ok();
     let stale = version
         .as_deref()
-        .map(|installed| normalize_version(installed) != normalize_version(latest));
+        .map(|installed| version_is_stale(installed, latest));
     let stale_reason = match (&version, stale) {
         (Some(installed), Some(true)) => {
-            format!("installed {part} version {installed} differs from latest {latest}")
+            format!("installed {part} version {installed} is behind latest {latest}")
         }
-        (Some(installed), Some(false)) => {
-            format!("installed {part} version {installed} matches latest {latest}")
-        }
+        (Some(installed), Some(false)) => format!(
+            "installed {part} version {installed} {} latest {latest}",
+            version_relation(installed, latest)
+        ),
         _ => format!("{part} package.json does not expose a valid version"),
     };
 
@@ -3356,7 +3371,7 @@ fn inspect_installer(latest: &str) -> InstalledPart {
         .filter(|version| !version.is_empty());
     let stale = version
         .as_deref()
-        .map(|current| normalize_version(current) != normalize_version(latest));
+        .map(|current| version_is_stale(current, latest));
     InstalledPart {
         part: "installer",
         expected_path: expected.display().to_string(),
@@ -3404,16 +3419,17 @@ async fn inspect_tui(latest: &str) -> anyhow::Result<InstalledPart> {
     // the old binary for rollback, avoiding a permanent probe_required state.
     let stale = version
         .as_ref()
-        .map(|version| version != latest)
+        .map(|version| version_is_stale(version, latest))
         .or_else(|| sha256.as_ref().map(|_| true));
     let stale_reason = match (&version, stale, &path) {
         (_, _, None) => "tui binary not found".into(),
         (Some(version), Some(true), _) => {
-            format!("installed tui version {version} differs from latest {latest}")
+            format!("installed tui version {version} is behind latest {latest}")
         }
-        (Some(version), Some(false), _) => {
-            format!("installed tui version {version} matches latest {latest}")
-        }
+        (Some(version), Some(false), _) => format!(
+            "installed tui version {version} {} latest {latest}",
+            version_relation(version, latest)
+        ),
         _ => "tui headless version probe unavailable".into(),
     };
     Ok(InstalledPart {
@@ -3446,10 +3462,15 @@ async fn inspect_daemon(latest: &str, health: Option<String>) -> anyhow::Result<
             None => None,
         },
     };
-    let stale = version.as_ref().map(|v| v != latest);
+    let stale = version.as_ref().map(|v| version_is_stale(v, latest));
     let stale_reason = match (&version, stale) {
-        (Some(v), Some(true)) => format!("running daemon health version {v} differs from latest {latest}"),
-        (Some(v), Some(false)) => format!("running daemon health version {v} matches latest {latest}"),
+        (Some(v), Some(true)) => {
+            format!("running daemon health version {v} is behind latest {latest}")
+        }
+        (Some(v), Some(false)) => format!(
+            "running daemon health version {v} {} latest {latest}",
+            version_relation(v, latest)
+        ),
         _ => "daemon version unknown; safe probe uses /v1/health because focusa-daemon --version starts the server".into(),
     };
     Ok(InstalledPart {
@@ -3487,15 +3508,16 @@ async fn inspect_executable_part(
     } else {
         None
     };
-    let stale = version.as_ref().map(|v| v != latest);
+    let stale = version.as_ref().map(|v| version_is_stale(v, latest));
     let stale_reason = match (&version, stale, &path) {
         (_, _, None) => format!("{part} binary not found"),
         (Some(v), Some(true), _) => {
-            format!("installed {part} version {v} differs from latest {latest}")
+            format!("installed {part} version {v} is behind latest {latest}")
         }
-        (Some(v), Some(false), _) => {
-            format!("installed {part} version {v} matches latest {latest}")
-        }
+        (Some(v), Some(false), _) => format!(
+            "installed {part} version {v} {} latest {latest}",
+            version_relation(v, latest)
+        ),
         _ => format!("{part} version probe unavailable"),
     };
     Ok(InstalledPart {
@@ -3653,6 +3675,33 @@ fn normalize_version(raw: &str) -> String {
     let trimmed = raw.trim();
     let last = trimmed.split_whitespace().last().unwrap_or(trimmed);
     last.trim_start_matches('v').to_string()
+}
+
+fn version_parts(raw: &str) -> Option<(u64, u64, u64)> {
+    let cleaned = normalize_version(raw);
+    let base = cleaned.split(['-', '+']).next().unwrap_or(&cleaned);
+    let mut parts = base.split('.');
+    let major = parts.next()?.trim().parse().ok()?;
+    let minor = parts.next()?.trim().parse().ok()?;
+    let patch = parts.next()?.trim().parse().ok()?;
+    Some((major, minor, patch))
+}
+
+/// Numeric ordering; when either side cannot be parsed, fall back to the
+/// historical string-inequality semantics (any difference is stale).
+fn version_is_stale(installed: &str, latest: &str) -> bool {
+    match (version_parts(installed), version_parts(latest)) {
+        (Some(installed), Some(latest)) => installed < latest,
+        _ => normalize_version(installed) != normalize_version(latest),
+    }
+}
+
+/// "is ahead of" when installed is numerically newer, else "matches".
+fn version_relation(installed: &str, latest: &str) -> &'static str {
+    match (version_parts(installed), version_parts(latest)) {
+        (Some(installed), Some(latest)) if installed > latest => "is ahead of",
+        _ => "matches",
+    }
 }
 
 fn print_human(envelope: &UpdateInventoryEnvelope) {
@@ -3994,5 +4043,39 @@ mod tests {
         assert_eq!(restored, vec!["cli"]);
         assert!(!target.exists());
         std::fs::remove_dir_all(root).expect("remove rollback fixture");
+    }
+}
+
+#[cfg(test)]
+mod version_staleness_tests {
+    use super::*;
+
+    #[test]
+    fn behind_is_stale_ahead_and_current_are_not() {
+        assert!(version_is_stale("0.9.151", "0.9.152"));
+        assert!(!version_is_stale("0.9.153", "0.9.152"), "ahead must not be stale");
+        assert!(!version_is_stale("0.9.152", "0.9.152"));
+    }
+
+    #[test]
+    fn channel_suffixes_do_not_fabricate_staleness() {
+        assert!(!version_is_stale("0.9.152", "0.9.152-dev"));
+        assert!(!version_is_stale("0.9.152-dev", "0.9.152"));
+        assert!(!version_is_stale("v0.9.152", "0.9.152"), "v prefix is cosmetic");
+    }
+
+    #[test]
+    fn relation_words_distinguish_ahead_from_match() {
+        assert_eq!(version_relation("0.9.153", "0.9.152"), "is ahead of");
+        assert_eq!(version_relation("0.9.152", "0.9.152-dev"), "matches");
+    }
+
+    #[test]
+    fn unparseable_versions_fall_back_to_string_compare() {
+        // When either side cannot be parsed, any string difference is stale
+        // (historical behavior preserved for unknown version shapes).
+        assert!(version_is_stale("current", "0.9.152"));
+        assert!(version_is_stale("0.9.152", "current"));
+        assert!(!version_is_stale("current", "current"));
     }
 }
