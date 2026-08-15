@@ -32,6 +32,16 @@ originating terminal/agent surface when they finish.
 Blocking is allowed only for sub-second commands and commands with an
 explicit short bound whose output is required immediately.
 
+## Disk headroom (mandatory)
+
+Never allow the operator filesystem or user quota to reach capacity.
+Always remove safe removables **first and proactively**: build caches
+(`target/`, `node_modules/`), toolchain caches, age-bounded rollback
+backups, staging clones, and temp artifacts. Check `df` and user quota
+before and after large operations; when headroom drops, free rebuildable
+space immediately — never reactively under pressure. Live data (daemon
+databases, evidence, ledgers, user files) is never a removable.
+
 ## Pre-work rule: always check remote first (mandatory)
 
 Before any durable state change (commit, push, branch switch, merge, rebase, tag), or before resuming work after a session reload, agent context drift, or gap in continuity:
