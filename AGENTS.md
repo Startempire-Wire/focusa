@@ -102,3 +102,16 @@ Agents must never commit `.focusa-private/`, raw transcripts, runtime objects, l
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
+
+## RELEASE STRATEGY & VERSIONING
+
+- Canonical policy: `docs/release-strategy.md` — read it before any release work.
+- Three lanes: **0.9.x = patch** (security/critical only), **0.10.x = minor**
+  (batched features, on cadence), **>= 1.0 = major** (breaking + migration notes).
+- Pre-1.0 rule: breaking changes bump MINOR (`0.10.0`), never a `0.9.x` patch.
+- Before tagging, classify the range: `python3 scripts/next-version.py`
+  (used by CI in `.github/workflows/release-version-policy.yml`).
+- Never tag outside the canonical pipeline
+  (`scripts/create-dev-release-tag.sh --base <MAJOR.MINOR> --push`).
+- Issue triage: `security` + `lane:patch` for security/critical;
+  `lane:minor` for features/non-critical; `lane:major` for breaking plans.

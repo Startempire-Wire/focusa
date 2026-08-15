@@ -180,11 +180,28 @@ jobs:
       - name: Prove OTA, authority/worktree, compaction, and cache closure
         run: tests/final_release_gap_gate.sh
 
+  # Version policy gate: the tag bump must match the release strategy
+  # (docs/release-strategy.md) — tag shape, monotonicity, and breaking-change
+  # bumps. Runs before release creation so a violation blocks the release.
+  version-policy:
+    name: Release version policy
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Validate tag against docs/release-strategy.md
+        run: |
+          set -euo pipefail
+          echo "Checking ${GITHUB_REF_NAME} against release strategy..."
+          python3 scripts/next-version.py --repo "$PWD" --tag "$GITHUB_REF_NAME" --json
+
   # Create the GitHub Release with notes (runs once, before uploads)
   create-release:
     name: Create Release
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: [rust-check, final-release-gap-gate, open-issue-release-gate, pull-request-release-gate]
+    needs: [rust-check, final-release-gap-gate, open-issue-release-gate, pull-request-release-gate, version-policy]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

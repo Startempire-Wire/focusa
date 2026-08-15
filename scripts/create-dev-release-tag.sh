@@ -392,6 +392,27 @@ fi
 echo "Next release tag: ${TAG}"
 python3 scripts/verify-release-tag-trigger.py "${TAG}"
 
+# Release strategy preflight (docs/release-strategy.md): fail fast on policy
+# violations before stamping/pushing. --force-release remains the override;
+# dry-run continues and reports the would-be block.
+if [[ -f scripts/next-version.py ]]; then
+  VERSION_POLICY="$(python3 scripts/next-version.py --tag "$TAG" --json 2>/dev/null || true)"
+  if [[ -n "$VERSION_POLICY" ]] && jq -e '.violations | length > 0' <<<"$VERSION_POLICY" >/dev/null 2>&1; then
+    echo "release_version_policy_violation: $(jq -r '.violations | join("; ")' <<<"$VERSION_POLICY")" >&2
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "Dry run continuing: release version policy would block an actual release." >&2
+    elif [[ "$FORCE_RELEASE" -eq 1 ]]; then
+      echo "Release version policy override accepted: ${RELEASE_REASON}" >&2
+    else
+      echo "Blocked by release version policy; pass --force-release --release-reason \"<plain-language reason>\" to override." >&2
+      exit 1
+    fi
+  else
+    VERSION_POLICY_WARNINGS="$(jq -r '.warnings | join("; ")' <<<"$VERSION_POLICY" 2>/dev/null || true)"
+    [[ -z "$VERSION_POLICY_WARNINGS" ]] || echo "release_version_policy_warnings: ${VERSION_POLICY_WARNINGS}" >&2
+  fi
+fi
+
 if [[ "$FORCE_RELEASE" -eq 1 && -z "$RELEASE_REASON" ]]; then
   echo "Blocked: --force-release requires --release-reason with a plain-language reason." >&2
   exit 2
