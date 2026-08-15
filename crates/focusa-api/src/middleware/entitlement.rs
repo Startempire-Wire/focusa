@@ -247,7 +247,7 @@ pub async fn entitlement_gate_layer(
     // canonical Workpoint exists, every checkpoint mutation keeps the full gate.
     let bootstrap_exempt = first_workpoint_bootstrap_exempt(
         &method,
-        &path,
+        path,
         state_has_canonical_workpoint(&state).await,
     );
     let requires_entitlement = route_requires_entitlement(&method, path) && !bootstrap_exempt;
@@ -334,7 +334,7 @@ fn first_workpoint_bootstrap_exempt(
     path: &str,
     has_canonical_workpoint: bool,
 ) -> bool {
-    method == &Method::POST && path == "/v1/workpoint/checkpoint" && !has_canonical_workpoint
+    method == Method::POST && path == "/v1/workpoint/checkpoint" && !has_canonical_workpoint
 }
 
 async fn state_has_canonical_workpoint(state: &Arc<AppState>) -> bool {
