@@ -57,6 +57,7 @@ Commands:
   export         Export training datasets (docs/20-21)
   contribute     Data contribution (docs/22)
   cache          Cache management (docs/18-19)
+  working-set    Ontology working-set surface: scoped members, membership classes, freshness (Spec 49)
   workpoint      Spec88 Workpoint continuity operations
   tokens         API token management (docs/25)
   wrap           Wrap a harness CLI (Mode A proxy)
@@ -301,3 +302,18 @@ focusa device pair-revoke    Revoke a paired device
 phone will hit (e.g. `https://focusa-conn.verious.net`). When unset, the
 daemon uses `daemon_base_url` (default `http://127.0.0.1:8787`). This is
 what makes pairing portable across public VPS hosts.
+
+## `working-set` — ontology working-set parity surface (Spec 49)
+
+Scoped to the active project workstream (same resolution as work-loop). Mirrors the REST surface at `/v1/ontology/working-set` and `/v1/ontology/actions` (refresh_working_set).
+
+```text
+focusa working-set status                 Show scoped members, membership class, freshness, score, verification handles
+focusa working-set status --ask "..."     Filter by ask text
+focusa working-set status --slice-type object --limit 10
+focusa working-set refresh --subject <ref>  Propose refreshing membership for a target ref (idempotent per subject)
+```
+
+Requires a resolved project workstream (project root + continuity id — same
+boundary as `focusa work-loop`). Output is advisory (`canonical: false`);
+membership changes land as typed proposals via the ontology action route.
