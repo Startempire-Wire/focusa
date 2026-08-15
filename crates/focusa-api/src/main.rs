@@ -186,14 +186,63 @@ fn enforce_bind_auth_guard(config: &FocusaConfig) -> anyhow::Result<()> {
     ))
 }
 
+/// CLI flags the daemon recognizes before any lock/startup work.
+///
+/// Fixes #213: `--help` must print usage and exit (it previously started a
+/// full daemon instance and could displace the live one), and unknown
+/// dash-arguments must fail instead of silently starting.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum CliAction {
+    Version,
+    Help,
+    Unknown(String),
+}
+
+fn detect_cli_action(args: impl Iterator<Item = String>) -> Option<CliAction> {
+    let mut args = args.skip(1);
+    let first = args.next()?;
+    match first.as_str() {
+        "--version" | "-V" => Some(CliAction::Version),
+        "--help" | "-h" => Some(CliAction::Help),
+        _ if first.starts_with('-') => Some(CliAction::Unknown(first)),
+        // Positional arguments are not used by the daemon; preserve the
+        // historical behavior of starting normally.
+        _ => None,
+    }
+}
+
+fn print_daemon_usage() {
+    println!(
+        "Focusa daemon — cognitive governance runtime\n\n\
+         USAGE:\n\
+             focusa-daemon [OPTIONS]\n\n\
+         OPTIONS:\n\
+             -h, --help       Print this help and exit\n\
+             -V, --version    Print version and exit\n\n\
+         ENVIRONMENT:\n\
+             FOCUSA_BIND          Bind address (default 127.0.0.1:8787)\n\
+             FOCUSA_DATA_DIR      Data directory override\n\
+             FOCUSA_AUTH_TOKEN    Enforced auth token for non-loopback binds"
+    );
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    if std::env::args()
-        .skip(1)
-        .any(|arg| arg == "--version" || arg == "-V")
-    {
-        println!("focusa-daemon {}", env!("CARGO_PKG_VERSION"));
-        return Ok(());
+    match detect_cli_action(std::env::args()) {
+        Some(CliAction::Version) => {
+            println!("focusa-daemon {}", env!("CARGO_PKG_VERSION"));
+            return Ok(());
+        }
+        Some(CliAction::Help) => {
+            print_daemon_usage();
+            return Ok(());
+        }
+        Some(CliAction::Unknown(arg)) => {
+            eprintln!("focusa-daemon: unknown argument: {arg}");
+            print_daemon_usage();
+            std::process::exit(2);
+        }
+        None => {}
     }
 
     tracing_subscriber::fmt()
@@ -508,5 +557,44 @@ mod tests {
                 .is_file()
         );
         std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod cli_action_tests {
+    use super::*;
+
+    fn args(v: &[&str]) -> impl Iterator<Item = String> {
+        std::iter::once("focusa-daemon".to_string())
+            .chain(v.iter().map(|s| s.to_string()))
+    }
+
+    #[test]
+    fn help_flag_prints_action_not_startup() {
+        assert_eq!(detect_cli_action(args(&["--help"])), Some(CliAction::Help));
+        assert_eq!(detect_cli_action(args(&["-h"])), Some(CliAction::Help));
+    }
+
+    #[test]
+    fn version_flag_recognized() {
+        assert_eq!(
+            detect_cli_action(args(&["--version"])),
+            Some(CliAction::Version)
+        );
+        assert_eq!(detect_cli_action(args(&["-V"])), Some(CliAction::Version));
+    }
+
+    #[test]
+    fn unknown_dash_arg_is_rejected_not_started() {
+        assert_eq!(
+            detect_cli_action(args(&["--vresion"])),
+            Some(CliAction::Unknown("--vresion".to_string()))
+        );
+    }
+
+    #[test]
+    fn no_args_or_positionals_start_normally() {
+        assert_eq!(detect_cli_action(args(&[])), None);
+        assert_eq!(detect_cli_action(args(&["some-positional"])), None);
     }
 }
