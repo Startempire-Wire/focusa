@@ -35,9 +35,11 @@ test("Mission Canvas subscribes independently and polls only when stale", () => 
   assert.match(widget, /truthfulStatusLines/);
   assert.match(widget, /startup_cwd/);
   assert.match(widget, /last_refresh_status/);
-  assert.match(widget, /semanticSupported/);
-  assert.match(widget, /semanticSchemaOnly/);
-  assert.match(widget, /semanticSurfaceTruth/);
+  // #138: the always-on widget must NOT render the semantic registry summary
+  // or operation rows; those details stay behind diagnostics.
+  assert.doesNotMatch(widget, /semantic pair/);
+  assert.doesNotMatch(widget, /semanticSupported/);
+  assert.doesNotMatch(widget, /semanticSurfaceTruth/);
   assert.match(semantic, /operation\.availability \|\| "unknown"/);
   assert.doesNotMatch(widget + semantic, /unsupported on this Pi surface/);
 });

@@ -15,7 +15,6 @@ import {
 } from "./state.js";
 import { resolveInteractionMode } from "./config.js";
 import { renderWorkRailWidget, workRailSnapshotFromPacket } from "./work-rail-widget.js";
-import { semanticSurfaceTruth } from "./semantic-surface-truth.js";
 import {
   buildTruthfulScopedSurfaceSnapshot,
   currentScopedProjectRoot,
@@ -30,12 +29,6 @@ let pollingTimer: ReturnType<typeof setInterval> | null = null;
 let latestUiContext: any = null;
 let startupCwd = "";
 let pollInFlight = false;
-let semanticTruth = "schema_only";
-let semanticOperations = 0;
-let semanticMutations = 0;
-let semanticSupported = 0;
-let semanticSchemaOnly = 0;
-let semanticOperationLines: string[] = [];
 
 function bounded(value: unknown, max = 56): string {
   const text = String(value || "")
@@ -52,8 +45,6 @@ function truthfulStatusLines(ctx: any): string[] {
     `scope ${bounded(truth.selected_scope)} · startup ${bounded(truth.startup_cwd)} · project ${truth.project}`,
     `trajectory ${truth.trajectory} · workpoint ${truth.workpoint} · bead ${truth.bead} · ${proof}`,
     `refresh ${truth.last_refresh_status} · ${stale}`,
-    `semantic pair ${semanticTruth} · ${semanticOperations} operations · ${semanticSupported} supported · ${semanticSchemaOnly} schema-only · ${semanticMutations} mutations`,
-    ...semanticOperationLines,
   ];
 }
 
@@ -99,12 +90,7 @@ async function pollScopedSurfaceState(ctx: any): Promise<void> {
   if (!projectRoot || !continuityId) return;
   pollInFlight = true;
   try {
-    const trajectoryQuery = new URLSearchParams({
-      project_root: projectRoot,
-      continuity_id: continuityId,
-      mode: "summary",
-    });
-    const [trajectoryRefresh, workpointResult, semanticResult, semanticRegistry] = await Promise.all([
+    const [trajectoryRefresh, workpointResult] = await Promise.all([
       refreshTrajectoryClarityLifecycle("mission_canvas_poll", projectRoot).catch(() => null),
       focusaFetch("/workpoint/resume", {
         method: "POST",
@@ -115,20 +101,7 @@ async function pollScopedSurfaceState(ctx: any): Promise<void> {
           current_ask: getAttachmentRuntime().currentAsk?.text || undefined,
         }),
       }).catch(() => null),
-      focusaFetch(`/semantic-integrity/status?${trajectoryQuery.toString()}`, { method: "GET" }).catch(
-        () => null
-      ),
-      focusaFetch(`/semantic-integrity/operations?${trajectoryQuery.toString()}&limit=100`, {
-        method: "GET",
-      }).catch(() => null),
     ]);
-    const semanticSummary = semanticSurfaceTruth(semanticResult, semanticRegistry);
-    semanticTruth = semanticSummary.state;
-    semanticOperations = semanticSummary.operationCount;
-    semanticMutations = semanticSummary.mutationCount;
-    semanticSupported = semanticSummary.supportedCount;
-    semanticSchemaOnly = semanticSummary.schemaOnlyCount;
-    semanticOperationLines = semanticSummary.operationLines;
     const packet = normalizeWorkpointResumePacketEnvelope(workpointResult);
     const packetRoot = normalizeProjectRoot(
       packet?.project_root || packet?.scope?.project_root || workpointResult?.scope?.project_root || ""

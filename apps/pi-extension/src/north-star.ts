@@ -110,7 +110,7 @@ export function buildNorthStarSnapshot(trigger: string): NorthStarSnapshot {
     mlg: mlgCurrent ? ("current" as const) : ("missing" as const),
     stg: stgCurrent ? ("current" as const) : ("missing" as const),
     waypoint: waypointCurrent ? ("current" as const) : ("missing" as const),
-    gap: gapText ? ("current" as const) : ("stale" as const),
+    gap: gapText ? ("current" as const) : ("missing" as const),
     workpoint: !workpointCanonical
       ? ("missing" as const)
       : workpointAuthority
@@ -123,8 +123,14 @@ export function buildNorthStarSnapshot(trigger: string): NorthStarSnapshot {
   const staleSurfaces = Object.entries(states)
     .filter(([, value]) => value !== "current")
     .map(([key]) => key);
+  // "missing" surfaces are honest and informational (a verified trajectory can
+  // legitimately have no persisted gap text until assess runs); only
+  // stale/mismatched/steered surfaces signal an authority problem.
+  const impairing = Object.entries(states)
+    .filter(([, value]) => ["stale", "mismatched", "steered"].includes(value))
+    .map(([key]) => key);
   const hardBlocked = !projectCurrent || !hltCurrent || !mlgCurrent || !stgCurrent || !workpointCanonical;
-  const status = hardBlocked ? "blocked" : staleSurfaces.length ? "stale" : "ready";
+  const status = hardBlocked ? "blocked" : impairing.length ? "stale" : "ready";
   const exactRecovery = !projectCurrent
     ? "focusa_project_identity → focusa_project_verify"
     : !hltCurrent || !mlgCurrent || !stgCurrent || !waypointCurrent
