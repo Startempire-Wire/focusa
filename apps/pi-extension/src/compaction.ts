@@ -56,6 +56,7 @@ import {
 import { pushDelta } from "./tools.js";
 import { updateNorthStarCard } from "./north-star.js";
 import { canInjectCompactionMission, safeCompactionRecoveryContext } from "./compaction-resume-safety.js";
+import { compactionDeliveryAckEligible } from "./compaction-delivery-ack.js";
 
 function basename(value: string): string {
   const parts = String(value || "")
@@ -872,24 +873,6 @@ function formatResumePacketV2ForPrompt(packet: any): string {
   ]
     .filter(Boolean)
     .join("\n");
-}
-
-// Pure decision: may the harness acknowledge delivery of the queued resume
-// packet? sendMessage() returns void, so receipt is only observable via the
-// harness lifecycle: the queued nextTurn message is consumed when the next
-// agent turn starts. That is only truthful for the session that queued the
-// delivery, so the delivery key must end with the current session frame key.
-export function compactionDeliveryAckEligible(
-  deliveryKey: string | undefined,
-  deliveryState: string | undefined,
-  frameKey: string
-): boolean {
-  if (deliveryState !== "unknown_completion" && deliveryState !== "deferred_to_next_turn") {
-    return false;
-  }
-  if (!deliveryKey) return false;
-  const suffix = `:${frameKey || "session"}`;
-  return deliveryKey.endsWith(suffix);
 }
 
 function queueCompactionResumeContext(ctx: any, resumeProjection: string): boolean {

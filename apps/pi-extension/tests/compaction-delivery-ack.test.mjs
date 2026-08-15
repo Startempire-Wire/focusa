@@ -8,7 +8,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { compactionDeliveryAckEligible } from "../src/compaction.ts";
+import { compactionDeliveryAckEligible } from "../src/compaction-delivery-ack.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../../..");
