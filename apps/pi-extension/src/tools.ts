@@ -60,6 +60,7 @@ import {
   FOCUSA_TOOL_CONTRACTS,
   buildFocusaToolAffordanceCatalog,
   focusaToolContractSummary,
+  findFocusaToolContract,
 } from "./tool-contracts.js";
 import {
   buildProjectWorkstreamKey,
@@ -386,7 +387,7 @@ function duplicateCandidateForWrite(key: string): boolean {
 }
 
 type FocusaToolStatus =
-  "accepted" | "completed" | "no_op" | "blocked" | "validation_rejected" | "degraded" | "offline" | "error";
+  "accepted" | "completed" | "no_op" | "not_found" | "blocked" | "validation_rejected" | "degraded" | "offline" | "error";
 type FocusaRetryPosture =
   | "safe_retry"
   | "retry_with_idempotency_key"
@@ -638,7 +639,7 @@ function recoveryHintForFailure(
           "Inspect the tool's expected_schema (returned with this error) and provide the required fields. Run focusa_traverse surface=tool_registry to see the full parameter schema for this tool.",
         misuse_hint:
           "Tool parameter shape mismatch. The error envelope includes expected_schema with required fields and types — fix the input shape, do not retry unchanged.",
-        next_tools: ["focusa_traverse", "focusa_tool_doctor", "focusa_tool_requirement"],
+        next_tools: ["focusa_traverse", "focusa_tool_doctor", "focusa_tool_describe"],
       };
     case "not_found":
       return {
@@ -1247,27 +1248,37 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
   const details = (result?.details || {}) as Record<string, any>;
   if (details.tool_result_v1) return details.tool_result_v1 as FocusaToolResultV1;
   const text = String(result?.content?.[0]?.text || details.summary || "");
-  const family = tool.startsWith("focusa_workpoint_")
-    ? "workpoint"
-    : tool.startsWith("focusa_work_loop_")
-      ? "work_loop"
-      : tool.startsWith("focusa_tree_")
-        ? "tree_snapshot_lineage"
-        : tool.startsWith("focusa_metacog_")
-          ? "metacognition"
-          : tool.startsWith("focusa_lineage") || tool.startsWith("focusa_li_")
-            ? "lineage_intelligence"
-            : tool === "focusa_scratch"
-              ? "scratchpad"
-              : "focus_state";
+  // #304: the canonical contract registry owns family/read-only truth for
+  // registered tools; descriptor prose must never be read as the call outcome.
+  const contract = findFocusaToolContract(tool);
+  const inferenceAllowed = !contract;
+  const family = contract?.family
+    ? contract.family === "tree_lineage"
+      ? "tree_snapshot_lineage"
+      : contract.family
+    : tool.startsWith("focusa_workpoint_")
+      ? "workpoint"
+      : tool.startsWith("focusa_work_loop_")
+        ? "work_loop"
+        : tool.startsWith("focusa_tree_")
+          ? "tree_snapshot_lineage"
+          : tool.startsWith("focusa_metacog_")
+            ? "metacognition"
+            : tool.startsWith("focusa_lineage") || tool.startsWith("focusa_li_")
+              ? "lineage_intelligence"
+              : tool === "focusa_scratch"
+                ? "scratchpad"
+                : "focus_state";
   const ok =
-    details.ok === true ||
-    details.valid === true ||
-    (!/^❌|blocked|.* unavailable/.test(text) && details.ok !== false && details.valid !== false);
-  const validationRejected = details.valid === false || /validation_rejected|rejected/.test(text);
-  const offline = /offline|unavailable/.test(text);
-  const blocked = /blocked/.test(text);
-  const degraded = details.canonical === false || /degraded|NON-CANONICAL/.test(text);
+    details.ok === true || details.valid === true
+      ? true
+      : details.ok === false || details.valid === false
+        ? false
+        : !text.startsWith("❌");
+  const validationRejected = details.valid === false && inferenceAllowed;
+  const offline = inferenceAllowed && /offline|unavailable/.test(text);
+  const blocked = inferenceAllowed && /blocked/.test(text);
+  const degraded = inferenceAllowed && (details.canonical === false || /degraded|NON-CANONICAL/.test(text));
   const status: FocusaToolStatus = validationRejected
     ? "validation_rejected"
     : offline
@@ -1279,7 +1290,11 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
           : ok
             ? "completed"
             : "error";
+  const contractReadOnly = contract
+    ? contract.side_effect_profile === "read_state" || contract.scope_requirement?.kind === "read"
+    : false;
   const readOnly =
+    contractReadOnly ||
     family === "lineage_intelligence" ||
     tool.endsWith("_status") ||
     tool.endsWith("_resume") ||
@@ -1505,6 +1520,7 @@ const FOCUSA_TOOL_RESULT_V1_SCHEMA = Type.Object(
       Type.Literal("accepted"),
       Type.Literal("completed"),
       Type.Literal("no_op"),
+      Type.Literal("not_found"),
       Type.Literal("blocked"),
       Type.Literal("validation_rejected"),
       Type.Literal("degraded"),
@@ -1515,6 +1531,29 @@ const FOCUSA_TOOL_RESULT_V1_SCHEMA = Type.Object(
     canonical: Type.Boolean(),
     degraded: Type.Boolean(),
     summary: Type.String(),
+    // #306: every field the envelope builder emits must be declared here —
+    // additionalProperties=false makes undeclared projections schema-invalid.
+    tool: Type.Optional(Type.String()),
+    family: Type.Optional(Type.String()),
+    endpoint: Type.Optional(Type.String()),
+    workpoint_id: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    reflex_suggestions: Type.Optional(Type.Array(Type.String())),
+    ontology_candidate_delta_refs: Type.Optional(Type.Array(Type.String())),
+    error: Type.Optional(
+      Type.Union([
+        Type.Null(),
+        Type.Object(
+          {
+            field: Type.Optional(Type.String()),
+            code: Type.Optional(Type.String()),
+            message: Type.Optional(Type.String()),
+            allowed_values: Type.Optional(Type.Array(Type.String())),
+          },
+          { additionalProperties: false }
+        ),
+      ])
+    ),
+    raw: Type.Optional(Type.Unknown()),
     retry: Type.Object(
       {
         safe: Type.Boolean(),
@@ -5865,7 +5904,9 @@ export function registerTools(pi: ExtensionAPI) {
       canonical_name: Type.Optional(Type.String()),
       continuity_id: Type.Optional(Type.String()),
       idempotency_key: Type.Optional(Type.String()),
-      discipline_profile: Type.Optional(Type.String({ description: "Defaults to standard_software_project." })),
+      discipline_profile: Type.Optional(
+        Type.String({ description: "Defaults to standard_software_project." })
+      ),
       initialize_git: Type.Optional(Type.Boolean()),
       initialize_task_provider: Type.Optional(Type.Boolean()),
       task_provider: Type.Optional(Type.String()),
@@ -5876,15 +5917,23 @@ export function registerTools(pi: ExtensionAPI) {
       specification_ref: Type.Optional(Type.String()),
       acceptance_criteria: Type.Optional(Type.Array(Type.String())),
       confirm: Type.Optional(Type.Boolean()),
-      repair_action: Type.Optional(Type.String({ description: "retry or rollback; rollback requires confirm=true." })),
+      repair_action: Type.Optional(
+        Type.String({ description: "retry or rollback; rollback requires confirm=true." })
+      ),
     }),
     async execute(_toolCallId: string, params: any) {
       const action = String(params.action || "status");
       const projectRoot = normalizeProjectRoot(params.project_root);
       if (!projectRoot || !isProjectRootAuthoritySafe(projectRoot)) {
         return {
-          content: [{ type: "text", text: "project bootstrap → blocked: supply an explicit safe project root" }],
-          details: { status: "blocked", failure_class: "unsafe_project_root", next_tools: ["focusa_project_verify"] },
+          content: [
+            { type: "text", text: "project bootstrap → blocked: supply an explicit safe project root" },
+          ],
+          details: {
+            status: "blocked",
+            failure_class: "unsafe_project_root",
+            next_tools: ["focusa_project_verify"],
+          },
         } as any;
       }
       const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
@@ -5901,7 +5950,8 @@ export function registerTools(pi: ExtensionAPI) {
             action: undefined,
             project_root: projectRoot,
             project_id: params.project_id || projectRoot.split("/").filter(Boolean).pop() || "project",
-            canonical_name: params.canonical_name || projectRoot.split("/").filter(Boolean).pop() || "Project",
+            canonical_name:
+              params.canonical_name || projectRoot.split("/").filter(Boolean).pop() || "Project",
             continuity_id: continuityId,
             idempotency_key: params.idempotency_key || `bootstrap:${continuityId}`,
           }),
@@ -5910,7 +5960,12 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       const status = String(body.status || (result.ok ? "completed" : "blocked"));
       return {
-        content: [{ type: "text", text: `project bootstrap ${action} → ${status}\nnext: ${body.next_action || "inspect readiness"}` }],
+        content: [
+          {
+            type: "text",
+            text: `project bootstrap ${action} → ${status}\nnext: ${body.next_action || "inspect readiness"}`,
+          },
+        ],
         details: {
           ok: result.ok,
           status,
@@ -5918,7 +5973,10 @@ export function registerTools(pi: ExtensionAPI) {
           project_root: projectRoot,
           continuity_id: continuityId,
           bootstrap_packet: compactApiEcho(body),
-          next_tools: status === "ready" ? ["focusa_project_genesis", "focusa_workpoint_resume"] : ["focusa_project_bootstrap", "focusa_project_verify"],
+          next_tools:
+            status === "ready"
+              ? ["focusa_project_genesis", "focusa_workpoint_resume"]
+              : ["focusa_project_bootstrap", "focusa_project_verify"],
         },
       } as any;
     },
@@ -5934,12 +5992,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       action: Type.Optional(
         Type.Union(
-          [
-            Type.Literal("start"),
-            Type.Literal("resume"),
-            Type.Literal("status"),
-            Type.Literal("commit"),
-          ],
+          [Type.Literal("start"), Type.Literal("resume"), Type.Literal("status"), Type.Literal("commit")],
           { description: "Genesis operation; defaults to status." }
         )
       ),
@@ -5959,7 +6012,9 @@ export function registerTools(pi: ExtensionAPI) {
       allow_task_decomposition: Type.Optional(Type.Boolean()),
       confirm: Type.Optional(Type.Boolean({ description: "Required true for commit or takeover." })),
       takeover: Type.Optional(
-        Type.Boolean({ description: "Take over a conflicting active project workstream; requires confirm=true." })
+        Type.Boolean({
+          description: "Take over a conflicting active project workstream; requires confirm=true.",
+        })
       ),
     }),
     async execute(_toolCallId: string, params: any) {
@@ -5977,8 +6032,7 @@ export function registerTools(pi: ExtensionAPI) {
           },
         } as any;
       }
-      const continuityId =
-        params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
+      const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
       let result: any;
       if (action === "status") {
         result = await focusaFetchDetailed(
@@ -6107,7 +6161,14 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       action: Type.Optional(
         Type.Union(
-          [Type.Literal("status"), Type.Literal("commit"), Type.Literal("revise"), Type.Literal("observe"), Type.Literal("forecast"), Type.Literal("preflight")],
+          [
+            Type.Literal("status"),
+            Type.Literal("commit"),
+            Type.Literal("revise"),
+            Type.Literal("observe"),
+            Type.Literal("forecast"),
+            Type.Literal("preflight"),
+          ],
           { description: "Temporal operation; defaults to status." }
         )
       ),
@@ -6136,12 +6197,14 @@ export function registerTools(pi: ExtensionAPI) {
           source_ref: Type.Optional(Type.String()),
           operator_confirmed: Type.Boolean(),
           confidence: Type.String(),
-          uncertainty: Type.Optional(Type.Object({
-            earliest_at: Type.Optional(Type.String()),
-            latest_at: Type.Optional(Type.String()),
-            coverage_probability: Type.Optional(Type.Number()),
-            reason: Type.Optional(Type.String()),
-          })),
+          uncertainty: Type.Optional(
+            Type.Object({
+              earliest_at: Type.Optional(Type.String()),
+              latest_at: Type.Optional(Type.String()),
+              coverage_probability: Type.Optional(Type.Number()),
+              reason: Type.Optional(Type.String()),
+            })
+          ),
           observed_at: Type.String(),
           effective_at: Type.String(),
           expires_at: Type.Optional(Type.String()),
@@ -6159,7 +6222,11 @@ export function registerTools(pi: ExtensionAPI) {
       if (!projectRoot || !isProjectRootAuthoritySafe(projectRoot)) {
         return {
           content: [{ type: "text", text: "temporal authority → blocked: verify a safe project root" }],
-          details: { status: "blocked", failure_class: "project_identity_required", next_tools: ["focusa_project_verify"] },
+          details: {
+            status: "blocked",
+            failure_class: "project_identity_required",
+            next_tools: ["focusa_project_verify"],
+          },
         } as any;
       }
       const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
@@ -6184,7 +6251,12 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       const status = String(body.status || (result.ok ? "completed" : "blocked"));
       return {
-        content: [{ type: "text", text: `temporal ${action} → ${status}\nnext: ${body.next_action || "inspect temporal projection"}` }],
+        content: [
+          {
+            type: "text",
+            text: `temporal ${action} → ${status}\nnext: ${body.next_action || "inspect temporal projection"}`,
+          },
+        ],
         details: {
           ok: result.ok,
           status,
@@ -7764,9 +7836,10 @@ export function registerTools(pi: ExtensionAPI) {
         })),
         blockers: blockers.map((reason: string) => ({ reason, severity: "medium", status: "open" })),
       };
+      // First checkpoint bootstraps Workpoint authority before a Work Loop lease exists.
       const res = await focusaFetchDetailed("/workpoint/checkpoint", {
         method: "POST",
-        headers: await requiredWriterLeaseHeaders(),
+        headers: writerLeaseHeaders(localWriterId, await currentWorkLoopLease()),
         body: JSON.stringify(payload),
       });
       if (!res.ok && res.body?.failure_class === "hot_path_timeout") {
@@ -8454,7 +8527,29 @@ export function registerTools(pi: ExtensionAPI) {
     }
   ) {
     const body: any = { code, error };
-    if (expectedSchema) body.expected_schema = expectedSchema;
+    if (expectedSchema) {
+      body.expected_schema = expectedSchema;
+      const rejectedField =
+        expectedSchema.required_fields.find(
+          (field) =>
+            !request || request[field] === undefined || error.toLowerCase().includes(field.toLowerCase())
+        ) || expectedSchema.required_fields[0];
+      const rejectedValue = request?.[rejectedField];
+      body.validation_errors = [
+        {
+          field: rejectedField,
+          code: rejectedValue === undefined ? "required" : "invalid",
+          message: error,
+          ...(rejectedValue === undefined || typeof rejectedValue === "object"
+            ? {}
+            : { rejected_value: String(rejectedValue).slice(0, 160) }),
+        },
+      ];
+      body.rejected_field = rejectedField;
+      if (rejectedValue !== undefined && typeof rejectedValue !== "object")
+        body.rejected_value = String(rejectedValue).slice(0, 160);
+      body.recovery_hint = `Provide ${rejectedField} using the returned expected_schema; do not retry unchanged.`;
+    }
     const result = spec80Result(
       tool,
       endpoint,
@@ -10055,7 +10150,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: strictObject({
       id: Type.String({ minLength: 1, maxLength: 40, description: "Requirement id, e.g. DXUX-004." }),
     }),
-    execute: async (params: any) => {
+    execute: async (_toolCallId: string, params: any) => {
       const keyCheck = validateNoExtraKeys("focusa_dxux_requirement", params, ["id"]);
       if (!keyCheck.ok)
         return spec80ValidationResult(
@@ -10063,18 +10158,32 @@ export function registerTools(pi: ExtensionAPI) {
           "/v1/dxux/requirement/{id}",
           params as Record<string, any>,
           "dxux requirement",
-          keyCheck.error
+          keyCheck.error,
+          "SCHEMA_INVALID",
+          { required_fields: ["id"], field_types: { id: "string" }, example: { id: "DXUX-004" } }
         );
-      const result = await focusaFetchDetailed(
-        `/dxux/requirement/${encodeURIComponent(String(params.id || ""))}`
-      );
+      const idCheck = validateRequiredString("id", keyCheck.value.id, 40, {
+        pattern: /^DXUX[-_]\d{3}$/i,
+      });
+      if (!idCheck.ok)
+        return spec80ValidationResult(
+          "focusa_dxux_requirement",
+          "/v1/dxux/requirement/{id}",
+          params as Record<string, any>,
+          "dxux requirement",
+          idCheck.error,
+          "SCHEMA_INVALID",
+          { required_fields: ["id"], field_types: { id: "string" }, example: { id: "DXUX-004" } }
+        );
+      const id = idCheck.value;
+      const result = await focusaFetchDetailed(`/dxux/requirement/${encodeURIComponent(id)}`);
       const body = result.body || {};
       const req = body.requirement || null;
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({
         ok,
         status: ok ? "completed" : "blocked",
-        summary: `dxux requirement → ${req?.id || params.id}`,
+        summary: `dxux requirement → ${req?.id || id}`,
         tool: "focusa_dxux_requirement",
         family: "diagnostics_hygiene",
         side_effects: [],
@@ -10086,7 +10195,7 @@ export function registerTools(pi: ExtensionAPI) {
         content: [
           {
             type: "text",
-            text: `dxux requirement ${body.status || result.status} | ${req?.id || params.id}`,
+            text: `dxux requirement ${body.status || result.status} | ${req?.id || id}`,
           },
         ],
         details: { tool_result_v1: toolResult },
@@ -10102,7 +10211,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: strictObject({
       failure: Type.String({ minLength: 1, maxLength: 240, description: "Failure text to classify." }),
     }),
-    execute: async (params: any) => {
+    execute: async (_toolCallId: string, params: any) => {
       const keyCheck = validateNoExtraKeys("focusa_dxux_explain", params, ["failure"]);
       if (!keyCheck.ok)
         return spec80ValidationResult(
@@ -10110,11 +10219,30 @@ export function registerTools(pi: ExtensionAPI) {
           "/v1/dxux/explain/{failure}",
           params as Record<string, any>,
           "dxux explain",
-          keyCheck.error
+          keyCheck.error,
+          "SCHEMA_INVALID",
+          {
+            required_fields: ["failure"],
+            field_types: { failure: "string" },
+            example: { failure: "daemon unavailable" },
+          }
         );
-      const result = await focusaFetchDetailed(
-        `/dxux/explain/${encodeURIComponent(String(params.failure || ""))}`
-      );
+      const failureCheck = validateRequiredString("failure", keyCheck.value.failure, 240);
+      if (!failureCheck.ok)
+        return spec80ValidationResult(
+          "focusa_dxux_explain",
+          "/v1/dxux/explain/{failure}",
+          params as Record<string, any>,
+          "dxux explain",
+          failureCheck.error,
+          "SCHEMA_INVALID",
+          {
+            required_fields: ["failure"],
+            field_types: { failure: "string" },
+            example: { failure: "daemon unavailable" },
+          }
+        );
+      const result = await focusaFetchDetailed(`/dxux/explain/${encodeURIComponent(failureCheck.value)}`);
       const body = result.body || {};
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({
@@ -13791,6 +13919,58 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           ...((body as any).data || (body as any).stats || {}),
           scope,
           next_tools: ["focusa_predict_record", "focusa_predict_recent"],
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_prediction_authority",
+    label: "Prediction Authority",
+    description:
+      "Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope.",
+    parameters: Type.Object({
+      action: Type.Union([Type.Literal("append"), Type.Literal("projection")]),
+      event: Type.Optional(Type.Any({ description: "ScopedAuthorityEvent when action=append." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit or current verified project root." })),
+      continuity_id: Type.Optional(Type.String({ description: "Explicit or current continuity id." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const gate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (gate) return gate;
+      const continuityId = String(p.continuity_id || getContinuityId() || "").trim();
+      if (!continuityId)
+        return {
+          content: [{ type: "text", text: "prediction authority blocked → typed continuity scope required" }],
+          details: {
+            ok: false,
+            status: "blocked",
+            recovery: "Provide continuity_id or bind a verified project workstream.",
+          },
+        } as any;
+      if (p.action === "append" && !p.event)
+        return {
+          content: [{ type: "text", text: "prediction authority append blocked → event required" }],
+          details: { ok: false, status: "blocked", recovery: "Provide one ScopedAuthorityEvent." },
+        } as any;
+      const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
+      const endpoint =
+        p.action === "append" ? "/prediction-authority/events" : "/prediction-authority/projection";
+      const res = await focusaFetchDetailed(endpoint, {
+        method: "POST",
+        body: JSON.stringify(p.action === "append" ? { scope, event: p.event } : { scope }),
+      });
+      const summary = `prediction authority ${p.action} → ${res.body?.status || (res.ok ? "completed" : "blocked")}`;
+      return {
+        content: [{ type: "text", text: summary }],
+        details: {
+          ok: res.ok,
+          status: res.body?.status,
+          response: res.body,
+          project_root: projectRoot,
+          continuity_id: continuityId,
         },
       } as any;
     },
