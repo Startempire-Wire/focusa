@@ -7,7 +7,7 @@ set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 SRC="${REPO_ROOT}/scripts/install-focusa.sh"
-LIVE="/home/focusadev/install.focusa.dev/public_html/installers/install-focusa.sh"
+LIVE="/home/focusadev/public_html/install.focusa.dev/installers/install-focusa.sh"
 
 if [ ! -f "$SRC" ]; then
   echo "[verify-bootstrapper-parity] FAIL: source missing ($SRC)" >&2

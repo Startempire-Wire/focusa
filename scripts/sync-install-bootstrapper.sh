@@ -4,7 +4,7 @@
 # install.focusa.dev docroot, where it is served as the public install URL.
 #
 # Why this exists: previously the in-repo scripts/install-focusa.sh and
-# /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.sh
+# /home/focusadev/public_html/install.focusa.dev/installers/install-focusa.sh
 # drifted apart (440-line live shell vs 173-line in-repo). Per the operator
 # rule on 2026-07-07, the in-repo script is the canonical bootstrapper; the
 # live shell must be a byte-identical copy.
@@ -19,8 +19,12 @@ set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 SRC="${REPO_ROOT}/scripts/install-focusa.sh"
-DOCROOT="/home/focusadev/install.focusa.dev/public_html"
+<<<<<<< HEAD
+DOCROOT="/home/focusadev/public_html/install.focusa.dev"
 LIVE_DIR="${DOCROOT}/installers"
+=======
+LIVE_DIR="/home/focusadev/public_html/install.focusa.dev/installers"
+>>>>>>> 33e62229 (fix: align bootstrapper parity with cPanel docroot)
 LIVE="${LIVE_DIR}/install-focusa.sh"
 ALIAS="${DOCROOT}/focusa"
 
