@@ -115,6 +115,34 @@ On a live build host, prefer local repo build/restart over release asset replace
 - Release asset replacement on a live build host requires Context Authority approval.
 - No auto-update path may publish or exfiltrate private Workpoint/Evidence data.
 
+## Pi extension package transaction policy
+
+- The installer stages and verifies the archive and dependencies; activation
+  flows through the shared transaction in
+  `crates/focusa-cli/src/commands/pi_package.rs`.
+- **One canonical Focusa Pi package** (`focusa`, identity `focusa-pi-bridge`)
+  is loadable per discovery root. Backups, stages, legacy, rollback, disabled,
+  and quarantine copies are preserved under the sibling non-discovery root
+  `~/.pi/agent/retired-extensions/` — never under the active discovery root.
+- Retirement moves only verified Focusa-owned entries: package identity
+  `focusa-pi-bridge` plus a known legacy/backup/old entry-name pattern.
+  Unrelated extensions are never moved. Compatibility symlinks may resolve
+  only to the canonical target.
+- Activation returns a **typed activation receipt** (destination, prior
+  backup, retired entries). The OTA apply transaction retains the receipt in
+  its state (`pi-extension-activation.json`), records the Pi entry in the
+  rollback ledger, and:
+  - rolls the Pi package back together with promoted binary parts after any
+    downstream failure;
+  - commits (removes) the prior-package backup only after the
+    restart-required receipt and every package phase succeed.
+- Fault injection: `FOCUSA_UPDATE_FAULT_AFTER_PI_ACTIVATION=1` fails the
+  update immediately after Pi activation; tests must prove the exact prior
+  package is restored.
+- `-ne`/`--no-extensions` **never satisfies acceptance**: a fresh Pi process
+  must start with zero extension-load, duplicate-tool, and duplicate-flag
+  errors.
+
 ## Proof
 
 - Static guard: `tests/installer_update_policy_static_test.sh`

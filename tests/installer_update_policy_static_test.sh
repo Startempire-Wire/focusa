@@ -41,4 +41,19 @@ for marker in 'INSTALLER_UPDATE_POLICY.md' 'installer_update_policy_static_test.
 done
 pass "Spec106 references installer/update proof"
 
+for marker in 'One canonical Focusa Pi package' 'retired-extensions' 'focusa-pi-bridge' 'never satisfies acceptance' 'FOCUSA_UPDATE_FAULT_AFTER_PI_ACTIVATION' 'typed activation receipt'; do
+  rg -n -F "$marker" "$DOC" >/dev/null || fail "Pi package policy missing $marker"
+done
+pass "Pi package transaction/discovery requirements documented"
+
+for marker in 'One canonical Focusa Pi package' 'retired-extensions' '-ne' 'zero duplicate tool'; do
+  rg -n -F -e "$marker" "$ROOT_DIR/AGENTS.md" >/dev/null || fail "AGENTS.md missing Pi package marker $marker"
+done
+pass "one-canonical-Pi-package rule documented in AGENTS.md"
+
+for marker in 'pi_package' 'FOCUSA_UPDATE_FAULT_AFTER_PI_ACTIVATION' 'rollback_pi_activation'; do
+  rg -n -F "$marker" "$ROOT_DIR/crates/focusa-cli/src/commands" >/dev/null || fail "shared Pi activation transaction missing $marker"
+done
+pass "shared Pi activation transaction implemented"
+
 echo "installer update policy static test: PASS"

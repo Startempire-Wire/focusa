@@ -2436,7 +2436,7 @@ async fn phase_asset_download(
     Ok(out)
 }
 
-fn redact_url(raw: &str) -> String {
+pub(crate) fn redact_url(raw: &str) -> String {
     // Error paths may include a credentialed fixture URL. Redact userinfo and
     // query credentials before it reaches either a presenter or durable log.
     if let Ok(mut url) = reqwest::Url::parse(raw) {
@@ -2689,7 +2689,7 @@ async fn stream_asset_to_staged(
     Ok(())
 }
 
-fn tar_command() -> std::process::Command {
+pub(crate) fn tar_command() -> std::process::Command {
     if cfg!(windows) {
         return std::process::Command::new("tar");
     }
@@ -2712,83 +2712,17 @@ pub(crate) fn integrate_pi_extension(
     destination_root: Option<&std::path::Path>,
     npm_binary: Option<&std::path::Path>,
 ) -> Result<String> {
-    let archive = std::path::Path::new(&asset.install_path);
-    let listing = tar_command()
-        .args(["-tzf"])
-        .arg(archive)
-        .output()
-        .context("inspect Pi extension archive")?;
-    if !listing.status.success() {
-        bail!("Pi extension archive listing failed");
-    }
-    let listing = String::from_utf8_lossy(&listing.stdout);
-    if listing.lines().any(|entry| {
-        entry.starts_with('/')
-            || entry.split('/').any(|component| component == "..")
-            || !(entry == "pi-extension" || entry.starts_with("pi-extension/"))
-    }) || !listing
-        .lines()
-        .any(|entry| entry == "pi-extension/package.json")
-    {
-        bail!("Pi extension archive contains unsafe or incomplete paths");
-    }
-    let stage_root = install_root.join(format!(".pi-extension-stage-{}", uuid::Uuid::now_v7()));
-    std::fs::create_dir_all(&stage_root)?;
-    let cleanup = || {
-        let _ = std::fs::remove_dir_all(&stage_root);
-    };
-    let extracted = tar_command()
-        .args(["-xzf"])
-        .arg(archive)
-        .arg("-C")
-        .arg(&stage_root)
-        .status()
-        .context("extract Pi extension archive")?;
-    if !extracted.success() {
-        cleanup();
-        bail!("Pi extension archive extraction failed");
-    }
-    let staged = stage_root.join("pi-extension");
-    let npm = std::process::Command::new(npm_binary.unwrap_or_else(|| std::path::Path::new("npm")))
-        .args(["install", "--omit=dev", "--ignore-scripts"])
-        .current_dir(&staged)
-        .output()
-        .context("run npm dependency setup for Pi extension")?;
-    if !npm.status.success() {
-        cleanup();
-        let detail: String = String::from_utf8_lossy(&npm.stderr)
-            .chars()
-            .take(512)
-            .collect();
-        bail!(
-            "Pi extension dependency setup failed: {}",
-            redact_url(&detail)
-        );
-    }
-    let root = destination_root
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("FOCUSA_PI_EXT_DIR").map(std::path::PathBuf::from))
-        .or_else(|| {
-            std::env::var_os("HOME")
-                .map(|home| std::path::PathBuf::from(home).join(".pi/agent/extensions"))
-        })
-        .ok_or_else(|| anyhow!("HOME is unavailable; cannot locate Pi extensions"))?;
-    std::fs::create_dir_all(&root)?;
-    let destination = root.join("focusa");
-    let backup = root.join(format!(".focusa-backup-{}", uuid::Uuid::now_v7()));
-    if destination.exists() {
-        std::fs::rename(&destination, &backup)?;
-    }
-    if let Err(error) = std::fs::rename(&staged, &destination) {
-        if backup.exists() {
-            let _ = std::fs::rename(&backup, &destination);
-        }
-        cleanup();
-        return Err(error).context("activate Pi extension");
-    }
-    let _ = std::fs::remove_dir_all(&backup);
-    cleanup();
-    Ok(destination.display().to_string())
+    // Shared Pi package activation transaction (issue #309). The installer
+    // stages/verifies, activates through the shared typed-receipt boundary,
+    // and settles immediately because install is a single-package transaction.
+    let prepared =
+        crate::commands::pi_package::prepare_pi_package(asset, install_root, npm_binary)?;
+    let root = crate::commands::pi_package::resolve_pi_extensions_root(destination_root)?;
+    let receipt =
+        crate::commands::pi_package::activate_pi_package(&prepared.staged, &root, &asset.version)?;
+    prepared.cleanup();
+    crate::commands::pi_package::commit_pi_activation(&receipt)?;
+    Ok(receipt.destination.display().to_string())
 }
 
 fn install_agent_context_archive(
@@ -3900,6 +3834,9 @@ fn triple_for(target: InstallTarget) -> String {
 #[cfg(test)]
 #[path = "install_e6_failure_matrix_tests.rs"]
 mod install_e6_failure_matrix_tests;
+
+#[path = "install_pi_package_transaction_tests.rs"]
+mod install_pi_package_transaction_tests;
 
 #[cfg(test)]
 mod tests {

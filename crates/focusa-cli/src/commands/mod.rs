@@ -32,6 +32,7 @@ pub mod help;
 pub mod hlt;
 pub mod init;
 pub mod install;
+pub mod pi_package;
 pub mod intro;
 pub mod license;
 pub mod lineage;

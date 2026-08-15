@@ -1761,6 +1761,69 @@ fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<Stri
     Ok(restored)
 }
 
+/// Download, verify, stage, and activate the Pi extension package as part of
+/// the OTA apply transaction (issue #309). Persists the typed activation
+/// receipt and the restart-required marker into the update state, then honors
+/// the `FOCUSA_UPDATE_FAULT_AFTER_PI_ACTIVATION` fault injection point so
+/// tests can prove rollback after activation.
+pub(crate) async fn phase_pi_package_apply(
+    state: &Path,
+    stage: &Path,
+    destination_root: &Path,
+    download_url: &str,
+    expected_sha256: &str,
+    version: &str,
+) -> anyhow::Result<crate::commands::pi_package::PiActivationReceipt> {
+    let archive = stage.join(format!(
+        "pi-extension-{}-{}.tar.gz",
+        std::process::id(),
+        crate::commands::pi_package::now_unix()
+    ));
+    let bytes = reqwest::get(download_url).await?.error_for_status()?.bytes().await?;
+    let actual = format!("{:x}", Sha256::digest(&bytes));
+    if actual != expected_sha256 {
+        anyhow::bail!(
+            "Pi extension staged checksum mismatch: expected {expected_sha256}, got {actual}"
+        );
+    }
+    std::fs::write(&archive, &bytes)?;
+    std::fs::File::open(&archive)?.sync_all()?;
+    let asset = crate::commands::install::InstalledAsset {
+        name: "focusa-pi-extension".into(),
+        version: version.to_string(),
+        triple: "all".into(),
+        sha256: expected_sha256.to_string(),
+        install_path: archive.display().to_string(),
+    };
+    let prepared = crate::commands::pi_package::prepare_pi_package(&asset, stage, None)?;
+    let receipt = crate::commands::pi_package::activate_pi_package(
+        &prepared.staged,
+        destination_root,
+        version,
+    )?;
+    prepared.cleanup();
+    std::fs::write(
+        state.join("pi-extension-activation.json"),
+        serde_json::to_vec_pretty(&receipt)?,
+    )?;
+    std::fs::write(
+        state.join("pi-extension-restart-required.json"),
+        serde_json::to_vec_pretty(&json!({
+            "schema": "focusa.pi_extension_restart_required.v1",
+            "version": version,
+            "installed_at": crate::commands::pi_package::now_unix(),
+            "action": "Focusa Pi extension queues /focusa-activate-updated-extension and reloads automatically when idle"
+        }))?,
+    )?;
+    if std::env::var(crate::commands::pi_package::FAULT_AFTER_PI_ACTIVATION)
+        .map(|value| value == "1" || value == "true")
+        .unwrap_or(false)
+    {
+        anyhow::bail!("injected fault after Pi extension activation");
+    }
+    Ok(receipt)
+}
+
 async fn execute_verified_apply_locked(
     plan: &UpdatePlanEnvelope,
     state: &Path,
@@ -1780,6 +1843,7 @@ async fn execute_verified_apply_locked(
     // part, target path, backup path, SHA-256 of the pre-update target.
     let mut promoted: Vec<PromotedPart> = Vec::new();
     let mut package_promoted: Vec<String> = Vec::new();
+    let mut pi_receipt: Option<crate::commands::pi_package::PiActivationReceipt> = None;
     let operation = async {
         for part in plan
             .parts
@@ -1927,13 +1991,6 @@ async fn execute_verified_apply_locked(
                 .expected_sha256
                 .as_deref()
                 .context("Pi extension checksum missing")?;
-            let archive = stage.join(format!("{}-{}.tar.gz", part.part, plan.latest.tag));
-            let bytes = reqwest::get(url).await?.error_for_status()?.bytes().await?;
-            if format!("{:x}", Sha256::digest(&bytes)) != expected {
-                anyhow::bail!("Pi extension staged checksum mismatch");
-            }
-            std::fs::write(&archive, &bytes)?;
-            std::fs::File::open(&archive)?.sync_all()?;
             let package_json = PathBuf::from(
                 part.target_path
                     .as_deref()
@@ -1943,28 +2000,16 @@ async fn execute_verified_apply_locked(
                 .parent()
                 .and_then(Path::parent)
                 .context("Pi extension destination root missing")?;
-            let installed = crate::commands::install::InstalledAsset {
-                name: "focusa-pi-extension".into(),
-                version: plan.latest.version.clone(),
-                triple: "all".into(),
-                sha256: expected.to_string(),
-                install_path: archive.display().to_string(),
-            };
-            crate::commands::install::integrate_pi_extension(
-                &installed,
+            let receipt = phase_pi_package_apply(
+                state,
                 &stage,
-                Some(extension_root),
-                None,
-            )?;
-            std::fs::write(
-                state.join("pi-extension-restart-required.json"),
-                serde_json::to_vec_pretty(&json!({
-                    "schema": "focusa.pi_extension_restart_required.v1",
-                    "version": plan.latest.version,
-                    "installed_at": chrono_like_timestamp(),
-                    "action": "Focusa Pi extension queues /focusa-activate-updated-extension and reloads automatically when idle"
-                }))?,
-            )?;
+                extension_root,
+                url,
+                expected,
+                &plan.latest.version,
+            )
+            .await?;
+            pi_receipt = Some(receipt);
             package_promoted.push(part.part.to_string());
         }
         Ok::<(), anyhow::Error>(())
@@ -1972,6 +2017,10 @@ async fn execute_verified_apply_locked(
     .await;
     if let Err(error) = operation {
         let rollback_result = rollback_promoted_parts(&promoted);
+        let pi_rollback_result = match &pi_receipt {
+            Some(receipt) => crate::commands::pi_package::rollback_pi_activation(receipt),
+            None => Ok(()),
+        };
         if let Some((_, daemon_path, _, _)) =
             promoted.iter().find(|(part, _, _, _)| part == "daemon")
         {
@@ -1991,13 +2040,26 @@ async fn execute_verified_apply_locked(
         std::fs::write(
             &journal,
             serde_json::to_vec_pretty(
-                &json!({"schema":"focusa.update_journal.v1","state":"rolled_back","error":error.to_string()}),
+                &json!({
+                    "schema":"focusa.update_journal.v1",
+                    "state":"rolled_back",
+                    "error":error.to_string(),
+                    "pi_extension_restored": pi_rollback_result.is_ok()
+                }),
             )?,
         )?;
-        if let Err(rollback_error) = rollback_result {
-            return Err(anyhow::anyhow!(
-                "update failed: {error}; rollback also failed: {rollback_error}"
-            ));
+        match (&rollback_result, &pi_rollback_result) {
+            (Err(rollback_error), _) => {
+                return Err(anyhow::anyhow!(
+                    "update failed: {error}; rollback also failed: {rollback_error}"
+                ));
+            }
+            (Ok(_), Err(pi_rollback_error)) => {
+                return Err(anyhow::anyhow!(
+                    "update failed: {error}; Pi extension rollback also failed: {pi_rollback_error}"
+                ));
+            }
+            _ => {}
         }
         return Err(error);
     }
@@ -2006,22 +2068,6 @@ async fn execute_verified_apply_locked(
         .map(|(part, _, _, _)| part.clone())
         .collect::<Vec<_>>();
     names.extend(package_promoted);
-    let rollback_manifest = backup_root.join("rollback-manifest.json");
-    let manifest_entries = promoted
-        .iter()
-        .filter(|(_, _, backup, digest)| backup.exists() && !digest.is_empty())
-        .map(|(part, target, backup, digest)| {
-            json!({"part":part,"target":target,"backup":backup,"sha256":digest})
-        })
-        .collect::<Vec<_>>();
-    std::fs::write(
-        &rollback_manifest,
-        serde_json::to_vec_pretty(&json!({
-            "schema":"focusa.update_rollback_manifest.v1",
-            "tag":plan.latest.tag,
-            "entries":manifest_entries,
-        }))?,
-    )?;
     if names.is_empty()
         && plan.parts.iter().any(|part| {
             matches!(
@@ -2032,10 +2078,56 @@ async fn execute_verified_apply_locked(
     {
         anyhow::bail!("no stale release parts were promoted");
     }
+    let rollback_manifest = backup_root.join("rollback-manifest.json");
+    let mut manifest_entries = promoted
+        .iter()
+        .filter(|(_, _, backup, digest)| backup.exists() && !digest.is_empty())
+        .map(|(part, target, backup, digest)| {
+            json!({"part":part,"target":target,"backup":backup,"sha256":digest})
+        })
+        .collect::<Vec<_>>();
+    if let Some(receipt) = &pi_receipt {
+        if let Some(prior) = &receipt.prior {
+            if prior.backup.exists() {
+                manifest_entries.push(json!({
+                    "part": "pi_extension",
+                    "target": receipt.destination,
+                    "backup": prior.backup,
+                    "sha256": prior.sha256
+                }));
+            }
+        }
+    }
+    std::fs::write(
+        &rollback_manifest,
+        serde_json::to_vec_pretty(&json!({
+            "schema":"focusa.update_rollback_manifest.v1",
+            "tag":plan.latest.tag,
+            "entries":manifest_entries,
+        }))?,
+    )?;
+    // Settlement: the restart-required receipt and every package phase have
+    // succeeded. Only now is the prior Pi package backup removed.
+    let pi_commit = match &pi_receipt {
+        Some(receipt) => match crate::commands::pi_package::commit_pi_activation(receipt) {
+            Ok(()) => "committed".to_string(),
+            Err(error) => {
+                eprintln!("warning: Pi extension backup cleanup deferred: {error}");
+                "deferred".to_string()
+            }
+        },
+        None => "none".to_string(),
+    };
     std::fs::write(
         &journal,
         serde_json::to_vec_pretty(
-            &json!({"schema":"focusa.update_journal.v1","state":"completed","tag":plan.latest.tag,"promoted":names}),
+            &json!({
+                "schema":"focusa.update_journal.v1",
+                "state":"completed",
+                "tag":plan.latest.tag,
+                "promoted":names,
+                "pi_extension":{"activated":pi_receipt.is_some(),"commit":pi_commit}
+            }),
         )?,
     )?;
     let history = state.join("update-history.jsonl");

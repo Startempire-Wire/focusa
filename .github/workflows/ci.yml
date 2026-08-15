@@ -43,6 +43,13 @@ jobs:
         run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace"
       - name: Process-health check + Clippy
         run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace -- -D warnings"
+      - name: Focused Pi package transaction + update gates
+        env:
+          FOCUSA_TEST_MODE: "1"
+        run: |
+          cargo test -p focusa-cli pi_package
+          cargo test -p focusa-cli update
+          cargo clippy -p focusa-cli --all-targets -- -D warnings
 
   menubar:
     name: Menubar
@@ -92,6 +99,9 @@ jobs:
         run: |
           chmod +x tests/release_deploy_automation_static_test.sh
           ./tests/release_deploy_automation_static_test.sh
+
+      - name: Installer/update policy + Pi discovery static gate
+        run: bash tests/installer_update_policy_static_test.sh
 
   spec-gates:
     name: Spec Gates (strict)

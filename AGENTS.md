@@ -52,6 +52,18 @@ GitHub changelogs and tagged release summaries use the first line. Bead IDs may
 appear only below the subject as a `Beads:` body trailer; ID-only subjects are
 rejected by local hooks, CI, and the release-tag gate.
 
+## One canonical Focusa Pi package (mandatory)
+
+Exactly **one canonical Focusa Pi package** may be loadable from each Pi
+extension discovery root (`~/.pi/agent/extensions/`, or `FOCUSA_PI_EXT_DIR`).
+Backup, stage, legacy, rollback, disabled, and quarantine copies must live
+under the sibling non-discovery root `~/.pi/agent/retired-extensions/`.
+Compatibility symlinks may resolve only to that same canonical target without
+duplicate registration. Starting Pi with `-ne`/`--no-extensions` never
+satisfies acceptance: a fresh Pi process must start with zero duplicate tool
+and zero duplicate flag errors. Install and OTA activation flow through the
+typed receipt in `crates/focusa-cli/src/commands/pi_package.rs`.
+
 ## Quick Reference
 
 ```bash
