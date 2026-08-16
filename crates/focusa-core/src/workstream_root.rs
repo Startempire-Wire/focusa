@@ -202,11 +202,57 @@ pub fn resolve_workstream_for_scope(
 /// Partition path resolver (docs/164): state/evidence/compaction roots are
 /// derived from the workstream id, never shared globals.
 pub fn partition_paths(data_dir: &std::path::Path, workstream_id: &str) -> RuntimePartition {
-    let root = data_dir.join("workstreams").join(workstream_id);
+    // Workstream ids are path-shaped keys; the filesystem component must be
+    // relative and path-hostile-character-free or join() would escape the
+    // data dir (an absolute component replaces the whole prefix).
+    let component = workstream_id
+        .trim_start_matches('/')
+        .replace(['/', '|', ':', '\\'], "_");
+    let root = data_dir.join("workstreams").join(component);
     RuntimePartition {
         state_ref: root.join("state.sqlite").display().to_string(),
         evidence_ref: root.join("evidence").display().to_string(),
         compaction_ref: root.join("compaction").display().to_string(),
+    }
+}
+
+/// Post-compaction continuation handle (#262 slice 1): what a continuation
+/// must resolve after compaction/restart — the workstream root FIRST, then
+/// the session. A transcript tail or daemon-global "current" state can
+/// never substitute for this handle.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ContinuationHandle {
+    pub schema: String,
+    pub workstream_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub state_partition: String,
+    pub evidence_partition: String,
+    pub compaction_partition: String,
+    pub degraded_fallback: String,
+}
+
+pub const CONTINUATION_HANDLE_SCHEMA: &str = "focusa.continuation_handle.v1";
+
+/// Deterministic continuation handle for a workstream scope. Same inputs
+/// always produce the same handle — a continuation after compaction,
+/// daemon restart, or harness rollover resolves the exact same partitions.
+pub fn continuation_handle(
+    data_dir: &std::path::Path,
+    project_root: &str,
+    continuity_id: &str,
+) -> ContinuationHandle {
+    let workstream_id = workstream_scope_key(project_root, continuity_id);
+    let partitions = partition_paths(data_dir, &workstream_id);
+    ContinuationHandle {
+        schema: CONTINUATION_HANDLE_SCHEMA.to_string(),
+        workstream_id,
+        project_root: project_root.trim_end_matches('/').to_string(),
+        continuity_id: continuity_id.to_string(),
+        state_partition: partitions.state_ref,
+        evidence_partition: partitions.evidence_ref,
+        compaction_partition: partitions.compaction_ref,
+        degraded_fallback: "resume from the workstream state partition; do not fall back to daemon-global current state".to_string(),
     }
 }
 
@@ -296,5 +342,34 @@ mod tests {
         let root = root("ws1", "ptm-main", "/home/planmarr/plan-the-marriage");
         assert!(root.resolution_key().starts_with("ws1|ptm-main|/home/planmarr"));
         assert!(root.is_remote());
+    }
+}
+
+#[cfg(test)]
+mod continuation_tests {
+    use super::*;
+
+    #[test]
+    fn continuation_handle_is_deterministic_across_restarts() {
+        let data_dir = std::path::Path::new("/tmp/focusa-data");
+        let first = continuation_handle(data_dir, "/root/proj/", "cont-1");
+        let second = continuation_handle(data_dir, "/root/proj", "cont-1");
+        assert_eq!(first, second, "trailing slashes must normalize");
+        assert_eq!(first.schema, CONTINUATION_HANDLE_SCHEMA);
+        assert_eq!(first.project_root, "/root/proj");
+        assert_eq!(first.workstream_id, "/root/proj|cont-1");
+    }
+
+    #[test]
+    fn partitions_are_workstream_scoped_never_global() {
+        let data_dir = std::path::Path::new("/tmp/focusa-data");
+        let a = continuation_handle(data_dir, "/root/a", "cont-1");
+        let b = continuation_handle(data_dir, "/root/b", "cont-1");
+        assert_ne!(a.state_partition, b.state_partition);
+        assert!(
+            a.state_partition.contains("workstreams"),
+            "partitions live under the workstream root"
+        );
+        assert!(a.degraded_fallback.contains("do not fall back"));
     }
 }
