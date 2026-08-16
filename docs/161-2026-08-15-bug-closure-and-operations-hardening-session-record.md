@@ -326,3 +326,20 @@ bounded core + persistence slices:
   wedged the runner queue; killed it and the queue drained. Build-host
   lock hygiene: verify no orphaned runner child processes hold the lock fd
   after long gates.
+
+## 5m. Closure batch — #112 close, bg feature, #255/#261/#262 (2026-08-16)
+
+- #112 CLOSED with evidence (all 7 compaction slices + workspace gate).
+- Background execution as first-class feature: `focusa bg run/status/wait/
+  list`, daemon background_jobs ledger, durable-completion-then-SSE
+  broadcast, Pi extension uiCtx.notify, monitor-lost reaping. docs/165.
+  Commit `319d3ff3` (pushed `03a32b1a`).
+- #255 slices 1-2: read-only infrastructure inventory (17 concerns) +
+  preview-only adoption plan with the decision chain; `focusa infra
+  inventory/adopt` CLI. Commits `d9b2596c`, `8e31824d`.
+- #261 slice 1: canonical FocusaErrorEnvelope + parity audit; all 8
+  legacy bare-error route files migrated (0 legacy, 43 partial→standard
+  next pass). Commit `2880f42b`.
+- #262 slice 1: ContinuationHandle + partition-path escape fix (absolute
+  workstream-id components could replace the data-dir prefix). Commit
+  `ac5e5562`.
