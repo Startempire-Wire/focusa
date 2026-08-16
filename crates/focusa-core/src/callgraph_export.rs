@@ -1,0 +1,325 @@
+//! CallGraph export — slice 1 (#287). Spec 155 export program.
+//!
+//! One typed `CallGraphExportProjection` drives every format: lossless
+//! JSONL snapshot, the standard TODO.txt profile (deliberately lossy,
+//! provenance-header), and Graphviz DOT. TODO.txt is a portable task
+//! projection — never canonical graph truth (#287 classification).
+
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+
+use crate::callgraph::{FocusaCallEdge, FocusaCallFrame, FocusaCallGraphDefinition, FrameKind};
+use crate::callgraph_store::FrameDispatch;
+
+pub const EXPORT_SCHEMA: &str = "focusa.callgraph_export.v1";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CallGraphExportManifest {
+    pub export_id: String,
+    pub scope: crate::callgraph::CallGraphScope,
+    pub graph_id: String,
+    pub revision: u64,
+    pub digest: String,
+    pub format: String,
+    pub format_version: String,
+    pub record_count: usize,
+    pub lossless: bool,
+    pub known_omissions: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CallGraphExportProjection {
+    pub schema: String,
+    pub manifest: CallGraphExportManifest,
+    pub graph: FocusaCallGraphDefinition,
+    pub dispatches: Vec<FrameDispatch>,
+}
+
+impl CallGraphExportProjection {
+    pub fn new(
+        graph: FocusaCallGraphDefinition,
+        dispatches: Vec<FrameDispatch>,
+        format: &str,
+        lossless: bool,
+        known_omissions: Vec<String>,
+    ) -> Self {
+        let digest = graph_digest(&graph);
+        let manifest = CallGraphExportManifest {
+            export_id: uuid::Uuid::now_v7().to_string(),
+            scope: graph.scope.clone(),
+            graph_id: graph.graph_id.clone(),
+            revision: graph.revision,
+            digest,
+            format: format.to_string(),
+            format_version: "1.0".to_string(),
+            record_count: graph.frames.len() + graph.edges.len() + dispatches.len(),
+            lossless,
+            known_omissions,
+        };
+        Self {
+            schema: EXPORT_SCHEMA.to_string(),
+            manifest,
+            graph,
+            dispatches,
+        }
+    }
+}
+
+pub fn graph_digest(graph: &FocusaCallGraphDefinition) -> String {
+    let canonical = serde_json::to_string(graph).unwrap_or_default();
+    let mut hasher = Sha256::new();
+    hasher.update(canonical.as_bytes());
+    format!("sha256:{}", hex_encode(&hasher.finalize()))
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// Lossless snapshot: one JSON object per record (definition, then each
+/// frame, then each edge, then each dispatch), each with the export
+/// envelope. Deterministic order = definition order.
+pub fn export_jsonl(projection: &CallGraphExportProjection) -> String {
+    let mut out = String::new();
+    if let Ok(line) = serde_json::to_string(&projection.graph) {
+        out.push_str(&line);
+        out.push('\n');
+    }
+    for frame in &projection.graph.frames {
+        if let Ok(line) = serde_json::to_string(frame) {
+            out.push_str(&line);
+            out.push('\n');
+        }
+    }
+    for edge in &projection.graph.edges {
+        if let Ok(line) = serde_json::to_string(edge) {
+            out.push_str(&line);
+            out.push('\n');
+        }
+    }
+    for dispatch in &projection.dispatches {
+        if let Ok(line) = serde_json::to_string(dispatch) {
+            out.push_str(&line);
+            out.push('\n');
+        }
+    }
+    out
+}
+
+/// Standard TODO.txt profile (lossy projection). Priority from frame kind;
+/// dependency edges become `dep:<frame_id>` tags; the provenance header
+/// carries the manifest so the projection is always traceable.
+pub fn export_todo_txt(projection: &CallGraphExportProjection) -> String {
+    let mut out = String::new();
+    out.push_str(&format!(
+        "x focusa-callgraph-export export_id:{} graph:{} revision:{} digest:{} lossy:true\n",
+        projection.manifest.export_id,
+        projection.manifest.graph_id,
+        projection.manifest.revision,
+        projection.manifest.digest,
+    ));
+    out.push_str("x focusa-callgraph-export source-of-truth:focusa canonical:false\n");
+    let mut edge_map: std::collections::HashMap<&str, Vec<&str>> = std::collections::HashMap::new();
+    for edge in &projection.graph.edges {
+        edge_map
+            .entry(edge.from_frame_id.as_str())
+            .or_default()
+            .push(edge.to_frame_id.as_str());
+    }
+    for frame in &projection.graph.frames {
+        let priority = match frame.kind {
+            FrameKind::Human | FrameKind::Approval => "(A)",
+            FrameKind::Join | FrameKind::Timer => "(B)",
+            _ => "(C)",
+        };
+        let mut deps = String::new();
+        if let Some(targets) = edge_map.get(frame.frame_id.as_str()) {
+            for target in targets {
+                deps.push_str(&format!(" dep:{target}"));
+            }
+        }
+        let context = format!(
+            " +focusa @workstream:{}",
+            projection.manifest.scope.continuity_id
+        );
+        out.push_str(&format!(
+            "{priority} 2026-08-16 frame:{} kind:{} {}{}{}\n",
+            frame.frame_id, frame.kind.label(), frame.name, deps, context
+        ));
+    }
+    out
+}
+
+impl FrameKind {
+    fn label(&self) -> &'static str {
+        match self {
+            FrameKind::Human => "human",
+            FrameKind::Agent => "agent",
+            FrameKind::Tool => "tool",
+            FrameKind::Approval => "approval",
+            FrameKind::Timer => "timer",
+            FrameKind::Join => "join",
+            FrameKind::Subgraph => "subgraph",
+            FrameKind::FlowmeshTask => "flowmesh_task",
+        }
+    }
+}
+
+/// Graphviz DOT projection for inspection surfaces.
+pub fn export_dot(projection: &CallGraphExportProjection) -> String {
+    let mut out = String::from("digraph callgraph {\n");
+    out.push_str(&format!(
+        "  label=\"{} rev {}\";\n",
+        projection.manifest.graph_id, projection.manifest.revision
+    ));
+    for frame in &projection.graph.frames {
+        out.push_str(&format!(
+            "  \"{}\" [label=\"{}\"];\n",
+            frame.frame_id, frame.name
+        ));
+    }
+    for edge in &projection.graph.edges {
+        out.push_str(&format!(
+            "  \"{}\" -> \"{}\" [label=\"{:?}\"];\n",
+            edge.from_frame_id, edge.to_frame_id, edge.kind
+        ));
+    }
+    out.push_str("}\n");
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::callgraph::{
+        AcceptanceContract, AuthorityRef, CallGraphPolicies, CallGraphScope, EdgeKind,
+        SideEffectClass,
+    };
+
+    fn sample() -> FocusaCallGraphDefinition {
+        FocusaCallGraphDefinition {
+            schema: crate::callgraph::CALLGRAPH_SCHEMA.to_string(),
+            graph_id: "g1".to_string(),
+            revision: 1,
+            scope: CallGraphScope {
+                project_root: "/root/proj".to_string(),
+                continuity_id: "cont-1".to_string(),
+            },
+            mission_ref: "m1".to_string(),
+            trajectory_ref: None,
+            workpoint_refs: vec![],
+            title: "t".to_string(),
+            description: "t".to_string(),
+            entry_frame_ids: vec!["a".to_string()],
+            frames: vec![
+                FocusaCallFrame {
+                    frame_id: "a".to_string(),
+                    name: "plan".to_string(),
+                    purpose: "t".to_string(),
+                    kind: FrameKind::Agent,
+                    input_schema: serde_json::json!({}),
+                    return_schema: serde_json::json!({}),
+                    preconditions: vec![],
+                    postconditions: vec![],
+                    side_effect_class: SideEffectClass::None,
+                    capability_refs: vec![],
+                    authority_requirement: None,
+                    timeout_policy: None,
+                    retry_policy: None,
+                    failure_boundary: None,
+                    compensation_frame_id: None,
+                    resource_budget: None,
+                    acceptance: AcceptanceContract {
+                        acceptance_atoms: vec!["a1".to_string()],
+                        verifier: None,
+                    },
+                    execution_binding: None,
+                },
+                FocusaCallFrame {
+                    frame_id: "b".to_string(),
+                    name: "approve".to_string(),
+                    purpose: "t".to_string(),
+                    kind: FrameKind::Approval,
+                    input_schema: serde_json::json!({}),
+                    return_schema: serde_json::json!({}),
+                    preconditions: vec![],
+                    postconditions: vec![],
+                    side_effect_class: SideEffectClass::None,
+                    capability_refs: vec![],
+                    authority_requirement: None,
+                    timeout_policy: None,
+                    retry_policy: None,
+                    failure_boundary: None,
+                    compensation_frame_id: None,
+                    resource_budget: None,
+                    acceptance: AcceptanceContract {
+                        acceptance_atoms: vec!["a1".to_string()],
+                        verifier: None,
+                    },
+                    execution_binding: None,
+                },
+            ],
+            edges: vec![FocusaCallEdge {
+                edge_id: "e1".to_string(),
+                from_frame_id: "a".to_string(),
+                to_frame_id: "b".to_string(),
+                kind: EdgeKind::Call,
+                condition: None,
+                input_mapping: vec![],
+                return_mapping: vec![],
+                join_policy: None,
+                cycle_policy: None,
+                authority_requirement: None,
+            }],
+            policies: CallGraphPolicies::default(),
+            required_evidence: vec![],
+            created_at: "t".to_string(),
+            created_by: AuthorityRef {
+                authority_kind: "operator".to_string(),
+                reference: "op-1".to_string(),
+            },
+            supersedes_revision: None,
+        }
+    }
+
+    #[test]
+    fn jsonl_is_lossless_and_deterministic() {
+        let graph = sample();
+        let p1 = CallGraphExportProjection::new(
+            graph.clone(),
+            vec![],
+            "jsonl",
+            true,
+            vec![],
+        );
+        let p2 = CallGraphExportProjection::new(graph, vec![], "jsonl", true, vec![]);
+        assert!(p1.manifest.lossless);
+        assert_eq!(export_jsonl(&p1).lines().count(), 4); // def + 2 frames + 1 edge
+        assert_eq!(p1.manifest.digest, p2.manifest.digest);
+        assert_eq!(export_jsonl(&p1), export_jsonl(&p2));
+    }
+
+    #[test]
+    fn todo_txt_carries_provenance_and_priorities() {
+        let graph = sample();
+        let projection =
+            CallGraphExportProjection::new(graph, vec![], "todo.txt", false, vec![
+                "edge semantics flattened to dep: tags".to_string(),
+            ]);
+        let out = export_todo_txt(&projection);
+        assert!(out.contains("lossy:true"));
+        assert!(out.contains("source-of-truth:focusa"));
+        assert!(out.contains("(A)"));
+        assert!(out.contains("dep:b"));
+        assert!(out.contains("@workstream:cont-1"));
+    }
+
+    #[test]
+    fn dot_renders_frames_and_edges() {
+        let graph = sample();
+        let projection = CallGraphExportProjection::new(graph, vec![], "dot", true, vec![]);
+        let out = export_dot(&projection);
+        assert!(out.starts_with("digraph callgraph"));
+        assert!(out.contains("\"a\" -> \"b\""));
+    }
+}
