@@ -4713,6 +4713,41 @@ pi.registerTool({
 });
 
 pi.registerTool({
+  name: "focusa_cockpit_projection",
+  label: "Focusa Cockpit Projection",
+  description:
+    "Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view.",
+  promptSnippet: "One read = worksets + callgraph frontier + steers + bg board.",
+  parameters: Type.Object({
+    project_root: Type.Optional(Type.String({ description: "Project root scope (defaults to the session cwd)." })),
+  }),
+  async execute(_id: any, params: any) {
+    const runtime = getAttachmentRuntime();
+    const projectRoot = params.project_root || runtime?.sessionCwd || process.cwd();
+    const res = await focusaFetchDetailed("/cockpit/projection");
+    if (!res.ok) {
+      return toolResult(
+        false,
+        res.body?.status || "blocked",
+        `Cockpit projection failed: ${res.body?.summary || res.status}`,
+        res.body
+      );
+    }
+    const data = res.body || {};
+    const worksets = data.worksets || [];
+    const runs = data.callgraph || [];
+    const steers = data.steers || [];
+    const bg = data.background || {};
+    return toolResult(
+      true,
+      "ok",
+      `Flywheel: ${worksets.length} worksets, ${runs.length} open callgraph runs, ${steers.length} steers, ${bg.active ?? 0} active bg jobs`,
+      data
+    );
+  },
+});
+
+pi.registerTool({
   name: "focusa_bg_run",
   label: "Focusa BG Run",
   description:
