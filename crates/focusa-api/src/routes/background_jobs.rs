@@ -185,7 +185,7 @@ async fn complete_job(
                 .as_ref()
                 .and_then(|t| t.parse::<chrono::DateTime<chrono::Utc>>().ok()),
         ) {
-            let duration_ms = (completed - started).num_milliseconds();
+            let duration_ms = (completed - *started).num_milliseconds();
             if duration_ms > 0 {
                 let _ = focusa_core::background_job_store::record_job_duration(
                     &conn, &record.name, duration_ms,
