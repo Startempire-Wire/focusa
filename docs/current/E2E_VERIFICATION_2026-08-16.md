@@ -22,6 +22,8 @@ scripts/e2e-workspace-gate.sh (full workspace tests, pipefail-safe).
 | remote workspace bindings | #89 |
 | closure validate gates on verdict | #276 settlement |
 | silent sessions list + completion sweep | #195/#311 |
+| workset ledger + transitions | #269/#271/#274 |
+| bg wait + settlement idempotency | #311-family |
 
 ## Workspace test gate
 
