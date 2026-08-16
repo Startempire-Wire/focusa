@@ -168,6 +168,13 @@
       "runbook": null,
       "owner_ref": "#312 (operator-conceived 2026-08-16)",
       "packaging": "repo docs + POST /v1/silent-sessions/fanout + future focusa_fast_forward tool"
+    },
+    {
+      "skill": "focusa-deslop",
+      "skill_md": ".pi/skills/focusa-deslop/SKILL.md",
+      "runbook": ".pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md",
+      "owner_ref": "deslop research synthesis (2026-08-16) \u2014 operator-directed",
+      "packaging": "repo .pi/skills + .deslop.toml + CI deslop gate"
     }
   ]
 }
