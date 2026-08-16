@@ -207,11 +207,16 @@ pub fn license_file_path() -> PathBuf {
     home.join(CONFIG_DIR).join(FOCUSA_DIR).join(LICENSE_FILE)
 }
 
-/// Load the local license state. Returns an Evaluation status if no file exists.
+/// Load the local license state. A missing file yields an Evaluation status
+/// with NO authority lease (#119 slice 4): self-issued evaluation grants no
+/// capabilities — the developer-origin resolver (#307) is the only
+/// no-license path that enables features.
 pub fn load_license_status() -> anyhow::Result<LicenseStatus> {
     let path = license_file_path();
     if !path.exists() {
-        return Ok(status_from_local(&LocalLicense::evaluation()));
+        let mut status = status_from_local(&LocalLicense::evaluation());
+        status.lease_valid = false;
+        return Ok(status);
     }
     let raw = std::fs::read_to_string(&path)
         .map_err(|e| anyhow::anyhow!("read license file {}: {e}", path.display()))?;
@@ -276,11 +281,14 @@ fn status_from_local(local: &LocalLicense) -> LicenseStatus {
     }
 }
 
-/// Read the raw `LocalLicense` from disk. Returns Evaluation if no file.
+/// Read the raw `LocalLicense` from disk. Returns Evaluation if no file
+/// (lease-invalid: self-issued evaluation grants no capabilities).
 pub fn load_local_license() -> anyhow::Result<LocalLicense> {
     let path = license_file_path();
     if !path.exists() {
-        return Ok(LocalLicense::evaluation());
+        let mut evaluation = LocalLicense::evaluation();
+        evaluation.status = "self_issued".into();
+        return Ok(evaluation);
     }
     let raw = std::fs::read_to_string(&path)
         .map_err(|e| anyhow::anyhow!("read license file {}: {e}", path.display()))?;
