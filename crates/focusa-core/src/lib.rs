@@ -93,6 +93,7 @@ pub mod background_jobs;
 pub mod acceptance_atoms;
 pub mod adapter_registry;
 pub mod callgraph;
+pub mod credential_authority;
 pub mod direction_ledger;
 pub mod procedure_compiler;
 pub mod session_fanout;
