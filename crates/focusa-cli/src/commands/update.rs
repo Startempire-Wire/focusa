@@ -32,11 +32,11 @@ pub enum UpdateCmd {
     Check(UpdateStatusArgs),
     /// Read-only update plan. Shows what would change, prompts, compatibility gates, and restart impact.
     Plan(UpdateStatusArgs),
-    /// Guarded update apply surface. Defaults to dry-run/blocked; no mutation until all gates are wired.
+    /// Guarded update apply. Mutates only with explicit consent and complete signed-release trust.
     Apply(UpdateApplyArgs),
     /// Read-only update history/observability view.
     History(UpdateHistoryArgs),
-    /// Read-only rollback plan. Does not restore binaries unless future gates are wired.
+    /// Guarded rollback. Defaults to dry-run and restores only SHA-verified backups with consent.
     Rollback(UpdateRollbackArgs),
     /// Read-only admin control preview: pin/skip/pause/resume/force-check/trusted-dev-force-latest.
     Admin(UpdateAdminArgs),
@@ -155,7 +155,7 @@ pub struct UpdateApplyArgs {
     #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
     pub dry_run: bool,
 
-    /// Explicit operator consent for future apply. Still blocked until implementation gates pass.
+    /// Explicit operator consent. Required with --allow-apply and --dry-run=false.
     #[arg(long)]
     pub yes: bool,
 
@@ -170,9 +170,10 @@ pub struct UpdateApplyArgs {
 
 #[derive(Args, Debug, Clone)]
 pub struct UpdateStatusArgs {
-    /// Release channel to compare against.
-    #[arg(long, default_value = "dev")]
-    pub channel: String,
+    /// Release channel to compare against. Defaults to the update policy
+    /// channel when omitted.
+    #[arg(long)]
+    pub channel: Option<String>,
 
     /// Latest eligible version/tag override. Defaults to FOCUSA_LATEST_VERSION,
     /// then FOCUSA_UPDATE_LATEST_TAG, then this CLI package version.
@@ -772,7 +773,8 @@ async fn build_inventory(
     command_name: &'static str,
     args: UpdateStatusArgs,
 ) -> anyhow::Result<UpdateInventoryEnvelope> {
-    let latest = resolve_latest(&args.channel, args.latest_version.as_deref()).await;
+    let channel = args.channel.clone().unwrap_or_else(effective_channel);
+    let latest = resolve_latest(&channel, args.latest_version.as_deref()).await;
     let daemon_health = probe_daemon_health(&args.daemon_health_url).await;
     let parts = vec![
         inspect_cli(&latest.version).await?,
@@ -816,7 +818,7 @@ async fn build_inventory(
         command: command_name,
         read_only: true,
         mutations_performed: false,
-        channel: args.channel,
+        channel,
         latest,
         policy: update_policy_summary(),
         license: license_summary(),
@@ -1693,6 +1695,44 @@ fn spawn_daemon_detached_with_retry(daemon_path: &Path) -> anyhow::Result<()> {
     unreachable!("bounded daemon spawn retry loop always returns")
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DaemonRestoreAction {
+    None,
+    Start,
+    Stop,
+}
+
+fn daemon_restore_action(touched: bool, was_running: bool) -> DaemonRestoreAction {
+    match (touched, was_running) {
+        (false, _) => DaemonRestoreAction::None,
+        (true, true) => DaemonRestoreAction::Start,
+        (true, false) => DaemonRestoreAction::Stop,
+    }
+}
+
+fn stop_daemon_service() -> anyhow::Result<()> {
+    if cfg!(target_os = "macos") {
+        let uid = std::process::Command::new("id").arg("-u").output()?;
+        let target = format!(
+            "gui/{}/com.startempire.focusa-daemon",
+            String::from_utf8_lossy(&uid.stdout).trim()
+        );
+        let _ = std::process::Command::new("launchctl")
+            .args(["kill", "SIGTERM", &target])
+            .status();
+    } else if cfg!(target_os = "windows") {
+        let _ = std::process::Command::new("taskkill")
+            .args(["/F", "/IM", "focusa-daemon.exe"])
+            .status();
+    } else {
+        let _ = std::process::Command::new("systemctl")
+            .args(["--user", "stop", "focusa-daemon.service"])
+            .status();
+    }
+    terminate_portable_daemon_from_lock();
+    Ok(())
+}
+
 fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
     if cfg!(target_os = "macos") {
         let uid = std::process::Command::new("id").arg("-u").output()?;
@@ -1734,6 +1774,9 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
 }
 
 fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<String>> {
+    if promoted.iter().any(|(part, _, _, _)| part == "daemon") {
+        stop_daemon_before_promotion().context("stop promoted daemon before rollback")?;
+    }
     let mut restored = Vec::new();
     for (part, target, backup, _) in promoted.iter().rev() {
         if !backup.exists() {
@@ -1761,69 +1804,6 @@ fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<Stri
     Ok(restored)
 }
 
-/// Download, verify, stage, and activate the Pi extension package as part of
-/// the OTA apply transaction (issue #309). Persists the typed activation
-/// receipt and the restart-required marker into the update state, then honors
-/// the `FOCUSA_UPDATE_FAULT_AFTER_PI_ACTIVATION` fault injection point so
-/// tests can prove rollback after activation.
-pub(crate) async fn phase_pi_package_apply(
-    state: &Path,
-    stage: &Path,
-    destination_root: &Path,
-    download_url: &str,
-    expected_sha256: &str,
-    version: &str,
-) -> anyhow::Result<crate::commands::pi_package::PiActivationReceipt> {
-    let archive = stage.join(format!(
-        "pi-extension-{}-{}.tar.gz",
-        std::process::id(),
-        crate::commands::pi_package::now_unix()
-    ));
-    let bytes = reqwest::get(download_url).await?.error_for_status()?.bytes().await?;
-    let actual = format!("{:x}", Sha256::digest(&bytes));
-    if actual != expected_sha256 {
-        anyhow::bail!(
-            "Pi extension staged checksum mismatch: expected {expected_sha256}, got {actual}"
-        );
-    }
-    std::fs::write(&archive, &bytes)?;
-    std::fs::File::open(&archive)?.sync_all()?;
-    let asset = crate::commands::install::InstalledAsset {
-        name: "focusa-pi-extension".into(),
-        version: version.to_string(),
-        triple: "all".into(),
-        sha256: expected_sha256.to_string(),
-        install_path: archive.display().to_string(),
-    };
-    let prepared = crate::commands::pi_package::prepare_pi_package(&asset, stage, None)?;
-    let receipt = crate::commands::pi_package::activate_pi_package(
-        &prepared.staged,
-        destination_root,
-        version,
-    )?;
-    prepared.cleanup();
-    std::fs::write(
-        state.join("pi-extension-activation.json"),
-        serde_json::to_vec_pretty(&receipt)?,
-    )?;
-    std::fs::write(
-        state.join("pi-extension-restart-required.json"),
-        serde_json::to_vec_pretty(&json!({
-            "schema": "focusa.pi_extension_restart_required.v1",
-            "version": version,
-            "installed_at": crate::commands::pi_package::now_unix(),
-            "action": "Focusa Pi extension queues /focusa-activate-updated-extension and reloads automatically when idle"
-        }))?,
-    )?;
-    if std::env::var(crate::commands::pi_package::FAULT_AFTER_PI_ACTIVATION)
-        .map(|value| value == "1" || value == "true")
-        .unwrap_or(false)
-    {
-        anyhow::bail!("injected fault after Pi extension activation");
-    }
-    Ok(receipt)
-}
-
 async fn execute_verified_apply_locked(
     plan: &UpdatePlanEnvelope,
     state: &Path,
@@ -1834,22 +1814,27 @@ async fn execute_verified_apply_locked(
     std::fs::create_dir_all(&stage)?;
     std::fs::create_dir_all(&backup_root)?;
     let journal = state.join("update-journal.json");
+    let progress = state.join("update-progress.txt");
+    std::fs::write(&progress, "staging")?;
     std::fs::write(
         &journal,
         serde_json::to_vec_pretty(&json!({
             "schema":"focusa.update_journal.v1", "state":"staging", "tag":plan.latest.tag, "started_at":stamp
         }))?,
     )?;
+    let daemon_health_url = std::env::var("FOCUSA_DAEMON_HEALTH_URL")
+        .unwrap_or_else(|_| "http://127.0.0.1:8787/v1/health".into());
+    let daemon_was_running = probe_daemon_health(&daemon_health_url).await.is_some();
     // part, target path, backup path, SHA-256 of the pre-update target.
     let mut promoted: Vec<PromotedPart> = Vec::new();
     let mut package_promoted: Vec<String> = Vec::new();
-    let mut pi_receipt: Option<crate::commands::pi_package::PiActivationReceipt> = None;
     let operation = async {
         for part in plan
             .parts
             .iter()
             .filter(|part| matches!(part.action, "would_update" | "would_install"))
         {
+            std::fs::write(&progress, format!("binary:{}:download", part.part))?;
             let url = part
                 .download_url
                 .as_deref()
@@ -1902,6 +1887,7 @@ async fn execute_verified_apply_locked(
             if part.part == "daemon" {
                 stop_daemon_before_promotion()?;
             }
+            std::fs::write(&progress, format!("binary:{}:promote", part.part))?;
             let backup = backup_root.join(target.file_name().context("target filename missing")?);
             let backup_sha256 = if target.exists() {
                 let digest = sha256_file(&target)?;
@@ -1957,13 +1943,12 @@ async fn execute_verified_apply_locked(
         if let Some((_, daemon_path, _, _)) =
             promoted.iter().find(|(part, _, _, _)| part == "daemon")
         {
+            std::fs::write(&progress, "daemon:restart_and_health")?;
             restart_daemon_service(daemon_path)?;
-            let health_url = std::env::var("FOCUSA_DAEMON_HEALTH_URL")
-                .unwrap_or_else(|_| "http://127.0.0.1:8787/v1/health".into());
             let mut observed_version = None;
             for _ in 0..20 {
                 tokio::time::sleep(Duration::from_secs(1)).await;
-                if let Some(version) = probe_daemon_health(&health_url).await {
+                if let Some(version) = probe_daemon_health(&daemon_health_url).await {
                     if normalize_version(&version) == plan.latest.version {
                         observed_version = Some(version);
                         break;
@@ -1983,6 +1968,7 @@ async fn execute_verified_apply_locked(
                 "would_update_package" | "would_install_package"
             )
         }) {
+            std::fs::write(&progress, format!("package:{}:download", part.part))?;
             let url = part
                 .download_url
                 .as_deref()
@@ -1991,6 +1977,19 @@ async fn execute_verified_apply_locked(
                 .expected_sha256
                 .as_deref()
                 .context("Pi extension checksum missing")?;
+            let archive = stage.join(format!("{}-{}.tar.gz", part.part, plan.latest.tag));
+            let bytes = reqwest::get(url).await?.error_for_status()?.bytes().await?;
+            if format!("{:x}", Sha256::digest(&bytes)) != expected {
+                anyhow::bail!("Pi extension staged checksum mismatch");
+            }
+            std::fs::write(&archive, &bytes)?;
+            std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&archive)
+                .context("open staged Pi extension archive for durable flush")?
+                .sync_all()
+                .context("durably flush staged Pi extension archive")?;
             let package_json = PathBuf::from(
                 part.target_path
                     .as_deref()
@@ -2000,66 +1999,112 @@ async fn execute_verified_apply_locked(
                 .parent()
                 .and_then(Path::parent)
                 .context("Pi extension destination root missing")?;
-            let receipt = phase_pi_package_apply(
-                state,
+            let installed = crate::commands::install::InstalledAsset {
+                name: "focusa-pi-extension".into(),
+                version: plan.latest.version.clone(),
+                triple: "all".into(),
+                sha256: expected.to_string(),
+                install_path: archive.display().to_string(),
+            };
+            std::fs::write(&progress, format!("package:{}:activate", part.part))?;
+            crate::commands::install::integrate_pi_extension(
+                &installed,
                 &stage,
-                extension_root,
-                url,
-                expected,
-                &plan.latest.version,
+                Some(extension_root),
+                None,
             )
-            .await?;
-            pi_receipt = Some(receipt);
+            .with_context(|| {
+                format!(
+                    "activate verified Pi extension package in {}",
+                    extension_root.display()
+                )
+            })?;
+            std::fs::write(
+                state.join("pi-extension-silent-restart-required.json"),
+                serde_json::to_vec_pretty(&json!({
+                    "schema": "focusa.pi_extension_restart_required.v1",
+                    "version": plan.latest.version,
+                    "installed_at": chrono_like_timestamp(),
+                    "action": "Focusa Pi extension activates through a non-conversational safe-idle runtime reload when supported, otherwise on the next natural Pi process start"
+                }))?,
+            )?;
             package_promoted.push(part.part.to_string());
         }
         Ok::<(), anyhow::Error>(())
     }
     .await;
     if let Err(error) = operation {
+        let failed_phase = std::fs::read_to_string(&progress)
+            .unwrap_or_else(|_| "unknown_transaction_phase".into());
+        let error = error.context(format!("update transaction phase {failed_phase}"));
         let rollback_result = rollback_promoted_parts(&promoted);
-        let pi_rollback_result = match &pi_receipt {
-            Some(receipt) => crate::commands::pi_package::rollback_pi_activation(receipt),
-            None => Ok(()),
-        };
-        if let Some((_, daemon_path, _, _)) =
-            promoted.iter().find(|(part, _, _, _)| part == "daemon")
-        {
-            let _ = restart_daemon_service(daemon_path);
-        } else if cfg!(target_os = "windows") {
-            // Promotion can fail after the old daemon was stopped but before it
-            // entered `promoted`; restore service from the still-current target.
-            if let Some(path) = plan
-                .parts
-                .iter()
-                .find(|part| part.part == "daemon")
-                .and_then(|part| part.target_path.as_deref())
+        let daemon_was_touched = promoted.iter().any(|(part, _, _, _)| part == "daemon")
+            || (cfg!(target_os = "windows") && plan.parts.iter().any(|part| part.part == "daemon"));
+        let daemon_restore_result: anyhow::Result<()> =
+            if daemon_restore_action(daemon_was_touched, daemon_was_running)
+                == DaemonRestoreAction::Start
             {
-                let _ = restart_daemon_service(Path::new(path));
-            }
-        }
+                async {
+                    let daemon_path = plan
+                        .parts
+                        .iter()
+                        .find(|part| part.part == "daemon")
+                        .and_then(|part| part.target_path.as_deref())
+                        .map(Path::new)
+                        .context("restore pre-update daemon: target path unavailable")?;
+                    restart_daemon_service(daemon_path)?;
+                    let mut healthy = false;
+                    for _ in 0..20 {
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                        if probe_daemon_health(&daemon_health_url).await.is_some() {
+                            healthy = true;
+                            break;
+                        }
+                    }
+                    if healthy {
+                        Ok(())
+                    } else {
+                        anyhow::bail!("restore pre-update daemon: health check did not recover")
+                    }
+                }
+                .await
+            } else if daemon_restore_action(daemon_was_touched, daemon_was_running)
+                == DaemonRestoreAction::Stop
+            {
+                async {
+                    stop_daemon_service()?;
+                    for _ in 0..20 {
+                        if probe_daemon_health(&daemon_health_url).await.is_none() {
+                            return Ok(());
+                        }
+                        tokio::time::sleep(Duration::from_millis(250)).await;
+                    }
+                    anyhow::bail!("restore pre-update daemon: daemon remained running")
+                }
+                .await
+            } else {
+                Ok(())
+            };
         std::fs::write(
             &journal,
-            serde_json::to_vec_pretty(
-                &json!({
-                    "schema":"focusa.update_journal.v1",
-                    "state":"rolled_back",
-                    "error":error.to_string(),
-                    "pi_extension_restored": pi_rollback_result.is_ok()
-                }),
-            )?,
+            serde_json::to_vec_pretty(&json!({
+                "schema":"focusa.update_journal.v1",
+                "state":"rolled_back",
+                "error":error.to_string(),
+                "daemon_was_running":daemon_was_running,
+                "daemon_restore":"pre_update_state",
+                "daemon_restore_ok":daemon_restore_result.is_ok()
+            }))?,
         )?;
-        match (&rollback_result, &pi_rollback_result) {
-            (Err(rollback_error), _) => {
-                return Err(anyhow::anyhow!(
-                    "update failed: {error}; rollback also failed: {rollback_error}"
-                ));
-            }
-            (Ok(_), Err(pi_rollback_error)) => {
-                return Err(anyhow::anyhow!(
-                    "update failed: {error}; Pi extension rollback also failed: {pi_rollback_error}"
-                ));
-            }
-            _ => {}
+        if let Err(rollback_error) = rollback_result {
+            return Err(anyhow::anyhow!(
+                "update failed: {error}; rollback also failed: {rollback_error}"
+            ));
+        }
+        if let Err(restore_error) = daemon_restore_result {
+            return Err(anyhow::anyhow!(
+                "update failed: {error}; files rolled back but daemon state restoration failed: {restore_error}"
+            ));
         }
         return Err(error);
     }
@@ -2068,6 +2113,22 @@ async fn execute_verified_apply_locked(
         .map(|(part, _, _, _)| part.clone())
         .collect::<Vec<_>>();
     names.extend(package_promoted);
+    let rollback_manifest = backup_root.join("rollback-manifest.json");
+    let manifest_entries = promoted
+        .iter()
+        .filter(|(_, _, backup, digest)| backup.exists() && !digest.is_empty())
+        .map(|(part, target, backup, digest)| {
+            json!({"part":part,"target":target,"backup":backup,"sha256":digest})
+        })
+        .collect::<Vec<_>>();
+    std::fs::write(
+        &rollback_manifest,
+        serde_json::to_vec_pretty(&json!({
+            "schema":"focusa.update_rollback_manifest.v1",
+            "tag":plan.latest.tag,
+            "entries":manifest_entries,
+        }))?,
+    )?;
     if names.is_empty()
         && plan.parts.iter().any(|part| {
             matches!(
@@ -2078,56 +2139,10 @@ async fn execute_verified_apply_locked(
     {
         anyhow::bail!("no stale release parts were promoted");
     }
-    let rollback_manifest = backup_root.join("rollback-manifest.json");
-    let mut manifest_entries = promoted
-        .iter()
-        .filter(|(_, _, backup, digest)| backup.exists() && !digest.is_empty())
-        .map(|(part, target, backup, digest)| {
-            json!({"part":part,"target":target,"backup":backup,"sha256":digest})
-        })
-        .collect::<Vec<_>>();
-    if let Some(receipt) = &pi_receipt {
-        if let Some(prior) = &receipt.prior {
-            if prior.backup.exists() {
-                manifest_entries.push(json!({
-                    "part": "pi_extension",
-                    "target": receipt.destination,
-                    "backup": prior.backup,
-                    "sha256": prior.sha256
-                }));
-            }
-        }
-    }
-    std::fs::write(
-        &rollback_manifest,
-        serde_json::to_vec_pretty(&json!({
-            "schema":"focusa.update_rollback_manifest.v1",
-            "tag":plan.latest.tag,
-            "entries":manifest_entries,
-        }))?,
-    )?;
-    // Settlement: the restart-required receipt and every package phase have
-    // succeeded. Only now is the prior Pi package backup removed.
-    let pi_commit = match &pi_receipt {
-        Some(receipt) => match crate::commands::pi_package::commit_pi_activation(receipt) {
-            Ok(()) => "committed".to_string(),
-            Err(error) => {
-                eprintln!("warning: Pi extension backup cleanup deferred: {error}");
-                "deferred".to_string()
-            }
-        },
-        None => "none".to_string(),
-    };
     std::fs::write(
         &journal,
         serde_json::to_vec_pretty(
-            &json!({
-                "schema":"focusa.update_journal.v1",
-                "state":"completed",
-                "tag":plan.latest.tag,
-                "promoted":names,
-                "pi_extension":{"activated":pi_receipt.is_some(),"commit":pi_commit}
-            }),
+            &json!({"schema":"focusa.update_journal.v1","state":"completed","tag":plan.latest.tag,"promoted":names}),
         )?,
     )?;
     let history = state.join("update-history.jsonl");
@@ -2510,7 +2525,7 @@ fn part_plan(part: &InstalledPart, latest: &LatestVersion, order: &mut u8) -> Pa
 fn print_plan_human(plan: &UpdatePlanEnvelope) {
     println!("Focusa update plan (read-only)");
     println!("channel: {} target: {}", plan.channel, plan.latest.version);
-    println!("apply_allowed: false");
+    println!("apply_allowed: {}", plan.apply_allowed);
     println!("compatibility: {}", plan.compatibility.status);
     if !plan.apply_blocked_until.is_empty() {
         println!("blocked_until: {}", plan.apply_blocked_until.join(", "));
@@ -2616,28 +2631,47 @@ async fn resolve_latest_github(
 ) -> anyhow::Result<LatestVersion> {
     let repo = github_repo();
     let triple = target_triple();
-    let url = format!("https://api.github.com/repos/{repo}/releases?per_page=20");
     let client = reqwest::Client::new();
-    let mut request = client
-        .get(&url)
-        .header("User-Agent", "focusa-update-resolver");
-    if let Some(token) = std::env::var("GITHUB_TOKEN")
+    let token = std::env::var("GITHUB_TOKEN")
         .ok()
         .or_else(|| std::env::var("GH_TOKEN").ok())
-        .filter(|value| !value.trim().is_empty())
-    {
-        request = request.bearer_auth(token);
-    }
-    let releases = request
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<Vec<GithubRelease>>()
-        .await?;
+        .filter(|value| !value.trim().is_empty());
+    let request = |url: String| {
+        let request = client
+            .get(url)
+            .header("User-Agent", "focusa-update-resolver");
+        if let Some(token) = token.as_deref() {
+            request.bearer_auth(token)
+        } else {
+            request
+        }
+    };
+    let releases = if let Some(pinned) = pinned_version {
+        let tag = release_tag_for_version(pinned);
+        let url = format!("https://api.github.com/repos/{repo}/releases/tags/{tag}");
+        vec![
+            request(url)
+                .send()
+                .await?
+                .error_for_status()?
+                .json::<GithubRelease>()
+                .await?,
+        ]
+    } else {
+        let url = format!("https://api.github.com/repos/{repo}/releases?per_page=20");
+        request(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Vec<GithubRelease>>()
+            .await?
+    };
     for release in releases {
         let normalized_tag = normalize_version(&release.tag_name);
         if release.draft
-            || !release_tag_matches_channel(&release.tag_name, channel)
+            || !(release_tag_matches_channel(&release.tag_name, channel)
+                || (channel != "stable"
+                    && release_tag_matches_channel(&release.tag_name, "stable")))
             || pinned_version.is_some_and(|pinned| normalize_version(pinned) != normalized_tag)
             || skipped_versions.contains(&normalized_tag)
         {
@@ -2648,6 +2682,20 @@ async fn resolve_latest_github(
         }
     }
     anyhow::bail!("no complete release found for channel={channel} target={triple}")
+}
+
+fn release_tag_for_version(version: &str) -> String {
+    let normalized = normalize_version(version);
+    format!("v{normalized}")
+}
+
+fn release_binary_asset_name(prefix: &str, tag: &str, triple: &str) -> String {
+    let suffix = if triple.ends_with("-pc-windows-msvc") {
+        ".exe"
+    } else {
+        ""
+    };
+    format!("{prefix}-{tag}-{triple}{suffix}")
 }
 
 fn build_latest_from_release(
@@ -2662,7 +2710,7 @@ fn build_latest_from_release(
         ("daemon", "focusa-daemon"),
         ("tui", "focusa-tui"),
     ] {
-        let name = format!("{prefix}-{tag}-{triple}");
+        let name = release_binary_asset_name(prefix, &tag, &triple);
         let gh_asset = release.assets.iter().find(|asset| asset.name == name)?;
         assets.push(ReleaseAssetRef {
             part,
@@ -2777,10 +2825,43 @@ fn build_latest_from_release(
 
 fn release_tag_matches_channel(tag: &str, channel: &str) -> bool {
     match channel {
-        "dev" | "stable" => tag.starts_with('v') && tag.ends_with("-dev"),
-        "preview" => tag.contains("-rc."),
-        "nightly" => tag.contains("-nightly."),
+        "stable" => tag.strip_prefix('v').is_some_and(|version| {
+            let parts = version.split('.').collect::<Vec<_>>();
+            parts.len() == 3
+                && parts
+                    .iter()
+                    .all(|part| !part.is_empty() && part.chars().all(|ch| ch.is_ascii_digit()))
+        }),
+        "dev" => tag.starts_with('v') && tag.ends_with("-dev"),
+        "preview" => tag.starts_with('v') && tag.contains("-rc."),
+        "nightly" => tag.starts_with('v') && tag.contains("-nightly."),
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod release_channel_tests {
+    use super::release_tag_matches_channel;
+
+    #[test]
+    fn stable_channel_accepts_only_unsuffixed_semver_tags() {
+        assert!(release_tag_matches_channel("v0.9.139", "stable"));
+        assert!(!release_tag_matches_channel("v0.9.139-dev", "stable"));
+        assert!(!release_tag_matches_channel("v0.9.139-rc.1", "stable"));
+        assert!(!release_tag_matches_channel("0.9.139", "stable"));
+        assert!(!release_tag_matches_channel("v0.9", "stable"));
+    }
+
+    #[test]
+    fn prerelease_channels_remain_disjoint() {
+        assert!(release_tag_matches_channel("v0.9.139-dev", "dev"));
+        assert!(release_tag_matches_channel("v0.9.139-rc.1", "preview"));
+        assert!(release_tag_matches_channel(
+            "v0.9.139-nightly.42",
+            "nightly"
+        ));
+        assert!(!release_tag_matches_channel("v0.9.139", "dev"));
+        assert!(!release_tag_matches_channel("v0.9.139-dev", "preview"));
     }
 }
 
@@ -2901,7 +2982,8 @@ fn target_triple() -> String {
         ("linux", "aarch64") => "aarch64-unknown-linux-musl".into(),
         ("macos", "x86_64") => "x86_64-apple-darwin".into(),
         ("macos", "aarch64") => "aarch64-apple-darwin".into(),
-        ("windows", "x86_64") => "x86_64-pc-windows-msvc.exe".into(),
+        ("windows", "x86_64") => "x86_64-pc-windows-msvc".into(),
+        ("windows", "aarch64") => "aarch64-pc-windows-msvc".into(),
         _ => format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS),
     }
 }
@@ -2975,6 +3057,16 @@ fn default_policy_from_license() -> UpdatePolicy {
             UpdatePolicy::default_for_license(status.tier, &status.features, dev_override)
         }
         Err(_) => UpdatePolicy::default_for_license("evaluation", &[], false),
+    }
+}
+
+/// Default update channel: the policy file's channel when present, else the
+/// license-derived default. Replaces the historical hardcoded "dev" default
+/// that made status/check disagree with the configured policy channel.
+fn effective_channel() -> String {
+    match read_update_policy() {
+        Ok(policy) => policy.channel.label().to_string(),
+        Err(_) => default_policy_from_license().channel.label().to_string(),
     }
 }
 
@@ -3152,24 +3244,41 @@ fn pi_extension_package_from_settings(settings_path: &Path) -> Option<PathBuf> {
         })
 }
 
+fn pi_extension_package_from_agent_dir(agent_dir: &Path) -> Option<PathBuf> {
+    let settings = agent_dir.join("settings.json");
+    if let Some(package) = pi_extension_package_from_settings(&settings) {
+        return Some(package);
+    }
+    ["focusa", "focusa-runtime", "focusa-pi-bridge"]
+        .iter()
+        .map(|name| agent_dir.join("extensions").join(name).join("package.json"))
+        .find(|package| {
+            package.is_file()
+                && std::fs::read(package)
+                    .ok()
+                    .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+                    .and_then(|value| value.get("name")?.as_str().map(str::to_string))
+                    .map(|name| name.starts_with("focusa-"))
+                    .unwrap_or(false)
+        })
+}
+
 fn configured_pi_extension_package_json() -> PathBuf {
     if let Some(path) = std::env::var_os("FOCUSA_PI_EXTENSION_PACKAGE_JSON") {
         return PathBuf::from(path);
     }
-    let settings_path = std::env::var_os("PI_CODING_AGENT_DIR")
+    let agent_dir = std::env::var_os("PI_CODING_AGENT_DIR")
         .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".pi/agent")))
-        .map(|dir| dir.join("settings.json"));
-    if let Some(package) = settings_path
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".pi/agent")));
+    if let Some(package) = agent_dir
         .as_deref()
-        .and_then(pi_extension_package_from_settings)
+        .and_then(pi_extension_package_from_agent_dir)
     {
         return package;
     }
-    configured_package_json(
-        "FOCUSA_PI_EXTENSION_PACKAGE_JSON",
-        "apps/pi-extension/package.json",
-    )
+    agent_dir
+        .unwrap_or_else(|| PathBuf::from(".pi/agent"))
+        .join("extensions/focusa/package.json")
 }
 
 fn inspect_package_part(
@@ -3206,14 +3315,15 @@ fn inspect_package_part(
     let sha256 = sha256_file(&package_json).ok();
     let stale = version
         .as_deref()
-        .map(|installed| normalize_version(installed) != normalize_version(latest));
+        .map(|installed| version_is_stale(installed, latest));
     let stale_reason = match (&version, stale) {
         (Some(installed), Some(true)) => {
-            format!("installed {part} version {installed} differs from latest {latest}")
+            format!("installed {part} version {installed} is behind latest {latest}")
         }
-        (Some(installed), Some(false)) => {
-            format!("installed {part} version {installed} matches latest {latest}")
-        }
+        (Some(installed), Some(false)) => format!(
+            "installed {part} version {installed} {} latest {latest}",
+            version_relation(installed, latest)
+        ),
         _ => format!("{part} package.json does not expose a valid version"),
     };
 
@@ -3261,7 +3371,7 @@ fn inspect_installer(latest: &str) -> InstalledPart {
         .filter(|version| !version.is_empty());
     let stale = version
         .as_deref()
-        .map(|current| normalize_version(current) != normalize_version(latest));
+        .map(|current| version_is_stale(current, latest));
     InstalledPart {
         part: "installer",
         expected_path: expected.display().to_string(),
@@ -3309,16 +3419,17 @@ async fn inspect_tui(latest: &str) -> anyhow::Result<InstalledPart> {
     // the old binary for rollback, avoiding a permanent probe_required state.
     let stale = version
         .as_ref()
-        .map(|version| version != latest)
+        .map(|version| version_is_stale(version, latest))
         .or_else(|| sha256.as_ref().map(|_| true));
     let stale_reason = match (&version, stale, &path) {
         (_, _, None) => "tui binary not found".into(),
         (Some(version), Some(true), _) => {
-            format!("installed tui version {version} differs from latest {latest}")
+            format!("installed tui version {version} is behind latest {latest}")
         }
-        (Some(version), Some(false), _) => {
-            format!("installed tui version {version} matches latest {latest}")
-        }
+        (Some(version), Some(false), _) => format!(
+            "installed tui version {version} {} latest {latest}",
+            version_relation(version, latest)
+        ),
         _ => "tui headless version probe unavailable".into(),
     };
     Ok(InstalledPart {
@@ -3351,10 +3462,15 @@ async fn inspect_daemon(latest: &str, health: Option<String>) -> anyhow::Result<
             None => None,
         },
     };
-    let stale = version.as_ref().map(|v| v != latest);
+    let stale = version.as_ref().map(|v| version_is_stale(v, latest));
     let stale_reason = match (&version, stale) {
-        (Some(v), Some(true)) => format!("running daemon health version {v} differs from latest {latest}"),
-        (Some(v), Some(false)) => format!("running daemon health version {v} matches latest {latest}"),
+        (Some(v), Some(true)) => {
+            format!("running daemon health version {v} is behind latest {latest}")
+        }
+        (Some(v), Some(false)) => format!(
+            "running daemon health version {v} {} latest {latest}",
+            version_relation(v, latest)
+        ),
         _ => "daemon version unknown; safe probe uses /v1/health because focusa-daemon --version starts the server".into(),
     };
     Ok(InstalledPart {
@@ -3392,15 +3508,16 @@ async fn inspect_executable_part(
     } else {
         None
     };
-    let stale = version.as_ref().map(|v| v != latest);
+    let stale = version.as_ref().map(|v| version_is_stale(v, latest));
     let stale_reason = match (&version, stale, &path) {
         (_, _, None) => format!("{part} binary not found"),
         (Some(v), Some(true), _) => {
-            format!("installed {part} version {v} differs from latest {latest}")
+            format!("installed {part} version {v} is behind latest {latest}")
         }
-        (Some(v), Some(false), _) => {
-            format!("installed {part} version {v} matches latest {latest}")
-        }
+        (Some(v), Some(false), _) => format!(
+            "installed {part} version {v} {} latest {latest}",
+            version_relation(v, latest)
+        ),
         _ => format!("{part} version probe unavailable"),
     };
     Ok(InstalledPart {
@@ -3560,6 +3677,33 @@ fn normalize_version(raw: &str) -> String {
     last.trim_start_matches('v').to_string()
 }
 
+fn version_parts(raw: &str) -> Option<(u64, u64, u64)> {
+    let cleaned = normalize_version(raw);
+    let base = cleaned.split(['-', '+']).next().unwrap_or(&cleaned);
+    let mut parts = base.split('.');
+    let major = parts.next()?.trim().parse().ok()?;
+    let minor = parts.next()?.trim().parse().ok()?;
+    let patch = parts.next()?.trim().parse().ok()?;
+    Some((major, minor, patch))
+}
+
+/// Numeric ordering; when either side cannot be parsed, fall back to the
+/// historical string-inequality semantics (any difference is stale).
+fn version_is_stale(installed: &str, latest: &str) -> bool {
+    match (version_parts(installed), version_parts(latest)) {
+        (Some(installed), Some(latest)) => installed < latest,
+        _ => normalize_version(installed) != normalize_version(latest),
+    }
+}
+
+/// "is ahead of" when installed is numerically newer, else "matches".
+fn version_relation(installed: &str, latest: &str) -> &'static str {
+    match (version_parts(installed), version_parts(latest)) {
+        (Some(installed), Some(latest)) if installed > latest => "is ahead of",
+        _ => "matches",
+    }
+}
+
 fn print_human(envelope: &UpdateInventoryEnvelope) {
     println!("Focusa update {} (read-only)", envelope.command);
     println!("channel: {}", envelope.channel);
@@ -3601,15 +3745,41 @@ fn print_human(envelope: &UpdateInventoryEnvelope) {
 #[cfg(test)]
 mod tests {
     use super::{
-        PromotedPart, inspect_package_part, normalize_version, path_is_git_managed,
-        pi_extension_package_from_settings, rollback_promoted_parts,
+        DaemonRestoreAction, PromotedPart, daemon_restore_action, inspect_package_part,
+        normalize_version, path_is_git_managed, pi_extension_package_from_agent_dir,
+        pi_extension_package_from_settings, release_binary_asset_name, release_tag_for_version,
+        rollback_promoted_parts,
     };
+    #[cfg(target_os = "macos")]
+    use super::{restart_daemon_service, stop_daemon_service};
 
     #[test]
     fn normalizes_common_version_outputs() {
         assert_eq!(normalize_version("focusa 0.9.74-dev"), "0.9.74-dev");
         assert_eq!(normalize_version("v0.9.80-dev"), "0.9.80-dev");
         assert_eq!(normalize_version("0.9.80-dev"), "0.9.80-dev");
+    }
+
+    #[test]
+    fn exact_release_version_normalizes_to_tag_endpoint_identity() {
+        assert_eq!(release_tag_for_version("0.9.117-dev"), "v0.9.117-dev");
+        assert_eq!(release_tag_for_version("v0.9.117-dev"), "v0.9.117-dev");
+    }
+
+    #[test]
+    fn release_binary_asset_names_cover_native_windows_targets_once() {
+        assert_eq!(
+            release_binary_asset_name("focusa", "v0.9.117-dev", "x86_64-pc-windows-msvc"),
+            "focusa-v0.9.117-dev-x86_64-pc-windows-msvc.exe"
+        );
+        assert_eq!(
+            release_binary_asset_name("focusa-daemon", "v0.9.117-dev", "aarch64-pc-windows-msvc"),
+            "focusa-daemon-v0.9.117-dev-aarch64-pc-windows-msvc.exe"
+        );
+        assert_eq!(
+            release_binary_asset_name("focusa-tui", "v0.9.117-dev", "aarch64-apple-darwin"),
+            "focusa-tui-v0.9.117-dev-aarch64-apple-darwin"
+        );
     }
 
     #[test]
@@ -3697,6 +3867,30 @@ mod tests {
     }
 
     #[test]
+    fn pi_agent_dir_falls_back_to_auto_loaded_focusa_runtime_package() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-pi-agent-dir-{}-{}",
+            std::process::id(),
+            super::chrono_like_timestamp()
+        ));
+        let runtime = root.join("extensions/focusa-runtime");
+        std::fs::create_dir_all(&runtime).expect("create runtime fixture");
+        std::fs::write(root.join("settings.json"), br#"{"extensions":[]}"#)
+            .expect("write settings fixture");
+        std::fs::write(
+            runtime.join("package.json"),
+            br#"{"name":"focusa-pi-bridge","version":"0.9.143"}"#,
+        )
+        .expect("write runtime package");
+
+        assert_eq!(
+            pi_extension_package_from_agent_dir(&root),
+            Some(runtime.join("package.json"))
+        );
+        std::fs::remove_dir_all(root).expect("remove Pi agent fixture");
+    }
+
+    #[test]
     fn absent_external_package_is_unknown_not_stale() {
         let package = std::env::temp_dir().join(format!(
             "focusa-missing-package-{}-{}.json",
@@ -3739,6 +3933,100 @@ mod tests {
     }
 
     #[test]
+    fn failed_update_restores_exact_pre_transaction_daemon_state() {
+        assert_eq!(
+            daemon_restore_action(true, true),
+            DaemonRestoreAction::Start
+        );
+        assert_eq!(
+            daemon_restore_action(true, false),
+            DaemonRestoreAction::Stop
+        );
+        assert_eq!(
+            daemon_restore_action(false, true),
+            DaemonRestoreAction::None
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn launchd_stop_restart_round_trip_restores_running_state() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-launchd-rollback-{}-{}",
+            std::process::id(),
+            super::chrono_like_timestamp()
+        ));
+        std::fs::create_dir_all(&root).expect("create launchd fixture");
+        let plist = root.join("com.startempire.focusa-daemon.plist");
+        std::fs::write(
+            &plist,
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>Label</key><string>com.startempire.focusa-daemon</string>
+<key>ProgramArguments</key><array><string>/bin/sleep</string><string>300</string></array>
+<key>RunAtLoad</key><true/><key>KeepAlive</key><false/>
+</dict></plist>
+"#,
+        )
+        .expect("write launchd fixture");
+        let uid = String::from_utf8_lossy(
+            &std::process::Command::new("id")
+                .arg("-u")
+                .output()
+                .expect("read uid")
+                .stdout,
+        )
+        .trim()
+        .to_string();
+        let domain = format!("gui/{uid}");
+        let target = format!("{domain}/com.startempire.focusa-daemon");
+        let _ = std::process::Command::new("launchctl")
+            .args(["bootout", &target])
+            .status();
+
+        let running = || {
+            std::process::Command::new("launchctl")
+                .args(["print", &target])
+                .output()
+                .is_ok_and(|output| {
+                    output.status.success()
+                        && String::from_utf8_lossy(&output.stdout).contains("state = running")
+                })
+        };
+        let wait_for = |expected: bool| {
+            for _ in 0..50 {
+                if running() == expected {
+                    return true;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            false
+        };
+        let result = (|| -> anyhow::Result<()> {
+            anyhow::ensure!(
+                std::process::Command::new("launchctl")
+                    .args(["bootstrap", &domain])
+                    .arg(&plist)
+                    .status()?
+                    .success(),
+                "bootstrap launchd fixture"
+            );
+            anyhow::ensure!(wait_for(true), "fixture did not start");
+            stop_daemon_service()?;
+            anyhow::ensure!(wait_for(false), "fixture did not stop");
+            restart_daemon_service(std::path::Path::new("/bin/false"))?;
+            anyhow::ensure!(wait_for(true), "fixture did not restart");
+            Ok(())
+        })();
+        let _ = std::process::Command::new("launchctl")
+            .args(["bootout", &target])
+            .status();
+        let _ = std::fs::remove_dir_all(root);
+        result.expect("real launchd state round trip");
+    }
+
+    #[test]
     fn rollback_new_install_without_backup_removes_promoted_target() {
         let root = std::env::temp_dir().join(format!(
             "focusa-update-no-backup-{}-{}",
@@ -3755,5 +4043,39 @@ mod tests {
         assert_eq!(restored, vec!["cli"]);
         assert!(!target.exists());
         std::fs::remove_dir_all(root).expect("remove rollback fixture");
+    }
+}
+
+#[cfg(test)]
+mod version_staleness_tests {
+    use super::*;
+
+    #[test]
+    fn behind_is_stale_ahead_and_current_are_not() {
+        assert!(version_is_stale("0.9.151", "0.9.152"));
+        assert!(!version_is_stale("0.9.153", "0.9.152"), "ahead must not be stale");
+        assert!(!version_is_stale("0.9.152", "0.9.152"));
+    }
+
+    #[test]
+    fn channel_suffixes_do_not_fabricate_staleness() {
+        assert!(!version_is_stale("0.9.152", "0.9.152-dev"));
+        assert!(!version_is_stale("0.9.152-dev", "0.9.152"));
+        assert!(!version_is_stale("v0.9.152", "0.9.152"), "v prefix is cosmetic");
+    }
+
+    #[test]
+    fn relation_words_distinguish_ahead_from_match() {
+        assert_eq!(version_relation("0.9.153", "0.9.152"), "is ahead of");
+        assert_eq!(version_relation("0.9.152", "0.9.152-dev"), "matches");
+    }
+
+    #[test]
+    fn unparseable_versions_fall_back_to_string_compare() {
+        // When either side cannot be parsed, any string difference is stale
+        // (historical behavior preserved for unknown version shapes).
+        assert!(version_is_stale("current", "0.9.152"));
+        assert!(version_is_stale("0.9.152", "current"));
+        assert!(!version_is_stale("current", "current"));
     }
 }

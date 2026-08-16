@@ -3,11 +3,33 @@ name: Spec 132 terminal matrix
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'crates/focusa-terminal-ui/**'
       - 'crates/focusa-cli/src/commands/install.rs'
+      - 'crates/focusa-cli/src/commands/update.rs'
+      - 'crates/focusa-core/src/silent_sessions/**'
+      - 'crates/focusa-session-runner/**'
+      - 'apps/pi-extension/package.json'
+      - 'apps/pi-extension/package-lock.json'
       - 'tests/132-e5-*'
       - '.github/workflows/spec132-terminal-matrix.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'crates/focusa-terminal-ui/**'
+      - 'crates/focusa-cli/src/commands/install.rs'
+      - 'crates/focusa-cli/src/commands/update.rs'
+      - 'crates/focusa-core/src/silent_sessions/**'
+      - 'crates/focusa-session-runner/**'
+      - 'apps/pi-extension/package.json'
+      - 'apps/pi-extension/package-lock.json'
+      - 'tests/132-e5-*'
+      - '.github/workflows/spec132-terminal-matrix.yml'
+
+concurrency:
+  group: spec132-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   windows-conpty:
@@ -16,10 +38,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: Build executables under test
-        shell: bash
         run: |
-          set -euo pipefail
           cargo build -p focusa-cli --bin focusa
           cargo build -p focusa-tui --bin focusa-tui
       - name: Execute ConPTY runtime proof
@@ -54,6 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: Build executables under test
         run: |
           cargo build -p focusa-cli --bin focusa
@@ -87,6 +109,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
       - name: Install cross for musl target
         uses: taiki-e/install-action@v2
         with:
@@ -95,8 +118,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # sqlite-vec <=0.1.9 uses BSD u_int aliases despite including stdint.h.
-          export CFLAGS_x86_64_unknown_linux_musl='-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t'
+          # sqlite-vec 0.1.7 uses BSD u_int* names that musl intentionally omits.
+          cat > Cross.toml <<'EOF'
+          [build.env]
+          passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
+          EOF
+          export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
+          trap 'rm -f Cross.toml' EXIT
           cross build --release --target x86_64-unknown-linux-musl --package focusa-cli --bin focusa
           cross build --release --target x86_64-unknown-linux-musl --package focusa-tui --bin focusa-tui
       - name: Package release artifact and compute hash
@@ -188,9 +216,13 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@nightly
         with:
+          toolchain: nightly-2026-01-08
           targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release-target-${{ matrix.target }}
       - name: Install cross for musl target
         if: ${{ matrix.musl == true }}
         uses: taiki-e/install-action@v2
@@ -201,8 +233,12 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ matrix.musl || false }}" = "true" ]; then
-            # sqlite-vec <=0.1.9 uses BSD u_int aliases despite including stdint.h.
-            export CFLAGS_x86_64_unknown_linux_musl='-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t'
+            cat > Cross.toml <<'EOF'
+          [build.env]
+          passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
+          EOF
+            export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
+            trap 'rm -f Cross.toml' EXIT
             cross build --release --target "${{ matrix.target }}" --bins
           else
             cargo build --release --target "${{ matrix.target }}" --bins
@@ -230,23 +266,23 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: npm
+          cache: 'npm'
           cache-dependency-path: apps/pi-extension/package-lock.json
       - name: Install locked dependencies
         working-directory: apps/pi-extension
-        run: npm ci
-      - name: Typecheck, lint, and Spec101 bloatgaurd detail routes
-        working-directory: apps/pi-extension
+        run: npm ci --ignore-scripts
+      - name: Typecheck, lint, Mission Canvas lifecycle, and Spec101 bloatgaurd detail routes
         run: |
-          npm run typecheck
-          npm run lint
-          node tests/spec101-bloatgaurd-details-route.test.mjs
-          node tests/spec101-bloatgaurd-profile-runtime.test.mjs
-          node tests/spec101-bloatgaurd-pressure-circuit-runtime.test.mjs
-          node tests/spec101-bloatgaurd-tool-history-elision-runtime.test.mjs
+          npm --prefix apps/pi-extension run typecheck
+          npm --prefix apps/pi-extension run lint
+          npm --prefix apps/pi-extension run test:mission-canvas
+          node apps/pi-extension/tests/spec101-bloatgaurd-details-route.test.mjs
+          node apps/pi-extension/tests/spec101-bloatgaurd-profile-runtime.test.mjs
+          node apps/pi-extension/tests/spec101-bloatgaurd-pressure-circuit-runtime.test.mjs
+          node apps/pi-extension/tests/spec101-bloatgaurd-tool-history-elision-runtime.test.mjs
       - name: Prove package contents
         run: |
           set -euo pipefail
