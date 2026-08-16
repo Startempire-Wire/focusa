@@ -12,6 +12,7 @@ pub mod capabilities;
 pub mod capabilities_extra;
 pub mod clt;
 pub mod commands;
+pub mod adapters;
 pub mod background_jobs;
 pub mod completion_claims;
 pub mod runtime_constitution;

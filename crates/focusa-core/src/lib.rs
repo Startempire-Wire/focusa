@@ -91,6 +91,7 @@ pub mod software_domain;
 pub mod background_job_store;
 pub mod background_jobs;
 pub mod acceptance_atoms;
+pub mod adapter_registry;
 pub mod callgraph;
 pub mod capability_truth;
 pub mod completion_authority;
