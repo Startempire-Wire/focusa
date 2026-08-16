@@ -978,6 +978,37 @@ async fn provider_neutral_readiness(
     readiness
         .ready
         .retain(|item| !deferred.contains(&item.provider_item_id));
+    // Gap-D flywheel seam: operator Steer operations re-rank next-ready
+    // selection. Ledger-backed, deterministic, no-op when the ledger is empty.
+    if !readiness.ready.is_empty() {
+        let steers = {
+            let db_path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+            match tokio::task::spawn_blocking(move || -> anyhow::Result<Vec<_>> {
+                let conn = rusqlite::Connection::open(db_path)?;
+                focusa_core::direction_ledger::ensure_schema(&conn)?;
+                Ok(focusa_core::direction_ledger::list_operations(&conn)?
+                    .into_iter()
+                    .map(|receipt| receipt.operation)
+                    .collect())
+            })
+            .await
+            {
+                Ok(Ok(steers)) => steers,
+                _ => Vec::new(),
+            }
+        };
+        if !steers.is_empty() {
+            readiness.ready.sort_by_key(|item| {
+                std::cmp::Reverse((
+                    item.priority + focusa_core::direction_operations::steer_priority_bump(
+                        &item.provider_item_id,
+                        &steers,
+                    ),
+                    item.provider_item_id.clone(),
+                ))
+            });
+        }
+    }
     Ok((provider, readiness))
 }
 
