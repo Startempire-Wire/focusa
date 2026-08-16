@@ -892,3 +892,81 @@ fn silent_session_writer_lease_registry_survives_restart_and_rejects_stale_cas()
         }
     );
 }
+
+/// #263 slice 1: cross-harness rehydration conformance. A saved
+/// workstream-scoped FocusaState rehydrates with identical session
+/// identity, trajectory records, and workstream scope — a continuation on
+/// any harness resolves the exact same canonical state.
+#[test]
+fn focusa_state_roundtrip_rehydrates_workstream_scoped_session_identically() {
+    let dir = temp_dir();
+    let mut config = crate::types::FocusaConfig::default();
+    config.data_dir = dir.to_string_lossy().to_string();
+    let persistence = crate::runtime::persistence_sqlite::SqlitePersistence::new(&config).unwrap();
+
+    let mut state = crate::types::FocusaState::default();
+    state.version = 7;
+    let session_id = uuid::Uuid::now_v7();
+    state.session = Some(crate::types::SessionState {
+        session_id,
+        created_at: chrono::Utc::now(),
+        adapter_id: None,
+        workspace_id: None,
+        project_root: Some("/root/proj".to_string()),
+        continuity_id: Some("cont-1".to_string()),
+        status: crate::types::SessionStatus::Active,
+    });
+    state.trajectory.records.push(crate::types::TrajectoryProjectionRecord {
+        trajectory_id: "t1".to_string(),
+        session_identity: None,
+        project_root: Some("/root/proj".to_string()),
+        continuity_id: Some("cont-1".to_string()),
+        root_long_term_goal: "ship the release".to_string(),
+        long_term_goal: "ship the release".to_string(),
+        desired_end_state: "green release".to_string(),
+        mid_level_goal: None,
+        short_term_goal: None,
+        waypoints: vec![],
+        current_state: None,
+        root_goal_stability: crate::types::TrajectoryRootGoalStability::Stable,
+        session_clarity_status: crate::types::TrajectoryDefinitionStatus::Clear,
+        gap_summary: None,
+        milestones: vec![],
+        active_milestone_id: None,
+        active_workpoint_id: None,
+        source_refs: serde_json::json!({}),
+        blockers: vec![],
+        open_questions: vec![],
+        hlt_status: crate::types::HltStatus::default(),
+        definition_status: crate::types::TrajectoryDefinitionStatus::Clear,
+        confidence: crate::types::TrajectoryConfidence::default(),
+        goal_provenance: vec![],
+        definition_of_done: None,
+        supersedes_trajectory_id: None,
+        canonical: true,
+        created_at: None,
+        updated_at: None,
+    });
+
+    persistence.save_state(&state).unwrap();
+
+    // Simulate harness switch: a fresh persistence handle over the same dir.
+    let rehydrated = crate::runtime::persistence_sqlite::SqlitePersistence::new(&config).unwrap()
+        .load_state()
+        .unwrap()
+        .expect("state rehydrates");
+
+    let session = rehydrated.session.expect("session survives rehydration");
+    assert_eq!(session.session_id, session_id);
+    assert_eq!(session.project_root.as_deref(), Some("/root/proj"));
+    assert_eq!(session.continuity_id.as_deref(), Some("cont-1"));
+    assert_eq!(session.status, crate::types::SessionStatus::Active);
+    assert_eq!(rehydrated.trajectory.records.len(), 1);
+    let trajectory = &rehydrated.trajectory.records[0];
+    assert_eq!(trajectory.project_root.as_deref(), Some("/root/proj"));
+    assert_eq!(trajectory.continuity_id.as_deref(), Some("cont-1"));
+    assert_eq!(trajectory.long_term_goal, "ship the release");
+    assert!(trajectory.canonical);
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
