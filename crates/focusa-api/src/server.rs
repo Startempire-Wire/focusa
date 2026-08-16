@@ -581,6 +581,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::callgraph::router())
         .merge(routes::background_jobs::router())
         .merge(routes::runtime_constitution::router())
+        .merge(routes::completion_claims::router())
         .merge(routes::session::router())
         .merge(routes::silent_sessions::router())
         .merge(routes::proxy::router())
