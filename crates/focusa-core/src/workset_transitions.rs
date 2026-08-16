@@ -23,7 +23,7 @@ pub struct TransitionGate {
     pub target: WorksetState,
     pub requires_settled: bool,
     pub requires_all_admitted: bool,
-    pub evidence_ref: Option<String>,
+    pub evidence_ref: Option<&'static str>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -122,7 +122,7 @@ pub fn evaluate_transition(
             "gate requires settlement; unmet requirements remain"
         ));
     }
-    if let Some(required_evidence) = &gate.evidence_ref {
+    if let Some(required_evidence) = gate.evidence_ref {
         let present = events.iter().any(|event| {
             let evidence = match event {
                 WorksetEvent::RequirementAdmitted { evidence_ref, .. }
@@ -130,7 +130,7 @@ pub fn evaluate_transition(
                 | WorksetEvent::MembershipRevised { evidence_ref, .. } => evidence_ref.as_deref(),
                 WorksetEvent::CompletionContracted { .. } => None,
             };
-            evidence == Some(required_evidence.as_str())
+            evidence == Some(required_evidence)
         });
         if !present {
             verdict.reasons.push(format!(
