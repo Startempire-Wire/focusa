@@ -31,3 +31,11 @@ Read `references/01-focusa-work-loop-runbook.md` for writer ownership, preflight
 - Use Workpoint resume/checkpoint around compaction, context overflow, model switch, fork, or risky release work.
 - Use writer-status/preflight before mutating work-loop state.
 - Do not describe Focusa as complete or frozen; use current snapshot/version language.
+
+
+## Multi-agent orchestration
+
+Fan out N silent sessions bound to work items (docs/168-multi-agent-silent-session-orchestration-workflow.md).
+The workloop stays the scheduler; sessions stay workloop-compatible
+(work_item_ref + scope + budget). Completions join through the
+silent-session completion stream + bg receipts — never raw shells.

@@ -21,16 +21,35 @@ Current surfaces: Mission Canvas/Work Rail and generated UI (`docs/135-series-cu
 
 The operator terminal must never stop flowing. Any terminal-blocking query —
 builds, test suites, migrations, long scans, waits for remote jobs — MUST be
-dispatched to an asynchronous background process (setsid/nohup with a log
-file, a Silent Session, or a Herdr pane), and the agent must continue other
-work immediately. `sleep`-polling loops are not a substitute for backgrounding;
-they are only the last-resort status check while the completion-reporting
-surface (issue #311 — silent-session completion notification) is built.
-Background terminals must auto-write their completion result back into the
-originating terminal/agent surface when they finish.
+dispatched through the canonical background-execution surface, and the agent
+must continue other work immediately. Blocking is allowed only for
+sub-second commands and commands with an explicit short bound whose output
+is required immediately.
 
-Blocking is allowed only for sub-second commands and commands with an
-explicit short bound whose output is required immediately.
+CANONICAL DISPATCH (Focusa bg — use this, not raw shell backgrounds):
+
+```bash
+setsid nohup /usr/local/bin/focusa bg run --name <job> -- <command...> &
+```
+
+- `focusa bg run` is the monitor: durable job row (daemon ledger
+  `background_jobs`), detached execution, output to the job log, then a
+  durable completion record followed by the SSE broadcast
+  (`focusa.stream_event.v1` with `event_type:
+  background_job_completion` and a bounded `output_tail`).
+- The Pi extension delivers the completion + output tail INTO the agent's
+  front terminal (notify banner + `pi.appendEntry` entry) — no polling.
+  `focusa bg wait --job <id>` long-polls the ledger for harnesses without
+  SSE.
+- `focusa bg status --job <id>` / `focusa bg list` are instant single
+  queries for status checks. BANNED: repeated `tail` checks and
+  `sleep N; tail` chains in the turn flow (tail-is-sleep); the
+  notification is the delivery path (docs/165).
+- Monitor-lost jobs are detected by `bg status` (pid liveness) and marked
+  `monitor_lost` — never silently "running" forever.
+- Raw `setsid nohup ... > log &` is acceptable ONLY while the daemon is
+  unavailable (cold-start recovery); the moment the daemon is up,
+  dispatch through `focusa bg`.
 
 ## Disk headroom (mandatory)
 

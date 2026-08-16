@@ -67,3 +67,20 @@ focusa bg status → ledger row + monitor-lost reaping (/proc pid check)
   same broadcast channel, distinct `event_type`.
 - Extension typecheck green (tsc) with the new SSE case.
 EOF
+
+## Primitive workflow (agent default)
+
+The bg loop is a Focusa PRIMITIVE: agents dispatch terminal-blocking
+work through typed tools, not shells.
+
+- Pi tools: `focusa_bg_run`, `focusa_bg_run_many` (parallel
+  orchestration), `focusa_bg_status` — strict schemas, discovery via
+  focusa_tool_search/describe.
+- Delivery: the `background_job_completion` SSE envelope carries the
+  bounded `output_tail`; the extension writes the completion + tail into
+  the agent front terminal (notify banner + `pi.appendEntry` entry).
+- Orchestration: `focusa_bg_run_many` fans out independent jobs in
+  parallel; each job delivers its own completion — the multi-pipeline
+  speed primitive.
+- AGENTS.md (root + repo) mandates this workflow: raw shells only
+  during cold-start recovery; tail-polling is banned.

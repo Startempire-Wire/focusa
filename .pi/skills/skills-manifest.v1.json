@@ -154,6 +154,13 @@
       "runbook": ".pi/skills/predictive-power/references/01-focusa-predictive-power-runbook.md",
       "owner_ref": "predictive power routes (predict.rs)",
       "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-bg-primitive",
+      "skill_md": "docs/focusa-tools/bg.md",
+      "runbook": null,
+      "owner_ref": "docs/165-background-execution-and-completion-notification.md",
+      "packaging": "repo docs + Pi extension tools (focusa_bg_run / focusa_bg_run_many / focusa_bg_status)"
     }
   ]
 }
