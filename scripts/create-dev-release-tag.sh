@@ -212,6 +212,27 @@ echo "Stamping release surfaces: ${VERSION}"
 scripts/stamp-menubar-version.py "${TAG}"
 python3 scripts/verify-version-surfaces.py "${TAG}"
 
+# #260: distribution parity gates the release tag. The parity audit reports
+# drift between source and installed surfaces; at tag time the stamping just
+# updated every surface, so any remaining drift is a real blocker.
+echo "Distribution parity gate (#260)"
+if node scripts/audit-distribution-parity.mjs --json > /tmp/distribution-manifest.json 2>/dev/null; then
+  python3 - <<'PYEOF'
+import json, sys
+manifest = json.load(open("/tmp/distribution-manifest.json"))
+drift = manifest.get("drift", [])
+if drift:
+    print("distribution parity drift blocks this release:", file=sys.stderr)
+    for row in drift:
+        print(f"  {row['surface']}: {row['source_value']} -> {row['observed_value']}", file=sys.stderr)
+    sys.exit(1)
+print("distribution parity gate passed")
+PYEOF
+else
+  echo "distribution parity audit could not run; refusing release" >&2
+  exit 1
+fi
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
   git checkout -- Cargo.toml Cargo.lock \
