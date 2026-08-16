@@ -135,7 +135,7 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
                         "error": error,
                     }),
                 })?;
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &key).await;
         if !canonical_workpoint_exists_for_scope(&focusa, &key) {
             return Err(WorkLoopScopeRejection {
                 status: StatusCode::CONFLICT,
