@@ -1,3 +1,5 @@
+import { SPEC138_OPERATIONS } from "./generated/spec138-operations.js";
+
 export const MAX_MISSION_CANVAS_ROWS = 200;
 
 export type WorkSurfaceKind =
@@ -5,6 +7,7 @@ export type WorkSurfaceKind =
   | "pi_session"
   | "uiai_browser"
   | "silent_session"
+  | "workset"
   | "document"
   | "research"
   | "provider_item"
@@ -44,6 +47,7 @@ const KINDS = new Set<WorkSurfaceKind>([
   "pi_session",
   "uiai_browser",
   "silent_session",
+  "workset",
   "document",
   "research",
   "provider_item",
@@ -62,6 +66,16 @@ function value(...items: unknown[]): string {
 function count(item: unknown): number {
   const parsed = Number(item);
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0;
+}
+
+function asRecord(item: unknown): Record<string, any> {
+  return item !== null && typeof item === "object" && !Array.isArray(item)
+    ? item as Record<string, any>
+    : {};
+}
+
+function text(item: unknown): string {
+  return value(item);
 }
 
 export function projectWorkSurfaces(payload: any): WorkSurfaceProjection[] {
@@ -111,6 +125,16 @@ export function projectWorkSurfaces(payload: any): WorkSurfaceProjection[] {
   });
 }
 
+export interface WorksetSurfaceSummary {
+  worksetId: string;
+  revision: number;
+  requirementCount: number;
+  membershipCount: number;
+  settled: boolean;
+  digest: string;
+  stale: boolean;
+}
+
 export function workSurfaceDetail(surface: WorkSurfaceProjection): string[] {
   return [
     `Surface: ${surface.workSurfaceId} · ${surface.kind} · ${surface.lifecycleState} · ${surface.health}`,
@@ -134,4 +158,72 @@ export function workSurfaceLabel(surface: WorkSurfaceProjection): string {
     surface.browserIsolationClass !== "not-applicable" ? surface.browserIsolationClass : "",
   ].filter(Boolean);
   return `${surface.displayName} · ${surface.kind} · ${surface.lifecycleState}${markers.length ? ` · ${markers.join(" · ")}` : ""}`;
+}
+
+export type SemanticPairTruthState =
+  | "schema_only" | "pack_missing" | "migration_required" | "verification_required"
+  | "verification_blocked" | "operator_required" | "unsupported_future_definition"
+  | "writer_blocked" | "degraded" | "stale" | "conflicted" | "quarantined";
+
+export interface SemanticPairPortfolioItem {
+  pair_id: string; title: string; state: SemanticPairTruthState;
+  obligations: Array<{ obligation_id: string; statement: string; source_refs: string[]; status: string }>;
+  findings: Array<{ finding_id: string; severity: string; verdict: string; summary: string; evidence_refs: string[] }>;
+  settlement: { status: string; verdict?: string; receipt_refs: string[] };
+  replay: { status: string; generation: number; receipt_refs: string[] };
+  recovery: { required: boolean; state?: SemanticPairTruthState; next_operation?: string; reason?: string };
+  evidence_refs: string[]; receipt_refs: string[];
+}
+export interface SemanticPairPortfolio {
+  schema: "focusa.semantic_pair.portfolio.v1";
+  scope: { project_root: string; continuity_id: string };
+  items: SemanticPairPortfolioItem[]; state: SemanticPairTruthState;
+  stale: boolean; conflicted: boolean; quarantined: boolean;
+}
+export interface SemanticPairAction {
+  operation_id: string; kind: "read" | "mutation"; available: boolean;
+  disabled_reason?: SemanticPairTruthState | "read_only_surface";
+}
+
+const TRUTH_STATES = new Set<SemanticPairTruthState>([
+  "schema_only", "pack_missing", "migration_required", "verification_required",
+  "verification_blocked", "operator_required", "unsupported_future_definition",
+  "writer_blocked", "degraded", "stale", "conflicted", "quarantined",
+]);
+
+export function normalizeSemanticPairState(value: unknown): SemanticPairTruthState {
+  return typeof value === "string" && TRUTH_STATES.has(value as SemanticPairTruthState)
+    ? value as SemanticPairTruthState : "schema_only";
+}
+
+/** Generated epistemic affordances remain visible; Mission Canvas never grants mutation authority. */
+export function spec138MissionCanvasAffordances(canMutate: boolean) {
+  return SPEC138_OPERATIONS.map((operation) => ({
+    operation_id: operation.operation_id,
+    label: operation.label,
+    kind: operation.mode === "read" ? "read" as const : "mutation" as const,
+    available: operation.mode === "read" || canMutate,
+    disabled_reason: operation.mode === "canonical_mutation" && !canMutate
+      ? "canonical_daemon_authority_required"
+      : undefined,
+    client_authority: false as const,
+  }));
+}
+
+/** Preserve every daemon operation; unsupported Pi mutations remain visible and disabled. */
+export function normalizeSemanticPairActions(payload: unknown, canMutate = true): SemanticPairAction[] {
+  const root = asRecord(payload);
+  const rows = Array.isArray(root.operations) ? root.operations : Array.isArray(root.items) ? root.items : [];
+  return rows.map((raw) => {
+    const row = asRecord(raw);
+    const kind: SemanticPairAction["kind"] = row.kind === "mutation" ? "mutation" : "read";
+    const state = normalizeSemanticPairState(row.state ?? root.state);
+    const writerBlocked = row.availability === "writer_blocked" || state === "writer_blocked";
+    const surfaceBlocked = kind === "mutation" && !canMutate;
+    return {
+      operation_id: text(row.operation_id), kind,
+      available: !writerBlocked && !surfaceBlocked,
+      disabled_reason: surfaceBlocked ? "read_only_surface" as const : writerBlocked ? "writer_blocked" as const : undefined,
+    };
+  }).filter((row) => row.operation_id.length > 0);
 }

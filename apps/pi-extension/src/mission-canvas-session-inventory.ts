@@ -1,4 +1,8 @@
-import { MAX_MISSION_CANVAS_ROWS, type WorkSurfaceProjection } from "./mission-canvas-model.js";
+import {
+  MAX_MISSION_CANVAS_ROWS,
+  type WorkSurfaceProjection,
+  type WorksetSurfaceSummary,
+} from "./mission-canvas-model.js";
 
 export interface MissionCanvasSessionInventoryRow {
   kind: string;
@@ -32,6 +36,7 @@ function count(item: unknown): number {
 export function projectSessionInventory(
   discoveredPayload: any,
   workSurfaces: WorkSurfaceProjection[],
+  worksets: WorksetSurfaceSummary[],
   silentPayload: any
 ): MissionCanvasSessionInventoryRow[] {
   const discovered = Array.isArray(discoveredPayload?.sessions) ? discoveredPayload.sessions : [];
@@ -73,6 +78,23 @@ export function projectSessionInventory(
       writerLease: value(session?.writer_lease_ref),
       browserIsolation: "not-applicable",
       origin: value(session?.run_id, session?.generation),
+    });
+  }
+  for (const workset of worksets) {
+    rows.push({
+      kind: "workset",
+      projectRoot: "workset-ledger",
+      continuityId: value(workset?.worksetId),
+      instanceId: "workset-ledger",
+      sessionId: value(workset?.worksetId),
+      attachmentId: value(workset?.worksetId),
+      health: workset?.settled ? "settled" : "in_progress",
+      lifecycle: workset?.settled ? "settled" : "active",
+      approvals: 0,
+      conflicts: 0,
+      writerLease: "ledger-owned",
+      browserIsolation: "not-applicable",
+      origin: `workset:${workset?.worksetId} rev ${workset?.revision ?? "?"} (${workset?.requirementCount ?? 0} req)`,
     });
   }
   for (const surface of workSurfaces) {

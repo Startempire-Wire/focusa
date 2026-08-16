@@ -4613,6 +4613,88 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+  name: "focusa_workset_projection",
+  label: "Focusa Workset Projection",
+  description:
+    "Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph.",
+  promptSnippet: "Use to inspect workset membership + completion contract state.",
+  parameters: Type.Object({
+    workset_id: Type.String({ description: "Workset id." }),
+  }),
+  async execute(_id: any, params: any) {
+    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const res = await fetch(`${base}/v1/worksets/${encodeURIComponent(params.workset_id)}/projection`);
+    const body = await res.json();
+    return {
+      schema: "focusa.tool_result_v1",
+      canonical: true,
+      ok: res.ok,
+      status: body.status || "ok",
+      summary: body.projection
+        ? `Workset ${params.workset_id}: ${Object.keys(body.projection.requirements || {}).length} requirements, settled=${body.projection.settled}`
+        : String(body.error || body.status || "missing"),
+      data: body,
+    } as any;
+  },
+});
+
+pi.registerTool({
+  name: "focusa_callgraph_validate",
+  label: "Focusa CallGraph Validate",
+  description:
+    "Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic.",
+  promptSnippet: "Use before creating or dispatching any CallGraph.",
+  parameters: Type.Object({
+    graph: Type.Object({}, { additionalProperties: true }),
+  }),
+  async execute(_id: any, params: any) {
+    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const res = await fetch(`${base}/v1/callgraphs/validate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params.graph),
+    });
+    const body = await res.json();
+    return {
+      schema: "focusa.tool_result_v1",
+      canonical: true,
+      ok: res.ok,
+      status: body.status || "valid",
+      summary: body.valid ? "CallGraph definition validates." : `CallGraph invalid: ${(body.issues || []).map((i: any) => i.path + ": " + i.message).join("; ")}`,
+      data: body,
+    } as any;
+  },
+});
+
+pi.registerTool({
+  name: "focusa_callgraph_observe",
+  label: "Focusa CallGraph Observe",
+  description:
+    "Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only.",
+  promptSnippet: "Use to inspect run progress and settlement state.",
+  parameters: Type.Object({
+    run_id: Type.String({ description: "CallGraph run id." }),
+  }),
+  async execute(_id: any, params: any) {
+    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const [runRes, pathsRes] = await Promise.all([
+      fetch(`${base}/v1/callgraph-runs/${encodeURIComponent(params.run_id)}`),
+      fetch(`${base}/v1/callgraph-runs/${encodeURIComponent(params.run_id)}/paths`),
+    ]);
+    const run = await runRes.json();
+    const paths = await pathsRes.json();
+    return {
+      schema: "focusa.tool_result_v1",
+      canonical: true,
+      ok: runRes.ok,
+      status: run.status || "ok",
+      summary: `Run ${params.run_id}: state=${run.run?.state || run.status}, dispatches=${(run.dispatches || []).length}`,
+      data: { run, paths },
+    } as any;
+  },
+});
+
+pi.registerTool({
   name: "focusa_bg_run",
   label: "Focusa BG Run",
   description:

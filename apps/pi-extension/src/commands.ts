@@ -12,6 +12,7 @@ import {
   compatibleWorkLoopStatusState,
   getFocusState,
   getEffectiveFocusSnapshot,
+  getEcsArtifact,
   persistState,
   persistAuthoritativeState,
   createPiFrame,
@@ -49,6 +50,7 @@ import {
   workSurfaceLabel,
 } from "./mission-canvas-model.js";
 import { projectSessionInventory, sessionInventoryLabel } from "./mission-canvas-session-inventory.js";
+import { rehydrateHandle } from "./rehydrate.js";
 
 async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
@@ -133,14 +135,14 @@ const AUTO_COMPACTION_RESERVE_TOKEN_OPTIONS = ["8192", "16384", "32768", "65536"
 const AUTO_COMPACTION_RESERVE_PCT_OPTIONS = ["5", "10", "15", "20", "25"];
 const AUTO_COMPACTION_COOLDOWN_OPTIONS = ["30000", "60000", "120000", "180000", "300000"];
 const WORK_LOOP_PRESET_OPTIONS = ["conservative", "balanced", "push", "audit"];
-const WORK_LOOP_TURN_OPTIONS = ["6", "10", "12", "24"];
-const WORK_LOOP_WALL_CLOCK_OPTIONS = ["900000", "1200000", "1800000", "3600000"];
-const WORK_LOOP_RETRY_OPTIONS = ["1", "2", "3", "4"];
-const WORK_LOOP_COOLDOWN_OPTIONS = ["500", "1000", "1500", "2000"];
+const WORK_LOOP_TURN_OPTIONS = ["6", "10", "12", "16", "24", "60", "120", "200"];
+const WORK_LOOP_WALL_CLOCK_OPTIONS = ["900000", "1200000", "1800000", "3600000", "7200000", "14400000"];
+const WORK_LOOP_RETRY_OPTIONS = ["1", "2", "3", "4", "8"];
+const WORK_LOOP_COOLDOWN_OPTIONS = ["500", "800", "1000", "1500", "2000"];
 const WORK_LOOP_LOW_PRODUCTIVITY_OPTIONS = ["2", "3", "4"];
 const WORK_LOOP_FAILURE_OPTIONS = ["2", "3", "4"];
-const WORK_LOOP_SAME_SUBPROBLEM_OPTIONS = ["1", "2", "3"];
-const WORK_LOOP_HEARTBEAT_OPTIONS = ["2000", "3000", "5000"];
+const WORK_LOOP_SAME_SUBPROBLEM_OPTIONS = ["1", "2", "3", "4"];
+const WORK_LOOP_HEARTBEAT_OPTIONS = ["1500", "2000", "3000", "5000"];
 const VITAL_INFO_PROMPT_MODE_OPTIONS = ["prompt", "warn_only", "off"];
 const BOOLEAN_OPTIONS = ["true", "false"];
 
@@ -358,6 +360,7 @@ export function registerCommands(pi: ExtensionAPI) {
           interviews,
           closurePackage,
           artifacts,
+          worksets,
         ] = await Promise.all([
           focusaFetch("/v1/workpoint/resume").catch(() => null),
           focusaFetch("/v1/trajectory/view").catch(() => null),
@@ -368,6 +371,7 @@ export function registerCommands(pi: ExtensionAPI) {
           focusaFetch("/v1/interviews/sessions").catch(() => null),
           focusaFetch("/v1/interviews/closure-package").catch(() => null),
           focusaFetch("/v1/workspace/artifacts").catch(() => null),
+          focusaFetch("/v1/worksets").catch(() => null),
         ]);
         const packet = workpoint?.workpoint ?? workpoint?.resume_packet ?? workpoint ?? {};
         const evidenceRefs = Array.isArray(packet?.verification_records)
@@ -378,7 +382,19 @@ export function registerCommands(pi: ExtensionAPI) {
             ? packet.evidence_refs.slice(0, MAX_MISSION_CANVAS_ROWS).map(String)
             : [];
         const projectedSurfaces = projectWorkSurfaces(surfaces);
-        const sessionRows = projectSessionInventory(sessions, projectedSurfaces, silentSessions).map(
+        const worksetSummaries = (worksets?.worksets ?? [])
+          .filter((entry: any) => entry?.workset_id)
+          .slice(0, MAX_MISSION_CANVAS_ROWS)
+          .map((entry: any) => ({
+            worksetId: String(entry.workset_id),
+            revision: Number(entry.revision ?? 0),
+            requirementCount: Number(entry.requirement_count ?? 0),
+            membershipCount: Number(entry.membership_count ?? 0),
+            settled: Boolean(entry.settled),
+            digest: String(entry.digest ?? ""),
+            stale: false,
+          }));
+        const sessionRows = projectSessionInventory(sessions, projectedSurfaces, worksetSummaries, silentSessions).map(
           sessionInventoryLabel
         );
         const surfaceRows = projectedSurfaces.map(workSurfaceLabel);
@@ -595,6 +611,7 @@ export function registerCommands(pi: ExtensionAPI) {
       const settingsRuntime = getAttachmentRuntime(settingsAttachmentKey);
       const simpleProfiles = ["starter", "builder", "hands_off", "audit_safe"] as const;
       type SimpleProfileId = (typeof simpleProfiles)[number];
+      type SimpleProfileView = SimpleProfileId | "custom";
       const advancedMode = /\badvanced\b/i.test(String(args || ""));
       const otaStatus = await focusaFetch("/update/policy").catch(() => null);
       const effectiveOta = otaStatus?.policy || {};
@@ -663,6 +680,13 @@ export function registerCommands(pi: ExtensionAPI) {
         vitalInfoPromptMode: settingsRuntime.cfg?.vitalInfoPromptMode || "prompt",
         vitalInfoPromptSurfaces:
           settingsRuntime.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory",
+        operatorStatusBarEnabled: settingsRuntime.cfg?.operatorStatusBarEnabled ?? true,
+        operatorStatusVersionEnabled: settingsRuntime.cfg?.operatorStatusVersionEnabled ?? true,
+        operatorStatusOtaEnabled: settingsRuntime.cfg?.operatorStatusOtaEnabled ?? true,
+        operatorStatusModelUsageEnabled: settingsRuntime.cfg?.operatorStatusModelUsageEnabled ?? true,
+        operatorStatusTimeEnabled: settingsRuntime.cfg?.operatorStatusTimeEnabled ?? true,
+        operatorStatusDeadlineEnabled: settingsRuntime.cfg?.operatorStatusDeadlineEnabled ?? true,
+        operatorStatusPredictionEnabled: settingsRuntime.cfg?.operatorStatusPredictionEnabled ?? true,
         warnPct: settingsRuntime.cfg?.warnPct || 50,
         compactPct: settingsRuntime.cfg?.compactPct || 70,
         hardPct: settingsRuntime.cfg?.hardPct || 85,
@@ -752,14 +776,75 @@ export function registerCommands(pi: ExtensionAPI) {
         draft.workLoopRequireExplainableContinueReason = true;
       };
 
-      const inferSimpleProfile = (): SimpleProfileId => {
-        if (draft.workLoopPreset === "push" && draft.workLoopMaxTurns >= 60) return "hands_off";
-        if (draft.workLoopPreset === "audit") return "audit_safe";
-        if (draft.workLoopPreset === "conservative") return "starter";
-        return "builder";
+      const inferSimpleProfile = (): SimpleProfileView => {
+        const commonProfileMatches =
+          draft.workLoopAllowDestructiveActions === false &&
+          draft.workLoopRequireOperatorForGovernance === true &&
+          draft.workLoopRequireOperatorForScopeChange === true &&
+          draft.workLoopRequireVerificationBeforePersist === true &&
+          draft.workLoopAutoPauseOnOperatorMessage === false &&
+          draft.workLoopRequireExplainableContinueReason === true;
+        if (!commonProfileMatches) return "custom";
+        const expected: Record<SimpleProfileId, Record<string, string | number | boolean>> = {
+          starter: {
+            workLoopPreset: "conservative",
+            workLoopMaxTurns: 10,
+            workLoopMaxWallClockMs: 1_200_000,
+            workLoopMaxRetries: 2,
+            workLoopCooldownMs: 1_500,
+            workLoopMaxConsecutiveLowProductivityTurns: 2,
+            workLoopMaxConsecutiveFailures: 2,
+            workLoopMaxSameSubproblemRetries: 1,
+            workLoopStatusHeartbeatMs: 3_000,
+            contextStatusMode: "actionable",
+          },
+          builder: {
+            workLoopPreset: "balanced",
+            workLoopMaxTurns: 24,
+            workLoopMaxWallClockMs: 3_600_000,
+            workLoopMaxRetries: 3,
+            workLoopCooldownMs: 1_000,
+            workLoopMaxConsecutiveLowProductivityTurns: 3,
+            workLoopMaxConsecutiveFailures: 3,
+            workLoopMaxSameSubproblemRetries: 2,
+            workLoopStatusHeartbeatMs: 2_000,
+            contextStatusMode: "actionable",
+          },
+          hands_off: {
+            workLoopPreset: "push",
+            workLoopMaxTurns: 120,
+            workLoopMaxWallClockMs: 14_400_000,
+            workLoopMaxRetries: 8,
+            workLoopCooldownMs: 800,
+            workLoopMaxConsecutiveLowProductivityTurns: 4,
+            workLoopMaxConsecutiveFailures: 4,
+            workLoopMaxSameSubproblemRetries: 4,
+            workLoopStatusHeartbeatMs: 1_500,
+            contextStatusMode: "actionable",
+          },
+          audit_safe: {
+            workLoopPreset: "audit",
+            workLoopMaxTurns: 16,
+            workLoopMaxWallClockMs: 3_600_000,
+            workLoopMaxRetries: 2,
+            workLoopCooldownMs: 1_500,
+            workLoopMaxConsecutiveLowProductivityTurns: 2,
+            workLoopMaxConsecutiveFailures: 2,
+            workLoopMaxSameSubproblemRetries: 1,
+            workLoopStatusHeartbeatMs: 3_000,
+            contextStatusMode: "all",
+          },
+        };
+        return (
+          simpleProfiles.find((profile) =>
+            Object.entries(expected[profile]).every(
+              ([key, value]) => (draft as unknown as Record<string, unknown>)[key] === value
+            )
+          ) || "custom"
+        );
       };
 
-      let simpleProfile: SimpleProfileId = inferSimpleProfile();
+      let simpleProfile: SimpleProfileView = inferSimpleProfile();
 
       const persistDraft = (): boolean => {
         try {
@@ -789,19 +874,19 @@ export function registerCommands(pi: ExtensionAPI) {
           id: "simpleProfile",
           label: "Quick profile",
           currentValue: simpleProfile,
-          values: ["starter", "builder", "hands_off", "audit_safe"],
+          values: ["starter", "builder", "hands_off", "audit_safe", "custom"],
         },
         {
           id: "workLoopMaxTurns",
           label: "How many turns before pause",
           currentValue: String(draft.workLoopMaxTurns),
-          values: ["10", "24", "60", "120", "200"],
+          values: WORK_LOOP_TURN_OPTIONS,
         },
         {
           id: "workLoopMaxWallClockMs",
           label: "Max run time (ms)",
           currentValue: String(draft.workLoopMaxWallClockMs),
-          values: ["1200000", "3600000", "7200000", "14400000"],
+          values: WORK_LOOP_WALL_CLOCK_OPTIONS,
         },
         {
           id: "interactionMode",
@@ -814,6 +899,12 @@ export function registerCommands(pi: ExtensionAPI) {
           label: "Footer hints",
           currentValue: draft.contextStatusMode,
           values: ["off", "actionable", "all"],
+        },
+        {
+          id: "operatorStatusBarEnabled",
+          label: "Operator status bar",
+          currentValue: String(draft.operatorStatusBarEnabled),
+          values: BOOLEAN_OPTIONS,
         },
         {
           id: "vitalInfoPromptMode",
@@ -854,6 +945,20 @@ export function registerCommands(pi: ExtensionAPI) {
           currentValue: draft.contextStatusMode,
           values: ["off", "actionable", "all"],
         },
+        ...([
+          ["operatorStatusBarEnabled", "Operator status bar"],
+          ["operatorStatusVersionEnabled", "Status: Focusa version"],
+          ["operatorStatusOtaEnabled", "Status: OTA state"],
+          ["operatorStatusModelUsageEnabled", "Status: model/provider usage"],
+          ["operatorStatusTimeEnabled", "Status: local time"],
+          ["operatorStatusDeadlineEnabled", "Status: deadline"],
+          ["operatorStatusPredictionEnabled", "Status: next prediction"],
+        ] as const).map(([id, label]) => ({
+          id,
+          label,
+          currentValue: String(draft[id]),
+          values: BOOLEAN_OPTIONS,
+        })),
         {
           id: "vitalInfoPromptMode",
           label: "Vital project info prompt",
@@ -1038,8 +1143,18 @@ export function registerCommands(pi: ExtensionAPI) {
           );
         }
 
+        const displayedItems = advancedMode ? buildAdvancedItems() : buildSimpleItems();
+        const syncDisplayedItems = () => {
+          simpleProfile = inferSimpleProfile();
+          const refreshedItems = advancedMode ? buildAdvancedItems() : buildSimpleItems();
+          const currentValues = new Map(refreshedItems.map((item) => [item.id, item.currentValue] as const));
+          for (const item of displayedItems) {
+            const currentValue = currentValues.get(item.id);
+            if (currentValue !== undefined) item.currentValue = currentValue;
+          }
+        };
         const settingsList = new SettingsList(
-          advancedMode ? buildAdvancedItems() : buildSimpleItems(),
+          displayedItems,
           advancedMode ? 8 : 10,
           getSettingsListTheme(),
           (id, newValue) => {
@@ -1072,15 +1187,24 @@ export function registerCommands(pi: ExtensionAPI) {
             }
             const priorDraft = { ...draft };
             if (id === "simpleProfile") {
+              if (newValue === "custom") return;
               simpleProfile = String(newValue) as SimpleProfileId;
               applySimpleProfile(simpleProfile);
               if (!persistDraft()) Object.assign(draft, priorDraft);
+              syncDisplayedItems();
               return;
             }
             if (id === "interactionMode") draft.interactionMode = String(newValue) as any;
             if (id === "contextStatusMode") draft.contextStatusMode = String(newValue) as any;
             if (id === "vitalInfoPromptMode") draft.vitalInfoPromptMode = String(newValue) as any;
             if (id === "vitalInfoPromptSurfaces") draft.vitalInfoPromptSurfaces = String(newValue);
+            if (id === "operatorStatusBarEnabled") draft.operatorStatusBarEnabled = newValue === "true";
+            if (id === "operatorStatusVersionEnabled") draft.operatorStatusVersionEnabled = newValue === "true";
+            if (id === "operatorStatusOtaEnabled") draft.operatorStatusOtaEnabled = newValue === "true";
+            if (id === "operatorStatusModelUsageEnabled") draft.operatorStatusModelUsageEnabled = newValue === "true";
+            if (id === "operatorStatusTimeEnabled") draft.operatorStatusTimeEnabled = newValue === "true";
+            if (id === "operatorStatusDeadlineEnabled") draft.operatorStatusDeadlineEnabled = newValue === "true";
+            if (id === "operatorStatusPredictionEnabled") draft.operatorStatusPredictionEnabled = newValue === "true";
             if (id === "warnPct") draft.warnPct = Number(newValue);
             if (id === "compactPct") draft.compactPct = Number(newValue);
             if (id === "hardPct") draft.hardPct = Number(newValue);
@@ -1114,6 +1238,7 @@ export function registerCommands(pi: ExtensionAPI) {
               draft.workLoopMaxSameSubproblemRetries = Number(newValue);
             if (id === "workLoopStatusHeartbeatMs") draft.workLoopStatusHeartbeatMs = Number(newValue);
             if (!persistDraft()) Object.assign(draft, priorDraft);
+            syncDisplayedItems();
           },
           () => done(undefined),
           { enableSearch: true }
@@ -1322,6 +1447,38 @@ export function registerCommands(pi: ExtensionAPI) {
           `Focusa rollover failed safely; source preserved: ${error instanceof Error ? error.message : String(error)}`,
           "error"
         );
+      }
+    },
+  });
+
+  pi.registerCommand("focusa-rehydrate", {
+    description: "Retrieve bounded content for a Focusa ECS or local output handle",
+    handler: async (args, ctx) => {
+      try {
+        const result = await rehydrateHandle(args, {
+          getLocal: getEcsArtifact,
+          fetchRemote: (path, init) => focusaFetch(path, init),
+        });
+        pi.sendMessage(
+          {
+            customType: "focusa-rehydrate",
+            content: result.content,
+            display: true,
+            details: {
+              handle_id: result.handleId,
+              source: result.source,
+              truncated: result.truncated,
+              original_size: result.originalSize ?? null,
+            },
+          },
+          { deliverAs: "nextTurn" }
+        );
+        ctx.ui.notify(
+          `Focusa handle ${result.handleId} retrieved from ${result.source}${result.truncated ? " (bounded)" : ""}`,
+          "info"
+        );
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
       }
     },
   });
