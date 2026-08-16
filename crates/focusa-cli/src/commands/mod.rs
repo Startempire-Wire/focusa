@@ -79,6 +79,7 @@ pub mod upgrade;
 pub mod utility;
 pub mod walkthrough;
 pub mod work_item;
+pub mod workstream;
 pub mod workflow;
 pub mod workpoint;
 pub mod wrap;

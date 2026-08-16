@@ -123,6 +123,8 @@ enum Commands {
     #[command(subcommand)]
     Update(commands::update::UpdateCmd),
     Remote(commands::remote::RemoteArgs),
+    /// Workstream-rooted canonical runtime operations (Spec 164).
+    Workstream(commands::workstream::WorkstreamArgs),
 
     /// Inspect, evaluate, replay, and diff bounded compaction packets (Spec 130).
     #[command(subcommand)]
@@ -583,6 +585,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Install(args) => commands::install::run(args).await,
         Commands::Update(cmd) => commands::update::run(cmd, cli.json).await,
         Commands::Remote(args) => commands::remote::run(args.cmd, cli.json).await,
+        Commands::Workstream(args) => commands::workstream::run(args.cmd, cli.json).await,
         Commands::Compaction(cmd) => commands::compaction::run(cmd, cli.json).await,
         Commands::Silent(cmd) => commands::silent::run(cmd, cli.json).await,
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,
