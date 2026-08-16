@@ -309,3 +309,39 @@ mod tests {
         assert!(!descriptor_is_redacted(&leaked));
     }
 }
+
+/// Grant lifecycle (§docs/156): grants move through a bounded state
+/// machine; expiry and exhaustion are deterministic transitions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GrantState {
+    Issued,
+    Active,
+    Exhausted,
+    Expired,
+    Revoked,
+}
+
+pub fn grant_state(grant: &CredentialUseGrant, now: &str) -> GrantState {
+    if grant.expires_at.as_str() <= now {
+        return GrantState::Expired;
+    }
+    if grant.use_count_used >= grant.use_count_allowed {
+        return GrantState::Exhausted;
+    }
+    GrantState::Active
+}
+
+#[cfg(test)]
+mod lifecycle_tests {
+    use super::*;
+
+    #[test]
+    fn grant_state_tracks_expiry_and_exhaustion() {
+        let mut grant = grant("2026-08-17T00:00:00Z", 0, 3);
+        assert_eq!(grant_state(&grant, "2026-08-16T12:00:00Z"), GrantState::Active);
+        assert_eq!(grant_state(&grant, "2026-08-17T00:00:01Z"), GrantState::Expired);
+        grant.use_count_used = 3;
+        assert_eq!(grant_state(&grant, "2026-08-16T12:00:00Z"), GrantState::Exhausted);
+    }
+}
