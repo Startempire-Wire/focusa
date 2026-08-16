@@ -59,6 +59,21 @@ pub async fn scoped_focusa_read(
     }
 }
 
+/// WorkstreamKey-aware variant: work-loop handlers carry a typed key.
+pub async fn scoped_focusa_read_workstream(
+    state: Arc<crate::server::AppState>,
+    key: &focusa_core::scoped_state::WorkstreamKey,
+) -> tokio::sync::OwnedRwLockReadGuard<FocusaState> {
+    let partition = state
+        .workstream_states
+        .get_or_create(
+            key.root_scope.root_path.to_string_lossy().as_ref(),
+            &key.continuity_id,
+        )
+        .await;
+    partition.read_owned().await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

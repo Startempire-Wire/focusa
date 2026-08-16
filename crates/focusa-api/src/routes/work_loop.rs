@@ -642,7 +642,7 @@ fn require_authoritative_claim_key(key: String) -> Result<String, (StatusCode, J
 }
 
 async fn writer_claim_key(scope: &WorkLoopScope, state: &Arc<AppState>) -> String {
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
     writer_claim_key_from_scope(scope, &focusa)
 }
 
@@ -3026,7 +3026,7 @@ async fn enable(
         .filter(|id| !id.trim().is_empty())
         .ok_or_else(|| bad_request("root_work_item_id is required"))?;
     let workpoint_id = {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
         canonical_workpoint_id_for_scope_and_item(
             &focusa,
             &scope.0,
@@ -3290,7 +3290,7 @@ async fn start_pi_driver(
     }
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let (transport_work_item_id, transport_workpoint_id) = {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
         if focusa.work_loop.execution_scope.as_ref() != Some(&scope.0) {
             return Err(bad_request(
                 "Pi transport scope does not match the active Work Loop execution scope",
@@ -3769,7 +3769,7 @@ async fn attach_session(
 
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let (work_item_id, workpoint_id) = {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
         if focusa.work_loop.execution_scope.as_ref() != Some(&scope.0) {
             return Err(bad_request(
                 "transport session scope does not match active Work Loop execution scope",
@@ -4110,7 +4110,7 @@ async fn checkpoints(
     scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
     let wl = &focusa.work_loop;
     Ok(Json(json!({
         "last_checkpoint_id": wl.run.last_checkpoint_id,
