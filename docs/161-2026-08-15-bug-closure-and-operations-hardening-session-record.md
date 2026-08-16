@@ -412,3 +412,17 @@ bounded core + persistence slices:
 - Open follow-up: finish the live-DB state rebuild from the
   pre-retention backup + post-22:34 events (tool landed; run pending
   after the error-envelope surface fix).
+
+## 5t. bg front-terminal output + direction workbench (2026-08-16)
+
+- bg completion envelope now carries a bounded output_tail (4KB,
+  line-aligned); the Pi extension writes the completion + tail into the
+  agent's front terminal via pi.appendEntry (notify banner + visible
+  entry). Envelope contract test added. Extension tsc green.
+- #291 slices 0-3: docs/166 design; DirectionOperation types
+  (steer/adjudicate/review, evidence-bound, fail-closed verification);
+  append-only direction ledger with receipts; POST/GET
+  /v1/direction/operations.
+- #254 slice 10: adapter registry + dispatch routing (actor refs carry
+  the routed adapter).
+- rebuild-state hardened (TEXT event ids).
