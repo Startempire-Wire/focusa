@@ -111,3 +111,70 @@ mod tests {
         assert_eq!(value["operation"], "steer");
     }
 }
+
+/// Gap-D flywheel seam: a Steer operation re-ranks its target so the
+/// operator's direction reshapes next-ready selection. Deterministic:
+/// bump = steers targeting the item × 10_000 (stable, no ties with
+/// normal priorities).
+pub const STEER_PRIORITY_BUMP: i32 = 10_000;
+
+/// Does this steer target the given provider item id? Exact match or
+/// the id appears as a trailing path/ref suffix.
+pub fn steer_targets_item(target_ref: &str, provider_item_id: &str) -> bool {
+    let target = target_ref.trim().trim_matches('"');
+    let item = provider_item_id.trim();
+    if target.is_empty() || item.is_empty() {
+        return false;
+    }
+    target == item
+        || target
+            .trim_end_matches('/')
+            .ends_with(&format!("/{item}"))
+        || item.ends_with(target)
+        || item
+            .trim_end_matches('/')
+            .starts_with(&format!("{target}/"))
+        || target.starts_with(&format!("{item}/"))
+}
+
+/// Total re-rank bump for an item given the recorded steer operations.
+pub fn steer_priority_bump(provider_item_id: &str, steers: &[DirectionOperation]) -> i32 {
+    steers
+        .iter()
+        .filter(|op| {
+            matches!(op, DirectionOperation::Steer { target_ref, .. } if steer_targets_item(target_ref, provider_item_id))
+        })
+        .count() as i32
+        * STEER_PRIORITY_BUMP
+}
+
+#[cfg(test)]
+mod steer_re_rank_tests {
+    use super::*;
+
+    fn steer(target: &str) -> DirectionOperation {
+        DirectionOperation::Steer {
+            target_ref: target.to_string(),
+            direction: "raise".into(),
+            rationale: "operator".into(),
+            scope: "project".into(),
+            evidence_ref: None,
+        }
+    }
+
+    #[test]
+    fn exact_and_suffix_targets_match() {
+        assert!(steer_targets_item("focusa-252", "focusa-252"));
+        assert!(steer_targets_item("beads/focusa-252", "focusa-252"));
+        assert!(steer_targets_item("focusa-252", "focusa-252/sub-task"));
+        assert!(!steer_targets_item("focusa-253", "focusa-252"));
+    }
+
+    #[test]
+    fn bump_is_deterministic_and_scales_with_steer_count() {
+        let steers = vec![steer("focusa-252"), steer("beads/focusa-252"), steer("other")];
+        assert_eq!(steer_priority_bump("focusa-252", &steers), 2 * STEER_PRIORITY_BUMP);
+        assert_eq!(steer_priority_bump("focusa-999", &steers), 0);
+        assert_eq!(steer_priority_bump("focusa-252", &[]), 0);
+    }
+}
