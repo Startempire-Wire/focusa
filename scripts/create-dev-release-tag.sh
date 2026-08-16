@@ -253,6 +253,15 @@ if ! node scripts/audit-tool-taxonomy.mjs > /tmp/tool-taxonomy-report.txt 2>/dev
 fi
 echo "revalidation triggers gate passed"
 
+# E2E live-route matrix: every closed-bug fix + feature surface must
+# verify against the running daemon before the tag is cut.
+if ! node scripts/e2e-live-route-matrix.mjs > /tmp/e2e-matrix-report.txt 2>/dev/null; then
+  echo "e2e live-route matrix failed; refusing release" >&2
+  tail -5 /tmp/e2e-matrix-report.txt >&2
+  exit 1
+fi
+echo "e2e live-route matrix passed"
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
   git checkout -- Cargo.toml Cargo.lock \
