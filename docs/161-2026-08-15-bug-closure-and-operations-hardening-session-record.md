@@ -439,3 +439,14 @@ bounded core + persistence slices:
 - FAST-FORWARD MULTIPLIER (2x/4x/6x/8x…): operator-conceived on the
   fly, formalized as #312. session_fanout.rs FanoutPlan compiler (4/4
   tests) + POST /v1/silent-sessions/fanout + docs/169.
+
+## 5v. #312 role-model + live activation (2026-08-16)
+
+- Fan-out is CallGraph-spec-bound (docs/155): one dedicated
+  orchestrator lane (kind=agent, strong frontier refs) + worker lanes
+  (kind=tool, weaker implementation refs); routing via
+  route_frame/route_frame_team + adapter registry.
+- Live: bg tail-live-probe completed with the output_tail envelope on
+  the deployed daemon; fanout route requires the rebuild (in flight).
+- Extension: focusa_bg_run / focusa_bg_run_many / focusa_bg_status /
+  focusa_fast_forward tools — tsc green.

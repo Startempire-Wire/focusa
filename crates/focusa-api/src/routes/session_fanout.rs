@@ -44,6 +44,15 @@ async fn fanout(
         multiplier: body.multiplier,
         policy_max_turns_per_session: body.policy_max_turns_per_session,
         policy_max_wall_clock_ms: body.policy_max_wall_clock_ms,
+        orchestrator_capability_refs: vec![
+            // Strong frontier tier — planning/division/adjudication.
+            "orchestration".to_string(),
+            "adjudication".to_string(),
+        ],
+        worker_capability_refs: vec![
+            // Weaker implementation tier.
+            "implementation".to_string(),
+        ],
     });
     match plan {
         Ok(plan) => Json(json!({
