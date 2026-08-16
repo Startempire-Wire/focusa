@@ -129,6 +129,8 @@ enum Commands {
     Callgraph(commands::callgraph::CallgraphArgs),
     /// Background execution with durable completion notification.
     Bg(commands::bg::BgArgs),
+    /// Read-only infrastructure inventory + preview adoption plan (Spec 255).
+    Infra(commands::infra::InfraArgs),
 
     /// Inspect, evaluate, replay, and diff bounded compaction packets (Spec 130).
     #[command(subcommand)]
@@ -592,6 +594,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Workstream(args) => commands::workstream::run(args.cmd, cli.json).await,
         Commands::Callgraph(args) => commands::callgraph::run(args.cmd, cli.json).await,
         Commands::Bg(args) => commands::bg::run(args.cmd, cli.json).await,
+        Commands::Infra(args) => commands::infra::run(args.cmd, cli.json).await,
         Commands::Compaction(cmd) => commands::compaction::run(cmd, cli.json).await,
         Commands::Silent(cmd) => commands::silent::run(cmd, cli.json).await,
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,
