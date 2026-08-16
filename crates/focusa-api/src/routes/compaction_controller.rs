@@ -23,8 +23,12 @@ fn state_path(state: &Arc<AppState>) -> std::path::PathBuf {
 }
 
 async fn status(State(state): State<Arc<AppState>>) -> Json<Value> {
-    let path = state_path(&state);
-    let controller = focusa_core::compaction_policy::load_controller_state(&path);
+    let db = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let controller = match rusqlite::Connection::open(&db) {
+        Ok(conn) => focusa_core::compaction_policy::load_controller_state_sqlite(&conn)
+            .unwrap_or_default(),
+        Err(_) => focusa_core::compaction_policy::load_controller_state(&state_path(&state)),
+    };
     Json(json!({
         "schema": "focusa.compaction_controller_status.v1",
         "epochs_seen": controller.epochs_seen,

@@ -361,6 +361,85 @@ pub fn load_controller_state(path: &std::path::Path) -> ControllerState {
         .unwrap_or_default()
 }
 
+/// SQLite-backed controller ledger (slice 5). Replaces the JSON file with
+/// append-only epoch records + the current state row.
+pub const CONTROLLER_SCHEMA: &str = "focusa.compaction_controller_state.v1";
+
+pub fn ensure_controller_schema(conn: &rusqlite::Connection) -> anyhow::Result<()> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS compaction_controller_state (
+           key TEXT PRIMARY KEY,
+           state_json TEXT NOT NULL,
+           updated_at TEXT NOT NULL
+         );
+         CREATE TABLE IF NOT EXISTS compaction_epoch_history (
+           epoch_id TEXT PRIMARY KEY,
+           policy TEXT NOT NULL,
+           transition TEXT NOT NULL,
+           outcome_json TEXT NOT NULL,
+           created_at TEXT NOT NULL
+         );",
+    )?;
+    Ok(())
+}
+
+pub fn load_controller_state_sqlite(
+    conn: &rusqlite::Connection,
+) -> anyhow::Result<ControllerState> {
+    ensure_controller_schema(conn)?;
+    use rusqlite::OptionalExtension;
+    let raw: Option<String> = conn
+        .query_row(
+            "SELECT state_json FROM compaction_controller_state WHERE key = 'current'",
+            [],
+            |row| row.get(0),
+        )
+        .optional()?;
+    Ok(raw
+        .and_then(|text| serde_json::from_str(&text).ok())
+        .unwrap_or_default())
+}
+
+pub fn save_controller_state_sqlite(
+    conn: &rusqlite::Connection,
+    state: &ControllerState,
+) -> anyhow::Result<()> {
+    ensure_controller_schema(conn)?;
+    let state_json = serde_json::to_string(state)?;
+    let now = chrono::Utc::now().to_rfc3339();
+    conn.execute(
+        "INSERT INTO compaction_controller_state (key, state_json, updated_at)
+         VALUES ('current', ?1, ?2)
+         ON CONFLICT(key) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at",
+        rusqlite::params![state_json, now],
+    )?;
+    Ok(())
+}
+
+pub fn append_epoch_history(
+    conn: &rusqlite::Connection,
+    epoch_id: &str,
+    policy: Policy,
+    transition: Transition,
+    outcome: &OutcomeMetrics,
+) -> anyhow::Result<()> {
+    ensure_controller_schema(conn)?;
+    let now = chrono::Utc::now().to_rfc3339();
+    conn.execute(
+        "INSERT OR REPLACE INTO compaction_epoch_history
+           (epoch_id, policy, transition, outcome_json, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        rusqlite::params![
+            epoch_id,
+            serde_json::to_string(&policy)?,
+            serde_json::to_string(&transition)?,
+            serde_json::to_string(outcome)?,
+            now,
+        ],
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -524,6 +603,36 @@ mod tests {
         let shadow = evaluate_shadow(Policy::ToolBoundaryCompaction, &active_metrics(), "t");
         let (transition, _) = next_transition(&state, &active_metrics(), Some(&shadow), 1, 3);
         assert_eq!(transition, Transition::Retain);
+    }
+
+    #[test]
+    fn controller_state_round_trips_through_sqlite() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        let mut state = ControllerState {
+            epochs_seen: 11,
+            ..Default::default()
+        };
+        state.quarantine.push(QuarantineEntry {
+            policy: Policy::AsccPressureRoute,
+            reason: "hard regression".into(),
+            until_epoch: 15,
+        });
+        save_controller_state_sqlite(&conn, &state).unwrap();
+        let loaded = load_controller_state_sqlite(&conn).unwrap();
+        assert_eq!(loaded.epochs_seen, 11);
+        assert_eq!(loaded.quarantine.len(), 1);
+        append_epoch_history(
+            &conn,
+            "epoch-11",
+            Policy::ToolBoundaryCompaction,
+            Transition::Promote,
+            &active_metrics(),
+        )
+        .unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM compaction_epoch_history", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 1);
     }
 
     #[test]

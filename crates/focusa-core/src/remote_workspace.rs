@@ -250,6 +250,129 @@ pub fn list_bindings(conn: &Connection, status: Option<BindingStatus>) -> Result
     Ok(rows)
 }
 
+/// Bootstrap precondition (docs/162 acceptance): resolve the verified
+/// binding that owns a given remote project root. The writer-lease path
+/// consumes this instead of fabricating a local checkout.
+pub fn resolve_binding_for_root(
+    conn: &Connection,
+    canonical_root: &str,
+) -> Result<Option<RemoteWorkspaceBinding>> {
+    ensure_schema(conn)?;
+    let mut statement = conn.prepare(
+        "SELECT binding_id, project_id, repo_remote, continuity_id, status, binding_json, created_at, updated_at
+         FROM remote_workspace_bindings
+         WHERE status IN ('\"verified\"', '\"stale\"')
+         ORDER BY updated_at DESC",
+    )?;
+    let rows = statement
+        .query_map([], |row| {
+            row_to_binding((
+                row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?,
+                row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?,
+            ))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(rows
+        .into_iter()
+        .find(|binding| binding.roots.canonical_remote_root == canonical_root))
+}
+
+/// Transport probe outcome (docs/162 transport verification).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProbeOutcome {
+    pub reachable: bool,
+    pub host_key_fingerprint: Option<String>,
+    pub verified_at: Option<String>,
+    pub error: Option<String>,
+}
+
+/// Bounded, dependency-free SSH reachability + host-key fingerprint probe.
+/// Reachability: TCP connect (500ms). Fingerprint: ssh-keyscan with a
+/// polling kill — never blocks the calling thread.
+pub fn probe_transport(transport: &Transport) -> ProbeOutcome {
+    use std::io::Read;
+    use std::net::TcpStream;
+    use std::process::{Command, Stdio};
+    use std::time::{Duration, Instant};
+
+    let address = format!("{}:{}", transport.host, transport.port);
+    let reachable = TcpStream::connect_timeout(
+        &address.parse().expect("transport address"),
+        Duration::from_millis(500),
+    )
+    .is_ok();
+    if !reachable {
+        return ProbeOutcome {
+            reachable: false,
+            host_key_fingerprint: None,
+            verified_at: None,
+            error: Some(format!("tcp connect to {address} failed")),
+        };
+    }
+    let probe_path = std::env::temp_dir().join(format!(
+        "focusa-ssh-keyscan-{}-{}.out",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or_default()
+    ));
+    let output_file = match std::fs::File::create(&probe_path) {
+        Ok(file) => file,
+        Err(error) => {
+            return ProbeOutcome {
+                reachable: true,
+                host_key_fingerprint: None,
+                verified_at: None,
+                error: Some(format!("create keyscan temp file: {error}")),
+            }
+        }
+    };
+    let mut child = match Command::new("ssh-keyscan")
+        .args(["-t", "ed25519,rsa", "-p", &transport.port.to_string(), &transport.host])
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(output_file))
+        .stderr(Stdio::null())
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(error) => {
+            let _ = std::fs::remove_file(&probe_path);
+            return ProbeOutcome {
+                reachable: true,
+                host_key_fingerprint: None,
+                verified_at: None,
+                error: Some(format!("spawn ssh-keyscan: {error}")),
+            };
+        }
+    };
+    let started = Instant::now();
+    loop {
+        if child.try_wait().ok().flatten().is_some() {
+            break;
+        }
+        if started.elapsed() > Duration::from_millis(2000) {
+            let _ = child.kill();
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    let _ = child.wait();
+    let raw = std::fs::read_to_string(&probe_path).unwrap_or_default();
+    let _ = std::fs::remove_file(&probe_path);
+    let fingerprint = raw
+        .lines()
+        .filter(|line| !line.starts_with('#'))
+        .find_map(|line| line.split_whitespace().nth(1))
+        .map(str::to_string);
+    ProbeOutcome {
+        reachable: true,
+        host_key_fingerprint: fingerprint,
+        verified_at: Some(chrono::Utc::now().to_rfc3339()),
+        error: None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -334,6 +457,61 @@ mod tests {
         let revoked_list = list_bindings(&conn, Some(BindingStatus::Revoked)).unwrap();
         assert_eq!(revoked_list.len(), 1);
         assert!(!revoked_list[0].is_fresh(3600));
+    }
+
+    #[test]
+    fn unreachable_host_is_typed_not_panicked() {
+        let transport = Transport {
+            kind: "ssh".into(),
+            host: "127.0.0.1".into(),
+            user: "nobody".into(),
+            port: 1,
+            host_reference: None,
+            verified_at: None,
+            verification_evidence: vec![],
+        };
+        let outcome = probe_transport(&transport);
+        assert!(!outcome.reachable);
+        assert!(outcome.error.is_some());
+    }
+
+    #[test]
+    fn local_loopback_probe_reaches() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            for _ in 0..2 {
+                if let Ok((mut stream, _)) = listener.accept() {
+                    let _ = std::io::Write::flush(&mut stream);
+                }
+            }
+        });
+        let transport = Transport {
+            kind: "ssh".into(),
+            host: "127.0.0.1".into(),
+            user: "nobody".into(),
+            port,
+            host_reference: None,
+            verified_at: None,
+            verification_evidence: vec![],
+        };
+        let outcome = probe_transport(&transport);
+        assert!(outcome.reachable);
+    }
+
+    #[test]
+    fn resolves_binding_for_remote_root() {
+        let conn = conn();
+        upsert_binding(&conn, &binding("b1", "ptm", "remote-a")).unwrap();
+        let resolved = resolve_binding_for_root(&conn, "/home/planmarr/plan-the-marriage")
+            .unwrap()
+            .unwrap();
+        assert_eq!(resolved.binding_id, "b1");
+        assert!(
+            resolve_binding_for_root(&conn, "/other/root")
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
