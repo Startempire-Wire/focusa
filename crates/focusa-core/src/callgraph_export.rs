@@ -188,6 +188,49 @@ pub fn export_dot(projection: &CallGraphExportProjection) -> String {
     out
 }
 
+/// CSV/TSV frame table (delimiter-configurable; header + one row per frame).
+pub fn export_csv(projection: &CallGraphExportProjection, delimiter: char) -> String {
+    let mut out = String::new();
+    out.push_str("frame_id,name,kind,side_effect_class,acceptance_atoms\n");
+    for frame in &projection.graph.frames {
+        out.push_str(&format!(
+            "{}{delimiter}{}{delimiter}{}{delimiter}{}{delimiter}{}\n",
+            frame.frame_id,
+            frame.name,
+            frame.kind.label(),
+            side_effect_label(frame.side_effect_class),
+            frame.acceptance.acceptance_atoms.join("|"),
+        ));
+    }
+    out
+}
+
+fn side_effect_label(class: crate::callgraph::SideEffectClass) -> &'static str {
+    match class {
+        crate::callgraph::SideEffectClass::None => "none",
+        crate::callgraph::SideEffectClass::Local => "local",
+        crate::callgraph::SideEffectClass::External => "external",
+        crate::callgraph::SideEffectClass::Destructive => "destructive",
+        crate::callgraph::SideEffectClass::Financial => "financial",
+        crate::callgraph::SideEffectClass::Security => "security",
+    }
+}
+
+/// Mermaid flowchart projection for small graphs (Spec 155 §read formats).
+pub fn export_mermaid(projection: &CallGraphExportProjection) -> String {
+    let mut out = String::from("flowchart LR\n");
+    for frame in &projection.graph.frames {
+        out.push_str(&format!("    {}[\"{}\"]\n", frame.frame_id, frame.name));
+    }
+    for edge in &projection.graph.edges {
+        out.push_str(&format!(
+            "    {} -->|{:?}| {}\n",
+            edge.from_frame_id, edge.kind, edge.to_frame_id
+        ));
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -321,5 +364,93 @@ mod tests {
         let out = export_dot(&projection);
         assert!(out.starts_with("digraph callgraph"));
         assert!(out.contains("\"a\" -> \"b\""));
+    }
+}
+
+#[cfg(test)]
+mod extra_tests {
+    use super::*;
+    use crate::callgraph::{
+        AcceptanceContract, AuthorityRef, CallGraphPolicies, CallGraphScope,
+        SideEffectClass,
+    };
+
+    fn minimal() -> FocusaCallGraphDefinition {
+        FocusaCallGraphDefinition {
+            schema: crate::callgraph::CALLGRAPH_SCHEMA.to_string(),
+            graph_id: "g1".to_string(),
+            revision: 1,
+            scope: CallGraphScope {
+                project_root: "/root/proj".to_string(),
+                continuity_id: "cont-1".to_string(),
+            },
+            mission_ref: "m1".to_string(),
+            trajectory_ref: None,
+            workpoint_refs: vec![],
+            title: "t".to_string(),
+            description: "t".to_string(),
+            entry_frame_ids: vec!["a".to_string()],
+            frames: vec![FocusaCallFrame {
+                frame_id: "a".to_string(),
+                name: "plan".to_string(),
+                purpose: "t".to_string(),
+                kind: FrameKind::Agent,
+                input_schema: serde_json::json!({}),
+                return_schema: serde_json::json!({}),
+                preconditions: vec![],
+                postconditions: vec![],
+                side_effect_class: SideEffectClass::Local,
+                capability_refs: vec![],
+                authority_requirement: None,
+                timeout_policy: None,
+                retry_policy: None,
+                failure_boundary: None,
+                compensation_frame_id: None,
+                resource_budget: None,
+                acceptance: AcceptanceContract {
+                    acceptance_atoms: vec!["a1".to_string()],
+                    verifier: None,
+                },
+                execution_binding: None,
+            }],
+            edges: vec![],
+            policies: CallGraphPolicies::default(),
+            required_evidence: vec![],
+            created_at: "t".to_string(),
+            created_by: AuthorityRef {
+                authority_kind: "operator".to_string(),
+                reference: "op-1".to_string(),
+            },
+            supersedes_revision: None,
+        }
+    }
+
+    #[test]
+    fn csv_has_header_and_frame_row() {
+        let projection =
+            CallGraphExportProjection::new(minimal(), vec![], "csv", true, vec![]);
+        let out = export_csv(&projection, ',');
+        let lines: Vec<&str> = out.lines().collect();
+        assert_eq!(lines.len(), 2);
+        assert!(lines[0].starts_with("frame_id,name,kind"));
+        assert!(lines[1].contains("plan"));
+        assert!(lines[1].contains("local"));
+    }
+
+    #[test]
+    fn tsv_uses_tab_delimiter() {
+        let projection =
+            CallGraphExportProjection::new(minimal(), vec![], "tsv", true, vec![]);
+        let out = export_csv(&projection, '\t');
+        assert!(out.lines().nth(1).unwrap().contains('\t'));
+    }
+
+    #[test]
+    fn mermaid_renders_frames() {
+        let projection =
+            CallGraphExportProjection::new(minimal(), vec![], "mermaid", true, vec![]);
+        let out = export_mermaid(&projection);
+        assert!(out.starts_with("flowchart LR"));
+        assert!(out.contains("a[\"plan\"]"));
     }
 }

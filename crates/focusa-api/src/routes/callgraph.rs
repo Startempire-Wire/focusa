@@ -29,6 +29,7 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         .route("/v1/callgraphs/{graph_id}/runs", post(create_run))
         .route("/v1/callgraph-runs/{run_id}", get(get_run))
+        .route("/v1/callgraphs/{graph_id}/export", get(export_graph))
         .route("/v1/callgraph-runs/{run_id}/control", post(control_run))
 }
 
@@ -410,6 +411,93 @@ async fn control_run(
                 "supported": ["dispatch_entry_frontier"],
             })),
         }
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
+        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+    }
+}
+
+/// Export a stored definition through one typed projection (#287).
+#[derive(Deserialize)]
+pub struct ExportQuery {
+    pub revision: u64,
+    #[serde(default = "default_export_format")]
+    pub format: String,
+}
+
+fn default_export_format() -> String {
+    "jsonl".to_string()
+}
+
+async fn export_graph(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(graph_id): axum::extract::Path<String>,
+    axum::extract::Query(query): axum::extract::Query<ExportQuery>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let Some(stored) =
+            focusa_core::callgraph_store::load_definition(&conn, &graph_id, query.revision)?
+        else {
+            return Ok(json!({
+                "status": "missing",
+                "graph_id": graph_id,
+                "revision": query.revision,
+            }));
+        };
+        let graph: FocusaCallGraphDefinition = serde_json::from_str(&stored.definition_json)
+            .map_err(|error| anyhow::anyhow!("stored definition unparsable: {error}"))?;
+        let dispatches: Vec<focusa_core::callgraph_store::FrameDispatch> =
+            match focusa_core::callgraph_store::list_dispatches_for_graph(&conn, &graph_id) {
+                Ok(rows) => rows,
+                Err(_) => vec![],
+            };
+        let (format_name, lossless, omissions) = match query.format.as_str() {
+            "jsonl" => ("jsonl".to_string(), true, vec![]),
+            "todo.txt" => (
+                "todo.txt".to_string(),
+                false,
+                vec!["edge semantics flattened to dep: tags".to_string()],
+            ),
+            "dot" => ("dot".to_string(), true, vec![]),
+            "csv" => ("csv".to_string(), true, vec![]),
+            "tsv" => ("tsv".to_string(), true, vec![]),
+            "mermaid" => ("mermaid".to_string(), true, vec![]),
+            other => {
+                return Ok(json!({
+                    "status": "unknown_format",
+                    "format": other,
+                    "supported": ["jsonl", "todo.txt", "dot", "csv", "tsv", "mermaid"],
+                }));
+            }
+        };
+        let projection = focusa_core::callgraph_export::CallGraphExportProjection::new(
+            graph,
+            dispatches,
+            &format_name,
+            lossless,
+            omissions,
+        );
+        let body = match query.format.as_str() {
+            "jsonl" => focusa_core::callgraph_export::export_jsonl(&projection),
+            "todo.txt" => focusa_core::callgraph_export::export_todo_txt(&projection),
+            "dot" => focusa_core::callgraph_export::export_dot(&projection),
+            "csv" => focusa_core::callgraph_export::export_csv(&projection, ','),
+            "tsv" => focusa_core::callgraph_export::export_csv(&projection, '\t'),
+            "mermaid" => focusa_core::callgraph_export::export_mermaid(&projection),
+            _ => unreachable!("format validated above"),
+        };
+        Ok(json!({
+            "status": "ok",
+            "format": format_name,
+            "manifest": projection.manifest,
+            "body": body,
+        }))
     })
     .await;
     match result {

@@ -125,6 +125,9 @@ enum Commands {
     Remote(commands::remote::RemoteArgs),
     /// Workstream-rooted canonical runtime operations (Spec 164).
     Workstream(commands::workstream::WorkstreamArgs),
+    /// CallGraph export projections (Spec 155 §export program).
+    #[command(subcommand)]
+    Callgraph(commands::callgraph::CallgraphArgs),
 
     /// Inspect, evaluate, replay, and diff bounded compaction packets (Spec 130).
     #[command(subcommand)]
@@ -586,6 +589,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Update(cmd) => commands::update::run(cmd, cli.json).await,
         Commands::Remote(args) => commands::remote::run(args.cmd, cli.json).await,
         Commands::Workstream(args) => commands::workstream::run(args.cmd, cli.json).await,
+        Commands::Callgraph(args) => commands::callgraph::run(args.cmd, cli.json).await,
         Commands::Compaction(cmd) => commands::compaction::run(cmd, cli.json).await,
         Commands::Silent(cmd) => commands::silent::run(cmd, cli.json).await,
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,

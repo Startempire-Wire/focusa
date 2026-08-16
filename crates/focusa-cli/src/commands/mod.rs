@@ -7,6 +7,7 @@ pub mod binary;
 pub mod bloatgaurd;
 pub mod cache;
 pub mod call_stack;
+pub mod callgraph;
 pub mod claim;
 pub mod cleanup;
 pub mod clt;

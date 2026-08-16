@@ -374,6 +374,31 @@ pub fn lapsed_leases(conn: &Connection, now: &str) -> Result<Vec<FrameLease>> {
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
 }
 
+/// Dispatches across all runs of a graph — export snapshots.
+pub fn list_dispatches_for_graph(conn: &Connection, graph_id: &str) -> Result<Vec<FrameDispatch>> {
+    let mut stmt = conn.prepare(
+        "SELECT dispatch_id, run_id, frame_id, invocation_id, parent_invocation_id,
+                disposition, attempt, committed_at, receipt_ref
+         FROM callgraph_dispatches
+         WHERE run_id IN (SELECT run_id FROM callgraph_runs WHERE graph_id = ?1)
+         ORDER BY committed_at",
+    )?;
+    let rows = stmt.query_map(params![graph_id], |row| {
+        Ok(FrameDispatch {
+            dispatch_id: row.get(0)?,
+            run_id: row.get(1)?,
+            frame_id: row.get(2)?,
+            invocation_id: row.get(3)?,
+            parent_invocation_id: row.get(4)?,
+            disposition: disposition_from(row.get::<_, String>(5)?),
+            attempt: row.get(6)?,
+            committed_at: row.get(7)?,
+            receipt_ref: row.get(8)?,
+        })
+    })?;
+    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
