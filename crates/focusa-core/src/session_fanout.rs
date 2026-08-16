@@ -140,6 +140,8 @@ mod tests {
             multiplier,
             policy_max_turns_per_session: 12,
             policy_max_wall_clock_ms: 1_800_000,
+            orchestrator_capability_refs: vec!["orchestration".to_string()],
+            worker_capability_refs: vec!["implementation".to_string()],
         }
     }
 
