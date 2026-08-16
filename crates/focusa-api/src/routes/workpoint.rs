@@ -7,6 +7,7 @@ use crate::routes::bounded::{
 use crate::routes::permissions::{forbid, permission_context};
 use crate::scope::ScopeContext;
 use crate::server::AppState;
+use focusa_core::types::FocusaState;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::{
@@ -296,6 +297,25 @@ fn normalize_project_root_authority(value: &str) -> String {
         "".to_string()
     } else {
         trimmed.to_string()
+    }
+}
+
+/// #125 migration pattern: resolve the partitioned workstream state for a
+/// scope, falling back to the global state when the scope is unmigrated.
+/// Owned guards keep lifetimes simple across both branches.
+async fn workstream_scoped_state(
+    state: Arc<AppState>,
+    scope: &crate::scope::ScopeContext,
+) -> tokio::sync::OwnedRwLockReadGuard<FocusaState> {
+    match (&scope.project_root, &scope.continuity_id) {
+        (Some(root), Some(continuity)) => {
+            let partition = state
+                .workstream_states
+                .get_or_create(root, continuity)
+                .await;
+            partition.read_owned().await
+        }
+        _ => state.focusa.clone().read_owned().await,
     }
 }
 
@@ -1320,7 +1340,7 @@ async fn wait_for_workpoint_record(
     let attempts = workpoint_visibility_wait_attempts();
     for attempt in 0..attempts {
         {
-            let focusa = state.focusa.read().await;
+            let focusa = workstream_scoped_state(state.clone(), &_scope).await;
             if let Some(record) = focusa
                 .workpoint
                 .records
@@ -1482,7 +1502,7 @@ async fn materialize_workpoint_events(
     correlation_id: &'static str,
 ) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
     let _guard = state.write_serial_lock.lock().await;
-    let mut current = { state.focusa.read().await.clone() };
+    let mut current = workstream_scoped_state(state.clone(), &_scope).await.clone();
 
     for event in events {
         let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
@@ -1743,9 +1763,23 @@ async fn rollover_target_materialize(
 
     let working_subpath_id = clean_resume_scope_value(req.working_subpath_id.as_deref())
         .unwrap_or_else(|| "primary".to_string());
-    let focusa = state.focusa.read().await;
+    let focusa_guard;
+    let focusa = match (Some(project_root.as_str()), Some(source_continuity_id.as_str())) {
+        (Some(root), Some(continuity)) => {
+            let partition = state
+                .workstream_states
+                .get_or_create(root, continuity)
+                .await;
+            focusa_guard = partition.read_owned().await;
+            &focusa_guard
+        }
+        _ => {
+            focusa_guard = state.focusa.clone().read_owned().await;
+            &focusa_guard
+        }
+    };
     let source_record = active_workpoint_for_context(
-        &focusa,
+        focusa,
         Some(project_root.as_str()),
         Some(source_continuity_id.as_str()),
         Some(working_subpath_id.as_str()),
@@ -1835,7 +1869,7 @@ async fn rollover_target_materialize(
             })),
         ));
     }
-    drop(focusa);
+    let _ = focusa;
 
     let mut target_session_identity = source_record.session_identity.clone();
     if let Some(identity) = target_session_identity.as_mut() {
@@ -2077,7 +2111,24 @@ async fn checkpoint(
         .as_ref()
         .filter(|key| !key.trim().is_empty())
     {
-        let focusa = state.focusa.read().await;
+        // #125 migration pattern: partitioned workstream state first.
+        let scoped_state = match (req.project_root.as_deref(), req.continuity_id.as_deref()) {
+            (Some(root), Some(continuity)) => Some(
+                state.workstream_states.get_or_create(root, continuity).await,
+            ),
+            _ => None,
+        };
+        let focusa_guard;
+        let focusa = match &scoped_state {
+            Some(partition) => {
+                focusa_guard = partition.read().await;
+                &focusa_guard
+            }
+            None => {
+                focusa_guard = state.focusa.read().await;
+                &focusa_guard
+            }
+        };
         if let Some(existing) = focusa.workpoint.records.iter().find(|record| {
             record.idempotency_key.as_deref() == Some(key.as_str())
                 && record.project_root.as_deref() == req.project_root.as_deref()
@@ -3024,7 +3075,7 @@ async fn resume(
         return Err(forbid("work-loop:read"));
     }
     apply_resume_session_identity(&mut req);
-    let focusa = state.focusa.read().await;
+    let focusa = workstream_scoped_state(state.clone(), &_scope).await;
     let requested_workpoint_id = req.workpoint_id;
     let requested_record = requested_workpoint_id.and_then(|id| {
         focusa
@@ -3296,7 +3347,7 @@ async fn resolve_active_object(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ActiveObjectResolveRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let focusa = state.focusa.read().await;
+    let focusa = workstream_scoped_state(state.clone(), &_scope).await;
     let record = active_workpoint(&focusa);
     let mut refs: Vec<String> = record
         .map(|record| record.active_object_refs.clone())
@@ -3360,7 +3411,7 @@ async fn link_evidence(
             .unwrap_or_else(|| "primary".to_string());
     let record = if let Some(workpoint_id) = explicit_workpoint_id {
         let visible = {
-            let focusa = state.focusa.read().await;
+            let focusa = workstream_scoped_state(state.clone(), &_scope).await;
             focusa
                 .workpoint
                 .records
@@ -3375,7 +3426,7 @@ async fn link_evidence(
     } else {
         let expected_project_root = session_identity_project_root(req.session_identity.as_ref());
         let expected_continuity_id = session_identity_continuity_id(req.session_identity.as_ref());
-        let focusa = state.focusa.read().await;
+        let focusa = workstream_scoped_state(state.clone(), &_scope).await;
         if expected_project_root.is_some() || expected_continuity_id.is_some() {
             active_workpoint_for_context(
                 &focusa,
@@ -3467,7 +3518,7 @@ async fn link_evidence(
         verified_at: None,
     };
     let rollback_snapshot = {
-        let focusa = state.focusa.read().await;
+        let focusa = workstream_scoped_state(state.clone(), &_scope).await;
         json!({"snapshot_id": focusa.clt.head_id, "source": "current_clt_head"})
     };
     if req.preview {
@@ -3566,7 +3617,7 @@ async fn drift_check(
     if req.emit.unwrap_or(false) && !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
-    let focusa = state.focusa.read().await;
+    let focusa = workstream_scoped_state(state.clone(), &_scope).await;
     let record = req
         .workpoint_id
         .and_then(|id| {
