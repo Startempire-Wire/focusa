@@ -2312,9 +2312,31 @@ async fn current(
         } else {
             (effective_project_root, effective_continuity_id, false)
         };
-    let focusa = state.focusa.read().await;
+    // #125 migration pattern: partitioned workstream state first, global
+    // fallback for unmigrated scopes. Every migrated route follows this
+    // exact pattern until the global state is retired.
+    let scoped_state = match (&effective_project_root, &effective_continuity_id) {
+        (Some(root), Some(continuity)) => Some(
+            state
+                .workstream_states
+                .get_or_create(root, continuity)
+                .await,
+        ),
+        _ => None,
+    };
+    let focusa_guard;
+    let focusa = match &scoped_state {
+        Some(partition) => {
+            focusa_guard = partition.read().await;
+            &focusa_guard
+        }
+        None => {
+            focusa_guard = state.focusa.read().await;
+            &focusa_guard
+        }
+    };
     let Some(record) = active_workpoint_for_context(
-        &focusa,
+        focusa,
         effective_project_root.as_deref(),
         effective_continuity_id.as_deref(),
         effective_working_subpath_id.as_deref(),
