@@ -113,6 +113,24 @@ try {
 }
 
 const drift = [];
+
+// #260 digest axis: the installed extension's key runtime files must match
+// the canonical tree (or be explicitly flagged as deployed-line divergence).
+const digestFiles = ["src/tools.ts", "src/session.ts", "src/north-star.ts", "src/ota-activation.ts"];
+const digests = {};
+for (const relative of digestFiles) {
+  const sourceDigest = sha256(join(ROOT, "apps/pi-extension", relative));
+  const installedDigest = piExtDir ? sha256(join(piExtDir, relative)) : null;
+  digests[relative] = { source: sourceDigest, installed: installedDigest };
+  if (sourceDigest && installedDigest && sourceDigest !== installedDigest) {
+    drift.push({
+      surface: `digest:${relative}`,
+      expected: "source_tree_digest",
+      source_value: sourceDigest,
+      observed_value: installedDigest,
+    });
+  }
+}
 const surfaces = [
   ["source.core_version", source.core_version, installed.cli_version, "cli"],
   ["source.extension_version", source.extension_version, installed.extension_version, "pi_extension"],
@@ -130,6 +148,7 @@ const manifest = {
   source,
   installed,
   live,
+  digests,
   drift,
   parity_ok: drift.length === 0,
 };
