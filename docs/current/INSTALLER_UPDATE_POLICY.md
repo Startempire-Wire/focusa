@@ -1,5 +1,7 @@
 # Installer and Update Policy
 
+Evaluation and entitlement issuance are authority-issued (Spec 152 / spec152): the bootstrapper resolves a signed, node-bound authority lease; local `--eval` issuance is forbidden and the installer never creates local evaluation state. Recovery: reissue through the same authority.
+
 Focusa installers and updates must be explicit, reversible, and guarded by Context Authority. Pairing failures, daemon health warnings, or stale UI state must never silently become install/update tasks.
 
 ## Install channels
@@ -13,7 +15,7 @@ Focusa installers and updates must be explicit, reversible, and guarded by Conte
 
 | Transition | Required behavior | Required proof |
 | --- | --- | --- |
-| inspect | `scripts/install-focusa.sh --dry-run --eval` performs no mutation | bounded install plan |
+| inspect | `scripts/install-focusa.sh --dry-run` performs no mutation | bounded install plan |
 | install | signed/checksummed release assets, atomic activation, daemon/Pi integration | health + version + first Workpoint |
 | repair/rerun | rerunning the same channel is idempotent; `--force` is explicit for downgrade/overwrite | prior state backup + repaired health |
 | OTA/update | trusted release metadata, anti-rollback, atomic replacement, extension reload/rollback | artifact checksum/signature + activated version + rollback receipt |
@@ -23,8 +25,8 @@ Focusa installers and updates must be explicit, reversible, and guarded by Conte
 Public examples:
 
 ```bash
-bash scripts/install-focusa.sh --dry-run --eval
-curl -fsS https://install.focusa.dev/focusa | bash -s -- --eval
+bash scripts/install-focusa.sh --dry-run
+curl -fsS https://install.focusa.dev/focusa | bash
 curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall
 # Explicit destructive removal only:
 curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall --purge-data

@@ -38,7 +38,9 @@ Trajectory ladder: **HLT** (High-Level Trajectory) → **MLG** (Mid-Level Goal) 
 [Release Install Postcard](docs/RELEASE_INSTALL_POSTCARD.md) — install, verify health, quickstart, and open Mission Deck.
 
 ```bash
-curl -fsS https://install.focusa.dev/focusa | bash -s -- --eval
+curl -fsS https://install.focusa.dev/focusa | bash
+
+Evaluation and entitlement issuance are authority-issued under Spec 152 (spec152): the bootstrapper resolves a signed, node-bound authority lease and never creates local evaluation state. Recovery posture: the same authority reissues device grants; no local credential persistence.
 focusa start
 focusa setup wizard --dry-run
 focusa doctor

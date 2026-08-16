@@ -85,7 +85,7 @@ Background execution and lifecycle discovery:
 focusa silent --help
 focusa tui --headless-self-test
 focusa update --help
-bash scripts/install-focusa.sh --dry-run --eval
+bash scripts/install-focusa.sh --dry-run
 bash scripts/install-focusa.sh --uninstall        # preserves user data
 focusa uninstall --dry-run --keep-data
 ```
@@ -168,3 +168,6 @@ Before code changes:
 - Workpoint CLI implementation: `crates/focusa-cli/src/commands/workpoint.rs`
 - Project command implementation: `crates/focusa-cli/src/commands/project.rs`
 - API route implementations: `crates/focusa-api/src/routes/`
+
+
+Installation and evaluation authority: authority-issued under Spec 152 (spec152) — the verified bootstrapper resolves a signed, node-bound authority lease; local self-issued evaluation is forbidden. Recovery posture: authority reissue.
