@@ -26,30 +26,27 @@ must continue other work immediately. Blocking is allowed only for
 sub-second commands and commands with an explicit short bound whose output
 is required immediately.
 
-CANONICAL DISPATCH (Focusa bg — use this, not raw shell backgrounds):
+CANONICAL DISPATCH — `focusa bg` is the ONLY background-execution
+mechanism. No raw shells, no alternatives:
 
 ```bash
 setsid nohup /usr/local/bin/focusa bg run --name <job> -- <command...> &
 ```
 
-- `focusa bg run` is the monitor: durable job row (daemon ledger
-  `background_jobs`), detached execution, output to the job log, then a
-  durable completion record followed by the SSE broadcast
-  (`focusa.stream_event.v1` with `event_type:
-  background_job_completion` and a bounded `output_tail`).
-- The Pi extension delivers the completion + output tail INTO the agent's
-  front terminal (notify banner + `pi.appendEntry` entry) — no polling.
-  `focusa bg wait --job <id>` long-polls the ledger for harnesses without
-  SSE.
-- `focusa bg status --job <id>` / `focusa bg list` are instant single
-  queries for status checks. BANNED: repeated `tail` checks and
-  `sleep N; tail` chains in the turn flow (tail-is-sleep); the
-  notification is the delivery path (docs/165).
-- Monitor-lost jobs are detected by `bg status` (pid liveness) and marked
-  `monitor_lost` — never silently "running" forever.
-- Raw `setsid nohup ... > log &` is acceptable ONLY while the daemon is
-  unavailable (cold-start recovery); the moment the daemon is up,
-  dispatch through `focusa bg`.
+(the setsid/nohup above only detaches the bg monitor itself from the
+terminal; the JOB runs through focusa bg.)
+
+- `focusa bg run` creates the durable job row, executes detached,
+  streams output to the job log, records completion durably, then
+  broadcasts `background_job_completion` with the bounded output_tail
+  on the daemon SSE stream.
+- The Pi extension delivers completion + output tail INTO the agent's
+  front terminal (notify + appendEntry). `focusa bg wait --job <id>`
+  long-polls for harnesses without SSE. `bg status`/`bg list` are the
+  only status queries.
+- BANNED: raw `setsid nohup ... > log &` job dispatch, `tail` polling,
+  `sleep N; tail` chains, and treating the envelope as advisory.
+  Completion + output_tail IS the delivery path (docs/165).
 - Multi-agent work = N workloop-bound SILENT SESSIONS with the existing
   completion stream + bg receipts (docs/168) — never raw shells.
 - Fast-forward multiplier (2x/4x/6x/8x…): operator-conceived #312 —
