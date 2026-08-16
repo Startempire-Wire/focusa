@@ -287,5 +287,11 @@ bounded core + persistence slices:
   (dispatch_entry_frontier — durable commit + 5-minute leases before any
   adapter activity), 30s liveness sweeper (ledger-derived, restart-safe).
   Commits `2044b3d9`, `7dc0ddd0` (pushed `1d46bc1c`, `ab585508`).
-- Remaining on #254: adapter/execution-binding dispatch, model routing,
-  replay reducer; then close with installed-release proof.
+- Slices 8-10 (same session): deterministic frontier replay (replay_frontier,
+  2/2 tests), deterministic model routing (route_frame, capability coverage,
+  ties keep order, 4/4 tests), CallGraphFrameDispatched/Settled log-only
+  FocusaEvent variants emitted by the dispatch control route (SSE/audit
+  visibility; SQLite ledger stays authoritative). Commits `92c4eff3`,
+  `74272a0c`, `2ae35d17` (pushed `5743c6b4`, `967641ea`, `6c0c3794`).
+- Remaining on #254: adapter-side execution binding (invoke the routed
+  adapter through the daemon action loop) — final integration slice.
