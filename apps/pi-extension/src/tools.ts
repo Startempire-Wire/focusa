@@ -1033,7 +1033,7 @@ function focusaEvidenceCaptureSuggestion(input: {
       project_root: input.project_root || undefined,
       attach_to_workpoint: input.attach_to_workpoint ?? true,
     },
-  };
+  } as any;
 }
 
 function blockedToolResponse(
@@ -1076,7 +1076,7 @@ function blockedToolResponse(
       tool_result_v1: toolResult,
       response: compactApiEcho(raw),
     },
-  } as any;
+  };
 }
 
 function terseToolText(summary: string, failureClass: string | null, nextTools: string[] = []): string {
@@ -2373,7 +2373,7 @@ pi.registerTool({
       return {
         content: [{ type: "text", text: JSON.stringify(safe, null, 2) }],
         details: safe,
-      } as any;
+      };
     },
   });
 
@@ -2411,7 +2411,7 @@ pi.registerTool({
               ? ["focusa_workpoint_resume"]
               : ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
         },
-      } as any;
+      };
     },
   });
 
@@ -2743,14 +2743,14 @@ pi.registerTool({
             scratch_saved: fallback.saved,
             scratch_turn: fallback.turn,
           },
-        } as any;
+        };
       }
       const result = await pushDelta({ intent: intent.trim() });
       if (result.ok)
         return {
           content: [{ type: "text", text: `Intent set: ${intent.slice(0, 100)}` }],
           details: { valid: true, reason: undefined, intent },
-        };
+        } as any;
       const fallback = namedSlotFallback("intent", "intent", result.reason, intent.trim(), result.api_reason);
       return {
         content: [{ type: "text", text: fallback.text }],
@@ -2798,14 +2798,14 @@ pi.registerTool({
             scratch_turn: fallback.turn,
             suggested_current_focus: fallback.suggestion,
           },
-        } as any;
+        };
       }
       const result = await pushDelta({ current_focus: focus.trim() });
       if (result.ok)
         return {
           content: [{ type: "text", text: `Current focus set: ${focus.slice(0, 100)}` }],
           details: { valid: true, reason: undefined, focus },
-        };
+        } as any;
       const fallback = namedSlotFallback(
         "current focus",
         "current_focus",
@@ -2850,7 +2850,7 @@ pi.registerTool({
             scratch_saved: fallback.saved,
             scratch_turn: fallback.turn,
           },
-        } as any;
+        };
       }
       const result = await pushDelta({ next_steps: [step.trim()] });
       if (result.ok)
@@ -2906,7 +2906,7 @@ pi.registerTool({
             scratch_saved: fallback.saved,
             scratch_turn: fallback.turn,
           },
-        } as any;
+        };
       }
       const result = await pushDelta({ open_questions: [question.trim()] });
       if (result.ok)
@@ -2963,7 +2963,7 @@ pi.registerTool({
             scratch_saved: fallback.saved,
             scratch_turn: fallback.turn,
           },
-        } as any;
+        };
       }
       const writeResult = await pushDelta({ recent_results: [result.trim()] });
       if (writeResult.ok)
@@ -3015,7 +3015,7 @@ pi.registerTool({
             scratch_saved: fallback.saved,
             scratch_turn: fallback.turn,
           },
-        } as any;
+        };
       }
       const result = await pushDelta({ notes: [note.trim()] });
       if (result.ok)
@@ -3525,7 +3525,7 @@ pi.registerTool({
         response: compactApiEcho(response),
         next_tools: nextTools.slice(0, 4),
       },
-    } as any;
+    };
   }
 
   function replayConsumerSurface(result: { ok: boolean; status: number; body: any | null }): {
@@ -3833,7 +3833,7 @@ pi.registerTool({
           },
           response: compactApiEcho(body),
         },
-      } as any;
+      };
     },
   });
 
@@ -4005,7 +4005,7 @@ pi.registerTool({
             max_same_subproblem_retries: getAttachmentRuntime().cfg?.workLoopMaxSameSubproblemRetries,
             status_heartbeat_ms: getAttachmentRuntime().cfg?.workLoopStatusHeartbeatMs,
           },
-        };
+        } as any;
         const res = await focusaFetchDetailed("/work-loop/enable", {
           method: "POST",
           headers: { ...writerLeaseHeaders(writerId, null), "x-focusa-approval": "approved" },
@@ -4043,7 +4043,7 @@ pi.registerTool({
             failure_class: "writer_conflict",
             next_tools: ["focusa_work_loop_writer_status", "focusa_work_loop_control"],
           },
-        } as any;
+        };
       }
       const route =
         action === "pause"
@@ -4396,7 +4396,7 @@ pi.registerTool({
           },
         ],
         details: { ok: stack.ok, status: stack.ok ? "completed" : "degraded", plan, report },
-      } as any;
+      };
     },
   });
 
@@ -4630,7 +4630,7 @@ pi.registerTool({
           side_effects: payload?.side_effects || [],
           next_tools: ["focusa_silent_sessions", "focusa_tool_doctor"],
         },
-      } as any;
+      };
     },
   });
 
@@ -5258,7 +5258,7 @@ pi.registerTool({
             "focusa_project_identity",
           ],
         },
-      } as any;
+      };
     },
   });
 
@@ -6206,7 +6206,7 @@ pi.registerTool({
             failure_class: "missing_source_continuity_id",
             next_tools: ["focusa_workpoint_resume", "focusa_project_card"],
           },
-        } as any;
+        };
       }
       const targetRootHint = String(
         p.target_scope?.root_path || p.target_scope?.project_root || sourceRootHint
@@ -6740,7 +6740,7 @@ pi.registerTool({
             failure_class: "unsafe_project_root",
             next_tools: ["focusa_project_verify"],
           },
-        } as any;
+        };
       }
       const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
       let result: any;
@@ -6836,7 +6836,7 @@ pi.registerTool({
             failure_class: "project_identity_required",
             next_tools: ["focusa_project_verify", "focusa_project_identity"],
           },
-        } as any;
+        };
       }
       const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
       let result: any;
@@ -7092,7 +7092,7 @@ pi.registerTool({
             failure_class: "project_identity_required",
             next_tools: ["focusa_project_verify"],
           },
-        } as any;
+        };
       }
       const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
       if (action === "commit-priority" && !params.temporal_priority_packet) {
@@ -7108,7 +7108,7 @@ pi.registerTool({
             failure_class: "temporal_priority_packet_required",
             canonical: false,
           },
-        } as any;
+        };
       }
       if (action === "settle-closure" && !params.closure_packet) {
         return {
@@ -7123,7 +7123,7 @@ pi.registerTool({
             failure_class: "closure_packet_required",
             canonical: false,
           },
-        } as any;
+        };
       }
       if (action === "resolve-civil-time" && !params.civil_time_packet) {
         return {
@@ -7134,13 +7134,13 @@ pi.registerTool({
             },
           ],
           details: { status: "blocked", failure_class: "civil_time_packet_required", canonical: false },
-        } as any;
+        };
       }
       if (action === "capture-clock" && !params.timezone) {
         return {
           content: [{ type: "text", text: "temporal clock capture → blocked: explicit timezone required" }],
           details: { status: "blocked", failure_class: "timezone_required", canonical: false },
-        } as any;
+        };
       }
       if (action === "high-consequence-preflight" && !params.high_consequence_packet) {
         return {
@@ -7151,7 +7151,7 @@ pi.registerTool({
             },
           ],
           details: { status: "blocked", failure_class: "high_consequence_packet_required", canonical: false },
-        } as any;
+        };
       }
       if (action === "forecast" && !params.forecast_authority) {
         return {
@@ -7162,7 +7162,7 @@ pi.registerTool({
             },
           ],
           details: { status: "blocked", failure_class: "forecast_authority_required", canonical: false },
-        } as any;
+        };
       }
       if (params.forecast_authority) {
         params.authority = params.forecast_authority;
@@ -7188,7 +7188,7 @@ pi.registerTool({
       if (action === "status" || canonicalReads[action]) {
         const read = canonicalReads[action];
         if (read?.required && !params[read.required]) {
-          return { content: [{ type: "text", text: `temporal ${action} → blocked: ${read.required} required` }], details: { status: "blocked", failure_class: "temporal_identifier_required", canonical: false } } as any;
+          return { content: [{ type: "text", text: `temporal ${action} → blocked: ${read.required} required` }], details: { status: "blocked", failure_class: "temporal_identifier_required", canonical: false } };
         }
         const query = new URLSearchParams({ project_root: projectRoot, continuity_id: continuityId });
         for (const key of ["host_id", "operator_id", "workpoint_id", "item_id", "task_id", "subject_ref", "as_of"]) {
@@ -7382,7 +7382,7 @@ pi.registerTool({
             project_root: responseRoot,
             continuity_id: responseContinuity,
           },
-        } as any;
+        };
       }
       if (trajectory.short_term_goal && !body.intelligence_view?.focus_trajectory_sync?.current_focus) {
         body.intelligence_view = {
@@ -8239,7 +8239,7 @@ pi.registerTool({
       return {
         content: [{ type: "text", text }],
         details: { ok: true, status: "completed", workpoint_id: ctx.workpoint_id, refs, verified: false },
-      } as any;
+      };
     },
   });
 
@@ -8291,7 +8291,7 @@ pi.registerTool({
             evidence_ref: p.evidence_ref,
             project_root_permission_posture: projectRoot ? projectRootPermissionPosture(projectRoot) : null,
           },
-        } as any;
+        };
       }
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
@@ -8828,7 +8828,7 @@ pi.registerTool({
             { type: "text", text: clarity.text || "workpoint checkpoint blocked by trajectory clarity gate" },
           ],
           details: { ok: false, status: "blocked", ...clarity.details },
-        } as any;
+        };
       const payload: any = {
         mission: p.mission,
         next_slice: [p.next_action, ...doNotDrift.map((d: string) => `DO_NOT_DRIFT: ${d}`)]
@@ -9000,7 +9000,7 @@ pi.registerTool({
               ? projectRootPermissionPosture(await resolveFocusaToolProjectRoot(p.project_root))
               : null,
           },
-        } as any;
+        };
       }
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
@@ -9057,7 +9057,7 @@ pi.registerTool({
           project_root_permission_posture: projectRootPermissionPosture(projectRoot),
           response: compactApiEcho(res.body),
         },
-      } as any;
+      };
     },
   });
 
@@ -9126,7 +9126,7 @@ pi.registerTool({
             reason,
             next_tools: ["focusa_project_identity", "focusa_tool_doctor"],
           },
-        } as any;
+        };
       }
       const payload = {
         workpoint_id: p.workpoint_id,
@@ -14377,7 +14377,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
             failure_class: "session_scope_required",
             global_fallback: false,
           },
-        } as any;
+        };
       }
       const cap = Math.max(1, Math.min(include_full_payload ? 2000 : 200, Number(max_nodes || 50)));
       const queryParts = [
@@ -14398,13 +14398,13 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
             failure_class: "scope_mismatch",
             global_fallback: false,
           },
-        } as any;
+        };
       }
       if (!res.ok || !res.body) {
         return {
           content: [{ type: "text", text: `lineage tree → ${explainWorkLoopResult(res, "ok")}` }],
           details: { ok: false, status: res.status, response: compactApiEcho(res.body) ?? null },
-        } as any;
+        };
       }
 
       const nodes = Array.isArray(res.body?.nodes) ? res.body.nodes.slice(0, cap) : [];
@@ -14460,7 +14460,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
             failure_class: "session_scope_required",
             global_fallback: false,
           },
-        } as any;
+        };
       }
       const cap = Math.max(1, Math.min(50, Number(max_candidates || 12)));
       const queryParts = [
@@ -14480,13 +14480,13 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
             failure_class: "scope_mismatch",
             global_fallback: false,
           },
-        } as any;
+        };
       }
       if (!res.ok || !res.body) {
         return {
           content: [{ type: "text", text: `li extract → ${explainWorkLoopResult(res, "ok")}` }],
           details: { ok: false, status: res.status, response: compactApiEcho(res.body) ?? null },
-        } as any;
+        };
       }
 
       const nodes = Array.isArray(res.body?.nodes) ? res.body.nodes : [];
@@ -14663,7 +14663,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           evaluation_hint: `focusa_predict_evaluate prediction_id=${predictionId}`,
           next_tools: ["focusa_predict_evaluate", "focusa_predict_recent"],
         },
-      } as any;
+      };
     },
   });
 
@@ -14740,7 +14740,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
             ? ["focusa_predict_evaluate", "focusa_predict_stats"]
             : ["focusa_predict_record"],
         },
-      } as any;
+      };
     },
   });
 
@@ -14807,7 +14807,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           scope,
           next_tools: ["focusa_predict_stats", "focusa_metacog_retrieve"],
         },
-      } as any;
+      };
     },
   });
 
@@ -15069,7 +15069,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           scope,
           next_tools: ["focusa_predict_record", "focusa_predict_recent"],
         },
-      } as any;
+      };
     },
   });
 
@@ -15130,7 +15130,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           authority: res.body?.authority, response: res.body,
           project_root: projectRoot, continuity_id: continuityId,
         },
-      } as any;
+      };
     },
   });
 
@@ -15159,12 +15159,12 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
             status: "blocked",
             recovery: "Provide continuity_id or bind a verified project workstream.",
           },
-        } as any;
+        };
       if (p.action === "append" && !p.event)
         return {
           content: [{ type: "text", text: "prediction authority append blocked → event required" }],
           details: { ok: false, status: "blocked", recovery: "Provide one ScopedAuthorityEvent." },
-        } as any;
+        };
       const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
       const endpoint =
         p.action === "append" ? "/prediction-authority/events" : "/prediction-authority/projection";
@@ -15182,7 +15182,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           project_root: projectRoot,
           continuity_id: continuityId,
         },
-      } as any;
+      };
     },
   });
 
@@ -15259,7 +15259,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           },
         ],
         details: payload,
-      } as any;
+      };
     },
   });
 
@@ -15317,7 +15317,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           },
         ],
         details: payload,
-      } as any;
+      };
     },
   });
 
@@ -15387,7 +15387,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           },
         ],
         details: payload,
-      } as any;
+      };
     },
   });
 
@@ -15453,7 +15453,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           },
         ],
         details: payload,
-      } as any;
+      };
     },
   });
 
@@ -15528,7 +15528,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           },
         ],
         details: { ...card, next_tools: card.discovery_tools },
-      } as any;
+      };
     },
   });
 
@@ -15581,7 +15581,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           },
         ],
         details: body,
-      } as any;
+      };
     },
   });
 
@@ -15662,7 +15662,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           },
         ],
         details: body,
-      } as any;
+      };
     },
   });
 
@@ -15702,7 +15702,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           },
         ],
         details: body,
-      } as any;
+      };
     },
   });
 }
