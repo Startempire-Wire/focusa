@@ -91,36 +91,6 @@ pub async fn scoped_focusa_read_workstream(
     partition.read_owned().await
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn partitions_by_workstream_scope() {
-        let store = WorkstreamStateStore::default();
-        let a = store.get_or_create("/root/ws1", "cont-1").await;
-        let b = store.get_or_create("/root/ws1", "cont-1").await;
-        let c = store.get_or_create("/root/ws2", "cont-1").await;
-        assert!(Arc::ptr_eq(&a, &b), "same scope must resolve to the same state");
-        assert!(!Arc::ptr_eq(&a, &c), "different workstreams must partition");
-        assert_eq!(store.len().await, 2);
-    }
-
-    #[tokio::test]
-    async fn scoped_writes_never_cross_partitions() {
-        let store = WorkstreamStateStore::default();
-        let a = store.get_or_create("/root/ws1", "cont-1").await;
-        let b = store.get_or_create("/root/ws2", "cont-1").await;
-        {
-            let mut state = a.write().await;
-            state.workpoint.active_workpoint_id = Some(uuid::Uuid::now_v7());
-        }
-        {
-            let state = b.read().await;
-            assert!(state.workpoint.active_workpoint_id.is_none());
-        }
-    }
-}
 
 /// Slice-2 write side (docs/164 invariant 1): a scoped mutation must
 /// name its root AND land durably in the workstream partition. The
@@ -153,4 +123,35 @@ pub async fn scoped_write_through(
         Ok(())
     })
     .await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn partitions_by_workstream_scope() {
+        let store = WorkstreamStateStore::default();
+        let a = store.get_or_create("/root/ws1", "cont-1").await;
+        let b = store.get_or_create("/root/ws1", "cont-1").await;
+        let c = store.get_or_create("/root/ws2", "cont-1").await;
+        assert!(Arc::ptr_eq(&a, &b), "same scope must resolve to the same state");
+        assert!(!Arc::ptr_eq(&a, &c), "different workstreams must partition");
+        assert_eq!(store.len().await, 2);
+    }
+
+    #[tokio::test]
+    async fn scoped_writes_never_cross_partitions() {
+        let store = WorkstreamStateStore::default();
+        let a = store.get_or_create("/root/ws1", "cont-1").await;
+        let b = store.get_or_create("/root/ws2", "cont-1").await;
+        {
+            let mut state = a.write().await;
+            state.workpoint.active_workpoint_id = Some(uuid::Uuid::now_v7());
+        }
+        {
+            let state = b.read().await;
+            assert!(state.workpoint.active_workpoint_id.is_none());
+        }
+    }
 }
