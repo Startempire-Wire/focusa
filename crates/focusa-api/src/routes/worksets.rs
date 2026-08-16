@@ -63,18 +63,23 @@ async fn list(State(state): State<Arc<AppState>>) -> Json<Value> {
             "SELECT workset_id, revision, definition_json FROM worksets ORDER BY workset_id, revision",
         )?;
         let rows = stmt.query_map([], |row| {
+            let definition: WorksetDefinition = serde_json::from_str(&row.get::<_, String>(2)?)
+                .unwrap_or_else(|_| WorksetDefinition {
+                    schema: focusa_core::workset_ledger::WORKSET_LEDGER_SCHEMA.to_string(),
+                    workset_id: "unparsable".to_string(),
+                    revision: 0,
+                    scope: focusa_core::workset_ledger::WorksetScope { project_root: String::new(), continuity_id: String::new() },
+                    completion_contract: focusa_core::workset_ledger::CompletionContract { required_requirement_ids: vec![], release_gate_ref: None },
+                });
+            let events = focusa_core::workset_store::list_events(&conn, &definition.workset_id).unwrap_or_default();
+            let projection = focusa_core::workset_ledger::replay_projection(&definition, &events).ok();
             Ok(json!({
-                "workset_id": row.get::<_, String>(0)?,
+                "workset_id": definition.workset_id,
                 "revision": row.get::<_, i64>(1)?,
-                "digest": focusa_core::workset_ledger::workset_digest(
-                    &serde_json::from_str::<WorksetDefinition>(&row.get::<_, String>(2)?).unwrap_or_else(|_| WorksetDefinition {
-                        schema: focusa_core::workset_ledger::WORKSET_LEDGER_SCHEMA.to_string(),
-                        workset_id: "unparsable".to_string(),
-                        revision: 0,
-                        scope: focusa_core::workset_ledger::WorksetScope { project_root: String::new(), continuity_id: String::new() },
-                        completion_contract: focusa_core::workset_ledger::CompletionContract { required_requirement_ids: vec![], release_gate_ref: None },
-                    }),
-                ),
+                "digest": focusa_core::workset_ledger::workset_digest(&definition),
+                "requirement_count": projection.as_ref().map(|p| p.requirements.len()).unwrap_or(0),
+                "membership_count": projection.as_ref().map(|p| p.membership.len()).unwrap_or(0),
+                "settled": projection.as_ref().map(|p| p.settled).unwrap_or(false),
             }))
         })?;
         Ok(json!({"status": "ok", "worksets": rows.collect::<rusqlite::Result<Vec<_>>>()?}))
