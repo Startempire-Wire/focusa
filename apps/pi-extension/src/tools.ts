@@ -4713,6 +4713,44 @@ pi.registerTool({
 });
 
 pi.registerTool({
+  name: "focusa_credentials_verify",
+  label: "Focusa Credentials Verify",
+  description:
+    "Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam.",
+  promptSnippet: "Grant verdicts only — no secrets in or out.",
+  parameters: Type.Object({
+    requirement: Type.Object({
+      schema: Type.String(),
+      credential_role_ref: Type.String(),
+      required_operation: Type.String(),
+      required_exposure_mode: Type.String(),
+      exact_consumer_ref: Type.String(),
+      exact_target_refs: Type.Array(Type.String()),
+      use_count_required: Type.Number(),
+      evidence_requirement_refs: Type.Array(Type.String()),
+    }),
+    grants: Type.Array(Type.Unknown()),
+  }),
+  async execute(_id: any, params: any) {
+    const res = await focusaFetchDetailed("/credentials/verify-requirement", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requirement: params.requirement, grants: params.grants || [] }),
+    });
+    if (!res.ok) {
+      return toolResult(false, res.body?.status || "blocked", `Credential verify failed: ${res.body?.summary || res.status}`, res.body);
+    }
+    const body = res.body || {};
+    return toolResult(
+      body.satisfied,
+      body.satisfied ? "satisfied" : "denied",
+      body.satisfied ? "Requirement satisfied by the provided grants." : `Not satisfied: ${(body.reasons || []).join("; ")}`,
+      body
+    );
+  },
+});
+
+pi.registerTool({
   name: "focusa_cockpit_projection",
   label: "Focusa Cockpit Projection",
   description:
