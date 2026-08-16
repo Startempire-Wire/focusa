@@ -12,6 +12,12 @@ use crate::background_jobs::{BackgroundJobRecord, BackgroundJobStatus};
 pub fn ensure_schema(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         r#"
+        CREATE TABLE IF NOT EXISTS bg_job_stats (
+            name TEXT PRIMARY KEY,
+            runs INTEGER NOT NULL DEFAULT 0,
+            total_ms INTEGER NOT NULL DEFAULT 0,
+            ema_ms INTEGER NOT NULL DEFAULT 0
+        );
         CREATE TABLE IF NOT EXISTS background_jobs (
             job_id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -81,6 +87,36 @@ pub fn list_jobs(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
 
 /// Running jobs whose monitor process is gone (monitor-lost detection is
 /// the CLI's job; this just lists candidates).
+/// Update per-name duration stats with an exponential moving average —
+/// the ETA source for future runs of the same name.
+pub fn record_job_duration(conn: &Connection, name: &str, duration_ms: i64) -> Result<i64> {
+    conn.execute(
+        "INSERT INTO bg_job_stats (name, runs, total_ms, ema_ms)
+         VALUES (?1, 1, ?2, ?2)
+         ON CONFLICT(name) DO UPDATE SET
+            runs = runs + 1,
+            total_ms = total_ms + excluded.total_ms,
+            ema_ms = (ema_ms * 7 + excluded.ema_ms) / 8",
+        params![name, duration_ms],
+    )?;
+    conn.query_row(
+        "SELECT ema_ms FROM bg_job_stats WHERE name = ?1",
+        params![name],
+        |row| row.get(0),
+    )
+    .map_err(Into::into)
+}
+
+pub fn eta_ms_for(conn: &Connection, name: &str) -> Result<Option<i64>> {
+    conn.query_row(
+        "SELECT ema_ms FROM bg_job_stats WHERE name = ?1",
+        params![name],
+        |row| row.get::<_, i64>(0),
+    )
+    .optional()
+    .map_err(Into::into)
+}
+
 pub fn list_running(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
     let mut stmt = conn.prepare(
         "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at

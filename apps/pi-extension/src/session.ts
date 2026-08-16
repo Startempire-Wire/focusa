@@ -958,6 +958,50 @@ async function ensureFocusaSession(ctx: any) {
   });
 }
 
+// ── Non-blocking bg visibility: spinner + elapsed/ETA bar in the Pi
+// status line (updates every 1s from the daemon ledger). Never blocks
+// the terminal; the completion notification clears the line.
+const BG_SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+let bgStatusTimer: ReturnType<typeof setInterval> | null = null;
+function bgProgressBar(elapsedMs: number, etaMs: number | null): string {
+  if (!etaMs || etaMs <= 0) return "";
+  const ratio = Math.min(1, elapsedMs / etaMs);
+  const filled = Math.round(ratio * 10);
+  return `[${"█".repeat(filled)}${"░".repeat(10 - filled)}]`;
+}
+function refreshBgStatusLine(ctx: any) {
+  const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+  void fetch(`${base}/v1/background-jobs`)
+    .then((res) => res.json())
+    .then((body: any) => {
+      const running = (body?.jobs || []).filter((job: any) => job?.status === "running");
+      if (!running.length) {
+        ctx?.ui?.setStatus?.("focusa-bg", undefined);
+        return;
+      }
+      const frame = BG_SPINNER[Math.floor(Date.now() / 1000) % BG_SPINNER.length];
+      const parts = running.slice(0, 3).map((job: any) => {
+        const elapsed = Number(job?.elapsed_ms || 0);
+        const eta = job?.eta_ms != null ? Number(job.eta_ms) : null;
+        return `${frame} ${job.name} ${Math.round(elapsed / 1000)}s${eta ? "/" + Math.round(eta / 1000) + "s " + bgProgressBar(elapsed, eta) : ""}`;
+      });
+      ctx?.ui?.setStatus?.("focusa-bg", `${parts.join("  ")}${running.length > 3 ? ` (+${running.length - 3})` : ""}`);
+    })
+    .catch(() => {});
+}
+function startBgStatusLine(ctx: any) {
+  if (bgStatusTimer) return;
+  refreshBgStatusLine(ctx);
+  bgStatusTimer = setInterval(() => refreshBgStatusLine(ctx), 1000);
+}
+function stopBgStatusLine(ctx: any) {
+  if (bgStatusTimer) {
+    clearInterval(bgStatusTimer);
+    bgStatusTimer = null;
+  }
+  ctx?.ui?.setStatus?.("focusa-bg", undefined);
+}
+
 function connectSSE() {
   if (sseReconnectTimer) {
     clearTimeout(sseReconnectTimer);
@@ -1595,6 +1639,8 @@ export function registerSession(pi: ExtensionAPI) {
 
     // §30 + §37.10: Start SSE connection for metacognitive + cross-surface events
     connectSSE();
+    // Non-blocking bg visibility: spinner + elapsed/ETA status line.
+    startBgStatusLine(ctx);
 
     // Keep Pi footer task label fresh between explicit commands.
     // Default is event-driven (no periodic polling); polling can be enabled explicitly.

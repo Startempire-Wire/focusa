@@ -174,6 +174,17 @@ async fn complete_job(
         record.completed_at = Some(now_iso());
         focusa_core::background_job_store::upsert_job(&conn, &record)?;
         let envelope = BackgroundJobCompletionEvent::from_record(&record);
+        // Duration stats feed the ETA for the next same-name job.
+        if let (Some(started), Some(completed)) = (&record.started_at.parse::<chrono::DateTime<chrono::Utc>>().ok(), &record.completed_at.as_ref().and_then(|t| t.parse::<chrono::DateTime<chrono::Utc>>().ok())) {
+            if let (Ok(started), Ok(completed)) = (started, completed) {
+                let duration_ms = (completed - *started).num_milliseconds();
+                if duration_ms > 0 {
+                    let _ = focusa_core::background_job_store::record_job_duration(
+                        &conn, &record.name, duration_ms,
+                    );
+                }
+            }
+        }
         Ok(json!({
             "status": "completed",
             "job": record,
@@ -208,7 +219,20 @@ async fn get_job(
         let Some(record) = focusa_core::background_job_store::load_job(&conn, &job_id)? else {
             return Ok(json!({"status": "missing", "job_id": job_id}));
         };
-        Ok(json!({"status": "ok", "job": record}))
+        let elapsed_ms = record
+            .started_at
+            .parse::<chrono::DateTime<chrono::Utc>>()
+            .ok()
+            .map(|started| {
+                (chrono::Utc::now() - started).num_milliseconds().max(0)
+            });
+        let eta_ms = focusa_core::background_job_store::eta_ms_for(&conn, &record.name)?;
+        Ok(json!({
+            "status": "ok",
+            "job": record,
+            "elapsed_ms": elapsed_ms,
+            "eta_ms": eta_ms,
+        }))
     })
     .await;
     match result {
