@@ -336,6 +336,22 @@ pub fn grant_state(grant: &CredentialUseGrant, now: &str) -> GrantState {
 mod lifecycle_tests {
     use super::*;
 
+    fn grant(expires: &str, used: u32, allowed: u32) -> CredentialUseGrant {
+        CredentialUseGrant {
+            schema: CREDENTIAL_USE_GRANT_SCHEMA.to_string(),
+            grant_id: "grant-1".to_string(),
+            credential_role_ref: "role-dns".to_string(),
+            operation: CredentialOperation::Use,
+            exposure_mode: "blind".to_string(),
+            exact_target_refs: vec!["dns.example.com".to_string()],
+            consumer_ref: "consumer-1".to_string(),
+            granted_at: "2026-08-16T00:00:00Z".to_string(),
+            expires_at: expires.to_string(),
+            use_count_allowed: allowed,
+            use_count_used: used,
+        }
+    }
+
     #[test]
     fn grant_state_tracks_expiry_and_exhaustion() {
         let mut grant = grant("2026-08-17T00:00:00Z", 0, 3);
