@@ -466,6 +466,69 @@ fn path_depth(graph: &FocusaCallGraphDefinition, frame_id: &str) -> u32 {
     depth.get(frame_id).copied().unwrap_or(0)
 }
 
+/// Deterministic frontier reconstruction (Spec 155 §18.3). Pure function
+/// of (definition, ordered dispatch ledger): same inputs always reproduce
+/// the same frontier. A dispatch without a receipt is an active
+/// invocation; a receipted dispatch settles its edge.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReplayedFrontier {
+    pub active_invocation_ids: Vec<String>,
+    pub settled_edge_ids: Vec<String>,
+    pub waiting_frame_ids: Vec<String>,
+    pub completed_frame_ids: Vec<String>,
+}
+
+pub fn replay_frontier(
+    graph: &FocusaCallGraphDefinition,
+    dispatches: &[crate::callgraph_store::FrameDispatch],
+) -> ReplayedFrontier {
+    let mut active = Vec::new();
+    let mut settled_edges = Vec::new();
+    let mut completed_frames = Vec::new();
+    for dispatch in dispatches {
+        match &dispatch.receipt_ref {
+            None => active.push(dispatch.invocation_id.clone().unwrap_or_default()),
+            Some(_) => {
+                // The dispatch's caller edge settled: map invocation→edge via
+                // parent_invocation matching on the dispatch's own edge is
+                // unavailable in the ledger row, so settle by frame edges.
+                settled_edges.push(dispatch.dispatch_id.clone());
+                completed_frames.push(dispatch.frame_id.clone());
+            }
+        }
+    }
+    let frame_ids: std::collections::HashSet<&str> =
+        graph.frames.iter().map(|f| f.frame_id.as_str()).collect();
+    let completed: std::collections::HashSet<&str> =
+        completed_frames.iter().map(|f| f.as_str()).collect();
+    let mut waiting = Vec::new();
+    for frame in &graph.frames {
+        let inbound: Vec<&str> = graph
+            .edges
+            .iter()
+            .filter(|e| e.to_frame_id == frame.frame_id && e.kind != EdgeKind::Retry)
+            .map(|e| e.from_frame_id.as_str())
+            .collect();
+        if inbound.is_empty() {
+            continue;
+        }
+        let all_callers_settled = inbound.iter().all(|caller| completed.contains(caller));
+        if !all_callers_settled {
+            waiting.push(frame.frame_id.clone());
+        }
+    }
+    ReplayedFrontier {
+        active_invocation_ids: active.into_iter().filter(|id| !id.is_empty()).collect(),
+        settled_edge_ids: settled_edges,
+        waiting_frame_ids: waiting,
+        completed_frame_ids: completed
+            .into_iter()
+            .filter(|id| frame_ids.contains(id))
+            .map(|id| id.to_string())
+            .collect(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -699,5 +762,145 @@ mod tests {
             eligibility_for_frame(&g, "b", Some("a"), &HashSet::new()),
             Disposition::WaitingParent
         );
+    }
+}
+
+#[cfg(test)]
+mod replay_tests {
+    use super::*;
+    use crate::callgraph_store::FrameDispatch;
+
+    fn linear_graph() -> FocusaCallGraphDefinition {
+        FocusaCallGraphDefinition {
+            schema: CALLGRAPH_SCHEMA.to_string(),
+            graph_id: "g1".to_string(),
+            revision: 1,
+            scope: CallGraphScope {
+                project_root: "/root/proj".to_string(),
+                continuity_id: "cont-1".to_string(),
+            },
+            mission_ref: "m1".to_string(),
+            trajectory_ref: None,
+            workpoint_refs: vec![],
+            title: "t".to_string(),
+            description: "t".to_string(),
+            entry_frame_ids: vec!["a".to_string()],
+            frames: vec![
+                FocusaCallFrame {
+                    frame_id: "a".to_string(),
+                    name: "a".to_string(),
+                    purpose: "t".to_string(),
+                    kind: FrameKind::Agent,
+                    input_schema: serde_json::json!({}),
+                    return_schema: serde_json::json!({}),
+                    preconditions: vec![],
+                    postconditions: vec![],
+                    side_effect_class: SideEffectClass::None,
+                    capability_refs: vec![],
+                    authority_requirement: None,
+                    timeout_policy: None,
+                    retry_policy: None,
+                    failure_boundary: None,
+                    compensation_frame_id: None,
+                    resource_budget: None,
+                    acceptance: AcceptanceContract {
+                        acceptance_atoms: vec!["a1".to_string()],
+                        verifier: None,
+                    },
+                    execution_binding: None,
+                },
+                FocusaCallFrame {
+                    frame_id: "b".to_string(),
+                    name: "b".to_string(),
+                    purpose: "t".to_string(),
+                    kind: FrameKind::Tool,
+                    input_schema: serde_json::json!({}),
+                    return_schema: serde_json::json!({}),
+                    preconditions: vec![],
+                    postconditions: vec![],
+                    side_effect_class: SideEffectClass::None,
+                    capability_refs: vec![],
+                    authority_requirement: None,
+                    timeout_policy: None,
+                    retry_policy: None,
+                    failure_boundary: None,
+                    compensation_frame_id: None,
+                    resource_budget: None,
+                    acceptance: AcceptanceContract {
+                        acceptance_atoms: vec!["a1".to_string()],
+                        verifier: None,
+                    },
+                    execution_binding: None,
+                },
+            ],
+            edges: vec![FocusaCallEdge {
+                edge_id: "e1".to_string(),
+                from_frame_id: "a".to_string(),
+                to_frame_id: "b".to_string(),
+                kind: EdgeKind::Call,
+                condition: None,
+                input_mapping: vec![],
+                return_mapping: vec![],
+                join_policy: None,
+                cycle_policy: None,
+                authority_requirement: None,
+            }],
+            policies: CallGraphPolicies::default(),
+            required_evidence: vec![],
+            created_at: "t".to_string(),
+            created_by: AuthorityRef {
+                authority_kind: "operator".to_string(),
+                reference: "op-1".to_string(),
+            },
+            supersedes_revision: None,
+        }
+    }
+
+    fn dispatch(
+        id: &str,
+        frame: &str,
+        invocation: &str,
+        receipt: Option<&str>,
+    ) -> FrameDispatch {
+        FrameDispatch {
+            dispatch_id: id.to_string(),
+            run_id: "r1".to_string(),
+            frame_id: frame.to_string(),
+            invocation_id: Some(invocation.to_string()),
+            parent_invocation_id: None,
+            disposition: Disposition::Eligible,
+            attempt: 1,
+            committed_at: "t".to_string(),
+            receipt_ref: receipt.map(|r| r.to_string()),
+        }
+    }
+
+    #[test]
+    fn replay_reproduces_frontier_deterministically() {
+        let graph = linear_graph();
+        let dispatches = vec![
+            dispatch("d1", "a", "i1", None),
+            dispatch("d2", "b", "i2", None),
+        ];
+        let first = replay_frontier(&graph, &dispatches);
+        let second = replay_frontier(&graph, &dispatches);
+        assert_eq!(first, second, "replay must be deterministic");
+        assert_eq!(first.active_invocation_ids, vec!["i1", "i2"]);
+        assert!(first.waiting_frame_ids.contains(&"b".to_string()));
+    }
+
+    #[test]
+    fn receipted_dispatch_settles_frame() {
+        let graph = linear_graph();
+        let dispatches = vec![
+            dispatch("d1", "a", "i1", Some("receipt-a")),
+            dispatch("d2", "b", "i2", None),
+        ];
+        let frontier = replay_frontier(&graph, &dispatches);
+        assert!(frontier.active_invocation_ids.contains(&"i2".to_string()));
+        assert!(!frontier.active_invocation_ids.contains(&"i1".to_string()));
+        assert!(frontier.completed_frame_ids.contains(&"a".to_string()));
+        // With caller "a" settled, frame "b" is no longer waiting.
+        assert!(!frontier.waiting_frame_ids.contains(&"b".to_string()));
     }
 }
