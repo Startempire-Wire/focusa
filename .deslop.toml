@@ -21,6 +21,10 @@ exclude = [
 report_hide = [
   "**/docs/contracts/**",
   "**/*.generated.*",
+  # Generated per-tool contract registry — intentional sibling records.
+  "**/apps/pi-extension/src/tool-contracts.ts",
+  # Reducer test fixtures — repeated test records, not product logic.
+  "**/crates/focusa-core/src/reducer.rs",
 ]
 
 [defaults.boilerplate]
