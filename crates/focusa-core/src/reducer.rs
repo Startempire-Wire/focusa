@@ -203,6 +203,17 @@ fn bound_workpoint_record(record: &mut WorkpointRecord) {
     }
 }
 
+/// Find an ontology object by its id — the canonical lookup extracted
+/// from 68 near-identical copies (deslop run 2026-08-16).
+fn ontology_object_mut<'a>(
+    objects: &'a mut [serde_json::Value],
+    id: &str,
+) -> Option<&'a mut serde_json::Value> {
+    objects
+        .iter_mut()
+        .find(|o| o.get("id").and_then(|v| v.as_str()) == Some(id))
+}
+
 fn find_workpoint_mut(
     state: &mut FocusaState,
     workpoint_id: WorkpointId,
@@ -2860,9 +2871,7 @@ pub fn reduce_with_meta(
                 match proposal.proposal_kind.as_str() {
                     "object_upsert" => {
                         if let Some(object_id) = proposal.object_id.as_ref() {
-                            if let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            }) {
+                            if let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str()) {
                                 object["status"] =
                                     serde_json::Value::String("promoted".to_string());
                                 object["provenance_class"] =
@@ -2913,9 +2922,7 @@ pub fn reduce_with_meta(
                     }
                     "status_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["provenance_class"] =
@@ -2924,9 +2931,7 @@ pub fn reduce_with_meta(
                     }
                     "working_set_membership" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["membership_class"] =
@@ -2939,9 +2944,7 @@ pub fn reduce_with_meta(
                 match applied_kind.as_str() {
                     "execute_migration" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("migrated".to_string());
                             object["migration_state"] =
@@ -2951,9 +2954,7 @@ pub fn reduce_with_meta(
                     }
                     "resolve_identity" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("canonical".to_string());
                             object["entity_class"] =
@@ -2986,9 +2987,7 @@ pub fn reduce_with_meta(
                     }
                     "decompose_goal" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["decomposition_state"] =
@@ -2997,9 +2996,7 @@ pub fn reduce_with_meta(
                     }
                     "prioritize_work" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["priority_state"] =
@@ -3008,9 +3005,7 @@ pub fn reduce_with_meta(
                     }
                     "record_decision" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["decision_state"] =
@@ -3019,9 +3014,7 @@ pub fn reduce_with_meta(
                     }
                     "register_constraint" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["constraint_state"] =
@@ -3030,9 +3023,7 @@ pub fn reduce_with_meta(
                     }
                     "identify_risk" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("candidate".to_string());
                             object["risk_state"] =
@@ -3041,18 +3032,14 @@ pub fn reduce_with_meta(
                     }
                     "mark_blocked" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("blocked".to_string());
                         }
                     }
                     "restore_progress" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["progress_state"] =
@@ -3061,9 +3048,7 @@ pub fn reduce_with_meta(
                     }
                     "verify_progress" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["progress_state"] =
@@ -3072,9 +3057,7 @@ pub fn reduce_with_meta(
                     }
                     "refresh_working_set" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["membership_class"] =
@@ -3083,9 +3066,7 @@ pub fn reduce_with_meta(
                     }
                     "close_loop" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("completed".to_string());
                             object["completion_state"] =
@@ -3094,9 +3075,7 @@ pub fn reduce_with_meta(
                     }
                     "complete_task" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("completed".to_string());
                             object["completion_state"] =
@@ -3105,9 +3084,7 @@ pub fn reduce_with_meta(
                     }
                     "detect_affordances" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("candidate".to_string());
                             object["affordance_state"] =
@@ -3116,9 +3093,7 @@ pub fn reduce_with_meta(
                     }
                     "verify_permissions" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["permission_state"] =
@@ -3127,9 +3102,7 @@ pub fn reduce_with_meta(
                     }
                     "verify_preconditions" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["precondition_state"] =
@@ -3138,9 +3111,7 @@ pub fn reduce_with_meta(
                     }
                     "evaluate_dependencies" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["dependency_state"] =
@@ -3149,9 +3120,7 @@ pub fn reduce_with_meta(
                     }
                     "estimate_cost" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
@@ -3160,9 +3129,7 @@ pub fn reduce_with_meta(
                     }
                     "estimate_latency" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
@@ -3171,9 +3138,7 @@ pub fn reduce_with_meta(
                     }
                     "estimate_reliability" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
@@ -3182,9 +3147,7 @@ pub fn reduce_with_meta(
                     }
                     "estimate_reversibility" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
@@ -3193,9 +3156,7 @@ pub fn reduce_with_meta(
                     }
                     "choose_execution_path" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["execution_path_state"] =
@@ -3204,9 +3165,7 @@ pub fn reduce_with_meta(
                     }
                     "escalate_authority" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["authority_state"] =
@@ -3215,9 +3174,7 @@ pub fn reduce_with_meta(
                     }
                     "mark_unavailable" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("blocked".to_string());
                             object["availability_state"] =
@@ -3226,9 +3183,7 @@ pub fn reduce_with_meta(
                     }
                     "determine_current_ask" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["ask_state"] =
@@ -3237,9 +3192,7 @@ pub fn reduce_with_meta(
                     }
                     "build_query_scope" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["scope_state"] = serde_json::Value::String("built".to_string());
@@ -3247,9 +3200,7 @@ pub fn reduce_with_meta(
                     }
                     "select_relevant_context" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["selection_state"] =
@@ -3258,9 +3209,7 @@ pub fn reduce_with_meta(
                     }
                     "exclude_irrelevant_context" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("stale".to_string());
                             object["selection_state"] =
@@ -3269,9 +3218,7 @@ pub fn reduce_with_meta(
                     }
                     "verify_answer_scope" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["scope_state"] =
@@ -3280,9 +3227,7 @@ pub fn reduce_with_meta(
                     }
                     "record_scope_failure" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("failed".to_string());
                             object["scope_state"] = serde_json::Value::String("failed".to_string());
@@ -3290,9 +3235,7 @@ pub fn reduce_with_meta(
                     }
                     "establish_identity" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["identity_state"] =
@@ -3301,9 +3244,7 @@ pub fn reduce_with_meta(
                     }
                     "load_role_profile" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["role_state"] = serde_json::Value::String("loaded".to_string());
@@ -3311,9 +3252,7 @@ pub fn reduce_with_meta(
                     }
                     "verify_capability_profile" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["capability_state"] =
@@ -3322,9 +3261,7 @@ pub fn reduce_with_meta(
                     }
                     "verify_permission_profile" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["permission_state"] =
@@ -3333,9 +3270,7 @@ pub fn reduce_with_meta(
                     }
                     "assign_responsibility" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["responsibility_state"] =
@@ -3344,9 +3279,7 @@ pub fn reduce_with_meta(
                     }
                     "determine_handoff_boundary" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["handoff_state"] =
@@ -3355,9 +3288,7 @@ pub fn reduce_with_meta(
                     }
                     "restore_identity_continuity" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["continuity_state"] =
@@ -3366,9 +3297,7 @@ pub fn reduce_with_meta(
                     }
                     "form_intention" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["intention_state"] =
@@ -3377,9 +3306,7 @@ pub fn reduce_with_meta(
                     }
                     "promote_commitment" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["commitment_state"] =
@@ -3388,9 +3315,7 @@ pub fn reduce_with_meta(
                     }
                     "apply_inhibition" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("blocked".to_string());
                             object["inhibition_state"] =
@@ -3399,9 +3324,7 @@ pub fn reduce_with_meta(
                     }
                     "evaluate_switch" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["switch_state"] =
@@ -3410,9 +3333,7 @@ pub fn reduce_with_meta(
                     }
                     "maintain_commitment" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["commitment_state"] =
@@ -3421,9 +3342,7 @@ pub fn reduce_with_meta(
                     }
                     "authorize_abandonment" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("retired".to_string());
                             object["abandonment_state"] =
@@ -3432,9 +3351,7 @@ pub fn reduce_with_meta(
                     }
                     "push_to_completion" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("completed".to_string());
                             object["completion_state"] =
@@ -3443,9 +3360,7 @@ pub fn reduce_with_meta(
                     }
                     "record_goal_conflict" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("blocked".to_string());
                             object["conflict_state"] =
@@ -3454,9 +3369,7 @@ pub fn reduce_with_meta(
                     }
                     "detect_aliases" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("candidate".to_string());
                             object["alias_state"] =
@@ -3465,9 +3378,7 @@ pub fn reduce_with_meta(
                     }
                     "build_resolution_candidates" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("candidate".to_string());
                             object["resolution_state"] =
@@ -3476,9 +3387,7 @@ pub fn reduce_with_meta(
                     }
                     "verify_resolution" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["resolution_state"] =
@@ -3487,9 +3396,7 @@ pub fn reduce_with_meta(
                     }
                     "build_projection" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["projection_state"] =
@@ -3498,9 +3405,7 @@ pub fn reduce_with_meta(
                     }
                     "compress_projection" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["projection_state"] =
@@ -3509,9 +3414,7 @@ pub fn reduce_with_meta(
                     }
                     "verify_projection_fidelity" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["projection_state"] =
@@ -3520,9 +3423,7 @@ pub fn reduce_with_meta(
                     }
                     "evaluate_retention" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["retention_state"] =
@@ -3531,9 +3432,7 @@ pub fn reduce_with_meta(
                     }
                     "apply_decay" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("stale".to_string());
                             object["retention_state"] =
@@ -3542,9 +3441,7 @@ pub fn reduce_with_meta(
                     }
                     "archive_object" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("retired".to_string());
                             object["archive_state"] =
@@ -3553,9 +3450,7 @@ pub fn reduce_with_meta(
                     }
                     "prune_active_context" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("stale".to_string());
                             object["context_state"] =
@@ -3564,9 +3459,7 @@ pub fn reduce_with_meta(
                     }
                     "restore_from_archive" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["archive_state"] =
@@ -3575,9 +3468,7 @@ pub fn reduce_with_meta(
                     }
                     "record_supersession" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("superseded".to_string());
                             object["supersession_state"] =
@@ -3586,9 +3477,7 @@ pub fn reduce_with_meta(
                     }
                     "create_version" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] =
                                 serde_json::Value::String("experimental".to_string());
@@ -3598,9 +3487,7 @@ pub fn reduce_with_meta(
                     }
                     "declare_compatibility" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("declared".to_string());
                             object["compatibility_state"] =
@@ -3609,9 +3496,7 @@ pub fn reduce_with_meta(
                     }
                     "build_migration_plan" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("planned".to_string());
                             object["migration_state"] =
@@ -3620,9 +3505,7 @@ pub fn reduce_with_meta(
                     }
                     "deprecate_schema_element" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("retired".to_string());
                             object["lifecycle"] =
@@ -3631,9 +3514,7 @@ pub fn reduce_with_meta(
                     }
                     "review_governance_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("approved".to_string());
                             object["governance_state"] =
@@ -3642,9 +3523,7 @@ pub fn reduce_with_meta(
                     }
                     "verify_post_migration_conformance" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["conformance_state"] =
@@ -3684,9 +3563,7 @@ pub fn reduce_with_meta(
                 match proposal.proposal_kind.as_str() {
                     "object_upsert" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("rejected".to_string());
                             object["rejection_reason"] = serde_json::Value::String(reason.clone());
@@ -3710,9 +3587,7 @@ pub fn reduce_with_meta(
                     }
                     "status_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("rejected".to_string());
                             object["rejection_reason"] = serde_json::Value::String(reason.clone());
@@ -3720,9 +3595,7 @@ pub fn reduce_with_meta(
                     }
                     "working_set_membership" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] = serde_json::Value::String("rejected".to_string());
                             object["rejection_reason"] = serde_json::Value::String(reason.clone());
@@ -3774,9 +3647,7 @@ pub fn reduce_with_meta(
                 match proposal.proposal_kind.as_str() {
                     "object_upsert" | "status_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] =
                                 serde_json::Value::String(verified_status.to_string());
@@ -3802,9 +3673,7 @@ pub fn reduce_with_meta(
                     }
                     "working_set_membership" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
-                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
-                            })
+                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
                         {
                             object["status"] =
                                 serde_json::Value::String(verified_status.to_string());

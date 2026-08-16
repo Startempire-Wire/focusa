@@ -63,6 +63,11 @@ chains were replaced with pipefail-safe scripts.
 - The toolResult constructor (pi-native shape) now backs the six new
   tools; the remaining 102 `} as any;` escapes in pre-existing tools
   are the tracked convergence target.
+- DEEP RUN (embeddings auto + cross-language + hides lifted): the
+  worst offender was the 71-copy ontology object lookup in reducer.rs
+  (~42KB) — extracted into `ontology_object_mut` (behavior-preserving;
+  reducer tests green). The reducer.rs hide is lifted — duplication
+  fixed, not hidden.
 
 ## Release-readiness for the Workstream/Workset/CallGraph release
 
