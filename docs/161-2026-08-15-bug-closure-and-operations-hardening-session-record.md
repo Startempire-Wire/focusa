@@ -382,3 +382,11 @@ bounded core + persistence slices:
   Commits `0ec54d80`, `ba06d813` (pushed `cb59d1a1`, `d5909c17`).
 - #279 slice 1: CapabilityTruthClaim + public-safe HonestyManifest (5/5).
   Commit `4c37c8fd` (pushed `c75ae5e6`).
+
+## 5r. #280/#278 slices (2026-08-16)
+
+- #280 slice 1: release tag revalidation gate (envelope/skill/taxonomy
+  audits must pass). Commit `3d8d6274` (pushed `a886fc77`).
+- #278 slice 1: typed Acceptance Atoms + deterministic proof runtime.
+  Commit `849b73c9` (pushed `76fc5362`).
+- #275 projection refreshed for #278/#280.
