@@ -529,6 +529,62 @@ pub fn replay_frontier(
     }
 }
 
+/// Deterministic frame → adapter routing (#254 slice 9). The first
+/// adapter whose capability set covers every frame capability wins; ties
+/// keep input order, so the same registry always routes the same frame the
+/// same way. No adapter call occurs here — this only produces the decision
+/// that the dispatch path commits.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AdapterCapability {
+    pub adapter_id: String,
+    pub model: String,
+    pub capabilities: Vec<String>,
+    pub healthy: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RouteDecision {
+    Routed {
+        adapter_id: String,
+        model: String,
+    },
+    WaitingCapability,
+    Rejected,
+}
+
+pub fn route_frame(
+    frame: &FocusaCallFrame,
+    adapters: &[AdapterCapability],
+) -> RouteDecision {
+    if frame.capability_refs.is_empty() {
+        // No capability requirements: route to the first healthy adapter.
+        if let Some(adapter) = adapters.iter().find(|adapter| adapter.healthy) {
+            return RouteDecision::Routed {
+                adapter_id: adapter.adapter_id.clone(),
+                model: adapter.model.clone(),
+            };
+        }
+        return RouteDecision::WaitingCapability;
+    }
+    let required: std::collections::HashSet<&str> =
+        frame.capability_refs.iter().map(|c| c.as_str()).collect();
+    for adapter in adapters {
+        if !adapter.healthy {
+            continue;
+        }
+        let provided: std::collections::HashSet<&str> =
+            adapter.capabilities.iter().map(|c| c.as_str()).collect();
+        if required.is_subset(&provided) {
+            return RouteDecision::Routed {
+                adapter_id: adapter.adapter_id.clone(),
+                model: adapter.model.clone(),
+            };
+        }
+    }
+    RouteDecision::WaitingCapability
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -902,5 +958,106 @@ mod replay_tests {
         assert!(frontier.completed_frame_ids.contains(&"a".to_string()));
         // With caller "a" settled, frame "b" is no longer waiting.
         assert!(!frontier.waiting_frame_ids.contains(&"b".to_string()));
+    }
+}
+
+#[cfg(test)]
+mod routing_tests {
+    use super::*;
+
+    fn frame_with_caps(caps: &[&str]) -> FocusaCallFrame {
+        FocusaCallFrame {
+            frame_id: "f".to_string(),
+            name: "f".to_string(),
+            purpose: "t".to_string(),
+            kind: FrameKind::Agent,
+            input_schema: serde_json::json!({}),
+            return_schema: serde_json::json!({}),
+            preconditions: vec![],
+            postconditions: vec![],
+            side_effect_class: SideEffectClass::None,
+            capability_refs: caps.iter().map(|c| c.to_string()).collect(),
+            authority_requirement: None,
+            timeout_policy: None,
+            retry_policy: None,
+            failure_boundary: None,
+            compensation_frame_id: None,
+            resource_budget: None,
+            acceptance: AcceptanceContract {
+                acceptance_atoms: vec!["a1".to_string()],
+                verifier: None,
+            },
+            execution_binding: None,
+        }
+    }
+
+    #[test]
+    fn routes_to_first_capable_adapter() {
+        let adapters = vec![
+            AdapterCapability {
+                adapter_id: "pi".to_string(),
+                model: "pi-tool".to_string(),
+                capabilities: vec!["shell".to_string()],
+                healthy: true,
+            },
+            AdapterCapability {
+                adapter_id: "uiai".to_string(),
+                model: "uiai-browser".to_string(),
+                capabilities: vec!["shell".to_string(), "browser".to_string()],
+                healthy: true,
+            },
+        ];
+        let frame = frame_with_caps(&["shell", "browser"]);
+        match route_frame(&frame, &adapters) {
+            RouteDecision::Routed { adapter_id, .. } => assert_eq!(adapter_id, "uiai"),
+            other => panic!("expected Routed, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unhealthy_adapters_are_skipped() {
+        let adapters = vec![AdapterCapability {
+            adapter_id: "pi".to_string(),
+            model: "pi-tool".to_string(),
+            capabilities: vec!["shell".to_string()],
+            healthy: false,
+        }];
+        let frame = frame_with_caps(&["shell"]);
+        assert_eq!(route_frame(&frame, &adapters), RouteDecision::WaitingCapability);
+    }
+
+    #[test]
+    fn missing_capability_waits() {
+        let adapters = vec![AdapterCapability {
+            adapter_id: "pi".to_string(),
+            model: "pi-tool".to_string(),
+            capabilities: vec!["shell".to_string()],
+            healthy: true,
+        }];
+        let frame = frame_with_caps(&["browser"]);
+        assert_eq!(route_frame(&frame, &adapters), RouteDecision::WaitingCapability);
+    }
+
+    #[test]
+    fn deterministic_ordering_on_ties() {
+        let adapters = vec![
+            AdapterCapability {
+                adapter_id: "first".to_string(),
+                model: "m".to_string(),
+                capabilities: vec!["shell".to_string()],
+                healthy: true,
+            },
+            AdapterCapability {
+                adapter_id: "second".to_string(),
+                model: "m".to_string(),
+                capabilities: vec!["shell".to_string()],
+                healthy: true,
+            },
+        ];
+        let frame = frame_with_caps(&["shell"]);
+        match route_frame(&frame, &adapters) {
+            RouteDecision::Routed { adapter_id, .. } => assert_eq!(adapter_id, "first"),
+            other => panic!("expected Routed, got {other:?}"),
+        }
     }
 }
