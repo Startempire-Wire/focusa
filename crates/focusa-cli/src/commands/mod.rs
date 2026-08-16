@@ -52,6 +52,7 @@ pub mod pairing_transport;
 pub mod pairing_wizard;
 pub mod pi_launch;
 pub mod predict;
+pub mod rebuild_state;
 pub mod preload;
 pub mod project;
 pub mod proposals;

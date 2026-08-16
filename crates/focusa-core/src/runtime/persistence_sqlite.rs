@@ -949,10 +949,13 @@ impl SqlitePersistence {
                     }
                     Ok(Some(s))
                 }
-                Err(_) => {
-                    // Backward compatibility: older snapshots won't have newer fields.
-                    // Fall back to a fresh state rather than failing daemon startup.
-                    Ok(None)
+                Err(error) => {
+                    // #276/#263: never silently start fresh over a canonical
+                    // snapshot. A parse failure means the stored state is
+                    // real and must not be overwritten — fail closed.
+                    Err(anyhow::anyhow!(
+                        "canonical snapshot unparsable; refusing to start fresh over stored state: {error}"
+                    ))
                 }
             },
         }

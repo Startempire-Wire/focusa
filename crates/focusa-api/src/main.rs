@@ -476,6 +476,7 @@ async fn main() -> anyhow::Result<()> {
             let db = callgraph_liveness_db.clone();
             let result = tokio::task::spawn_blocking(move || -> anyhow::Result<usize> {
                 let conn = rusqlite::Connection::open(&db)?;
+                focusa_core::callgraph_store::ensure_schema(&conn)?;
                 let now = chrono::Utc::now().to_rfc3339();
                 let lapsed = focusa_core::callgraph_store::lapsed_leases(&conn, &now)?;
                 let mut released = 0usize;
