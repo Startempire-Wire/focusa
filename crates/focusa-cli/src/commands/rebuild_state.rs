@@ -55,8 +55,9 @@ pub async fn run(args: RebuildStateArgs, json_mode: bool) -> anyhow::Result<()> 
                 "sync" => focusa_core::types::SignalOrigin::Sync,
                 _ => focusa_core::types::SignalOrigin::Adapter,
             };
+            let id_raw: String = row.get(0)?;
             Ok(EventLogEntry {
-                id: row.get(0)?,
+                id: uuid::Uuid::parse_str(&id_raw).unwrap_or(uuid::Uuid::nil()),
                 timestamp: row.get(1)?,
                 origin,
                 correlation_id: row.get(3)?,
