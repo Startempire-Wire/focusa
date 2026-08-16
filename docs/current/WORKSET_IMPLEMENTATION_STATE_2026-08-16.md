@@ -24,12 +24,21 @@ strictly.
 - Providers CLAIM dispositions; the ledger decides.
 - Settlement is deterministic replay, never a mutable flag.
 
-## Next slices
+## COMPLETE — all seven children have runtime slices landed
 
-#273 generated Mission Canvas/Work Rail surface (UI); the remaining
-runtime slices (#268/#272/#274 slices 1) are landed:
-- freshness stamps + divergence-exact staleness verdicts + the
-  freshness route (consumers re-read, never mutate);
-- bounded context packets with Workpoint/CallGraph binding refs;
-- the evidence-gated transition DAG (draft → admitted → checkpointed →
-  settled → release_pending → released) + the transition route.
+- #273/1: Mission Canvas workset surface — `workset` kind in the canvas
+  model, inventory rows from the daemon workset list (settled badge,
+  requirement/membership counts), commands fetch + map summaries,
+  extension parity synced into apps/pi-extension. tsc green.
+- The daemon workset list now carries projection summaries
+  (requirement_count/membership_count/settled) per entry.
+- Freshness stamps + the freshness route; bounded context packets with
+  Workpoint/CallGraph binding refs; the evidence-gated transition DAG +
+  route.
+
+## Remaining for full release-readiness
+
+- Live deployment of the workset/CallGraph-surface daemon + the full
+  e2e matrix run against it (in flight).
+- #273 deeper UI polish (Work Rail parity) lands with the generated-UI
+  program — the typed surface is complete.
