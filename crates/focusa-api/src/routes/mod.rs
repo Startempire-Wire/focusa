@@ -14,6 +14,7 @@ pub mod clt;
 pub mod commands;
 pub mod adapters;
 pub mod direction;
+pub mod session_fanout;
 pub mod background_jobs;
 pub mod completion_claims;
 pub mod runtime_constitution;

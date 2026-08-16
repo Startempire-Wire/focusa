@@ -426,3 +426,16 @@ bounded core + persistence slices:
 - #254 slice 10: adapter registry + dispatch routing (actor refs carry
   the routed adapter).
 - rebuild-state hardened (TEXT event ids).
+
+## 5u. bg primitives + orchestration + fast-forward (2026-08-16)
+
+- bg primitive workflow codified EVERYWHERE (root + repo AGENTS.md,
+  agent docs index, docs/165, agent-kb COMMANDS.md): focusa_bg_run /
+  _many / _status; completion + bounded output_tail delivered to the
+  agent front terminal; tail-polling banned.
+- Multi-agent orchestration = N workloop-bound silent sessions +
+  existing completion stream + bg receipts (docs/168; work-loop skill
+  updated) — no new orchestrator.
+- FAST-FORWARD MULTIPLIER (2x/4x/6x/8x…): operator-conceived on the
+  fly, formalized as #312. session_fanout.rs FanoutPlan compiler (4/4
+  tests) + POST /v1/silent-sessions/fanout + docs/169.

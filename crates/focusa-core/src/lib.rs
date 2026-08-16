@@ -95,6 +95,7 @@ pub mod adapter_registry;
 pub mod callgraph;
 pub mod direction_ledger;
 pub mod procedure_compiler;
+pub mod session_fanout;
 pub mod direction_operations;
 pub mod capability_truth;
 pub mod completion_authority;

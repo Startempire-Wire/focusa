@@ -161,6 +161,13 @@
       "runbook": null,
       "owner_ref": "docs/165-background-execution-and-completion-notification.md",
       "packaging": "repo docs + Pi extension tools (focusa_bg_run / focusa_bg_run_many / focusa_bg_status)"
+    },
+    {
+      "skill": "focusa-fast-forward",
+      "skill_md": "docs/169-fast-forward-session-multiplier-design.md",
+      "runbook": null,
+      "owner_ref": "#312 (operator-conceived 2026-08-16)",
+      "packaging": "repo docs + POST /v1/silent-sessions/fanout + future focusa_fast_forward tool"
     }
   ]
 }

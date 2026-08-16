@@ -47,6 +47,9 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
    arrive on the agent front terminal via the `background_job_completion`
    SSE envelope (bounded output_tail). Multi-agent work = N
    workloop-bound silent sessions (docs/168), never raw shells.
+7. Fast-forward multiplier (2x/4x/6x/8x…): operator-conceived #312 —
+   FanoutPlan round-robin task division across parallel sessions with
+   per-lane policy budgets (docs/169).
 6. Load the matched `.pi/skills/<skill>/SKILL.md`, then its numbered runbook under `references/`.
 
 A release gate must prove runtime tool count = contracts = Pi descriptors = per-tool docs, and installed skills/runbooks = packaged skill/runbook copies.

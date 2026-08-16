@@ -50,6 +50,11 @@ setsid nohup /usr/local/bin/focusa bg run --name <job> -- <command...> &
 - Raw `setsid nohup ... > log &` is acceptable ONLY while the daemon is
   unavailable (cold-start recovery); the moment the daemon is up,
   dispatch through `focusa bg`.
+- Multi-agent work = N workloop-bound SILENT SESSIONS with the existing
+  completion stream + bg receipts (docs/168) — never raw shells.
+- Fast-forward multiplier (2x/4x/6x/8x…): operator-conceived #312 —
+  FanoutPlan divides work items round-robin across parallel sessions;
+  per-lane policy budgets, wait-for-all join (docs/169).
 
 ## Disk headroom (mandatory)
 
