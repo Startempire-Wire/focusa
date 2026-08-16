@@ -134,8 +134,8 @@ async fn apply_epoch(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
-        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
     }
 }
 

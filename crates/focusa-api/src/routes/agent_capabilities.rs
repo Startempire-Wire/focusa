@@ -2648,7 +2648,7 @@ pub async fn capabilities_index_handler(State(_state): State<Arc<AppState>>) -> 
         operations,
     };
     Json(serde_json::to_value(&index).unwrap_or(json!({
-        "status": "error",
+        "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
         "failure_class": "serialization_error",
         "message": "Failed to serialize capabilities index"
     })))

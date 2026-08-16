@@ -30,6 +30,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/callgraphs/{graph_id}/runs", post(create_run))
         .route("/v1/callgraph-runs/{run_id}", get(get_run))
         .route("/v1/callgraphs/{graph_id}/export", get(export_graph))
+        .route("/v1/callgraph-items/{graph_id}/{frame_id}", get(get_item_envelope))
         .route("/v1/callgraph-runs/{run_id}/control", post(control_run))
 }
 
@@ -103,8 +104,8 @@ async fn create_definition(
             "graph_id": graph_id,
             "revision": revision,
         })),
-        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
-        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
     }
 }
 
@@ -138,8 +139,8 @@ async fn list_definitions(
             "graph_id": graph_id,
             "revisions": revisions,
         })),
-        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
-        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
     }
 }
 
@@ -197,8 +198,8 @@ async fn preflight_run(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
-        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
     }
 }
 
@@ -256,8 +257,8 @@ async fn create_run(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
-        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
     }
 }
 
@@ -283,8 +284,8 @@ async fn get_run(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
-        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
     }
 }
 
@@ -415,8 +416,8 @@ async fn control_run(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
-        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
     }
 }
 
@@ -453,10 +454,8 @@ async fn export_graph(
         let graph: FocusaCallGraphDefinition = serde_json::from_str(&stored.definition_json)
             .map_err(|error| anyhow::anyhow!("stored definition unparsable: {error}"))?;
         let dispatches: Vec<focusa_core::callgraph_store::FrameDispatch> =
-            match focusa_core::callgraph_store::list_dispatches_for_graph(&conn, &graph_id) {
-                Ok(rows) => rows,
-                Err(_) => vec![],
-            };
+            focusa_core::callgraph_store::list_dispatches_for_graph(&conn, &graph_id)
+                .unwrap_or_default();
         let (format_name, lossless, omissions) = match query.format.as_str() {
             "jsonl" => ("jsonl".to_string(), true, vec![]),
             "todo.txt" => (
@@ -502,7 +501,54 @@ async fn export_graph(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
-        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+    }
+}
+
+/// Read the canonical Item Envelope for one frame (#289).
+async fn get_item_envelope(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path((graph_id, frame_id)): axum::extract::Path<(String, String)>,
+    axum::extract::Query(query): axum::extract::Query<ExportQuery>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let Some(stored) =
+            focusa_core::callgraph_store::load_definition(&conn, &graph_id, query.revision)?
+        else {
+            return Ok(json!({
+                "status": "missing",
+                "graph_id": graph_id,
+                "revision": query.revision,
+            }));
+        };
+        let graph: FocusaCallGraphDefinition = serde_json::from_str(&stored.definition_json)
+            .map_err(|error| anyhow::anyhow!("stored definition unparsable: {error}"))?;
+        let Some(frame) = graph
+            .frames
+            .iter()
+            .find(|frame| frame.frame_id == frame_id)
+            .cloned()
+        else {
+            return Ok(json!({
+                "status": "missing_frame",
+                "frame_id": frame_id,
+            }));
+        };
+        let envelope =
+            focusa_core::callgraph_envelope::build_item_envelope(&graph, &frame, None);
+        Ok(json!({
+            "status": "ok",
+            "envelope": envelope,
+        }))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
     }
 }
