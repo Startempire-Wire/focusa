@@ -282,4 +282,10 @@ bounded core + persistence slices:
   /v1/callgraphs (validated persistence), GET /v1/callgraphs (revisions).
 - Commits: `8ba2bc45`, `2236fad9`, `a31cd721`, `728ed437` (pushed as
   `217b41be`, `aacfa887`, `47bf9aec`, `ea7346a2`); each gate green.
-- Next: run creation/preflight routes + frame lease/liveness scheduler.
+- Slices 6-7 (same session): frame lease layer (acquire/refuse-while-live/
+  release/lapsed-list, 4/4 tests), dispatch control route
+  (dispatch_entry_frontier — durable commit + 5-minute leases before any
+  adapter activity), 30s liveness sweeper (ledger-derived, restart-safe).
+  Commits `2044b3d9`, `7dc0ddd0` (pushed `1d46bc1c`, `ab585508`).
+- Remaining on #254: adapter/execution-binding dispatch, model routing,
+  replay reducer; then close with installed-release proof.
