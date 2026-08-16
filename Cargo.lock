@@ -1329,11 +1329,7 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "focusa-api"
-<<<<<<< HEAD
 version = "0.9.152"
-=======
-version = "0.9.121-dev"
->>>>>>> local/work-loop-completion
 dependencies = [
  "anyhow",
  "async-stream",
@@ -1363,11 +1359,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-bench"
-<<<<<<< HEAD
 version = "0.9.152"
-=======
-version = "0.9.121-dev"
->>>>>>> local/work-loop-completion
 dependencies = [
  "chrono",
  "serde",
@@ -1378,11 +1370,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-cli"
-<<<<<<< HEAD
 version = "0.9.152"
-=======
-version = "0.9.121-dev"
->>>>>>> local/work-loop-completion
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1411,11 +1399,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-core"
-<<<<<<< HEAD
 version = "0.9.152"
-=======
-version = "0.9.121-dev"
->>>>>>> local/work-loop-completion
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1450,11 +1434,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-harness-adapters"
-<<<<<<< HEAD
 version = "0.9.152"
-=======
-version = "0.9.121-dev"
->>>>>>> local/work-loop-completion
 dependencies = [
  "chrono",
  "focusa-core",
@@ -1465,11 +1445,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-license"
-<<<<<<< HEAD
 version = "0.9.152"
-=======
-version = "0.9.121-dev"
->>>>>>> local/work-loop-completion
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -1486,11 +1462,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-session-runner"
-<<<<<<< HEAD
 version = "0.9.152"
-=======
-version = "0.9.121-dev"
->>>>>>> local/work-loop-completion
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1512,11 +1484,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-terminal-ui"
-<<<<<<< HEAD
 version = "0.9.152"
-=======
-version = "0.9.121-dev"
->>>>>>> local/work-loop-completion
 dependencies = [
  "crossterm 0.28.1",
  "ratatui",
@@ -1527,11 +1495,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-tui"
-<<<<<<< HEAD
 version = "0.9.152"
-=======
-version = "0.9.121-dev"
->>>>>>> local/work-loop-completion
 dependencies = [
  "anyhow",
  "chrono",
