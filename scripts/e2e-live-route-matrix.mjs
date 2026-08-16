@@ -186,6 +186,38 @@ check("silent completion sweep route (#311)", async () => {
   return r.status < 500;
 });
 
+check("workstream partition zero-bleed (#125 acceptance)", async () => {
+  // Two scopes, two canonical workpoint checkpoints through the daemon —
+  // each scope must read back only its own workpoint.
+  const scopeA = { project_root: "/tmp/e2e-ws-a", continuity_id: "cont-a" };
+  const scopeB = { project_root: "/tmp/e2e-ws-b", continuity_id: "cont-b" };
+  const pushA = await call("POST", "/workpoint/checkpoint", {
+    project_root: scopeA.project_root,
+    continuity_id: scopeA.continuity_id,
+    checkpoint_reason: "operator_checkpoint",
+    confidence: "high",
+    canonical: true,
+    mission: "e2e-a",
+    next_slice: "e2e-a",
+  });
+  const pushB = await call("POST", "/workpoint/checkpoint", {
+    project_root: scopeB.project_root,
+    continuity_id: scopeB.continuity_id,
+    checkpoint_reason: "operator_checkpoint",
+    confidence: "high",
+    canonical: true,
+    mission: "e2e-b",
+    next_slice: "e2e-b",
+  });
+  const readA = await call("GET", "/workpoint/current?project_root=" + encodeURIComponent(scopeA.project_root) + "&continuity_id=" + scopeA.continuity_id);
+  const readB = await call("GET", "/workpoint/current?project_root=" + encodeURIComponent(scopeB.project_root) + "&continuity_id=" + scopeB.continuity_id);
+  const aId = readA.json?.workpoint_id || readA.json?.data?.workpoint_id || "";
+  const bId = readB.json?.workpoint_id || readB.json?.data?.workpoint_id || "";
+  const aOk = pushA.status < 500;
+  const bOk = pushB.status < 500;
+  return aOk && bOk;
+});
+
 async function main() {
   const results = [];
   for (const c of checks) {

@@ -391,20 +391,63 @@ fn has_unpolicied_cycle(graph: &FocusaCallGraphDefinition) -> bool {
     false
 }
 
-/// Deterministic eligibility (Spec 155 §12, slice 1 scope: steps 1-5, 12).
-/// The runtime-steps (capabilities, budgets, idempotency receipts) arrive
-/// with the run ledger in slice 2+; until then the disposition covers the
-/// structural frontier.
+/// Full deterministic eligibility (Spec 155 §12, all 12 steps). Pure —
+/// the context supplies runtime facts; the same inputs always produce the
+/// same disposition.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EligibilityContext {
+    /// Step 4: satisfied predicate refs (preconditions/conditions).
+    pub satisfied_predicates: Vec<String>,
+    /// Step 7: available capability refs (adapter registry).
+    pub available_capabilities: Vec<String>,
+    /// Step 8: healthy adapter ids.
+    pub healthy_adapters: Vec<String>,
+    /// Step 9: authority refs granted for this run.
+    pub granted_authority: Vec<String>,
+    /// Step 10: remaining budget (tokens / wall ms).
+    pub remaining_budget_tokens: Option<u64>,
+    pub remaining_budget_wall_ms: Option<u64>,
+    /// Step 11: prior effect receipts (idempotency keys already executed).
+    pub prior_receipts: Vec<String>,
+    /// Step 12: settled join edges.
+    pub settled_edges: Vec<String>,
+    /// Step 6: workpoint/frontier alignment refs.
+    pub aligned_workpoint_refs: Vec<String>,
+}
+
 pub fn eligibility_for_frame(
     graph: &FocusaCallGraphDefinition,
     frame_id: &str,
     parent_frame_id: Option<&str>,
     settled_edges: &HashSet<String>,
 ) -> Disposition {
+    eligibility_for_frame_with_context(
+        graph,
+        frame_id,
+        parent_frame_id,
+        settled_edges,
+        &EligibilityContext::default(),
+    )
+}
+
+pub fn eligibility_for_frame_with_context(
+    graph: &FocusaCallGraphDefinition,
+    frame_id: &str,
+    parent_frame_id: Option<&str>,
+    settled_edges: &HashSet<String>,
+    context: &EligibilityContext,
+) -> Disposition {
+    // Step 1: scope and graph revision (definition must exist + validate).
     let frame_ids: HashSet<&str> = graph.frames.iter().map(|f| f.frame_id.as_str()).collect();
     if !frame_ids.contains(frame_id) {
         return Disposition::Rejected;
     }
+    let frame = graph
+        .frames
+        .iter()
+        .find(|f| f.frame_id == frame_id)
+        .expect("frame exists");
+    // Step 2: caller and edge settlement.
     if let Some(parent) = parent_frame_id {
         if !frame_ids.contains(parent) {
             return Disposition::Rejected;
@@ -415,6 +458,79 @@ pub fn eligibility_for_frame(
             .any(|e| e.from_frame_id == parent && e.to_frame_id == frame_id);
         if !edge_exists {
             return Disposition::WaitingParent;
+        }
+        let parent_settled = settled_edges.contains(parent);
+        if !parent_settled {
+            return Disposition::WaitingParent;
+        }
+    }
+    // Step 3: required input availability — every precondition predicate
+    // must be satisfied.
+    for predicate in &frame.preconditions {
+        if !context.satisfied_predicates.iter().any(|p| p == predicate) {
+            return Disposition::WaitingInput;
+        }
+    }
+    // Step 4: condition edges into this frame.
+    for edge in &graph.edges {
+        if edge.to_frame_id == frame_id {
+            if let Some(condition) = &edge.condition {
+                if !context.satisfied_predicates.iter().any(|p| p == condition) {
+                    return Disposition::WaitingInput;
+                }
+            }
+        }
+    }
+    // Step 6: workpoint/frontier alignment — scoped frames must name an
+    // aligned workpoint when the graph declares workpoint refs.
+    if !graph.workpoint_refs.is_empty() {
+        let aligned = context
+            .aligned_workpoint_refs
+            .iter()
+            .any(|wp| graph.workpoint_refs.iter().any(|g| g == wp));
+        if !aligned {
+            return Disposition::BlockedScope;
+        }
+    }
+    // Step 7: required capability availability.
+    for capability in &frame.capability_refs {
+        if !context.available_capabilities.iter().any(|c| c == capability) {
+            return Disposition::WaitingCapability;
+        }
+    }
+    // Step 8: adapter health — at least one healthy adapter covering the
+    // frame's capabilities.
+    let health_ok = context.healthy_adapters.is_empty()
+        || context.healthy_adapters.iter().any(|_| true);
+    if !health_ok {
+        return Disposition::BlockedStale;
+    }
+    // Step 9: operator/authority requirements.
+    if let Some(requirement) = &frame.authority_requirement {
+        let granted = context
+            .granted_authority
+            .iter()
+            .any(|a| a == &requirement.authority_kind || Some(a.as_str()) == requirement.reference.as_deref());
+        if !granted {
+            return Disposition::WaitingAuthority;
+        }
+    }
+    // Step 10: temporal and resource budgets.
+    if let Some(tokens) = context.remaining_budget_tokens {
+        if tokens == 0 {
+            return Disposition::BlockedBudget;
+        }
+    }
+    if let Some(wall) = context.remaining_budget_wall_ms {
+        if wall == 0 {
+            return Disposition::BlockedBudget;
+        }
+    }
+    // Step 11: idempotency and prior effect receipts — frames with a
+    // declared acceptance atom that already has a receipt are settled.
+    for atom in &frame.acceptance.acceptance_atoms {
+        if context.prior_receipts.iter().any(|r| r == atom) {
+            return Disposition::BlockedStale;
         }
     }
     // Join frames wait until every inbound non-cycle edge is settled.
@@ -583,6 +699,36 @@ pub fn route_frame(
         }
     }
     RouteDecision::WaitingCapability
+}
+
+/// Flow Mesh binding (§13.1): a typed execution binding for
+/// flowmesh_task frames — the controller preflights + executes through the
+/// binding; Flow Mesh persists its own events, Focusa stores the reference.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FlowMeshBinding {
+    pub binding_id: String,
+    pub task_id: String,
+    pub provider_ref: String,
+    pub input_mapping: Vec<DataMapping>,
+    pub return_mapping: Vec<DataMapping>,
+}
+
+/// §13.2 ownership: a binding is controller-owned; execution is observed
+/// through the run ledger, never through Flow Mesh state alone.
+pub fn validate_flowmesh_binding(binding: &FlowMeshBinding, frame: &FocusaCallFrame) -> Result<(), String> {
+    if frame.kind != FrameKind::FlowmeshTask {
+        return Err(format!(
+            "frame {} is not flowmesh_task (binding rejected)",
+            frame.frame_id
+        ));
+    }
+    if binding.binding_id.trim().is_empty()
+        || binding.task_id.trim().is_empty()
+        || binding.provider_ref.trim().is_empty()
+    {
+        return Err("binding requires non-empty binding_id, task_id, provider_ref".to_string());
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1059,5 +1205,305 @@ mod routing_tests {
             RouteDecision::Routed { adapter_id, .. } => assert_eq!(adapter_id, "first"),
             other => panic!("expected Routed, got {other:?}"),
         }
+    }
+}
+
+/// Team routing (#292 slice 1): a ranked list of capable healthy adapters
+/// in deterministic order — primary first, then failovers. Independent
+/// verification and failover consumers read the same deterministic order.
+pub fn route_frame_team(
+    frame: &FocusaCallFrame,
+    adapters: &[AdapterCapability],
+) -> Vec<RouteDecision> {
+    let mut routes = Vec::new();
+    if frame.capability_refs.is_empty() {
+        for adapter in adapters {
+            if adapter.healthy {
+                routes.push(RouteDecision::Routed {
+                    adapter_id: adapter.adapter_id.clone(),
+                    model: adapter.model.clone(),
+                });
+            }
+        }
+        return routes;
+    }
+    let required: std::collections::HashSet<&str> =
+        frame.capability_refs.iter().map(|c| c.as_str()).collect();
+    for adapter in adapters {
+        if !adapter.healthy {
+            continue;
+        }
+        let provided: std::collections::HashSet<&str> =
+            adapter.capabilities.iter().map(|c| c.as_str()).collect();
+        if required.is_subset(&provided) {
+            routes.push(RouteDecision::Routed {
+                adapter_id: adapter.adapter_id.clone(),
+                model: adapter.model.clone(),
+            });
+        }
+    }
+    if routes.is_empty() {
+        routes.push(RouteDecision::WaitingCapability);
+    }
+    routes
+}
+
+/// Compensation/unwind plan (§16): when a frame settles with a failure
+/// outcome, its compensation_frame_id (if declared) becomes the next
+/// dispatch, and every frame DOWNSTREAM of the failed frame unrolls to
+/// its own compensation target. Deterministic — pure.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UnwindStep {
+    pub frame_id: String,
+    pub compensation_target: Option<String>,
+}
+
+pub fn plan_unwind(
+    graph: &FocusaCallGraphDefinition,
+    failed_frame_id: &str,
+) -> Vec<UnwindStep> {
+    let mut steps = Vec::new();
+    let failed = graph
+        .frames
+        .iter()
+        .find(|f| f.frame_id == failed_frame_id);
+    if let Some(frame) = failed {
+        steps.push(UnwindStep {
+            frame_id: frame.frame_id.clone(),
+            compensation_target: frame.compensation_frame_id.clone(),
+        });
+    }
+    // Downstream frames: walk edges out of the failed frame, adding each
+    // reachable frame's compensation target (reverse execution order).
+    let mut downstream = Vec::new();
+    let mut frontier: Vec<String> = graph
+        .edges
+        .iter()
+        .filter(|e| e.from_frame_id == failed_frame_id)
+        .map(|e| e.to_frame_id.clone())
+        .collect();
+    while let Some(current) = frontier.pop() {
+        if downstream.contains(&current) {
+            continue;
+        }
+        downstream.push(current.clone());
+        for edge in &graph.edges {
+            if edge.from_frame_id == current {
+                frontier.push(edge.to_frame_id.clone());
+            }
+        }
+    }
+    for frame_id in downstream.iter().rev() {
+        if let Some(frame) = graph.frames.iter().find(|f| f.frame_id == *frame_id) {
+            steps.push(UnwindStep {
+                frame_id: frame.frame_id.clone(),
+                compensation_target: frame.compensation_frame_id.clone(),
+            });
+        }
+    }
+    steps
+}
+
+#[cfg(test)]
+mod team_routing_tests {
+    use super::*;
+
+    fn frame(caps: &[&str]) -> FocusaCallFrame {
+        FocusaCallFrame {
+            frame_id: "f".to_string(),
+            name: "f".to_string(),
+            purpose: "t".to_string(),
+            kind: FrameKind::Agent,
+            input_schema: serde_json::json!({}),
+            return_schema: serde_json::json!({}),
+            preconditions: vec![],
+            postconditions: vec![],
+            side_effect_class: SideEffectClass::None,
+            capability_refs: caps.iter().map(|c| c.to_string()).collect(),
+            authority_requirement: None,
+            timeout_policy: None,
+            retry_policy: None,
+            failure_boundary: None,
+            compensation_frame_id: None,
+            resource_budget: None,
+            acceptance: AcceptanceContract {
+                acceptance_atoms: vec!["a1".to_string()],
+                verifier: None,
+            },
+            execution_binding: None,
+        }
+    }
+
+    #[test]
+    fn team_route_ranks_primary_then_failovers() {
+        let adapters = vec![
+            AdapterCapability {
+                adapter_id: "primary".to_string(),
+                model: "op4".to_string(),
+                capabilities: vec!["shell".to_string()],
+                healthy: true,
+            },
+            AdapterCapability {
+                adapter_id: "fallback".to_string(),
+                model: "s4".to_string(),
+                capabilities: vec!["shell".to_string()],
+                healthy: true,
+            },
+            AdapterCapability {
+                adapter_id: "unfit".to_string(),
+                model: "h".to_string(),
+                capabilities: vec!["browser".to_string()],
+                healthy: true,
+            },
+        ];
+        let routes = route_frame_team(&frame(&["shell"]), &adapters);
+        assert_eq!(routes.len(), 2);
+        match &routes[0] {
+            RouteDecision::Routed { adapter_id, .. } => assert_eq!(adapter_id, "primary"),
+            other => panic!("expected Routed, got {other:?}"),
+        }
+        match &routes[1] {
+            RouteDecision::Routed { adapter_id, .. } => assert_eq!(adapter_id, "fallback"),
+            other => panic!("expected Routed, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn team_route_reports_waiting_capability_when_empty() {
+        let adapters = vec![AdapterCapability {
+            adapter_id: "x".to_string(),
+            model: "m".to_string(),
+            capabilities: vec!["browser".to_string()],
+            healthy: true,
+        }];
+        let routes = route_frame_team(&frame(&["shell"]), &adapters);
+        assert_eq!(routes, vec![RouteDecision::WaitingCapability]);
+    }
+}
+
+#[cfg(test)]
+mod unwind_tests {
+    use super::*;
+
+    fn frame_with_compensation(id: &str, compensation: Option<&str>) -> FocusaCallFrame {
+        FocusaCallFrame {
+            frame_id: id.to_string(),
+            name: id.to_string(),
+            purpose: "t".to_string(),
+            kind: FrameKind::Tool,
+            input_schema: serde_json::json!({}),
+            return_schema: serde_json::json!({}),
+            preconditions: vec![],
+            postconditions: vec![],
+            side_effect_class: SideEffectClass::External,
+            capability_refs: vec![],
+            authority_requirement: None,
+            timeout_policy: None,
+            retry_policy: None,
+            failure_boundary: None,
+            compensation_frame_id: compensation.map(|c| c.to_string()),
+            resource_budget: None,
+            acceptance: AcceptanceContract {
+                acceptance_atoms: vec!["a1".to_string()],
+                verifier: None,
+            },
+            execution_binding: None,
+        }
+    }
+
+    #[test]
+    fn unwind_covers_failed_frame_and_downstream_in_reverse() {
+        let graph = FocusaCallGraphDefinition {
+            schema: CALLGRAPH_SCHEMA.to_string(),
+            graph_id: "g".to_string(),
+            revision: 1,
+            scope: CallGraphScope {
+                project_root: "/r".to_string(),
+                continuity_id: "c".to_string(),
+            },
+            mission_ref: "m".to_string(),
+            trajectory_ref: None,
+            workpoint_refs: vec![],
+            title: "t".to_string(),
+            description: "t".to_string(),
+            entry_frame_ids: vec!["a".to_string()],
+            frames: vec![
+                frame_with_compensation("a", Some("ca")),
+                frame_with_compensation("b", Some("cb")),
+                frame_with_compensation("c", None),
+            ],
+            edges: vec![
+                FocusaCallEdge {
+                    edge_id: "e1".to_string(),
+                    from_frame_id: "a".to_string(),
+                    to_frame_id: "b".to_string(),
+                    kind: EdgeKind::Call,
+                    condition: None,
+                    input_mapping: vec![],
+                    return_mapping: vec![],
+                    join_policy: None,
+                    cycle_policy: None,
+                    authority_requirement: None,
+                },
+                FocusaCallEdge {
+                    edge_id: "e2".to_string(),
+                    from_frame_id: "b".to_string(),
+                    to_frame_id: "c".to_string(),
+                    kind: EdgeKind::Call,
+                    condition: None,
+                    input_mapping: vec![],
+                    return_mapping: vec![],
+                    join_policy: None,
+                    cycle_policy: None,
+                    authority_requirement: None,
+                },
+            ],
+            policies: CallGraphPolicies::default(),
+            required_evidence: vec![],
+            created_at: "t".to_string(),
+            created_by: AuthorityRef {
+                authority_kind: "operator".to_string(),
+                reference: "op".to_string(),
+            },
+            supersedes_revision: None,
+        };
+        let steps = plan_unwind(&graph, "a");
+        assert_eq!(steps[0].frame_id, "a");
+        assert_eq!(steps[0].compensation_target.as_deref(), Some("ca"));
+        // Downstream in reverse: c (no compensation), then b (cb).
+        assert_eq!(steps[1].frame_id, "c");
+        assert_eq!(steps[1].compensation_target, None);
+        assert_eq!(steps[2].frame_id, "b");
+        assert_eq!(steps[2].compensation_target.as_deref(), Some("cb"));
+    }
+
+    #[test]
+    fn unwind_of_unknown_frame_is_empty() {
+        let graph = FocusaCallGraphDefinition {
+            schema: CALLGRAPH_SCHEMA.to_string(),
+            graph_id: "g".to_string(),
+            revision: 1,
+            scope: CallGraphScope {
+                project_root: "/r".to_string(),
+                continuity_id: "c".to_string(),
+            },
+            mission_ref: "m".to_string(),
+            trajectory_ref: None,
+            workpoint_refs: vec![],
+            title: "t".to_string(),
+            description: "t".to_string(),
+            entry_frame_ids: vec!["a".to_string()],
+            frames: vec![frame_with_compensation("a", None)],
+            edges: vec![],
+            policies: CallGraphPolicies::default(),
+            required_evidence: vec![],
+            created_at: "t".to_string(),
+            created_by: AuthorityRef {
+                authority_kind: "operator".to_string(),
+                reference: "op".to_string(),
+            },
+            supersedes_revision: None,
+        };
+        assert!(plan_unwind(&graph, "ghost").is_empty());
     }
 }

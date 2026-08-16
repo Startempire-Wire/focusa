@@ -32,6 +32,19 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/callgraphs/{graph_id}/export", get(export_graph))
         .route("/v1/callgraph-items/{graph_id}/{frame_id}", get(get_item_envelope))
         .route("/v1/callgraph-runs/{run_id}/control", post(control_run))
+        .route("/v1/callgraph-runs/{run_id}/settle", post(settle_frame))
+        .route("/v1/callgraph-runs/{run_id}/events", get(get_run_events))
+        .route(
+            "/v1/callgraph-runs/{run_id}/flowmesh-bindings/preflight",
+            post(flowmesh_preflight),
+        )
+        .route(
+            "/v1/callgraph-runs/{run_id}/flowmesh-bindings/execute",
+            post(flowmesh_execute),
+        )
+        .route("/v1/callgraph-runs/{run_id}/evidence/link", post(link_evidence))
+        .route("/v1/callgraph-runs/{run_id}/paths", get(get_run_paths))
+        .route("/v1/callgraph-runs/{run_id}/frontier", get(get_run_paths))
 }
 
 #[derive(Deserialize)]
@@ -287,6 +300,320 @@ async fn get_run(
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
         Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
     }
+}
+
+/// Frame settlement (Spec 155 §17/§19.1): a receipt settles the
+/// invocation, marks the dispatch receipted, and transitions the run when
+/// every dispatch is settled. Evidence links land on the settlement.
+#[derive(Deserialize)]
+pub struct SettleBody {
+    pub invocation_id: String,
+    pub receipt_ref: String,
+    pub outcome: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
+async fn settle_frame(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(run_id): axum::extract::Path<String>,
+    Json(body): Json<SettleBody>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let events_tx = state.events_tx.clone();
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let Some(run) = focusa_core::callgraph_store::load_run(&conn, &run_id)? else {
+            return Ok(json!({"status": "missing", "run_id": run_id}));
+        };
+        let mut dispatches = focusa_core::callgraph_store::list_dispatches(&conn, &run_id)?;
+        let Some(dispatch) = dispatches
+            .iter_mut()
+            .find(|d| d.invocation_id.as_deref() == Some(body.invocation_id.as_str()))
+        else {
+            return Ok(json!({"status": "missing_invocation", "invocation_id": body.invocation_id}));
+        };
+        if dispatch.receipt_ref.is_some() {
+            return Ok(json!({"status": "already_settled", "dispatch": dispatch}));
+        }
+        focusa_core::callgraph_store::mark_dispatch_settled(
+            &conn,
+            &dispatch.dispatch_id,
+            &body.receipt_ref,
+            &body.outcome,
+            &body.evidence_refs,
+        )?;
+        focusa_core::callgraph_store::release_lease(&conn, &body.invocation_id)?;
+        let all_settled = focusa_core::callgraph_store::list_dispatches(&conn, &run_id)?
+            .iter()
+            .all(|d| d.receipt_ref.is_some());
+        let now = chrono::Utc::now().to_rfc3339();
+        if all_settled {
+            focusa_core::callgraph_store::transition_run(
+                &conn,
+                &run_id,
+                focusa_core::callgraph_store::RunState::Completed,
+                &now,
+            )?;
+        }
+        // §16 compensation: a failed settlement unrolls the graph — every
+        // declared compensation target becomes a committed dispatch.
+        if body.outcome == "failed" {
+            let Some(stored) = focusa_core::callgraph_store::load_definition(
+                &conn, &run.graph_id, run.revision,
+            )? else { return Ok(json!({"status": "missing_definition"})); };
+            let graph: FocusaCallGraphDefinition = serde_json::from_str(&stored.definition_json)
+                .map_err(|error| anyhow::anyhow!("stored definition unparsable: {error}"))?;
+            let failed_frame = dispatch.frame_id.clone();
+            let steps = focusa_core::callgraph::plan_unwind(&graph, &failed_frame);
+            for step in steps {
+                if let Some(target) = step.compensation_target {
+                    focusa_core::callgraph_store::commit_dispatch(
+                        &conn,
+                        &focusa_core::callgraph_store::DispatchCommit {
+                            dispatch_id: uuid::Uuid::now_v7().to_string(),
+                            run_id: run_id.clone(),
+                            frame_id: target,
+                            invocation_id: uuid::Uuid::now_v7().to_string(),
+                            parent_invocation_id: Some(body.invocation_id.clone()),
+                            disposition: focusa_core::callgraph::Disposition::Eligible,
+                            attempt: 1,
+                            committed_at: now.clone(),
+                            actor_ref: "compensation".to_string(),
+                        },
+                    )?;
+                }
+            }
+        }
+        let _ = &run;
+        Ok(json!({
+            "status": "settled",
+            "dispatch_id": dispatch.dispatch_id,
+            "invocation_id": body.invocation_id,
+            "receipt_ref": body.receipt_ref,
+            "run_settled": all_settled,
+        }))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => {
+            if let Ok(serialized) = serde_json::to_string(
+                &focusa_core::types::FocusaEvent::CallGraphFrameSettled {
+                    run_id: run_id.clone(),
+                    frame_id: "settled".to_string(),
+                    invocation_id: body.invocation_id,
+                    receipt_ref: body.receipt_ref,
+                },
+            ) {
+                let _ = events_tx.send(serialized);
+            }
+            Json(payload)
+        }
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+    }
+}
+
+/// Flow Mesh binding preflight (§13.2): validate the binding against the
+/// frame, then execute commits a dispatch with the binding recorded.
+async fn flowmesh_preflight(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(run_id): axum::extract::Path<String>,
+    Json(body): Json<serde_json::Value>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let Some(run) = focusa_core::callgraph_store::load_run(&conn, &run_id)? else {
+            return Ok(json!({"status": "missing", "run_id": run_id}));
+        };
+        let Some(stored) = focusa_core::callgraph_store::load_definition(&conn, &run.graph_id, run.revision)? else {
+            return Ok(json!({"status": "missing_definition"}));
+        };
+        let graph: FocusaCallGraphDefinition = serde_json::from_str(&stored.definition_json)
+            .map_err(|error| anyhow::anyhow!("stored definition unparsable: {error}"))?;
+        let frame_id = body.get("frame_id").and_then(|v| v.as_str()).unwrap_or("");
+        let Some(frame) = graph.frames.iter().find(|f| f.frame_id == frame_id) else {
+            return Ok(json!({"status": "missing_frame", "frame_id": frame_id}));
+        };
+        let binding: focusa_core::callgraph::FlowMeshBinding =
+            serde_json::from_value(body.get("binding").cloned().unwrap_or(serde_json::json!({})))
+                .map_err(|error| anyhow::anyhow!("binding unparsable: {error}"))?;
+        match focusa_core::callgraph::validate_flowmesh_binding(&binding, frame) {
+            Ok(()) => Ok(json!({"status": "preflighted", "frame_id": frame_id, "binding_id": binding.binding_id})),
+            Err(reason) => Ok(json!({
+                "status": "rejected",
+                "failure_class": "flowmesh_binding_invalid",
+                "retry_posture": "do_not_retry_unchanged",
+                "safe_recovery": "bind a flowmesh_task frame with a complete binding",
+                "error": reason,
+            })),
+        }
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+    }
+}
+
+/// Flow Mesh binding execute (§13.4): commit a dispatch bound to the
+/// validated binding — the durable commit boundary precedes any Flow
+/// Mesh call, exactly like the entry frontier.
+async fn flowmesh_execute(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(run_id): axum::extract::Path<String>,
+    Json(body): Json<serde_json::Value>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let Some(run) = focusa_core::callgraph_store::load_run(&conn, &run_id)? else {
+            return Ok(json!({"status": "missing", "run_id": run_id}));
+        };
+        let frame_id = body.get("frame_id").and_then(|v| v.as_str()).unwrap_or("");
+        let binding_id = body.get("binding_id").and_then(|v| v.as_str()).unwrap_or("");
+        if frame_id.is_empty() || binding_id.is_empty() {
+            return Ok(json!({"status": "rejected", "error": "frame_id + binding_id required"}));
+        }
+        let dispatch_id = uuid::Uuid::now_v7().to_string();
+        let invocation_id = uuid::Uuid::now_v7().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+        focusa_core::callgraph_store::commit_dispatch(
+            &conn,
+            &focusa_core::callgraph_store::DispatchCommit {
+                dispatch_id: dispatch_id.clone(),
+                run_id: run_id.clone(),
+                frame_id: frame_id.to_string(),
+                invocation_id: invocation_id.clone(),
+                parent_invocation_id: None,
+                disposition: focusa_core::callgraph::Disposition::Eligible,
+                attempt: 1,
+                committed_at: now,
+                actor_ref: format!("flowmesh:{binding_id}"),
+            },
+        )?;
+        Ok(json!({
+            "status": "dispatched",
+            "dispatch_id": dispatch_id,
+            "invocation_id": invocation_id,
+            "binding_id": binding_id,
+        }))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+    }
+}
+
+/// Run events (§19.1): the dispatch ledger as an ordered event list.
+async fn get_run_events(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(run_id): axum::extract::Path<String>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let dispatches = focusa_core::callgraph_store::list_dispatches(&conn, &run_id)?;
+        Ok(json!({"status": "ok", "run_id": run_id, "events": dispatches}))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+    }
+}
+
+/// Evidence link (Spec 155 §17): bind evidence refs to a settled dispatch.
+async fn link_evidence(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(run_id): axum::extract::Path<String>,
+    Json(body): Json<serde_json::Value>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let dispatch_id = body.get("dispatch_id").and_then(|v| v.as_str()).unwrap_or("");
+        let evidence = body
+            .get("evidence_refs")
+            .and_then(|v| v.as_array())
+            .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect::<Vec<_>>())
+            .unwrap_or_default();
+        focusa_core::callgraph_store::link_evidence(&conn, &run_id, dispatch_id, &evidence)?;
+        Ok(json!({"status": "linked", "dispatch_id": dispatch_id, "evidence_refs": evidence}))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+    }
+}
+
+/// Read run paths + frontier (Spec 155 §19.1).
+async fn get_run_paths(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(run_id): axum::extract::Path<String>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let Some(run) = focusa_core::callgraph_store::load_run(&conn, &run_id)? else {
+            return Ok(json!({"status": "missing", "run_id": run_id}));
+        };
+        let Some(stored) = focusa_core::callgraph_store::load_definition(&conn, &run.graph_id, run.revision)? else {
+            return Ok(json!({"status": "missing_definition"}));
+        };
+        let graph: FocusaCallGraphDefinition = serde_json::from_str(&stored.definition_json)
+            .map_err(|error| anyhow::anyhow!("stored definition unparsable: {error}"))?;
+        let dispatches = focusa_core::callgraph_store::list_dispatches(&conn, &run_id)?;
+        let frontier = focusa_core::callgraph::replay_frontier(&graph, &dispatches);
+        let paths: Vec<Value> = graph
+            .entry_frame_ids
+            .iter()
+            .map(|entry| {
+                let mut path = vec![entry.clone()];
+                let mut current = entry.clone();
+                loop {
+                    let next = graph
+                        .edges
+                        .iter()
+                        .find(|e| e.from_frame_id == current)
+                        .map(|e| e.to_frame_id.clone());
+                    match next {
+                        Some(next) => {
+                            path.push(next.clone());
+                            current = next;
+                        }
+                        None => break,
+                    }
+                }
+                json!({"path_id": format!("path-{entry}"), "invocation_ids": path})
+            })
+            .collect();
+        Ok(json!({
+            "status": "ok",
+            "run_id": run_id,
+            "paths": paths,
+            "frontier": frontier,
+        }))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+    })
 }
 
 /// Dispatch control (Spec 155 §19.1 POST /v1/callgraph-runs/{run_id}/control).

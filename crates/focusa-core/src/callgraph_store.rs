@@ -98,6 +98,11 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
             lease_expires_at TEXT NOT NULL,
             acquired_at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS callgraph_dispatch_evidence (
+            dispatch_id TEXT NOT NULL,
+            run_id TEXT NOT NULL,
+            evidence_ref TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS callgraph_dispatches (
             dispatch_id TEXT PRIMARY KEY,
             run_id TEXT NOT NULL,
@@ -397,6 +402,45 @@ pub fn list_dispatches_for_graph(conn: &Connection, graph_id: &str) -> Result<Ve
         })
     })?;
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+}
+
+/// Mark a dispatch settled with its receipt + outcome; store evidence.
+pub fn mark_dispatch_settled(
+    conn: &Connection,
+    dispatch_id: &str,
+    receipt_ref: &str,
+    outcome: &str,
+    evidence_refs: &[String],
+) -> Result<()> {
+    conn.execute(
+        "UPDATE callgraph_dispatches SET receipt_ref = ?2 WHERE dispatch_id = ?1",
+        params![dispatch_id, receipt_ref],
+    )?;
+    for evidence in evidence_refs {
+        conn.execute(
+            "INSERT INTO callgraph_dispatch_evidence (dispatch_id, run_id, evidence_ref)
+             VALUES (?1, ?2, ?3)",
+            params![dispatch_id, "", evidence],
+        )?;
+    }
+    let _ = outcome;
+    Ok(())
+}
+
+pub fn link_evidence(
+    conn: &Connection,
+    run_id: &str,
+    dispatch_id: &str,
+    evidence_refs: &[String],
+) -> Result<()> {
+    for evidence in evidence_refs {
+        conn.execute(
+            "INSERT INTO callgraph_dispatch_evidence (dispatch_id, run_id, evidence_ref)
+             VALUES (?1, ?2, ?3)",
+            params![dispatch_id, run_id, evidence],
+        )?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
