@@ -129,6 +129,29 @@ satisfies acceptance: a fresh Pi process must start with zero duplicate tool
 and zero duplicate flag errors. Install and OTA activation flow through the
 typed receipt in `crates/focusa-cli/src/commands/pi_package.rs`.
 
+## Per-turn metacognition + prediction loop (mandatory)
+
+Every turn ends with the learning loop, recorded through Focusa itself:
+
+1. **Reflect** — capture what worked and what failed that turn (`POST /v1/metacognition/capture`, or the `focusa_metacog_capture` tool) with kind `reflection` + a strategy_class.
+2. **Predict** — record a bounded prediction for the next task (`POST /v1/predictions`: predicted_outcome, confidence, recommended_action, why).
+3. **Evaluate** — on the next turn, evaluate the prior prediction against the actual outcome (`POST /v1/predictions/capture-outcome`).
+4. **Retrieve** — before a related ask, `POST /v1/metacognition/retrieve` so prior lessons apply.
+
+Predictions use a typed scope body (`scope.root_scope.scope_kind` = `Project`/`Host`).
+
+## Tool flywheel + health discipline (mandatory)
+
+Every tool family must close the loop with the others — no isolated tool, no broken tool. Before any feature work on tooling, and after any route/guard change, run `scripts/audit-route-health.mjs` and require a healthy sweep. Broken-tool reports are release blockers, not backlog. The ecosystem audit (docs/170) orders the cross-family work.
+
+## Dynamic scope discipline
+
+No hard-coded paths or magic roots anywhere in requests, tests, or fixtures. Scopes derive from the caller's actual project root; safety classification lives in one place (`scope_safety.rs`) and the json_guard accepts both the typed ScopeKind enum and query scope kinds.
+
+## Turn closure
+
+Every turn ends with the suggested next logical step, stated in one line.
+
 ## Quick Reference
 
 ```bash
