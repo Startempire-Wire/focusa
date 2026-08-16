@@ -14,16 +14,16 @@
 | Distribution parity visibility | `scripts/audit-distribution-parity.mjs` manifest + drift detection + CI report | #260 |
 | Installed vs source drift | detected and typed (0.9.152 installed vs 0.9.121-dev source — expected mid-cycle) | parity script live run |
 
-## Remaining convergence gaps
+## Remaining convergence gaps (refreshed 2026-08-16)
 
 | Gap | Owner | State |
 | --- | --- | --- |
-| Remote hosts without a daemon | RemoteWorkspaceBinding | #89, docs/162 (IR1) |
-| Workstream-scoped runtime (no singletons) | #125, docs/164 | IR1 |
-| Spec 152 unified entitlement service | #119, LICENSING_DIVERGENCE_AUDIT | IR1 |
-| Agent Card/component/digest parity enforcement at release | #260 | parity script live; release-gate wiring next |
-| Menubar/Desktop transition with Pi preservation | #128 | PR #129 draft |
-| CallGraph/Workset execution authority | #267-#274 | program, out of 0.9.x scope |
+| Remote hosts without a daemon | RemoteWorkspaceBinding | #89 slices 1-6 landed (docs/162); license-registry receiver + UIAI video remain |
+| Workstream-scoped runtime (no singletons) | #125, docs/164 | slices 1-5 + full route-family migration landed; live-daemon acceptance pending restart window |
+| Spec 152 unified entitlement service | #119, LICENSING_DIVERGENCE_AUDIT | CLOSED 2026-08-15 (engine in focusa-core, license facade) |
+| Agent Card/component/digest parity enforcement at release | #260 | CLOSED — parity script + release gate wired into create-dev-release-tag |
+| Menubar/Desktop transition with Pi preservation | #128 | PR #129 CI gate fixed (0531b8b3); review posted |
+| CallGraph/Workset execution authority | #267-#274 | #254 slices 1-9 landed (types/validation/eligibility/ledger/routes/leases/liveness/replay/routing) |
 
 ## Invariants going forward
 
