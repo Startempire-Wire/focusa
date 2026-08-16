@@ -656,8 +656,13 @@ async fn materialize_focus_event(
         }
     }
 
-    *state.focusa.write().await = new_state;
+    *state.focusa.write().await = new_state.clone();
     state.mark_external_mutation();
+    if let Some((root, continuity)) = event_scope {
+        crate::workstream_store::scoped_write_through(
+            Arc::new(state.clone()), &root, &continuity, new_state,
+        ).await;
+    }
     Ok(())
 }
 

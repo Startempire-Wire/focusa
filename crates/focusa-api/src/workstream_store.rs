@@ -104,3 +104,36 @@ mod tests {
         }
     }
 }
+
+/// Slice-2 write side (docs/164 invariant 1): a scoped mutation must
+/// name its root AND land durably in the workstream partition. The
+/// global state remains the compatibility projection (unmigrated
+/// consumers), but the partition is the durable per-workstream truth.
+pub async fn scoped_write_through(
+    state: Arc<crate::server::AppState>,
+    project_root: &str,
+    continuity_id: &str,
+    new_state: FocusaState,
+) {
+    let key = workstream_scope_key(project_root, continuity_id);
+    // 1) In-memory partition update.
+    {
+        let partition = state.workstream_states.get_or_create(project_root, continuity_id).await;
+        *partition.write().await = new_state.clone();
+    }
+    // 2) Durable per-workstream persistence (partition_paths state.sqlite).
+    let data_dir = state.config.data_dir.clone();
+    let _ = tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
+        let partitions = focusa_core::workstream_root::partition_paths(
+            std::path::Path::new(&data_dir),
+            &key,
+        );
+        if let Some(parent) = std::path::Path::new(&partitions.state_ref).parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let json = serde_json::to_string(&new_state)?;
+        std::fs::write(&partitions.state_ref, json)?;
+        Ok(())
+    })
+    .await;
+}

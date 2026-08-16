@@ -1543,6 +1543,11 @@ async fn materialize_workpoint_events(
     })?;
     *state.focusa.write().await = current.clone();
     state.mark_external_mutation();
+    if let (Some(root), Some(continuity)) = (_scope.project_root.as_deref(), _scope.continuity_id.as_deref()) {
+        crate::workstream_store::scoped_write_through(
+            state.clone(), root, continuity, current.clone(),
+        ).await;
+    }
     Ok(current)
 }
 
