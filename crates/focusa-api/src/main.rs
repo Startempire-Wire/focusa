@@ -305,6 +305,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     let completion_sweep_db = resolved_data_dir(&config).join("focusa.sqlite");
+    let compaction_epoch_db = completion_sweep_db.clone();
     let retention_data_dir_hoisted = resolved_data_dir(&config);
 
     // Start API server (blocks until shutdown).
@@ -426,6 +427,37 @@ async fn main() -> anyhow::Result<()> {
                 Err(error) => {
                     tracing::warn!(error = %error, "silent session completion sweep join failed");
                 }
+            }
+        }
+    });
+
+    // Compaction policy controller epoch scheduler (#112 slice 7). Facts and
+    // outcomes arrive through POST /v1/compaction/controller-epoch; this
+    // scheduler owns the epoch clock and observes the current lease each
+    // tick. It never selects policies itself — the pure controller core and
+    // the epoch route own every decision.
+
+    let _compaction_epoch_handle = tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(300));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            interval.tick().await;
+            let db = compaction_epoch_db.clone();
+            let observed = tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
+                let conn = rusqlite::Connection::open(&db)?;
+                let controller =
+                    focusa_core::compaction_policy::load_controller_state_sqlite(&conn)?;
+                tracing::info!(
+                    epochs = controller.epochs_seen,
+                    active_policy = ?controller.active_lease.as_ref().map(|lease| lease.policy),
+                    quarantined = controller.quarantine.len(),
+                    "compaction controller epoch tick"
+                );
+                Ok(())
+            })
+            .await;
+            if let Err(error) = observed {
+                tracing::warn!(error = %error, "compaction epoch tick failed");
             }
         }
     });
