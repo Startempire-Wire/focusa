@@ -355,3 +355,12 @@ bounded core + persistence slices:
 - #264 audit: 124 extension surfaces classified, no fixes required.
 - Commits: `55e7918f`, `f1aa8635`, `93ea9732`, `2ebe7725` (pushed
   `9c21d35b`, `98270b38`, `4d34dac2`, `dfd83f19`).
+
+## 5o. Runtime Constitution + taxonomy/bundle slices (2026-08-16)
+
+- #256 slice 1: canonical hash-bound Runtime Constitution
+  (focusa.runtime_constitution.v1 v1.0.0) served by GET
+  /v1/runtime-constitution; Pi extension activates the served artifact
+  with the inline law as offline fallback projection. 3/3 + tsc green.
+- #257/#258/#263/#264 slices recorded in 5n; #275 projection refreshed.
+- Commit `c7cc9960` (pushed `c9e7be06`).
