@@ -1,0 +1,29 @@
+name: deslop duplication gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  deslop:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Nimblesite/Deslop@v0.30.0
+        with:
+          path: .
+          # The committed .deslop.toml owns the ceiling; advisory mode
+          # until the first measured baseline lands, then we ratchet the
+          # threshold down and drop continue-on-error.
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deslop-reports
+          path: |
+            .deslop/*.json
+            .deslop/*.txt
+            .deslop/*.html
+          if-no-files-found: ignore

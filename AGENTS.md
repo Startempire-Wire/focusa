@@ -66,6 +66,16 @@ before and after large operations; when headroom drops, free rebuildable
 space immediately — never reactively under pressure. Live data (daemon
 databases, evidence, ledgers, user files) is never a removable.
 
+## De-duplication discipline (deslop, mandatory)
+
+Before writing a new helper, envelope block, or test setup, check the
+deslop analysis for an existing similar implementation (`deslop` CLI in
+CI reports; the Deslop MCP `find-similar` when connected). Renamed
+copies of existing helpers are rejected in review; converge intentional
+boilerplate (error envelopes, tool results) through the canonical
+constructors (focusa_core::error_envelope, tool_result_v1) instead of
+re-typing them. The duplication ceiling lives in `.deslop.toml`.
+
 ## Pre-work rule: always check remote first (mandatory)
 
 Before any durable state change (commit, push, branch switch, merge, rebase, tag), or before resuming work after a session reload, agent context drift, or gap in continuity:
