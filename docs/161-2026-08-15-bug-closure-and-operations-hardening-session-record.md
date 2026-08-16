@@ -187,6 +187,19 @@ completion notification (#311), bug-squash cluster (#45, #250, #251, #266,
   installed registry (TS → CJS evaluation) and diffs names/families; live
   drift typed (source 112 vs installed 137 contracts).
 
+## 5h. Slice 5-7 completion
+
+- #112: SQLite controller ledger + epoch history; POST /v1/compaction/controller-epoch
+  (the full decision point: mask → shadow → transition → lease → persistence);
+  daemon 5-minute epoch scheduler (observes, never selects). 14/14 tests.
+- #89: bounded SSH probe (reachability + keyscan fingerprint); resolve_binding_for_root;
+  writer-lease bootstrap wired into the workpoint checkpoint — a verified
+  binding satisfies the first-Workpoint precondition (PTM bootstrap closed).
+  7/7 tests.
+- #125: workstream_scope_key, resolve_workstream_for_scope, partition_paths.
+  5/5 tests.
+- All pushed: f7242342, 5c52d86f, 7befc871, 551ce4b7, 09c82d4e.
+
 ## 6. Issue-ledger state at session end
 
 Closed today: #45, #124, #250, #251, #266, #282, #301, #302, #303, #304,
