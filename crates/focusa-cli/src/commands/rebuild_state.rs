@@ -112,9 +112,10 @@ pub async fn run(args: RebuildStateArgs, json_mode: bool) -> anyhow::Result<()> 
 
     if !args.dry_run {
         let conn = rusqlite::Connection::open(&args.events_db)?;
+        conn.busy_timeout(std::time::Duration::from_secs(30))?;
         let state_json = serde_json::to_string(&state)?;
         conn.execute(
-            "UPDATE snapshots SET version = ?2, ts = ?3, state_json = ?4 WHERE name='focusa'",
+            "UPDATE snapshots SET version = ?1, ts = ?2, state_json = ?3 WHERE name='focusa'",
             rusqlite::params![
                 state.version as i64,
                 chrono::Utc::now().to_rfc3339(),
