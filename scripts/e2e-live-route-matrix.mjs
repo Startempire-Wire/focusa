@@ -218,6 +218,33 @@ check("workstream partition zero-bleed (#125 acceptance)", async () => {
   return aOk && bOk;
 });
 
+check("workset ledger (#269/#271)", async () => {
+  const created = await call("POST", "/v1/worksets", {
+    schema: "focusa.workset_ledger.v1",
+    workset_id: "ws-e2e",
+    revision: 1,
+    scope: { project_root: "/r", continuity_id: "c" },
+    completion_contract: { required_requirement_ids: ["r1"], release_gate_ref: null },
+  });
+  if (created.json?.status !== "stored") return false;
+  const admitted = await call("POST", "/v1/worksets/ws-e2e/events", {
+    event_type: "requirement_admitted",
+    requirement_id: "r1",
+    provider_ref: "p1",
+    evidence_ref: null,
+  });
+  const disposed = await call("POST", "/v1/worksets/ws-e2e/events", {
+    event_type: "requirement_disposed",
+    requirement_id: "r1",
+    disposition: "met",
+    evidence_ref: null,
+  });
+  const projection = await call("GET", "/v1/worksets/ws-e2e/projection");
+  return admitted.json?.status === "appended"
+    && disposed.json?.status === "appended"
+    && projection.json?.projection?.settled === true;
+});
+
 async function main() {
   const results = [];
   for (const c of checks) {
