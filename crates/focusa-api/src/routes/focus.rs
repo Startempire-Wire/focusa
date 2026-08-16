@@ -613,7 +613,7 @@ fn validate_set_active(stack: &FocusStackState, frame_id: Uuid) -> Result<bool, 
 }
 
 async fn materialize_focus_event(
-    state: &AppState,
+    state: &Arc<AppState>,
     event: FocusaEvent,
     correlation_id: &'static str,
 ) -> FocusUnitResult {
@@ -660,7 +660,7 @@ async fn materialize_focus_event(
     state.mark_external_mutation();
     if let Some((root, continuity)) = event_scope {
         crate::workstream_store::scoped_write_through(
-            Arc::new(state.clone()), &root, &continuity, new_state,
+            state.clone(), &root, &continuity, new_state,
         ).await;
     }
     Ok(())
