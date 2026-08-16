@@ -340,3 +340,16 @@ pub(crate) fn focusa_db_path(data_dir: &str) -> PathBuf {
     }
     PathBuf::from(data_dir).join("focusa.sqlite")
 }
+
+
+pub fn ensure_evidence_schema(conn: &rusqlite::Connection) -> anyhow::Result<()> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS evidence_records (
+            evidence_id TEXT PRIMARY KEY,
+            kind TEXT NOT NULL,
+            refs_json TEXT NOT NULL,
+            recorded_at TEXT NOT NULL
+        );",
+    )?;
+    Ok(())
+}

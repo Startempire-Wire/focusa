@@ -110,6 +110,22 @@ pub fn evaluate_completion_claim(claim: &CompletionClaim) -> CompletionVerdict {
     }
 }
 
+/// Bridge (docs/170 gap C): a completed bg job receipt covers an
+/// acceptance atom when the job name equals the atom id — receipts are
+/// evidence by convention, evaluated deterministically.
+pub fn bg_receipts_cover_atoms(
+    atoms: &[String],
+    completed_job_names: &[String],
+) -> Vec<(String, String)> {
+    let mut coverage = Vec::new();
+    for atom in atoms {
+        if completed_job_names.iter().any(|name| name == atom) {
+            coverage.push((atom.clone(), format!("receipt:job:{atom}")));
+        }
+    }
+    coverage
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -177,5 +193,21 @@ mod tests {
         let verdict = evaluate_completion_claim(&c);
         assert!(!verdict.allow);
         assert!(verdict.reasons[0].contains("schema"));
+    }
+}
+
+#[cfg(test)]
+mod bridge_tests {
+    use super::*;
+
+    #[test]
+    fn bg_receipts_cover_atoms_by_name_convention() {
+        let coverage = bg_receipts_cover_atoms(
+            &["build-green".to_string(), "docs".to_string()],
+            &["build-green".to_string()],
+        );
+        assert_eq!(coverage.len(), 1);
+        assert_eq!(coverage[0].0, "build-green");
+        assert_eq!(coverage[0].1, "receipt:job:build-green");
     }
 }

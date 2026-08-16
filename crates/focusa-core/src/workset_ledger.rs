@@ -177,6 +177,38 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// Bridge (docs/170 gap B): met requirements supply their evidence
+/// refs as completion-claim coverage — the workset disposition and the
+/// completion verdict share one evidence vocabulary.
+pub fn met_requirement_evidence(
+    definition: &WorksetDefinition,
+    events: &[WorksetEvent],
+) -> Result<Vec<String>, String> {
+    let projection = replay_projection(definition, events)?;
+    let mut evidence = Vec::new();
+    for event in events {
+        if let WorksetEvent::RequirementDisposed {
+            requirement_id,
+            disposition,
+            evidence_ref,
+        } = event
+        {
+            if *disposition == RequirementDisposition::Met
+                && projection
+                    .requirements
+                    .get(requirement_id)
+                    .map(|state| state.disposition == Some(RequirementDisposition::Met))
+                    .unwrap_or(false)
+            {
+                if let Some(reference) = evidence_ref {
+                    evidence.push(reference.clone());
+                }
+            }
+        }
+    }
+    Ok(evidence)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -289,5 +321,42 @@ mod tests {
         ];
         let projection = replay_projection(&definition(), &events).unwrap();
         assert!(projection.membership.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod bridge_tests {
+    use super::*;
+    use crate::workset_ledger::{CompletionContract, WorksetScope};
+
+    #[test]
+    fn met_requirements_supply_their_evidence() {
+        let definition = WorksetDefinition {
+            schema: WORKSET_LEDGER_SCHEMA.to_string(),
+            workset_id: "ws-1".to_string(),
+            revision: 1,
+            scope: WorksetScope {
+                project_root: "/r".to_string(),
+                continuity_id: "c".to_string(),
+            },
+            completion_contract: CompletionContract {
+                required_requirement_ids: vec!["r1".to_string()],
+                release_gate_ref: None,
+            },
+        };
+        let events = vec![
+            WorksetEvent::RequirementAdmitted {
+                requirement_id: "r1".to_string(),
+                provider_ref: "p1".to_string(),
+                evidence_ref: None,
+            },
+            WorksetEvent::RequirementDisposed {
+                requirement_id: "r1".to_string(),
+                disposition: RequirementDisposition::Met,
+                evidence_ref: Some("docs/evidence/r1.md".to_string()),
+            },
+        ];
+        let evidence = met_requirement_evidence(&definition, &events).unwrap();
+        assert_eq!(evidence, vec!["docs/evidence/r1.md"]);
     }
 }
