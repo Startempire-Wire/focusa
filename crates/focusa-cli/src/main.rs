@@ -133,6 +133,8 @@ enum Commands {
     Infra(commands::infra::InfraArgs),
     /// Rebuild the canonical state from the event chain (recovery).
     RebuildState(commands::rebuild_state::RebuildStateArgs),
+    /// Spec 149 Workset flow ledger operations.
+    Workset(commands::workset::WorksetArgs),
 
     /// Inspect, evaluate, replay, and diff bounded compaction packets (Spec 130).
     #[command(subcommand)]
@@ -598,6 +600,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Bg(args) => commands::bg::run(args.cmd, cli.json).await,
         Commands::Infra(args) => commands::infra::run(args.cmd, cli.json).await,
         Commands::RebuildState(args) => commands::rebuild_state::run(args, cli.json).await,
+        Commands::Workset(args) => commands::workset::run(args.cmd, cli.json).await,
         Commands::Compaction(cmd) => commands::compaction::run(cmd, cli.json).await,
         Commands::Silent(cmd) => commands::silent::run(cmd, cli.json).await,
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,

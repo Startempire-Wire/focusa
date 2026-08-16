@@ -86,4 +86,5 @@ pub mod work_item;
 pub mod workstream;
 pub mod workflow;
 pub mod workpoint;
+pub mod workset;
 pub mod wrap;
