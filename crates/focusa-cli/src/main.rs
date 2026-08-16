@@ -122,6 +122,7 @@ enum Commands {
     /// Signed OTA status, plan, apply, rollback, policy, scheduler, notification, and history surfaces (Spec 128).
     #[command(subcommand)]
     Update(commands::update::UpdateCmd),
+    Remote(commands::remote::RemoteArgs),
 
     /// Inspect, evaluate, replay, and diff bounded compaction packets (Spec 130).
     #[command(subcommand)]
@@ -581,6 +582,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::InstallService(args) => commands::service::run(args, false).await,
         Commands::Install(args) => commands::install::run(args).await,
         Commands::Update(cmd) => commands::update::run(cmd, cli.json).await,
+        Commands::Remote(args) => commands::remote::run(args.cmd, cli.json).await,
         Commands::Compaction(cmd) => commands::compaction::run(cmd, cli.json).await,
         Commands::Silent(cmd) => commands::silent::run(cmd, cli.json).await,
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,

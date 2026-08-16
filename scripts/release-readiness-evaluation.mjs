@@ -70,7 +70,20 @@ const extEvidence = extLogs
   .filter((entry) => entry.tail);
 check("extension_suites_run", extEvidence.length > 0, `${extEvidence.length} suite logs present`);
 
-// 5. Disk headroom (rule enforcement).
+// 5. Convergence invariants static gate.
+let convergence = "not-run";
+try {
+  execFileSync("bash", [join(ROOT, "tests/convergence_invariants_static_test.sh")], {
+    encoding: "utf8",
+    timeout: 15000,
+  });
+  convergence = "pass";
+} catch {
+  convergence = "fail";
+}
+check("convergence_invariants", convergence === "pass", convergence);
+
+// 6. Disk headroom (rule enforcement).
 const df = execFileSync("df", ["-h", "/home/wirebot"], { encoding: "utf8", timeout: 5000 })
   .split("\n")[1] || "";
 const usedPercent = parseInt((df.match(/(\d+)%/)?.[1] || "100"), 10);

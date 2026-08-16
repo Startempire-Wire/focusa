@@ -166,3 +166,14 @@ Pi RPC/Spec 133 owns model execution; Vercel AI SDK runtime is not adopted.
 Every feature submits reusable behavior to greater Focusa primitives.
 Every requirement remains in the machine-readable closure graph.
 ```
+
+## 2026-08-15 session additions
+
+- docs/162-remote-workspace-binding-design.md — RemoteWorkspaceBinding (#89)
+- docs/163-safe-self-adaptive-compaction-policy-controller-design.md (#112)
+- docs/164-workstream-rooted-canonical-runtime-design.md (#125)
+- docs/current/CONSOLIDATION_AUDIT_2026-08-15.md (#52)
+- docs/current/LICENSING_DIVERGENCE_AUDIT_2026-08-15.md (#119)
+- docs/current/CONVERGENCE_STATE_2026-08-15.md (#101)
+- docs/current/PROJECT_MARKER_PATHS.md (#243)
+- docs/current/BACKGROUND_EXECUTION_AND_COMPLETION_NOTIFICATION.md (#311)

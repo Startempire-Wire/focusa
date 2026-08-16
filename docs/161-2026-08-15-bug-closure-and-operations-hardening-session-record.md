@@ -133,6 +133,60 @@ completion notification (#311), bug-squash cluster (#45, #250, #251, #266,
 - CI: workspace tests serialized (--test-threads=1) — eliminates the
   parallel env-mutation race class in the E6 fixture family.
 
+## 5d. Post-restart closure (continued)
+
+- #260: parity script gains the digest axis (installed extension runtime
+  files vs canonical tree — sha256 rows with typed drift); release tag step
+  now BLOCKS on distribution drift (scripts/create-dev-release-tag.sh).
+- #265: release-readiness evaluation script + CI informational step +
+  release static-test markers.
+- #119 slice 2: authority-lease enforcement — lease_valid on LicenseStatus,
+  revoked/expired/grace-expired leases never enable features; unit tests
+  cover active/revoked/expired/grace/malformed stamps. Slices 1/3/4 remain
+  IR2 (collapse into one entitlement service).
+- #101: CONVERGENCE_STATE_2026-08-15.md.
+- Restarted Pi session verified clean: 0 errors, extension publishing
+  receipts, no duplicate tool/flag failures — today's extension fixes live.
+
+## 5e. IR2 slice starts (same day)
+
+- #89 slice 1: `focusa-core/src/remote_workspace.rs` — RemoteWorkspaceBinding
+  type + SQLite persistence + identity immutability (any status) + typed
+  revocation + freshness predicate. Tests green (17/17 combined run with
+  the license suite).
+- #119 slice 2: authority-lease enforcement in `license.rs` — lease_valid on
+  LicenseStatus; revoked/expired/grace-expired leases never enable features;
+  6 unit tests (active/revoked/expired/grace/future/malformed).
+- #112 slice 1: `focusa-core/src/compaction_policy.rs` — typed RuntimeFacts,
+  pure CapabilityMask with digest, finite policy lattice with compiled
+  single-step edges, immutable EpochLease with facts-digest drift detection;
+  7 unit tests.
+
+## 5f. Slice 2 additions
+
+- #112 slice 2: shadow/off-policy evaluation — OutcomeMetrics, conservative
+  per-policy effect vectors, evaluate_shadow (zero side effects),
+  shadow_beats_active (improvement required without cache regression).
+- #89 slice 2: bounded SSH transport probe — TCP reachability (500ms) +
+  ssh-keyscan fingerprint via temp-file child with polling kill; typed
+  ProbeOutcome; loopback + unreachable-host tests.
+
+## 5g. Slice 3+ and enforcement
+
+- #112 slice 3: ControllerState (active lease, shadow history, quarantine
+  set) + deterministic next_transition (rollback/quarantine/promotion
+  window); slice 4-lite: JSON persistence + controller-status route.
+- #89 slice 3: bindings API route (create/list/revoke — revocation typed,
+  nothing deleted); slice 4: focusa remote bind/status/revoke CLI (Args
+  wrapper pattern for the subcommand enum).
+- #125 slice 1: WorkstreamRoot type + persistence + identity immutability +
+  root-first resolution ordering.
+- #101 enforcement: tests/convergence_invariants_static_test.sh (core
+  surfaces, release parity gate, one-canonical rule) wired into pre-push.
+- #260/#279: capability-truth axis — the parity manifest transpiles the
+  installed registry (TS → CJS evaluation) and diffs names/families; live
+  drift typed (source 112 vs installed 137 contracts).
+
 ## 6. Issue-ledger state at session end
 
 Closed today: #45, #124, #250, #251, #266, #282, #301, #302, #303, #304,

@@ -55,6 +55,7 @@ pub mod proposals;
 pub mod recover;
 pub mod reflection;
 pub mod release;
+pub mod remote;
 pub mod resource;
 pub mod rfm;
 pub mod runtime;

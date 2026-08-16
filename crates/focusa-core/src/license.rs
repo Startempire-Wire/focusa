@@ -158,6 +158,9 @@ pub struct LicenseStatus {
     pub offline_valid_until: Option<String>,
     /// License key prefix for display (never the raw key).
     pub key_prefix: String,
+    /// #119: whether the authority lease is currently valid (not revoked,
+    /// not expired, offline grace intact).
+    pub lease_valid: bool,
 }
 
 /// Structured error for `require_feature` and other license failures. Maps to spec §11
@@ -217,6 +220,46 @@ pub fn load_license_status() -> anyhow::Result<LicenseStatus> {
     Ok(status_from_local(&local))
 }
 
+/// #119 slice 2: the authority lease is valid only while the registry status
+/// is not revoked and neither the license nor the offline grace window has
+/// expired. Expired/revoked leases never enable features (developer origin
+/// is the only no-lease path, per #307).
+pub fn lease_valid_status(status: &LicenseStatus) -> bool {
+    if status.status.eq_ignore_ascii_case("revoked") {
+        return false;
+    }
+    let now = chrono::Utc::now();
+    for stamp in [status.expires_at.as_deref(), status.offline_valid_until.as_deref()]
+        .into_iter()
+        .flatten()
+    {
+        if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(stamp) {
+            if parsed <= now {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+pub fn lease_valid(local: &LocalLicense) -> bool {
+    if local.status.eq_ignore_ascii_case("revoked") {
+        return false;
+    }
+    let now = chrono::Utc::now();
+    for stamp in [local.expires_at.as_deref(), local.offline_valid_until.as_deref()]
+        .into_iter()
+        .flatten()
+    {
+        if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(stamp) {
+            if parsed <= now {
+                return false;
+            }
+        }
+    }
+    true
+}
+
 fn status_from_local(local: &LocalLicense) -> LicenseStatus {
     LicenseStatus {
         mode: local.mode(),
@@ -229,6 +272,7 @@ fn status_from_local(local: &LocalLicense) -> LicenseStatus {
         expires_at: local.expires_at.clone(),
         offline_valid_until: local.offline_valid_until.clone(),
         key_prefix: local.key_prefix.clone(),
+        lease_valid: lease_valid(local),
     }
 }
 
@@ -259,7 +303,11 @@ pub fn feature_enabled(feature: &str) -> bool {
         return true;
     }
     match load_license_status() {
-        Ok(status) if status.commercial_use && !status.features.is_empty() => {
+        Ok(status)
+            if status.commercial_use
+                && !status.features.is_empty()
+                && lease_valid_status(&status) =>
+        {
             status.features.iter().any(|f| f == feature)
         }
         _ => false,
@@ -647,5 +695,65 @@ mod tests {
         assert_eq!(hash.len(), 64);
         let prefix: String = key.chars().take(16).collect();
         assert_eq!(prefix, "focusa_live_abc1");
+    }
+
+    fn lease_fixture(status: &str, expires_at: Option<&str>, offline_until: Option<&str>) -> LocalLicense {
+        LocalLicense {
+            key_hash: String::new(),
+            key_prefix: String::new(),
+            product: "focusa".into(),
+            tier: "operator".into(),
+            status: status.into(),
+            commercial_use: true,
+            customer_email: String::new(),
+            features: vec!["packaged_installer".into()],
+            offline_valid_until: offline_until.map(str::to_string),
+            expires_at: expires_at.map(str::to_string),
+            eval: false,
+            registry: String::new(),
+            issued_at: 0,
+        }
+    }
+
+    #[test]
+    fn active_lease_is_valid() {
+        assert!(lease_valid(&lease_fixture("active", None, None)));
+    }
+
+    #[test]
+    fn revoked_lease_is_invalid() {
+        assert!(!lease_valid(&lease_fixture("revoked", None, None)));
+    }
+
+    #[test]
+    fn expired_license_is_invalid() {
+        assert!(!lease_valid(&lease_fixture(
+            "active",
+            Some("2020-01-01T00:00:00+00:00"),
+            None
+        )));
+    }
+
+    #[test]
+    fn expired_offline_grace_is_invalid() {
+        assert!(!lease_valid(&lease_fixture(
+            "active",
+            None,
+            Some("2020-01-01T00:00:00+00:00")
+        )));
+    }
+
+    #[test]
+    fn future_lease_is_valid() {
+        assert!(lease_valid(&lease_fixture(
+            "active",
+            Some("2099-01-01T00:00:00+00:00"),
+            Some("2099-01-01T00:00:00+00:00")
+        )));
+    }
+
+    #[test]
+    fn malformed_stamps_do_not_break_validity() {
+        assert!(lease_valid(&lease_fixture("active", Some("not-a-date"), None)));
     }
 }

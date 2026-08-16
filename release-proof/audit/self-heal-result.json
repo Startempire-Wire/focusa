@@ -1,5 +1,5 @@
 {
-  "audit_path": "/tmp/focusa-self-heal-drill-ewpm0rv8/audit.jsonl",
+  "audit_path": "/tmp/focusa-self-heal-drill-7g4tixz4/audit.jsonl",
   "decisions": [
     {
       "action": "log_only",
@@ -57,7 +57,7 @@
     "manual_interventions_required": 0,
     "operator_intervention_rate_pct": 0.0,
     "total_CI_runs": 0,
-    "ts": "2026-07-25T14:48:06Z",
+    "ts": "2026-08-16T00:15:21Z",
     "window_days": 7
   },
   "proposed_self_heal_rows": [],
