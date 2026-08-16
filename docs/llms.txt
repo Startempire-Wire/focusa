@@ -116,6 +116,25 @@ Project and packaged skills live at `.pi/skills/` and `apps/pi-extension/skills/
 
 Coverage/parity authority: `docs/evidence/141-focusa-skill-runbook-coverage.json`.
 
+## Background execution and orchestration (canonical TBQ workflow)
+
+Terminal-blocking work dispatches through `focusa bg run --name X -- cmd`
+(a first-class job: durable ledger, detached execution, completion
+envelope with bounded output tail delivered to the agent's front
+terminal — never polling). Multi-agent work = N workloop-bound silent
+sessions (docs/168). The fast-forward multiplier (2x/4x/6x/8x…, #312)
+divides work items round-robin across a CallGraph orchestrator lane
+(kind=agent, strong frontier refs) + worker lanes (kind=tool, weaker
+implementation refs). Pi tools: focusa_bg_run / focusa_bg_run_many /
+focusa_bg_status / focusa_fast_forward.
+
+## Completion truth and direction
+
+Closure validation gates on the deterministic completion verdict
+(#276): uncovered acceptance atoms reject with typed reasons — no false
+closures. Direction operations (steer/adjudicate/review) are typed,
+evidence-bound ledger entries (POST /v1/direction/operations).
+
 ## Public status and direction
 
 Focusa remains under active development. The `v0.9.121-dev` snapshot includes 112 all-harness Pi capability descriptors/docs, progressive discovery, 22 skill/runbook pairs, 458 classified routes, governed browser capability intake, and current lifecycle/onboarding projections. Spec141 behavioral conformance and strict agent-first audit pass with zero findings.
