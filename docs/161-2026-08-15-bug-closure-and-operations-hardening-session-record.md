@@ -295,3 +295,16 @@ bounded core + persistence slices:
   `74272a0c`, `2ae35d17` (pushed `5743c6b4`, `967641ea`, `6c0c3794`).
 - Remaining on #254: adapter-side execution binding (invoke the routed
   adapter through the daemon action loop) — final integration slice.
+
+## 5k. Full-branch gate + #287 export slice (2026-08-16)
+
+- Full workspace gate (`cargo build --workspace && cargo test --workspace
+  --all-targets -- --test-threads=1`) passed end-to-end:
+  BRANCH-ALL-GREEN (log `/tmp/focusa254-branchgate3.log`).
+- #287 slice 1: `focusa-core/src/callgraph_export.rs` — one typed
+  CallGraphExportProjection → lossless JSONL snapshot, standard TODO.txt
+  profile (provenance header, lossy:true, source-of-truth:focusa),
+  Graphviz DOT. 3/3 tests. Commit `f110efdf` (pushed `583a871e`).
+- PR #129 (#128): Spec 152 docs-gate fixed on the PR branch (`0531b8b3`,
+  authority-issued concept; gate passes locally, CI re-running).
+- #101 convergence table refreshed; #275 projection updated for #89/#254.
