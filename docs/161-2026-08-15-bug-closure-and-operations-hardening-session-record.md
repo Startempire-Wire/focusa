@@ -263,3 +263,23 @@ backwards from the match) that only migrates sites whose handler carries a
 were restored with `git checkout --` and re-owned to uid 549 before the
 corrected run. Never apply regex sweeps to Rust files without an
 immediate `git diff` sanity check on the hunk shapes.
+
+## 5j. #254 CallGraph authority slices 1-4 (2026-08-16)
+
+Started the canonical-execution-authority program (Spec 155) with the
+bounded core + persistence slices:
+
+- `focusa-core/src/callgraph.rs` — typed `FocusaCallGraphDefinition` v1
+  (§9), structural validation (identity/endpoints/entries/joins/
+  compensation/per-cycle policy conformance), deterministic frontier
+  eligibility (§12 steps 1-5,12: join settlement, depth bounds, parent-edge
+  checks). 7/7 tests.
+- `focusa-core/src/callgraph_store.rs` — SQLite ledger for
+  definitions/revisions, runs, dispatches; `commit_dispatch` is the §12
+  durable commit boundary (must succeed before any adapter call). 3/3 tests.
+- `crates/focusa-api/src/routes/callgraph.rs` — POST
+  /v1/callgraphs/validate, POST /v1/callgraphs/eligibility, POST
+  /v1/callgraphs (validated persistence), GET /v1/callgraphs (revisions).
+- Commits: `8ba2bc45`, `2236fad9`, `a31cd721`, `728ed437` (pushed as
+  `217b41be`, `aacfa887`, `47bf9aec`, `ea7346a2`); each gate green.
+- Next: run creation/preflight routes + frame lease/liveness scheduler.

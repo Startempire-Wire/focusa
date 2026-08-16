@@ -5,10 +5,12 @@
 //! arrive in slice 3+.
 
 use axum::extract::State;
-use axum::routing::post;
+use axum::routing::{get, post};
 use axum::Json;
 use axum::Router;
-use focusa_core::callgraph::{eligibility_for_frame, validate_graph, FocusaCallGraphDefinition};
+use focusa_core::callgraph::{
+    eligibility_for_frame, validate_graph, Disposition, FocusaCallGraphDefinition,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashSet;
@@ -21,6 +23,12 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/callgraphs/validate", post(validate))
         .route("/v1/callgraphs/eligibility", post(eligibility))
         .route("/v1/callgraphs", post(create_definition).get(list_definitions))
+        .route(
+            "/v1/callgraphs/{graph_id}/runs/preflight",
+            post(preflight_run),
+        )
+        .route("/v1/callgraphs/{graph_id}/runs", post(create_run))
+        .route("/v1/callgraph-runs/{run_id}", get(get_run))
 }
 
 #[derive(Deserialize)]
@@ -128,6 +136,151 @@ async fn list_definitions(
             "graph_id": graph_id,
             "revisions": revisions,
         })),
+        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
+        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+    }
+}
+
+/// Preflight a run for a stored graph revision (Spec 155 §19.1).
+async fn preflight_run(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(graph_id): axum::extract::Path<String>,
+    Json(body): Json<PreflightBody>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let revision = body.revision;
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let stored =
+            focusa_core::callgraph_store::load_definition(&conn, &graph_id, revision)?;
+        let Some(stored) = stored else {
+            return Ok(json!({
+                "status": "rejected_missing_definition",
+                "graph_id": graph_id,
+                "revision": revision,
+            }));
+        };
+        let graph: FocusaCallGraphDefinition = serde_json::from_str(&stored.definition_json)
+            .map_err(|error| anyhow::anyhow!("stored definition unparsable: {error}"))?;
+        let report = validate_graph(&graph);
+        if !report.valid {
+            return Ok(json!({
+                "status": "rejected_invalid",
+                "issues": report.issues,
+            }));
+        }
+        let mut blockers = Vec::new();
+        for entry in &graph.entry_frame_ids {
+            let disposition = eligibility_for_frame(
+                &graph,
+                entry,
+                None,
+                &std::collections::HashSet::new(),
+            );
+            if disposition != Disposition::Eligible {
+                blockers.push(json!({
+                    "frame_id": entry,
+                    "disposition": disposition,
+                }));
+            }
+        }
+        Ok(json!({
+            "status": if blockers.is_empty() { "preflighted" } else { "blocked" },
+            "graph_id": graph_id,
+            "revision": revision,
+            "blockers": blockers,
+        }))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
+        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct PreflightBody {
+    pub revision: u64,
+}
+
+/// Create a run for a stored, preflightable graph revision (Spec 155 §19.1).
+async fn create_run(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(graph_id): axum::extract::Path<String>,
+    Json(body): Json<PreflightBody>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let revision = body.revision;
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let Some(stored) =
+            focusa_core::callgraph_store::load_definition(&conn, &graph_id, revision)?
+        else {
+            return Ok(json!({
+                "status": "rejected_missing_definition",
+                "graph_id": graph_id,
+                "revision": revision,
+            }));
+        };
+        let graph: FocusaCallGraphDefinition = serde_json::from_str(&stored.definition_json)
+            .map_err(|error| anyhow::anyhow!("stored definition unparsable: {error}"))?;
+        if !validate_graph(&graph).valid {
+            return Ok(json!({"status": "rejected_invalid"}));
+        }
+        let run_id = uuid::Uuid::now_v7().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+        focusa_core::callgraph_store::create_run(
+            &conn,
+            &focusa_core::callgraph_store::CallGraphRun {
+                run_id: run_id.clone(),
+                graph_id: graph_id.clone(),
+                revision,
+                state: focusa_core::callgraph_store::RunState::Created,
+                created_at: now.clone(),
+                updated_at: now,
+            },
+        )?;
+        Ok(json!({
+            "status": "created",
+            "run_id": run_id,
+            "graph_id": graph_id,
+            "revision": revision,
+            "next": "post /v1/callgraph-runs/{run_id}/control to dispatch the entry frontier",
+        }))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
+        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+    }
+}
+
+/// Read a run's ledger row (Spec 155 §19.1 GET /v1/callgraph-runs/{run_id}).
+async fn get_run(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(run_id): axum::extract::Path<String>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let Some(run) = focusa_core::callgraph_store::load_run(&conn, &run_id)? else {
+            return Ok(json!({"status": "missing", "run_id": run_id}));
+        };
+        let dispatches = focusa_core::callgraph_store::list_dispatches(&conn, &run_id)?;
+        Ok(json!({
+            "status": "ok",
+            "run": run,
+            "dispatches": dispatches,
+        }))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
         Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
         Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
     }
