@@ -1,114 +1,17 @@
-//! Focusa LicenseGuard \u2014 tier evaluation + capability assertions + BSL boundary.
+//! Focusa LicenseGuard — facade over the unified entitlement engine.
 //!
-//! Bead: focusa-nbai (MVP BLOCKER).
-//!
-//! Three-tier license model mirroring Focusa BSL 1.1 licensing:
-//!   - `Eval`: self-issued; offline grace window; capability `commercial_use = false`.
-//!   - `Licensed`: key-based; verified against `LICENSE_REGISTRY`; commercial_use allowed.
-//!   - `Open`: source-available universal use after BSL change date (placeholder; expires
-//!     automatically).
-//!
-//! Capability map is a static enum set checked at call sites. Soft-warn in eval, hard-fail
-//! in production-only paths (e.g., hosted_mode, commercial_signal).
+//! #119 slice 3: tier/capability truth now lives in
+//! `focusa_core::license` (the single decision point). This crate keeps its
+//! public names for API compatibility and retains the local guard/record
+//! helpers (resolve/persist/sha) that are installer-facing only.
+
+pub use focusa_core::license::{
+    capability_for_feature, entitlement_check, Capability, CapabilityCheck, Tier,
+};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-
-/// License tiers supported by Focusa.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Tier {
-    Eval,
-    Licensed,
-    Open,
-}
-
-impl Tier {
-    /// Returns true if this tier permits commercial use.
-    pub fn permits_commercial_use(self) -> bool {
-        matches!(self, Tier::Licensed | Tier::Open)
-    }
-
-    /// Returns true if this tier permits hosted/multi-tenant deployment.
-    pub fn permits_hosted_deployment(self) -> bool {
-        matches!(self, Tier::Licensed | Tier::Open)
-    }
-
-    /// Returns true if this tier permits local-only/eval/educational use.
-    pub fn permits_local_eval(self) -> bool {
-        true // All tiers permit local eval; eval just adds offline grace.
-    }
-
-    /// Returns the human-readable label.
-    pub fn label(self) -> &'static str {
-        match self {
-            Tier::Eval => "eval",
-            Tier::Licensed => "licensed",
-            Tier::Open => "open",
-        }
-    }
-}
-
-/// Capabilities that LicenseGuard gates. Each capability is a static enum member
-/// so call sites can do `guard.require(Capability::HostedMode)` and get a typed
-/// error rather than a stringly-typed allowlist.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Capability {
-    /// Process / orchestrate commercial workloads.
-    CommercialUse,
-    /// Operate as a hosted multi-tenant daemon.
-    HostedMode,
-    /// Embed Focusa inside a commercial product.
-    ProductEmbedding,
-    /// Send telemetry/analytics events (Focusa is no-telemetry by default).
-    TelemetrySend,
-    /// Local-only single-user use, free for everyone.
-    LocalEval,
-}
-
-impl Capability {
-    pub fn label(self) -> &'static str {
-        match self {
-            Capability::CommercialUse => "commercial_use",
-            Capability::HostedMode => "hosted_mode",
-            Capability::ProductEmbedding => "product_embedding",
-            Capability::TelemetrySend => "telemetry_send",
-            Capability::LocalEval => "local_eval",
-        }
-    }
-}
-
-/// Outcome of a capability check.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "outcome", rename_all = "snake_case")]
-pub enum CapabilityCheck {
-    /// Capability is permitted under current tier.
-    Permitted,
-    /// Capability is permitted but with a soft warning (e.g., eval tier + commercial).
-    PermittedWithWarning { warning: String },
-    /// Capability is denied under current tier (hard fail).
-    Denied { reason: String },
-}
-
-impl CapabilityCheck {
-    pub fn is_permitted(&self) -> bool {
-        !matches!(self, CapabilityCheck::Denied { .. })
-    }
-
-    pub fn is_denied(&self) -> bool {
-        matches!(self, CapabilityCheck::Denied { .. })
-    }
-
-    pub fn reason(&self) -> Option<&str> {
-        match self {
-            CapabilityCheck::Denied { reason } => Some(reason),
-            CapabilityCheck::PermittedWithWarning { warning } => Some(warning),
-            CapabilityCheck::Permitted => None,
-        }
-    }
-}
 
 /// LicenseGuard evaluates a Tier against Capabilities and decides permission.
 #[derive(Debug, Clone, Serialize, Deserialize)]

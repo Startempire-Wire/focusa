@@ -299,19 +299,7 @@ pub fn developer_origin_active() -> bool {
 }
 
 pub fn feature_enabled(feature: &str) -> bool {
-    if developer_origin_active() {
-        return true;
-    }
-    match load_license_status() {
-        Ok(status)
-            if status.commercial_use
-                && !status.features.is_empty()
-                && lease_valid_status(&status) =>
-        {
-            status.features.iter().any(|f| f == feature)
-        }
-        _ => false,
-    }
+    feature_enabled_unified(feature)
 }
 
 /// Require a feature — returns `Ok(())` if enabled, `Err(LicenseError::FeatureRequiresLicense)`
@@ -615,6 +603,157 @@ async fn registry_ping_blocking(registry: &str) -> anyhow::Result<bool> {
         }
         Err(_) => Ok(false),
     }
+}
+
+/// ── Unified entitlement engine (#119 slice 3) ────────────────────────────
+/// The tier/capability engine lives HERE — focusa-core is the single
+/// decision point. `focusa-license` is now a thin facade (see its lib.rs).
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Tier {
+    Eval,
+    Licensed,
+    Open,
+}
+
+impl Tier {
+    pub fn label(self) -> &'static str {
+        match self {
+            Tier::Eval => "eval",
+            Tier::Licensed => "licensed",
+            Tier::Open => "open",
+        }
+    }
+
+    pub fn permits_commercial_use(self) -> bool {
+        matches!(self, Tier::Licensed | Tier::Open)
+    }
+
+    pub fn permits_hosted_deployment(self) -> bool {
+        matches!(self, Tier::Licensed | Tier::Open)
+    }
+
+    pub fn permits_local_eval(self) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Capability {
+    CommercialUse,
+    HostedMode,
+    ProductEmbedding,
+    TelemetrySend,
+    LocalEval,
+}
+
+impl Capability {
+    pub fn label(self) -> &'static str {
+        match self {
+            Capability::CommercialUse => "commercial use",
+            Capability::HostedMode => "hosted mode",
+            Capability::ProductEmbedding => "product embedding",
+            Capability::TelemetrySend => "telemetry send",
+            Capability::LocalEval => "local eval",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CapabilityCheck {
+    Permitted,
+    PermittedWithWarning { warning: String },
+    Denied { reason: String },
+}
+
+impl CapabilityCheck {
+    pub fn is_permitted(&self) -> bool {
+        !matches!(self, CapabilityCheck::Denied { .. })
+    }
+
+    pub fn is_denied(&self) -> bool {
+        matches!(self, CapabilityCheck::Denied { .. })
+    }
+
+    pub fn reason(&self) -> Option<&str> {
+        match self {
+            CapabilityCheck::Denied { reason } => Some(reason),
+            CapabilityCheck::PermittedWithWarning { warning } => Some(warning),
+            CapabilityCheck::Permitted => None,
+        }
+    }
+}
+
+/// Feature-string → capability mapping (the bridge that collapses the two
+/// gate vocabularies). Every feature string used anywhere must be listed.
+pub fn capability_for_feature(feature: &str) -> Option<Capability> {
+    match feature {
+        "packaged_installer" | "official_release_bundle" | "commercial_export"
+        | "qr_pwa_handoff" | "public_stream" => Some(Capability::CommercialUse),
+        "hosted_operations" | "team_remote" => Some(Capability::HostedMode),
+        "product_embedding" => Some(Capability::ProductEmbedding),
+        "telemetry_send" => Some(Capability::TelemetrySend),
+        "menubar_packaged_app" => Some(Capability::LocalEval),
+        _ => None,
+    }
+}
+
+/// The one entitlement decision point: resolve the tier, apply the lease,
+/// then check the capability.
+pub fn entitlement_check(feature: &str) -> CapabilityCheck {
+    if developer_origin_active() {
+        return CapabilityCheck::Permitted;
+    }
+    let Some(capability) = capability_for_feature(feature) else {
+        return CapabilityCheck::Denied {
+            reason: format!("unknown feature string: {feature}"),
+        };
+    };
+    let Ok(status) = load_license_status() else {
+        return CapabilityCheck::Denied {
+            reason: "license state unavailable".into(),
+        };
+    };
+    if !lease_valid_status(&status) {
+        return CapabilityCheck::Denied {
+            reason: "authority lease is expired or revoked".into(),
+        };
+    }
+    let tier = match status.mode {
+        LicenseMode::Evaluation => Tier::Eval,
+        _ => Tier::Licensed,
+    };
+    match capability {
+        Capability::LocalEval => CapabilityCheck::Permitted,
+        Capability::CommercialUse => {
+            if tier.permits_commercial_use() {
+                CapabilityCheck::Permitted
+            } else {
+                CapabilityCheck::Denied {
+                    reason: format!("{} requires a commercial license", capability.label()),
+                }
+            }
+        }
+        Capability::HostedMode | Capability::ProductEmbedding => {
+            if tier.permits_hosted_deployment() {
+                CapabilityCheck::Permitted
+            } else {
+                CapabilityCheck::Denied {
+                    reason: format!("{} requires a hosted/commercial license", capability.label()),
+                }
+            }
+        }
+        Capability::TelemetrySend => CapabilityCheck::PermittedWithWarning {
+            warning: "telemetry requires explicit opt-in; Focusa is no-telemetry by default".into(),
+        },
+    }
+}
+
+/// feature_enabled now routes through the unified entitlement check.
+pub fn feature_enabled_unified(feature: &str) -> bool {
+    entitlement_check(feature).is_permitted()
 }
 
 #[cfg(test)]
