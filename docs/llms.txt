@@ -135,6 +135,14 @@ Closure validation gates on the deterministic completion verdict
 closures. Direction operations (steer/adjudicate/review) are typed,
 evidence-bound ledger entries (POST /v1/direction/operations).
 
+## Production consistency (default)
+
+Every Focusa feature ships only with all five proofs: versioned
+contract, producer tests, consumer-side tests (producer-green is not
+delivery-green), cross-version interop, live e2e across environments.
+Policy: docs/current/PRODUCTION_CONSISTENCY_POLICY.md — applies to
+EVERY surface, consistently.
+
 ## Public status and direction
 
 Focusa remains under active development. The `v0.9.121-dev` snapshot includes 112 all-harness Pi capability descriptors/docs, progressive discovery, 22 skill/runbook pairs, 458 classified routes, governed browser capability intake, and current lifecycle/onboarding projections. Spec141 behavioral conformance and strict agent-first audit pass with zero findings.

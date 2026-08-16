@@ -35,3 +35,22 @@ five proofs exist.
   envelopes on old consumers degrade to the banner-only path.
 - Live proof: SSE capture → bg run → completion event with tail
   observed at a real consumer (the SSE live-tail fix, deployed).
+
+## Surface conformance matrix (every surface, consistent)
+
+| Surface | Contract | Producer tests | Consumer tests | Interop | Live proof |
+| --- | --- | --- | --- | --- | --- |
+| focusa-core | schema-typed modules | cargo suite per module | callers' tests | legacy snapshot parse (waypoint compat) | workspace gate |
+| focusa-api (daemon) | route schemas + error envelope | route tests + clippy | SSE/envelope contract tests | old-version state load (fail-closed + compat) | e2e matrix (live daemon) |
+| focusa-cli | clap schemas | cli tests | daemon routes it consumes | old-daemon responses tolerated | e2e matrix + bg self-test |
+| focusa-terminal-ui | typed frames | tui tests | daemon SSE consumer | replay cursor compat | manual + matrix |
+| focusa-license | facade contract | 9/9 suite | core engine (single source) | legacy tier parsing | entitlement live check |
+| apps/pi-extension | tool schemas + toolResult | 19 test files | envelope contract tests | legacy envelope shape test | e2e matrix (Pi side) |
+| apps/menubar | svelte props | tauri tests | daemon routes | version surfaces (stamp scripts) | parity gate |
+| .pi/skills | frontmatter + manifest | skill-ownership audit | agent consumption (progressive disclosure) | packaged copies parity | release gate |
+| docs/ | schemas + digests | doc-coverage audit | llms.txt + agent card consumers | version stamps | release gate |
+| scripts/CI | gate exit codes | workspace gate | release gate chain | pipefail-safe (no false greens) | CI runs |
+| Infra (build host, deploy) | musl static target | remote build | deployed binary self-check | glibc-2.28 compat | deploy smoke checks |
+
+Every surface's row must be green before a release. A surface with a
+missing proof is a release blocker, not a follow-up.
