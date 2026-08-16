@@ -2,7 +2,7 @@
 //! events, and replay. No execution state (authority separation: #267).
 
 use anyhow::Result;
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde_json::Value;
 
 use crate::workset_ledger::{WorksetDefinition, WorksetEvent};
@@ -53,7 +53,7 @@ pub fn load_definition(
             |row| row.get(0),
         )
         .optional()?;
-    Ok(raw.and_then(|text| serde_json::from_str(&text).ok()))
+    Ok(raw.and_then(|text: String| serde_json::from_str(&text).ok()))
 }
 
 pub fn append_event(

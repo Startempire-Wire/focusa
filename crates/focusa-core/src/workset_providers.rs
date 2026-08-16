@@ -59,11 +59,12 @@ pub fn reconcile_provider(
             }
         }
     }
+    let reconciled = conflicts.is_empty();
     Ok(ReconciliationReport {
         provider_ref: provider.provider_ref.clone(),
         agreements,
         conflicts,
-        reconciled: conflicts.is_empty(),
+        reconciled,
     })
 }
 
