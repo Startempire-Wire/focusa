@@ -425,7 +425,7 @@ fn unconfirmed_project_root_rejection(
             "scope_failure": identity.scope_failure.as_deref(),
             "candidates": &identity.project_root_candidates,
             "retry_posture": "operator_required",
-            "next_tools": ["interview", "focusa_project_identity", "focusa_workpoint_checkpoint"],
+            "next_tools": ["focusa_project_identity", "focusa_workpoint_checkpoint"],
             "next_step_hint": "ask the operator to confirm the exact project_root before mutating Workpoint/evidence state"
         })),
     )

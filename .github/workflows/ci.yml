@@ -121,7 +121,9 @@ jobs:
           toolchain: nightly-2026-01-08
       - name: Install Pi extension runtime dependencies
         working-directory: apps/pi-extension
-        run: npm ci --ignore-scripts
+        run: |
+          npm ci --ignore-scripts
+          node scripts/patch-pi-shrinkwrap-dependencies.mjs
       - name: Install CI deps
         run: |
           sudo apt-get update

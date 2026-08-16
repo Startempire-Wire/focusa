@@ -12,6 +12,7 @@ use crate::work_item::{EvidenceCitation, WorkItemProvider};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 // ─── Identifiers ────────────────────────────────────────────────────────────
@@ -557,12 +558,18 @@ pub struct WorkLoopState {
     pub current_autonomy_level: Option<AutonomyLevel>,
     pub delegated_authorship: Option<DelegatedAuthorshipState>,
     pub active_worker: Option<WorkerCapabilityProfile>,
+    #[serde(default)]
+    pub temporal_priority_frame_ref: Option<String>,
+    #[serde(default)]
+    pub temporal_pulse_state: Option<crate::temporal_progress::TemporalPulseState>,
 }
 
 // ─── Canonical State (from core-reducer.md) ─────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyProposalRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub proposal_id: Uuid,
     pub proposal_kind: String,
     pub target_class: String,
@@ -579,6 +586,8 @@ pub struct OntologyProposalRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyVerificationRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub proposal_id: Option<Uuid>,
     pub verification: String,
     pub outcome: String,
@@ -587,6 +596,8 @@ pub struct OntologyVerificationRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyWorkingSetRefreshRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub scope: String,
     pub reason: String,
     pub timestamp: Option<DateTime<Utc>>,
@@ -594,9 +605,55 @@ pub struct OntologyWorkingSetRefreshRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyDeltaRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub delta_kind: String,
     pub payload: serde_json::Value,
     pub timestamp: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum OntologyScopeMigrationRecordKind {
+    Object,
+    Link,
+    Proposal,
+    Verification,
+    WorkingSetRefresh,
+    Delta,
+    PreProposal,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OntologyScopeMigrationSelection {
+    pub record_kind: OntologyScopeMigrationRecordKind,
+    pub source_hash: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OntologyScopeMigrationEntry {
+    pub record_kind: OntologyScopeMigrationRecordKind,
+    pub source_hash: String,
+    pub clone_hash: String,
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OntologyScopeMigrationReceipt {
+    pub receipt_id: Uuid,
+    pub migration_id: Uuid,
+    pub operation: String,
+    pub target_workstream: WorkstreamKey,
+    pub entries: Vec<OntologyScopeMigrationEntry>,
+    pub evidence_refs: Vec<String>,
+    pub recorded_at: DateTime<Utc>,
+}
+
+pub fn ontology_scope_record_hash<T: Serialize>(record: &T) -> String {
+    let encoded = serde_json::to_vec(record).unwrap_or_default();
+    format!("sha256:{}", hex::encode(Sha256::digest(encoded)))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -613,6 +670,8 @@ pub struct OntologyState {
     pub working_set_refreshes: Vec<OntologyWorkingSetRefreshRecord>,
     #[serde(default)]
     pub delta_log: Vec<OntologyDeltaRecord>,
+    #[serde(default)]
+    pub scope_migration_receipts: Vec<OntologyScopeMigrationReceipt>,
 }
 
 // ─── Workpoint Continuity (Spec88) ─────────────────────────────────────────
@@ -802,7 +861,7 @@ pub struct WorkpointState {
 
 pub mod trajectory_caps {
     pub const RECORDS: usize = 32;
-    pub const MILESTONES: usize = 32;
+    pub const WAYPOINTS: usize = 32;
     pub const PROVENANCE: usize = 32;
     pub const EVIDENCE_REFS: usize = 32;
     pub const STATE_DELTAS: usize = 64;
@@ -916,7 +975,7 @@ pub enum TrajectoryRootGoalStability {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
-pub enum TrajectoryMilestoneStatus {
+pub enum TrajectoryWaypointStatus {
     #[default]
     NotStarted,
     Active,
@@ -944,17 +1003,25 @@ pub struct TrajectoryGoalProvenanceRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct TrajectoryMilestoneRecord {
-    pub milestone_id: String,
+pub struct TrajectoryWaypointRecord {
+    #[serde(alias = "milestone_id")]
+    pub waypoint_id: String,
     pub title: String,
     pub desired_state_delta: String,
     #[serde(default)]
     pub current_state_evidence_refs: Vec<String>,
     #[serde(default)]
     pub completion_evidence_refs: Vec<String>,
-    pub status: TrajectoryMilestoneStatus,
+    pub status: TrajectoryWaypointStatus,
     #[serde(default)]
     pub next_workpoint_candidate: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum TrajectoryWaypointInput {
+    Title(String),
+    Record(TrajectoryWaypointRecord),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -978,51 +1045,11 @@ pub struct TrajectoryDefinitionOfDoneRecord {
     pub not_done_if: Vec<String>,
 }
 
-/// Backward-compatible waypoint deserialization: legacy snapshots stored
-/// waypoints as structured objects (waypoint_id/title/desired_state_delta);
-/// current surfaces consume flat strings. Maps convert to the stable
-/// waypoint_id (falling back to title, then compact JSON).
-fn deserialize_waypoints<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    struct WaypointVisitor;
-    impl<'de> serde::de::Visitor<'de> for WaypointVisitor {
-        type Value = Vec<String>;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("a sequence of strings or legacy waypoint objects")
-        }
-
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: serde::de::SeqAccess<'de>,
-        {
-            let mut out = Vec::new();
-            while let Some(value) = seq.next_element::<serde_json::Value>()? {
-                match value {
-                    serde_json::Value::String(text) => out.push(text),
-                    serde_json::Value::Object(map) => {
-                        let text = map
-                            .get("waypoint_id")
-                            .and_then(|v| v.as_str())
-                            .or_else(|| map.get("title").and_then(|v| v.as_str()))
-                            .unwrap_or("legacy-waypoint")
-                            .to_string();
-                        out.push(text);
-                    }
-                    other => out.push(other.to_string()),
-                }
-            }
-            Ok(out)
-        }
-    }
-    deserializer.deserialize_seq(WaypointVisitor)
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TrajectoryProjectionRecord {
     pub trajectory_id: String,
+    #[serde(default)]
+    pub scope_ref: Option<crate::scoped_state::ScopeRef>,
     pub session_identity: Option<FocusaSessionIdentity>,
     pub project_root: Option<String>,
     pub continuity_id: Option<String>,
@@ -1031,15 +1058,13 @@ pub struct TrajectoryProjectionRecord {
     pub desired_end_state: String,
     pub mid_level_goal: Option<String>,
     pub short_term_goal: Option<String>,
-    #[serde(default, deserialize_with = "deserialize_waypoints")]
-    pub waypoints: Vec<String>,
+    #[serde(default)]
+    pub waypoints: Vec<TrajectoryWaypointRecord>,
     pub current_state: Option<String>,
     pub root_goal_stability: TrajectoryRootGoalStability,
     pub session_clarity_status: TrajectoryDefinitionStatus,
     pub gap_summary: Option<String>,
-    #[serde(default)]
-    pub milestones: Vec<TrajectoryMilestoneRecord>,
-    pub active_milestone_id: Option<String>,
+    pub active_waypoint_id: Option<String>,
     pub active_workpoint_id: Option<WorkpointId>,
     #[serde(default)]
     pub source_refs: serde_json::Value,
@@ -1061,10 +1086,170 @@ pub struct TrajectoryProjectionRecord {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Deserialize, Default)]
+struct TrajectoryProjectionWireRecord {
+    #[serde(default)]
+    trajectory_id: String,
+    #[serde(default)]
+    scope_ref: Option<crate::scoped_state::ScopeRef>,
+    session_identity: Option<FocusaSessionIdentity>,
+    project_root: Option<String>,
+    continuity_id: Option<String>,
+    #[serde(default)]
+    root_long_term_goal: String,
+    #[serde(default)]
+    long_term_goal: String,
+    #[serde(default)]
+    desired_end_state: String,
+    mid_level_goal: Option<String>,
+    short_term_goal: Option<String>,
+    #[serde(default)]
+    waypoints: Vec<TrajectoryWaypointInput>,
+    current_state: Option<String>,
+    #[serde(default)]
+    root_goal_stability: TrajectoryRootGoalStability,
+    #[serde(default)]
+    session_clarity_status: TrajectoryDefinitionStatus,
+    gap_summary: Option<String>,
+    #[serde(default)]
+    milestones: Vec<TrajectoryWaypointRecord>,
+    active_waypoint_id: Option<String>,
+    active_milestone_id: Option<String>,
+    active_workpoint_id: Option<WorkpointId>,
+    #[serde(default)]
+    source_refs: serde_json::Value,
+    #[serde(default)]
+    blockers: Vec<String>,
+    #[serde(default)]
+    open_questions: Vec<String>,
+    #[serde(default)]
+    definition_status: TrajectoryDefinitionStatus,
+    #[serde(default)]
+    hlt_status: HltStatus,
+    #[serde(default)]
+    confidence: TrajectoryConfidence,
+    #[serde(default)]
+    goal_provenance: Vec<TrajectoryGoalProvenanceRecord>,
+    definition_of_done: Option<TrajectoryDefinitionOfDoneRecord>,
+    supersedes_trajectory_id: Option<String>,
+    #[serde(default)]
+    canonical: bool,
+    created_at: Option<DateTime<Utc>>,
+    updated_at: Option<DateTime<Utc>>,
+}
+
+fn merge_unique_refs(target: &mut Vec<String>, incoming: Vec<String>) {
+    for value in incoming {
+        if !target.contains(&value) {
+            target.push(value);
+        }
+    }
+}
+
+fn merge_legacy_waypoint(
+    waypoints: &mut Vec<TrajectoryWaypointRecord>,
+    mut legacy: TrajectoryWaypointRecord,
+) {
+    let matching_index = waypoints.iter().position(|candidate| {
+        (!legacy.waypoint_id.is_empty() && candidate.waypoint_id == legacy.waypoint_id)
+            || (candidate.waypoint_id.starts_with("legacy-waypoint-")
+                && candidate.title == legacy.title)
+    });
+    if let Some(index) = matching_index {
+        let existing = &mut waypoints[index];
+        if existing.waypoint_id.starts_with("legacy-waypoint-") && !legacy.waypoint_id.is_empty() {
+            existing.waypoint_id = std::mem::take(&mut legacy.waypoint_id);
+        }
+        if existing.title.is_empty() {
+            existing.title = std::mem::take(&mut legacy.title);
+        }
+        if existing.desired_state_delta.is_empty() {
+            existing.desired_state_delta = std::mem::take(&mut legacy.desired_state_delta);
+        }
+        merge_unique_refs(
+            &mut existing.current_state_evidence_refs,
+            legacy.current_state_evidence_refs,
+        );
+        merge_unique_refs(
+            &mut existing.completion_evidence_refs,
+            legacy.completion_evidence_refs,
+        );
+        if existing.status == TrajectoryWaypointStatus::NotStarted {
+            existing.status = legacy.status;
+        }
+        if existing.next_workpoint_candidate.is_null() {
+            existing.next_workpoint_candidate = legacy.next_workpoint_candidate;
+        }
+    } else {
+        waypoints.push(legacy);
+    }
+}
+
+impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire = TrajectoryProjectionWireRecord::deserialize(deserializer)?;
+        let mut waypoints = Vec::with_capacity(wire.waypoints.len() + wire.milestones.len());
+        for (index, input) in wire.waypoints.into_iter().enumerate() {
+            let waypoint = match input {
+                TrajectoryWaypointInput::Title(title) => TrajectoryWaypointRecord {
+                    waypoint_id: format!("legacy-waypoint-{}", index + 1),
+                    title,
+                    ..TrajectoryWaypointRecord::default()
+                },
+                TrajectoryWaypointInput::Record(mut record) => {
+                    if record.waypoint_id.is_empty() {
+                        record.waypoint_id = format!("legacy-waypoint-{}", index + 1);
+                    }
+                    record
+                }
+            };
+            merge_legacy_waypoint(&mut waypoints, waypoint);
+        }
+        for legacy in wire.milestones {
+            merge_legacy_waypoint(&mut waypoints, legacy);
+        }
+        Ok(Self {
+            trajectory_id: wire.trajectory_id,
+            scope_ref: wire.scope_ref,
+            session_identity: wire.session_identity,
+            project_root: wire.project_root,
+            continuity_id: wire.continuity_id,
+            root_long_term_goal: wire.root_long_term_goal,
+            long_term_goal: wire.long_term_goal,
+            desired_end_state: wire.desired_end_state,
+            mid_level_goal: wire.mid_level_goal,
+            short_term_goal: wire.short_term_goal,
+            waypoints,
+            current_state: wire.current_state,
+            root_goal_stability: wire.root_goal_stability,
+            session_clarity_status: wire.session_clarity_status,
+            gap_summary: wire.gap_summary,
+            active_waypoint_id: wire.active_waypoint_id.or(wire.active_milestone_id),
+            active_workpoint_id: wire.active_workpoint_id,
+            source_refs: wire.source_refs,
+            blockers: wire.blockers,
+            open_questions: wire.open_questions,
+            definition_status: wire.definition_status,
+            hlt_status: wire.hlt_status,
+            confidence: wire.confidence,
+            goal_provenance: wire.goal_provenance,
+            definition_of_done: wire.definition_of_done,
+            supersedes_trajectory_id: wire.supersedes_trajectory_id,
+            canonical: wire.canonical,
+            created_at: wire.created_at,
+            updated_at: wire.updated_at,
+        })
+    }
+}
+
 impl Default for TrajectoryProjectionRecord {
     fn default() -> Self {
         Self {
             trajectory_id: String::new(),
+            scope_ref: None,
             session_identity: None,
             project_root: None,
             continuity_id: None,
@@ -1078,8 +1263,7 @@ impl Default for TrajectoryProjectionRecord {
             root_goal_stability: TrajectoryRootGoalStability::Stable,
             session_clarity_status: TrajectoryDefinitionStatus::Unclear,
             gap_summary: None,
-            milestones: vec![],
-            active_milestone_id: None,
+            active_waypoint_id: None,
             active_workpoint_id: None,
             source_refs: serde_json::Value::Null,
             blockers: vec![],
@@ -1095,6 +1279,64 @@ impl Default for TrajectoryProjectionRecord {
             updated_at: None,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TrajectoryIntegrityStatus {
+    Ready,
+    HltImpasse,
+    OnboardingRequired,
+    TrajectoryReviewRequired,
+    Conflicted,
+    #[default]
+    MigrationRequired,
+    IntegrityRepairRequired,
+    Archived,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProjectTrajectoryBindingRecord {
+    pub schema_version: String,
+    pub active_trajectory_id: String,
+    pub active_hlt_id: String,
+    pub active_hlt_version: u64,
+    #[serde(default)]
+    pub hlt_lineage: Vec<String>,
+    pub active_mlg_id: Option<String>,
+    pub active_stg_id: Option<String>,
+    #[serde(default)]
+    pub active_waypoint_ids: Vec<String>,
+    pub active_workpoint_id: Option<WorkpointId>,
+    pub event_ledger_ref: String,
+    pub latest_snapshot_ref: Option<String>,
+    pub ledger_digest: String,
+    pub authority: String,
+    #[serde(default)]
+    pub freshness: serde_json::Value,
+    pub status: TrajectoryIntegrityStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TrajectoryIntegrityGuardRecord {
+    pub required: bool,
+    pub project_scope_fingerprint: String,
+    pub expected_trajectory_id: String,
+    pub expected_hlt_id: String,
+    pub expected_hlt_version: u64,
+    pub expected_ledger_digest: String,
+    pub minimum_ladder_complete: bool,
+    pub causal_chain_valid: bool,
+    pub schema_supported: bool,
+    pub no_placeholder_values: bool,
+    pub ladder_links_complete: bool,
+    pub projection_matches_ledger: bool,
+    #[serde(default)]
+    pub unresolved_conflicts: Vec<String>,
+    pub last_verified_at: Option<DateTime<Utc>>,
+    pub verification_receipt_ref: Option<String>,
+    pub status: TrajectoryIntegrityStatus,
+    pub repair_route: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1176,6 +1418,117 @@ impl HltLedgerEntry {
     pub fn with_evidence(mut self, evidence_refs: Vec<String>) -> Self {
         self.evidence_refs = evidence_refs;
         self
+    }
+}
+
+/// Canonical Trajectory Ladder event level. Non-goal links share the same ledger
+/// so historical reconstruction never depends on recency across stores.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TrajectoryLadderLevel {
+    Hlt,
+    Mlg,
+    Stg,
+    Waypoint,
+    CurrentState,
+    Gap,
+    Specification,
+    Task,
+    Workpoint,
+    FocusStack,
+    Release,
+    MarkerGuard,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TrajectoryLadderEventKind {
+    Proposed,
+    Committed,
+    Superseded,
+    Inferred,
+    Advanced,
+    Observed,
+    Assessed,
+    Bound,
+    Reconciled,
+    Activated,
+    Completed,
+    HandedOff,
+    ConflictDetected,
+    ConflictResolved,
+    Verified,
+    Failed,
+    Repaired,
+    Migrated,
+    StateTransitioned,
+    ReceiptLinked,
+}
+
+/// Append-only, project-scoped event used for full Ladder history/query,
+/// deterministic fallback, migration receipts, and as-of reconstruction.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrajectoryLadderEvent {
+    pub schema_version: String,
+    pub event_id: String,
+    pub trajectory_id: String,
+    pub project_root: String,
+    pub continuity_id: Option<String>,
+    pub session_id: Option<String>,
+    pub hlt_version: u64,
+    pub causal_parent_event_id: Option<String>,
+    pub event_kind: TrajectoryLadderEventKind,
+    pub level: TrajectoryLadderLevel,
+    pub object_id: Option<String>,
+    #[serde(default)]
+    pub old_value: serde_json::Value,
+    #[serde(default)]
+    pub new_value: serde_json::Value,
+    pub actor: String,
+    pub source: String,
+    pub authority: String,
+    pub provenance: String,
+    pub confidence: TrajectoryConfidence,
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub idempotency_key: Option<String>,
+    pub lamport_ts: u64,
+    pub timestamp: DateTime<Utc>,
+}
+
+impl TrajectoryLadderEvent {
+    pub const SCHEMA_VERSION: &'static str = "focusa.trajectory_ladder_event.v1";
+
+    pub fn from_hlt_ledger(entry: &HltLedgerEntry) -> Self {
+        Self {
+            schema_version: Self::SCHEMA_VERSION.to_string(),
+            event_id: format!("legacy-hlt:{}", entry.event_id),
+            trajectory_id: format!("trajectory:legacy:{:016x}", entry.lamport_ts),
+            project_root: entry.project_root.clone(),
+            continuity_id: entry.continuity_id.clone(),
+            session_id: entry.session_id.clone(),
+            hlt_version: entry.lamport_ts.max(1),
+            causal_parent_event_id: None,
+            event_kind: TrajectoryLadderEventKind::Migrated,
+            level: TrajectoryLadderLevel::Hlt,
+            object_id: None,
+            old_value: entry
+                .old_hlt
+                .clone()
+                .map_or(serde_json::Value::Null, serde_json::Value::String),
+            new_value: serde_json::Value::String(entry.new_hlt.clone()),
+            actor: entry.source.clone(),
+            source: "legacy_hlt_ledger".to_string(),
+            authority: "legacy_compatible".to_string(),
+            provenance: "hlt_ledger_projection".to_string(),
+            confidence: TrajectoryConfidence::High,
+            reason: entry.reason.clone(),
+            evidence_refs: entry.evidence_refs.clone(),
+            idempotency_key: Some(entry.event_id.clone()),
+            lamport_ts: entry.lamport_ts,
+            timestamp: entry.timestamp,
+        }
     }
 }
 
@@ -1360,6 +1713,9 @@ pub struct ContextCognitionOptimizationFrame {
     pub eval_score: Option<f64>,
     pub baseline_score: Option<f64>,
     pub promoted: bool,
+    /// Cache-safe, bounded temporal authority refs for continuation decisions.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub temporal_context: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2876,9 +3232,46 @@ impl FocusaState {
             hlt_status: trajectory.hlt_status,
             mlg: trajectory.mid_level_goal.clone(),
             stg: trajectory.short_term_goal.clone(),
-            waypoints: trajectory.waypoints.iter().take(8).cloned().collect(),
+            waypoints: trajectory
+                .waypoints
+                .iter()
+                .take(8)
+                .map(|waypoint| waypoint.title.clone())
+                .collect(),
             active_workpoint_id: trajectory.active_workpoint_id,
         })
+    }
+
+    /// Return trajectory context only when it belongs to the exact requested project/workstream.
+    pub fn trajectory_ladder_context_for_scope(
+        &self,
+        project_root: Option<&str>,
+        continuity_id: Option<&str>,
+    ) -> Option<TrajectoryLadderContext> {
+        let requested_root = project_root.unwrap_or_default().trim_end_matches('/');
+        if requested_root.is_empty() {
+            return None;
+        }
+        let context = self.trajectory_ladder_context()?;
+        let context_root = context
+            .project_root
+            .as_deref()
+            .unwrap_or_default()
+            .trim_end_matches('/');
+        if context_root != requested_root {
+            return None;
+        }
+        if let (Some(requested), Some(actual)) = (
+            continuity_id.filter(|value| !value.is_empty()),
+            context
+                .continuity_id
+                .as_deref()
+                .filter(|value| !value.is_empty()),
+        ) && requested != actual
+        {
+            return None;
+        }
+        Some(context)
     }
 
     /// Create a new empty state for a fresh session.
@@ -2954,7 +3347,13 @@ mod focusa_state_tests {
             desired_end_state: "Active desired".to_string(),
             mid_level_goal: Some("Active MLG".to_string()),
             short_term_goal: Some("Active STG".to_string()),
-            waypoints: vec!["one".to_string(); 10],
+            waypoints: (0..10)
+                .map(|index| TrajectoryWaypointRecord {
+                    waypoint_id: format!("waypoint-{index}"),
+                    title: "one".to_string(),
+                    ..TrajectoryWaypointRecord::default()
+                })
+                .collect(),
             ..TrajectoryProjectionRecord::default()
         });
         state.trajectory.active_trajectory_id = Some("active".to_string());
@@ -2965,6 +3364,91 @@ mod focusa_state_tests {
         assert_eq!(context.mlg.as_deref(), Some("Active MLG"));
         assert_eq!(context.stg.as_deref(), Some("Active STG"));
         assert_eq!(context.waypoints.len(), 8);
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(Some("/tmp/project"), Some("cont"))
+                .is_some()
+        );
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(Some("/tmp/other"), Some("cont"))
+                .is_none()
+        );
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(Some("/tmp/project"), Some("other-cont"))
+                .is_none()
+        );
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(None, None)
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn trajectory_projection_reads_legacy_waypoints_and_milestones_losslessly() {
+        let legacy = serde_json::json!({
+            "trajectory_id": "trajectory:test",
+            "long_term_goal": "HLT",
+            "desired_end_state": "Done",
+            "waypoints": ["First", "Second"],
+            "milestones": [{
+                "milestone_id": "milestone:first",
+                "title": "First",
+                "desired_state_delta": "First delta",
+                "current_state_evidence_refs": ["evidence:current"],
+                "completion_evidence_refs": ["evidence:done"],
+                "status": "active",
+                "next_workpoint_candidate": {"id": "workpoint:next"}
+            }],
+            "active_milestone_id": "milestone:first"
+        });
+
+        let record: TrajectoryProjectionRecord =
+            serde_json::from_value(legacy).expect("legacy projection should migrate");
+        assert_eq!(record.waypoints.len(), 2);
+        assert_eq!(record.waypoints[0].waypoint_id, "milestone:first");
+        assert_eq!(record.waypoints[0].title, "First");
+        assert_eq!(
+            record.waypoints[0].current_state_evidence_refs,
+            vec!["evidence:current"]
+        );
+        assert_eq!(
+            record.active_waypoint_id.as_deref(),
+            Some("milestone:first")
+        );
+
+        let canonical = serde_json::to_value(&record).expect("canonical projection");
+        assert!(canonical.get("milestones").is_none());
+        assert!(canonical.get("active_milestone_id").is_none());
+        assert_eq!(canonical["waypoints"][0]["waypoint_id"], "milestone:first");
+        assert_eq!(canonical["active_waypoint_id"], "milestone:first");
+    }
+
+    #[test]
+    fn trajectory_projection_round_trips_typed_waypoints() {
+        let record = TrajectoryProjectionRecord {
+            trajectory_id: "trajectory:typed".to_string(),
+            waypoints: vec![TrajectoryWaypointRecord {
+                waypoint_id: "waypoint:one".to_string(),
+                title: "One".to_string(),
+                desired_state_delta: "Delta".to_string(),
+                status: TrajectoryWaypointStatus::Verified,
+                ..TrajectoryWaypointRecord::default()
+            }],
+            active_waypoint_id: Some("waypoint:one".to_string()),
+            ..TrajectoryProjectionRecord::default()
+        };
+        let encoded = serde_json::to_value(&record).expect("serialize");
+        let decoded: TrajectoryProjectionRecord =
+            serde_json::from_value(encoded).expect("deserialize");
+        assert_eq!(decoded.waypoints.len(), 1);
+        assert_eq!(decoded.waypoints[0].waypoint_id, "waypoint:one");
+        assert_eq!(
+            decoded.waypoints[0].status,
+            TrajectoryWaypointStatus::Verified
+        );
     }
 
     #[test]
@@ -3117,12 +3601,23 @@ pub struct FrameRecord {
     pub constraints: Vec<String>,
     /// The frame's current cognitive state (updated incrementally via deltas).
     pub focus_state: FocusState,
+    /// Replayable projection of the canonical temporal event ledger for this exact frame scope.
+    /// This is presentation/context state, never a competing temporal authority.
+    #[serde(default)]
+    pub temporal_context: Option<TemporalFrameContext>,
     /// When the frame was completed (G1-detail-05 UPDATE §Completion Semantics).
     #[serde(default)]
     pub completed_at: Option<DateTime<Utc>>,
     /// Why the frame was completed (G1-detail-05 UPDATE §Completion Semantics).
     #[serde(default)]
     pub completion_reason: Option<CompletionReason>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TemporalFrameContext {
+    pub projection: crate::temporal::TemporalProjection,
+    pub source_event_count: usize,
+    pub projected_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -3810,6 +4305,11 @@ pub enum FocusaEvent {
         frame_id: FrameId,
         delta: FocusStateDelta,
     },
+    /// Replay a typed temporal-ledger projection into the exact scoped Focus Stack frame.
+    TemporalFrameContextProjected {
+        frame_id: FrameId,
+        context: TemporalFrameContext,
+    },
 
     // Intuition → Gate
     IntuitionSignalObserved {
@@ -3903,6 +4403,8 @@ pub enum FocusaEvent {
 
     // PRE / governance
     ProposalSubmitted {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         kind: ProposalKind,
         source: String,
@@ -3911,6 +4413,8 @@ pub enum FocusaEvent {
         score: Option<f64>,
     },
     ProposalStatusChanged {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         status: ProposalStatus,
     },
@@ -3945,6 +4449,8 @@ pub enum FocusaEvent {
     // ─── Ontology Classification / Reducer (docs/50) ─────────────────
     #[serde(rename = "ontology_object_upsert_proposed")]
     OntologyObjectUpsertProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         object_type: String,
         object_id: Option<String>,
@@ -3952,6 +4458,8 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_link_upsert_proposed")]
     OntologyLinkUpsertProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         link_type: String,
         source_id: String,
@@ -3960,6 +4468,8 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_status_change_proposed")]
     OntologyStatusChangeProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         subject: String,
         from_status: Option<String>,
@@ -3968,6 +4478,8 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_working_set_membership_proposed")]
     OntologyWorkingSetMembershipProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         subject: String,
         operation: String,
@@ -3975,26 +4487,49 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_proposal_promoted")]
     OntologyProposalPromoted {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         target_class: String,
         applied_kind: String,
     },
     #[serde(rename = "ontology_proposal_rejected")]
     OntologyProposalRejected {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         target_class: String,
         reason: String,
     },
     #[serde(rename = "ontology_verification_applied")]
     OntologyVerificationApplied {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Option<Uuid>,
         verification: String,
         outcome: String,
     },
     #[serde(rename = "ontology_working_set_refreshed")]
     OntologyWorkingSetRefreshed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         scope: String,
         reason: String,
+    },
+    #[serde(rename = "ontology_scope_migration_applied")]
+    OntologyScopeMigrationApplied {
+        migration_id: Uuid,
+        target_workstream: WorkstreamKey,
+        selections: Vec<OntologyScopeMigrationSelection>,
+        #[serde(default)]
+        evidence_refs: Vec<String>,
+    },
+    #[serde(rename = "ontology_scope_migration_rolled_back")]
+    OntologyScopeMigrationRolledBack {
+        rollback_id: Uuid,
+        migration_id: Uuid,
+        #[serde(default)]
+        evidence_refs: Vec<String>,
     },
 
     // ─── Workpoint Continuity (Spec88) ─────────────────────────────────
@@ -4078,25 +4613,6 @@ pub enum FocusaEvent {
         invariant: String,
         details: String,
     },
-
-    // ─── CallGraph Execution Authority (Spec 155, #254) ──────────────────
-    #[serde(rename = "callgraph_frame_dispatched")]
-    CallGraphFrameDispatched {
-        run_id: String,
-        dispatch_id: String,
-        frame_id: String,
-        invocation_id: String,
-        adapter_id: String,
-        model: String,
-        attempt: u32,
-    },
-    #[serde(rename = "callgraph_frame_settled")]
-    CallGraphFrameSettled {
-        run_id: String,
-        frame_id: String,
-        invocation_id: String,
-        receipt_ref: String,
-    },
 }
 
 /// Incremental Focus State delta — only changed fields.
@@ -4157,6 +4673,10 @@ pub struct ReductionResult {
 pub struct EventLogEntry {
     pub id: Uuid,
     pub timestamp: DateTime<Utc>,
+    /// Universal evidence-backed wall-clock and causal-time context captured once at action ingress.
+    /// Legacy entries deserialize to an explicit unavailable sentinel; replay never recaptures time.
+    #[serde(default)]
+    pub temporal: crate::temporal_clock::TemporalActionEnvelope,
     #[serde(flatten)]
     pub event: FocusaEvent,
     pub correlation_id: Option<String>,
@@ -4178,6 +4698,38 @@ pub struct EventLogEntry {
     /// Observations are recorded but do not mutate canonical Focus Stack/State.
     #[serde(default)]
     pub is_observation: bool,
+}
+
+impl EventLogEntry {
+    pub fn captured(
+        event: FocusaEvent,
+        origin: SignalOrigin,
+        correlation_id: Option<String>,
+    ) -> Self {
+        let temporal = crate::temporal_clock::capture_operator_temporal_action_envelope();
+        Self::with_temporal(event, origin, correlation_id, temporal)
+    }
+
+    pub fn with_temporal(
+        event: FocusaEvent,
+        origin: SignalOrigin,
+        correlation_id: Option<String>,
+        temporal: crate::temporal_clock::TemporalActionEnvelope,
+    ) -> Self {
+        Self {
+            id: Uuid::now_v7(),
+            timestamp: temporal.captured_at_utc,
+            temporal,
+            event,
+            correlation_id,
+            origin,
+            machine_id: None,
+            instance_id: None,
+            session_id: None,
+            thread_id: None,
+            is_observation: false,
+        }
+    }
 }
 
 // ─── Workers (from G1-10-workers.md) ────────────────────────────────────────
@@ -4348,6 +4900,7 @@ pub enum Action {
 
     // Proposals
     SubmitProposal {
+        workstream: Option<WorkstreamKey>,
         kind: ProposalKind,
         source: String,
         payload: serde_json::Value,
@@ -4947,6 +5500,8 @@ pub enum AttachmentRole {
 /// Proposal — timestamped async request for state change.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Proposal {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub id: Uuid,
     pub kind: ProposalKind,
     pub source: String,

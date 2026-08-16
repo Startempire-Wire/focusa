@@ -117,7 +117,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install Pi extension runtime dependencies
         working-directory: apps/pi-extension
-        run: npm ci --ignore-scripts
+        run: |
+          npm ci --ignore-scripts
+          node scripts/patch-pi-shrinkwrap-dependencies.mjs
       - name: Prove OTA, authority/worktree, compaction, and cache closure
         run: tests/final_release_gap_gate.sh
 
