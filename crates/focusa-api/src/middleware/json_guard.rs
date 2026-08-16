@@ -67,9 +67,16 @@ fn validate_scope_field_value(key: &str, value: &str) -> Result<(), &'static str
         return Err("scope_field_too_long");
     }
     if key == "scope_kind" || key == "query_scope_kind" {
+        // Two vocabularies share this key: the typed ScopeKind enum
+        // (Project/Host — ScopeRef bodies) and the query-scope kinds
+        // below. Both are valid; never reject the typed enum.
         let valid = matches!(
             value,
-            "fresh_question"
+            "Project"
+                | "Host"
+                | "project"
+                | "host"
+                | "fresh_question"
                 | "mission_carryover"
                 | "correction"
                 | "meta"
@@ -299,5 +306,24 @@ mod tests {
     fn scope_guard_accepts_session_start_checkpoint_reason() {
         let value = json!({"checkpoint_reason":"session_start"});
         assert!(validate_scope_fields(&value).is_ok());
+    }
+}
+
+#[cfg(test)]
+mod scope_kind_vocabulary_tests {
+    use super::validate_scope_field_value;
+
+    #[test]
+    fn typed_scope_kind_enum_is_accepted() {
+        assert!(validate_scope_field_value("scope_kind", "Project").is_ok());
+        assert!(validate_scope_field_value("scope_kind", "Host").is_ok());
+        assert!(validate_scope_field_value("scope_kind", "project").is_ok());
+        assert!(validate_scope_field_value("scope_kind", "host").is_ok());
+    }
+
+    #[test]
+    fn query_scope_kinds_still_validated() {
+        assert!(validate_scope_field_value("scope_kind", "meta").is_ok());
+        assert!(validate_scope_field_value("scope_kind", "nonsense").is_err());
     }
 }
