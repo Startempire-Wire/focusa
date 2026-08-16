@@ -44,6 +44,17 @@ Fixes landed this round marked [FIXED].
 4. [IN FLIGHT] daemon rebuild carrying the closure gating (last matrix
    check pending deploy).
 
+## The notification loop was broken (root-caused 2026-08-16)
+
+The bg completion → SSE → front-terminal chain LOOKED live (the
+complete route returned the envelope) but the SSE handler's live-tail
+path consumed broadcast messages and DROPPED them — only the durable
+SQLite replay was served. So no background_job_completion ever reached
+any client, which is why the agent kept polling. Fixed: the handler
+now yields every broadcast event to subscribers (`35e386ec3`).
+Lesson: a response-path probe is not proof of the delivery path —
+verify the CONSUMER, not the producer.
+
 ## False-green discipline (hard-won this round)
 
 `cmd 2>&1 | tail -N && echo GREEN` masks failures — the pipe's exit is
