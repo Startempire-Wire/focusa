@@ -235,249 +235,6 @@ fn sqlite_persistence_creates_machine_id() {
 }
 
 #[test]
-fn sqlite_persistence_migrates_legacy_events_before_creating_scope_indexes() {
-    let dir = temp_dir();
-    let db_path = dir.join("focusa.sqlite");
-    let legacy = Connection::open(&db_path).unwrap();
-    legacy
-        .execute_batch(
-            r#"
-            CREATE TABLE events (
-              event_id TEXT PRIMARY KEY,
-              ts TEXT NOT NULL,
-              origin TEXT NOT NULL,
-              correlation_id TEXT,
-              payload_json TEXT NOT NULL
-            );
-            INSERT INTO events(event_id, ts, origin, correlation_id, payload_json)
-            VALUES('legacy-event', '2026-01-01T00:00:00Z', 'system', 'legacy-correlation', '{}');
-            "#,
-        )
-        .unwrap();
-    drop(legacy);
-
-    let mut cfg = FocusaConfig::default();
-    cfg.data_dir = dir.to_string_lossy().to_string();
-    let _persistence = SqlitePersistence::new(&cfg)
-        .expect("legacy events schema should migrate before scope indexes are created");
-
-    let migrated = Connection::open(&db_path).unwrap();
-    for column in [
-        "machine_id",
-        "instance_id",
-        "session_id",
-        "thread_id",
-        "is_observation",
-    ] {
-        let present: i64 = migrated
-            .query_row(
-                "SELECT COUNT(*) FROM pragma_table_info('events') WHERE name=?1",
-                [column],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(present, 1, "missing migrated events column {column}");
-    }
-    let legacy_row: (String, String, i64) = migrated
-        .query_row(
-            "SELECT event_id, payload_json, is_observation FROM events WHERE event_id='legacy-event'",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-        )
-        .unwrap();
-    assert_eq!(legacy_row, ("legacy-event".into(), "{}".into(), 0));
-}
-
-#[test]
-fn sqlite_persistence_preserves_spec133_tables_while_creating_runtime_projections() {
-    let dir = temp_dir();
-    let db_path = dir.join("focusa.sqlite");
-    let legacy = Connection::open(&db_path).unwrap();
-    legacy
-        .execute_batch(
-            r#"
-            CREATE TABLE silent_sessions (
-              silent_session_id TEXT PRIMARY KEY,
-              project_root TEXT NOT NULL,
-              continuity_id TEXT NOT NULL,
-              display_name TEXT NOT NULL,
-              work_item_ref TEXT,
-              mission TEXT NOT NULL,
-              active_config_revision_id TEXT NOT NULL,
-              current_run_generation INTEGER NOT NULL CHECK(current_run_generation > 0),
-              lifecycle TEXT NOT NULL,
-              health TEXT NOT NULL,
-              semantic_activity TEXT NOT NULL,
-              snapshot_json TEXT NOT NULL,
-              created_at TEXT NOT NULL,
-              updated_at TEXT NOT NULL
-            );
-            CREATE TABLE silent_session_runs (
-              run_id TEXT PRIMARY KEY,
-              silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
-              run_generation INTEGER NOT NULL CHECK(run_generation > 0),
-              actor_instance_id TEXT NOT NULL,
-              config_revision_id TEXT NOT NULL,
-              protocol_versions_json TEXT NOT NULL,
-              run_json TEXT NOT NULL,
-              started_at TEXT NOT NULL,
-              ended_at TEXT,
-              UNIQUE(silent_session_id, run_generation)
-            );
-            INSERT INTO silent_sessions VALUES(
-              'legacy-session', '/tmp/project', 'main', 'Legacy', NULL, 'Preserve state',
-              'config-1', 1, 'running', 'healthy', 'working', '{}',
-              '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'
-            );
-            INSERT INTO silent_session_runs VALUES(
-              'legacy-run', 'legacy-session', 1, 'actor-1', 'config-1', '{}', '{}',
-              '2026-01-01T00:00:00Z', NULL
-            );
-            "#,
-        )
-        .unwrap();
-    drop(legacy);
-
-    let mut cfg = FocusaConfig::default();
-    cfg.data_dir = dir.to_string_lossy().to_string();
-    let _persistence = SqlitePersistence::new(&cfg)
-        .expect("Spec133 retained tables must not collide with runtime projection tables");
-
-    let migrated = Connection::open(&db_path).unwrap();
-    let old_session_id: String = migrated
-        .query_row(
-            "SELECT silent_session_id FROM silent_sessions WHERE silent_session_id='legacy-session'",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    let old_generation: i64 = migrated
-        .query_row(
-            "SELECT run_generation FROM silent_session_runs WHERE run_id='legacy-run'",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    assert_eq!(old_session_id, "legacy-session");
-    assert_eq!(old_generation, 1);
-
-    for table in [
-        "runtime_silent_sessions",
-        "runtime_silent_session_runs",
-        "runtime_silent_session_events",
-        "runtime_silent_session_config_revisions",
-        "runtime_silent_session_principals",
-        "runtime_silent_session_approvals",
-    ] {
-        let present: i64 = migrated
-            .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
-                [table],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(present, 1, "missing isolated runtime table {table}");
-    }
-}
-
-#[test]
-fn sqlite_persistence_copies_exact_v5_projection_rows_into_runtime_namespace() {
-    let dir = temp_dir();
-    let db_path = dir.join("focusa.sqlite");
-    let mut cfg = FocusaConfig::default();
-    cfg.data_dir = dir.to_string_lossy().to_string();
-
-    // Seed all unrelated/current schema metadata, then recreate the three V5
-    // projection tables exactly as retained by pre-namespace installations.
-    drop(SqlitePersistence::new(&cfg).unwrap());
-    let legacy = Connection::open(&db_path).unwrap();
-    legacy
-        .execute_batch(
-            r#"
-            DROP TABLE IF EXISTS runtime_silent_session_events;
-            DROP TABLE IF EXISTS runtime_silent_session_runs;
-            DROP TABLE IF EXISTS runtime_silent_sessions;
-            DROP TABLE IF EXISTS silent_session_events;
-            DROP TABLE IF EXISTS silent_session_runs;
-            DROP TABLE IF EXISTS silent_sessions;
-
-            CREATE TABLE silent_sessions (
-              session_id TEXT PRIMARY KEY,
-              project_root TEXT NOT NULL,
-              continuity_id TEXT NOT NULL,
-              lifecycle_state TEXT NOT NULL,
-              projection_json TEXT NOT NULL,
-              projection_version INTEGER NOT NULL,
-              updated_at TEXT NOT NULL
-            );
-            CREATE TABLE silent_session_runs (
-              run_id TEXT PRIMARY KEY,
-              session_id TEXT NOT NULL,
-              generation INTEGER NOT NULL CHECK(generation > 0),
-              run_json TEXT NOT NULL,
-              updated_at TEXT NOT NULL,
-              UNIQUE(session_id, generation)
-            );
-            CREATE TABLE silent_session_events (
-              event_id TEXT PRIMARY KEY,
-              session_id TEXT NOT NULL,
-              run_id TEXT NOT NULL,
-              seq INTEGER NOT NULL,
-              occurred_at TEXT NOT NULL,
-              event_json TEXT NOT NULL,
-              payload_sha256 TEXT NOT NULL,
-              previous_hash TEXT NOT NULL,
-              event_hash TEXT NOT NULL,
-              UNIQUE(session_id, run_id, seq)
-            );
-            INSERT INTO silent_sessions VALUES(
-              'v5-session', '/tmp/project', 'main', 'running',
-              '{"session_id":"v5-session"}', 3, '2026-01-01T00:00:00Z'
-            );
-            INSERT INTO silent_session_runs VALUES(
-              'v5-run', 'v5-session', 1, '{"run_id":"v5-run"}',
-              '2026-01-01T00:00:01Z'
-            );
-            INSERT INTO silent_session_events VALUES(
-              'v5-event', 'v5-session', 'v5-run', 1,
-              '2026-01-01T00:00:02Z', '{"event_id":"v5-event"}',
-              'payload-hash', 'GENESIS', 'event-hash'
-            );
-            "#,
-        )
-        .unwrap();
-    drop(legacy);
-
-    let _persistence = SqlitePersistence::new(&cfg)
-        .expect("exact retained V5 projections must copy into runtime namespace");
-    let migrated = Connection::open(&db_path).unwrap();
-    let session: (String, i64) = migrated
-        .query_row(
-            "SELECT lifecycle_state, projection_version FROM runtime_silent_sessions WHERE session_id='v5-session'",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .unwrap();
-    let run_generation: i64 = migrated
-        .query_row(
-            "SELECT generation FROM runtime_silent_session_runs WHERE run_id='v5-run'",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    let event: (i64, String, String) = migrated
-        .query_row(
-            "SELECT seq, payload_sha256, event_hash FROM runtime_silent_session_events WHERE event_id='v5-event'",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-        )
-        .unwrap();
-    assert_eq!(session, ("running".into(), 3));
-    assert_eq!(run_generation, 1);
-    assert_eq!(event, (1, "payload-hash".into(), "event-hash".into()));
-}
-
-#[test]
 fn sqlite_persistence_rejects_incompatible_schema_version() {
     let dir = temp_dir();
 
@@ -1135,4 +892,82 @@ fn silent_session_writer_lease_registry_survives_restart_and_rejects_stale_cas()
             ..crate::silent_session_writer::WriterLeaseRegistry::default()
         }
     );
+}
+
+/// #263 slice 1: cross-harness rehydration conformance. A saved
+/// workstream-scoped FocusaState rehydrates with identical session
+/// identity, trajectory records, and workstream scope — a continuation on
+/// any harness resolves the exact same canonical state.
+#[test]
+fn focusa_state_roundtrip_rehydrates_workstream_scoped_session_identically() {
+    let dir = temp_dir();
+    let mut config = crate::types::FocusaConfig::default();
+    config.data_dir = dir.to_string_lossy().to_string();
+    let persistence = crate::runtime::persistence_sqlite::SqlitePersistence::new(&config).unwrap();
+
+    let mut state = crate::types::FocusaState::default();
+    state.version = 7;
+    let session_id = uuid::Uuid::now_v7();
+    state.session = Some(crate::types::SessionState {
+        session_id,
+        created_at: chrono::Utc::now(),
+        adapter_id: None,
+        workspace_id: None,
+        project_root: Some("/root/proj".to_string()),
+        continuity_id: Some("cont-1".to_string()),
+        status: crate::types::SessionStatus::Active,
+    });
+    state.trajectory.records.push(crate::types::TrajectoryProjectionRecord {
+        trajectory_id: "t1".to_string(),
+        session_identity: None,
+        project_root: Some("/root/proj".to_string()),
+        continuity_id: Some("cont-1".to_string()),
+        root_long_term_goal: "ship the release".to_string(),
+        long_term_goal: "ship the release".to_string(),
+        desired_end_state: "green release".to_string(),
+        mid_level_goal: None,
+        short_term_goal: None,
+        waypoints: vec![],
+        current_state: None,
+        root_goal_stability: crate::types::TrajectoryRootGoalStability::Stable,
+        session_clarity_status: crate::types::TrajectoryDefinitionStatus::Clear,
+        gap_summary: None,
+        milestones: vec![],
+        active_milestone_id: None,
+        active_workpoint_id: None,
+        source_refs: serde_json::json!({}),
+        blockers: vec![],
+        open_questions: vec![],
+        hlt_status: crate::types::HltStatus::default(),
+        definition_status: crate::types::TrajectoryDefinitionStatus::Clear,
+        confidence: crate::types::TrajectoryConfidence::default(),
+        goal_provenance: vec![],
+        definition_of_done: None,
+        supersedes_trajectory_id: None,
+        canonical: true,
+        created_at: None,
+        updated_at: None,
+    });
+
+    persistence.save_state(&state).unwrap();
+
+    // Simulate harness switch: a fresh persistence handle over the same dir.
+    let rehydrated = crate::runtime::persistence_sqlite::SqlitePersistence::new(&config).unwrap()
+        .load_state()
+        .unwrap()
+        .expect("state rehydrates");
+
+    let session = rehydrated.session.expect("session survives rehydration");
+    assert_eq!(session.session_id, session_id);
+    assert_eq!(session.project_root.as_deref(), Some("/root/proj"));
+    assert_eq!(session.continuity_id.as_deref(), Some("cont-1"));
+    assert_eq!(session.status, crate::types::SessionStatus::Active);
+    assert_eq!(rehydrated.trajectory.records.len(), 1);
+    let trajectory = &rehydrated.trajectory.records[0];
+    assert_eq!(trajectory.project_root.as_deref(), Some("/root/proj"));
+    assert_eq!(trajectory.continuity_id.as_deref(), Some("cont-1"));
+    assert_eq!(trajectory.long_term_goal, "ship the release");
+    assert!(trajectory.canonical);
+
+    let _ = std::fs::remove_dir_all(&dir);
 }

@@ -84,32 +84,6 @@ pub enum TrajectoryCmd {
     },
     /// Resume trajectory orientation after compaction/model switch/session resume.
     Resume(ScopeArgs),
-    /// Read complete project-scoped Trajectory Ladder history.
-    History(HistoryArgs),
-    /// Query/filter/reconstruct Trajectory Ladder history.
-    Query(HistoryArgs),
-}
-
-#[derive(clap::Args, Clone)]
-pub struct HistoryArgs {
-    #[arg(long)]
-    pub project_root: Option<String>,
-    #[arg(long)]
-    pub continuity_id: Option<String>,
-    #[arg(long)]
-    pub trajectory_id: Option<String>,
-    #[arg(long)]
-    pub hlt_version: Option<u64>,
-    #[arg(long)]
-    pub level: Option<String>,
-    #[arg(long)]
-    pub event_kind: Option<String>,
-    #[arg(long)]
-    pub cursor: Option<u64>,
-    #[arg(long)]
-    pub as_of: Option<String>,
-    #[arg(long, default_value_t = 50)]
-    pub limit: usize,
 }
 
 #[derive(clap::Args, Clone)]
@@ -141,24 +115,6 @@ fn push_query(qs: &mut Vec<String>, key: &str, value: Option<&str>) {
     if let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) {
         qs.push(format!("{key}={}", encode(value)));
     }
-}
-
-fn path_for_history(endpoint: &str, args: &HistoryArgs) -> String {
-    let mut qs = Vec::new();
-    push_query(&mut qs, "project_root", args.project_root.as_deref());
-    push_query(&mut qs, "continuity_id", args.continuity_id.as_deref());
-    push_query(&mut qs, "trajectory_id", args.trajectory_id.as_deref());
-    push_query(&mut qs, "level", args.level.as_deref());
-    push_query(&mut qs, "event_kind", args.event_kind.as_deref());
-    push_query(&mut qs, "as_of", args.as_of.as_deref());
-    if let Some(value) = args.hlt_version {
-        qs.push(format!("hlt_version={value}"));
-    }
-    if let Some(value) = args.cursor {
-        qs.push(format!("cursor={value}"));
-    }
-    qs.push(format!("limit={}", args.limit.clamp(1, 500)));
-    format!("{endpoint}?{}", qs.join("&"))
 }
 
 fn path_for_view(scope: &ScopeArgs) -> String {
@@ -237,9 +193,6 @@ pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()
         TrajectoryCmd::View(scope) | TrajectoryCmd::Resume(scope) => {
             canonicalize(&mut scope.project_root)
         }
-        TrajectoryCmd::History(args) | TrajectoryCmd::Query(args) => {
-            canonicalize(&mut args.project_root)
-        }
         TrajectoryCmd::DefineGoal { project_root, .. }
         | TrajectoryCmd::Assess { project_root, .. }
         | TrajectoryCmd::ProposeWorkpoint { project_root, .. }
@@ -253,28 +206,6 @@ pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()
                 "trajectory view: project_root",
             )?;
             ("view", api.get(&path_for_view(&scope)).await?)
-        }
-        TrajectoryCmd::History(args) => {
-            ensure_project_root_scope_safe(
-                args.project_root.as_deref(),
-                "trajectory history: project_root",
-            )?;
-            (
-                "history",
-                api.get(&path_for_history("/v1/trajectory/history", &args))
-                    .await?,
-            )
-        }
-        TrajectoryCmd::Query(args) => {
-            ensure_project_root_scope_safe(
-                args.project_root.as_deref(),
-                "trajectory query: project_root",
-            )?;
-            (
-                "query",
-                api.get(&path_for_history("/v1/trajectory/query", &args))
-                    .await?,
-            )
         }
         TrajectoryCmd::Resume(scope) => {
             ensure_project_root_scope_safe(
@@ -422,22 +353,6 @@ pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()
     };
     if json_output {
         println!("{}", serde_json::to_string_pretty(&resp)?);
-    } else if matches!(label, "history" | "query") {
-        println!(
-            "trajectory {label}: status={} canonical={} count={} conflict={} next_cursor={}",
-            resp.get("status")
-                .and_then(Value::as_str)
-                .unwrap_or("unknown"),
-            resp.get("canonical")
-                .and_then(Value::as_bool)
-                .unwrap_or(false),
-            resp.get("count").and_then(Value::as_u64).unwrap_or(0),
-            resp.get("conflict_status")
-                .and_then(Value::as_str)
-                .unwrap_or("unknown"),
-            resp.get("next_cursor")
-                .map_or_else(|| "none".to_string(), Value::to_string),
-        );
     } else {
         print_summary(label, &resp);
     }

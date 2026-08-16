@@ -9,6 +9,20 @@ if git rev-parse --verify "refs/remotes/${REMOTE_NAME}/main" >/dev/null 2>&1; th
   "$ROOT/scripts/validate-commit-messages.sh" --range "${BASE}..HEAD"
 fi
 
+if [ -x "$ROOT/tests/convergence_invariants_static_test.sh" ]; then
+  "$ROOT/tests/convergence_invariants_static_test.sh" || {
+    echo "pre-push: convergence invariants static gate failed" >&2
+    exit 1
+  }
+fi
+
+if [ -x "$ROOT/tests/installer_update_policy_static_test.sh" ]; then
+  "$ROOT/tests/installer_update_policy_static_test.sh" || {
+    echo "pre-push: installer/update policy static gate failed" >&2
+    exit 1
+  }
+fi
+
 UPSTREAM="$0.focusa-upstream"
 if [ -x "$UPSTREAM" ]; then
   exec "$UPSTREAM" "$@"

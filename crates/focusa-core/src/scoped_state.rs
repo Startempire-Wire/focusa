@@ -516,3 +516,100 @@ mod tests {
         assert_eq!(json["data"]["record_id"], "r1");
     }
 }
+
+/// Derive the workstream partition scope from an event payload.
+///
+/// The read side of the partitioned-state migration needs a scope to pick
+/// the right partition; reducer helper functions (trajectory dispatch,
+/// focus materialize) receive only the event, so derive the scope from the
+/// event payload when it carries both a non-empty `project_root` and
+/// `continuity_id`. Events without a workstream scope fall back to the
+/// global canonical state (the read stays correct; the write side always
+/// lands in the global canonical state, mirroring the route-family pattern).
+pub fn workstream_scope_of_event(event: &crate::types::FocusaEvent) -> Option<(String, String)> {
+    use crate::types::FocusaEvent::*;
+    let pair = match event {
+        TrajectoryGoalDefined { trajectory } => {
+            (trajectory.project_root.clone(), trajectory.continuity_id.clone())
+        }
+        FocusFramePushed { project_root, continuity_id, .. } => {
+            (project_root.clone(), continuity_id.clone())
+        }
+        WorkpointCheckpointProposed { workpoint } => {
+            (workpoint.project_root.clone(), workpoint.continuity_id.clone())
+        }
+        _ => (None, None),
+    };
+    match pair {
+        (Some(root), Some(continuity)) if !root.is_empty() && !continuity.is_empty() => {
+            Some((root, continuity))
+        }
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod workstream_scope_of_event_tests {
+    use super::workstream_scope_of_event;
+    use crate::types::FocusaEvent;
+    use uuid::Uuid;
+
+    #[test]
+    fn derives_scope_from_trajectory_event() {
+        use crate::types::TrajectoryProjectionRecord;
+        let trajectory = TrajectoryProjectionRecord {
+            project_root: Some("/root/proj".to_string()),
+            continuity_id: Some("cont-1".to_string()),
+            ..Default::default()
+        };
+        let event = FocusaEvent::TrajectoryGoalDefined { trajectory };
+        assert_eq!(
+            workstream_scope_of_event(&event),
+            Some(("/root/proj".to_string(), "cont-1".to_string()))
+        );
+    }
+
+    #[test]
+    fn derives_scope_from_focus_frame_push() {
+        let event: FocusaEvent = serde_json::from_value(serde_json::json!({
+            "type": "FocusFramePushed",
+            "frame_id": Uuid::now_v7(),
+            "beads_issue_id": "b1",
+            "title": "t",
+            "goal": "g",
+            "project_root": "/root/proj",
+            "continuity_id": "cont-1",
+            "constraints": [],
+            "tags": []
+        }))
+        .expect("event deserializes");
+        assert_eq!(
+            workstream_scope_of_event(&event),
+            Some(("/root/proj".to_string(), "cont-1".to_string()))
+        );
+    }
+
+    #[test]
+    fn rejects_scope_with_empty_root_or_continuity() {
+        use crate::types::TrajectoryProjectionRecord;
+        let trajectory = TrajectoryProjectionRecord {
+            project_root: Some(String::new()),
+            continuity_id: Some("cont-1".to_string()),
+            ..Default::default()
+        };
+        let event = FocusaEvent::TrajectoryGoalDefined { trajectory };
+        assert_eq!(workstream_scope_of_event(&event), None);
+    }
+
+    #[test]
+    fn falls_back_to_none_for_scopeless_events() {
+        let event: FocusaEvent = serde_json::from_value(serde_json::json!({
+            "type": "SessionStarted",
+            "session_id": Uuid::now_v7(),
+            "project_root": null,
+            "continuity_id": null
+        }))
+        .expect("event deserializes");
+        assert_eq!(workstream_scope_of_event(&event), None);
+    }
+}

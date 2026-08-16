@@ -1223,8 +1223,3 @@ Always show the HLT status before durable work.
 Always make Pi carry Trajectory through bootstrap and compaction.
 Always prove completion with Evidence and Receipts.
 ```
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-trajectory-interlock -->
-## Spec 144 trajectory and non-lazy verification interlock
-
-Trajectory and Workpoint closure cannot treat verification as a final-message ritual. Activated obligations, open findings, placement, Evidence, snapshot equality, and settlement readiness are mandatory trajectory feeders. Pi and other harnesses receive bounded next-action and blocker projections, while the daemon retains canonical routing and settlement authority.

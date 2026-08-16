@@ -544,8 +544,3 @@ Spec97 makes a product-level claim:
 > Focusa's next compounding layer is universal Reflex Primitives: local, typed, context-fed routines for identity, scope, continuity, evidence, recovery, salience, execution, learning, resource pressure, and governance.
 
 This keeps Focusa aligned with its current architecture while making the system more cohesive: Ontology describes the world, Trajectory describes direction, Workpoint describes the current step, Evidence proves confidence changes, Focus Gate surfaces salience, Work-loop governs continuation, and Reflex Primitives make the boring operational cognition reliable enough that models can spend their reasoning budget on the hard parts.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-reflex-registry -->
-## Spec 144 Verification Fabric reflex families
-
-The Reflex Registry MUST support and version the universal routing, snapshot, coverage, independence, Evidence, settlement, recovery, arbitration, placement, and learning reflexes declared by Spec 144. Vertical overlays may add activation-specific reflexes but cannot suppress core reflexes. A registered reflex without trigger, deterministic action/proposal path, tests, and Receipt behavior is `schema_only`.

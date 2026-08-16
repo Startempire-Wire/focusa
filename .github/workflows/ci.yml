@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
   commit-messages:
     name: Meaningful commit messages
@@ -36,13 +32,19 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           components: clippy
-      - uses: Swatinem/rust-cache@v2
       - name: Process-health check + unit/integration tests
         env:
           FOCUSA_TEST_MODE: "1"
-        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace"
+        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace -- --test-threads=1"
       - name: Process-health check + Clippy
         run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace -- -D warnings"
+      - name: Focused Pi package transaction + update gates
+        env:
+          FOCUSA_TEST_MODE: "1"
+        run: |
+          cargo test -p focusa-cli pi_package
+          cargo test -p focusa-cli update
+          cargo clippy -p focusa-cli --all-targets -- -D warnings
 
   menubar:
     name: Menubar
@@ -93,14 +95,23 @@ jobs:
           chmod +x tests/release_deploy_automation_static_test.sh
           ./tests/release_deploy_automation_static_test.sh
 
+      - name: Installer/update policy + Pi discovery static gate
+        run: bash tests/installer_update_policy_static_test.sh
+
+      - name: Distribution parity report (#260, informational)
+        run: |
+          node scripts/audit-distribution-parity.mjs --json > /tmp/distribution-manifest.json || true
+          python3 -c "import json; d=json.load(open('/tmp/distribution-manifest.json')); print('parity_ok=%s drift=%d' % (d['parity_ok'], len(d['drift']))); [print('  drift', r['surface'], r['source_value'], '->', r['observed_value']) for r in d['drift']]"
+
+      - name: Release readiness evaluation (#265, informational)
+        run: node scripts/release-readiness-evaluation.mjs || true
+
+
   spec-gates:
     name: Spec Gates (strict)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          # Locked-release ancestry proof resolves prior candidate commits.
-          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -110,9 +121,7 @@ jobs:
           toolchain: nightly-2026-01-08
       - name: Install Pi extension runtime dependencies
         working-directory: apps/pi-extension
-        run: |
-          npm ci --ignore-scripts
-          node scripts/patch-pi-shrinkwrap-dependencies.mjs
+        run: npm ci --ignore-scripts
       - name: Install CI deps
         run: |
           sudo apt-get update
@@ -132,7 +141,6 @@ jobs:
       - name: API contract probe
         env:
           FOCUSA_BIND: 127.0.0.1:18787
-          FOCUSA_TEST_MODE: "1"
         run: |
           set -euo pipefail
           cargo build -p focusa-api --release --bin focusa-daemon
@@ -168,5 +176,4 @@ jobs:
         env:
           FOCUSA_BASE_URL: http://127.0.0.1:18787
           FOCUSA_BIND: 127.0.0.1:18787
-          FOCUSA_TEST_MODE: "1"
         run: ./scripts/ci/run-spec-gates.sh

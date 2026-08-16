@@ -142,7 +142,7 @@ fn scope_required_response(reason: String) -> (StatusCode, Json<Value>) {
     (
         StatusCode::BAD_REQUEST,
         Json(json!({
-            "status": "error",
+            "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
             "code": "SCOPE_REQUIRED",
             "reason": reason,
         })),
@@ -349,7 +349,7 @@ async fn create_snapshot(
             (
                 StatusCode::BAD_REQUEST,
                 Json(json!({
-                    "status": "error",
+                    "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
                     "code": "CLT_NODE_NOT_FOUND",
                     "reason": "no clt node is available for snapshot creation"
                 })),
@@ -451,7 +451,7 @@ async fn restore_snapshot(
         return Err((
             StatusCode::BAD_REQUEST,
             Json(json!({
-                "status": "error",
+                "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
                 "code": "DIFF_INPUT_INVALID",
                 "reason": "restore_mode must be exact or merge"
             })),
@@ -472,7 +472,7 @@ async fn restore_snapshot(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(json!({
-                    "status": "error",
+                    "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
                     "code": "SNAPSHOT_NOT_FOUND",
                     "reason": "snapshot_id does not exist"
                 })),
@@ -657,7 +657,7 @@ async fn diff_snapshots(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(json!({
-                    "status": "error",
+                    "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
                     "code": "SNAPSHOT_NOT_FOUND",
                     "reason": "from_snapshot_id does not exist"
                 })),
@@ -671,7 +671,7 @@ async fn diff_snapshots(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(json!({
-                    "status": "error",
+                    "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
                     "code": "SNAPSHOT_NOT_FOUND",
                     "reason": "to_snapshot_id does not exist"
                 })),

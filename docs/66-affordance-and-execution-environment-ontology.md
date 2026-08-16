@@ -503,8 +503,3 @@ With this layer, Focusa can:
 # 6. Success Condition
 
 The Affordance and Execution-Environment Ontology is successful when Focusa can model practical possibility well enough to choose actions based not only on intent and world understanding, but also on what is truly executable, authorized, affordable, reliable, and reversible in the current environment.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-verification-affordances -->
-## Spec 144 verification affordance integration
-
-Verification capabilities, execution bindings, read-only source posture, writable sandboxes, tool permissions, environment eligibility, and authority limits MUST be expressed through the existing affordance and execution-environment ontology. A Verifier profile without an executable permitted affordance path is `schema_only` and ineligible.

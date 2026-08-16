@@ -1,4 +1,5 @@
 //! Focusa runtime entitlement helper — Spec92 §5.5.
+//! Developer-origin resolution: see `license_developer_origin.rs` (#307).
 //!
 //! Provides a central API to load the local license state, check whether a specific feature
 //! is enabled by the current license, and require a feature (returning a structured error
@@ -26,15 +27,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-pub use crate::entitlement_execution_guard::{
-    evaluate_entitlement_execution,
-    evaluate_entitlement_execution_for_project,
-    EntitlementExecutionContext,
-    EntitlementExecutionDecision,
-    EntitlementExecutionFailure,
-    EntitlementExecutionPolicy,
-};
-
 const LICENSE_FILE: &str = "license.json";
 const CONFIG_DIR: &str = ".config";
 const FOCUSA_DIR: &str = "focusa";
@@ -44,10 +36,6 @@ const HASH_PREFIX_LEN: usize = 16; // Spec §5.1: store prefix only, never raw k
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LicenseMode {
-    Unactivated,
-    RecoveryOnly,
-    Entitled,
-    OfflineGrace,
     Evaluation,
     Operator,
     FoundersForge,
@@ -59,10 +47,6 @@ impl LicenseMode {
     /// Human-readable label for status output.
     pub fn label(self) -> &'static str {
         match self {
-            LicenseMode::Unactivated => "Unactivated",
-            LicenseMode::RecoveryOnly => "RecoveryOnly",
-            LicenseMode::Entitled => "Entitled",
-            LicenseMode::OfflineGrace => "OfflineGrace",
             LicenseMode::Evaluation => "Evaluation",
             LicenseMode::Operator => "Operator",
             LicenseMode::FoundersForge => "FoundersForge",
@@ -144,7 +128,7 @@ impl LocalLicense {
                 "founders-forge" | "founders_forge" => LicenseMode::FoundersForge,
                 "team" => LicenseMode::Team,
                 "enterprise" => LicenseMode::Enterprise,
-                _ => LicenseMode::RecoveryOnly,
+                _ => LicenseMode::Operator,
             }
         }
     }
@@ -154,9 +138,6 @@ impl LocalLicense {
 /// `focusa license status` output shape.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LicenseStatus {
-    /// Canonical signed-authority projection. `None` is migration-only and must
-    /// never be interpreted as an entitlement grant.
-    pub authority: Option<focusa_license::EntitlementProjection>,
     /// License mode.
     pub mode: LicenseMode,
     /// Product (focusa, uiai-engine, bundle, founders-forge).
@@ -177,6 +158,9 @@ pub struct LicenseStatus {
     pub offline_valid_until: Option<String>,
     /// License key prefix for display (never the raw key).
     pub key_prefix: String,
+    /// #119: whether the authority lease is currently valid (not revoked,
+    /// not expired, offline grace intact).
+    pub lease_valid: bool,
 }
 
 /// Structured error for `require_feature` and other license failures. Maps to spec §11
@@ -199,8 +183,6 @@ pub enum LicenseError {
     RegistryUnreachable(String),
     #[error("evaluation mode — feature '{0}' not permitted")]
     EvaluationRestricted(String),
-    #[error("base Focusa product gate not satisfied (decision={0}); one usable signed product entitlement is required for value-producing core mutations")]
-    BaseProductRequired(String),
 }
 
 /// Doctor report for `focusa license doctor` per spec §5.2.
@@ -217,37 +199,6 @@ pub struct DoctorReport {
     pub failures: Vec<String>,
 }
 
-/// Require the canonical base Focusa product gate for value-producing core
-/// mutations (Spec 152F P3). One usable signed product entitlement for product
-/// `focusa` gates the base; the legacy `focusa.core.mission` / `focusa.core.workpoint` /
-/// `focusa.core.evidence` identifiers are compatibility/projection claims, never
-/// separately purchased features.
-pub fn require_base_product() -> Result<focusa_license::BaseProductProjection, LicenseError> {
-    let guard = focusa_license::resolve_license_guard();
-    let policy = EntitlementExecutionPolicy::new(
-        "focusa.core.mutation.base_focusa",
-        focusa_license::OperationClass::ValueMutation,
-        focusa_license::CapabilityFamily::BaseFocusa,
-        None,
-        None,
-        focusa_license::RecoveryAllowance::None,
-    );
-    if let Err(error) = evaluate_entitlement_execution(
-        &guard,
-        &policy,
-        EntitlementExecutionContext::default(),
-    ) {
-        return Err(LicenseError::BaseProductRequired(error.code));
-    }
-    let projection = focusa_license::base_product_projection(guard.entitlement.as_ref())
-        .map_err(|_| LicenseError::BaseProductRequired("snapshot_missing".to_string()))?;
-    if projection.permits_base_mutations {
-        Ok(projection)
-    } else {
-        Err(LicenseError::BaseProductRequired(projection.decision))
-    }
-}
-
 /// Path to the local license file. Resolves to `~/.config/focusa/license.json`.
 pub fn license_file_path() -> PathBuf {
     let home = std::env::var_os("HOME")
@@ -256,62 +207,66 @@ pub fn license_file_path() -> PathBuf {
     home.join(CONFIG_DIR).join(FOCUSA_DIR).join(LICENSE_FILE)
 }
 
-/// Load the one canonical signed authority entitlement projection.
+/// Load the local license state. A missing file yields an Evaluation status
+/// with NO authority lease (#119 slice 4): self-issued evaluation grants no
+/// capabilities — the developer-origin resolver (#307) is the only
+/// no-license path that enables features.
 pub fn load_license_status() -> anyhow::Result<LicenseStatus> {
-    let guard = focusa_license::resolve_license_guard();
-    let entitlement = guard.entitlement.as_ref();
-    let authority = focusa_license::entitlement_projection(entitlement)
-        .map_err(|error| anyhow::anyhow!(error.to_string()))?;
-    let mode = match entitlement.map(|snapshot| snapshot.state) {
-        Some(focusa_license::authority::EntitlementState::Active) => LicenseMode::Entitled,
-        Some(focusa_license::authority::EntitlementState::OfflineGrace) => {
-            LicenseMode::OfflineGrace
+    let path = license_file_path();
+    if !path.exists() {
+        let mut status = status_from_local(&LocalLicense::evaluation());
+        status.lease_valid = false;
+        return Ok(status);
+    }
+    let raw = std::fs::read_to_string(&path)
+        .map_err(|e| anyhow::anyhow!("read license file {}: {e}", path.display()))?;
+    let local: LocalLicense = serde_json::from_str(&raw)
+        .map_err(|e| anyhow::anyhow!("parse license file {}: {e}", path.display()))?;
+    Ok(status_from_local(&local))
+}
+
+/// #119 slice 2: the authority lease is valid only while the registry status
+/// is not revoked and neither the license nor the offline grace window has
+/// expired. Expired/revoked leases never enable features (developer origin
+/// is the only no-lease path, per #307).
+pub fn lease_valid_status(status: &LicenseStatus) -> bool {
+    if status.status.eq_ignore_ascii_case("revoked") {
+        return false;
+    }
+    let now = chrono::Utc::now();
+    for stamp in [status.expires_at.as_deref(), status.offline_valid_until.as_deref()]
+        .into_iter()
+        .flatten()
+    {
+        if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(stamp) {
+            if parsed <= now {
+                return false;
+            }
         }
-        Some(focusa_license::authority::EntitlementState::Unactivated) => LicenseMode::Unactivated,
-        Some(focusa_license::authority::EntitlementState::RecoveryOnly) | None => {
-            LicenseMode::RecoveryOnly
+    }
+    true
+}
+
+pub fn lease_valid(local: &LocalLicense) -> bool {
+    if local.status.eq_ignore_ascii_case("revoked") {
+        return false;
+    }
+    let now = chrono::Utc::now();
+    for stamp in [local.expires_at.as_deref(), local.offline_valid_until.as_deref()]
+        .into_iter()
+        .flatten()
+    {
+        if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(stamp) {
+            if parsed <= now {
+                return false;
+            }
         }
-    };
-    let features = entitlement
-        .map(|snapshot| {
-            snapshot
-                .features
-                .iter()
-                .filter(|(_, enabled)| **enabled)
-                .map(|(feature, _)| feature.clone())
-                .collect()
-        })
-        .unwrap_or_default();
-    Ok(LicenseStatus {
-        authority: Some(authority),
-        mode,
-        product: entitlement
-            .map(|snapshot| snapshot.product.clone())
-            .unwrap_or_else(|| "focusa".to_string()),
-        tier: guard.tier.label().to_string(),
-        status: guard.tier.label().to_string(),
-        commercial_use: matches!(
-            guard.check(focusa_license::Capability::CommercialUse),
-            focusa_license::CapabilityCheck::Permitted
-        ),
-        customer_email: String::new(),
-        features,
-        expires_at: entitlement
-            .and_then(|snapshot| snapshot.expires_at)
-            .map(|value| value.to_rfc3339()),
-        offline_valid_until: entitlement
-            .and_then(|snapshot| snapshot.offline_grace_until)
-            .map(|value| value.to_rfc3339()),
-        key_prefix: entitlement
-            .and_then(|snapshot| snapshot.lease_digest.as_deref())
-            .map(|digest| digest.chars().take(HASH_PREFIX_LEN).collect())
-            .unwrap_or_default(),
-    })
+    }
+    true
 }
 
 fn status_from_local(local: &LocalLicense) -> LicenseStatus {
     LicenseStatus {
-        authority: None,
         mode: local.mode(),
         product: local.product.clone(),
         tier: local.tier.clone(),
@@ -322,14 +277,18 @@ fn status_from_local(local: &LocalLicense) -> LicenseStatus {
         expires_at: local.expires_at.clone(),
         offline_valid_until: local.offline_valid_until.clone(),
         key_prefix: local.key_prefix.clone(),
+        lease_valid: lease_valid(local),
     }
 }
 
-/// Read the raw `LocalLicense` from disk. Returns Evaluation if no file.
+/// Read the raw `LocalLicense` from disk. Returns Evaluation if no file
+/// (lease-invalid: self-issued evaluation grants no capabilities).
 pub fn load_local_license() -> anyhow::Result<LocalLicense> {
     let path = license_file_path();
     if !path.exists() {
-        return Ok(LocalLicense::evaluation());
+        let mut evaluation = LocalLicense::evaluation();
+        evaluation.status = "self_issued".into();
+        return Ok(evaluation);
     }
     let raw = std::fs::read_to_string(&path)
         .map_err(|e| anyhow::anyhow!("read license file {}: {e}", path.display()))?;
@@ -340,19 +299,21 @@ pub fn load_local_license() -> anyhow::Result<LocalLicense> {
 
 /// Check whether a specific feature is enabled by the current license.
 /// Returns `true` if enabled, `false` if not (or if in evaluation mode).
+/// #307 developer-origin rule: a trusted development machine receives
+/// developer_full — every feature is enabled and commercial gates never
+/// block development or testing.
+pub fn developer_origin_active() -> bool {
+    crate::license_developer_origin::developer_origin_active()
+}
+
 pub fn feature_enabled(feature: &str) -> bool {
-    match load_license_status() {
-        Ok(status) if status.commercial_use && !status.features.is_empty() => {
-            status.features.iter().any(|f| f == feature)
-        }
-        _ => false,
-    }
+    feature_enabled_unified(feature)
 }
 
 /// Require a feature — returns `Ok(())` if enabled, `Err(LicenseError::FeatureRequiresLicense)`
 /// if gated. Use this in feature paths per spec §5.5.
 pub fn require_feature(feature: &str) -> Result<(), LicenseError> {
-    if feature_enabled(feature) {
+    if developer_origin_active() || feature_enabled(feature) {
         return Ok(());
     }
     let mode = load_license_status().ok().map(|s| s.mode);
@@ -361,60 +322,6 @@ pub fn require_feature(feature: &str) -> Result<(), LicenseError> {
             Err(LicenseError::EvaluationRestricted(feature.to_string()))
         }
         _ => Err(LicenseError::FeatureRequiresLicense(feature.to_string())),
-    }
-}
-
-/// Require the release-proof premium family for advanced governed release
-/// orchestration and proof operations (Spec 152F §3, §4, §6).
-///
-/// Safe release status reads remain available through the ReadProjection
-/// family; only mutation-class release orchestration and proof operations
-/// require the `focusa.release.proof` feature grant.
-pub fn require_release_proof() -> Result<(), LicenseError> {
-    let guard = focusa_license::resolve_license_guard();
-    let policy = EntitlementExecutionPolicy::new(
-        "focusa.release.proof.orchestrate",
-        focusa_license::OperationClass::ValueMutation,
-        focusa_license::CapabilityFamily::ReleaseProof,
-        Some("focusa.release.proof"),
-        Some("release_proof_runs"),
-        focusa_license::RecoveryAllowance::None,
-    );
-    match evaluate_entitlement_execution(
-        &guard,
-        &policy,
-        EntitlementExecutionContext::default(),
-    ) {
-        Ok(_decision) => Ok(()),
-        Err(failure) => Err(LicenseError::FeatureRequiresLicense(failure.code)),
-    }
-}
-
-/// Require the export-packaged premium feature for value-added hosted
-/// packaging, transformation, and report formats (Spec 152F §3.3, §8).
-///
-/// Basic customer-data export (JSONL, Parquet, silent-session retention
-/// export) is always available through the CustomerDataExport recovery
-/// allowance. This function gates only the optional `focusa.export.packaged`
-/// additive premium feature. It does not require the base product gate
-/// because basic export always works.
-pub fn require_export_packaged() -> Result<(), LicenseError> {
-    let guard = focusa_license::resolve_license_guard();
-    let snapshot = guard
-        .entitlement
-        .as_ref()
-        .ok_or_else(|| LicenseError::FeatureRequiresLicense(
-            "focusa.export.packaged".to_string()
-        ))?;
-    match focusa_license::resolve_export_packaged(
-        snapshot,
-        "focusa.export.packaged",
-        chrono::Utc::now(),
-    ) {
-        focusa_license::PremiumFamilyDecision::Feature { .. } => Ok(()),
-        focusa_license::PremiumFamilyDecision::Denied(denial) => {
-            Err(LicenseError::FeatureRequiresLicense(format!("{denial:?}")))
-        }
     }
 }
 
@@ -553,10 +460,6 @@ pub fn check_feature(license_file: &Path, feature: &str) -> Result<String, Licen
     if status.commercial_use && status.features.iter().any(|f| f == feature) {
         // Provide a coarse reason label
         let reason = match status.mode {
-            LicenseMode::Unactivated => "unactivated",
-            LicenseMode::RecoveryOnly => "recovery_only",
-            LicenseMode::Entitled => "signed_authority_lease",
-            LicenseMode::OfflineGrace => "signed_authority_offline_grace",
             LicenseMode::Evaluation => "evaluation",
             LicenseMode::Operator => "operator_license",
             LicenseMode::FoundersForge => "founders_forge_license",
@@ -565,10 +468,7 @@ pub fn check_feature(license_file: &Path, feature: &str) -> Result<String, Licen
         };
         return Ok(reason.to_string());
     }
-    if matches!(
-        status.mode,
-        LicenseMode::Unactivated | LicenseMode::RecoveryOnly | LicenseMode::Evaluation
-    ) {
+    if status.mode == LicenseMode::Evaluation {
         return Err(LicenseError::EvaluationRestricted(feature.to_string()));
     }
     Err(LicenseError::FeatureRequiresLicense(feature.to_string()))
@@ -713,6 +613,157 @@ async fn registry_ping_blocking(registry: &str) -> anyhow::Result<bool> {
     }
 }
 
+/// ── Unified entitlement engine (#119 slice 3) ────────────────────────────
+/// The tier/capability engine lives HERE — focusa-core is the single
+/// decision point. `focusa-license` is now a thin facade (see its lib.rs).
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Tier {
+    Eval,
+    Licensed,
+    Open,
+}
+
+impl Tier {
+    pub fn label(self) -> &'static str {
+        match self {
+            Tier::Eval => "eval",
+            Tier::Licensed => "licensed",
+            Tier::Open => "open",
+        }
+    }
+
+    pub fn permits_commercial_use(self) -> bool {
+        matches!(self, Tier::Licensed | Tier::Open)
+    }
+
+    pub fn permits_hosted_deployment(self) -> bool {
+        matches!(self, Tier::Licensed | Tier::Open)
+    }
+
+    pub fn permits_local_eval(self) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Capability {
+    CommercialUse,
+    HostedMode,
+    ProductEmbedding,
+    TelemetrySend,
+    LocalEval,
+}
+
+impl Capability {
+    pub fn label(self) -> &'static str {
+        match self {
+            Capability::CommercialUse => "commercial use",
+            Capability::HostedMode => "hosted mode",
+            Capability::ProductEmbedding => "product embedding",
+            Capability::TelemetrySend => "telemetry send",
+            Capability::LocalEval => "local eval",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CapabilityCheck {
+    Permitted,
+    PermittedWithWarning { warning: String },
+    Denied { reason: String },
+}
+
+impl CapabilityCheck {
+    pub fn is_permitted(&self) -> bool {
+        !matches!(self, CapabilityCheck::Denied { .. })
+    }
+
+    pub fn is_denied(&self) -> bool {
+        matches!(self, CapabilityCheck::Denied { .. })
+    }
+
+    pub fn reason(&self) -> Option<&str> {
+        match self {
+            CapabilityCheck::Denied { reason } => Some(reason),
+            CapabilityCheck::PermittedWithWarning { warning } => Some(warning),
+            CapabilityCheck::Permitted => None,
+        }
+    }
+}
+
+/// Feature-string → capability mapping (the bridge that collapses the two
+/// gate vocabularies). Every feature string used anywhere must be listed.
+pub fn capability_for_feature(feature: &str) -> Option<Capability> {
+    match feature {
+        "packaged_installer" | "official_release_bundle" | "commercial_export"
+        | "qr_pwa_handoff" | "public_stream" => Some(Capability::CommercialUse),
+        "hosted_operations" | "team_remote" => Some(Capability::HostedMode),
+        "product_embedding" => Some(Capability::ProductEmbedding),
+        "telemetry_send" => Some(Capability::TelemetrySend),
+        "menubar_packaged_app" => Some(Capability::LocalEval),
+        _ => None,
+    }
+}
+
+/// The one entitlement decision point: resolve the tier, apply the lease,
+/// then check the capability.
+pub fn entitlement_check(feature: &str) -> CapabilityCheck {
+    if developer_origin_active() {
+        return CapabilityCheck::Permitted;
+    }
+    let Some(capability) = capability_for_feature(feature) else {
+        return CapabilityCheck::Denied {
+            reason: format!("unknown feature string: {feature}"),
+        };
+    };
+    let Ok(status) = load_license_status() else {
+        return CapabilityCheck::Denied {
+            reason: "license state unavailable".into(),
+        };
+    };
+    if !lease_valid_status(&status) {
+        return CapabilityCheck::Denied {
+            reason: "authority lease is expired or revoked".into(),
+        };
+    }
+    let tier = match status.mode {
+        LicenseMode::Evaluation => Tier::Eval,
+        _ => Tier::Licensed,
+    };
+    match capability {
+        Capability::LocalEval => CapabilityCheck::Permitted,
+        Capability::CommercialUse => {
+            if tier.permits_commercial_use() {
+                CapabilityCheck::Permitted
+            } else {
+                CapabilityCheck::Denied {
+                    reason: format!("{} requires a commercial license", capability.label()),
+                }
+            }
+        }
+        Capability::HostedMode | Capability::ProductEmbedding => {
+            if tier.permits_hosted_deployment() {
+                CapabilityCheck::Permitted
+            } else {
+                CapabilityCheck::Denied {
+                    reason: format!("{} requires a hosted/commercial license", capability.label()),
+                }
+            }
+        }
+        Capability::TelemetrySend => CapabilityCheck::PermittedWithWarning {
+            warning: "telemetry requires explicit opt-in; Focusa is no-telemetry by default".into(),
+        },
+    }
+}
+
+/// feature_enabled now routes through the unified entitlement check.
+pub fn feature_enabled_unified(feature: &str) -> bool {
+    entitlement_check(feature).is_permitted()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -774,14 +825,14 @@ mod tests {
     }
 
     #[test]
-    fn unknown_tier_fails_closed_to_recovery_only() {
+    fn unknown_tier_falls_through_to_operator() {
         let mut local = LocalLicense::evaluation();
         local.tier = "future-tier-shape".to_string();
         local.commercial_use = true;
         local.features = vec!["packaged_installer".to_string()];
         local.eval = false;
-        // Unknown legacy tier strings are migration-only and fail closed.
-        assert_eq!(local.mode(), LicenseMode::RecoveryOnly);
+        // Unknown tier strings fall through to Operator per Spec 118 §1 fallback.
+        assert_eq!(local.mode(), LicenseMode::Operator);
     }
 
     #[test]
@@ -793,38 +844,63 @@ mod tests {
         assert_eq!(prefix, "focusa_live_abc1");
     }
 
-    #[test]
-    fn license_base_product_gate_requires_one_signed_entitlement() {
-        use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
-        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-001");
-        snapshot.state = EntitlementState::Active;
-        let guard = focusa_license::LicenseGuard::from_entitlement(snapshot);
-        let projection =
-            focusa_license::base_product_projection(guard.entitlement.as_ref()).expect("projection");
-        assert_eq!(projection.product, "focusa");
-        assert_eq!(projection.decision, "entitled");
-        assert!(projection.permits_base_mutations);
-        // Legacy core identifiers resolve as base-product claims, not separate purchases.
-        assert_eq!(projection.compatibility.get("focusa.core.mission"), Some(&true));
-        assert_eq!(projection.compatibility.get("focusa.core.workpoint"), Some(&true));
-        assert_eq!(projection.compatibility.get("focusa.core.evidence"), Some(&true));
+    fn lease_fixture(status: &str, expires_at: Option<&str>, offline_until: Option<&str>) -> LocalLicense {
+        LocalLicense {
+            key_hash: String::new(),
+            key_prefix: String::new(),
+            product: "focusa".into(),
+            tier: "operator".into(),
+            status: status.into(),
+            commercial_use: true,
+            customer_email: String::new(),
+            features: vec!["packaged_installer".into()],
+            offline_valid_until: offline_until.map(str::to_string),
+            expires_at: expires_at.map(str::to_string),
+            eval: false,
+            registry: String::new(),
+            issued_at: 0,
+        }
     }
 
     #[test]
-    fn license_base_product_gate_fails_closed_without_signed_entitlement() {
-        // Self-issued Evaluation carries no signed entitlement snapshot and must
-        // never satisfy the base product gate.
-        let guard = focusa_license::LicenseGuard::eval(7);
-        assert!(guard.entitlement.is_none());
-        assert!(focusa_license::base_product_projection(guard.entitlement.as_ref()).is_err());
+    fn active_lease_is_valid() {
+        assert!(lease_valid(&lease_fixture("active", None, None)));
+    }
 
-        // Offline Grace remains a usable base product posture.
-        use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
-        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-002");
-        snapshot.state = EntitlementState::OfflineGrace;
-        let guard = focusa_license::LicenseGuard::from_entitlement(snapshot);
-        let projection =
-            focusa_license::base_product_projection(guard.entitlement.as_ref()).expect("projection");
-        assert!(projection.permits_base_mutations);
+    #[test]
+    fn revoked_lease_is_invalid() {
+        assert!(!lease_valid(&lease_fixture("revoked", None, None)));
+    }
+
+    #[test]
+    fn expired_license_is_invalid() {
+        assert!(!lease_valid(&lease_fixture(
+            "active",
+            Some("2020-01-01T00:00:00+00:00"),
+            None
+        )));
+    }
+
+    #[test]
+    fn expired_offline_grace_is_invalid() {
+        assert!(!lease_valid(&lease_fixture(
+            "active",
+            None,
+            Some("2020-01-01T00:00:00+00:00")
+        )));
+    }
+
+    #[test]
+    fn future_lease_is_valid() {
+        assert!(lease_valid(&lease_fixture(
+            "active",
+            Some("2099-01-01T00:00:00+00:00"),
+            Some("2099-01-01T00:00:00+00:00")
+        )));
+    }
+
+    #[test]
+    fn malformed_stamps_do_not_break_validity() {
+        assert!(lease_valid(&lease_fixture("active", Some("not-a-date"), None)));
     }
 }

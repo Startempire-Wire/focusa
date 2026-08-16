@@ -726,8 +726,3 @@ Acceptance criteria:
 ## 26. One-line definition
 
 Context Cognition compiles scoped project context, ontology, evidence, and optimized reasoning guidance into bounded advisory packets for safer, smarter Focusa work.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-role-contexts -->
-## Spec 144 role-specific context projection
-
-Context Cognition MUST generate separate bounded Builder, Verifier, Router, coverage-challenger, and arbiter packets from the same canonical scope while preserving disclosure policy. Verifier packets exclude Builder hidden reasoning and irrelevant rhetoric by default; all packets bind source hashes, Workpoint revision, Runtime Constitution, tool policy, temporal/presence posture, and exact obligations.

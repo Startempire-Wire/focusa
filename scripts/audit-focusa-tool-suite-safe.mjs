@@ -55,7 +55,12 @@ async function getJson(endpoint, options = {}) {
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
   probes.push({ endpoint, status: res.status, ok: res.ok, elapsed_ms, route_tier: routeTier(endpoint) });
   if (options.recordLatency !== false) recordLatencyGuardrail(endpoint, elapsed_ms, res.ok);
-  if (!res.ok) throw new Error(`${endpoint} HTTP ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(`${endpoint} HTTP ${res.status}`);
+    err.status = res.status;
+    err.body = await res.text().catch(() => "");
+    throw err;
+  }
   return { body, elapsed_ms };
 }
 
@@ -290,10 +295,16 @@ for (const endpoint of [...getRoutes].sort()) {
     if (err.name === 'TimeoutError') {
       pushFailure(timeoutFailureClass(endpoint), endpoint, err.message, 'Move cold work off hot route or lower payload/lock work.');
     } else if (typeof err.message === 'string' && /\bHTTP 4\d\d\b/.test(err.message)) {
-      // 4xx means the route exists and responded with a validation error
-      // (e.g. required query param missing). Treat as a soft warning, not a
-      // daemon failure, because the route is alive.
-      pushWarning('probe_validation_expected', endpoint, `hot probe returned 4xx (expected for required-param routes): ${err.message}`, 'If a route legitimately requires query params, this warning is expected; otherwise add default query to the audit probe.');
+      // #305: a 403 with a structured authority/entitlement body is a policy
+      // gate, not a validation gap and not a daemon failure.
+      if (err?.status === 403 || /\bentitlement\b|\bauthority\b/.test(String(err?.body || err?.message || ''))) {
+        pushWarning('entitlement_blocked', endpoint, `hot probe is authority-gated (healthy, unactivated daemon): ${err.message}`, 'Activate authority or record typed authority-gated coverage; do not classify as daemon_unavailable.');
+      } else {
+        // 4xx means the route exists and responded with a validation error
+        // (e.g. required query param missing). Treat as a soft warning, not a
+        // daemon failure, because the route is alive.
+        pushWarning('probe_validation_expected', endpoint, `hot probe returned 4xx (expected for required-param routes): ${err.message}`, 'If a route legitimately requires query params, this warning is expected; otherwise add default query to the audit probe.');
+      }
     } else {
       pushFailure('daemon_unavailable', endpoint, err.message, 'Fix route availability or mark contract with explicit exemption.');
     }

@@ -5,7 +5,7 @@
 **Created:** 2026-07-22  
 **Canonical label:** **Spec 139 — Distributed Presence Authority, Environment Identity, Execution Placement, and Multi-Daemon Coordination**  
 **Primary implementation surfaces:** Focusa core, reducer, daemon, SQLite/CRDT persistence, API, Operation Registry, generated contracts, CLI, Pi extension, Agent Bootstrap, Awareness, Workpoint, Work Loop, Silent Sessions, Evidence, Receipts, Mission Deck/Canvas, menubar, generated UI, tests, conformance, and future Focusa.work relay  
-**Depends on:** Specs 16, 23–26, 34, 40, 41, 43, 53, 72, 76, 88, 96, 97, 98, 100, 104, 108, 111, 112, 116, 119, 120, 125, 130, 130A, 131, 133, 135, 135A, 135B, 135F, 135G, 135I, 135J, 136, 137, 137A, 138, and 138A  
+**Depends on:** Specs 16, 23–26, 34, 40, 41, 43, 53, 72, 76, 88, 96, 97, 98, 100, 104, 108, 111, 112, 116, 119, 120, 125, 130, 130A, 131, 133, 135, 135A, 135B, 135F, 135G, 135I, 135J, 136, 137, and 138  
 **Research basis:** OpenTelemetry Context/Baggage, SPIFFE/SPIRE workload identity, Git worktree identity, Kubernetes Lease semantics, NATS JetStream streams/KV, local-first event replication, and the current Focusa multi-device/CRDT/runtime implementation.
 
 ---
@@ -133,13 +133,13 @@ Spec 139 extends them with environment coordinates, live presence, topology, pla
 
 ### 3.4 Time
 
-The combined Spec 137 + Spec 137A source owns trusted clocks, clock domains, calendar intent, deadlines, urgency, estimates, lease-expiry time semantics, temporal incidents, and zero-deferral/applicability closure.
+Spec 137 owns trusted clocks, clock domains, calendar intent, deadlines, urgency, estimates, lease-expiry time semantics, and temporal incidents.
 
 Spec 139 owns which actor or daemon holds a lease and which resource it covers. Every lease references Spec 137 temporal authority for issuance, renewal, expiry, uncertainty, and breach determination.
 
 ### 3.5 Prediction and learning
 
-The combined Spec 138 + Spec 138A source owns prediction commitments, information sets, outcomes, scoring, calibration, metacognitive signals, learning applicability, transfer, drift, promotion, and full-profile closure.
+Spec 138 owns prediction commitments, information sets, outcomes, scoring, calibration, metacognitive signals, learning applicability, transfer, drift, and promotion.
 
 Spec 139 contributes environment, presence, contention, and topology references. It does not independently promote lessons or mutate predictive policy.
 
@@ -2241,8 +2241,3 @@ Admission prevents unsafe or duplicate execution before process spawn.
 ```
 
 The resulting system does not depend on an agent remembering that other agents may exist. It makes operational awareness a daemon-owned, event-backed, scope-safe, multi-machine runtime invariant.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-verification-placement -->
-## Spec 144 verification execution placement
-
-Spec 139 owns the environment and placement identity for every Builder, Verifier, validator, test executor, probe, browser evaluator, coverage challenger, and arbiter. Each assignment MUST carry a `VerificationExecutionBinding` with node/daemon/boot, repository/workspace/worktree, environment profile, resource claims, deduplication identity, lease, fencing token, route, and placement policy. Shared placement and infrastructure enter the Spec 144 common-mode profile.

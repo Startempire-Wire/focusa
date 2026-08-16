@@ -29,6 +29,7 @@ pub mod process_supervision;
 pub mod recovery_policy;
 pub mod resource_admission;
 pub mod retention;
+#[cfg(unix)]
 pub mod runner_client;
 pub mod runner_protocol;
 pub mod runner_security;
@@ -67,6 +68,7 @@ pub use process_supervision::*;
 pub use recovery_policy::*;
 pub use resource_admission::*;
 pub use retention::*;
+#[cfg(unix)]
 pub use runner_client::*;
 pub use runner_protocol::*;
 pub use runner_security::*;

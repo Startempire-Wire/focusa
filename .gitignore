@@ -64,8 +64,13 @@ docs/evidence/transcripts/
 releases/*/focusa-daemon-linux-*
 releases/*/focusa-cli-linux-*
 releases/*/focusa-tui-linux-*
+<<<<<<< HEAD
 
 error_log
 
 apps/pi-extension/src/*.js
 apps/pi-extension/src/*.js.map
+=======
+# br doctor per-run artifacts
+.doctor/
+>>>>>>> local/work-loop-completion

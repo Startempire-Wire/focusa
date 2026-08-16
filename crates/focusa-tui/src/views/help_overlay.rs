@@ -8,7 +8,7 @@ pub const HELP_TOPICS: &[&str] = &[
     "Workpoint — the saved mission state: objective, current action, proof, next action.",
     "Evidence — a test, file, screenshot, command output, or URL proving the claim.",
     "Recall — Focusa remembering the mission after compaction, restart, or handoff.",
-    "Mission Ladder — HLT → MLG → STG → committed Waypoint → next safe action.",
+    "Mission Ladder — high-level goal → current milestone → next safe action.",
     "Authority badges — canonical means safe to act; advisory means review first; blocked means stop and rebind.",
 ];
 

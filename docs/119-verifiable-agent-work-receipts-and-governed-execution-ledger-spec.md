@@ -3608,8 +3608,3 @@ Do not close Spec119 MVP implementation work until:
 Partial receipt surfaces may ship behind preview labels, but public docs must not claim the receipt system is complete until all MVP acceptance criteria are met.
 
 Public-safe export, Arena cards, benchmark projections, cloud projections, external schema packages, out-of-band checkpoints, signing, and prior-spec surgical updates remain post-MVP unless explicitly accepted by operator steering.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-receipts -->
-## Spec 144 Receipt extension
-
-Receipts for verified work MUST link Work Contract, Semantic Execution Pair, build attempts, obligation compilation receipt, Verification Plans and reroutes, immutable snapshots, assignments and CognitiveExecutionIdentity, placement bindings, findings/dispositions, independence/common-mode profiles, arbitration, coverage, settlement evaluation, and later revalidation/correction records. Receipts prove lineage; they cannot manufacture satisfaction.

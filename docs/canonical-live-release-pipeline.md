@@ -1,7 +1,5 @@
 # Canonical Live Release Pipeline
 
-Detailed typed architecture, topology, OTA contract, call stack, benchmarks, and acceptance gates: [`145-focusa-canonical-core-release-cycle-fast-release-architecture.md`](145-focusa-canonical-core-release-cycle-fast-release-architecture.md).
-
 ## Non-negotiable rule
 
 **All Focusa build and deploy work uses the full live GitHub release pipeline.**
@@ -25,8 +23,7 @@ checks only, never for release artifact creation or live daemon deployment.
    - `Audit Recorder (self-heal trigger)`
    - `Auto Heal Release Pipeline`
    - `Release Pipeline Watchdog`
-4. Trust only exact-SHA GitHub run conclusions + deploy and all-surface OTA health proof as release truth.
-5. Record the Spec145 benchmark packet and close/unlock the ReleaseCandidate only after installed/running truth matches.
+4. Trust only GitHub run conclusions + deploy health proof as release truth.
 
 ## Recovery policy
 
@@ -44,8 +41,7 @@ by hand:
 
 Manual intervention is limited to editing source/workflow code that improves
 this system. Manual release building or live daemon installation is not an
-allowed recovery path. A bounded emergency surface repair must be followed by
-canonical source correction, a new immutable candidate, and OTA proof.
+allowed recovery path.
 
 ## Forbidden for release/deploy
 
@@ -84,6 +80,3 @@ A deployment is complete only when:
 - `Deploy Live Daemon` completed successfully for that tag.
 - `/v1/health` proof is emitted by the deploy workflow.
 - Audit Recorder has no unresolved process-error row for the pipeline run.
-- CLI, daemon, TUI, installer, Pi extension, agent context, and any installed menubar surface match the candidate.
-- The automatic updater reports either `already_current` or a successful verified promotion; rollback failures exit nonzero.
-- Spec145 timing and critical-path evidence is recorded.

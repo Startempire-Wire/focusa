@@ -901,8 +901,3 @@ This document is satisfied when Focusa can run bounded, persistent, evidence-bac
 
 ### Reject
 - single scalar metric as total truth (`program.md:31-33`) → Focusa requires multidimensional evals (`docs/57-golden-tasks-and-evals.md`)
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-verification-portfolio-lineage -->
-## Spec 144 Verification Portfolio lineage
-
-A Verification Portfolio is a governed Secondary Cognition lineage composed of obligation-scoped child lineages. It may observe, challenge, falsify, propose repairs, and emit findings; it cannot mutate Builder source, grant authority, waive obligations, settle completion, or promote its own routing policy. Open obligations, findings, context identities, snapshots, and receipts survive checkpoint and recovery.

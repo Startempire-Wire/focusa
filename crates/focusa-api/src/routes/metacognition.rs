@@ -578,7 +578,7 @@ fn scope_required_response(reason: String) -> (StatusCode, Json<Value>) {
     (
         StatusCode::BAD_REQUEST,
         Json(json!({
-            "status": "error",
+            "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
             "code": "SCOPE_REQUIRED",
             "reason": reason,
             "human_readable": "Metacognition requires a verified project and continuity scope. Next: resume or checkpoint the current Workpoint."
@@ -709,7 +709,7 @@ async fn capture(
         return Err((
             StatusCode::BAD_REQUEST,
             Json(json!({
-                "status": "error",
+                "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
                 "code": "CAPTURE_SCHEMA_INVALID",
                 "reason": "kind and content are required",
                 "human_readable": "Metacognition capture was rejected because kind and content are required. Next: provide both bounded fields."
@@ -991,7 +991,7 @@ async fn reflect(
         return Err((
             StatusCode::BAD_REQUEST,
             Json(json!({
-                "status": "error",
+                "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
                 "code": "REFLECT_INPUT_INVALID",
                 "reason": "turn_range is required",
                 "human_readable": "Metacognition reflection was rejected because turn_range is required. Next: provide a bounded turn range."
@@ -1085,7 +1085,7 @@ async fn adjust(
         return Err((
             StatusCode::NOT_FOUND,
             Json(json!({
-                "status": "error",
+                "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
                 "code": "REFLECTION_NOT_FOUND",
                 "reason": "reflection_id does not exist",
                 "human_readable": "The requested metacognition reflection was not found in this scope. Next: list recent reflections and retry with a valid id."
@@ -1160,7 +1160,7 @@ async fn evaluate(
         return Err((
             StatusCode::NOT_FOUND,
             Json(json!({
-                "status": "error",
+                "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
                 "code": "ADJUSTMENT_NOT_FOUND",
                 "reason": "adjustment_id does not exist",
                 "human_readable": "The requested metacognition adjustment was not found in this scope. Next: list recent adjustments and retry with a valid id."
@@ -1419,7 +1419,7 @@ async fn get_capture(
         return Err((
             StatusCode::NOT_FOUND,
             Json(json!({
-                "status": "error",
+                "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
                 "code": "CAPTURE_NOT_FOUND",
                 "reason": "capture_id does not exist",
                 "human_readable": "The requested metacognition capture was not found in this scope. Next: retrieve recent candidates and retry with a valid id."

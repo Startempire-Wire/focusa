@@ -201,9 +201,14 @@ pub struct EvidenceSurface {
     pub surface: String,
 }
 
+pub const CLAIM_GATE_OUTPUT_SCHEMA: &str = "focusa.claim_gate_output.v1";
+
 /// Output from the claim gate.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaimGateOutput {
+    /// Cross-harness identity: every claim evaluation carries its schema.
+    #[serde(default)]
+    pub schema: String,
     /// Whether the gate allows closure.
     pub decision: GateDecision,
     /// Primary evidence class determined.
@@ -226,6 +231,7 @@ pub struct ClaimGateOutput {
 impl ClaimGateOutput {
     /// Build the gate output with all findings.
     pub fn build(input: &ClaimGateInput) -> Self {
+        let schema = CLAIM_GATE_OUTPUT_SCHEMA;
         let citations = parse_evidence_citations(&input.claim_text);
         let cited_formats = citations.iter().filter(|c| c.is_format_valid()).count();
         let cited_invalid = citations.iter().filter(|c| !c.is_format_valid()).count();
@@ -304,6 +310,7 @@ impl ClaimGateOutput {
         );
 
         Self {
+            schema: schema.to_string(),
             decision,
             evidence_class,
             citations,
@@ -681,5 +688,39 @@ mod tests {
             format_valid: true,
         };
         assert_eq!(c2.surface_hint(), Some("test"));
+    }
+}
+
+#[cfg(test)]
+mod cross_harness_tests {
+    use super::*;
+    use crate::claim_gate::CLAIM_GATE_OUTPUT_SCHEMA;
+
+    #[test]
+    fn claim_gate_output_roundtrips_across_harnesses() {
+        let input = ClaimGateInput {
+            work_item_id: "focusa-125".to_string(),
+            claim_text: "Completed focusa-125 with evidence docs/evidence/125.md".to_string(),
+            acceptance_criteria: vec!["docs evidence".to_string()],
+            evidence_policy: None,
+            surfaces_required: vec!["api".to_string()],
+            operator_deferred: false,
+        };
+        let output = ClaimGateOutput::build(&input);
+        assert_eq!(output.schema, CLAIM_GATE_OUTPUT_SCHEMA);
+        let json = serde_json::to_string(&output).unwrap();
+        let rehydrated: ClaimGateOutput = serde_json::from_str(&json).unwrap();
+        assert_eq!(rehydrated.schema, CLAIM_GATE_OUTPUT_SCHEMA);
+        assert_eq!(rehydrated.decision, output.decision);
+        assert_eq!(rehydrated.evidence_class, output.evidence_class);
+        assert_eq!(rehydrated.citations.len(), output.citations.len());
+        assert_eq!(rehydrated.missing_evidence, output.missing_evidence);
+    }
+
+    #[test]
+    fn legacy_output_without_schema_deserializes() {
+        let legacy = r#"{"decision":"allow","evidence_class":"missing","citations":[],"missing_evidence":[],"overclaim_risks":[],"recovery_commands":[],"evaluated_at":"2026-08-16T00:00:00Z"}"#;
+        let parsed: ClaimGateOutput = serde_json::from_str(legacy).unwrap();
+        assert_eq!(parsed.schema, "");
     }
 }

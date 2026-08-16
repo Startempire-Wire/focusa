@@ -152,7 +152,7 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
                         "error": error,
                     }),
                 })?;
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &key).await;
         if !canonical_workpoint_exists_for_scope(&focusa, &key) {
             return Err(WorkLoopScopeRejection {
                 status: StatusCode::CONFLICT,
@@ -735,7 +735,7 @@ fn require_authoritative_claim_key(key: String) -> Result<String, (StatusCode, J
 }
 
 async fn writer_claim_key(scope: &WorkLoopScope, state: &Arc<AppState>) -> String {
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
     writer_claim_key_from_scope(scope, &focusa)
 }
 
@@ -2653,7 +2653,7 @@ async fn health(
     }
 
     // Never hold the daemon projection lock while acquiring another lock.
-    let s = { state.focusa.read().await.clone() };
+    let s = { crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await.clone() };
     let wl = &s.work_loop;
     let claim_key = writer_claim_key_from_scope(&scope, &s);
     let active_lease = {
@@ -2714,7 +2714,7 @@ async fn status(
 
     // Status performs provider, worktree, and transport awaits below. Clone
     // first so daemon projection writes cannot be starved behind this reader.
-    let s = { state.focusa.read().await.clone() };
+    let s = { crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await.clone() };
     let wl = &s.work_loop;
     let claim_key = writer_claim_key_from_scope(&scope, &s);
     let active_lease = {
@@ -2976,7 +2976,7 @@ async fn status_deep(
     }
 
     let mut payload = {
-        let s = state.focusa.read().await;
+        let s = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
         let wl = &s.work_loop;
         let claim_key = writer_claim_key_from_scope(&scope, &s);
         let active_lease = {
@@ -3034,7 +3034,7 @@ async fn closure_replay_evidence(
         return Err(forbid("work-loop:read"));
     }
 
-    let s = state.focusa.read().await;
+    let s = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
     let wl = &s.work_loop;
 
     let secondary_loop_replay_summary =
@@ -3077,7 +3077,7 @@ async fn closure_replay_bundle(
         return Err(forbid("work-loop:read"));
     }
 
-    let s = state.focusa.read().await;
+    let s = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
     let wl = &s.work_loop;
 
     let secondary_loop_replay_summary =
@@ -3122,7 +3122,7 @@ async fn enable(
         .filter(|id| !id.trim().is_empty())
         .ok_or_else(|| bad_request("root_work_item_id is required"))?;
     let workpoint_id = {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
         canonical_workpoint_id_for_scope_and_item(
             &focusa,
             &scope.0,
@@ -3222,7 +3222,7 @@ async fn resume(
 
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let policy = if let Some(overrides) = payload.policy_overrides {
-        let mut policy = state.focusa.read().await.work_loop.policy.clone();
+        let mut policy = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await.work_loop.policy.clone();
         policy.apply_overrides(overrides);
         Some(policy)
     } else {
@@ -3335,7 +3335,7 @@ async fn set_decision_context(
     let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
         .await
         .map_err(|_| work_loop_dispatch_timeout("work_loop_write_serial_lock"))?;
-    let current = { state.focusa.read().await.clone() };
+    let current = { crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await.clone() };
     let machine_id = state.persistence.machine_id().ok();
     let result = focusa_core::reducer::reduce_with_meta(
         current,
@@ -3391,7 +3391,7 @@ async fn start_pi_driver(
     }
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let (transport_work_item_id, transport_workpoint_id) = {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
         if focusa.work_loop.execution_scope.as_ref() != Some(&scope.0) {
             return Err(bad_request(
                 "Pi transport scope does not match the active Work Loop execution scope",
@@ -3890,7 +3890,7 @@ async fn attach_session(
 
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let (work_item_id, workpoint_id) = {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
         if focusa.work_loop.execution_scope.as_ref() != Some(&scope.0) {
             return Err(bad_request(
                 "transport session scope does not match active Work Loop execution scope",
@@ -3918,7 +3918,7 @@ async fn attach_session(
     let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
         .await
         .map_err(|_| work_loop_dispatch_timeout("work_loop_write_serial_lock"))?;
-    let current = { state.focusa.read().await.clone() };
+    let current = { crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await.clone() };
     let machine_id = state.persistence.machine_id().ok();
     let result = focusa_core::reducer::reduce_with_meta(
         current,
@@ -3977,7 +3977,7 @@ async fn abort_session(
     let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
         .await
         .map_err(|_| work_loop_dispatch_timeout("work_loop_write_serial_lock"))?;
-    let current = { state.focusa.read().await.clone() };
+    let current = { crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await.clone() };
     let machine_id = state.persistence.machine_id().ok();
     let result = focusa_core::reducer::reduce_with_meta(
         current,
@@ -4070,7 +4070,7 @@ async fn set_pause_flags(
     let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
         .await
         .map_err(|_| work_loop_dispatch_timeout("work_loop_write_serial_lock"))?;
-    let current = { state.focusa.read().await.clone() };
+    let current = { crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await.clone() };
     let machine_id = state.persistence.machine_id().ok();
     let result = focusa_core::reducer::reduce_with_meta(
         current,
@@ -4216,7 +4216,7 @@ async fn checkpoints(
     scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await;
     let wl = &focusa.work_loop;
     Ok(Json(json!({
         "last_checkpoint_id": wl.run.last_checkpoint_id,
@@ -4440,7 +4440,7 @@ async fn checkpoint(
         })));
     }
 
-    let current = { state.focusa.read().await.clone() };
+    let current = { crate::workstream_store::scoped_focusa_read_workstream(state.clone(), &scope.0).await.clone() };
     let event = FocusaEvent::ContinuousLoopRecoveryCheckpointed {
         checkpoint_id,
         summary,

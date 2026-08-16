@@ -7,13 +7,12 @@ Usage:
 
 This is intentionally the single version-stamping template used by
 scripts/create-dev-release-tag.sh. It updates Rust workspace CLI/API/TUI/core,
-root lockfile package entries, Pi package/runtime build identity, the menubar
-package/Tauri metadata, and the operator-visible Settings version.
+root lockfile package entries, the menubar package/Tauri metadata, and the
+operator-visible Settings version.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import sys
@@ -28,9 +27,7 @@ ROOT_RUST_PACKAGES = {
     "focusa-bench",
     "focusa-cli",
     "focusa-core",
-    "focusa-harness-adapters",
     "focusa-license",
-    "focusa-session-runner",
     "focusa-terminal-ui",
     "focusa-tui",
 }
@@ -97,6 +94,7 @@ def replace_display_version(path: str, version: str) -> None:
     file_path.write_text(next_text, encoding="utf-8")
 
 
+<<<<<<< HEAD
 def replace_extension_build(path: str, package_name: str, version: str) -> None:
     file_path = ROOT / path
     text = file_path.read_text(encoding="utf-8")
@@ -130,6 +128,8 @@ def replace_agent_card_version(path: str, version: str) -> None:
     )
 
 
+=======
+>>>>>>> local/work-loop-completion
 def replace_lock_package_versions(
     path: str, package_names: set[str], version: str
 ) -> None:
@@ -175,15 +175,9 @@ def main() -> int:
     replace_key_value_version("Cargo.toml", version)
     replace_lock_package_versions("Cargo.lock", ROOT_RUST_PACKAGES, version)
 
-    # Pi extension package and runtime identity surfaces.
+    # Pi extension package surfaces.
     replace_json_version("apps/pi-extension/package.json", version)
     replace_json_version("apps/pi-extension/package-lock.json", version)
-    replace_extension_build(
-        "apps/pi-extension/src/auto-compaction.ts", "focusa-pi-bridge", version
-    )
-    replace_agent_card_version(
-        "docs/contracts/spec141/generated-capability-v2/agent-card.json", version
-    )
 
     # Standalone installer surface shipped by the Pi extension release job.
     replace_installer_version("scripts/install-focusa.sh", version)

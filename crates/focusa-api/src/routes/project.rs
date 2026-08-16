@@ -16,17 +16,11 @@ use axum::{
 use chrono::Utc;
 use focusa_core::scope_safety::classify_project_root;
 use focusa_core::scoped_state::{ScopeKind, ScopeRef, WorkstreamKey};
-use focusa_core::types::{
-    ProjectTrajectoryBindingRecord, TrajectoryIntegrityGuardRecord, TrajectoryIntegrityStatus,
-    TrajectoryLadderEvent, TrajectoryLadderEventKind, TrajectoryLadderLevel,
-    TrajectoryProjectionRecord,
-};
 use focusa_core::working_subpath::{
     GitWorkingContext, resolve_git_working_context, resolve_project_binding_candidates,
 };
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
-use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::{Read, Seek, SeekFrom, Write};
@@ -167,17 +161,6 @@ pub struct ProjectTemplatesQuery {
 pub struct ProjectSettingsQuery {
     pub project_root: Option<String>,
     pub key: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Default)]
-pub struct TrajectoryGuardRequest {
-    pub action: Option<String>,
-    pub project_root: Option<String>,
-    pub continuity_id: Option<String>,
-    pub expected_trajectory_id: Option<String>,
-    pub expected_hlt_version: Option<u64>,
-    pub confirm: Option<bool>,
-    pub idempotency_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -2295,30 +2278,6 @@ fn write_json_file<T: serde::Serialize>(path: &Path, value: &T) -> Result<(), St
     Ok(())
 }
 
-fn write_json_file_atomic<T: serde::Serialize>(path: &Path, value: &T) -> Result<(), String> {
-    let serialized = serde_json::to_vec_pretty(value)
-        .map_err(|error| format!("json-serialize failed: {error}"))?;
-    let parent = path
-        .parent()
-        .ok_or_else(|| "marker path has no parent".to_string())?;
-    fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    let temporary = parent.join(format!(".focusa-project.json.tmp-{}", Uuid::now_v7()));
-    let mut file = fs::OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .open(&temporary)
-        .map_err(|error| error.to_string())?;
-    file.write_all(&serialized)
-        .map_err(|error| error.to_string())?;
-    file.write_all(b"\n").map_err(|error| error.to_string())?;
-    file.sync_all().map_err(|error| error.to_string())?;
-    fs::rename(&temporary, path).map_err(|error| error.to_string())?;
-    fs::File::open(parent)
-        .and_then(|directory| directory.sync_all())
-        .map_err(|error| error.to_string())?;
-    Ok(())
-}
-
 fn clean_root(path: &str) -> Option<String> {
     let expanded = path.trim();
     if expanded.is_empty() {
@@ -2672,29 +2631,16 @@ async fn create_project(Json(body): Json<ProjectCreateRequest>) -> Json<Value> {
     let project_id = body.project_id.clone();
     let canonical_name = body.canonical_name.clone();
     let marker = json!({
-        "schema": "focusa.project.v2",
+        "schema": "focusa.project.v1",
         "project_id": project_id,
         "canonical_name": canonical_name,
         "project_root": root.to_string_lossy(),
         "beads_prefix": "project",
         "workspace_kind": workspace_kind.clone(),
         "aliases": [],
-        "trajectory_integrity_guard": {
-            "required": true,
-            "status": "HLT_IMPASSE",
-            "project_scope_fingerprint": project_fingerprint_for_root(&root.to_string_lossy()),
-            "minimum_ladder_complete": false,
-            "causal_chain_valid": true,
-            "schema_supported": true,
-            "no_placeholder_values": false,
-            "ladder_links_complete": false,
-            "projection_matches_ledger": false,
-            "unresolved_conflicts": [],
-            "repair_route": "focusa trajectory define-goal --confirm"
-        },
         "created_at": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
     });
-    if let Err(err) = write_json_file_atomic(&root.join(".focusa-project.json"), &marker) {
+    if let Err(err) = write_json_file(&root.join(".focusa-project.json"), &marker) {
         return Json(
             json!({"status":"blocked","failure_class":"marker_write_failed","reason":err}),
         );
@@ -3864,7 +3810,7 @@ async fn card(
         .get("project_identity")
         .cloned()
         .unwrap_or_else(|| json!({}));
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &request_scope).await;
     let project_root = project
         .get("project_root")
         .and_then(Value::as_str)
@@ -3883,12 +3829,7 @@ async fn card(
         hlt_status: record.hlt_status,
         mlg: record.mid_level_goal.clone(),
         stg: record.short_term_goal.clone(),
-        waypoints: record
-            .waypoints
-            .iter()
-            .take(8)
-            .map(|waypoint| waypoint.title.clone())
-            .collect(),
+        waypoints: record.waypoints.iter().take(8).cloned().collect(),
         active_workpoint_id: record.active_workpoint_id,
     });
     let active_trajectory_record = trajectory_record
@@ -4802,425 +4743,10 @@ async fn card_outcome(Json(body): Json<ProjectCardOutcomeRequest>) -> Json<Value
     }))
 }
 
-fn guard_value_is_placeholder(value: &str) -> bool {
-    let normalized = value.trim().to_ascii_lowercase();
-    normalized.is_empty()
-        || matches!(
-            normalized.as_str(),
-            "unknown" | "placeholder" | "tbd" | "todo" | "default trajectory"
-        )
-        || normalized.starts_with("maintain and improve ")
-        || normalized.contains("bootstrap default")
-}
-
-fn trajectory_ledger_digest(events: &[TrajectoryLadderEvent]) -> String {
-    // Guard/receipt events attest to this digest and therefore cannot be part of
-    // the semantic state digest without creating a self-invalidating cycle.
-    let semantic_events: Vec<&TrajectoryLadderEvent> = events
-        .iter()
-        .filter(|event| event.level != TrajectoryLadderLevel::MarkerGuard)
-        .collect();
-    let encoded = serde_json::to_vec(&semantic_events).unwrap_or_default();
-    format!("sha256:{}", hex::encode(Sha256::digest(encoded)))
-}
-
-fn trajectory_causal_chain_valid(events: &[TrajectoryLadderEvent]) -> bool {
-    let mut seen = BTreeSet::new();
-    for event in events {
-        if let Some(parent) = &event.causal_parent_event_id
-            && !seen.contains(parent)
-        {
-            return false;
-        }
-        seen.insert(event.event_id.clone());
-    }
-    true
-}
-
-fn projection_matches_ladder_events(
-    trajectory: &TrajectoryProjectionRecord,
-    events: &[TrajectoryLadderEvent],
-) -> bool {
-    let latest_string = |level| {
-        events
-            .iter()
-            .rev()
-            .find(|event| event.level == level)
-            .and_then(|event| event.new_value.as_str())
-    };
-    let hlt_matches = latest_string(TrajectoryLadderLevel::Hlt)
-        .is_none_or(|value| value == trajectory.long_term_goal);
-    let mlg_matches = latest_string(TrajectoryLadderLevel::Mlg)
-        .is_none_or(|value| trajectory.mid_level_goal.as_deref() == Some(value));
-    let stg_matches = latest_string(TrajectoryLadderLevel::Stg)
-        .is_none_or(|value| trajectory.short_term_goal.as_deref() == Some(value));
-    let event_waypoints: BTreeSet<&str> = events
-        .iter()
-        .filter(|event| event.level == TrajectoryLadderLevel::Waypoint)
-        .filter_map(|event| event.object_id.as_deref())
-        .collect();
-    let projection_waypoints: BTreeSet<&str> = trajectory
-        .waypoints
-        .iter()
-        .map(|waypoint| waypoint.waypoint_id.as_str())
-        .collect();
-    hlt_matches
-        && mlg_matches
-        && stg_matches
-        && (event_waypoints.is_empty() || event_waypoints == projection_waypoints)
-}
-
-fn build_trajectory_guard(
-    project_root: &str,
-    trajectory: Option<&TrajectoryProjectionRecord>,
-    events: &[TrajectoryLadderEvent],
-    marker: &Value,
-) -> (
-    Option<ProjectTrajectoryBindingRecord>,
-    TrajectoryIntegrityGuardRecord,
-) {
-    let digest = trajectory_ledger_digest(events);
-    let fingerprint = project_fingerprint_for_root(project_root);
-    let causal_chain_valid = trajectory_causal_chain_valid(events);
-    let conflict_open = events
-        .iter()
-        .rev()
-        .find_map(|event| match event.event_kind {
-            TrajectoryLadderEventKind::ConflictResolved => Some(false),
-            TrajectoryLadderEventKind::ConflictDetected => Some(true),
-            _ => None,
-        })
-        .unwrap_or(false);
-    let Some(trajectory) = trajectory else {
-        return (
-            None,
-            TrajectoryIntegrityGuardRecord {
-                required: true,
-                project_scope_fingerprint: fingerprint,
-                expected_ledger_digest: digest,
-                schema_supported: true,
-                causal_chain_valid,
-                status: TrajectoryIntegrityStatus::HltImpasse,
-                repair_route: Some("focusa trajectory define-goal --confirm".to_string()),
-                ..TrajectoryIntegrityGuardRecord::default()
-            },
-        );
-    };
-    let hlt_version = events
-        .iter()
-        .filter(|event| event.level == TrajectoryLadderLevel::Hlt)
-        .map(|event| event.hlt_version)
-        .max()
-        .unwrap_or(1);
-    let no_placeholder_values = !guard_value_is_placeholder(&trajectory.long_term_goal)
-        && trajectory
-            .mid_level_goal
-            .as_deref()
-            .is_some_and(|value| !guard_value_is_placeholder(value))
-        && trajectory
-            .short_term_goal
-            .as_deref()
-            .is_some_and(|value| !guard_value_is_placeholder(value))
-        && trajectory
-            .waypoints
-            .iter()
-            .all(|waypoint| !guard_value_is_placeholder(&waypoint.title));
-    let minimum_ladder_complete = !trajectory.long_term_goal.trim().is_empty()
-        && trajectory.mid_level_goal.is_some()
-        && trajectory.short_term_goal.is_some()
-        && !trajectory.waypoints.is_empty();
-    let ladder_links_complete = trajectory
-        .waypoints
-        .iter()
-        .all(|waypoint| !waypoint.waypoint_id.trim().is_empty());
-    let projection_matches_ledger = projection_matches_ladder_events(trajectory, events);
-    let binding = ProjectTrajectoryBindingRecord {
-        schema_version: "focusa.trajectory_binding.v1".to_string(),
-        active_trajectory_id: trajectory.trajectory_id.clone(),
-        active_hlt_id: format!("{}:hlt:{hlt_version}", trajectory.trajectory_id),
-        active_hlt_version: hlt_version,
-        hlt_lineage: vec![trajectory.trajectory_id.clone()],
-        active_mlg_id: trajectory
-            .mid_level_goal
-            .as_ref()
-            .map(|_| format!("{}:mlg", trajectory.trajectory_id)),
-        active_stg_id: trajectory
-            .short_term_goal
-            .as_ref()
-            .map(|_| format!("{}:stg", trajectory.trajectory_id)),
-        active_waypoint_ids: trajectory
-            .waypoints
-            .iter()
-            .map(|waypoint| waypoint.waypoint_id.clone())
-            .collect(),
-        active_workpoint_id: trajectory.active_workpoint_id,
-        event_ledger_ref: format!("focusa://trajectory-ledger/{fingerprint}"),
-        latest_snapshot_ref: None,
-        ledger_digest: digest.clone(),
-        authority: "canonical".to_string(),
-        freshness: json!({"verified_at": Utc::now()}),
-        status: TrajectoryIntegrityStatus::Ready,
-    };
-    let existing_binding = marker
-        .get("trajectory_binding")
-        .cloned()
-        .and_then(|value| serde_json::from_value::<ProjectTrajectoryBindingRecord>(value).ok());
-    let marker_matches = existing_binding.as_ref().is_some_and(|existing| {
-        existing.active_trajectory_id == binding.active_trajectory_id
-            && existing.active_hlt_version == binding.active_hlt_version
-            && existing.ledger_digest == binding.ledger_digest
-            && existing.active_waypoint_ids == binding.active_waypoint_ids
-    });
-    let status = if conflict_open {
-        TrajectoryIntegrityStatus::Conflicted
-    } else if !no_placeholder_values {
-        TrajectoryIntegrityStatus::HltImpasse
-    } else if !minimum_ladder_complete || !ladder_links_complete {
-        TrajectoryIntegrityStatus::TrajectoryReviewRequired
-    } else if !causal_chain_valid || !projection_matches_ledger {
-        TrajectoryIntegrityStatus::IntegrityRepairRequired
-    } else if !marker_matches {
-        TrajectoryIntegrityStatus::MigrationRequired
-    } else {
-        TrajectoryIntegrityStatus::Ready
-    };
-    let unresolved_conflicts = if conflict_open {
-        vec!["trajectory_ledger_conflict".to_string()]
-    } else {
-        vec![]
-    };
-    let guard = TrajectoryIntegrityGuardRecord {
-        required: true,
-        project_scope_fingerprint: fingerprint,
-        expected_trajectory_id: trajectory.trajectory_id.clone(),
-        expected_hlt_id: binding.active_hlt_id.clone(),
-        expected_hlt_version: hlt_version,
-        expected_ledger_digest: digest,
-        minimum_ladder_complete,
-        causal_chain_valid,
-        schema_supported: true,
-        no_placeholder_values,
-        ladder_links_complete,
-        projection_matches_ledger,
-        unresolved_conflicts,
-        last_verified_at: Some(Utc::now()),
-        verification_receipt_ref: None,
-        status,
-        repair_route: (status != TrajectoryIntegrityStatus::Ready).then(|| {
-            "POST /v1/project/trajectory-guard action=migrate|repair confirm=true".to_string()
-        }),
-    };
-    (Some(binding), guard)
-}
-
-async fn trajectory_guard(
-    _scope: ScopeContext,
-    State(state): State<Arc<AppState>>,
-    Json(request): Json<TrajectoryGuardRequest>,
-) -> (axum::http::StatusCode, Json<Value>) {
-    let action = request.action.as_deref().unwrap_or("verify");
-    let Some(requested_root) = request
-        .project_root
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    else {
-        return (
-            axum::http::StatusCode::BAD_REQUEST,
-            Json(json!({"status":"blocked","code":"SCOPE_REQUIRED"})),
-        );
-    };
-    let canonical_root = match fs::canonicalize(requested_root) {
-        Ok(path) => path,
-        Err(error) => {
-            return (
-                axum::http::StatusCode::BAD_REQUEST,
-                Json(json!({"status":"blocked","code":"SCOPE_MISMATCH","error":error.to_string()})),
-            );
-        }
-    };
-    let project_root = canonical_root.to_string_lossy().to_string();
-    if classify_project_root(&project_root).reason().is_some() {
-        return (
-            axum::http::StatusCode::BAD_REQUEST,
-            Json(json!({"status":"blocked","code":"SCOPE_MISMATCH"})),
-        );
-    }
-    let marker_path = canonical_root.join(".focusa-project.json");
-    let Some(mut marker) = read_json_value(&marker_path) else {
-        return (
-            axum::http::StatusCode::CONFLICT,
-            Json(
-                json!({"status":"blocked","code":"MIGRATION_REQUIRED","repair_route":"focusa project new or restore marker"}),
-            ),
-        );
-    };
-    if marker
-        .get("project_root")
-        .and_then(Value::as_str)
-        .is_some_and(|value| normalize_path(Path::new(value)) != project_root)
-    {
-        return (
-            axum::http::StatusCode::CONFLICT,
-            Json(
-                json!({"status":"blocked","code":"SCOPE_MISMATCH","marker_project_root":marker.get("project_root"),"project_root":project_root}),
-            ),
-        );
-    }
-    let trajectory = {
-        let focusa = state.focusa.read().await;
-        focusa
-            .trajectory
-            .records
-            .iter()
-            .rev()
-            .find(|record| {
-                record.project_root.as_deref() == Some(project_root.as_str())
-                    && request.continuity_id.as_deref().is_none_or(|continuity| {
-                        record.continuity_id.as_deref() == Some(continuity)
-                    })
-            })
-            .cloned()
-    };
-    let events = state
-        .persistence
-        .read_trajectory_ladder_events(&project_root, request.continuity_id.as_deref(), 500)
-        .unwrap_or_default();
-    let (binding, mut guard) =
-        build_trajectory_guard(&project_root, trajectory.as_ref(), &events, &marker);
-    if let Some(expected) = request.expected_trajectory_id.as_deref()
-        && guard.expected_trajectory_id != expected
-    {
-        guard.status = TrajectoryIntegrityStatus::IntegrityRepairRequired;
-    }
-    if let Some(expected) = request.expected_hlt_version
-        && guard.expected_hlt_version != expected
-    {
-        guard.status = TrajectoryIntegrityStatus::IntegrityRepairRequired;
-    }
-    let mut backup_ref = None;
-    let mut receipt_ref = None;
-    if matches!(action, "migrate" | "repair") {
-        if request.confirm != Some(true) {
-            return (
-                axum::http::StatusCode::PRECONDITION_REQUIRED,
-                Json(json!({"status":"blocked","code":"CONFIRMATION_REQUIRED","guard":guard})),
-            );
-        }
-        let Some(binding) = binding.clone() else {
-            return (
-                axum::http::StatusCode::CONFLICT,
-                Json(json!({"status":"blocked","code":"HLT_IMPASSE","guard":guard})),
-            );
-        };
-        let backup = canonical_root.join(format!(".focusa-project.json.backup-{}", Uuid::now_v7()));
-        if let Err(error) = fs::copy(&marker_path, &backup) {
-            return (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    json!({"status":"blocked","code":"MARKER_BACKUP_FAILED","error":error.to_string()}),
-                ),
-            );
-        }
-        backup_ref = Some(backup.to_string_lossy().to_string());
-        let receipt = format!("trajectory-guard:{}", Uuid::now_v7());
-        guard.verification_receipt_ref = Some(receipt.clone());
-        guard.last_verified_at = Some(Utc::now());
-        guard.status = if guard.minimum_ladder_complete
-            && guard.causal_chain_valid
-            && guard.no_placeholder_values
-            && guard.ladder_links_complete
-            && guard.projection_matches_ledger
-            && guard.unresolved_conflicts.is_empty()
-        {
-            TrajectoryIntegrityStatus::Ready
-        } else {
-            guard.status
-        };
-        if let Some(object) = marker.as_object_mut() {
-            object.insert("schema".to_string(), json!("focusa.project.v2"));
-            object.insert(
-                "trajectory_binding".to_string(),
-                serde_json::to_value(&binding).unwrap_or(Value::Null),
-            );
-            object.insert(
-                "trajectory_integrity_guard".to_string(),
-                serde_json::to_value(&guard).unwrap_or(Value::Null),
-            );
-        }
-        if let Err(error) = write_json_file_atomic(&marker_path, &marker) {
-            return (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"status":"blocked","code":"MARKER_WRITE_FAILED","error":error})),
-            );
-        }
-        let event = TrajectoryLadderEvent {
-            schema_version: TrajectoryLadderEvent::SCHEMA_VERSION.to_string(),
-            event_id: Uuid::now_v7().to_string(),
-            trajectory_id: binding.active_trajectory_id.clone(),
-            project_root: project_root.clone(),
-            continuity_id: request.continuity_id.clone(),
-            session_id: None,
-            hlt_version: binding.active_hlt_version,
-            causal_parent_event_id: events.last().map(|event| event.event_id.clone()),
-            event_kind: if action == "migrate" {
-                TrajectoryLadderEventKind::Migrated
-            } else {
-                TrajectoryLadderEventKind::Repaired
-            },
-            level: TrajectoryLadderLevel::MarkerGuard,
-            object_id: Some(binding.active_trajectory_id.clone()),
-            old_value: Value::Null,
-            new_value: serde_json::to_value(&guard).unwrap_or(Value::Null),
-            actor: "project_trajectory_guard".to_string(),
-            source: "project_trajectory_guard".to_string(),
-            authority: "operator_confirmed".to_string(),
-            provenance: action.to_string(),
-            confidence: focusa_core::types::TrajectoryConfidence::High,
-            reason: Some(format!("trajectory_guard_{action}")),
-            evidence_refs: vec![backup_ref.clone().unwrap_or_default()],
-            idempotency_key: request.idempotency_key.clone(),
-            lamport_ts: events
-                .last()
-                .map_or(1, |event| event.lamport_ts.saturating_add(1)),
-            timestamp: Utc::now(),
-        };
-        if let Err(error) = state.persistence.append_trajectory_ladder_events(&[event]) {
-            return (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    json!({"status":"blocked","code":"TRAJECTORY_LEDGER_WRITE_FAILED","error":error.to_string(),"backup_ref":backup_ref}),
-                ),
-            );
-        }
-        receipt_ref = Some(receipt);
-    }
-    let status = if guard.status == TrajectoryIntegrityStatus::Ready {
-        "completed"
-    } else {
-        "blocked"
-    };
-    (
-        axum::http::StatusCode::OK,
-        Json(json!({
-            "status": status,
-            "canonical": true,
-            "action": action,
-            "project_root": project_root,
-            "trajectory_binding": binding,
-            "trajectory_integrity_guard": guard,
-            "marker_path": marker_path,
-            "backup_ref": backup_ref,
-            "receipt_ref": receipt_ref,
-        })),
-    )
-}
-
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/project/identity", get(identity))
         .route("/v1/project/verify", post(verify))
-        .route("/v1/project/trajectory-guard", post(trajectory_guard))
         .route("/v1/project/card", get(card))
         .route("/v1/project/card/outcome", post(card_outcome))
         .route("/v1/project/session-transfer", post(session_transfer))
@@ -5913,155 +5439,6 @@ mod tests {
         let dashboard = build_project_dashboard(runtime.clone(), None, vec![]);
         assert_eq!(dashboard["status"], "ok");
         assert_eq!(dashboard["effective_project"], runtime);
-    }
-
-    fn guard_test_event(
-        level: TrajectoryLadderLevel,
-        event_id: &str,
-        parent: Option<&str>,
-        object_id: Option<&str>,
-        value: Value,
-        lamport_ts: u64,
-    ) -> TrajectoryLadderEvent {
-        TrajectoryLadderEvent {
-            schema_version: TrajectoryLadderEvent::SCHEMA_VERSION.to_string(),
-            event_id: event_id.to_string(),
-            trajectory_id: "trajectory:test".to_string(),
-            project_root: "/tmp/focusa-test".to_string(),
-            continuity_id: Some("continuity:test".to_string()),
-            session_id: None,
-            hlt_version: 1,
-            causal_parent_event_id: parent.map(str::to_string),
-            event_kind: TrajectoryLadderEventKind::Committed,
-            level,
-            object_id: object_id.map(str::to_string),
-            old_value: Value::Null,
-            new_value: value,
-            actor: "test".to_string(),
-            source: "test".to_string(),
-            authority: "canonical_explicit".to_string(),
-            provenance: "test".to_string(),
-            confidence: focusa_core::types::TrajectoryConfidence::High,
-            reason: None,
-            evidence_refs: vec![],
-            idempotency_key: None,
-            lamport_ts,
-            timestamp: Utc::now(),
-        }
-    }
-
-    #[test]
-    fn trajectory_guard_requires_migration_then_verifies_matching_marker() {
-        let waypoint = focusa_core::types::TrajectoryWaypointRecord {
-            waypoint_id: "waypoint:one".to_string(),
-            title: "Waypoint one".to_string(),
-            desired_state_delta: "Delta".to_string(),
-            ..focusa_core::types::TrajectoryWaypointRecord::default()
-        };
-        let trajectory = TrajectoryProjectionRecord {
-            trajectory_id: "trajectory:test".to_string(),
-            project_root: Some("/tmp/focusa-test".to_string()),
-            continuity_id: Some("continuity:test".to_string()),
-            long_term_goal: "Ship Focusa".to_string(),
-            mid_level_goal: Some("Build the Ladder".to_string()),
-            short_term_goal: Some("Verify marker guard".to_string()),
-            waypoints: vec![waypoint.clone()],
-            ..TrajectoryProjectionRecord::default()
-        };
-        let events = vec![
-            guard_test_event(
-                TrajectoryLadderLevel::Hlt,
-                "e1",
-                None,
-                None,
-                json!("Ship Focusa"),
-                1,
-            ),
-            guard_test_event(
-                TrajectoryLadderLevel::Mlg,
-                "e2",
-                Some("e1"),
-                None,
-                json!("Build the Ladder"),
-                2,
-            ),
-            guard_test_event(
-                TrajectoryLadderLevel::Stg,
-                "e3",
-                Some("e2"),
-                None,
-                json!("Verify marker guard"),
-                3,
-            ),
-            guard_test_event(
-                TrajectoryLadderLevel::Waypoint,
-                "e4",
-                Some("e3"),
-                Some("waypoint:one"),
-                json!(waypoint),
-                4,
-            ),
-        ];
-        let marker_v1 = json!({"schema":"focusa.project.v1","project_id":"focusa"});
-        let (binding, guard) =
-            build_trajectory_guard("/tmp/focusa-test", Some(&trajectory), &events, &marker_v1);
-        assert_eq!(guard.status, TrajectoryIntegrityStatus::MigrationRequired);
-        assert!(guard.minimum_ladder_complete);
-        assert!(guard.causal_chain_valid);
-        assert!(guard.projection_matches_ledger);
-
-        let marker_v2 = json!({
-            "schema":"focusa.project.v2",
-            "project_id":"focusa",
-            "trajectory_binding": binding,
-        });
-        let (_, verified) =
-            build_trajectory_guard("/tmp/focusa-test", Some(&trajectory), &events, &marker_v2);
-        assert_eq!(verified.status, TrajectoryIntegrityStatus::Ready);
-    }
-
-    #[test]
-    fn trajectory_guard_fails_closed_for_placeholder_and_broken_causality() {
-        let trajectory = TrajectoryProjectionRecord {
-            trajectory_id: "trajectory:test".to_string(),
-            project_root: Some("/tmp/focusa-test".to_string()),
-            long_term_goal: "Maintain and improve Focusa".to_string(),
-            mid_level_goal: Some("MLG".to_string()),
-            short_term_goal: Some("STG".to_string()),
-            waypoints: vec![focusa_core::types::TrajectoryWaypointRecord {
-                waypoint_id: "waypoint:one".to_string(),
-                title: "Waypoint".to_string(),
-                ..focusa_core::types::TrajectoryWaypointRecord::default()
-            }],
-            ..TrajectoryProjectionRecord::default()
-        };
-        let events = vec![guard_test_event(
-            TrajectoryLadderLevel::Hlt,
-            "e2",
-            Some("missing-parent"),
-            None,
-            json!("Maintain and improve Focusa"),
-            2,
-        )];
-        let (_, guard) =
-            build_trajectory_guard("/tmp/focusa-test", Some(&trajectory), &events, &json!({}));
-        assert_eq!(guard.status, TrajectoryIntegrityStatus::HltImpasse);
-        assert!(!guard.no_placeholder_values);
-        assert!(!guard.causal_chain_valid);
-    }
-
-    #[test]
-    fn marker_atomic_writer_round_trips_without_temporary_file() {
-        let root = std::env::temp_dir().join(format!("focusa-marker-guard-{}", Uuid::now_v7()));
-        fs::create_dir_all(&root).unwrap();
-        let marker = root.join(".focusa-project.json");
-        write_json_file_atomic(&marker, &json!({"schema":"focusa.project.v2"})).unwrap();
-        assert_eq!(
-            read_json_value(&marker).unwrap()["schema"],
-            "focusa.project.v2"
-        );
-        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
-        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

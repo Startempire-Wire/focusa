@@ -21,8 +21,7 @@ use focusa_core::reducer;
 use focusa_core::scope_safety::classify_project_root_option;
 use focusa_core::types::{
     CompletionReason, EventLogEntry, FocusStackState, FocusStateDelta, FocusaEvent, FocusaState,
-    FrameRecord, FrameStatus, SessionState, SessionStatus, SignalOrigin, TemporalFrameContext,
-    WorkpointStatus,
+    FrameRecord, FrameStatus, SessionState, SessionStatus, SignalOrigin, WorkpointStatus,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -199,16 +198,9 @@ fn exact_request_scope_matches(
             "missing": "x-scope-continuity-id",
         }));
     };
-    let body_root = normalize_project_root_authority(project_root);
-    let canonical_root = normalize_project_root_authority(&request_root);
-    let active_worktree_matches = scope
-        .active_worktree_root
-        .as_deref()
-        .map(normalize_project_root_authority)
-        .is_some_and(|active_root| active_root == body_root);
     if unsafe_project_root_reason(Some(request_root.as_str())).is_some()
-        || unsafe_project_root_reason(Some(body_root.as_str())).is_some()
-        || (canonical_root != body_root && !active_worktree_matches)
+        || normalize_project_root_authority(&request_root)
+            != normalize_project_root_authority(project_root)
         || request_continuity != continuity_id.trim()
     {
         return Err(json!({
@@ -442,7 +434,7 @@ async fn get_stack(
     Query(query): Query<FocusStackQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Json<serde_json::Value> {
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
     let mut scoped_stack = focusa.focus_stack.clone();
     scoped_stack
         .frames
@@ -511,7 +503,7 @@ async fn get_scoped_frame(
         }));
     }
 
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
     let resolved = resolve_scoped_frame(
         &focusa.focus_stack,
         query.frame_id,
@@ -620,28 +612,42 @@ fn validate_set_active(stack: &FocusStackState, frame_id: Uuid) -> Result<bool, 
     Ok(true)
 }
 
-pub(super) async fn materialize_focus_event(
-    state: &AppState,
+async fn materialize_focus_event(
+    state: &Arc<AppState>,
     event: FocusaEvent,
     correlation_id: &'static str,
 ) -> FocusUnitResult {
     let _guard = state.write_serial_lock.lock().await;
-    let current = { state.focusa.read().await.clone() };
+    let event_scope = focusa_core::scoped_state::workstream_scope_of_event(&event);
+    let current = match &event_scope {
+        Some((root, continuity)) => state
+            .workstream_states
+            .get_or_create(root, continuity)
+            .await
+            .read()
+            .await
+            .clone(),
+        None => { state.focusa.read().await.clone() }
+    };
     let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
         tracing::warn!(error = %error, correlation_id, "focus event rejected by reducer");
         focus_reducer_failed(error)
     })?;
 
     let new_state = result.new_state;
-    let temporal = focusa_core::temporal_clock::capture_operator_temporal_action_envelope();
     for emitted in result.emitted_events {
-        let mut entry = EventLogEntry::with_temporal(
-            emitted,
-            SignalOrigin::Adapter,
-            Some(correlation_id.to_string()),
-            temporal.clone(),
-        );
-        entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
+        let entry = EventLogEntry {
+            id: Uuid::now_v7(),
+            timestamp: Utc::now(),
+            event: emitted,
+            correlation_id: Some(correlation_id.to_string()),
+            origin: SignalOrigin::Adapter,
+            machine_id: None,
+            instance_id: None,
+            session_id: new_state.session.as_ref().map(|session| session.session_id),
+            thread_id: None,
+            is_observation: false,
+        };
         if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
             tracing::error!(error = %error, correlation_id, "failed to persist focus event");
             return Err(focus_persistence_failed(error));
@@ -650,63 +656,14 @@ pub(super) async fn materialize_focus_event(
         }
     }
 
-    *state.focusa.write().await = new_state;
+    *state.focusa.write().await = new_state.clone();
     state.mark_external_mutation();
+    if let Some((root, continuity)) = event_scope {
+        crate::workstream_store::scoped_write_through(
+            state.clone(), &root, &continuity, new_state,
+        ).await;
+    }
     Ok(())
-}
-
-fn active_temporal_frame_id(
-    focusa: &FocusaState,
-    scope: &focusa_core::temporal::TemporalScope,
-) -> Option<Uuid> {
-    focusa.focus_stack.active_id.and_then(|active_id| {
-        focusa
-            .focus_stack
-            .frames
-            .iter()
-            .find(|frame| {
-                frame.id == active_id
-                    && frame.project_root.as_deref() == Some(scope.project_root.as_str())
-                    && frame.continuity_id.as_deref() == Some(scope.continuity_id.as_str())
-            })
-            .map(|frame| frame.id)
-    })
-}
-
-pub(super) async fn project_active_temporal_frame(
-    state: &AppState,
-    scope: &focusa_core::temporal::TemporalScope,
-    ledger: &focusa_core::temporal::TemporalLedger,
-) -> FocusUnitResult {
-    let frame_id = {
-        let focusa = state.focusa.read().await;
-        active_temporal_frame_id(&focusa, scope)
-    };
-    let Some(frame_id) = frame_id else {
-        return Ok(());
-    };
-    let projected_at = Utc::now();
-    let events = ledger.as_of(projected_at).map_err(|error| {
-        focus_failure(
-            StatusCode::CONFLICT,
-            format!("{error:?}"),
-            "temporal_ledger_invalid",
-            "The scoped temporal ledger could not produce a valid replay projection.",
-            "Repair the scoped temporal ledger before projecting Focus Stack context.",
-            "Never bypass signature, chain, or exact-scope validation to populate Focus Stack.",
-        )
-    })?;
-    let context = TemporalFrameContext {
-        projection: focusa_core::temporal::project_temporal(scope.clone(), &events, projected_at),
-        source_event_count: events.len(),
-        projected_at,
-    };
-    materialize_focus_event(
-        state,
-        FocusaEvent::TemporalFrameContextProjected { frame_id, context },
-        "temporal-frame-projection",
-    )
-    .await
 }
 
 #[derive(Deserialize)]
@@ -734,7 +691,7 @@ async fn push_frame(
     Json(body): Json<PushFrameBody>,
 ) -> FocusResult {
     {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
             return Ok(Json(resp));
         }
@@ -835,7 +792,7 @@ async fn pop_frame(
     Json(body): Json<PopFrameBody>,
 ) -> FocusResult {
     {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
             return Ok(Json(resp));
         }
@@ -895,7 +852,7 @@ async fn set_active(
     Json(body): Json<SetActiveBody>,
 ) -> FocusResult {
     {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
             return Ok(Json(resp));
         }
@@ -1073,7 +1030,7 @@ async fn update_delta(
     // §AsccSections: validate ALL slots at API boundary before any write.
     let delta = &body.delta;
     let frame = {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         if let Some(target_frame_id) = body.frame_id {
             focusa
                 .focus_stack
@@ -1092,7 +1049,7 @@ async fn update_delta(
     };
 
     if let Some(target_frame_id) = body.frame_id {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         let active_frame_id = focusa.focus_stack.active_id;
         let target = focusa
             .focus_stack
@@ -1194,7 +1151,7 @@ async fn update_delta(
     // Prefer explicit frame_id; otherwise resolve by ProjectRootKey + WorkstreamKey.
     // Never adopt the daemon-global active frame as canonical Focus State write authority.
     let (fid, auto_started_session) = {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         let session_active = focusa
             .session
             .as_ref()
@@ -1409,15 +1366,11 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        active_temporal_frame_id, exact_request_scope_matches, rebuild_scoped_stack_metadata,
-        resolve_scoped_frame,
-    };
+    use super::{exact_request_scope_matches, rebuild_scoped_stack_metadata, resolve_scoped_frame};
     use crate::scope::ScopeContext;
     use chrono::Utc;
     use focusa_core::types::{
-        CompletionReason, FocusStackState, FocusState, FocusaState, FrameRecord, FrameStats,
-        FrameStatus,
+        CompletionReason, FocusStackState, FocusState, FrameRecord, FrameStats, FrameStatus,
     };
     use uuid::Uuid;
 
@@ -1425,12 +1378,6 @@ mod tests {
     fn exact_request_scope_rejects_host_and_cross_workstream_mutation() {
         let exact = ScopeContext {
             project_root: Some("/home/wirebot/focusa".to_string()),
-            continuity_id: Some("cont-focusa".to_string()),
-            ..Default::default()
-        };
-        let worktree = ScopeContext {
-            project_root: Some("/home/wirebot/focusa".to_string()),
-            active_worktree_root: Some("/tmp/focusa-next-locked-release".to_string()),
             continuity_id: Some("cont-focusa".to_string()),
             ..Default::default()
         };
@@ -1446,14 +1393,6 @@ mod tests {
         };
 
         assert!(exact_request_scope_matches(&exact, "/home/wirebot/focusa", "cont-focusa").is_ok());
-        assert!(
-            exact_request_scope_matches(
-                &worktree,
-                "/tmp/focusa-next-locked-release",
-                "cont-focusa"
-            )
-            .is_ok()
-        );
         assert!(exact_request_scope_matches(&host, "/home/wirebot/focusa", "cont-focusa").is_err());
         assert!(
             exact_request_scope_matches(&other, "/home/wirebot/focusa", "cont-focusa").is_err()
@@ -1481,7 +1420,6 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state: FocusState::default(),
-            temporal_context: None,
             completed_at: None,
             completion_reason: None::<CompletionReason>,
         }
@@ -1614,45 +1552,5 @@ mod tests {
             resolve_scoped_frame(&stack, None, Some("pi-1"), None, None).expect("frame");
         assert_eq!(resolved.id, c);
         assert_eq!(matched_by, "session_key");
-    }
-
-    #[test]
-    fn active_temporal_frame_selector_requires_exact_scope() {
-        let frame_id = Uuid::now_v7();
-        let mut active = frame(
-            frame_id,
-            FrameStatus::Active,
-            "temporal",
-            &["continuity:test"],
-        );
-        active.project_root = Some("/repo/focusa".to_string());
-        active.continuity_id = Some("continuity:test".to_string());
-        let state = FocusaState {
-            focus_stack: FocusStackState {
-                root_id: Some(frame_id),
-                active_id: Some(frame_id),
-                frames: vec![active],
-                stack_path_cache: vec![frame_id],
-                version: 1,
-            },
-            ..FocusaState::default()
-        };
-        let exact = focusa_core::temporal::TemporalScope {
-            project_root: "/repo/focusa".to_string(),
-            continuity_id: "continuity:test".to_string(),
-            host_id: None,
-            operator_id: None,
-            workpoint_id: None,
-            task_id: None,
-            item_id: None,
-        };
-        let foreign = focusa_core::temporal::TemporalScope {
-            project_root: "/repo/foreign".to_string(),
-            continuity_id: "continuity:foreign".to_string(),
-            ..exact.clone()
-        };
-
-        assert_eq!(active_temporal_frame_id(&state, &exact), Some(frame_id));
-        assert_eq!(active_temporal_frame_id(&state, &foreign), None);
     }
 }
