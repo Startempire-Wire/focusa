@@ -392,4 +392,9 @@ assert "crates/focusa-api/src/routes/project.rs:1998:14" in payload["source_refs
 PY
 rm -f "$classifier_sample"
 
+for script in scripts/audit-distribution-parity.mjs scripts/release-readiness-evaluation.mjs; do
+  [ -f "$script" ] || { echo "FAIL: missing $script" >&2; exit 1; }
+done
+echo "distribution parity + release readiness scripts present: PASS"
+
 echo "Release deploy automation static test: PASS"

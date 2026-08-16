@@ -496,7 +496,15 @@ mod tests {
         ));
         let outcome = repair_marker(&root).unwrap();
         assert_eq!(outcome, MarkerWriteOutcome::Written { backup: None });
-        assert_eq!(read_marker(&root), MarkerReadOutcome::Valid);
+        // The pre-migration backup contains the legacy (pre-enrichment)
+        // marker — repair restores exactly that, preserving identity.
+        assert!(matches!(
+            read_marker(&root),
+            MarkerReadOutcome::LegacyMinimal { .. }
+        ));
+        let restored: ProjectMarker =
+            serde_json::from_str(&fs::read_to_string(root.join(MARKER_FILE)).unwrap()).unwrap();
+        assert_eq!(restored.project_id, "test-project");
         let _ = fs::remove_dir_all(&root);
     }
 
@@ -527,7 +535,7 @@ mod tests {
         )
         .unwrap();
         let mut tampered = marker_for(&root);
-        tampered.project_id = "someone-else".into();
+        tampered.project_root = "/somewhere/else".into();
         fs::write(
             root.join(".focusa-project.json.pre-migration"),
             serde_json::to_vec_pretty(&tampered).unwrap(),

@@ -34,6 +34,12 @@ pub struct InitArgs {
     /// `focusa project identity` + the canonical project_root path.
     #[arg(long)]
     pub allow_unsafe_root: bool,
+
+    /// Repair a corrupted marker from its pre-migration backup (#243).
+    /// Identity is verified; a backup with a different project_root is
+    /// refused. No-op when the marker is healthy.
+    #[arg(long)]
+    pub repair: bool,
 }
 
 pub async fn run(args: InitArgs, json: bool) -> Result<()> {
@@ -96,6 +102,18 @@ pub async fn run(args: InitArgs, json: bool) -> Result<()> {
     if !args.dry_run {
         std::fs::create_dir_all(&project_root)
             .with_context(|| format!("could not create {}", project_root.display()))?;
+    }
+
+    if args.repair {
+        let outcome = focusa_core::project_marker::repair_marker(&project_root)?;
+        let payload = json!({
+            "schema": "focusa.init.v1",
+            "mode": "repair",
+            "marker_path": project_root.join(".focusa-project.json"),
+            "repair_outcome": serde_json::to_value(outcome)?,
+        });
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
     }
 
     let marker_path = project_root.join(".focusa-project.json");

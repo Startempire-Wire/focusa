@@ -103,6 +103,9 @@ jobs:
           node scripts/audit-distribution-parity.mjs --json > /tmp/distribution-manifest.json || true
           python3 -c "import json; d=json.load(open('/tmp/distribution-manifest.json')); print('parity_ok=%s drift=%d' % (d['parity_ok'], len(d['drift']))); [print('  drift', r['surface'], r['source_value'], '->', r['observed_value']) for r in d['drift']]"
 
+      - name: Release readiness evaluation (#265, informational)
+        run: node scripts/release-readiness-evaluation.mjs || true
+
 
   spec-gates:
     name: Spec Gates (strict)
