@@ -243,49 +243,41 @@ async fn wait_job(
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let deadline = std::time::Instant::now() + Duration::from_millis(query.timeout_ms);
     // One connection reused for the whole wait — no per-poll open cost.
-    let conn = match rusqlite::Connection::open(&path) {
-        Ok(conn) => {
-            if let Err(error) = focusa_core::background_job_store::ensure_schema(&conn) {
-                return Json(json!({"status": "failed", "error": error.to_string()}));
-            }
-            conn
-        }
-        Err(error) => {
-            return Json(json!({"status": "failed", "error": error.to_string()}));
-        }
-    };
-    loop {
-        let job_id = query.job_id.clone();
-        let record = tokio::task::spawn_blocking(move || -> anyhow::Result<Option<BackgroundJobRecord>> {
-            focusa_core::background_job_store::load_job(&conn, &job_id)
-        })
-        .await;
-        match record {
-            Ok(Ok(Some(record)))
+    let job_id = query.job_id.clone();
+    let wait_future = tokio::task::spawn_blocking(move || -> anyhow::Result<Option<BackgroundJobRecord>> {
+        let conn = match rusqlite::Connection::open(&path) {
+            Ok(conn) => conn,
+            Err(error) => return Err(anyhow::anyhow!("connection open failed: {error}")),
+        };
+        focusa_core::background_job_store::ensure_schema(&conn)?;
+        let deadline = std::time::Instant::now() + Duration::from_millis(query.timeout_ms);
+        loop {
+            let record = focusa_core::background_job_store::load_job(&conn, &job_id)?;
+            if let Some(record) = record {
                 if matches!(
                     record.status,
                     BackgroundJobStatus::Completed
                         | BackgroundJobStatus::Failed
                         | BackgroundJobStatus::MonitorLost
-                ) =>
-            {
-                return Json(json!({
-                    "status": "done",
-                    "job": record,
-                    "completion_event": BackgroundJobCompletionEvent::from_record(&record),
-                }));
+                ) {
+                    return Ok(Some(record));
+                }
             }
-            Ok(Ok(None)) => {
-                return Json(json!({"status": "missing", "job_id": query.job_id}));
+            if std::time::Instant::now() >= deadline {
+                return Ok(None);
             }
-            Ok(Ok(_)) => {}
-            _ => {
-                return Json(json!({"status": "failed", "error": "ledger read failed"}));
-            }
+            std::thread::sleep(Duration::from_millis(500));
         }
-        if std::time::Instant::now() >= deadline {
-            return Json(json!({"status": "timeout", "job_id": query.job_id}));
-        }
-        tokio::time::sleep(Duration::from_millis(500)).await;
+    });
+    let record = wait_future.await;
+    match record {
+        Ok(Ok(Some(record))) => Json(json!({
+            "status": "done",
+            "job": record,
+            "completion_event": BackgroundJobCompletionEvent::from_record(&record),
+        })),
+        Ok(Ok(None)) => Json(json!({"status": "timeout", "job_id": query.job_id})),
+        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
+        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
     }
 }

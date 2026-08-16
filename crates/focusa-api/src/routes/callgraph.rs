@@ -321,18 +321,26 @@ async fn settle_frame(
 ) -> Json<Value> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let events_tx = state.events_tx.clone();
+    let invocation_id = body.invocation_id.clone();
+    let receipt_ref = body.receipt_ref.clone();
+    let outcome = body.outcome.clone();
+    let evidence_refs = body.evidence_refs.clone();
+    let run_id_inner = run_id.clone();
+    let run_id_for_event = run_id.clone();
+    let event_invocation_id = invocation_id.clone();
+    let event_receipt_ref = receipt_ref.clone();
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         focusa_core::callgraph_store::ensure_schema(&conn)?;
-        let Some(run) = focusa_core::callgraph_store::load_run(&conn, &run_id)? else {
-            return Ok(json!({"status": "missing", "run_id": run_id}));
+        let Some(run) = focusa_core::callgraph_store::load_run(&conn, &run_id_inner)? else {
+            return Ok(json!({"status": "missing", "run_id": run_id_inner}));
         };
-        let mut dispatches = focusa_core::callgraph_store::list_dispatches(&conn, &run_id)?;
+        let mut dispatches = focusa_core::callgraph_store::list_dispatches(&conn, &run_id_inner)?;
         let Some(dispatch) = dispatches
             .iter_mut()
-            .find(|d| d.invocation_id.as_deref() == Some(body.invocation_id.as_str()))
+            .find(|d| d.invocation_id.as_deref() == Some(invocation_id.as_str()))
         else {
-            return Ok(json!({"status": "missing_invocation", "invocation_id": body.invocation_id}));
+            return Ok(json!({"status": "missing_invocation", "invocation_id": invocation_id}));
         };
         if dispatch.receipt_ref.is_some() {
             return Ok(json!({"status": "already_settled", "dispatch": dispatch}));
@@ -340,26 +348,26 @@ async fn settle_frame(
         focusa_core::callgraph_store::mark_dispatch_settled(
             &conn,
             &dispatch.dispatch_id,
-            &body.receipt_ref,
-            &body.outcome,
-            &body.evidence_refs,
+            &receipt_ref,
+            &outcome,
+            &evidence_refs,
         )?;
-        focusa_core::callgraph_store::release_lease(&conn, &body.invocation_id)?;
-        let all_settled = focusa_core::callgraph_store::list_dispatches(&conn, &run_id)?
+        focusa_core::callgraph_store::release_lease(&conn, &invocation_id)?;
+        let all_settled = focusa_core::callgraph_store::list_dispatches(&conn, &run_id_inner)?
             .iter()
             .all(|d| d.receipt_ref.is_some());
         let now = chrono::Utc::now().to_rfc3339();
         if all_settled {
             focusa_core::callgraph_store::transition_run(
                 &conn,
-                &run_id,
+                &run_id_inner,
                 focusa_core::callgraph_store::RunState::Completed,
                 &now,
             )?;
         }
         // §16 compensation: a failed settlement unrolls the graph — every
         // declared compensation target becomes a committed dispatch.
-        if body.outcome == "failed" {
+        if outcome == "failed" {
             let Some(stored) = focusa_core::callgraph_store::load_definition(
                 &conn, &run.graph_id, run.revision,
             )? else { return Ok(json!({"status": "missing_definition"})); };
@@ -373,10 +381,10 @@ async fn settle_frame(
                         &conn,
                         &focusa_core::callgraph_store::DispatchCommit {
                             dispatch_id: uuid::Uuid::now_v7().to_string(),
-                            run_id: run_id.clone(),
+                            run_id: run_id_inner.clone(),
                             frame_id: target,
                             invocation_id: uuid::Uuid::now_v7().to_string(),
-                            parent_invocation_id: Some(body.invocation_id.clone()),
+                            parent_invocation_id: Some(invocation_id.clone()),
                             disposition: focusa_core::callgraph::Disposition::Eligible,
                             attempt: 1,
                             committed_at: now.clone(),
@@ -390,8 +398,8 @@ async fn settle_frame(
         Ok(json!({
             "status": "settled",
             "dispatch_id": dispatch.dispatch_id,
-            "invocation_id": body.invocation_id,
-            "receipt_ref": body.receipt_ref,
+            "invocation_id": invocation_id,
+            "receipt_ref": receipt_ref,
             "run_settled": all_settled,
         }))
     })
@@ -400,10 +408,10 @@ async fn settle_frame(
         Ok(Ok(payload)) => {
             if let Ok(serialized) = serde_json::to_string(
                 &focusa_core::types::FocusaEvent::CallGraphFrameSettled {
-                    run_id: run_id.clone(),
+                    run_id: run_id_for_event,
                     frame_id: "settled".to_string(),
-                    invocation_id: body.invocation_id,
-                    receipt_ref: body.receipt_ref,
+                    invocation_id: event_invocation_id,
+                    receipt_ref: event_receipt_ref,
                 },
             ) {
                 let _ = events_tx.send(serialized);
@@ -613,7 +621,7 @@ async fn get_run_paths(
         Ok(Ok(payload)) => Json(payload),
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
         Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
-    })
+    }
 }
 
 /// Dispatch control (Spec 155 §19.1 POST /v1/callgraph-runs/{run_id}/control).
