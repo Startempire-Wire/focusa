@@ -307,6 +307,7 @@ async fn main() -> anyhow::Result<()> {
 
     let completion_sweep_db = resolved_data_dir(&config).join("focusa.sqlite");
     let compaction_epoch_db = completion_sweep_db.clone();
+    let callgraph_liveness_db = completion_sweep_db.clone();
     let retention_data_dir_hoisted = resolved_data_dir(&config);
 
     // Start API server (blocks until shutdown).
@@ -459,6 +460,53 @@ async fn main() -> anyhow::Result<()> {
             .await;
             if let Err(error) = observed {
                 tracing::warn!(error = %error, "compaction epoch tick failed");
+            }
+        }
+    });
+
+    // CallGraph frame-lease liveness sweeper (#254 slice 7): every 30
+    // seconds, release lapsed leases and transition their runs back to a
+    // re-dispatchable state. Liveness is ledger-derived — no in-memory
+    // bookkeeping that a restart could lose.
+    let _callgraph_liveness_handle = tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            interval.tick().await;
+            let db = callgraph_liveness_db.clone();
+            let result = tokio::task::spawn_blocking(move || -> anyhow::Result<usize> {
+                let conn = rusqlite::Connection::open(&db)?;
+                let now = chrono::Utc::now().to_rfc3339();
+                let lapsed = focusa_core::callgraph_store::lapsed_leases(&conn, &now)?;
+                let mut released = 0usize;
+                let mut runs = std::collections::HashSet::new();
+                for lease in lapsed {
+                    focusa_core::callgraph_store::release_lease(&conn, &lease.invocation_id)?;
+                    runs.insert(lease.run_id);
+                    released += 1;
+                }
+                for run_id in runs {
+                    let _ = focusa_core::callgraph_store::transition_run(
+                        &conn,
+                        &run_id,
+                        focusa_core::callgraph_store::RunState::WaitingJoin,
+                        &now,
+                    );
+                }
+                Ok(released)
+            })
+            .await;
+            match result {
+                Ok(Ok(released)) if released > 0 => {
+                    tracing::info!(released, "callgraph liveness sweep released lapsed leases");
+                }
+                Ok(Ok(_)) => {}
+                Ok(Err(error)) => {
+                    tracing::warn!(error = %error, "callgraph liveness sweep failed");
+                }
+                Err(error) => {
+                    tracing::warn!(error = %error, "callgraph liveness sweep join failed");
+                }
             }
         }
     });
