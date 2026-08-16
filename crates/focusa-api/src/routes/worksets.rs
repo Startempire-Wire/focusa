@@ -24,6 +24,10 @@ pub fn router() -> Router<Arc<AppState>> {
             "/v1/worksets/{workset_id}/freshness",
             get(get_freshness),
         )
+        .route(
+            "/v1/worksets/{workset_id}/transition",
+            post(evaluate_transition_route),
+        )
 }
 
 async fn create_definition(
@@ -94,6 +98,51 @@ async fn append_event(
         focusa_core::workset_store::ensure_schema(&conn)?;
         let seq = focusa_core::workset_store::append_event(&conn, &workset_id, &event)?;
         Ok(json!({"status": "appended", "workset_id": workset_id, "seq": seq}))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct TransitionBody {
+    pub from: focusa_core::workset_transitions::WorksetState,
+    pub to: focusa_core::workset_transitions::WorksetState,
+}
+
+async fn evaluate_transition_route(
+    State(state): State<Arc<AppState>>,
+    Path(workset_id): Path<String>,
+    Json(body): Json<TransitionBody>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::workset_store::ensure_schema(&conn)?;
+        let definition = conn
+            .query_row(
+                "SELECT definition_json FROM worksets WHERE workset_id = ?1 ORDER BY revision DESC LIMIT 1",
+                [&workset_id],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .and_then(|raw| serde_json::from_str::<WorksetDefinition>(&raw).ok());
+        let Some(definition) = definition else {
+            return Ok(json!({"status": "missing", "workset_id": workset_id}));
+        };
+        let events = focusa_core::workset_store::list_events(&conn, &workset_id)?;
+        match focusa_core::workset_transitions::evaluate_transition(
+            &definition,
+            &events,
+            body.from,
+            body.to,
+        ) {
+            Ok(verdict) => Ok(json!({"status": "evaluated", "verdict": verdict})),
+            Err(reason) => Ok(json!({"status": "replay_rejected", "error": reason})),
+        }
     })
     .await;
     match result {

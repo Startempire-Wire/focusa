@@ -26,6 +26,10 @@ strictly.
 
 ## Next slices
 
-#268 working-set freshness; #272 bounded context + Workpoint/CallGraph
-binding; #273 generated Mission Canvas/Work Rail surface; #274
-checkpoint/completion/release transitions.
+#273 generated Mission Canvas/Work Rail surface (UI); the remaining
+runtime slices (#268/#272/#274 slices 1) are landed:
+- freshness stamps + divergence-exact staleness verdicts + the
+  freshness route (consumers re-read, never mutate);
+- bounded context packets with Workpoint/CallGraph binding refs;
+- the evidence-gated transition DAG (draft → admitted → checkpointed →
+  settled → release_pending → released) + the transition route.

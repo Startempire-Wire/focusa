@@ -245,6 +245,14 @@ check("workset ledger (#269/#271)", async () => {
     && projection.json?.projection?.settled === true;
 });
 
+check("workset transitions (#274)", async () => {
+  const r = await call("POST", "/v1/worksets/ws-e2e/transition", {
+    from: "checkpointed",
+    to: "settled",
+  });
+  return r.json?.status === "evaluated" && r.json?.verdict?.allowed === true;
+});
+
 async function main() {
   const results = [];
   for (const c of checks) {

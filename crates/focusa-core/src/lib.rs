@@ -102,6 +102,7 @@ pub mod completion_authority;
 pub mod runtime_bundle;
 pub mod workset_freshness;
 pub mod workset_ledger;
+pub mod workset_transitions;
 pub mod workset_context;
 pub mod workset_providers;
 pub mod workset_store;
