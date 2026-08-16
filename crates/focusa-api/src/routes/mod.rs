@@ -22,6 +22,7 @@ pub mod completion_claims;
 pub mod runtime_constitution;
 pub mod callgraph;
 mod cockpit;
+mod credentials;
 pub mod compaction;
 pub mod compaction_controller;
 pub mod constitution;
