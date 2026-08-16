@@ -232,6 +232,10 @@ pub struct WriterLease {
 pub struct AppState {
     /// Read-only snapshot of cognitive state (daemon writes, API reads).
     pub focusa: Arc<RwLock<FocusaState>>,
+    /// Workstream-partitioned states (#125): additive migration foundation —
+    /// routes opt in per workstream; the global state stays canonical until
+    /// migration completes.
+    pub workstream_states: crate::workstream_store::WorkstreamStateStore,
     /// Command channel to the daemon event loop.
     pub command_tx: mpsc::Sender<Action>,
     /// Event broadcast channel (SSE clients subscribe).
@@ -1081,6 +1085,7 @@ pub async fn run(
 
     let state = Arc::new(AppState {
         focusa,
+        workstream_states: crate::workstream_store::WorkstreamStateStore::default(),
         command_tx,
         events_tx,
         event_broadcaster: broadcaster,

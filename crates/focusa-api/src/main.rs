@@ -15,6 +15,7 @@ mod middleware;
 mod routes;
 mod scope;
 mod scoped_store;
+mod workstream_store;
 mod server;
 
 use anyhow::anyhow;
