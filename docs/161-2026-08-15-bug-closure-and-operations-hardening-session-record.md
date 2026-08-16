@@ -390,3 +390,25 @@ bounded core + persistence slices:
 - #278 slice 1: typed Acceptance Atoms + deterministic proof runtime.
   Commit `849b73c9` (pushed `76fc5362`).
 - #275 projection refreshed for #278/#280.
+
+## 5s. Live activation window (2026-08-16) — daemon 0.9.121-dev deployed
+
+- Static (musl) build path codified in .cargo/config.toml (glibc-2.28
+  compat for AlmaLinux 8; sqlite-vec u_int*_t shim). Deploy binary is
+  static-pie, matching the prior 0.9.152 binary.
+- LIVE routes verified: /v1/runtime-constitution, /v1/background-jobs
+  (create/complete/wait/list), /v1/completion-claims/evaluate,
+  /v1/workstreams/migrate (preview found real profiles),
+  /v1/callgraphs/validate. bg self-test completed end-to-end (probe job
+  → durable completion envelope).
+- RECOVERY HARDENING: load_state now FAILS CLOSED on unparsable
+  snapshots (the old silent-fresh-start overwrote the canonical state
+  once during this window — caught + fixed). focusa rebuild-state
+  reconstructs state from an older snapshot DB + the event chain.
+  Legacy-waypoint deserializer restores 0.9.152 snapshot compatibility
+  (PARSE-OK on the pre-retention backup).
+- Adapter registry (slice 10 foundation) landed + control route routes
+  entry frames against registered capability sets.
+- Open follow-up: finish the live-DB state rebuild from the
+  pre-retention backup + post-22:34 events (tool landed; run pending
+  after the error-envelope surface fix).
