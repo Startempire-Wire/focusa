@@ -93,6 +93,7 @@ pub mod background_jobs;
 pub mod acceptance_atoms;
 pub mod adapter_registry;
 pub mod callgraph;
+pub mod direction_operations;
 pub mod capability_truth;
 pub mod completion_authority;
 pub mod runtime_bundle;
