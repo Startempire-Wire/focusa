@@ -343,3 +343,15 @@ bounded core + persistence slices:
 - #262 slice 1: ContinuationHandle + partition-path escape fix (absolute
   workstream-id components could replace the data-dir prefix). Commit
   `ac5e5562`.
+
+## 5n. Continued closure — 263/258/257 + docs (2026-08-16)
+
+- #263 slices 1-2: cross-harness rehydration conformance + schema-typed
+  ClaimGateOutput (legacy outputs still deserialize). 12/12 + roundtrip.
+- #258 slice 1: tool taxonomy audit — 116 tools, 45 families, zero real
+  semantic duplicates; dynamic working sets conform.
+- #257 slice 1: RuntimeBundleManifest with digest anchoring +
+  controller-owned placement verification. 4/4 tests.
+- #264 audit: 124 extension surfaces classified, no fixes required.
+- Commits: `55e7918f`, `f1aa8635`, `93ea9732`, `2ebe7725` (pushed
+  `9c21d35b`, `98270b38`, `4d34dac2`, `dfd83f19`).

@@ -92,6 +92,7 @@ pub mod background_job_store;
 pub mod background_jobs;
 pub mod callgraph;
 pub mod runtime_bundle;
+pub mod runtime_constitution;
 pub mod error_envelope;
 pub mod infrastructure_inventory;
 pub mod callgraph_envelope;

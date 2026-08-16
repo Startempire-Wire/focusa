@@ -13,6 +13,7 @@ pub mod capabilities_extra;
 pub mod clt;
 pub mod commands;
 pub mod background_jobs;
+pub mod runtime_constitution;
 pub mod callgraph;
 pub mod compaction;
 pub mod compaction_controller;
