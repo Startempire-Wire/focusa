@@ -171,6 +171,45 @@ pub fn list_workstreams(conn: &Connection) -> Result<Vec<WorkstreamRoot>> {
         .collect())
 }
 
+/// Invariant 1 enforcement helper: every state mutation must name a
+/// workstream. This key is the only canonical scope identifier for state,
+/// evidence, and compaction partitions.
+pub fn workstream_scope_key(project_root: &str, continuity_id: &str) -> String {
+    format!("{}|{}", project_root.trim_end_matches('/'), continuity_id)
+}
+
+/// Resolve the workstream that owns a project root + continuity pair.
+pub fn resolve_workstream_for_scope(
+    conn: &Connection,
+    project_root: &str,
+    continuity_id: &str,
+) -> Result<Option<WorkstreamRoot>> {
+    ensure_schema(conn)?;
+    let mut statement = conn.prepare(
+        "SELECT root_json FROM workstream_roots
+         WHERE canonical_root = ?1 AND continuity_id = ?2
+         ORDER BY updated_at DESC LIMIT 1",
+    )?;
+    let raw: Option<String> = statement
+        .query_row(
+            rusqlite::params![project_root.trim_end_matches('/'), continuity_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    Ok(raw.and_then(|text| serde_json::from_str(&text).ok()))
+}
+
+/// Partition path resolver (docs/164): state/evidence/compaction roots are
+/// derived from the workstream id, never shared globals.
+pub fn partition_paths(data_dir: &std::path::Path, workstream_id: &str) -> RuntimePartition {
+    let root = data_dir.join("workstreams").join(workstream_id);
+    RuntimePartition {
+        state_ref: root.join("state.sqlite").display().to_string(),
+        evidence_ref: root.join("evidence").display().to_string(),
+        compaction_ref: root.join("compaction").display().to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,6 +263,32 @@ mod tests {
         upsert_workstream(&conn, &root("ws1", "ptm-main", "/root/ws1")).unwrap();
         let error = upsert_workstream(&conn, &root("ws1", "other-continuity", "/root/ws1")).unwrap_err();
         assert!(error.to_string().contains("immutable"));
+    }
+
+    #[test]
+    fn scope_key_and_partition_paths_are_deterministic() {
+        assert_eq!(
+            workstream_scope_key("/root/release-cycle/", "cont-1"),
+            "/root/release-cycle|cont-1"
+        );
+        let partition = partition_paths(std::path::Path::new("/data"), "ws1");
+        assert!(partition.state_ref.starts_with("/data/workstreams/ws1/"));
+        assert!(partition.evidence_ref.ends_with("/evidence"));
+    }
+
+    #[test]
+    fn resolves_workstream_for_scope() {
+        let conn = conn();
+        upsert_workstream(&conn, &root("ws1", "ptm-main", "/root/ws1")).unwrap();
+        let resolved = resolve_workstream_for_scope(&conn, "/root/ws1/", "ptm-main")
+            .unwrap()
+            .unwrap();
+        assert_eq!(resolved.workstream_id, "ws1");
+        assert!(
+            resolve_workstream_for_scope(&conn, "/root/other", "ptm-main")
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
