@@ -185,6 +185,13 @@ mod tests {
             WorksetEvent::CompletionContracted {
                 contract_digest: "d".to_string(),
             },
+            // Release gate evidence: the release-gate ref must be present for
+            // the Settled -> ReleasePending edge.
+            WorksetEvent::RequirementDisposed {
+                requirement_id: "r1".to_string(),
+                disposition: RequirementDisposition::Met,
+                evidence_ref: Some("release-gate".to_string()),
+            },
         ]
     }
 
