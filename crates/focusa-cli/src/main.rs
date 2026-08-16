@@ -126,7 +126,6 @@ enum Commands {
     /// Workstream-rooted canonical runtime operations (Spec 164).
     Workstream(commands::workstream::WorkstreamArgs),
     /// CallGraph export projections (Spec 155 §export program).
-    #[command(subcommand)]
     Callgraph(commands::callgraph::CallgraphArgs),
 
     /// Inspect, evaluate, replay, and diff bounded compaction packets (Spec 130).
