@@ -121,7 +121,10 @@ Before touching install, license, Evaluation, protected modules, UIAI entitlemen
 5. `docs/current/INSTALLER_UPDATE_POLICY.md`
 6. `docs/current/FIRST_RUN_FLOW.md`
 
-Private authority/server implementation belongs in the private authority repository.
+Licenses and entitlements are authority-issued — only the signed
+authority-lease server grants Evaluation or Licensed capability; nothing
+self-issued locally confers entitlement. Private authority/server
+implementation belongs in the private authority repository.
 
 ## 8. API and daemon rules
 
