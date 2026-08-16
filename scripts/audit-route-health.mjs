@@ -9,7 +9,12 @@ const SCOPED = {
 };
 const results = [];
 async function probe(method, path, body) {
-  const url = path.startsWith("/v1/") ? `${ROOT_BASE}${path}` : `${BASE}${path}`;
+  const ROOT_PATHS = ["/llms.txt"];
+  const url = path.startsWith("/v1/")
+    ? `${ROOT_BASE}${path}`
+    : ROOT_PATHS.includes(path)
+      ? `${ROOT_BASE}${path}`
+      : `${BASE}${path}`;
   const res = await fetch(url, {
     method,
     headers: { "Content-Type": "application/json", ...SCOPED },
