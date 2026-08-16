@@ -1,4 +1,5 @@
 //! Focusa runtime entitlement helper — Spec92 §5.5.
+//! Developer-origin resolution: see `license_developer_origin.rs` (#307).
 //!
 //! Provides a central API to load the local license state, check whether a specific feature
 //! is enabled by the current license, and require a feature (returning a structured error
@@ -246,7 +247,17 @@ pub fn load_local_license() -> anyhow::Result<LocalLicense> {
 
 /// Check whether a specific feature is enabled by the current license.
 /// Returns `true` if enabled, `false` if not (or if in evaluation mode).
+/// #307 developer-origin rule: a trusted development machine receives
+/// developer_full — every feature is enabled and commercial gates never
+/// block development or testing.
+pub fn developer_origin_active() -> bool {
+    crate::license_developer_origin::developer_origin_active()
+}
+
 pub fn feature_enabled(feature: &str) -> bool {
+    if developer_origin_active() {
+        return true;
+    }
     match load_license_status() {
         Ok(status) if status.commercial_use && !status.features.is_empty() => {
             status.features.iter().any(|f| f == feature)
@@ -258,7 +269,7 @@ pub fn feature_enabled(feature: &str) -> bool {
 /// Require a feature — returns `Ok(())` if enabled, `Err(LicenseError::FeatureRequiresLicense)`
 /// if gated. Use this in feature paths per spec §5.5.
 pub fn require_feature(feature: &str) -> Result<(), LicenseError> {
-    if feature_enabled(feature) {
+    if developer_origin_active() || feature_enabled(feature) {
         return Ok(());
     }
     let mode = load_license_status().ok().map(|s| s.mode);

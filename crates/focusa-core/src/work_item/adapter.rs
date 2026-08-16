@@ -126,21 +126,6 @@ pub trait ProviderAdapter: Send + Sync {
     /// so the lifecycle can run `reconcile` against it.
     async fn submit(&self, work_item: &WorkItemRef) -> RegistryResult<WorkItem>;
 
-    /// Project a non-closure lifecycle state through the provider after
-    /// Focusa has applied the corresponding authority and evidence gates.
-    /// Providers that cannot represent the requested transition fail closed.
-    async fn transition(
-        &self,
-        _work_item: &WorkItemRef,
-        _status: crate::work_item::types::WorkItemStatus,
-        _reason: &str,
-    ) -> RegistryResult<WorkItem> {
-        Err(RegistryError::CapabilityUnsupported {
-            provider: self.provider(),
-            capability: "transition_work_item",
-        })
-    }
-
     /// Optional post-submit reconciliation. The default implementation
     /// is `Ok(self.resolve(work_item).await?)` and is sufficient for
     /// providers whose `submit` is already idempotent.

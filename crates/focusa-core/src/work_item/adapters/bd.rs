@@ -346,46 +346,6 @@ impl ProviderAdapter for BdAdapter {
         self.resolve(work_item).await
     }
 
-    async fn transition(
-        &self,
-        work_item: &WorkItemRef,
-        status: crate::work_item::types::WorkItemStatus,
-        _reason: &str,
-    ) -> RegistryResult<WorkItem> {
-        if matches!(
-            status,
-            crate::work_item::types::WorkItemStatus::Done
-                | crate::work_item::types::WorkItemStatus::Closed
-        ) {
-            return Err(RegistryError::CapabilityUnsupported {
-                provider: self.provider(),
-                capability: "transition_closure_requires_lifecycle",
-            });
-        }
-        let status = status.to_string();
-        let args = [
-            "update",
-            work_item.provider_item_id.as_str(),
-            "--status",
-            status.as_str(),
-        ];
-        let (code, _stdout, stderr) = self
-            .run_bd_at(&work_item.project_root, &args)
-            .await
-            .ok_or_else(|| RegistryError::ProviderNotInstalled {
-                provider: self.provider(),
-                missing: vec![self.bd_path.clone()],
-            })?;
-        if code != 0 {
-            return Err(RegistryError::ProviderError {
-                provider: self.provider(),
-                stage: "transition",
-                why: format!("bd update exit={code} stderr={stderr}"),
-            });
-        }
-        self.resolve(work_item).await
-    }
-
     async fn reconcile(&self, work_item: &WorkItemRef) -> RegistryResult<WorkItem> {
         self.resolve(work_item).await
     }
@@ -429,22 +389,6 @@ mod tests {
         let _ = adapter.provider();
         let _ = adapter.capabilities();
         let _ = bd_ref("focusa-glny");
-    }
-
-    #[tokio::test]
-    async fn generic_transition_rejects_closure_before_provider_execution() {
-        let adapter = BdAdapter::with_bd_path("/definitely/missing/bd");
-        let error = adapter
-            .transition(&bd_ref("focusa-test"), WorkItemStatus::Closed, "done")
-            .await
-            .expect_err("generic transition must not bypass closure lifecycle");
-        assert!(matches!(
-            error,
-            RegistryError::CapabilityUnsupported {
-                capability: "transition_closure_requires_lifecycle",
-                ..
-            }
-        ));
     }
 
     #[test]

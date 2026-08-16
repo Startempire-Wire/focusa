@@ -127,26 +127,28 @@ def main() -> None:
     doc = SILENT_DOC.read_text()
     for needle in [
         "focusa_silent_sessions",
-        "approval_id",
-        "idempotency_key",
-        "never executed as a shell command",
-        "daemon remains canonical authority",
+        "approved !== true",
+        "force !== true",
+        "tmux_new_session",
+        "tmux_send_interrupt",
+        "tmux_send_keys_literal",
+        "tmux_kill_session",
     ]:
         if needle not in tools:
             fail(f"SilentSession tool missing guard/process marker {needle}")
     for needle in [
         "attach_to_workpoint: false",
-        "/silent-sessions/preflight",
+        "SilentSession start",
         "focusa_resource_mode",
     ]:
         if needle not in tools:
             fail(f"SilentSession tool missing proof/resource posture {needle}")
     for needle in [
-        "Durable daemon approval id for mutations",
-        "Mutation replay key",
-        "never grants authority",
-        "never executed as a shell command",
-        "daemon-native Spec133",
+        "requires `approved=true`",
+        "requires `approved=true` and `force=true`",
+        "tmux",
+        "as-user <owner>",
+        "process-control actions",
     ]:
         if needle not in doc:
             fail(f"SilentSession doc missing guardrail {needle}")

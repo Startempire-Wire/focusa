@@ -18,11 +18,10 @@ Public docs distinguish implemented-with-active-hardening direction from final r
 | 135j | operation registry, durable UI stream, runtime reuse | implemented with active hardening |
 | 135k | adaptive generated UI, friction learning, usability | implemented with active hardening |
 | 136 | governed proposal settlement and outcome truth | implemented with active hardening |
-| 137 + 137A | temporal runtime substrate plus mandatory zero-deferral closure | verified runtime slices; combined full conformance open |
-| 138 + 138A | prediction/metacognitive substrate plus mandatory full-profile closure | partial runtime foundations; full-profile conformance open |
+| 137 | temporal authority, deadlines, urgency, forecasting | implemented with active hardening |
+| 138 | prediction calibration, metacognitive transfer, epistemic governance | implemented with active hardening |
 | 139 | distributed presence, awareness, placement, multi-daemon coordination | implemented with active hardening |
 | 140 | runtime constitution, instruction authority, cross-harness compiler | implemented with active hardening |
-| 144 | semantic integrity and domain-routed Build↔Verify fabric | normative documentation only; implementation not activated |
 
 ## Reconciled public surfaces
 

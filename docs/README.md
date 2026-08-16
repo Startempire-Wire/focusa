@@ -449,8 +449,3 @@ The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelop
 - [Predictive Power tools index](focusa-tools/predictive-power.md)
 - [Workpoint Session Scope Guard](current/WORKPOINT_SESSION_SCOPE_GUARD.md)
 - [Compaction Fallbacks](current/COMPACTION_FALLBACKS.md)
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-current-truth -->
-## Current truth for Specs 137A, 138A, and 144
-
-Spec 137 has verified temporal runtime slices, but combined Spec 137 + 137A full conformance remains open. Spec 138 has prediction/metacognitive foundations, but Profiles A–H and combined Spec 138 + 138A full conformance remain open. Spec 144 is normative documentation only and has not been activated for runtime implementation. The machine-readable closure artifacts describe required work and must not be interpreted as implementation proof.

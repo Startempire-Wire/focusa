@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   commit-messages:
     name: Meaningful commit messages
@@ -36,11 +32,10 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           components: clippy
-      - uses: Swatinem/rust-cache@v2
       - name: Process-health check + unit/integration tests
         env:
           FOCUSA_TEST_MODE: "1"
-        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace"
+        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace -- --test-threads=1"
       - name: Process-health check + Clippy
         run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace -- -D warnings"
       - name: Focused Pi package transaction + update gates
@@ -102,6 +97,12 @@ jobs:
 
       - name: Installer/update policy + Pi discovery static gate
         run: bash tests/installer_update_policy_static_test.sh
+
+      - name: Distribution parity report (#260, informational)
+        run: |
+          node scripts/audit-distribution-parity.mjs --json > /tmp/distribution-manifest.json || true
+          python3 -c "import json; d=json.load(open('/tmp/distribution-manifest.json')); print('parity_ok=%s drift=%d' % (d['parity_ok'], len(d['drift']))); [print('  drift', r['surface'], r['source_value'], '->', r['observed_value']) for r in d['drift']]"
+
 
   spec-gates:
     name: Spec Gates (strict)

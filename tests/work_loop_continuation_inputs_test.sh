@@ -4,8 +4,7 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
-PROJECT_ROOT="${FOCUSA_PROJECT_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-CONTINUITY_ID="${FOCUSA_CONTINUITY_ID:-work-loop-continuation-test}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0
 
@@ -17,8 +16,8 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 curl() {
   command curl \
-    -H "x-scope-project-root: ${PROJECT_ROOT}" \
-    -H "x-scope-continuity-id: ${CONTINUITY_ID}" \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: work-loop-continuation-test" \
     "$@"
 }
 http_json() { curl -sS "$@"; }
@@ -38,7 +37,7 @@ wait_for_jq() {
 
 CHECKPOINT_RESP=$(http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${PROJECT_ROOT}\",\"continuity_id\":\"${CONTINUITY_ID}\",\"work_item_id\":\"spec79-context-test\",\"mission\":\"verify work-loop continuation inputs\",\"current_action\":\"spec79_context_contract\",\"next_slice\":\"verify continuation context persistence\",\"canonical\":true}")
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"spec79-context-test\",\"mission\":\"verify work-loop continuation inputs\",\"current_action\":\"spec79_context_contract\",\"next_slice\":\"verify continuation context persistence\",\"canonical\":true}")
 if ! echo "$CHECKPOINT_RESP" | jq -e '.canonical == true and .workpoint_id != null' >/dev/null 2>&1; then
   log_fail "canonical Workpoint checkpoint rejected: ${CHECKPOINT_RESP}"
 fi

@@ -62,10 +62,7 @@ def main() -> None:
     contract_end = text.find("/// The complete cognitive state", contract_start)
     plane_map_text = text[contract_start:contract_end]
     pairs = dict(
-        re.findall(
-            r'\(\s*"([a-z_]+)",\s*AuthorityPlane::([A-Za-z]+),?\s*\)',
-            plane_map_text,
-        )
+        re.findall(r'\("([a-z_]+)", AuthorityPlane::([A-Za-z]+)\)', plane_map_text)
     )
 
     state_start = text.find("pub struct FocusaState")

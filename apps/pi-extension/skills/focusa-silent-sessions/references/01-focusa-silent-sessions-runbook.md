@@ -1,25 +1,43 @@
 # Focusa Silent Sessions Runbook
 
-## Observe first
+## Preconditions
 
-1. Call `focusa_silent_sessions` with `action=list` or exact `session_id` plus `action=tail`.
-2. Confirm current `run_id`, `generation`, status, capabilities, and receipt posture.
-3. Reopen only through daemon-native identity; do not normalize to tmux names.
+- Verify project root plus continuity scope when project-bound.
+- Resume or checkpoint the canonical Workpoint before long/risky work.
+- Confirm current operator steering and mutation approval boundaries.
+- Use targeted local gates during development; CI requires explicit release authorization.
 
-## Mutate safely
+## Dependency graph
 
-1. Preflight the intended mutation.
-2. Supply exact session/run/generation plus daemon-issued `approval_id` and unique `idempotency_key`.
-3. Use `send`, `interrupt`, `pause`, `resume`, `restart`, or `kill` only for the confirmed generation.
-4. Re-read status/receipt, then capture and link evidence to the active Workpoint.
+```text
 
-## Recovery
+```
 
-- Stale generation: list/reopen and use the returned current tuple.
-- Duplicate/retry uncertainty: query receipt before retrying.
-- Daemon degradation: `focusa_tool_doctor`; do not fall back to raw shell control.
-- Blocked work: checkpoint and select the next ready item rather than abandoning state.
+## Minimal path
 
-## Done condition
+1. Call `focusa_silent_sessions` with only required bounded inputs.
 
-Daemon status and receipt prove the intended lifecycle transition, with no duplicate mutation and no orphaned run.
+## Current domain procedure
+
+1. Verify typed project/workstream scope before durable mutation.
+2. Return bounded evidence and executable recovery.
+
+## Branches
+
+- Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
+- Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
+- Daemon/degraded state: `focusa_tool_doctor`; retry only with safe posture.
+- Resource timeout: `focusa_resource_mode` → bounded `focusa_traverse`.
+- Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → evidence.
+- Mutation ambiguity: inspect side effects/receipts before retry; require operator confirmation when declared.
+
+## Evidence and closure
+
+- Capture stable file/test/API/browser/receipt refs.
+- Link proof to the active Workpoint.
+- Evaluate relevant predictions and reusable learning only after outcome is known.
+- Done: The scoped operation is verified, evidenced, and handed to the next owning skill.
+
+## Cross-harness mapping
+
+Resolve equivalent Pi, MCP, OpenAI, CLI, and REST bindings through Agent Capability Descriptor V2; semantics and authority must remain identical.

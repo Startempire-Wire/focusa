@@ -30,6 +30,7 @@ import { proactiveCompactionPolicy, registerAutoCompaction } from "./auto-compac
 import { registerSession } from "./session.js";
 import { registerTurns } from "./turns.js";
 import { registerPolishHooks } from "./polish.js";
+import { registerMissionCanvasWidget } from "./mission-canvas-widget.js";
 
 export default function focusaPiBridge(pi: ExtensionAPI) {
   const extensionKey = makeAttachmentKey({
@@ -149,6 +150,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     if (!ownsCompactionCoordinator) return;
     registerTools(pi);
     registerCommands(pi);
+    registerMissionCanvasWidget(pi);
     registerAutomaticOtaActivation(pi);
     registerWbm(pi);
     registerCompaction(pi);

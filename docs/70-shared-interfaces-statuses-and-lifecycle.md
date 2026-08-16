@@ -417,8 +417,3 @@ With this layer, Focusa can:
 # 10. Success Condition
 
 Shared Interfaces, Statuses, and Lifecycle is successful when Focusa’s ontology domains behave like one coherent operating ontology rather than a collection of separate domain models.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-shared-statuses -->
-## Spec 144 shared lifecycle and status integration
-
-Shared interfaces MUST recognize Builder/Verifier lifecycle, obligation coverage, snapshot validity, dispute, arbitration, placement, revalidation, and exact conformance-subset states. `verification_passed` remains distinct from `settlement_ready` and `settled`; `settlement_reopened` and `settlement_corrected` append rather than rewrite history.

@@ -285,6 +285,18 @@ async fn main() -> anyhow::Result<()> {
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(8787);
 
+    // #307: surface the developer-origin entitlement state once at startup.
+    {
+        let origin = focusa_core::license_developer_origin::developer_origin_report();
+        tracing::info!(
+            active = origin.active,
+            agent_kb_known = origin.agent_kb_known,
+            tailnet_member = origin.tailnet_member,
+            tailnet_suffix = %origin.tailnet_suffix,
+            "developer-origin entitlement resolved"
+        );
+    }
+
     // Spawn daemon event loop.
     let daemon_handle = tokio::spawn(async move {
         if let Err(e) = daemon.run().await {

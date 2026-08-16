@@ -6,7 +6,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 TURNS = ROOT / "apps/pi-extension/src/turns.ts"
-BROWSER_SKILL = ROOT / ".pi/skills/focusa-browser-uiai/SKILL.md"
+ROOT_AGENTS = Path("/root/AGENTS.md")
+VISION_SKILL = Path("/root/.pi/skills/vision/SKILL.md")
 
 
 def fail(msg: str) -> None:
@@ -29,14 +30,25 @@ def main() -> None:
     )
     require(turns, "web_search/fetch_content only after UIAI unavailable", "turns.ts")
     require(turns, "close unused UIAI sessions before generic web fallback", "turns.ts")
-    require(turns, '"uiai_first_web_research"', "turns.ts")
-    require(turns, "buildSliceSection(", "turns.ts")
+    require(turns, 'buildSliceSection("uiai_first_web_research"', "turns.ts")
 
-    skill = BROWSER_SKILL.read_text()
-    require(skill, "UIAI-first browser research/action", "Focusa browser skill")
-    require(skill, "URL or website task", "Focusa browser skill")
-    require(skill, "generic web fallback before UIAI health", "Focusa browser skill")
-    require(skill, "Required sequence", "Focusa browser skill")
+    agents = ROOT_AGENTS.read_text()
+    require(agents, "UIAI-FIRST WEB/RESEARCH RULE", "/root/AGENTS.md")
+    require(agents, "pi_uiai_agent_card` → `uiai_health`", "/root/AGENTS.md")
+    require(
+        agents,
+        "Generic `web_search` / `fetch_content` are fallbacks only",
+        "/root/AGENTS.md",
+    )
+
+    skill = VISION_SKILL.read_text()
+    require(skill, "UIAI-first web/browser/research workflow", "vision skill")
+    require(
+        skill,
+        "For any URL, website, browser, documentation, or web-research task, use UIAI first",
+        "vision skill",
+    )
+    require(skill, "Operator shorthands", "vision skill")
 
     print("✓ PASS: UIAI-first web/research routing guard ok")
 

@@ -42,19 +42,6 @@ implemented_slice:
     field: work_loop
     plane: bounded_orchestration
     rule: writer-owned orchestration does not equal Focus State authority
-  mission_canvas_boundaries:
-    fields:
-      project_role_profiles: advisory_projection
-      project_interview_sessions: bounded_orchestration
-      spec_workbench_sessions: bounded_orchestration
-      provider_execution_bindings: runtime_correlation
-      provider_neutral_task_plans: advisory_projection
-      task_materializations: telemetry_history
-      work_rail_records: bounded_orchestration
-      mission_canvas_surfaces: advisory_projection
-      mission_canvas_states: advisory_projection
-      mission_canvas_surface_bindings: runtime_correlation
-    rule: generated role/task/UI guidance, interview/workbench execution, work-rail orchestration, receipts, and provider bindings never silently become Focus State authority
 proof_requirements:
   - static AuthorityPlane enum exists with all five variants
   - static FOCUSA_STATE_PLANE_CONTRACT maps all FocusaState fields

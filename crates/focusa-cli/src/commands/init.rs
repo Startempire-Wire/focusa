@@ -137,9 +137,36 @@ pub async fn run(args: InitArgs, json: bool) -> Result<()> {
         payload["mode"] = json!("dry_run");
         payload["marker_preview"] = marker;
     } else {
-        std::fs::write(&marker_path, serde_json::to_vec_pretty(&marker)?)?;
+        // #243: canonical marker production through the shared core service.
+        let marker_struct = focusa_core::project_marker::ProjectMarker {
+            schema: focusa_core::project_marker::MARKER_SCHEMA.into(),
+            project_id: slug.clone(),
+            canonical_name: marker["canonical_name"].as_str().unwrap_or("").to_string(),
+            project_root: project_root.display().to_string(),
+            repo_remote: None,
+            beads_prefix: marker["beads_prefix"].as_str().map(str::to_string),
+            workspace_kind: marker["workspace_kind"].as_str().map(str::to_string),
+            continuity_id: None,
+            aliases: vec![],
+            created_at: marker["created_at"].as_str().unwrap_or("").to_string(),
+            updated_at: None,
+        };
+        let outcome = focusa_core::project_marker::write_marker(
+            &project_root,
+            &marker_struct,
+            &focusa_core::project_marker::MarkerWriteOptions::default(),
+        )?;
+        if matches!(
+            outcome,
+            focusa_core::project_marker::MarkerWriteOutcome::BlockedPermission { .. }
+        ) {
+            anyhow::bail!(
+                "project marker blocked: directory is owned by another user; rerun as that user"
+            );
+        }
         payload["mode"] = json!("written");
         payload["marker"] = marker;
+        payload["marker_outcome"] = serde_json::to_value(outcome)?;
     }
 
     // Loud override: surface when a marker was written with unsafe-root override.

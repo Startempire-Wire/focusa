@@ -5,7 +5,7 @@
 **Created:** 2026-07-22  
 **Canonical label:** **Spec 140 — Project Agent Runtime Constitution, Instruction Authority Graph, System-Prompt, and Cross-Harness Compiler**  
 **Primary implementation surfaces:** Focusa core, reducer, daemon, SQLite persistence, API, Operation Registry, generated contracts, CLI, Pi extension/runtime, Agent Bootstrap, C.R.I.S.T., Spec Workbench, Agent Runtime Studio, A2UI generated UI, Skills, hooks/permissions, cross-harness adapters, Evidence, Receipts, benchmarks, conformance, and future Focusa.work profiles  
-**Depends on:** Specs 15, 16, 16B, 23–26, 34, 40, 44, 72, 76, 88, 92, 96, 98, 100, 104, 108, 110, 111, 112, 113, 116, 119, 120, 123, 125, 130, 130A, 131, 133, 135, 135A, 135B, 135D, 135E, 135F, 135H, 135I, 135J, 135K, 136, 137, 137A, 138, 138A, and 139  
+**Depends on:** Specs 15, 16, 16B, 23–26, 34, 40, 44, 72, 76, 88, 92, 96, 98, 100, 104, 108, 110, 111, 112, 113, 116, 119, 120, 123, 125, 130, 130A, 131, 133, 135, 135A, 135B, 135D, 135E, 135F, 135H, 135I, 135J, 135K, 136, 137, 138, and 139  
 **Research basis:** Pi system-prompt/context/skill extension surfaces; AGENTS.md hierarchy; Claude Code memory/rules/skills/hooks/permissions; Gemini CLI hierarchical/JIT context; GitHub Copilot repository/path/agent instructions; progressive disclosure; prompt-cache stability; current Focusa instruction, skill, context, authority, and C.R.I.S.T. implementation.
 
 ---
@@ -34,7 +34,7 @@ The central rule is:
 >
 > **SPEC 140 COMPILES THAT APPROVED REALITY INTO THE AGENT’S STABLE OPERATING IDENTITY AND INSTRUCTION SURFACES.**
 >
-> **SPEC 139 AND THE COMBINED SPEC 137 + SPEC 137A SOURCE SUPPLY THE CHANGING PRESENCE, ENVIRONMENT, TIME, AND TEMPORAL-CLOSURE REALITY AT RUNTIME.**
+> **SPEC 139 AND SPEC 137 SUPPLY THE CHANGING PRESENCE, ENVIRONMENT, AND TIME REALITY AT RUNTIME.**
 
 ---
 
@@ -2106,8 +2106,3 @@ Workpoint
 ```
 
 The result is not a generic coding assistant with a longer prompt. It is a governed, project-born, vertical-specialized agent whose stable operating identity is approved through C.R.I.S.T., whose instructions are internally consistent, whose target artifacts are verified, and whose live actions remain constrained by Focusa’s current distributed reality.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-cognition-provenance -->
-## Spec 144 reproducible Builder and Verifier cognition
-
-The Runtime Constitution compiler MUST produce role-specific Builder, Verifier, Router, coverage-challenger, and arbiter artifacts. Every run binds constitution, prompt assembly, role/capability/permission, skills, tools, harness, model parameters, disclosure policy, retrieval/source set, test generator, environment, and context packet hashes in a `CognitiveExecutionIdentity`. Prompt difference alone is not independence.

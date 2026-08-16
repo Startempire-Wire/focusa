@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `475`
-- Agent eligible: `100`
-- Operator only: `363`
+- Classified paths: `458`
+- Agent eligible: `86`
+- Operator only: `360`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -2080,38 +2080,6 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/project.rs`
 - Agent operations: none
 
-### `/v1/project/bootstrap/apply`
-
-- Methods: `POST /v1/project/bootstrap/apply`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/project_bootstrap.rs`
-- Agent operations: `focusa.project.bootstrap.apply`
-
-### `/v1/project/bootstrap/preview`
-
-- Methods: `POST /v1/project/bootstrap/preview`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/project_bootstrap.rs`
-- Agent operations: `focusa.project.bootstrap.preview`
-
-### `/v1/project/bootstrap/repair`
-
-- Methods: `POST /v1/project/bootstrap/repair`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/project_bootstrap.rs`
-- Agent operations: `focusa.project.bootstrap.repair`
-
-### `/v1/project/bootstrap/status`
-
-- Methods: `GET /v1/project/bootstrap/status`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/project_bootstrap.rs`
-- Agent operations: `focusa.project.bootstrap.status`
-
 ### `/v1/project/card`
 
 - Methods: `GET /v1/project/card`
@@ -2143,38 +2111,6 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/project.rs`
 - Agent operations: none
-
-### `/v1/project/genesis/commit`
-
-- Methods: `POST /v1/project/genesis/commit`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/project_genesis.rs`
-- Agent operations: `focusa.project.genesis.commit`
-
-### `/v1/project/genesis/resume`
-
-- Methods: `POST /v1/project/genesis/resume`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/project_genesis.rs`
-- Agent operations: `focusa.project.genesis.resume`
-
-### `/v1/project/genesis/start`
-
-- Methods: `POST /v1/project/genesis/start`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/project_genesis.rs`
-- Agent operations: `focusa.project.genesis.start`
-
-### `/v1/project/genesis/status`
-
-- Methods: `GET /v1/project/genesis/status`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/project_genesis.rs`
-- Agent operations: `focusa.project.genesis.status`
 
 ### `/v1/project/identity`
 
@@ -2243,14 +2179,6 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/project/templates`
 
 - Methods: `GET /v1/project/templates`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
-- Sources: `crates/focusa-api/src/routes/project.rs`
-- Agent operations: none
-
-### `/v1/project/trajectory-guard`
-
-- Methods: `POST /v1/project/trajectory-guard`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/project.rs`
@@ -3120,54 +3048,6 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/capabilities_extra.rs`
 - Agent operations: none
 
-### `/v1/temporal/commit`
-
-- Methods: `POST /v1/temporal/commit`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: `focusa.temporal.commit`
-
-### `/v1/temporal/forecast`
-
-- Methods: `POST /v1/temporal/forecast`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: `focusa.temporal.forecast`
-
-### `/v1/temporal/observe`
-
-- Methods: `POST /v1/temporal/observe`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: `focusa.temporal.observe`
-
-### `/v1/temporal/preflight`
-
-- Methods: `POST /v1/temporal/preflight`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: `focusa.temporal.preflight`
-
-### `/v1/temporal/revise`
-
-- Methods: `POST /v1/temporal/revise`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: `focusa.temporal.revise`
-
-### `/v1/temporal/status`
-
-- Methods: `GET /v1/temporal/status`
-- Classification: `agent_eligible`
-- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
-- Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: `focusa.temporal.status`
-
 ### `/v1/threads`
 
 - Methods: `GET /v1/threads`
@@ -3256,14 +3136,6 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/trajectory.rs`
 - Agent operations: `focusa.trajectory.define_goal`
 
-### `/v1/trajectory/history`
-
-- Methods: `GET /v1/trajectory/history`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
-- Sources: `crates/focusa-api/src/routes/trajectory.rs`
-- Agent operations: none
-
 ### `/v1/trajectory/propose-workpoint`
 
 - Methods: `POST /v1/trajectory/propose-workpoint`
@@ -3271,14 +3143,6 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/trajectory.rs`
 - Agent operations: `focusa.trajectory.propose_workpoint`
-
-### `/v1/trajectory/query`
-
-- Methods: `GET /v1/trajectory/query`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
-- Sources: `crates/focusa-api/src/routes/trajectory.rs`
-- Agent operations: none
 
 ### `/v1/trajectory/resume`
 

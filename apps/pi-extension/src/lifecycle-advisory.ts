@@ -4,7 +4,7 @@ export type LifecycleAdvisoryStatus = "queued" | "skipped_headless" | "failed";
 
 export type LifecycleAdvisoryInput = {
   advisoryKey: string;
-  advisoryKind: "unbound_project" | "project_identity_bootstrap";
+  advisoryKind: "unbound_project" | "project_identity_bootstrap" | "project_verify_recovery";
   title: string;
   content: string;
   reason: string;

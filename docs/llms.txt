@@ -134,8 +134,3 @@ Alignment authority: `docs/evidence/141-focusa-latest-spec-public-doc-alignment.
 - claiming Mac/platform validation from another environment;
 - running CI during development without explicit release authorization;
 - claiming completion without stable evidence.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-agent-truth -->
-## Mandatory architecture-status instruction
-
-Treat Spec 137A and Spec 138A as mandatory companions to their parents. Treat Spec 144 as documentation-only and not runtime-activated. Do not claim combined Spec 137 + 137A conformance, full-profile Spec 138 + 138A conformance, or Spec 144 implementation unless exact current ledgers, proof matrices, runtime Evidence, Receipts, and activation records establish it.

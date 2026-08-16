@@ -31,12 +31,6 @@ Fallback order:
 - Do not fill slots with unrelated repo facts.
 - Do not emit bare `none` for cognitive summary fields.
 
-## Operator-visible observability
-
-Compaction must never look like a frozen conversation. While native compaction is active, the Pi status surface reports phase, elapsed seconds, context pressure, and attempt number; long attempts emit a bounded visible heartbeat. Retry notices include the bounded primary error and retry delay. Terminal, coordinator, and resume-context failures are shown in the UI as well as durable telemetry or console logs. Timers are cleared on completion, failure, compact reset, session start, and shutdown.
-
-Pi owns queued operator input and native continuation after manual or automatic compaction. Focusa queues its hidden resume packet with `triggerTurn:false`; it never starts a competing post-compaction turn. Operator text submitted during compaction therefore remains authoritative and flows into Pi's native queue. Agents must use bounded polling rather than long blocking `--watch` commands so steering can be observed and acted on promptly.
-
 ## Guard
 
 ```bash

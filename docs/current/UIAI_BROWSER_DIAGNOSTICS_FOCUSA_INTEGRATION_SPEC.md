@@ -12,7 +12,7 @@ UIAI Engine and UIAI Engine Eval are the exclusive browser runtime and browser-p
 
 ## 2. Current verified baseline
 
-The local UIAI implementation includes the provider-neutral `uiai_browser_*` tool family:
+The local UIAI implementation includes:
 
 - service target `localhost:7456`;
 - browser open, screenshot, scroll, click, hover, type, eval, bounded async eval, snapshot, DOM, navigation, resize, CSS, wait, fill, select, press, history, text, cookies, close, diagnostics, and diagnostics-clear operations;

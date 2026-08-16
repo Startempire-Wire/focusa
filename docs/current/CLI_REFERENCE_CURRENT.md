@@ -251,24 +251,7 @@ focusa project card-outcome --algorithm-run-id <algorithm_run_id> --actual-outco
 focusa project session-transfer --action save --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --current-ask "Save current work like a game save" --json
 focusa project session-transfer --action continue --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa project verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --project-id focusa --json
-focusa project trajectory-guard --action verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
-focusa project trajectory-guard --action migrate --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --confirm --idempotency-key marker-migrate-1 --json
-focusa project bootstrap preview --project-root /absolute/project --project-id project --canonical-name "Project" --continuity-id project-main --idempotency-key bootstrap-project --json
-focusa project bootstrap apply --project-root /absolute/project --project-id project --canonical-name "Project" --continuity-id project-main --idempotency-key bootstrap-project --hlt "Ship the verified project" --hlt-confirmed --specification-ref docs/01-project-spec.md --acceptance "First Workpoint is active" --current-state "Empty project" --desired-end-state "Disciplined project ready" --confirm --json
-focusa project bootstrap status --project-root /absolute/project --json
-focusa project bootstrap repair --project-root /absolute/project --project-id project --canonical-name "Project" --continuity-id project-main --idempotency-key bootstrap-project --repair-action rollback --confirm --json
-focusa project genesis start --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key genesis-1 --hlt "Ship the verified project" --hlt-confirmed --specification-ref docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md --acceptance "First Workpoint is active" --current-state "Genesis incomplete" --desired-end-state "Project ready" --allow-task-decomposition --json
-focusa project genesis status --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
-focusa project genesis resume --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key genesis-1 --json
-focusa project genesis commit --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key genesis-1 --hlt "Ship the verified project" --hlt-confirmed --specification-ref docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md --acceptance "First Workpoint is active" --current-state "Genesis incomplete" --desired-end-state "Project ready" --allow-task-decomposition --confirm --json
-focusa temporal status --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --json
-focusa temporal commit --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key deadline-1 --claim-id release-deadline --kind external_commitment --subject-ref release --target-at 2026-08-01T17:00:00Z --timezone America/Los_Angeles --source operator --operator-confirmed --confidence verified --evidence-ref contract:release-date --confirm --json
-focusa temporal observe --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key build-run-1 --phase build --duration-ms 120000 --evidence-ref run:123 --json
-focusa temporal forecast --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --phase build --json
-focusa temporal preflight --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --json
 focusa trajectory view --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --mode summary --json
-focusa trajectory history --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --limit 50 --json
-focusa trajectory query --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --level waypoint --as-of 2026-07-25T12:00:00Z --json
 focusa trajectory define-goal --long-term-goal "Ship Spec96" --desired-end-state "All Spec96 gates pass" --mid-level-goal "Close release blockers" --short-term-goal "Run current validation gates" --waypoint "CLI/API parity proof" --waypoint "Public docs proof" --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa traverse read --surface workpoints --selector current --limit 1 --json
 focusa traverse verify-tags --surface workpoints --tag focusa://workpoints/current/item/example --json

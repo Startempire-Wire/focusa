@@ -100,6 +100,39 @@ completion notification (#311), bug-squash cluster (#45, #250, #251, #266,
 | #45 | SSE envelope sends `event_type`; extension read `evt.type` | `evt.event_type || evt.type` in both trees |
 | #282 | read-only planning rejected + `[object Object]` (v0.9.152) | superseded: current handler is typed; evidence logged |
 
+## 5b. Later-session additions (same day)
+
+| Item | Work |
+| --- | --- |
+| #307 developer-origin entitlement | `focusa-core/src/license_developer_origin.rs`: bounded sync probes (agent-kb-api health/operator over std::net with token auth; `tailscale status --json` via temp-file child + polling kill), 10-min TTL cache, env overrides, `developer_origin_report()` diagnostics, daemon startup log line; wired into `feature_enabled`/`require_feature`. Tests: either-source activation, cache TTL expiry, real local kb-api fixture. |
+| #243 marker consolidation | `focusa-core/src/project_marker.rs`: one canonical marker service — atomic temp+fsync+rename writes, idempotent outcomes, legacy-minimal detection + enrichment (identity preserved), pre-migration backup, conflict refusal, directory-ownership blocking, preview mode, `repair_marker()` with identity-verified restore. `init.rs` + `onboard.rs` wired through it. Tests: create/idempotent, legacy migration + backup, conflict, missing/corrupted classification, preview, repair + refusal. |
+| #244 | Closed — superseded by the temporal dead-road removal (no runtime surface left). |
+| #195 | Closed by the concurrent session — catalogs are gate-free in current source; remaining gates covered by #307. |
+| #138/#266 | Also closed by the concurrent session; my deployed-line fixes (north-star truthful gap, object-error stringify) complement both. |
+
+## 5c. Design/audit evidence (IR1, same day)
+
+- docs/162 — RemoteWorkspaceBinding design (#89): typed binding, transport
+  verification, immutable identity invariants, freshness/revocation,
+  writer-lease bootstrap via the binding.
+- docs/163 — self-adaptive compaction policy controller design (#112): full
+  control loop (facts → mask → lattice → shadow → lease → outcome →
+  promote/retain/quarantine/rollback) with compiled transitions.
+- docs/164 — Workstream-rooted canonical runtime design (#125): per-workstream
+  state/evidence/compaction roots, singleton elimination, remote authority
+  via bindings.
+- docs/current/CONSOLIDATION_AUDIT_2026-08-15.md (#52): dead-road removal
+  table + seam-closure map + evidence.
+- docs/current/LICENSING_DIVERGENCE_AUDIT_2026-08-15.md (#119): two-engine
+  inventory, consumer map, collapse plan.
+- docs/current/PROJECT_MARKER_PATHS.md (#243): one preferred path +
+  per-command responsibilities.
+- scripts/audit-distribution-parity.mjs (#260): focusa.distribution_manifest.v1
+  generation with typed drift detection; wired into CI as an informational
+  report step.
+- CI: workspace tests serialized (--test-threads=1) — eliminates the
+  parallel env-mutation race class in the E6 fixture family.
+
 ## 6. Issue-ledger state at session end
 
 Closed today: #45, #124, #250, #251, #266, #282, #301, #302, #303, #304,

@@ -2,9 +2,6 @@
 # Runtime contract: work-loop status must expose commitment lifecycle semantics.
 set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
-PROJECT_ROOT="${FOCUSA_PROJECT_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-CONTINUITY_ID="${FOCUSA_CONTINUITY_ID:-work-loop-continuation-test}"
-scoped_curl(){ command curl -H "x-scope-project-root: ${PROJECT_ROOT}" -H "x-scope-continuity-id: ${CONTINUITY_ID}" "$@"; }
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -13,7 +10,7 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-STATUS_JSON="$(scoped_curl -sS "${BASE_URL}/v1/work-loop/status")"
+STATUS_JSON="$(curl -sS "${BASE_URL}/v1/work-loop/status")"
 
 if echo "$STATUS_JSON" | jq -e 'has("commitment_lifecycle")' >/dev/null 2>&1; then
   log_pass "work-loop status exposes commitment_lifecycle payload"

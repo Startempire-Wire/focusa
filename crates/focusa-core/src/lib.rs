@@ -43,6 +43,8 @@ pub mod gate;
 pub mod google_drive_connector;
 pub mod intuition;
 pub mod license;
+pub mod license_developer_origin;
+pub mod project_marker;
 pub mod memory;
 pub mod permissions;
 pub mod pre;

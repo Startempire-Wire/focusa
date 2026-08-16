@@ -68,7 +68,7 @@ def main() -> None:
         if phrase not in trajectory:
             fail(f"trajectory route missing handoff guard phrase {phrase}")
     if (
-        '"focusa_workpoint_resume", "focusa_active_object_resolve"'
+        '"next_tools": ["focusa_workpoint_resume", "focusa_active_object_resolve"]'
         not in trajectory
     ):
         fail(

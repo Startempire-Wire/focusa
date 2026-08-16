@@ -1,27 +1,59 @@
 ---
 name: predictive-power
-description: "Use when recording, evaluating, or interpreting Focusa predictions, risk forecasts, calibration stats, or predictive next-action guidance."
+description: "Use for predictive power workflows with bounded Focusa authority."
 ---
 
 # Predictive Power
 
-Use this skill when recording, evaluating, or interpreting Focusa predictions.
+Use for predictive power workflows with bounded Focusa authority.
 
 ## Progressive disclosure
 
-Read `references/01-focusa-predictive-power-runbook.md` for scoped record, evaluation, calibration, and contract-drift recovery.
+1. Load this core file only when its trigger matches.
+2. Read `references/01-predictive-power-runbook.md` only for the selected workflow.
+3. Use `focusa_tool_describe` to cold-load exact schemas only for selected tools.
+4. Open linked specs/evidence only when a branch requires them.
 
-## Rules
+## Trigger examples
 
-1. Predictions guide; they never override operator steering.
-2. Always include evidence refs or route/tool handles when possible.
-3. Record before acting when there is meaningful uncertainty.
-4. Evaluate after outcome is known.
-5. Use `focusa_predict_stats` or `focusa predict stats` to inspect calibration.
+- predictive power workflows with bounded Focusa authority
 
-## Tool flow
+## Non-trigger examples
 
-1. `focusa_predict_record`
-2. act normally with explicit operator/current-project priority
-3. `focusa_predict_evaluate`
+- unrelated implementation work
+- a narrower skill owns the selected capability
+
+## Required sequence
+
+1. `focusa_predict_evaluate`
+2. `focusa_predict_recent`
+3. `focusa_predict_record`
 4. `focusa_predict_stats`
+5. `focusa_prediction_authority`
+
+Current operator steering, verified project scope, and canonical Workpoint authority remain higher priority than this default sequence.
+
+## Failure recovery
+
+- `focusa_tool_doctor`
+- `focusa_project_verify`
+- `focusa_workpoint_resume`
+
+Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection, and ambiguous side effects as recovery states—not completion.
+
+## Routing metadata
+- prerequisites: verified project identity and typed continuity when durable scope matters
+- use_instead_when: use the narrower owner in `docs/contracts/65-focusa-skill-ownership-manifest.json`
+- next_skills: `focusa-workpoint`, `focusa-evidence-outcomes`, `focusa-metacognition`
+- failure_handoff: `focusa-troubleshooting`
+- authority_boundary: operator steering leads; daemon and typed Workpoint/Trajectory contracts remain canonical
+- workflow: `focusa-project-scope` → `predictive-power` → `focusa-workpoint` → `focusa-evidence-outcomes`
+- minimum_contract: `focusa.tool_affordance_catalog.v1`
+- source_status: generated core plus hand-authored registry content; no sibling-body injection
+- supersession: none
+
+## Done condition
+
+The scoped operation is verified, evidenced, and handed to the next owning skill.
+
+Stable evidence or receipt refs must support any completion claim.

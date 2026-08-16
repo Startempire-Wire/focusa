@@ -65,7 +65,7 @@ for required in \
 done
 
 for required in \
-  'All 115 Focusa Pi tools' \
+  'All 112 Focusa Pi tools' \
   'Daemon-native Silent Sessions' \
   'Mission Canvas and Work Rail' \
   'adaptive generated UI' \
@@ -81,7 +81,7 @@ for required in 'first-agent walkthrough' 'focusa_agent_card' 'all Focusa Pi too
   grep -q -- "$required" "$ONBOARDING" || fail "onboarding missing current walkthrough coverage: $required"
 done
 
-jq -e '.pi_tool_count == 115 and .pi_tool_docs_count == 115 and .skill_count >= 22 and .runbook_count >= .skill_count' "$AGENT_CARD" >/dev/null \
+jq -e '.pi_tool_count == 112 and .pi_tool_docs_count == 112 and .skill_count >= 22 and .runbook_count >= .skill_count' "$AGENT_CARD" >/dev/null \
   || fail "Agent Card lacks complete Pi tool/skill/runbook inventory"
 
 if rg -n '/home/wirebot|/root/|wpuiai.com/wp-admin|signalos\.pro|raw transcript|raw transcripts|docs/evidence/transcripts|\.focusa-private' "$DOC" "$SPEC"; then

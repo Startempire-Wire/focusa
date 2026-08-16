@@ -398,9 +398,6 @@ pub struct ProviderCapabilities {
     pub can_prepare: bool,
     pub can_submit: bool,
     pub can_reconcile: bool,
-    /// Provider can project non-closure lifecycle states such as blocked/in-progress.
-    #[serde(default)]
-    pub can_transition: bool,
     pub supports_override: bool,
     /// When true, submit mutates state in an external tracker.
     pub mutable: bool,
@@ -417,7 +414,6 @@ impl ProviderCapabilities {
             can_prepare: true,
             can_submit: true,
             can_reconcile: true,
-            can_transition: true,
             supports_override: true,
             mutable: true,
         }
@@ -429,7 +425,6 @@ impl ProviderCapabilities {
             can_prepare: false,
             can_submit: false,
             can_reconcile: true,
-            can_transition: false,
             supports_override: false,
             mutable: false,
         }

@@ -17,6 +17,16 @@ assert.match(
   "shared lease helper must reject unsupported status schemas"
 );
 assert.match(tools, /current scoped writer lease is missing, expired, or owned by another writer/);
+const checkpointTool = tools.slice(
+  tools.indexOf('name: "focusa_workpoint_checkpoint"'),
+  tools.indexOf('name: "focusa_workpoint_link_evidence"')
+);
+assert.match(checkpointTool, /currentWorkLoopLease\(\)/);
+assert.doesNotMatch(
+  checkpointTool,
+  /requiredWriterLeaseHeaders\(\)/,
+  "first Workpoint checkpoint must not require a pre-existing Work Loop lease"
+);
 assert.doesNotMatch(
   tools.match(/async function preferredWriterId[\s\S]*?\n  }/)?.[0] ?? "",
   /active_writer/,

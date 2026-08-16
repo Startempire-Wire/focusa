@@ -53,13 +53,12 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
-- `focusa_temporal_authority` (likely_next)
 - `focusa_trajectory_assess` (likely_next)
 - `focusa_trajectory_define_goal` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_temporal_authority`, `focusa_trajectory_assess`, `focusa_trajectory_define_goal`, `focusa_workpoint_resume`.
+Likely next: `focusa_trajectory_assess`, `focusa_trajectory_define_goal`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
 
@@ -69,4 +68,4 @@ Likely next: `focusa_temporal_authority`, `focusa_trajectory_assess`, `focusa_tr
 - CLI: `focusa trajectory view`.
 - REST: `GET /v1/trajectory/view`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9acf40670d8e1ed59a3519a3a3c7bbf9cb11794a3dcecc940514932fe6915409`.
+- Descriptor digest: `sha256:1349e91c69c5abc3930167faac51bdc4e86d4320f90f89ff8b1371cd8d972598`.

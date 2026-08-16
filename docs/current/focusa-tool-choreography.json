@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 115,
-  "edge_count": 335,
+  "tool_count": 112,
+  "edge_count": 323,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -159,29 +159,11 @@
       "focusa_trajectory_view"
     ],
     "focusa_project_verify": [
-      "focusa_project_bootstrap",
-      "focusa_project_genesis",
       "focusa_trajectory_view",
       "focusa_workpoint_resume",
       "focusa_tool_doctor"
     ],
-    "focusa_project_bootstrap": [
-      "focusa_project_genesis",
-      "focusa_project_verify",
-      "focusa_workpoint_resume"
-    ],
-    "focusa_project_genesis": [
-      "focusa_workpoint_resume",
-      "focusa_trajectory_view",
-      "focusa_project_verify"
-    ],
-    "focusa_temporal_authority": [
-      "focusa_trajectory_view",
-      "focusa_workpoint_resume",
-      "focusa_project_verify"
-    ],
     "focusa_trajectory_view": [
-      "focusa_temporal_authority",
       "focusa_trajectory_assess",
       "focusa_trajectory_define_goal",
       "focusa_workpoint_resume"
@@ -893,16 +875,6 @@
     },
     {
       "from": "focusa_project_verify",
-      "to": "focusa_project_bootstrap",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_verify",
-      "to": "focusa_project_genesis",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_verify",
       "to": "focusa_trajectory_view",
       "weight": 1
     },
@@ -914,56 +886,6 @@
     {
       "from": "focusa_project_verify",
       "to": "focusa_tool_doctor",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_bootstrap",
-      "to": "focusa_project_genesis",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_bootstrap",
-      "to": "focusa_project_verify",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_bootstrap",
-      "to": "focusa_workpoint_resume",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_genesis",
-      "to": "focusa_workpoint_resume",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_genesis",
-      "to": "focusa_trajectory_view",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_genesis",
-      "to": "focusa_project_verify",
-      "weight": 1
-    },
-    {
-      "from": "focusa_temporal_authority",
-      "to": "focusa_trajectory_view",
-      "weight": 1
-    },
-    {
-      "from": "focusa_temporal_authority",
-      "to": "focusa_workpoint_resume",
-      "weight": 1
-    },
-    {
-      "from": "focusa_temporal_authority",
-      "to": "focusa_project_verify",
-      "weight": 1
-    },
-    {
-      "from": "focusa_trajectory_view",
-      "to": "focusa_temporal_authority",
       "weight": 1
     },
     {

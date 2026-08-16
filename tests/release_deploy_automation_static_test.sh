@@ -116,8 +116,8 @@ assert_grep 'apps/pi-extension/package.json apps/pi-extension/package-lock.json'
 assert_grep 'timeout-minutes: 12' .github/workflows/release.yml 'Release macOS/Tauri job timeout must stay bounded'
 assert_grep 'timeout-minutes: 15' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
 assert_grep 'Release workflow validation' .github/workflows/release.yml 'release workflow needs unconditional validation step to avoid No jobs were run'
-assert_grep "- 'v*-dev'" .github/workflows/release.yml 'release workflow must trigger only for immutable dev tags'
-assert_grep 'release_tag_validation=ok' .github/workflows/release.yml 'release tag validation step missing'
+assert_grep 'on: [push]' .github/workflows/release.yml 'release workflow must use canonical unfiltered push trigger to avoid no-job validation failures'
+assert_grep 'release_branch_validation=ok' .github/workflows/release.yml 'release branch validation step missing'
 assert_grep 'needs: checksums' .github/workflows/release.yml 'deploy dispatch must depend on the actual checksums job id'
 if grep -A3 '^  rust-check:' .github/workflows/release.yml | grep -q 'if:'; then
   echo '✗ rust-check job must be unconditional to avoid No jobs were run' >&2

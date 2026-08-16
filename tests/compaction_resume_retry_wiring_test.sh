@@ -1,6 +1,6 @@
 #!/bin/bash
-# Post-compaction resume context must remain retryable without starting a turn
-# that races Pi's native manual-compaction steering queue.
+# SPEC-79 focusa-z0pp: compaction auto-resume retries must be uncapped while still
+# bounded by pending/lifecycle governance gates.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -22,25 +22,6 @@ if rg -n 'function scheduleCompactionResumeRetry\(' "$COMPACTION_FILE" >/dev/nul
   log_pass "compaction retry scheduler exists"
 else
   log_fail "compaction retry scheduler missing"
-fi
-
-if rg -n 'function queueCompactionResumeContext\(' "$COMPACTION_FILE" >/dev/null 2>&1 \
-  && rg -n '\{ triggerTurn: false \}' "$COMPACTION_FILE" >/dev/null 2>&1; then
-  log_pass "resume packet is queued as context without starting a competing turn"
-else
-  log_fail "resume packet can still bypass Pi native compaction steering ownership"
-fi
-
-if rg -n '\{ triggerTurn: true \}' "$COMPACTION_FILE" >/dev/null 2>&1; then
-  log_fail "post-compaction path still starts a competing agent turn"
-else
-  log_pass "post-compaction path contains no triggerTurn=true race"
-fi
-
-if rg -n 'Pi 0\.82\+ owns compaction queue flushing|Pi owns flushCompactionQueue' "$COMPACTION_FILE" >/dev/null 2>&1; then
-  log_pass "Pi native queue ownership is explicit"
-else
-  log_fail "Pi native queue ownership contract missing"
 fi
 
 if rg -n 'if \(!getAttachmentRuntime\(\)\.compactResumePending\) return;' "$COMPACTION_FILE" >/dev/null 2>&1; then

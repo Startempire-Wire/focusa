@@ -10,7 +10,7 @@ pass() { echo "✓ PASS: $*"; }
 
 test -f "$STORE" || fail "Silent Session SQLite persistence module missing"
 
-for table in silent_session_controls silent_session_daemon_runs silent_session_control_config_revisions silent_session_control_events silent_session_control_stream_indexes silent_session_control_checkpoints silent_session_control_leases silent_session_control_notifications silent_session_control_completion_evaluations silent_session_control_backend_bindings silent_session_control_retention silent_session_control_retention_operations; do
+for table in silent_sessions silent_session_runs silent_session_config_revisions silent_session_events silent_session_stream_indexes silent_session_checkpoints silent_session_leases silent_session_notifications silent_session_completion_evaluations silent_session_backend_bindings; do
   rg -n "CREATE TABLE IF NOT EXISTS $table" "$STORE" >/dev/null || fail "missing required table: $table"
 done
 pass "all Spec133 §11 canonical tables are migrated"
@@ -26,7 +26,7 @@ done
 pass "backup, dry-run, rollback and schema verification are explicit"
 
 rg -n 'migrate_silent_session_schema' "$RUNTIME" >/dev/null || fail "canonical SQLite initialization does not invoke Silent Session migration"
-if rg -n 'UPDATE silent_session_controls SET lifecycle|DELETE FROM silent_session_control_events' "$STORE" >/dev/null; then
+if rg -n 'UPDATE silent_sessions SET lifecycle|DELETE FROM silent_session_events' "$STORE" >/dev/null; then
   fail "direct lifecycle mutation or event deletion bypasses reducer-event ownership"
 fi
 pass "canonical runtime integration preserves reducer-owned append-only mutation"

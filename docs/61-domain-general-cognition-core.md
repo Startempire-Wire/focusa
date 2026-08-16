@@ -414,8 +414,3 @@ With this layer, Focusa can generalize beyond software because it can always rep
 # 6. Success Condition
 
 The Domain-General Cognition Core is successful when Focusa can provide a reusable thinking substrate that domain ontologies plug into, allowing strong cognition patterns to transfer beyond software work.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-cognition-boundary -->
-## Spec 144 semantic verification composition boundary
-
-The Domain-General Cognition Core remains cognition primitive owner. Spec 144 composes Builder, Verifier, Router, coverage-challenger, and arbiter lineages as bounded roles over this core. No role becomes a second reducer, ontology registry, settlement authority, or self-promoting cognition core.

@@ -6,6 +6,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getSettingsListTheme } from "@earendil-works/pi-coding-agent";
 import { Container, Text, type SettingItem, SettingsList } from "@earendil-works/pi-tui";
 import {
+  currentAttachmentKey,
   getAttachmentRuntime,
   focusaFetch,
   compatibleWorkLoopStatusState,
@@ -26,11 +27,28 @@ import {
   setCompilationErrors,
   resetFileEditCounts,
 } from "./state.js";
-import { saveConfigOverrides } from "./config.js";
+import {
+  loadConfig,
+  resolveInteractionMode,
+  saveConfigOverrides,
+  type FocusaInteractionMode,
+  type MissionCanvasVisualVariant,
+  type MissionCanvasWorkspaceProfile,
+} from "./config.js";
 import { buildProjectWorkstreamKey, type WorkstreamKey } from "./scoped-state.js";
 import { measureNativeSessionPressure, migrateNativeSessionBounded } from "./session-pressure.js";
 import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
+import { MissionCanvasView, type MissionCanvasModel } from "./mission-canvas-view.js";
+import { refreshMissionCanvasWidget } from "./mission-canvas-widget.js";
+import { workRailDetailRows, workRailSnapshotFromPacket } from "./work-rail-widget.js";
+import {
+  MAX_MISSION_CANVAS_ROWS,
+  projectWorkSurfaces,
+  workSurfaceDetail,
+  workSurfaceLabel,
+} from "./mission-canvas-model.js";
+import { projectSessionInventory, sessionInventoryLabel } from "./mission-canvas-session-inventory.js";
 
 async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
@@ -240,7 +258,234 @@ function renderFocusaContext(data: { frame: any; fs: any }): string {
     .trim();
 }
 
+type InteractionAttachmentKey = NonNullable<ReturnType<typeof currentAttachmentKey>>;
+const sessionInteractionModes = new Map<InteractionAttachmentKey, FocusaInteractionMode>();
+const priorInteractionModes = new Map<InteractionAttachmentKey, FocusaInteractionMode>();
+
 export function registerCommands(pi: ExtensionAPI) {
+  pi.registerCommand("mission-canvas-mode", {
+    description: "Set the durable project interaction mode: canvas, terminal, or headless",
+    handler: async (args, ctx) => {
+      const requested = String(args || "")
+        .trim()
+        .toLowerCase();
+      const modes: Record<string, FocusaInteractionMode> = {
+        canvas: "canvas-guided",
+        "canvas-guided": "canvas-guided",
+        terminal: "terminal-guided",
+        "terminal-guided": "terminal-guided",
+        headless: "headless",
+      };
+      const mode = modes[requested];
+      if (!mode) {
+        const current = resolveInteractionMode(getSessionCwd());
+        ctx.ui.notify(
+          `Mission Canvas mode: ${current.mode} (source: ${current.source}). Usage: /mission-canvas-mode canvas|terminal|headless`,
+          "info"
+        );
+        return;
+      }
+      const saved = saveConfigOverrides(getSessionCwd(), { interactionMode: mode }, "project");
+      if (saved.errors.length) throw new Error(saved.errors.join("; "));
+      refreshMissionCanvasWidget(ctx);
+      ctx.ui.notify(`Focusa interaction mode set to ${mode} for this project`, "info");
+    },
+  });
+
+  pi.registerCommand("mission-canvas-profile", {
+    description: "Set the durable Mission Canvas workspace profile and visual variant",
+    handler: async (args, ctx) => {
+      const [profileArg, variantArg] = String(args || "")
+        .trim()
+        .toLowerCase()
+        .split(/\s+/);
+      const profiles = new Set<MissionCanvasWorkspaceProfile>([
+        "general",
+        "software",
+        "legal",
+        "markets",
+        "research",
+        "custom",
+      ]);
+      const variants = new Set<MissionCanvasVisualVariant>(["default", "high-contrast", "monochrome"]);
+      if (
+        !profiles.has(profileArg as MissionCanvasWorkspaceProfile) ||
+        (variantArg && !variants.has(variantArg as MissionCanvasVisualVariant))
+      ) {
+        const current = loadConfig(getSessionCwd()).config;
+        ctx.ui.notify(
+          `Mission Canvas profile: ${current.missionCanvasWorkspaceProfile} ${current.missionCanvasVisualVariant}. Usage: /mission-canvas-profile general|software|legal|markets|research|custom [default|high-contrast|monochrome]`,
+          "info"
+        );
+        return;
+      }
+      const saved = saveConfigOverrides(
+        getSessionCwd(),
+        {
+          missionCanvasWorkspaceProfile: profileArg as MissionCanvasWorkspaceProfile,
+          missionCanvasVisualVariant: (variantArg || "default") as MissionCanvasVisualVariant,
+        },
+        "project"
+      );
+      if (saved.errors.length) throw new Error(saved.errors.join("; "));
+      refreshMissionCanvasWidget(ctx);
+      ctx.ui.notify(
+        `Mission Canvas profile set to ${saved.config.missionCanvasWorkspaceProfile} · ${saved.config.missionCanvasVisualVariant}`,
+        "info"
+      );
+    },
+  });
+
+  pi.registerCommand("mission-canvas", {
+    description: "Open the keyboard-first Focusa Mission Canvas in Pi",
+    handler: async (_args, ctx) => {
+      const interactionMode = resolveInteractionMode(getSessionCwd());
+      if (interactionMode.mode !== "canvas-guided") {
+        ctx.ui.notify(
+          `Mission Canvas is disabled by interaction mode: ${interactionMode.mode} (source: ${interactionMode.source})`,
+          "info"
+        );
+        return;
+      }
+      const loadModel = async (): Promise<MissionCanvasModel> => {
+        const [
+          workpoint,
+          trajectory,
+          workLoop,
+          sessions,
+          silentSessions,
+          surfaces,
+          interviews,
+          closurePackage,
+          artifacts,
+        ] = await Promise.all([
+          focusaFetch("/v1/workpoint/resume").catch(() => null),
+          focusaFetch("/v1/trajectory/view").catch(() => null),
+          focusaFetch("/work-loop/status?summary_only=true").catch(() => null),
+          focusaFetch("/v1/session/discover").catch(() => null),
+          focusaFetch("/v1/silent-sessions").catch(() => null),
+          focusaFetch("/v1/mission-canvas/surfaces").catch(() => null),
+          focusaFetch("/v1/interviews/sessions").catch(() => null),
+          focusaFetch("/v1/interviews/closure-package").catch(() => null),
+          focusaFetch("/v1/workspace/artifacts").catch(() => null),
+        ]);
+        const packet = workpoint?.workpoint ?? workpoint?.resume_packet ?? workpoint ?? {};
+        const evidenceRefs = Array.isArray(packet?.verification_records)
+          ? packet.verification_records
+              .slice(0, MAX_MISSION_CANVAS_ROWS)
+              .map((record: any) => String(record?.evidence_ref ?? record?.result ?? record))
+          : Array.isArray(packet?.evidence_refs)
+            ? packet.evidence_refs.slice(0, MAX_MISSION_CANVAS_ROWS).map(String)
+            : [];
+        const projectedSurfaces = projectWorkSurfaces(surfaces);
+        const sessionRows = projectSessionInventory(sessions, projectedSurfaces, silentSessions).map(
+          sessionInventoryLabel
+        );
+        const surfaceRows = projectedSurfaces.map(workSurfaceLabel);
+        const contentionRows = projectedSurfaces
+          .filter((surface) => surface.conflictCount || surface.blockerCount || surface.writerLeaseRef)
+          .map(
+            (surface) =>
+              `${surface.displayName} · ${surface.conflictCount} conflicts · ${surface.blockerCount} blockers · ${surface.writerLeaseRef || "no writer lease"}`
+          );
+        const artifactRows = Array.isArray(artifacts?.artifacts)
+          ? artifacts.artifacts
+              .slice(0, MAX_MISSION_CANVAS_ROWS)
+              .map((artifact: any) =>
+                [artifact?.title ?? artifact?.artifact_id, artifact?.kind, artifact?.evidence_ref]
+                  .filter(Boolean)
+                  .join(" · ")
+              )
+          : [];
+        const historyRows = Array.isArray(packet?.verification_records)
+          ? packet.verification_records
+              .slice(0, MAX_MISSION_CANVAS_ROWS)
+              .map((record: any) =>
+                [record?.verified_at ?? record?.created_at, record?.result, record?.evidence_ref]
+                  .filter(Boolean)
+                  .join(" · ")
+              )
+          : [];
+        const interviewRows = Array.isArray(interviews?.sessions) ? interviews.sessions : [];
+        const activeInterview =
+          interviewRows.find((session: any) => session?.status === "active") ?? interviewRows[0];
+        const presentation = loadConfig(getSessionCwd()).config;
+        const workRail = workRailSnapshotFromPacket(workpoint);
+        const model: MissionCanvasModel = {
+          mission: String(packet?.mission ?? packet?.current_ask ?? "No active Mission Canvas Workpoint"),
+          trajectory: String(
+            trajectory?.short_term_goal ??
+              trajectory?.stg ??
+              trajectory?.long_term_goal ??
+              "No trajectory loaded"
+          ),
+          nextAction: String(
+            packet?.next_action ?? packet?.next_slice ?? "Create or resume a canonical Workpoint"
+          ),
+          workpointId: String(packet?.workpoint_id ?? ""),
+          workItemId: String(packet?.work_item_id ?? ""),
+          workRailDetails: workRailDetailRows(workRail),
+          projectRoot: String(packet?.project_root ?? getSessionCwd() ?? ""),
+          continuityId: String(packet?.continuity_id ?? getContinuityId() ?? ""),
+          evidenceRefs,
+          blockers: Array.isArray(packet?.blockers)
+            ? packet.blockers.slice(0, MAX_MISSION_CANVAS_ROWS).map(String)
+            : [],
+          sessions: sessionRows,
+          workSurfaces: surfaceRows.length
+            ? surfaceRows
+            : sessionRows.length
+              ? sessionRows
+              : [String(packet?.attachment_id ?? "Current Pi attachment")],
+          workSurfaceDetails: projectedSurfaces.map(workSurfaceDetail),
+          contention: contentionRows,
+          researchArtifacts: artifactRows,
+          history: historyRows,
+          contextStatus: String(
+            trajectory?.current_state ?? packet?.context_status ?? "Context review required"
+          ),
+          roleStatus: String(
+            closurePackage?.role_profile?.summary ??
+              activeInterview?.role_summary ??
+              "Role profile not reported"
+          ),
+          interviewStatus: String(
+            activeInterview
+              ? `${activeInterview.status ?? "unknown"} · ${activeInterview.session_id ?? "unidentified session"}`
+              : "No durable interview session reported"
+          ),
+          specStatus: String(
+            closurePackage?.spec_package?.status ??
+              closurePackage?.status ??
+              packet?.spec_status ??
+              "Spec state not reported"
+          ),
+          workLoopStatus: String(workLoop?.status ?? workLoop?.state ?? "Unavailable"),
+          scopeStatus: `${String(workpoint?.status ?? "advisory")} · mode ${interactionMode.mode} (${interactionMode.source})`,
+          workspaceProfile: presentation.missionCanvasWorkspaceProfile,
+          visualVariant: presentation.missionCanvasVisualVariant,
+        };
+        return model;
+      };
+      const model = await loadModel();
+
+      await ctx.ui.custom(
+        (tui, theme, _kb, done) =>
+          new MissionCanvasView(
+            model,
+            theme,
+            () => tui.requestRender(),
+            () => done(undefined),
+            loadModel,
+            (reference) => {
+              ctx.ui.setEditorText(reference);
+              ctx.ui.notify(`Copied stable Mission Canvas reference: ${reference}`, "info");
+            }
+          )
+      );
+    },
+  });
+
   // /focusa-context (§34.2H runtime render)
   pi.registerCommand("focusa-context", {
     description: "Render current Focusa context inline in the conversation",
@@ -268,10 +513,86 @@ export function registerCommands(pi: ExtensionAPI) {
     },
   });
 
+  pi.registerCommand("focusa-mode", {
+    description: "Show or switch Canvas, terminal, or headless interaction mode",
+    handler: async (args, ctx) => {
+      const attachmentKey = currentAttachmentKey();
+      if (!attachmentKey) {
+        ctx.ui.notify("Interaction mode unavailable: verified attachment scope required.", "error");
+        return;
+      }
+      const runtime = getAttachmentRuntime(attachmentKey);
+      const tokens = String(args || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      const requested = tokens[0] || "status";
+      const aliases: Record<string, FocusaInteractionMode> = {
+        canvas: "canvas-guided",
+        canvas_guided: "canvas-guided",
+        "canvas-guided": "canvas-guided",
+        terminal: "terminal-guided",
+        terminal_guided: "terminal-guided",
+        "terminal-guided": "terminal-guided",
+        headless: "headless",
+        headless_automation: "headless",
+      };
+      if (requested === "status") {
+        const mode = sessionInteractionModes.get(attachmentKey) || runtime.cfg.interactionMode;
+        ctx.ui.notify(`Focusa interaction mode: ${mode}.`, "info");
+        return;
+      }
+      if (requested === "clear") {
+        sessionInteractionModes.delete(attachmentKey);
+        const prior = priorInteractionModes.get(attachmentKey);
+        if (prior) runtime.cfg = { ...runtime.cfg, interactionMode: prior };
+        priorInteractionModes.delete(attachmentKey);
+        ctx.ui.notify(`Session override cleared; effective mode: ${runtime.cfg.interactionMode}.`, "info");
+        return;
+      }
+      const mode = aliases[requested];
+      if (!mode) {
+        ctx.ui.notify(
+          "Usage: /focusa-mode canvas|terminal|headless|status|clear [--project|--user]",
+          "warning"
+        );
+        return;
+      }
+      if (tokens.includes("--project") || tokens.includes("--user")) {
+        const scope = tokens.includes("--user") ? "user" : "project";
+        try {
+          const saved = saveConfigOverrides(ctx.cwd, { interactionMode: mode }, scope);
+          runtime.cfg = saved.config;
+          sessionInteractionModes.delete(attachmentKey);
+          priorInteractionModes.delete(attachmentKey);
+          ctx.ui.notify(`Focusa ${scope} interaction mode saved: ${mode}.`, "info");
+        } catch (error) {
+          ctx.ui.notify(`Interaction mode not saved: ${String(error).slice(0, 180)}`, "error");
+        }
+        return;
+      }
+      if (!sessionInteractionModes.has(attachmentKey)) {
+        priorInteractionModes.set(attachmentKey, runtime.cfg.interactionMode);
+      }
+      sessionInteractionModes.set(attachmentKey, mode);
+      runtime.cfg = { ...runtime.cfg, interactionMode: mode };
+      ctx.ui.notify(`Focusa session interaction mode: ${mode}.`, "info");
+    },
+  });
+
   // /focusa-settings — native settings UI
   pi.registerCommand("focusa-settings", {
     description: "Open Focusa settings panel",
     handler: async (args, ctx) => {
+      const settingsAttachmentKey = currentAttachmentKey();
+      if (!settingsAttachmentKey) {
+        ctx.ui.notify(
+          "Focusa settings unavailable: scoped attachment runtime is missing; no setting was changed.",
+          "error"
+        );
+        return;
+      }
+      const settingsRuntime = getAttachmentRuntime(settingsAttachmentKey);
       const simpleProfiles = ["starter", "builder", "hands_off", "audit_safe"] as const;
       type SimpleProfileId = (typeof simpleProfiles)[number];
       const advancedMode = /\badvanced\b/i.test(String(args || ""));
@@ -337,40 +658,39 @@ export function registerCommands(pi: ExtensionAPI) {
       };
 
       const draft = {
-        contextStatusMode: getAttachmentRuntime().cfg?.contextStatusMode || "actionable",
-        vitalInfoPromptMode: getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt",
+        contextStatusMode: settingsRuntime.cfg?.contextStatusMode || "actionable",
+        interactionMode: settingsRuntime.cfg?.interactionMode || "canvas-guided",
+        vitalInfoPromptMode: settingsRuntime.cfg?.vitalInfoPromptMode || "prompt",
         vitalInfoPromptSurfaces:
-          getAttachmentRuntime().cfg?.vitalInfoPromptSurfaces ||
-          "project_root,project_verify,workpoint,trajectory",
-        warnPct: getAttachmentRuntime().cfg?.warnPct || 50,
-        compactPct: getAttachmentRuntime().cfg?.compactPct || 70,
-        hardPct: getAttachmentRuntime().cfg?.hardPct || 85,
-        autoCompactionEnabled: getAttachmentRuntime().cfg?.autoCompactionEnabled ?? true,
-        autoCompactionTokenCap: getAttachmentRuntime().cfg?.autoCompactionTokenCap ?? 256_000,
-        autoCompactionReserveTokens: getAttachmentRuntime().cfg?.autoCompactionReserveTokens ?? 16_384,
-        autoCompactionReservePct: getAttachmentRuntime().cfg?.autoCompactionReservePct ?? 10,
-        autoCompactionCooldownMs: getAttachmentRuntime().cfg?.autoCompactionCooldownMs ?? 60_000,
-        workLoopPreset: getAttachmentRuntime().cfg?.workLoopPreset || "balanced",
-        workLoopMaxTurns: getAttachmentRuntime().cfg?.workLoopMaxTurns || 12,
-        workLoopMaxWallClockMs: getAttachmentRuntime().cfg?.workLoopMaxWallClockMs || 1_800_000,
-        workLoopMaxRetries: getAttachmentRuntime().cfg?.workLoopMaxRetries || 3,
-        workLoopCooldownMs: getAttachmentRuntime().cfg?.workLoopCooldownMs || 1_000,
-        workLoopAllowDestructiveActions: getAttachmentRuntime().cfg?.workLoopAllowDestructiveActions || false,
+          settingsRuntime.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory",
+        warnPct: settingsRuntime.cfg?.warnPct || 50,
+        compactPct: settingsRuntime.cfg?.compactPct || 70,
+        hardPct: settingsRuntime.cfg?.hardPct || 85,
+        autoCompactionEnabled: settingsRuntime.cfg?.autoCompactionEnabled ?? true,
+        autoCompactionTokenCap: settingsRuntime.cfg?.autoCompactionTokenCap ?? 256_000,
+        autoCompactionReserveTokens: settingsRuntime.cfg?.autoCompactionReserveTokens ?? 16_384,
+        autoCompactionReservePct: settingsRuntime.cfg?.autoCompactionReservePct ?? 10,
+        autoCompactionCooldownMs: settingsRuntime.cfg?.autoCompactionCooldownMs ?? 60_000,
+        workLoopPreset: settingsRuntime.cfg?.workLoopPreset || "balanced",
+        workLoopMaxTurns: settingsRuntime.cfg?.workLoopMaxTurns || 12,
+        workLoopMaxWallClockMs: settingsRuntime.cfg?.workLoopMaxWallClockMs || 1_800_000,
+        workLoopMaxRetries: settingsRuntime.cfg?.workLoopMaxRetries || 3,
+        workLoopCooldownMs: settingsRuntime.cfg?.workLoopCooldownMs || 1_000,
+        workLoopAllowDestructiveActions: settingsRuntime.cfg?.workLoopAllowDestructiveActions || false,
         workLoopRequireOperatorForGovernance:
-          getAttachmentRuntime().cfg?.workLoopRequireOperatorForGovernance ?? true,
+          settingsRuntime.cfg?.workLoopRequireOperatorForGovernance ?? true,
         workLoopRequireOperatorForScopeChange:
-          getAttachmentRuntime().cfg?.workLoopRequireOperatorForScopeChange ?? true,
+          settingsRuntime.cfg?.workLoopRequireOperatorForScopeChange ?? true,
         workLoopRequireVerificationBeforePersist:
-          getAttachmentRuntime().cfg?.workLoopRequireVerificationBeforePersist ?? true,
+          settingsRuntime.cfg?.workLoopRequireVerificationBeforePersist ?? true,
         workLoopMaxConsecutiveLowProductivityTurns:
-          getAttachmentRuntime().cfg?.workLoopMaxConsecutiveLowProductivityTurns || 3,
-        workLoopMaxConsecutiveFailures: getAttachmentRuntime().cfg?.workLoopMaxConsecutiveFailures || 3,
-        workLoopAutoPauseOnOperatorMessage:
-          getAttachmentRuntime().cfg?.workLoopAutoPauseOnOperatorMessage ?? true,
+          settingsRuntime.cfg?.workLoopMaxConsecutiveLowProductivityTurns || 3,
+        workLoopMaxConsecutiveFailures: settingsRuntime.cfg?.workLoopMaxConsecutiveFailures || 3,
+        workLoopAutoPauseOnOperatorMessage: settingsRuntime.cfg?.workLoopAutoPauseOnOperatorMessage ?? true,
         workLoopRequireExplainableContinueReason:
-          getAttachmentRuntime().cfg?.workLoopRequireExplainableContinueReason ?? true,
-        workLoopMaxSameSubproblemRetries: getAttachmentRuntime().cfg?.workLoopMaxSameSubproblemRetries || 2,
-        workLoopStatusHeartbeatMs: getAttachmentRuntime().cfg?.workLoopStatusHeartbeatMs || 5_000,
+          settingsRuntime.cfg?.workLoopRequireExplainableContinueReason ?? true,
+        workLoopMaxSameSubproblemRetries: settingsRuntime.cfg?.workLoopMaxSameSubproblemRetries || 2,
+        workLoopStatusHeartbeatMs: settingsRuntime.cfg?.workLoopStatusHeartbeatMs || 5_000,
       };
 
       const applySimpleProfile = (profile: SimpleProfileId) => {
@@ -441,12 +761,21 @@ export function registerCommands(pi: ExtensionAPI) {
 
       let simpleProfile: SimpleProfileId = inferSimpleProfile();
 
-      const persistDraft = () => {
-        normalizeTierConfig(draft);
-        const saved = saveConfigOverrides(ctx.cwd, draft, "project");
-        getAttachmentRuntime().cfg = saved.config;
-        if (saved.errors.length) ctx.ui.notify(saved.errors.join("\n"), "warning");
-        else ctx.ui.notify(`Saved Focusa settings → ${saved.path}`, "info");
+      const persistDraft = (): boolean => {
+        try {
+          normalizeTierConfig(draft);
+          const saved = saveConfigOverrides(ctx.cwd, draft, "project");
+          settingsRuntime.cfg = saved.config;
+          if (saved.errors.length) ctx.ui.notify(saved.errors.join("\n"), "warning");
+          else ctx.ui.notify(`Saved Focusa settings → ${saved.path}`, "info");
+          return saved.errors.length === 0;
+        } catch (error) {
+          ctx.ui.notify(
+            `Focusa setting was not saved; prior configuration remains active. ${String((error as Error)?.message || error).slice(0, 180)}`,
+            "error"
+          );
+          return false;
+        }
       };
 
       const buildSimpleItems = (): SettingItem[] => [
@@ -455,12 +784,6 @@ export function registerCommands(pi: ExtensionAPI) {
           label: "Automatic OTA updates",
           currentValue: String(otaEnabled),
           values: BOOLEAN_OPTIONS,
-        },
-        {
-          id: "otaProfile",
-          label: "OTA profile (all surfaces)",
-          currentValue: otaProfile,
-          values: ["dev_auto_all", "stable_auto_all", "stable_prompt", "notify"],
         },
         {
           id: "simpleProfile",
@@ -481,10 +804,10 @@ export function registerCommands(pi: ExtensionAPI) {
           values: ["1200000", "3600000", "7200000", "14400000"],
         },
         {
-          id: "workLoopStatusHeartbeatMs",
-          label: "Refresh heartbeat (ms)",
-          currentValue: String(draft.workLoopStatusHeartbeatMs),
-          values: ["1500", "2000", "3000", "5000"],
+          id: "interactionMode",
+          label: "Project interaction mode",
+          currentValue: draft.interactionMode,
+          values: ["canvas-guided", "terminal-guided", "headless"],
         },
         {
           id: "contextStatusMode",
@@ -497,18 +820,6 @@ export function registerCommands(pi: ExtensionAPI) {
           label: "Vital project info prompt",
           currentValue: draft.vitalInfoPromptMode,
           values: VITAL_INFO_PROMPT_MODE_OPTIONS,
-        },
-        {
-          id: "vitalInfoPromptSurfaces",
-          label: "Vital prompt surfaces",
-          currentValue: draft.vitalInfoPromptSurfaces,
-          values: [
-            "project_root,project_verify,workpoint,trajectory",
-            "project_root",
-            "project_root,project_verify",
-            "project_root,workpoint",
-            "project_root,trajectory",
-          ],
         },
         {
           id: "workLoopRequireVerificationBeforePersist",
@@ -530,6 +841,12 @@ export function registerCommands(pi: ExtensionAPI) {
           label: "OTA profile (all surfaces)",
           currentValue: otaProfile,
           values: ["dev_auto_all", "stable_auto_all", "stable_prompt", "notify"],
+        },
+        {
+          id: "interactionMode",
+          label: "Project interaction mode",
+          currentValue: draft.interactionMode,
+          values: ["canvas-guided", "terminal-guided", "headless"],
         },
         {
           id: "contextStatusMode",
@@ -727,22 +1044,40 @@ export function registerCommands(pi: ExtensionAPI) {
           getSettingsListTheme(),
           (id, newValue) => {
             if (id === "otaEnabled") {
+              const priorEnabled = otaEnabled;
               otaEnabled = String(newValue) === "true";
-              void persistOtaPolicy();
+              void persistOtaPolicy().catch((error) => {
+                otaEnabled = priorEnabled;
+                ctx.ui.notify(
+                  `OTA setting was not saved; prior value restored. ${String((error as Error)?.message || error).slice(0, 180)}`,
+                  "error"
+                );
+              });
               return;
             }
             if (id === "otaProfile") {
+              const priorProfile = otaProfile;
+              const priorEnabled = otaEnabled;
               otaProfile = String(newValue);
               otaEnabled = otaProfile !== "notify";
-              void persistOtaPolicy();
+              void persistOtaPolicy().catch((error) => {
+                otaProfile = priorProfile;
+                otaEnabled = priorEnabled;
+                ctx.ui.notify(
+                  `OTA setting was not saved; prior value restored. ${String((error as Error)?.message || error).slice(0, 180)}`,
+                  "error"
+                );
+              });
               return;
             }
+            const priorDraft = { ...draft };
             if (id === "simpleProfile") {
               simpleProfile = String(newValue) as SimpleProfileId;
               applySimpleProfile(simpleProfile);
-              persistDraft();
+              if (!persistDraft()) Object.assign(draft, priorDraft);
               return;
             }
+            if (id === "interactionMode") draft.interactionMode = String(newValue) as any;
             if (id === "contextStatusMode") draft.contextStatusMode = String(newValue) as any;
             if (id === "vitalInfoPromptMode") draft.vitalInfoPromptMode = String(newValue) as any;
             if (id === "vitalInfoPromptSurfaces") draft.vitalInfoPromptSurfaces = String(newValue);
@@ -778,7 +1113,7 @@ export function registerCommands(pi: ExtensionAPI) {
             if (id === "workLoopMaxSameSubproblemRetries")
               draft.workLoopMaxSameSubproblemRetries = Number(newValue);
             if (id === "workLoopStatusHeartbeatMs") draft.workLoopStatusHeartbeatMs = Number(newValue);
-            persistDraft();
+            if (!persistDraft()) Object.assign(draft, priorDraft);
           },
           () => done(undefined),
           { enableSearch: true }

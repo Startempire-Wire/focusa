@@ -239,22 +239,23 @@ fn upsert_workpoint_record(
 }
 
 fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
-    truncate_front(&mut record.waypoints, trajectory_caps::WAYPOINTS);
-    for waypoint in &mut record.waypoints {
+    truncate_front(&mut record.waypoints, trajectory_caps::MILESTONES);
+    truncate_front(&mut record.milestones, trajectory_caps::MILESTONES);
+    for milestone in &mut record.milestones {
         truncate_front(
-            &mut waypoint.current_state_evidence_refs,
+            &mut milestone.current_state_evidence_refs,
             trajectory_caps::EVIDENCE_REFS,
         );
         truncate_front(
-            &mut waypoint.completion_evidence_refs,
+            &mut milestone.completion_evidence_refs,
             trajectory_caps::EVIDENCE_REFS,
         );
     }
     truncate_front(&mut record.goal_provenance, trajectory_caps::PROVENANCE);
-    truncate_front(&mut record.blockers, trajectory_caps::WAYPOINTS);
-    truncate_front(&mut record.open_questions, trajectory_caps::WAYPOINTS);
+    truncate_front(&mut record.blockers, trajectory_caps::MILESTONES);
+    truncate_front(&mut record.open_questions, trajectory_caps::MILESTONES);
     if let Some(dod) = &mut record.definition_of_done {
-        truncate_front(&mut dod.criteria, trajectory_caps::WAYPOINTS);
+        truncate_front(&mut dod.criteria, trajectory_caps::MILESTONES);
         truncate_front(&mut dod.evidence_required, trajectory_caps::EVIDENCE_REFS);
         truncate_front(
             &mut dod.verified_evidence_refs,
@@ -264,9 +265,9 @@ fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
             &mut dod.required_evidence_refs,
             trajectory_caps::EVIDENCE_REFS,
         );
-        truncate_front(&mut dod.required_checks, trajectory_caps::WAYPOINTS);
-        truncate_front(&mut dod.acceptance_risks, trajectory_caps::WAYPOINTS);
-        truncate_front(&mut dod.not_done_if, trajectory_caps::WAYPOINTS);
+        truncate_front(&mut dod.required_checks, trajectory_caps::MILESTONES);
+        truncate_front(&mut dod.acceptance_risks, trajectory_caps::MILESTONES);
+        truncate_front(&mut dod.not_done_if, trajectory_caps::MILESTONES);
     }
 }
 

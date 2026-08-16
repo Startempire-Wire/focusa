@@ -22,13 +22,11 @@ for symbol in [
     "RESOURCE_MODE_HYSTERESIS_STATE",
     "PRESSURE_TRANSITION",
     "PRESSURE_LAST_ACTIVE",
+    "RESPONSE_SIZE_SAMPLES",
 ]:
     idx = bounded.index(f"static {symbol}")
     decl = bounded[idx : idx + 180]
     assert "BTreeMap<String" in decl
-assert "type ResponseSizeSamples = BTreeMap<String, BTreeMap<String, Vec<usize>>>" in bounded
-response_idx = bounded.index("static RESPONSE_SIZE_SAMPLES")
-assert "Mutex<ResponseSizeSamples>" in bounded[response_idx : response_idx + 180]
 assert bounded.count("host_runtime_scope_key()") >= 10
 
 # Metacognition has no singleton store and no global runtime/metacognition dir.

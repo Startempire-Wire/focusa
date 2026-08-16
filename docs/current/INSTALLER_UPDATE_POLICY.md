@@ -9,22 +9,6 @@ Focusa installers and updates must be explicit, reversible, and guarded by Conte
 - Menubar app bundle: signed Mac app release artifact.
 - Pi extension package: versioned extension package loaded by Pi.
 
-## OTA installability and Linux portability gate
-
-A release is OTA-eligible only when the official released CLI resolves all signed trust metadata and returns `apply_allowed=true` for that same immutable tag. Required assets include signed manifest, provenance, trusted-key registry, checksums, and `deploy-success.json` proof.
-
-Linux release/deploy artifacts use `x86_64-unknown-linux-musl`. Production AlmaLinux 8 provides GLIBC 2.28; an `x86_64-unknown-linux-gnu` artifact built on `ubuntu-latest` may require a newer GLIBC and is not deployable evidence. The release workflow builds musl, dispatches musl, and the deploy workflow must:
-
-1. install and verify the exact musl daemon;
-2. publish signed `deploy-success.json` only after live health/version proof;
-3. run the released musl CLI `update plan` against the same tag;
-4. require checksum, signature, manifest, provenance, deploy-proof, and zero-blocker truth;
-5. upload `ota-installability-proof-<tag>` before release closure.
-
-`focusa update apply --json` exposes `installed`, `latest`, `applied`, `surfaces`, `rollback`, `next_action`, `blockers`, and `error` at top level. `blocked_read_only` is a safe trust refusal, not an installation success; agents must report its blockers and must never bypass trust.
-
-Release waits are observable rather than quiet: the canonical tag script reports discovery, run URL, elapsed heartbeat, per-job state, failed job/step names, a bounded error/assertion excerpt, and the exact full-log recovery command. Status-query errors and timeouts are explicit failures. Pi agents should use non-blocking release dispatch plus bounded status polls when the harness cannot stream subprocess output.
-
 ## Customer lifecycle contract
 
 | Transition | Required behavior | Required proof |

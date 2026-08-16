@@ -370,10 +370,6 @@ enum Commands {
     #[command(subcommand)]
     Resource(commands::resource::ResourceCmd),
 
-    /// Project-scoped temporal authority, commitments, observations, and forecasts (Spec137).
-    #[command(subcommand)]
-    Temporal(commands::temporal::TemporalCmd),
-
     /// Per-project Trajectory Projection (Spec96).
     #[command(subcommand)]
     Trajectory(commands::trajectory::TrajectoryCmd),
@@ -1091,7 +1087,6 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Setup(cmd) => commands::setup::run(cmd, cli.json).await,
         Commands::Project(cmd) => commands::project::run(cmd, cli.json).await,
         Commands::Resource(cmd) => commands::resource::run(cmd, cli.json).await,
-        Commands::Temporal(cmd) => commands::temporal::run(cmd, cli.json).await,
         Commands::Trajectory(cmd) => commands::trajectory::run(cmd, cli.json).await,
         Commands::Hlt(cmd) => commands::hlt::run(cmd, cli.json).await,
         Commands::Traverse(cmd) => commands::traverse::run(cmd, cli.json).await,

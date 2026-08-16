@@ -87,134 +87,32 @@ if ! [[ "$CI_TIMEOUT_SECS" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
-push_candidate_main_with_auto_rebase() {
+push_main_and_tag_with_auto_rebase() {
+  local tag="$1"
   local max_attempts=3
   local attempt=1
 
   while [[ "$attempt" -le "$max_attempts" ]]; do
-    echo "Pushing stamped release candidate to main (attempt ${attempt}/${max_attempts})..."
-    if git push origin HEAD:main; then
+    echo "Pushing main and ${tag} (attempt ${attempt}/${max_attempts})..."
+    if git push origin HEAD:main && git push origin "${tag}"; then
       return 0
     fi
 
-    echo "candidate_push_race: rebasing the still-untagged candidate onto origin/main" >&2
+    echo "push_failed_non_fast_forward_or_remote_race: auto-healing with git pull --rebase and tag retarget" >&2
+    # Audit Recorder/Watchdog commits can move origin/main while this helper is
+    # stamping a release. Rebase, retarget the still-local tag to the rebased
+    # HEAD, and retry. This keeps the canonical full pipeline intact without
+    # manual rebase/retag intervention.
     git pull --rebase origin main
+    if [[ "$FORCE_RELEASE" -eq 1 ]]; then
+      git tag -fa "${tag}" -m "Release override: ${RELEASE_REASON}" HEAD
+    else
+      git tag -f "${tag}" HEAD
+    fi
     attempt=$((attempt + 1))
   done
 
-  echo "release_candidate_push_failed_after_auto_rebase: inspect gh/audit logs; no tag was created" >&2
-  return 1
-}
-
-wait_for_source_workflow() {
-  local workflow="$1"
-  local sha="$2"
-  local deadline=$((SECONDS + CI_TIMEOUT_SECS))
-  local status conclusion url
-
-  command -v gh >/dev/null 2>&1 || {
-    echo "source_gate_blocked: gh CLI is required to verify ${workflow} for ${sha}" >&2
-    return 1
-  }
-  while (( SECONDS < deadline )); do
-    local runs
-    runs="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json status,conclusion,url,headSha 2>/dev/null || echo '[]')"
-    status="$(jq -r 'map(select(.headSha == $sha)) | .[0].status // "missing"' --arg sha "$sha" <<<"$runs")"
-    conclusion="$(jq -r 'map(select(.headSha == $sha)) | .[0].conclusion // ""' --arg sha "$sha" <<<"$runs")"
-    url="$(jq -r 'map(select(.headSha == $sha)) | .[0].url // ""' --arg sha "$sha" <<<"$runs")"
-    if [[ "$status" == "completed" && "$conclusion" == "success" ]]; then
-      echo "source_gate_passed: workflow=${workflow} sha=${sha} url=${url}"
-      return 0
-    fi
-    if [[ "$status" == "completed" && "$conclusion" != "success" ]]; then
-      echo "source_gate_failed: workflow=${workflow} sha=${sha} conclusion=${conclusion} url=${url}" >&2
-      return 1
-    fi
-    sleep 10
-  done
-  echo "source_gate_timeout: workflow=${workflow} sha=${sha} timeout=${CI_TIMEOUT_SECS}s" >&2
-  return 1
-}
-
-report_workflow_failure() {
-  local workflow="$1"
-  local run_id="$2"
-  local log_file
-  log_file=$(mktemp)
-
-  echo "workflow_failure name=${workflow} run_id=${run_id}" >&2
-  gh run view "$run_id" --json url,jobs --jq '
-    "run_url=" + .url,
-    (.jobs[] | select(.conclusion == "failure") |
-      "failed_job=" + .name + " job_url=" + .url,
-      (.steps[] | select(.conclusion == "failure") | "failed_step=" + .name))
-  ' >&2 || echo "workflow_failure_summary_query_error run_id=${run_id}" >&2
-
-  if gh run view "$run_id" --log-failed >"$log_file" 2>&1; then
-    echo "workflow_error_excerpt_begin max_lines=40 max_chars_per_line=500" >&2
-    python3 - "$log_file" <<'PY' >&2
-import re
-import sys
-from pathlib import Path
-
-lines = Path(sys.argv[1]).read_text(errors="replace").splitlines()
-pattern = re.compile(
-    r"fail|error|exception|assert|traceback|not ok|mismatch|timed? out|unreachable|blocked",
-    re.IGNORECASE,
-)
-matches = [line for line in lines if pattern.search(line)]
-selected = (matches or lines[-40:])[-40:]
-for line in selected:
-    print(line[:500])
-PY
-    echo "workflow_error_excerpt_end" >&2
-  else
-    echo "workflow_failed_log_query_error run_id=${run_id}" >&2
-  fi
-  rm -f "$log_file"
-  echo "full_log_command=gh run view ${run_id} --log-failed" >&2
-}
-
-watch_workflow_run_bounded() {
-  local workflow="$1"
-  local run_id="$2"
-  local deadline="$3"
-  local started=$SECONDS
-  local next_heartbeat=$SECONDS
-  local previous_digest=""
-  local summary status conclusion digest elapsed
-
-  while [[ $SECONDS -lt $deadline ]]; do
-    if ! summary=$(gh run view "$run_id" --json status,conclusion,url,jobs 2>&1); then
-      echo "workflow_status_query_error name=${workflow} run_id=${run_id} detail=$(printf '%s' "$summary" | tr '\n' ' ' | cut -c1-500)" >&2
-      sleep 10
-      continue
-    fi
-    status=$(jq -r '.status' <<<"$summary")
-    conclusion=$(jq -r '.conclusion // ""' <<<"$summary")
-    digest=$(jq -c '[.status,.conclusion,[.jobs[]|[.name,.status,.conclusion]]]' <<<"$summary")
-    elapsed=$((SECONDS - started))
-
-    if [[ "$digest" != "$previous_digest" || $SECONDS -ge $next_heartbeat ]]; then
-      echo "workflow_heartbeat name=${workflow} run_id=${run_id} elapsed_s=${elapsed} status=${status} conclusion=${conclusion:-pending} url=$(jq -r '.url' <<<"$summary")"
-      jq -r '.jobs[] | "  job=" + .name + " status=" + .status + " conclusion=" + (.conclusion // "pending")' <<<"$summary"
-      previous_digest="$digest"
-      next_heartbeat=$((SECONDS + 30))
-    fi
-
-    if [[ "$status" == "completed" ]]; then
-      if [[ "$conclusion" == "success" ]]; then
-        echo "workflow_completed name=${workflow} run_id=${run_id} elapsed_s=${elapsed} conclusion=success"
-        return 0
-      fi
-      report_workflow_failure "$workflow" "$run_id"
-      return 1
-    fi
-    sleep 10
-  done
-
-  echo "workflow_timeout name=${workflow} run_id=${run_id} timeout_s=${CI_TIMEOUT_SECS}" >&2
-  gh run view "$run_id" --json url,jobs --jq '"run_url=" + .url, (.jobs[] | "job=" + .name + " status=" + .status + " conclusion=" + (.conclusion // "pending"))' >&2 || true
+  echo "release_tag_push_failed_after_auto_rebase: tag=${tag}; inspect gh/audit logs and fix the pipeline system" >&2
   return 1
 }
 
@@ -230,7 +128,7 @@ wait_for_workflow() {
     exit 1
   fi
 
-  echo "workflow_discovery name=${workflow} timeout_s=${CI_TIMEOUT_SECS} sha=${head_sha:0:7}${head_branch:+ head_branch=$head_branch}"
+  echo "Waiting up to ${CI_TIMEOUT_SECS}s for GitHub ${workflow} run for ${head_sha:0:7}${head_branch:+ headBranch=$head_branch}..."
   while [[ $SECONDS -lt $deadline ]]; do
     if [[ -n "$head_branch" ]]; then
       run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 10 --json databaseId,headBranch 2>/dev/null \
@@ -240,15 +138,14 @@ wait_for_workflow() {
       run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)
     fi
     if [[ -n "$run_id" ]]; then
-      echo "workflow_discovered name=${workflow} run_id=${run_id} url=https://github.com/Startempire-Wire/focusa/actions/runs/${run_id}"
-      watch_workflow_run_bounded "$workflow" "$run_id" "$deadline"
+      echo "Tracking ${workflow}: https://github.com/Startempire-Wire/focusa/actions/runs/${run_id}"
+      gh run watch "$run_id" --exit-status
       return $?
     fi
-    echo "workflow_discovery_heartbeat name=${workflow} elapsed_s=$((CI_TIMEOUT_SECS - (deadline - SECONDS))) status=not_found"
     sleep 10
   done
 
-  echo "workflow_discovery_timeout name=${workflow} sha=${head_sha} timeout_s=${CI_TIMEOUT_SECS}" >&2
+  echo "Timed out waiting for GitHub ${workflow} run to appear for ${head_sha}." >&2
   exit 1
 }
 
@@ -311,52 +208,28 @@ else
   echo "ReleaseGate passed."
 fi
 
-python3 tests/spec145_canonical_release_cycle_static_test.py
-jq -e '.schema == "focusa.release_topology.v1" and (.surfaces | length) > 0' \
-  config/focusa-release-topology.json >/dev/null
-
 echo "Stamping release surfaces: ${VERSION}"
 scripts/stamp-menubar-version.py "${TAG}"
-scripts/stamp-release-version "${VERSION}"
 python3 scripts/verify-version-surfaces.py "${TAG}"
-scripts/verify-doc-version-consistency
-node scripts/validate-docs-runtime-parity.mjs
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
-  git checkout -- Cargo.toml Cargo.lock README.md \
-    docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
-    docs/contracts/spec141/generated-capability-v2/agent-card.json \
+  git checkout -- Cargo.toml Cargo.lock \
     apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
     apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
-    apps/pi-extension/package.json apps/pi-extension/package-lock.json \
-    apps/pi-extension/src/auto-compaction.ts
+    apps/pi-extension/package.json apps/pi-extension/package-lock.json
   echo "Dry run complete; reverted stamped files."
   exit 0
 fi
 
 if [[ -n "$(git status --porcelain)" ]]; then
-  git add Cargo.toml Cargo.lock README.md \
-    docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
-    docs/contracts/spec141/generated-capability-v2/agent-card.json \
+  git add Cargo.toml Cargo.lock \
     apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
     apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
-    apps/pi-extension/package.json apps/pi-extension/package-lock.json \
-    apps/pi-extension/src/auto-compaction.ts
-  git commit -m "chore: stamp release surfaces ${VERSION}"
-fi
-
-if [[ "$PUSH" -eq 1 ]]; then
-  push_candidate_main_with_auto_rebase
-  HEAD_SHA=$(git rev-parse HEAD)
-  echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
-  wait_for_source_workflow "CI" "$HEAD_SHA"
-  if git diff --name-only "${PREVIOUS_TAG:-HEAD^}"..HEAD | grep -Eq \
-    '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
-    wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
-  fi
+    apps/pi-extension/package.json apps/pi-extension/package-lock.json
+  git commit -m "chore: stamp menubar ${VERSION}"
 fi
 
 if [[ "$FORCE_RELEASE" -eq 1 ]]; then
@@ -368,8 +241,9 @@ fi
 echo "Created tag ${TAG} at $(git rev-parse --short HEAD)"
 
 if [[ "$PUSH" -eq 1 ]]; then
-  git push origin "${TAG}"
-  echo "Pushed exact green candidate ${TAG}."
+  push_main_and_tag_with_auto_rebase "${TAG}"
+  HEAD_SHA=$(git rev-parse HEAD)
+  echo "Pushed main and ${TAG}."
   if [[ "$WAIT_CI" -eq 1 ]]; then
     wait_for_workflow "CI" "$HEAD_SHA"
     wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"

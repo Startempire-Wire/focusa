@@ -51,6 +51,15 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
 - Confirmation required: `false`; preview supported: `false`.
 
+## Missing-marker routing (#243)
+
+When verification succeeds but no `.focusa-project.json` marker exists,
+route the operator to the formal command — never write the marker JSON
+manually: `focusa init --project-root <path> --quickstart` (existing
+non-empty projects: `focusa init --project-root <path>`; legacy markers:
+inspect then apply enrichment). Marker production is owned by the canonical
+core service (atomic, idempotent, ownership-preserving).
+
 ## Failure and recovery
 
 Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
@@ -61,14 +70,12 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
-- `focusa_project_bootstrap` (likely_next)
-- `focusa_project_genesis` (likely_next)
 - `focusa_trajectory_view` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_project_bootstrap`, `focusa_project_genesis`, `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`.
+Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
 
@@ -78,4 +85,4 @@ Likely next: `focusa_project_bootstrap`, `focusa_project_genesis`, `focusa_traje
 - CLI: `focusa project verify`.
 - REST: `POST /v1/project/verify`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:aaf9a071c478053a169002233e16e91da51610ea8b0ea5c1241edb76ab1791a0`.
+- Descriptor digest: `sha256:bb09ec069011fa1dd6e4669076544c84c6fd230c2462b7a6bbede99202efd185`.

@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 475,
+  "route_count": 458,
   "classification_counts": {
-    "agent_eligible": 100,
+    "agent_eligible": 86,
     "internal": 6,
-    "operator_only": 363,
+    "operator_only": 360,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -3134,62 +3134,6 @@
       "operation_refs": []
     },
     {
-      "path": "/v1/project/bootstrap/apply",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/project_bootstrap.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.project.bootstrap.apply"
-      ]
-    },
-    {
-      "path": "/v1/project/bootstrap/preview",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/project_bootstrap.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.project.bootstrap.preview"
-      ]
-    },
-    {
-      "path": "/v1/project/bootstrap/repair",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/project_bootstrap.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.project.bootstrap.repair"
-      ]
-    },
-    {
-      "path": "/v1/project/bootstrap/status",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/project_bootstrap.rs"
-      ],
-      "methods": [
-        "GET"
-      ],
-      "operation_refs": [
-        "focusa.project.bootstrap.status"
-      ]
-    },
-    {
       "path": "/v1/project/card",
       "classification": "operator_only",
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
@@ -3236,62 +3180,6 @@
         "GET"
       ],
       "operation_refs": []
-    },
-    {
-      "path": "/v1/project/genesis/commit",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/project_genesis.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.project.genesis.commit"
-      ]
-    },
-    {
-      "path": "/v1/project/genesis/resume",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/project_genesis.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.project.genesis.resume"
-      ]
-    },
-    {
-      "path": "/v1/project/genesis/start",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/project_genesis.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.project.genesis.start"
-      ]
-    },
-    {
-      "path": "/v1/project/genesis/status",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/project_genesis.rs"
-      ],
-      "methods": [
-        "GET"
-      ],
-      "operation_refs": [
-        "focusa.project.genesis.status"
-      ]
     },
     {
       "path": "/v1/project/identity",
@@ -3400,18 +3288,6 @@
       ],
       "methods": [
         "GET"
-      ],
-      "operation_refs": []
-    },
-    {
-      "path": "/v1/project/trajectory-guard",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
-      "sources": [
-        "crates/focusa-api/src/routes/project.rs"
-      ],
-      "methods": [
-        "POST"
       ],
       "operation_refs": []
     },
@@ -4737,90 +4613,6 @@
       "operation_refs": []
     },
     {
-      "path": "/v1/temporal/commit",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/temporal.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.temporal.commit"
-      ]
-    },
-    {
-      "path": "/v1/temporal/forecast",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/temporal.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.temporal.forecast"
-      ]
-    },
-    {
-      "path": "/v1/temporal/observe",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/temporal.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.temporal.observe"
-      ]
-    },
-    {
-      "path": "/v1/temporal/preflight",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/temporal.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.temporal.preflight"
-      ]
-    },
-    {
-      "path": "/v1/temporal/revise",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/temporal.rs"
-      ],
-      "methods": [
-        "POST"
-      ],
-      "operation_refs": [
-        "focusa.temporal.revise"
-      ]
-    },
-    {
-      "path": "/v1/temporal/status",
-      "classification": "agent_eligible",
-      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
-      "sources": [
-        "crates/focusa-api/src/routes/temporal.rs"
-      ],
-      "methods": [
-        "GET"
-      ],
-      "operation_refs": [
-        "focusa.temporal.status"
-      ]
-    },
-    {
       "path": "/v1/threads",
       "classification": "operator_only",
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
@@ -4959,18 +4751,6 @@
       ]
     },
     {
-      "path": "/v1/trajectory/history",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
-      "sources": [
-        "crates/focusa-api/src/routes/trajectory.rs"
-      ],
-      "methods": [
-        "GET"
-      ],
-      "operation_refs": []
-    },
-    {
       "path": "/v1/trajectory/propose-workpoint",
       "classification": "agent_eligible",
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
@@ -4983,18 +4763,6 @@
       "operation_refs": [
         "focusa.trajectory.propose_workpoint"
       ]
-    },
-    {
-      "path": "/v1/trajectory/query",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
-      "sources": [
-        "crates/focusa-api/src/routes/trajectory.rs"
-      ],
-      "methods": [
-        "GET"
-      ],
-      "operation_refs": []
     },
     {
       "path": "/v1/trajectory/resume",

@@ -2,8 +2,6 @@
 
 use clap::Subcommand;
 use focusa_core::license::require_feature;
-use focusa_core::release_cycle::ReleaseTopology;
-use focusa_core::release_intelligence::ReleaseIntelligencePacket;
 use focusa_core::types::default_focusa_data_dir;
 use serde_json::{Value, json};
 use std::fs;
@@ -12,11 +10,6 @@ use std::process::Command;
 
 #[derive(Subcommand, Debug)]
 pub enum ReleaseCmd {
-    /// Operate the provider-neutral canonical release cycle.
-    Cycle {
-        #[command(subcommand)]
-        action: ReleaseCycleCmd,
-    },
     /// Prove the current checkout/release tag with the standard safe gate set.
     Prove {
         /// Release tag to verify, for example v0.9.10-dev.
@@ -30,28 +23,6 @@ pub enum ReleaseCmd {
         /// Skip slower cargo clippy/test gates.
         #[arg(long)]
         fast: bool,
-    },
-}
-
-#[derive(Subcommand, Debug)]
-pub enum ReleaseCycleCmd {
-    /// Validate a release topology before candidate lock/tagging.
-    ValidateTopology {
-        /// Release topology JSON path.
-        #[arg(long)]
-        path: PathBuf,
-    },
-    /// Render a deterministic evidence-backed release page from a typed packet.
-    RenderIntelligence {
-        /// Release intelligence packet JSON path.
-        #[arg(long)]
-        packet: PathBuf,
-        /// Markdown output path.
-        #[arg(long)]
-        output: PathBuf,
-        /// Require every check and artifact proof needed for publication.
-        #[arg(long)]
-        publishable: bool,
     },
 }
 
@@ -136,81 +107,12 @@ fn run_gate(name: &str, command: &str) -> Value {
 }
 
 pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
+    // Spec §5.4: official_release_bundle is a license-gated feature.
+    if let Err(e) = require_feature("official_release_bundle") {
+        anyhow::bail!("{e}");
+    }
     match cmd {
-        ReleaseCmd::Cycle { action } => match action {
-            ReleaseCycleCmd::ValidateTopology { path } => {
-                let body = fs::read_to_string(&path)?;
-                let topology: ReleaseTopology = serde_json::from_str(&body)?;
-                topology.validate()?;
-                let output = json!({
-                    "schema": "focusa.release_topology_validation.v1",
-                    "status": "completed",
-                    "valid": true,
-                    "path": path,
-                    "project_id": &topology.project_id,
-                    "profile": &topology.profile,
-                    "provider": &topology.provider,
-                    "surface_count": topology.surfaces.len(),
-                    "surface_ids": topology.surfaces.iter().map(|surface| &surface.surface_id).collect::<Vec<_>>(),
-                    "global_gates": &topology.global_gates,
-                    "next_action": "Create and lock an exact-SHA ReleaseCandidate before provider execution"
-                });
-                if json_mode {
-                    println!("{}", serde_json::to_string_pretty(&output)?);
-                } else {
-                    println!(
-                        "release topology valid: {} surfaces",
-                        topology.surfaces.len()
-                    );
-                    println!("project: {}", topology.project_id);
-                    println!("provider: {}", topology.provider);
-                }
-            }
-            ReleaseCycleCmd::RenderIntelligence {
-                packet,
-                output,
-                publishable,
-            } => {
-                let body = fs::read_to_string(&packet)?;
-                let intelligence: ReleaseIntelligencePacket = serde_json::from_str(&body)?;
-                intelligence.validate(publishable)?;
-                let markdown = intelligence.render_markdown()?;
-                anyhow::ensure!(
-                    !output.exists(),
-                    "release intelligence output already exists; immutable release pages are never overwritten"
-                );
-                let parent = output.parent().unwrap_or_else(|| std::path::Path::new("."));
-                anyhow::ensure!(
-                    parent.is_dir(),
-                    "release intelligence output parent does not exist"
-                );
-                let staged =
-                    parent.join(format!(".release-intelligence-{}.tmp", std::process::id()));
-                fs::write(&staged, markdown)?;
-                fs::rename(&staged, &output)?;
-                let result = json!({
-                    "schema": "focusa.release_intelligence_render.v1",
-                    "status": "completed",
-                    "release_id": intelligence.release_id,
-                    "version": intelligence.version,
-                    "exact_sha": intelligence.exact_sha,
-                    "publishable": publishable,
-                    "output": output,
-                    "artifact_count": intelligence.artifacts.len(),
-                    "proof_count": intelligence.exact_proofs.len()
-                });
-                if json_mode {
-                    println!("{}", serde_json::to_string_pretty(&result)?);
-                } else {
-                    println!("release intelligence rendered: {}", result["output"]);
-                }
-            }
-        },
         ReleaseCmd::Prove { tag, github, fast } => {
-            // Spec §5.4: producing an official release bundle remains license-gated.
-            if let Err(error) = require_feature("official_release_bundle") {
-                anyhow::bail!("{error}");
-            }
             let mut gates = vec![
                 ("git status", "git status --short".to_string()),
                 ("Spec90 contract validation", "node scripts/validate-focusa-tool-contracts.mjs".to_string()),

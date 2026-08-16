@@ -201,11 +201,7 @@ fn scoped_trajectory(
             hlt: Some(record.long_term_goal.clone()),
             mlg: record.mid_level_goal.clone(),
             stg: record.short_term_goal.clone(),
-            waypoints: record
-                .waypoints
-                .iter()
-                .map(|waypoint| waypoint.title.clone())
-                .collect(),
+            waypoints: record.waypoints.clone(),
             ..TrajectoryLadderContext::default()
         })
     })

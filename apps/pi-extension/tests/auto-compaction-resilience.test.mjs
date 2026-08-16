@@ -110,10 +110,7 @@ test("attempt, primary failure, retry, rejection, and ROI outcomes are durably l
 });
 
 test("compaction exposes elapsed heartbeat, retries, and resume failures", () => {
-  assert.match(
-    source,
-    /startCompactionHeartbeat\(ctx, invokedEpoch, usageBefore\.percent \?\? undefined\)/
-  );
+  assert.match(source, /startCompactionHeartbeat\(ctx, invokedEpoch, usageBefore\.percent \?\? undefined\)/);
   assert.match(source, /setInterval\(render, 5_000\)/);
   assert.match(source, /Focusa compaction still running/);
   assert.match(source, /Focusa compaction attempt .* failed:/);

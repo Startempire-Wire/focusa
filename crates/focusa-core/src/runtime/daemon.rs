@@ -2986,33 +2986,6 @@ Return:
         }
     }
 
-    async fn transition_current_work_item(
-        &mut self,
-        status: crate::work_item::types::WorkItemStatus,
-        reason: &str,
-    ) -> anyhow::Result<()> {
-        let task = self.state.work_loop.current_task.clone().ok_or_else(|| {
-            anyhow::anyhow!("work item transition requires an active current task")
-        })?;
-        let (provider, project_root) = self.work_item_provider_and_root()?;
-        let adapter = Self::work_item_adapter(provider)?;
-        if !adapter.detect().await {
-            anyhow::bail!("work item provider {provider} is not operational");
-        }
-        if !adapter.capabilities().can_transition {
-            anyhow::bail!("work item provider {provider} does not support lifecycle transitions");
-        }
-        let work_item = crate::work_item::types::WorkItemRef {
-            provider,
-            provider_item_id: task.work_item_id.clone(),
-            project_root,
-            external_url: None,
-        };
-        adapter.transition(&work_item, status, reason).await?;
-        self.state.work_loop.last_recorded_bd_transition_id = Some(task.work_item_id);
-        Ok(())
-    }
-
     fn work_item_provider_and_root(
         &self,
     ) -> anyhow::Result<(WorkItemProvider, std::path::PathBuf)> {
@@ -3725,11 +3698,6 @@ Return:
                         "cannot defer a WorkItem that is not the active selected task"
                     ));
                 }
-                self.transition_current_work_item(
-                    crate::work_item::types::WorkItemStatus::Blocked,
-                    &format!("deferred by Work Loop: {reason}"),
-                )
-                .await?;
                 Ok(vec![FocusaEvent::ContinuousWorkItemDeferred {
                     work_item_id,
                     reason,
@@ -4113,13 +4081,6 @@ Return:
                 .await?;
                 let replay_closure_evidence = self
                     .secondary_loop_closure_replay_evidence(task_run_id, work_item_id.as_deref());
-                if outcome_status == WorkLoopOutcomeStatus::Blocked {
-                    self.transition_current_work_item(
-                        crate::work_item::types::WorkItemStatus::Blocked,
-                        &format!("blocked by Work Loop outcome: {summary}"),
-                    )
-                    .await?;
-                }
                 if let Some(current_task) = self.state.work_loop.current_task.as_ref() {
                     let title = current_task.title.to_ascii_lowercase();
                     let risk_class = if current_task

@@ -16,6 +16,7 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 | Work loop + Silent Sessions | governed execution, durable runs, steering, receipts | `crates/focusa-core/src/silent_sessions/`, `docs/133-silent-sessions-final-release-proof.md` |
 | Mission Canvas + Work Rail | scoped work surfaces, interviews, artifacts, generated UI | `docs/135-series-current-manifest.md`, `apps/menubar/` |
 | Connectors + domains | provider-neutral context, auth lifecycle, software/domain projections | `crates/focusa-core/src/connectors.rs`, `docs/contracts/spec135/` |
+| Credential Authority + authentication | project-scoped requirements, grants, leases, provider custody, controlled injection, MFA/TOTP, revocation | `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md` |
 | TUI / Mission Deck | terminal cockpit | `crates/focusa-tui/` |
 | Pi extension | all Focusa Pi tools, authority hooks, compaction/OTA/runtime bridge | `apps/pi-extension/` |
 | Agent machine contracts | Pi/MCP/OpenAI/CLI/REST schemas and Agent Card | `docs/contracts/spec141/generated-capability-v2/` |

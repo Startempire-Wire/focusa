@@ -111,6 +111,7 @@ import {
   type CacheSafetyObservation,
 } from "./cache-safe-context.js";
 import { selectFocusSliceToolAffordances } from "./tool-contracts.js";
+import { resolveInteractionMode } from "./config.js";
 
 const cacheSafetyMonitor = new CacheSafetyMonitor();
 const CACHE_SAFE_DEGRADED_RETAINED_SECTIONS = new Set([
@@ -1025,13 +1026,24 @@ export function registerTurns(pi: ExtensionAPI) {
       "- Project-aware writes fail closed unless the dynamic Focusa Focus Slice verifies project_root + continuity_id authority",
       "- If project identity is ambiguous, infer from bounded repository evidence and ask the operator only when multiple plausible roots remain",
     ].join("\n");
+    const interactionMode = resolveInteractionMode(getSessionCwd());
+    const interactionModeLaw = [
+      "\n## Focusa Interaction Mode",
+      `Effective mode: ${interactionMode.mode} (source: ${interactionMode.source}).`,
+      interactionMode.mode === "canvas-guided"
+        ? "Use the Pi-native Mission Canvas as the central guided workspace while preserving canonical runtime authority."
+        : interactionMode.mode === "terminal-guided"
+          ? "Do not prompt to open or enable Mission Canvas; provide concise readiness, Trajectory, Workpoint, proof, and one next safe action in terminal flow."
+          : "Operate noninteractively through canonical APIs and bounded receipts; do not invoke human UI prompts.",
+    ].join("\n");
     const workpointLaw = [
       "\n## Focusa Workpoint Continuity Law",
       "If a scoped Focusa WorkpointResumePacket is present in the newest-turn Focus Slice, treat it as the continuation anchor unless the operator explicitly steers elsewhere.",
       "Do not use raw transcript tail to override the active scoped Workpoint.",
     ].join("\n");
 
-    (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw;
+    (event as any).systemPrompt =
+      ((event as any).systemPrompt || "") + "\n" + behavioral + interactionModeLaw + workpointLaw;
     if (getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled === false) {
       const legacyRecentTurns = buildCachedRecentTurnsSlice(4);
       const legacyWbm = "";

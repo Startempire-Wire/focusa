@@ -34,7 +34,7 @@ for family in session.created config.resolved model.effective harness.connected 
 done
 pass "all §12 output channels and event families are represented"
 
-for marker in silent_session_control_stream_indexes connection.transaction chunk_sequence last_event_sequence redaction_applied MIGRATION_V2_SQL; do
+for marker in silent_session_stream_indexes connection.transaction chunk_sequence last_event_sequence redaction_applied MIGRATION_V2_SQL; do
   rg -n "$marker" "$SS/stream_storage.rs" "$SS/persistence_sqlite.rs" >/dev/null || fail "missing durable index marker: $marker"
 done
 if rg -n 'std::process|tokio::process|Command::new|\bpty\b|\bprovider\b' "$SS/stream_storage.rs" "$SS/stream_codec.rs" >/dev/null; then

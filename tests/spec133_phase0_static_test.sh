@@ -69,23 +69,3 @@ for rel in "${required_docs[@]}"; do
   [[ -f "$ROOT_DIR/$rel" ]] || fail "missing governing source: $rel"
 done
 pass "Spec 133 governing source files are present"
-
-RUNTIME_PERSISTENCE="$ROOT_DIR/crates/focusa-core/src/runtime/persistence_sqlite.rs"
-SILENT_PERSISTENCE="$ROOT_DIR/crates/focusa-core/src/silent_sessions/persistence_sqlite.rs"
-SILENT_PERSISTENCE_TEST="$ROOT_DIR/crates/focusa-core/src/silent_sessions/persistence_sqlite_test.rs"
-SILENT_RETENTION="$ROOT_DIR/crates/focusa-core/src/silent_sessions/retention.rs"
-rg -q 'CREATE TABLE IF NOT EXISTS runtime_silent_session_runs' "$RUNTIME_PERSISTENCE" \
-  || fail "runtime session-run projection table missing"
-rg -q 'CREATE TABLE IF NOT EXISTS silent_session_daemon_runs' "$SILENT_PERSISTENCE" \
-  || fail "daemon-native silent-session run table missing"
-! rg -q '\bsilent_session_runs\b' "$SILENT_PERSISTENCE" \
-  || fail "daemon-native persistence must not collide with runtime silent_session_runs"
-rg -q '\bsilent_session_daemon_runs\b' "$SILENT_PERSISTENCE_TEST" \
-  || fail "daemon-native persistence fixture must use the daemon run namespace"
-! rg -q '\bsilent_session_runs\b' "$SILENT_PERSISTENCE_TEST" \
-  || fail "daemon-native persistence fixture must not use the runtime run namespace"
-rg -q '\bsilent_session_control_retention_operations\b' "$SILENT_RETENTION" \
-  || fail "retention operations must use the durable control schema"
-! rg -q '\bsilent_session_retention_operations\b' "$SILENT_RETENTION" \
-  || fail "retention operations must not use an undeclared legacy table"
-pass "daemon-native persistence uses a distinct silent-session run namespace"

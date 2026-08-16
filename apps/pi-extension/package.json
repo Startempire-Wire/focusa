@@ -1,6 +1,6 @@
 {
   "name": "focusa-pi-bridge",
-  "version": "0.9.134-dev",
+  "version": "0.9.135-dev",
   "private": true,
   "description": "Focusa cognitive integration extension for Pi coding agent",
   "engines": {
@@ -23,7 +23,11 @@
     "test:spec104-attachment": "node tests/spec104-attachment-runtime-isolation.test.mjs",
     "test:cache-safe-context": "node tests/cache-safe-context.test.mjs",
     "test:ota-activation": "node tests/ota-activation.test.mjs",
-    "test:work-rail-width": "node tests/work-rail-widget-width.test.mjs"
+    "test:work-rail-width": "node tests/work-rail-widget-width.test.mjs",
+    "test:settings-attachment": "node tests/settings-attachment-safety.test.mjs",
+    "test:interaction-mode": "node tests/interaction-mode.test.mjs",
+    "test:menu-audit": "node tests/menu-audit-gate.test.mjs",
+    "test:mission-canvas": "node tests/mission-canvas-pi-surface.test.mjs && node tests/mission-canvas-mode-precedence.test.mjs && node tests/mission-canvas-session-inventory.test.mjs && node tests/mission-canvas-performance.test.mjs"
   },
   "dependencies": {
     "@sinclair/typebox": "^0.34.0"

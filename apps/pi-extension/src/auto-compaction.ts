@@ -68,7 +68,11 @@ export interface CoordinatedCompactionRequest {
 }
 
 export type CoordinatedCompactionRequestResult =
-  "requested" | "suppressed" | "ineligible" | "coordinator_unavailable";
+  | "requested"
+  | "deferred_to_native"
+  | "suppressed"
+  | "ineligible"
+  | "coordinator_unavailable";
 
 export interface ProactiveCompactionEligibility {
   eligible: boolean;
@@ -129,6 +133,7 @@ type CompactionLeaseOwner = {
   attachmentId: string;
   nativeSession?: string;
   registeredHandlers: string[];
+  moduleLoadId: string;
 };
 
 type ProcessCompactionLease = {
@@ -147,7 +152,7 @@ type ProcessCompactionLease = {
 };
 
 const PROCESS_LEASE_SYMBOL = Symbol.for("focusa.compaction.coordinator.v1");
-const EXTENSION_BUILD = "focusa-pi-bridge@0.9.134-dev";
+const EXTENSION_BUILD = "focusa-pi-bridge@0.9.135-dev";
 const REGISTRATION_SOURCE = import.meta.url;
 const REGISTERED_HANDLERS = [
   "session_before_compact",
@@ -380,19 +385,24 @@ function estimateEntryRange(entries: readonly BranchEntry[], start: number, end:
   return total;
 }
 
+const MODULE_LOAD_ID = randomUUID();
+
 export function registerAutoCompaction(
   pi: ExtensionAPI,
   getPolicy: () => ProactiveCompactionPolicy = () => DEFAULT_PROACTIVE_COMPACTION_POLICY
 ): boolean {
   const processLease = processCompactionLease();
   if (processLease.owner) {
-    if (!processLease.duplicateDiagnosticEmitted) {
-      processLease.duplicateDiagnosticEmitted = true;
-      console.warn(
-        `[focusa] duplicate extension suppressed; active compaction owner=${processLease.owner.registrationId} build=${processLease.owner.extensionBuild} source=${processLease.owner.registrationSource}. Remove the duplicate Focusa installation and reload Pi.`
-      );
+    if (processLease.owner.moduleLoadId === MODULE_LOAD_ID) {
+      if (!processLease.duplicateDiagnosticEmitted) {
+        processLease.duplicateDiagnosticEmitted = true;
+        console.warn(
+          `[focusa] duplicate extension suppressed; active compaction owner=${processLease.owner.registrationId} build=${processLease.owner.extensionBuild} source=${processLease.owner.registrationSource}. Remove the duplicate Focusa installation and reload Pi.`
+        );
+      }
+      return false;
     }
-    return false;
+    processLease.owner = undefined;
   }
 
   // Spec130A §16 permits one linked retry per pressure crossing. Provider
@@ -408,6 +418,7 @@ export function registerAutoCompaction(
     registrationSource: REGISTRATION_SOURCE,
     attachmentId: `pending:${registrationId}`,
     registeredHandlers: [...REGISTERED_HANDLERS],
+    moduleLoadId: MODULE_LOAD_ID,
   };
   processLease.duplicateDiagnosticEmitted = false;
   const ownsRegistrationLease = (): boolean => processLease.owner?.registrationId === registrationId;
@@ -855,11 +866,30 @@ export function registerAutoCompaction(
       return "ineligible";
     }
 
-    activeRequest = request;
-    setActiveEpoch(createEpoch(ctx, request.triggerClass, usage.contextWindow));
-    consecutiveTransientFailures = 0;
-    attemptCompaction(ctx, usage);
-    return "requested";
+    // Pi exposes fire-and-forget compact() without serialized acquisition.
+    // Starting it here can race manual/native compaction and invalidate Pi's
+    // abort controller. Focusa observes/enriches the native lifecycle instead.
+    lastAttemptAt = Date.now();
+    const delegatedEpoch = createEpoch(ctx, request.triggerClass, usage.contextWindow);
+    delegatedEpoch.startedAt = lastAttemptAt;
+    delegatedEpoch.state = "observing";
+    persist(
+      "native_compaction_delegated",
+      {
+        reason: "pi_compact_api_is_fire_and_forget",
+        tokens_before: usage.tokens,
+        context_window: usage.contextWindow,
+        eligibility,
+      },
+      delegatedEpoch
+    );
+    notifyOnce(
+      ctx,
+      `native-delegation:${contextKey}`,
+      "Focusa preserved compaction safety; Pi owns the next native compaction.",
+      "warning"
+    );
+    return "deferred_to_native";
   };
 
   processLease.request = maybeCompact;
@@ -962,6 +992,9 @@ export function registerAutoCompaction(
 
   pi.on("session_start", async (_event, ctx) => {
     if (!ownsRegistrationLease()) return;
+    // Rebind on every session activation. This is idempotent and repairs any
+    // prior lifecycle that cleared the callable while retaining ownership.
+    processLease.request = maybeCompact;
     if (processLease.owner) {
       processLease.owner.nativeSession = ctx.sessionManager.getSessionId();
       processLease.owner.attachmentId =
@@ -990,8 +1023,10 @@ export function registerAutoCompaction(
     inFlight = false;
     if (!processLease.inFlightEpochId) {
       processLease.attemptOwnerId = undefined;
-      processLease.request = undefined;
-      processLease.owner = undefined;
+      // session_shutdown is a session lifecycle boundary, not an extension
+      // unload. Preserve coordinator ownership and its request function so the
+      // next session_start can resume compaction without re-registering code.
+      if (processLease.owner) processLease.owner.nativeSession = undefined;
       processLease.duplicateDiagnosticEmitted = false;
     }
   });

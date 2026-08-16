@@ -30,7 +30,7 @@ for marker in auth_header bearer_token provider_credential private_key_material 
   rg -n "$marker" "$SS/runner_security.rs" >/dev/null || fail "missing audit redaction class: $marker"
 done
 pass "control audit redacts all forbidden secret classes"
-for table in silent_session_control_principals silent_session_control_approvals silent_session_control_audits silent_session_control_runner_nonces; do
+for table in silent_session_principals silent_session_approvals silent_session_control_audits silent_session_runner_nonces; do
   rg -n "$table" "$SS/persistence_sqlite.rs" >/dev/null || fail "missing durable authorization table: $table"
 done
 pass "principals, approvals, redacted audits and consumed nonces are durable"

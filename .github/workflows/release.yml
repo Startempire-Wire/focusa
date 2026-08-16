@@ -1,13 +1,6 @@
 name: Release
 
-on:
-  push:
-    tags:
-      - 'v*-dev'
-
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+on: [push]
 
 permissions:
   contents: write
@@ -50,20 +43,18 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Require release-scoped PR queue and tag inclusion
+      - name: Require clean PR queue and tag inclusion
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          blocking_prs=$(gh pr list --repo "$REPOSITORY" --state open --limit 500 --json number,title,url,labels \
-            | jq '[.[] | select(any(.labels[]?; (.name | startswith("release-gate:")) or .name == "release-candidate")) | {number,title,url,labels:[.labels[].name]}]')
-          if [ "$(jq 'length' <<<"$blocking_prs")" -ne 0 ]; then
-            echo "::error::Release blocked by release-scoped pull requests: $blocking_prs"
+          open_prs=$(gh pr list --repo "$REPOSITORY" --state open --limit 500 --json number,title,url)
+          if [ "$(jq 'length' <<<"$open_prs")" -ne 0 ]; then
+            echo "::error::Release blocked by open pull requests: $open_prs"
             exit 1
           fi
-          echo "unrelated open pull requests remain queued outside the locked candidate"
           previous=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -1 || true)
           since=$(if [ -n "$previous" ]; then git log -1 --format=%cI "$previous"; else echo '1970-01-01T00:00:00Z'; fi)
           gh pr list --repo "$REPOSITORY" --state merged --limit 500 \
@@ -78,79 +69,36 @@ jobs:
               done
           echo "pull_request_release_gate=passed"
 
-  # Fast contract gate: source tests are exact-SHA pre-tag authority; tag CI is
-  # an independent publication gate below and still validates the stamped SHA.
+  # Gate: tests + clippy must pass
   rust-check:
-    name: Release Contract Check
+    name: Rust Check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 60
     steps:
       - name: Release workflow validation
         run: |
-          echo "release_tag_validation=ok"
-          echo "Release workflow accepted immutable dev tag ${GITHUB_REF_NAME}."
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - name: Require exact candidate-SHA preflight receipts
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          candidate_sha="$GITHUB_SHA"
-          require_success() {
-            local workflow="$1"
-            local run
-            run=$(gh run list --workflow "$workflow" --commit "$candidate_sha" --limit 10 --json status,conclusion,url,headSha \
-              | jq -c --arg sha "$candidate_sha" 'map(select(.headSha == $sha and .status == "completed" and .conclusion == "success")) | .[0] // empty')
-            [ -n "$run" ] || { echo "::error::Missing successful ${workflow} candidate gate for ${candidate_sha}"; exit 1; }
-            echo "candidate_gate_reused workflow=${workflow} receipt=${run}"
-          }
-          require_success "CI"
-          previous=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1 || true)
-          if git diff --name-only "${previous:-HEAD^}"..HEAD | grep -Eq \
-            '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
-            require_success "Spec 132 terminal matrix"
-          fi
-      - name: OTA installability release contract gate
-        run: python3 tests/spec143_ota_installability_release_gate_test.py
-      - name: Spec104 static audit
-        run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
+          echo "release_branch_validation=ok"
+          echo "Release build steps run only for v* tags; branch pushes run this lightweight job so GitHub never reports 'No jobs were run'."
 
-  tag-ci-proof:
-    name: Exact tag CI proof
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Wait for successful CI on stamped candidate SHA
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          for attempt in $(seq 1 120); do
-            runs=$(gh api --method GET "/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
-              -f head_sha="$GITHUB_SHA" -f per_page=10 \
-              --jq '[.workflow_runs[] | {status,conclusion,url:.html_url,headSha:.head_sha}]' 2>/dev/null || echo '[]')
-            run=$(jq -c --arg sha "$GITHUB_SHA" 'map(select(.headSha == $sha)) | .[0] // {}' <<<"$runs")
-            status=$(jq -r '.status // "missing"' <<<"$run")
-            conclusion=$(jq -r '.conclusion // ""' <<<"$run")
-            if [ "$status" = completed ] && [ "$conclusion" = success ]; then
-              echo "tag_ci_proof=${run}"
-              exit 0
-            fi
-            if [ "$status" = completed ] && [ "$conclusion" != success ]; then
-              echo "::error::Stamped candidate CI failed: ${run}"
-              exit 1
-            fi
-            if (( attempt % 6 == 0 )); then
-              echo "tag_ci_wait attempt=${attempt} status=${status} receipt=${run}"
-            fi
-            sleep 10
-          done
-          echo "::error::Timed out waiting for stamped candidate CI ${GITHUB_SHA}"
-          exit 1
+      - uses: actions/checkout@v6
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      - uses: dtolnay/rust-toolchain@nightly
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        with:
+          toolchain: nightly-2026-01-08
+          components: clippy
+      - name: Build standalone daemon required by cross-phase smoke test
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: cargo build -p focusa-api --bin focusa-daemon
+      - name: Process-health check + cargo test
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: python3 scripts/process-health-check.py --label "Release cargo test" --command "cargo test --workspace"
+      - name: Process-health check + clippy
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: python3 scripts/process-health-check.py --label "Release clippy" --command "cargo clippy --workspace -- -D warnings"
+      - name: Spec104 static audit
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
 
   # Final customer-lifecycle closure: all-surface OTA activation, worktree and
   # authority isolation, compaction/recovery, and cache-safe prompt behavior.
@@ -184,44 +132,6 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - name: Lock exact release candidate
-        id: candidate
-        shell: bash
-        run: |
-          set -euo pipefail
-          topology_sha=$(sha256sum config/focusa-release-topology.json | awk '{print $1}')
-          jq -n \
-            --arg candidate_id "release:${GITHUB_REPOSITORY}:${GITHUB_REF_NAME}" \
-            --arg project_root "${GITHUB_WORKSPACE}" \
-            --arg continuity_id "github:${GITHUB_REPOSITORY}" \
-            --arg workpoint_id "${{ vars.FOCUSA_RELEASE_WORKPOINT_ID || format('github-actions:{0}', github.run_id) }}" \
-            --arg version "${GITHUB_REF_NAME#v}" \
-            --arg exact_sha "${GITHUB_SHA}" \
-            --arg topology_ref "config/focusa-release-topology.json#sha256:${topology_sha}" \
-            '{
-              schema: "focusa.release_candidate.v1",
-              candidate_id: $candidate_id,
-              project_root: $project_root,
-              continuity_id: $continuity_id,
-              workpoint_id: $workpoint_id,
-              version: $version,
-              exact_sha: $exact_sha,
-              topology_ref: $topology_ref,
-              stage: "locked",
-              locked_scope_refs: [env.GITHUB_REF, env.GITHUB_REPOSITORY],
-              evidence: [],
-              admitted_fixes: [],
-              benchmark: null
-            }' > release-candidate.json
-          jq -e '.exact_sha == env.GITHUB_SHA and .stage == "locked"' release-candidate.json >/dev/null
-      - name: Upload release candidate lock
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-candidate-${{ github.ref_name }}
-          path: release-candidate.json
-          if-no-files-found: error
-          retention-days: 90
 
       - name: Generate release notes
         id: notes
@@ -306,7 +216,7 @@ jobs:
           ### What this release proves
           - **Functional snapshot** — this tag passed the Release workflow gate: workspace tests and clippy before artifacts.
           - **Dogfood-driven quality** — release notes are generated from the actual tag delta, not stale static claims.
-          - **macOS artifacts** — CLI, daemon, TUI, and Tauri menubar app assets are built by GitHub Actions.
+          - **Cross-platform artifacts** — CLI, daemon, and TUI assets cover macOS, Linux glibc/musl, and Windows x64/ARM64; the Tauri menubar app covers macOS.
           - **Public traceability** — features, fixes, resolved issues, and every commit since the prior tag are recorded below.
 
           ### Breaking changes
@@ -355,6 +265,15 @@ jobs:
           | Linux x64 glibc | \`focusa-${TAG}-x86_64-unknown-linux-gnu\` | CLI |
           | Linux x64 glibc | \`focusa-daemon-${TAG}-x86_64-unknown-linux-gnu\` | API daemon |
           | Linux x64 glibc | \`focusa-tui-${TAG}-x86_64-unknown-linux-gnu\` | TUI dashboard |
+          | Linux x64 musl/static | \`focusa-${TAG}-x86_64-unknown-linux-musl\` | CLI |
+          | Linux x64 musl/static | \`focusa-daemon-${TAG}-x86_64-unknown-linux-musl\` | API daemon |
+          | Linux x64 musl/static | \`focusa-tui-${TAG}-x86_64-unknown-linux-musl\` | TUI dashboard |
+          | Windows x64 | \`focusa-${TAG}-x86_64-pc-windows-msvc.exe\` | CLI |
+          | Windows x64 | \`focusa-daemon-${TAG}-x86_64-pc-windows-msvc.exe\` | API daemon |
+          | Windows x64 | \`focusa-tui-${TAG}-x86_64-pc-windows-msvc.exe\` | TUI dashboard |
+          | Windows ARM64 | \`focusa-${TAG}-aarch64-pc-windows-msvc.exe\` | CLI |
+          | Windows ARM64 | \`focusa-daemon-${TAG}-aarch64-pc-windows-msvc.exe\` | API daemon |
+          | Windows ARM64 | \`focusa-tui-${TAG}-aarch64-pc-windows-msvc.exe\` | TUI dashboard |
 
           ### Quick Start (macOS/Linux)
           \`\`\`bash
@@ -413,7 +332,6 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           targets: ${{ matrix.rust_target }}
-      - uses: Swatinem/rust-cache@v2
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -657,7 +575,7 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: create-release
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           - target: aarch64-apple-darwin
@@ -669,6 +587,12 @@ jobs:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             musl: true
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            exe: .exe
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            exe: .exe
 
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
@@ -678,9 +602,6 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: release-target-${{ matrix.target }}
 
       - name: Install cross for musl target
         if: ${{ matrix.musl == true }}
@@ -692,14 +613,8 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.musl || false }}" = "true" ]; then
-            # sqlite-vec 0.1.7 uses BSD u_int* names that musl intentionally omits.
-            # Pass exact stdint aliases into cross without changing non-musl builds.
-            cat > Cross.toml <<'EOF'
-          [build.env]
-          passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
-          EOF
-            export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
-            trap 'rm -f Cross.toml' EXIT
+            # sqlite-vec <=0.1.9 uses BSD u_int aliases despite including stdint.h.
+            export CFLAGS_x86_64_unknown_linux_musl='-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t'
             cross build --release --target ${{ matrix.target }}
           else
             cargo build --release --target ${{ matrix.target }}
@@ -767,7 +682,7 @@ jobs:
   checksums:
     name: Publish SHA256SUMS
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: [tauri-build, rust-release, pi-extension-release, tag-ci-proof]
+    needs: [tauri-build, rust-release, pi-extension-release]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -838,10 +753,10 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-musl repo=${REPO}"
+          echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-gnu repo=${REPO}"
           gh workflow run 'Deploy Live Daemon' \
             --repo "$REPO" \
             --ref main \
             -f release_tag="$TAG" \
-            -f asset_suffix="x86_64-unknown-linux-musl" \
+            -f asset_suffix="x86_64-unknown-linux-gnu" \
             -f dry_run=false

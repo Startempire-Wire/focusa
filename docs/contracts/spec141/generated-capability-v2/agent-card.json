@@ -2,7 +2,7 @@
   "schema": "focusa.agent_card.v1",
   "name": "Focusa",
   "description": "Agent-first cognitive infrastructure with scoped Workpoints, Trajectory, evidence, recovery, browser interoperability, and cross-harness capability contracts.",
-  "version": "0.9.134-dev",
+  "version": "0.9.121-dev",
   "interfaces": [
     "pi",
     "mcp",
@@ -22,9 +22,9 @@
     "device_pairing",
     "local_trusted"
   ],
-  "registry_digest": "sha256:8da28148bf9c812232c01a2ec9fb60ef431e6722d84a4982f5f94e13bf4fd02f",
-  "pi_tool_count": 115,
-  "pi_tool_docs_count": 115,
+  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841",
+  "pi_tool_count": 112,
+  "pi_tool_docs_count": 112,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
   "pi_tool_docs_path": "docs/focusa-tools/tools/",
   "skill_count": 22,
@@ -289,5 +289,5 @@
     "workpoint"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:08f8248ec04d4f62fef2080749563daeca8b4f826f2b6b80dd72991610e4f21f"
+  "card_digest": "sha256:26f8c2045f320e4235b5769d9a51641e2bacbc4b482a8fe909eb3fbc6a4cfbd7"
 }

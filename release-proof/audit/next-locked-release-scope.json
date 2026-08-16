@@ -1,0 +1,84 @@
+{
+  "decomposition_epic": "focusa-vbcqu.9",
+  "decomposition_tasks": [
+    "focusa-vbcqu.9.1",
+    "focusa-vbcqu.9.2",
+    "focusa-vbcqu.9.3",
+    "focusa-vbcqu.9.4",
+    "focusa-vbcqu.9.5",
+    "focusa-vbcqu.9.6",
+    "focusa-vbcqu.9.7"
+  ],
+  "locked_at": "2026-07-28T18:45:00-07:00",
+  "operator_scope": "all currently open issues plus Specs 137, 137a, 138, 138a, and 140",
+  "pre_decomposition_open_issue_count": 38,
+  "pre_decomposition_open_issue_ids": [
+    "focusa-vbcqu.4.4",
+    "focusa-vbcqu.8.3",
+    "focusa-vbcqu.8.2",
+    "focusa-vbcqu.8.1",
+    "focusa-vbcqu.5.4",
+    "focusa-vbcqu.4.3",
+    "focusa-vbcqu.8",
+    "focusa-vbcqu.7",
+    "focusa-vbcqu.6",
+    "focusa-vbcqu.5",
+    "focusa-vbcqu.4",
+    "focusa-vbcqu.3",
+    "focusa-vbcqu.2",
+    "focusa-vbcqu",
+    "focusa-w26jj.9.7.4",
+    "focusa-w26jj.9.7.3",
+    "focusa-w26jj.9.7.2",
+    "focusa-w26jj.9.7.1",
+    "focusa-w26jj.9.6.5",
+    "focusa-w26jj.9.6.4",
+    "focusa-w26jj.9.6.3",
+    "focusa-w26jj.9.6.2",
+    "focusa-w26jj.9.6.1",
+    "focusa-w26jj.9.4.6",
+    "focusa-w26jj.9.3.5",
+    "focusa-ux2qx.17",
+    "focusa-a6yq6.10.9",
+    "focusa-a6yq6.10.8",
+    "focusa-a6yq6.10.7",
+    "focusa-a6yq6.10.5",
+    "focusa-a6yq6.10.4",
+    "focusa-58wee",
+    "focusa-8305",
+    "focusa-vfsrg",
+    "focusa-n68k",
+    "focusa-pskm",
+    "focusa-nodn",
+    "focusa-84px"
+  ],
+  "publication_gate": "forbidden_until_all_locked_items_and_acceptance_proof_are_complete",
+  "schema": "focusa.locked_release_scope.v1",
+  "specs": {
+    "137": {
+      "path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "sha256": "b3f3aceb1b534a07f18bb0b265d9013d493cafed091114159bce95cfc4c0078d",
+      "status": "present"
+    },
+    "137a": {
+      "path": null,
+      "sha256": null,
+      "status": "missing_canonical_artifact"
+    },
+    "138": {
+      "path": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "sha256": "be94acdc69707a9681f6477d02a86d8d2286e430b465ae3cfbaa362956a01283",
+      "status": "present"
+    },
+    "138a": {
+      "path": null,
+      "sha256": null,
+      "status": "missing_canonical_artifact"
+    },
+    "140": {
+      "path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "sha256": "383e7c0a55d02a0da1ace31b3625a0bd0f33b3b8eb0422892613b01d635f4ec2",
+      "status": "present"
+    }
+  }
+}

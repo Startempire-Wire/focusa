@@ -54,17 +54,10 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | current | [current/PROJECT_INTELLIGENCE_FLYWHEEL.md](current/PROJECT_INTELLIGENCE_FLYWHEEL.md) | Ontology-grounded project-card flywheel for trajectory bootstrap/re-bootstrap, prediction, and metacog compounding |
 | current | [current/PREDICTION_ALGORITHMS_IMPLEMENTED.md](current/PREDICTION_ALGORITHMS_IMPLEMENTED.md) | Implemented lightweight prediction formulas behind project-card algorithmic intelligence |
 | 137 | [137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md](137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md) | Temporal authority, deadlines, urgency, uncertainty-aware timing, and grounded time forecasts |
-| 137A | [137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md](137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md) | Mandatory zero-deferral, applicability, tranche, parity, and temporal omission firewall for Spec 137 |
 | 138 | [138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md](138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md) | Maximal prediction, outcome, calibration, metacognitive learning, transfer, and epistemic governance substrate |
-| 138A | [138a-focusa-epistemic-zero-deferral-profile-completeness-and-omission-firewall-addendum.md](138a-focusa-epistemic-zero-deferral-profile-completeness-and-omission-firewall-addendum.md) | Mandatory full-profile implementation, source coverage, client parity, migration, and zero-omission firewall for Spec 138 |
 | 139 | [139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md](139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md) | Distributed presence primacy, environment identity, execution placement, expensive-operation deduplication, and multi-daemon coordination |
 | 140 | [140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md](140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md) | C.R.I.S.T.-derived Project Agent Runtime Constitution, instruction authority graph, Pi system-prompt compiler, AGENTS/rules/skills, enforcement, and cross-harness delivery |
-| 141 | [141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md](141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md) | Agent-first tools, skills, runbooks, documentation parity, and release-gate proof |
-| 142 | [142-focusa-release-requirement-trace-matrix.md](142-focusa-release-requirement-trace-matrix.md) | Locked release requirements, dependency traceability, implementation admission, and no-pass truth |
-| 143 | [143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md](143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md) | Master release cycle, Trajectory Ladder, Project Genesis, frictionless flow, release truth, and locked implementation scope |
-| 144 | [144-focusa-semantic-integrity-rdf-owl-shacl-build-verify-routing-and-vertical-intelligence-spec.md](144-focusa-semantic-integrity-rdf-owl-shacl-build-verify-routing-and-vertical-intelligence-spec.md) | RDF/OWL/SHACL semantic integrity, domain-specific Build↔Verify routing, Vertical Intelligence Bundles, and Spec 137/138 verification integration |
-| 145 | [145-focusa-canonical-core-release-cycle-fast-release-architecture.md](145-focusa-canonical-core-release-cycle-fast-release-architecture.md) | Provider-neutral release kernel, topology DAG, scope lock, call stack, GitHub adapter, and fast-release invariants |
-| 146 | [146-focusa-canonical-release-cycle-operations-and-proof-runbook.md](146-focusa-canonical-release-cycle-operations-and-proof-runbook.md) | Automatic OTA operation, benchmark, security, migration, acceptance, proof, and rollback runbook |
+| 156 | [156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md](156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md) | Provider-neutral, project-scoped Credential Authority, secret custody/use separation, delegated autonomy, MFA/TOTP, and cross-surface injection |
 | contract | [contracts/spec139-complete-feature-ledger.v1.yaml](contracts/spec139-complete-feature-ledger.v1.yaml) | Initial machine-readable Spec 139 implementation and closure ledger |
 | contract | [contracts/spec140-complete-feature-ledger.v1.yaml](contracts/spec140-complete-feature-ledger.v1.yaml) | Initial machine-readable Spec 140 implementation and closure ledger |
 | evidence | [evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md](evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md) | Code-reality audit and maximal primitive derivation supporting Spec 138 |
@@ -173,14 +166,3 @@ Pi RPC/Spec 133 owns model execution; Vercel AI SDK runtime is not adopted.
 Every feature submits reusable behavior to greater Focusa primitives.
 Every requirement remains in the machine-readable closure graph.
 ```
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-closure-contracts -->
-## Specs 137A/138A/144 architecture-closure contracts
-
-The populated machine-readable source coverage, ledgers, delivery DAGs, ownership, profile, placement, dispute, migration, proof, and placeholder-audit contracts are under `docs/contracts/spec137a-*`, `docs/contracts/spec138*`, and `docs/contracts/spec144-*`. They close documentation architecture and make remaining runtime work explicit; they do not claim runtime implementation.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-closure-audit -->
-## Documentation architecture closure evidence
-
-- [`Specs 137A/138A/144 documentation architecture closure audit`](evidence/spec137a-138a-144-documentation-architecture-closure-audit-2026-07-26.md)
-- [`Machine-readable closure manifest`](contracts/spec137a-138a-144-documentation-architecture-closure-manifest.v1.yaml)

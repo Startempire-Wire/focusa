@@ -39,24 +39,6 @@ impl NoneAdapter {
             work_item.provider_item_id
         )
     }
-
-    fn default_item(work_item: &WorkItemRef) -> WorkItem {
-        WorkItem {
-            provider: WorkItemProvider::None,
-            provider_item_id: work_item.provider_item_id.clone(),
-            project_root: work_item.project_root.clone(),
-            provider_status: WorkItemStatus::Open,
-            title: format!("local-only: {}", work_item.provider_item_id),
-            priority: 0,
-            parent: None,
-            dependencies: vec![],
-            acceptance_criteria: vec![],
-            spec_refs: vec![],
-            blocked_reason: None,
-            url: work_item.external_url.clone(),
-            revision: None,
-        }
-    }
 }
 
 impl Default for NoneAdapter {
@@ -78,7 +60,6 @@ impl ProviderAdapter for NoneAdapter {
             can_prepare: true,
             can_submit: true,
             can_reconcile: true,
-            can_transition: true,
             supports_override: true,
             // No external mutation, but local record still mutates.
             mutable: false,
@@ -97,7 +78,21 @@ impl ProviderAdapter for NoneAdapter {
         Ok(map
             .get(&Self::key(work_item))
             .cloned()
-            .unwrap_or_else(|| Self::default_item(work_item)))
+            .unwrap_or_else(|| WorkItem {
+                provider: self.provider(),
+                provider_item_id: work_item.provider_item_id.clone(),
+                project_root: work_item.project_root.clone(),
+                provider_status: WorkItemStatus::Open,
+                title: format!("local-only: {}", work_item.provider_item_id),
+                priority: 0,
+                parent: None,
+                dependencies: vec![],
+                acceptance_criteria: vec![],
+                spec_refs: vec![],
+                blocked_reason: None,
+                url: work_item.external_url.clone(),
+                revision: None,
+            }))
     }
 
     async fn list(&self, query: &WorkItemQuery) -> RegistryResult<Vec<WorkItem>> {
@@ -150,30 +145,6 @@ impl ProviderAdapter for NoneAdapter {
         map.insert(Self::key(work_item), updated.clone());
         Ok(updated)
     }
-
-    async fn transition(
-        &self,
-        work_item: &WorkItemRef,
-        status: WorkItemStatus,
-        reason: &str,
-    ) -> RegistryResult<WorkItem> {
-        if matches!(status, WorkItemStatus::Done | WorkItemStatus::Closed) {
-            return Err(
-                crate::work_item::adapter::RegistryError::CapabilityUnsupported {
-                    provider: self.provider(),
-                    capability: "transition_closure_requires_lifecycle",
-                },
-            );
-        }
-        let key = Self::key(work_item);
-        let mut states = self.states.write().await;
-        let item = states
-            .entry(key)
-            .or_insert_with(|| Self::default_item(work_item));
-        item.provider_status = status;
-        item.blocked_reason = (status == WorkItemStatus::Blocked).then(|| reason.to_string());
-        Ok(item.clone())
-    }
 }
 
 #[cfg(test)]
@@ -201,24 +172,6 @@ mod tests {
         assert_eq!(after.provider_status, WorkItemStatus::Closed);
         let resolved = a.resolve(&ref_id("abcd-1234")).await.unwrap();
         assert_eq!(resolved.provider_status, WorkItemStatus::Closed);
-    }
-
-    #[tokio::test]
-    async fn none_adapter_projects_non_closure_transition_and_rejects_close() {
-        let adapter = NoneAdapter::new();
-        let work_item = ref_id("transition-item");
-        let blocked = adapter
-            .transition(&work_item, WorkItemStatus::Blocked, "waiting for proof")
-            .await
-            .unwrap();
-        assert_eq!(blocked.provider_status, WorkItemStatus::Blocked);
-        assert_eq!(blocked.blocked_reason.as_deref(), Some("waiting for proof"));
-        assert!(
-            adapter
-                .transition(&work_item, WorkItemStatus::Closed, "done")
-                .await
-                .is_err()
-        );
     }
 
     #[tokio::test]

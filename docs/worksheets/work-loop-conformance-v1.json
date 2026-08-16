@@ -34,14 +34,6 @@
           "focusa-core",
           "spec79_canary_advances_ordered_bd_graph_without_manual_reprompt",
           "--no-fail-fast"
-        ],
-        [
-          "python3",
-          "tests/work_loop_runtime_scope_harness_static_test.py"
-        ],
-        [
-          "bash",
-          "tests/work_loop_bd_transition_wiring_test.sh"
         ]
       ],
       "gap": null
@@ -89,46 +81,14 @@
     {
       "id": "spec133",
       "path": "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
-      "status": "partial",
+      "status": "blocked",
       "proofs": [
         [
           "bash",
           "tests/spec133_phase0_static_test.sh"
-        ],
-        [
-          "bash",
-          "tests/spec133_phase1_persistence_static_test.sh"
-        ],
-        [
-          "bash",
-          "tests/spec133_phase2_authorization_static_test.sh"
-        ],
-        [
-          "python3",
-          "tests/spec133_final_matrix_static_test.py"
-        ],
-        [
-          "python3",
-          "tests/spec133_execution_dependency_graph_test.py"
-        ],
-        [
-          "python3",
-          "tests/spec133_work_item_grounding_test.py"
-        ],
-        [
-          "bash",
-          "tests/spec133_phase8_backend_gate.sh"
-        ],
-        [
-          "bash",
-          "tests/spec133_phase9_final_gate.sh"
-        ],
-        [
-          "python3",
-          "tests/spec133_final_acceptance_audit_static_test.py"
         ]
       ],
-      "gap": "Static daemon-native model, persistence, governance, retention, CLI, and dependency contracts are implemented; mandatory runtime E2E/security, cross-platform real-Pi lifecycle, final acceptance audit, and release-gate evidence remain open."
+      "gap": "Daemon-native session models, persistence, manager, scheduler, steering, retention, and integration receipts are not implemented."
     }
   ]
 }

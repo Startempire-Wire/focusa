@@ -93,7 +93,7 @@ def main() -> None:
         "advisory_projection",
         "evidence_link",
         "write_state",
-        "daemon_api_control",
+        "process_control",
         "control_state",
         "write_prediction",
     ]:

@@ -3,8 +3,7 @@
 
 set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
-PROJECT_ROOT="${FOCUSA_PROJECT_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-CONTINUITY_ID="${FOCUSA_CONTINUITY_ID:-work-loop-continuation-test}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 WORK_ITEM_ID="spec79-policy-consume"
 FAILED=0
 PASSED=0
@@ -17,19 +16,19 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 curl() {
   command curl \
-    -H "x-scope-project-root: ${PROJECT_ROOT}" \
-    -H "x-scope-continuity-id: ${CONTINUITY_ID}" \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: work-loop-continuation-test" \
     "$@"
 }
 http_json() { curl -sS "$@"; }
 
 CHECKPOINT_RESP=$(http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${PROJECT_ROOT}\",\"continuity_id\":\"${CONTINUITY_ID}\",\"work_item_id\":\"${WORK_ITEM_ID}\",\"mission\":\"verify work-loop policy consumption\",\"current_action\":\"spec79_policy_consumption\",\"next_slice\":\"verify consumed continuation inputs\",\"canonical\":true}")
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"${WORK_ITEM_ID}\",\"mission\":\"verify work-loop policy consumption\",\"current_action\":\"spec79_policy_consumption\",\"next_slice\":\"verify consumed continuation inputs\",\"canonical\":true}")
 WORKPOINT_ID=$(echo "$CHECKPOINT_RESP" | jq -r '.workpoint_id // empty')
 for _ in $(seq 1 40); do
   RESUME=$(http_json -X POST "${BASE_URL}/v1/workpoint/resume" -H 'Content-Type: application/json' \
-    -d "{\"project_root\":\"${PROJECT_ROOT}\",\"continuity_id\":\"${CONTINUITY_ID}\",\"mode\":\"compact_prompt\"}")
+    -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"mode\":\"compact_prompt\"}")
   echo "$RESUME" | jq -e --arg id "$WORKPOINT_ID" '.canonical == true and .workpoint_id == $id' >/dev/null 2>&1 && break
   sleep 0.1
 done

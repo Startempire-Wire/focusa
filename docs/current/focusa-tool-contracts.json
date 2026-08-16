@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 115,
+  "tool_count": 112,
   "contracts": [
     {
       "name": "focusa_preload_profiles",
@@ -646,125 +646,6 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
-      }
-    },
-    {
-      "name": "focusa_project_bootstrap",
-      "label": "Project Bootstrap",
-      "purpose": "Preview, apply, inspect, or repair an idempotent local project-discipline baseline with explicit Git/task choices, receipts, rollback, and Project Genesis handoff.",
-      "family": "project_identity",
-      "ontology_action": "project.bootstrap",
-      "ontology_objects": [
-        "ProjectIdentity",
-        "TaskProvider",
-        "TrajectoryProjection",
-        "WorkpointRecord",
-        "EvidenceRef"
-      ],
-      "api_routes": [
-        "POST /v1/project/bootstrap/preview",
-        "POST /v1/project/bootstrap/apply",
-        "GET /v1/project/bootstrap/status",
-        "POST /v1/project/bootstrap/repair"
-      ],
-      "cli_commands": [
-        "focusa project bootstrap preview|apply|status|repair"
-      ],
-      "core_surface": "Issue #50 standard project discipline bootstrap and continuous readiness",
-      "doc_path": "docs/focusa-tools/tools/focusa_project_bootstrap.md",
-      "spec_path": "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md",
-      "result_envelope": "tool_result_v1",
-      "side_effect_profile": "preview_read_or_confirmed_local_bootstrap_repair",
-      "parity_status": "full",
-      "exemptions": [],
-      "live_check": "Spec143 bootstrap preview/apply/status/repair, local-only, Beads, Genesis, replay, rollback, and concurrency gates",
-      "scope_requirement": {
-        "kind": "write",
-        "route_family": "explicit_project_continuity"
-      },
-      "authority_requirement": {
-        "kind": "canonical",
-        "path": "daemon:/v1/project/bootstrap/apply"
-      }
-    },
-    {
-      "name": "focusa_project_genesis",
-      "label": "Project Genesis",
-      "purpose": "Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.",
-      "family": "project_identity",
-      "ontology_action": "project.genesis",
-      "ontology_objects": [
-        "ProjectIdentity",
-        "TrajectoryProjection",
-        "Waypoint",
-        "WorkpointRecord",
-        "TaskProvider",
-        "EvidenceRef"
-      ],
-      "api_routes": [
-        "POST /v1/project/genesis/start",
-        "POST /v1/project/genesis/resume",
-        "GET /v1/project/genesis/status",
-        "POST /v1/project/genesis/commit"
-      ],
-      "cli_commands": [
-        "focusa project genesis start|resume|status|commit"
-      ],
-      "core_surface": "Spec143 atomic Project Genesis transaction and marker guard",
-      "doc_path": "docs/focusa-tools/tools/focusa_project_genesis.md",
-      "spec_path": "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md",
-      "result_envelope": "tool_result_v1",
-      "side_effect_profile": "start_resume_read_or_confirmed_atomic_commit",
-      "parity_status": "full",
-      "exemptions": [],
-      "live_check": "Spec143 Project Genesis API, CLI, Pi, idempotency, HLT Impasse, task-provider, first Workpoint, and marker-ready-last gates",
-      "scope_requirement": {
-        "kind": "write",
-        "route_family": "explicit_project_continuity"
-      },
-      "authority_requirement": {
-        "kind": "canonical",
-        "path": "daemon:/v1/project/genesis/commit"
-      }
-    },
-    {
-      "name": "focusa_temporal_authority",
-      "label": "Temporal Authority",
-      "purpose": "Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency.",
-      "family": "trajectory",
-      "ontology_action": "temporal.authority",
-      "ontology_objects": [
-        "ProjectIdentity",
-        "TrajectoryProjection",
-        "WorkpointRecord",
-        "EvidenceRef"
-      ],
-      "api_routes": [
-        "GET /v1/temporal/status",
-        "POST /v1/temporal/commit",
-        "POST /v1/temporal/revise",
-        "POST /v1/temporal/observe",
-        "POST /v1/temporal/forecast",
-        "POST /v1/temporal/preflight"
-      ],
-      "cli_commands": [
-        "focusa temporal status|commit|revise|observe|forecast|preflight"
-      ],
-      "core_surface": "Spec137 temporal authority, ledger, claims, preflight, forecasting, and release timing",
-      "doc_path": "docs/focusa-tools/tools/focusa_temporal_authority.md",
-      "spec_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
-      "result_envelope": "tool_result_v1",
-      "side_effect_profile": "status_preflight_read_or_confirmed_claim_write_or_observation",
-      "parity_status": "full",
-      "exemptions": [],
-      "live_check": "Spec137 no-deadline, scope, commitment, revision, observation, forecast, calibration, resume, and cross-surface gates",
-      "scope_requirement": {
-        "kind": "write",
-        "route_family": "explicit_project_continuity"
-      },
-      "authority_requirement": {
-        "kind": "canonical",
-        "path": "daemon:/v1/temporal/commit"
       }
     },
     {

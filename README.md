@@ -12,13 +12,13 @@
 <p align="center">
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml/badge.svg"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.9.134--dev-blue">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.9.121--dev-blue">
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.91%2B-dea584?logo=rust">
   <img alt="License" src="https://img.shields.io/badge/license-BSL--1.1-orange">
   <img alt="Local first" src="https://img.shields.io/badge/local--first-proof%20layer-2b82ff">
 </p>
 
-Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.134-dev`.
+Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.121-dev`.
 
 When a coding session gets long, context compacts, the mission drifts, proof gets buried, or another agent takes over, Focusa preserves the work as a proof-backed **Workpoint** with linked **Evidence** and a **next safe action**. The next agent should not have to guess from transcript memory.
 
@@ -196,7 +196,7 @@ bash tests/spec_cli_cross_phase_smoke_test.sh
 
 ## Agent-first capability discovery
 
-Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. All 115 Focusa Pi tools are projected one-to-one into strict machine contracts and per-tool docs. Agents start with metadata—not 115 hot schemas—and progressively load only what the next action needs:
+Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. All 112 Focusa Pi tools are projected one-to-one into strict machine contracts and per-tool docs. Agents start with metadata—not 112 hot schemas—and progressively load only what the next action needs:
 
 1. `focusa_agent_card` — interfaces, auth, families, capability count, and discovery entry points.
 2. `focusa_tool_search` — ranked metadata by action, object, failure, or workflow.

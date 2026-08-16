@@ -2,9 +2,6 @@
 # Runtime contract: query-scope/reset semantics persist from context input to status projection.
 set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
-PROJECT_ROOT="${FOCUSA_PROJECT_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-CONTINUITY_ID="${FOCUSA_CONTINUITY_ID:-work-loop-continuation-test}"
-scoped_curl(){ command curl -H "x-scope-project-root: ${PROJECT_ROOT}" -H "x-scope-continuity-id: ${CONTINUITY_ID}" "$@"; }
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -13,43 +10,18 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-WORK_ITEM_ID="spec79-query-scope-boundary"
-WRITER_ID="spec79-query-scope-boundary"
-CHECKPOINT_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
-  -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${PROJECT_ROOT}\",\"continuity_id\":\"${CONTINUITY_ID}\",\"work_item_id\":\"${WORK_ITEM_ID}\",\"mission\":\"verify query-scope boundary\",\"current_action\":\"query_scope_boundary_contract\",\"next_slice\":\"verify decision-context projection\",\"canonical\":true}")"
-WORKPOINT_ID="$(echo "$CHECKPOINT_RESP" | jq -r '.workpoint_id // empty')"
-for _ in $(seq 1 40); do
-  RESUME_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/workpoint/resume" \
-    -H 'Content-Type: application/json' \
-    -d "{\"project_root\":\"${PROJECT_ROOT}\",\"continuity_id\":\"${CONTINUITY_ID}\",\"mode\":\"compact_prompt\"}")"
-  echo "$RESUME_RESP" | jq -e --arg id "$WORKPOINT_ID" '.canonical == true and .workpoint_id == $id' >/dev/null 2>&1 && break
-  sleep 0.1
-done
-ENABLE_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/work-loop/enable" \
-  -H 'Content-Type: application/json' \
-  -H "x-focusa-writer-id: ${WRITER_ID}" \
-  -H 'x-focusa-approval: approved' \
-  -d "{\"preset\":\"balanced\",\"root_work_item_id\":\"${WORK_ITEM_ID}\"}")"
-FENCING_TOKEN="$(echo "$ENABLE_RESP" | jq -r '.fencing_token // empty')"
-if ! echo "$FENCING_TOKEN" | grep -Eq '^[1-9][0-9]*$'; then
-  log_fail "writer lease renewal failed: $ENABLE_RESP"
-fi
+WRITER_ID="$(curl -sS "${BASE_URL}/v1/work-loop/status" | jq -r '.active_writer')"
 SOURCE_TURN_ID="pi-turn-$(date +%s%N)"
 ASK_TEXT="scope-boundary-runtime-check"
 
-CONTEXT_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/work-loop/context" \
+curl -sS -X POST "${BASE_URL}/v1/work-loop/context" \
   -H "Content-Type: application/json" \
   -H "x-focusa-writer-id: ${WRITER_ID}" \
-  -H "x-focusa-fencing-token: ${FENCING_TOKEN}" \
-  -d "{\"current_ask\":\"${ASK_TEXT}\",\"ask_kind\":\"question\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"suppress_by_default\",\"excluded_context_reason\":\"correction_reset\",\"excluded_context_labels\":[\"legacy\",\"unrelated\"],\"source_turn_id\":\"${SOURCE_TURN_ID}\"}")"
-if ! echo "$CONTEXT_RESP" | jq -e '.status == "accepted" and .canonical == true' >/dev/null 2>&1; then
-  log_fail "context mutation rejected: $CONTEXT_RESP"
-fi
+  -d "{\"current_ask\":\"${ASK_TEXT}\",\"ask_kind\":\"question\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"suppress_by_default\",\"excluded_context_reason\":\"correction_reset\",\"excluded_context_labels\":[\"legacy\",\"unrelated\"],\"source_turn_id\":\"${SOURCE_TURN_ID}\"}" >/dev/null
 
 STATUS_JSON=""
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-  STATUS_JSON="$(scoped_curl -sS "${BASE_URL}/v1/work-loop/status")"
+  STATUS_JSON="$(curl -sS "${BASE_URL}/v1/work-loop/status")"
   if echo "$STATUS_JSON" | jq -e '.decision_context.current_ask == $ask and .decision_context.source_turn_id == $turn' --arg ask "$ASK_TEXT" --arg turn "$SOURCE_TURN_ID" >/dev/null 2>&1; then
     break
   fi
@@ -72,18 +44,6 @@ if echo "$STATUS_JSON" | jq -e '.decision_context.excluded_context_reason == "co
   log_pass "status preserves reset reason and excluded context labels"
 else
   log_fail "status missing reset reason or excluded context labels"
-fi
-
-STOP_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/work-loop/stop" \
-  -H 'Content-Type: application/json' \
-  -H "x-focusa-writer-id: ${WRITER_ID}" \
-  -H "x-focusa-fencing-token: ${FENCING_TOKEN}" \
-  -H 'x-focusa-approval: approved' \
-  -d '{"reason":"query-scope runtime proof complete"}')"
-if echo "$STOP_RESP" | jq -e '.status == "accepted" or .state == "stopped" or .ok == true' >/dev/null 2>&1; then
-  log_pass "query-scope runtime proof released Workloop execution scope"
-else
-  log_fail "query-scope runtime proof cleanup failed: $STOP_RESP"
 fi
 
 echo "=== QueryScope boundary contract results ==="

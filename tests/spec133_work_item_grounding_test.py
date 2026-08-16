@@ -12,8 +12,7 @@ DAEMON = (ROOT / "crates/focusa-core/src/runtime/daemon.rs").read_text()
 class Spec133WorkItemGrounding(unittest.TestCase):
     def test_every_open_spec133_slice_has_authoritative_ref_and_acceptance(self):
         targets = [item for item in ISSUES if item["id"].startswith("focusa-a6yq6.") and item.get("status") not in {"closed", "done", "cancelled"}]
-        if not targets:
-            return
+        self.assertGreater(len(targets), 0)
         for item in targets:
             self.assertIn(SPEC_REF, item.get("labels", []), item["id"])
             self.assertTrue((item.get("acceptance_criteria") or "").strip(), item["id"])

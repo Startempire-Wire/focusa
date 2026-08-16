@@ -24,9 +24,7 @@ ROOT_RUST_PACKAGES = {
     "focusa-bench",
     "focusa-cli",
     "focusa-core",
-    "focusa-harness-adapters",
     "focusa-license",
-    "focusa-session-runner",
     "focusa-terminal-ui",
     "focusa-tui",
 }
@@ -57,18 +55,6 @@ def read_settings_version(path: str) -> str:
     if not match:
         raise SystemExit(f"display version not found: {path}")
     return match.group(0).lstrip("v")
-
-
-def read_extension_build_version(path: str, package_name: str) -> str:
-    text = (ROOT / path).read_text()
-    match = re.search(
-        rf'const EXTENSION_BUILD = "{re.escape(package_name)}@'
-        r'(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)"',
-        text,
-    )
-    if not match:
-        raise SystemExit(f"EXTENSION_BUILD identity not found: {path}")
-    return match.group(1)
 
 
 def read_lock_versions(path: str, package_names: set[str]) -> dict[str, str]:
@@ -106,18 +92,6 @@ def main() -> int:
         (
             "apps/pi-extension/package-lock.json",
             read_json_version("apps/pi-extension/package-lock.json"),
-        ),
-        (
-            "apps/pi-extension/src/auto-compaction.ts::EXTENSION_BUILD",
-            read_extension_build_version(
-                "apps/pi-extension/src/auto-compaction.ts", "focusa-pi-bridge"
-            ),
-        ),
-        (
-            "docs/contracts/spec141/generated-capability-v2/agent-card.json",
-            read_json_version(
-                "docs/contracts/spec141/generated-capability-v2/agent-card.json"
-            ),
         ),
         ("apps/menubar/package.json", read_json_version("apps/menubar/package.json")),
         (

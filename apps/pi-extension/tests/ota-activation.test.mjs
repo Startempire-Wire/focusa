@@ -8,84 +8,82 @@ import { pathToFileURL } from "node:url";
 const outDir = mkdtempSync(join(tmpdir(), "focusa-ota-activation-build-"));
 const stateHome = mkdtempSync(join(tmpdir(), "focusa-ota-activation-state-"));
 const previousStateHome = process.env.XDG_STATE_HOME;
+const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
 try {
   execFileSync(
     "./node_modules/.bin/tsc",
     ["-p", "tsconfig.json", "--outDir", outDir, "--noEmit", "false", "--module", "ES2022"],
     { cwd: new URL("..", import.meta.url), stdio: "pipe" }
   );
-  writeFileSync(join(outDir, "package.json"), '{"type":"module"}\n');
+  writeFileSync(join(outDir, "package.json"), '{"type":"module","version":"9.9.9"}\n');
   process.env.XDG_STATE_HOME = stateHome;
   const activation = await import(pathToFileURL(join(outDir, "ota-activation.js")).href);
   const paths = activation.otaActivationPaths();
   mkdirSync(join(stateHome, "focusa", "update"), { recursive: true });
 
-  const commands = new Map();
   const handlers = new Map();
-  const queued = [];
-  const pi = {
-    registerCommand(name, definition) {
-      commands.set(name, definition);
+  const inertPi = {
+    registerCommand() {
+      assert.fail("OTA activation must not register a conversational control command");
+    },
+    sendUserMessage() {
+      assert.fail("OTA activation must not inject a conversation turn");
     },
     on(name, handler) {
       handlers.set(name, handler);
     },
-    sendUserMessage(message, options) {
-      queued.push({ message, options });
-    },
   };
 
-  writeFileSync(
-    paths.restart,
-    JSON.stringify({ schema: "focusa.pi_extension_restart_required.v1", version: "9.9.9" })
-  );
-  const cleanup = activation.registerAutomaticOtaActivation(pi);
-  assert.equal(queued.length, 1);
-  assert.equal(queued[0].message, "/focusa-activate-updated-extension");
-  assert.equal(queued[0].options.deliverAs, "followUp");
-
-  let waited = 0;
-  let reloaded = 0;
-  const notices = [];
-  await commands.get("focusa-activate-updated-extension").handler("", {
-    waitForIdle: async () => {
-      waited++;
-    },
-    reload: async () => {
-      reloaded++;
-    },
-    ui: {
-      notify(message, level) {
-        notices.push({ message, level });
-      },
-    },
-  });
-  assert.equal(waited, 1);
-  assert.equal(reloaded, 1);
+  writeFileSync(paths.restart, JSON.stringify({ version: "9.9.9" }));
+  const cleanupStartup = activation.registerAutomaticOtaActivation(inertPi);
   assert.equal(existsSync(paths.restart), false);
-  assert.equal(existsSync(paths.activating), false);
-  assert.equal(JSON.parse(readFileSync(paths.receipt, "utf8")).status, "activated");
-  assert.match(notices.at(-1).message, /activated automatically/);
+  const startupReceipt = JSON.parse(readFileSync(paths.receipt, "utf8"));
+  assert.equal(startupReceipt.status, "activated");
+  assert.equal(startupReceipt.activation, "process_start");
+  cleanupStartup();
 
+  rmSync(paths.receipt, { force: true });
   writeFileSync(paths.restart, JSON.stringify({ version: "10.0.0" }));
-  await commands.get("focusa-activate-updated-extension").handler("", {
-    waitForIdle: async () => {},
-    reload: async () => {
+  let reloads = 0;
+  const reloadHandlers = new Map();
+  const reloadPi = {
+    on(name, handler) {
+      reloadHandlers.set(name, handler);
+    },
+    async reloadWhenIdle() {
+      reloads++;
+    },
+  };
+  const cleanupReload = activation.registerAutomaticOtaActivation(reloadPi);
+  await settle();
+  assert.equal(reloads, 1);
+  assert.equal(existsSync(paths.restart), false);
+  assert.equal(existsSync(paths.activating), true);
+  assert.equal(existsSync(paths.receipt), false, "old runtime cannot claim activation");
+  cleanupReload();
+
+  writeFileSync(join(outDir, "package.json"), '{"type":"module","version":"10.0.0"}\n');
+  const cleanupNewRuntime = activation.registerAutomaticOtaActivation(inertPi);
+  assert.equal(existsSync(paths.activating), false);
+  assert.equal(JSON.parse(readFileSync(paths.receipt, "utf8")).activation, "safe_idle_reload");
+  cleanupNewRuntime();
+
+  rmSync(paths.receipt, { force: true });
+  writeFileSync(paths.restart, JSON.stringify({ version: "11.0.0" }));
+  const failedPi = {
+    on() {},
+    async reloadWhenIdle() {
       throw new Error("reload rejected");
     },
-    ui: {
-      notify(message, level) {
-        notices.push({ message, level });
-      },
-    },
-  });
-  assert.equal(existsSync(paths.restart), true, "failed reload must restore the retry marker");
+  };
+  const cleanupFailure = activation.registerAutomaticOtaActivation(failedPi);
+  await settle();
+  assert.equal(existsSync(paths.restart), true, "failed reload must restore retry marker");
   assert.equal(existsSync(paths.activating), false);
-  assert.match(notices.at(-1).message, /deferred safely/);
-
-  cleanup();
+  assert.equal(existsSync(paths.receipt), false);
+  cleanupFailure();
   await handlers.get("session_shutdown")?.({}, {});
-  console.log("Pi extension OTA activation test passed");
+  console.log("Pi extension silent OTA activation test passed");
 } finally {
   if (previousStateHome == null) delete process.env.XDG_STATE_HOME;
   else process.env.XDG_STATE_HOME = previousStateHome;
