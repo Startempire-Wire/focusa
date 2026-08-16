@@ -333,6 +333,18 @@ async fn control_run(
                 let actor = body.actor_ref.unwrap_or_else(|| "daemon".to_string());
                 let mut dispatched = Vec::new();
                 let mut blocked = Vec::new();
+                // Adapter registry: route each entry frame against the
+                // registered capability sets (slice 10).
+                let adapter_capabilities: Vec<focusa_core::callgraph::AdapterCapability> =
+                    focusa_core::adapter_registry::list_adapters(&conn)?
+                        .into_iter()
+                        .map(|record| focusa_core::callgraph::AdapterCapability {
+                            adapter_id: record.adapter_id,
+                            model: record.model,
+                            capabilities: record.capabilities,
+                            healthy: record.healthy,
+                        })
+                        .collect();
                 for entry in &graph.entry_frame_ids {
                     let disposition =
                         eligibility_for_frame(&graph, entry, None, &settled);
@@ -343,6 +355,24 @@ async fn control_run(
                         }));
                         continue;
                     }
+                    let frame = graph
+                        .frames
+                        .iter()
+                        .find(|frame| frame.frame_id == *entry)
+                        .expect("entry frame exists");
+                    let route =
+                        focusa_core::callgraph::route_frame(frame, &adapter_capabilities);
+                    let routed_adapter = match &route {
+                        focusa_core::callgraph::RouteDecision::Routed { adapter_id, .. } => {
+                            adapter_id.clone()
+                        }
+                        focusa_core::callgraph::RouteDecision::WaitingCapability => {
+                            "pending-capability".to_string()
+                        }
+                        focusa_core::callgraph::RouteDecision::Rejected => {
+                            "rejected".to_string()
+                        }
+                    };
                     let dispatch_id = uuid::Uuid::now_v7().to_string();
                     let invocation_id = uuid::Uuid::now_v7().to_string();
                     focusa_core::callgraph_store::commit_dispatch(
@@ -356,7 +386,7 @@ async fn control_run(
                             disposition: Disposition::Eligible,
                             attempt: 1,
                             committed_at: now.clone(),
-                            actor_ref: actor.clone(),
+                            actor_ref: routed_adapter,
                         },
                     )?;
                     focusa_core::callgraph_store::acquire_lease(
