@@ -11,10 +11,19 @@ members = [
     "crates/focusa-terminal-ui",
     "crates/focusa-bench",
     "crates/focusa-session-runner",
+    "crates/agent-stateful-cognitive-runtime",
+    "crates/letta-adapter",
+    "crates/pi-client-tool-gateway",
+    "crates/cognitive-state-projection",
 ]
 exclude = [
     "apps/menubar/src-tauri",
 ]
+
+agent-stateful-cognitive-runtime = { path = "crates/agent-stateful-cognitive-runtime" }
+letta-adapter = { path = "crates/letta-adapter" }
+pi-client-tool-gateway = { path = "crates/pi-client-tool-gateway" }
+cognitive-state-projection = { path = "crates/cognitive-state-projection" }
 
 [workspace.package]
 version = "0.9.121-dev"
