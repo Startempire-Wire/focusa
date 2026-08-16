@@ -28,8 +28,25 @@ impl WorkstreamStateStore {
         let key = workstream_scope_key(project_root, continuity_id);
         let mut states = self.states.write().await;
         states
-            .entry(key)
-            .or_insert_with(|| Arc::new(RwLock::new(FocusaState::default())))
+            .entry(key.clone())
+            .or_insert_with(|| {
+                // Slice-2 durability: a persisted partition (state.sqlite
+                // via partition_paths) rehydrates on first access — a
+                // daemon restart resumes the exact workstream root.
+                let mut initial = FocusaState::default();
+                let data_dir = std::env::var("FOCUSA_DATA_DIR")
+                    .unwrap_or_else(|_| "data/.focusa".to_string());
+                let partitions = focusa_core::workstream_root::partition_paths(
+                    std::path::Path::new(&data_dir),
+                    &key,
+                );
+                if let Ok(raw) = std::fs::read_to_string(&partitions.state_ref) {
+                    if let Ok(state) = serde_json::from_str::<FocusaState>(&raw) {
+                        initial = state;
+                    }
+                }
+                Arc::new(RwLock::new(initial))
+            })
             .clone()
     }
 

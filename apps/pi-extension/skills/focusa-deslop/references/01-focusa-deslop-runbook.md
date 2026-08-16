@@ -28,7 +28,9 @@ Never change behavior. Re-run the gates. Summarize in 1-3 sentences.
 ## Checks (all must pass)
 
 envelope-parity · skill-ownership · tool-taxonomy · distribution-parity
-· doc-coverage · e2e-matrix (21/21) · workspace-gate · deslop ceiling.
+· doc-coverage · e2e-matrix (21/21) · workspace-gate · deslop ceiling
+· bg-notification contract (every dispatched job completes through
+  focusa bg; no raw-shell dispatch, no tail polling).
 
 ## Close the loop
 

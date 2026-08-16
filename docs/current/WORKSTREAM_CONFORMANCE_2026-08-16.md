@@ -17,6 +17,8 @@ VERY IMPORTANT re-check, operator-directed.
 Now enforced at the canonical scoped write sites: workpoint
 materialize, trajectory dispatch (event-scoped), focus materialize —
 each writes through to the named partition + persists it durably.
+Partitions REHYDRATE on first access (get_or_create loads the
+persisted state.sqlite) — a daemon restart resumes the exact root.
 
 ## Acceptance sketch status
 
