@@ -42,6 +42,11 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 3. `focusa_tool_describe` cold-loads one strict contract; `focusa_tool_graph` or `focusa_tool_bundle` expands only the selected workflow.
 4. `docs/contracts/spec141/generated-capability-v2/pi-tools.json` is the machine projection for every Focusa Pi tool.
 5. `docs/focusa-tools/tools/focusa_<name>.md` is the human reference for each tool.
+6. Background execution primitives: `focusa_bg_run` / `focusa_bg_run_many` /
+   `focusa_bg_status` — the canonical non-TBQ dispatch. Completions
+   arrive on the agent front terminal via the `background_job_completion`
+   SSE envelope (bounded output_tail). Multi-agent work = N
+   workloop-bound silent sessions (docs/168), never raw shells.
 6. Load the matched `.pi/skills/<skill>/SKILL.md`, then its numbered runbook under `references/`.
 
 A release gate must prove runtime tool count = contracts = Pi descriptors = per-tool docs, and installed skills/runbooks = packaged skill/runbook copies.
