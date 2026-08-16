@@ -8,6 +8,28 @@
 // Extension = thin bridge. Focus State = operator manages.
 // Agent uses scratchpad for working notes. Operator manages Focus State.
 
+export function toolResult(
+  ok: boolean,
+  status: string,
+  summary: string,
+  data?: unknown
+) {
+  // The pi-native AgentToolResult shape: text content + typed details.
+  // Every bg/workset/callgraph tool returns through this constructor —
+  // no per-tool envelope re-typing, no as-any escapes.
+  return {
+    content: [{ type: "text" as const, text: summary }],
+    details: {
+      schema: "focusa.tool_result_v1",
+      canonical: true,
+      ok,
+      status,
+      summary,
+      ...(data !== undefined ? { data } : {}),
+    },
+  };
+}
+
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { createHash } from "crypto";
@@ -70,6 +92,7 @@ import {
 import {
   FOCUSA_TOOL_CONTRACTS,
   buildFocusaToolAffordanceCatalog,
+  findFocusaToolContract,
   focusaToolContractSummary,
 } from "./tool-contracts.js";
 import {
@@ -409,7 +432,7 @@ function duplicateCandidateForWrite(key: string): boolean {
 }
 
 type FocusaToolStatus =
-  "accepted" | "completed" | "no_op" | "blocked" | "validation_rejected" | "degraded" | "offline" | "error";
+  "accepted" | "completed" | "no_op" | "not_found" | "blocked" | "validation_rejected" | "degraded" | "offline" | "error";
 type FocusaRetryPosture =
   | "safe_retry"
   | "retry_with_idempotency_key"
@@ -1013,25 +1036,6 @@ function focusaEvidenceCaptureSuggestion(input: {
   };
 }
 
-/** Render an unknown error/reason payload as readable text; objects are
- *  compact-JSON-stringified so nested reasons never render as "[object Object]"
- *  (see #266: the daemon returns structured error bodies that the old template
- *  interpolation flattened into [object Object], hiding the real blocker). */
-function safeErrorText(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "string") return value;
-  if (typeof value === "object") {
-    try {
-      const compact = JSON.stringify(value);
-      if (!compact) return "";
-      return compact.length > 240 ? `${compact.slice(0, 240)}…` : compact;
-    } catch {
-      return String(value);
-    }
-  }
-  return String(value);
-}
-
 function blockedToolResponse(
   tool: string,
   family: string,
@@ -1294,19 +1298,28 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
   const details = (result?.details || {}) as Record<string, any>;
   if (details.tool_result_v1) return details.tool_result_v1 as FocusaToolResultV1;
   const text = String(result?.content?.[0]?.text || details.summary || "");
-  const family = tool.startsWith("focusa_workpoint_")
-    ? "workpoint"
-    : tool.startsWith("focusa_work_loop_")
-      ? "work_loop"
-      : tool.startsWith("focusa_tree_")
-        ? "tree_snapshot_lineage"
-        : tool.startsWith("focusa_metacog_")
-          ? "metacognition"
-          : tool.startsWith("focusa_lineage") || tool.startsWith("focusa_li_")
-            ? "lineage_intelligence"
-            : tool === "focusa_scratch"
-              ? "scratchpad"
-              : "focus_state";
+  // #304: the canonical contract registry owns family/read-only truth for
+  // registered tools. Name-pattern fallback applies only to unregistered ones.
+  const contract = findFocusaToolContract(tool);
+  const inferenceAllowed = !contract;
+  const contractFamily = contract?.family;
+  const family = contractFamily
+    ? contractFamily === "tree_lineage"
+      ? "tree_snapshot_lineage"
+      : contractFamily
+    : tool.startsWith("focusa_workpoint_")
+      ? "workpoint"
+      : tool.startsWith("focusa_work_loop_")
+        ? "work_loop"
+        : tool.startsWith("focusa_tree_")
+          ? "tree_snapshot_lineage"
+          : tool.startsWith("focusa_metacog_")
+            ? "metacognition"
+            : tool.startsWith("focusa_lineage") || tool.startsWith("focusa_li_")
+              ? "lineage_intelligence"
+              : tool === "focusa_scratch"
+                ? "scratchpad"
+                : "focus_state";
   const explicitStatus = typeof details.status === "string" ? details.status.toLowerCase() : "";
   const mappedExplicitStatus: FocusaToolStatus | null = ["accepted", "completed", "no_op"].includes(
     explicitStatus
@@ -1325,18 +1338,31 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
               : explicitStatus === "error"
                 ? "error"
                 : null;
+  // #304: descriptor prose must never be interpreted as the call's outcome.
+  // Text inference runs only for tools without a registered contract; explicit
+  // status/failure fields remain authoritative for registered tools.
+  const detailsFailureClass =
+    typeof details.failure_class === "string"
+      ? (details.failure_class as FocusaFailureClass)
+      : typeof (details.response as any)?.failure_class === "string"
+        ? ((details.response as any).failure_class as FocusaFailureClass)
+        : undefined;
   const ok =
     mappedExplicitStatus !== null
       ? ["accepted", "completed", "no_op"].includes(mappedExplicitStatus)
-      : details.ok === true ||
-        details.valid === true ||
-        (!/^❌|blocked|.* unavailable/.test(text) && details.ok !== false && details.valid !== false);
+      : details.ok === true || details.valid === true
+        ? true
+        : details.ok === false || details.valid === false || Boolean(detailsFailureClass)
+          ? false
+          : !text.startsWith("❌");
   const validationRejected =
-    mappedExplicitStatus === null && (details.valid === false || /validation_rejected|rejected/.test(text));
-  const offline = mappedExplicitStatus === null && /offline|unavailable/.test(text);
-  const blocked = mappedExplicitStatus === null && /blocked/.test(text);
+    mappedExplicitStatus === "validation_rejected" || (inferenceAllowed && details.valid === false);
+  const offline = mappedExplicitStatus === null && inferenceAllowed && /offline|unavailable/.test(text);
+  const blocked = mappedExplicitStatus === null && inferenceAllowed && /blocked/.test(text);
   const degraded =
-    mappedExplicitStatus === null && (details.canonical === false || /degraded|NON-CANONICAL/.test(text));
+    mappedExplicitStatus === null &&
+    inferenceAllowed &&
+    (details.canonical === false || /degraded|NON-CANONICAL/.test(text));
   const status: FocusaToolStatus =
     mappedExplicitStatus ||
     (validationRejected
@@ -1350,7 +1376,11 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
             : ok
               ? "completed"
               : "error");
+  const contractReadOnly = contract
+    ? contract.side_effect_profile === "read_state" || contract.scope_requirement?.kind === "read"
+    : false;
   const readOnly =
+    contractReadOnly ||
     family === "lineage_intelligence" ||
     tool.endsWith("_status") ||
     tool.endsWith("_resume") ||
@@ -1360,12 +1390,6 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
     tool.includes("_recent") ||
     tool.includes("_doctor") ||
     tool.includes("_diff_");
-  const detailsFailureClass =
-    typeof details.failure_class === "string"
-      ? (details.failure_class as FocusaFailureClass)
-      : typeof (details.response as any)?.failure_class === "string"
-        ? ((details.response as any).failure_class as FocusaFailureClass)
-        : undefined;
   // Spec 152F §7: project the canonical entitlement decision when the daemon
   // blocks the tool (focusaFetch returns an ENTITLEMENT_* denial envelope).
   const daemonResponse =
@@ -1598,6 +1622,7 @@ const FOCUSA_TOOL_RESULT_V1_SCHEMA = Type.Object(
       Type.Literal("accepted"),
       Type.Literal("completed"),
       Type.Literal("no_op"),
+      Type.Literal("not_found"),
       Type.Literal("blocked"),
       Type.Literal("validation_rejected"),
       Type.Literal("degraded"),
@@ -1609,6 +1634,12 @@ const FOCUSA_TOOL_RESULT_V1_SCHEMA = Type.Object(
     canonical: Type.Boolean(),
     degraded: Type.Boolean(),
     summary: Type.String(),
+    // #306: every field the envelope builder emits must be declared here —
+    // additionalProperties=false makes undeclared projections schema-invalid.
+    tool: Type.Optional(Type.String()),
+    family: Type.Optional(Type.String()),
+    endpoint: Type.Optional(Type.String()),
+    workpoint_id: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     retry: Type.Object(
       {
         safe: Type.Boolean(),
@@ -1622,6 +1653,23 @@ const FOCUSA_TOOL_RESULT_V1_SCHEMA = Type.Object(
     next_tools: Type.Array(Type.String()),
     recovery_hint: Type.Optional(Type.String()),
     misuse_hint: Type.Optional(Type.String()),
+    reflex_suggestions: Type.Optional(Type.Array(Type.String())),
+    ontology_candidate_delta_refs: Type.Optional(Type.Array(Type.String())),
+    error: Type.Optional(
+      Type.Union([
+        Type.Null(),
+        Type.Object(
+          {
+            field: Type.Optional(Type.String()),
+            code: Type.Optional(Type.String()),
+            message: Type.Optional(Type.String()),
+            allowed_values: Type.Optional(Type.Array(Type.String())),
+          },
+          { additionalProperties: false }
+        ),
+      ])
+    ),
+    raw: Type.Optional(Type.Unknown()),
     details: Type.Optional(Type.Unknown()),
   },
   { additionalProperties: false }
@@ -2288,7 +2336,7 @@ export function registerTools(pi: ExtensionAPI) {
   }) as typeof pi.registerTool;
   registerAgentRuntimeTools(pi);
 
-  pi.registerTool({
+pi.registerTool({
     name: "focusa_daemon_routing_status",
     label: "Daemon Routing Status",
     description:
@@ -3375,7 +3423,7 @@ export function registerTools(pi: ExtensionAPI) {
     fallback: string
   ): string {
     if (result.ok) return fallback;
-    const msg = safeErrorText(result.body?.error).toLowerCase();
+    const msg = String(result.body?.error || "").toLowerCase();
     const activeWriter = result.body?.active_writer ? ` (${result.body.active_writer})` : "";
     if (msg.includes("claimed by another writer"))
       return `blocked: loop controlled by another session${activeWriter}`;
@@ -3408,7 +3456,15 @@ export function registerTools(pi: ExtensionAPI) {
       return `blocked: scope mismatch on ${field} expected=${expected} packet=${actual}; ${hint}`;
     }
     if (result.status === 0) return "blocked: daemon unavailable";
-    const errorText = safeErrorText(result.body?.error);
+    // #266: daemon envelopes may carry error as an object {code, message};
+    // never interpolate a raw object into human text.
+    const rawError = result.body?.error;
+    const errorText =
+      typeof rawError === "string"
+        ? rawError
+        : rawError && typeof rawError === "object"
+          ? String(rawError.message || rawError.code || "").trim()
+          : "";
     return `blocked: ${errorText || `request failed (${result.status})`}`;
   }
 
@@ -4392,7 +4448,7 @@ export function registerTools(pi: ExtensionAPI) {
             type: "text",
             text: accepted
               ? "state hygiene apply → recorded non-destructive Focus State note"
-              : `state hygiene apply blocked → ${safeErrorText(result.body?.reason) || String(result.body?.status || result.status)}`,
+              : `state hygiene apply blocked → ${String(result.body?.reason || result.body?.status || result.status)}`,
           },
         ],
         details: {
@@ -4425,9 +4481,7 @@ export function registerTools(pi: ExtensionAPI) {
               ? null
               : {
                   code: "focus_update_unavailable",
-                  message:
-                    safeErrorText(result.body?.reason) ||
-                    String(result.body?.status || result.status),
+                  message: String(result.body?.reason || result.body?.status || result.status),
                 },
           },
         },
@@ -4581,7 +4635,289 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
-    name: "focusa_tool_doctor",
+  name: "focusa_workset_projection",
+  label: "Focusa Workset Projection",
+  description:
+    "Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph.",
+  promptSnippet: "Use to inspect workset membership + completion contract state.",
+  parameters: Type.Object({
+    workset_id: Type.String({ description: "Workset id." }),
+  }),
+  async execute(_id: any, params: any) {
+    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const res = await fetch(`${base}/v1/worksets/${encodeURIComponent(params.workset_id)}/projection`);
+    const body = await res.json();
+    return toolResult(
+      res.ok,
+      body.status || "ok",
+      body.projection
+        ? `Workset ${params.workset_id}: ${Object.keys(body.projection.requirements || {}).length} requirements, settled=${body.projection.settled}`
+        : String(body.error || body.status || "missing"),
+      body
+    );
+  },
+});
+
+pi.registerTool({
+  name: "focusa_callgraph_validate",
+  label: "Focusa CallGraph Validate",
+  description:
+    "Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic.",
+  promptSnippet: "Use before creating or dispatching any CallGraph.",
+  parameters: Type.Object({
+    graph: Type.Object({}, { additionalProperties: true }),
+  }),
+  async execute(_id: any, params: any) {
+    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const res = await fetch(`${base}/v1/callgraphs/validate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params.graph),
+    });
+    const body = await res.json();
+    return toolResult(
+      res.ok,
+      body.status || "valid",
+      body.valid
+        ? "CallGraph definition validates."
+        : `CallGraph invalid: ${(body.issues || []).map((i: any) => i.path + ": " + i.message).join("; ")}`,
+      body
+    );
+  },
+});
+
+pi.registerTool({
+  name: "focusa_callgraph_observe",
+  label: "Focusa CallGraph Observe",
+  description:
+    "Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only.",
+  promptSnippet: "Use to inspect run progress and settlement state.",
+  parameters: Type.Object({
+    run_id: Type.String({ description: "CallGraph run id." }),
+  }),
+  async execute(_id: any, params: any) {
+    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const [runRes, pathsRes] = await Promise.all([
+      fetch(`${base}/v1/callgraph-runs/${encodeURIComponent(params.run_id)}`),
+      fetch(`${base}/v1/callgraph-runs/${encodeURIComponent(params.run_id)}/paths`),
+    ]);
+    const run = await runRes.json();
+    const paths = await pathsRes.json();
+    return toolResult(
+      runRes.ok,
+      run.status || "ok",
+      `Run ${params.run_id}: state=${run.run?.state || run.status}, dispatches=${(run.dispatches || []).length}`,
+      { run, paths }
+    );
+  },
+});
+
+pi.registerTool({
+  name: "focusa_credentials_verify",
+  label: "Focusa Credentials Verify",
+  description:
+    "Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam.",
+  promptSnippet: "Grant verdicts only — no secrets in or out.",
+  parameters: Type.Object({
+    requirement: Type.Object({
+      schema: Type.String(),
+      credential_role_ref: Type.String(),
+      required_operation: Type.String(),
+      required_exposure_mode: Type.String(),
+      exact_consumer_ref: Type.String(),
+      exact_target_refs: Type.Array(Type.String()),
+      use_count_required: Type.Number(),
+      evidence_requirement_refs: Type.Array(Type.String()),
+    }),
+    grants: Type.Array(Type.Unknown()),
+  }),
+  async execute(_id: any, params: any) {
+    const res = await focusaFetchDetailed("/credentials/verify-requirement", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requirement: params.requirement, grants: params.grants || [] }),
+    });
+    if (!res.ok) {
+      return toolResult(false, res.body?.status || "blocked", `Credential verify failed: ${res.body?.summary || res.status}`, res.body);
+    }
+    const body = res.body || {};
+    return toolResult(
+      body.satisfied,
+      body.satisfied ? "satisfied" : "denied",
+      body.satisfied ? "Requirement satisfied by the provided grants." : `Not satisfied: ${(body.reasons || []).join("; ")}`,
+      body
+    );
+  },
+});
+
+pi.registerTool({
+  name: "focusa_cockpit_projection",
+  label: "Focusa Cockpit Projection",
+  description:
+    "Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view.",
+  promptSnippet: "One read = worksets + callgraph frontier + steers + bg board.",
+  parameters: Type.Object({
+    project_root: Type.Optional(Type.String({ description: "Project root scope (defaults to the session cwd)." })),
+  }),
+  async execute(_id: any, params: any) {
+    const runtime = getAttachmentRuntime();
+    const projectRoot = params.project_root || runtime?.sessionCwd || process.cwd();
+    const res = await focusaFetchDetailed("/cockpit/projection");
+    if (!res.ok) {
+      return toolResult(
+        false,
+        res.body?.status || "blocked",
+        `Cockpit projection failed: ${res.body?.summary || res.status}`,
+        res.body
+      );
+    }
+    const data = res.body || {};
+    const worksets = data.worksets || [];
+    const runs = data.callgraph || [];
+    const steers = data.steers || [];
+    const bg = data.background || {};
+    return toolResult(
+      true,
+      "ok",
+      `Flywheel: ${worksets.length} worksets, ${runs.length} open callgraph runs, ${steers.length} steers, ${bg.active ?? 0} active bg jobs`,
+      data
+    );
+  },
+});
+
+pi.registerTool({
+  name: "focusa_bg_run",
+  label: "Focusa BG Run",
+  description:
+    "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up.",
+  promptSnippet: "The canonical non-blocking dispatch for builds/tests/long scans.",
+  parameters: Type.Object({
+    name: Type.String({ description: "Human job name (appears in the completion notification)." }),
+    command: Type.String({ description: "The full command line to execute (after -- semantics)." }),
+    cwd: Type.Optional(Type.String({ description: "Working directory (defaults to the current session cwd)." })),
+  }),
+  async execute(_id: any, params: any) {
+    const { spawn } = require("child_process");
+    const runtime = getAttachmentRuntime();
+    const cwd = params.cwd || runtime?.sessionCwd || process.cwd();
+    const pid = spawn(
+      "/usr/local/bin/focusa",
+      ["bg", "run", "--name", String(params.name), "--cwd", cwd, "--", ...String(params.command).split(" ")],
+      { detached: true, stdio: "ignore" }
+    );
+    pid.unref?.();
+    return toolResult(
+      true,
+      "dispatched",
+      `Background job "${params.name}" dispatched. The completion notification (with output tail) arrives on the agent front terminal via SSE; inspect with focusa_bg_status when needed.`,
+      {
+        job_name: params.name,
+        command: params.command,
+        cwd,
+        delivery: "background_job_completion SSE notification (front terminal)",
+      }
+    );
+  },
+});
+
+pi.registerTool({
+  name: "focusa_fast_forward",
+  label: "Focusa Fast Forward",
+  description:
+    "Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312).",
+  promptSnippet: "Use to parallelize a set of work items across session lanes.",
+  parameters: Type.Object({
+    multiplier: Type.Number({ description: "Speed multiplier: 2, 4, 6, 8..." }),
+    work_items: Type.Array(Type.String({ description: "Work item refs to divide across lanes." })),
+    policy_max_turns_per_session: Type.Optional(Type.Number({ description: "Per-lane turn cap (default 12)." })),
+  }),
+  async execute(_id: any, params: any) {
+    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const body: any = {
+      multiplier: Number(params.multiplier),
+      work_items: params.work_items || [],
+    };
+    if (params.policy_max_turns_per_session != null) {
+      body.policy_max_turns_per_session = Number(params.policy_max_turns_per_session);
+    }
+    const res = await fetch(`${base}/v1/silent-sessions/fanout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const result = await res.json();
+    return toolResult(
+      res.ok,
+      result.status || "planned",
+      result.plan
+        ? `${result.plan.session_count} fast-forward lanes planned (${result.plan.multiplier}x); create + start each lane as a silent session bound to its work items.`
+        : String(result.error || result.status || "fanout rejected"),
+      result
+    );
+  },
+});
+
+pi.registerTool({
+  name: "focusa_bg_run_many",
+  label: "Focusa BG Run Many (parallel orchestration)",
+  description:
+    "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks.",
+  promptSnippet: "Use to parallelize independent long-running commands.",
+  parameters: Type.Object({
+    jobs: Type.Array(
+      Type.Object({
+        name: Type.String({ description: "Job name (appears in its completion notification)." }),
+        command: Type.String({ description: "Full command line to execute." }),
+        cwd: Type.Optional(Type.String({ description: "Working directory override." })),
+      })
+    ),
+  }),
+  async execute(_id: any, params: any) {
+    const { spawn } = require("child_process");
+    const runtime = getAttachmentRuntime();
+    const dispatched: any[] = [];
+    for (const job of params.jobs || []) {
+      const cwd = job.cwd || runtime?.sessionCwd || process.cwd();
+      const pid = spawn(
+        "/usr/local/bin/focusa",
+        ["bg", "run", "--name", String(job.name), "--cwd", cwd, "--", ...String(job.command).split(" ")],
+        { detached: true, stdio: "ignore" }
+      );
+      pid.unref?.();
+      dispatched.push({ name: job.name, command: job.command, cwd, delivery: "background_job_completion SSE per job" });
+    }
+    return toolResult(
+      true,
+      "dispatched",
+      `${dispatched.length} background jobs dispatched in parallel; each delivers its own completion notification to the front terminal.`,
+      { dispatched }
+    );
+  },
+});
+
+pi.registerTool({
+name: "focusa_bg_status",
+  label: "Focusa BG Status",
+  description:
+    "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop.",
+  promptSnippet: "Use for a one-shot ledger snapshot; never poll with it.",
+  parameters: Type.Object({
+    job_id: Type.Optional(Type.String({ description: "Optional job id; omit to list recent jobs." })),
+  }),
+  async execute(_id: any, params: any) {
+    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const path = params.job_id
+      ? `/v1/background-jobs/${encodeURIComponent(params.job_id)}`
+      : "/v1/background-jobs";
+    const res = await fetch(`${base}${path}`);
+    const body = await res.json();
+    return toolResult(true, "ok", "Background job ledger snapshot (instant query).", body);
+  },
+});
+
+pi.registerTool({
+  name: "focusa_tool_doctor",
+
     label: "Focusa Tool Doctor",
     description:
       "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
