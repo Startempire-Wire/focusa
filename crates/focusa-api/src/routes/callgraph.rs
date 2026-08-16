@@ -29,6 +29,7 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         .route("/v1/callgraphs/{graph_id}/runs", post(create_run))
         .route("/v1/callgraph-runs/{run_id}", get(get_run))
+        .route("/v1/callgraph-runs/{run_id}/control", post(control_run))
 }
 
 #[derive(Deserialize)]
@@ -277,6 +278,124 @@ async fn get_run(
             "run": run,
             "dispatches": dispatches,
         }))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
+        Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+    }
+}
+
+/// Dispatch control (Spec 155 §19.1 POST /v1/callgraph-runs/{run_id}/control).
+/// `dispatch_entry_frontier` commits a durable dispatch row per eligible
+/// entry frame BEFORE any adapter activity — the §12 commit boundary.
+#[derive(Deserialize)]
+pub struct ControlBody {
+    pub action: String,
+    #[serde(default)]
+    pub actor_ref: Option<String>,
+}
+
+async fn control_run(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(run_id): axum::extract::Path<String>,
+    Json(body): Json<ControlBody>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        let Some(run) = focusa_core::callgraph_store::load_run(&conn, &run_id)? else {
+            return Ok(json!({"status": "missing", "run_id": run_id}));
+        };
+        match body.action.as_str() {
+            "dispatch_entry_frontier" => {
+                let Some(stored) = focusa_core::callgraph_store::load_definition(
+                    &conn,
+                    &run.graph_id,
+                    run.revision,
+                )?
+                else {
+                    return Ok(json!({
+                        "status": "rejected_missing_definition",
+                        "graph_id": run.graph_id,
+                        "revision": run.revision,
+                    }));
+                };
+                let graph: FocusaCallGraphDefinition = serde_json::from_str(&stored.definition_json)
+                    .map_err(|error| anyhow::anyhow!("stored definition unparsable: {error}"))?;
+                let settled = std::collections::HashSet::new();
+                let now = chrono::Utc::now().to_rfc3339();
+                let actor = body.actor_ref.unwrap_or_else(|| "daemon".to_string());
+                let mut dispatched = Vec::new();
+                let mut blocked = Vec::new();
+                for entry in &graph.entry_frame_ids {
+                    let disposition =
+                        eligibility_for_frame(&graph, entry, None, &settled);
+                    if disposition != Disposition::Eligible {
+                        blocked.push(json!({
+                            "frame_id": entry,
+                            "disposition": disposition,
+                        }));
+                        continue;
+                    }
+                    let dispatch_id = uuid::Uuid::now_v7().to_string();
+                    let invocation_id = uuid::Uuid::now_v7().to_string();
+                    focusa_core::callgraph_store::commit_dispatch(
+                        &conn,
+                        &focusa_core::callgraph_store::DispatchCommit {
+                            dispatch_id: dispatch_id.clone(),
+                            run_id: run_id.clone(),
+                            frame_id: entry.clone(),
+                            invocation_id: invocation_id.clone(),
+                            parent_invocation_id: None,
+                            disposition: Disposition::Eligible,
+                            attempt: 1,
+                            committed_at: now.clone(),
+                            actor_ref: actor.clone(),
+                        },
+                    )?;
+                    focusa_core::callgraph_store::acquire_lease(
+                        &conn,
+                        &focusa_core::callgraph_store::FrameLease {
+                            invocation_id: invocation_id.clone(),
+                            run_id: run_id.clone(),
+                            frame_id: entry.clone(),
+                            lease_holder: actor.clone(),
+                            lease_expires_at: (chrono::Utc::now()
+                                + chrono::Duration::seconds(300))
+                            .to_rfc3339(),
+                            acquired_at: now.clone(),
+                        },
+                    )?;
+                    dispatched.push(json!({
+                        "dispatch_id": dispatch_id,
+                        "invocation_id": invocation_id,
+                        "frame_id": entry,
+                    }));
+                }
+                if !dispatched.is_empty() {
+                    focusa_core::callgraph_store::transition_run(
+                        &conn,
+                        &run_id,
+                        focusa_core::callgraph_store::RunState::Running,
+                        &now,
+                    )?;
+                }
+                Ok(json!({
+                    "status": if blocked.is_empty() { "dispatched" } else { "partial" },
+                    "run_id": run_id,
+                    "dispatched": dispatched,
+                    "blocked": blocked,
+                }))
+            }
+            other => Ok(json!({
+                "status": "unknown_action",
+                "action": other,
+                "supported": ["dispatch_entry_frontier"],
+            })),
+        }
     })
     .await;
     match result {

@@ -90,6 +90,14 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS callgraph_frame_leases (
+            invocation_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            frame_id TEXT NOT NULL,
+            lease_holder TEXT NOT NULL,
+            lease_expires_at TEXT NOT NULL,
+            acquired_at TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS callgraph_dispatches (
             dispatch_id TEXT PRIMARY KEY,
             run_id TEXT NOT NULL,
@@ -293,6 +301,79 @@ fn disposition_from(value: String) -> Disposition {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrameLease {
+    pub invocation_id: String,
+    pub run_id: String,
+    pub frame_id: String,
+    pub lease_holder: String,
+    pub lease_expires_at: String,
+    pub acquired_at: String,
+}
+
+/// Acquire a frame lease. Returns Ok(true) on acquisition; Ok(false) when
+/// an unexpired lease already exists for the invocation (liveness guard).
+pub fn acquire_lease(conn: &Connection, lease: &FrameLease) -> Result<bool> {
+    let existing: Option<String> = conn
+        .query_row(
+            "SELECT lease_expires_at FROM callgraph_frame_leases WHERE invocation_id = ?1",
+            params![lease.invocation_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let now = chrono::Utc::now().to_rfc3339();
+    if let Some(expires) = existing {
+        if expires > now {
+            return Ok(false);
+        }
+        conn.execute(
+            "DELETE FROM callgraph_frame_leases WHERE invocation_id = ?1",
+            params![lease.invocation_id],
+        )?;
+    }
+    conn.execute(
+        "INSERT INTO callgraph_frame_leases
+         (invocation_id, run_id, frame_id, lease_holder, lease_expires_at, acquired_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![
+            lease.invocation_id,
+            lease.run_id,
+            lease.frame_id,
+            lease.lease_holder,
+            lease.lease_expires_at,
+            lease.acquired_at,
+        ],
+    )?;
+    Ok(true)
+}
+
+pub fn release_lease(conn: &Connection, invocation_id: &str) -> Result<()> {
+    conn.execute(
+        "DELETE FROM callgraph_frame_leases WHERE invocation_id = ?1",
+        params![invocation_id],
+    )?;
+    Ok(())
+}
+
+/// Lapsed leases (expired but not released) — liveness sweeper input.
+pub fn lapsed_leases(conn: &Connection, now: &str) -> Result<Vec<FrameLease>> {
+    let mut stmt = conn.prepare(
+        "SELECT invocation_id, run_id, frame_id, lease_holder, lease_expires_at, acquired_at
+         FROM callgraph_frame_leases WHERE lease_expires_at <= ?1",
+    )?;
+    let rows = stmt.query_map(params![now], |row| {
+        Ok(FrameLease {
+            invocation_id: row.get(0)?,
+            run_id: row.get(1)?,
+            frame_id: row.get(2)?,
+            lease_holder: row.get(3)?,
+            lease_expires_at: row.get(4)?,
+            acquired_at: row.get(5)?,
+        })
+    })?;
+    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -401,6 +482,33 @@ mod tests {
         let dispatches = list_dispatches(&conn, "r1").unwrap();
         assert_eq!(dispatches.len(), 1);
         assert_eq!(dispatches[0].disposition, Disposition::Eligible);
+    }
+
+    #[test]
+    fn lease_acquire_release_lapse() {
+        let conn = Connection::open_in_memory().unwrap();
+        ensure_schema(&conn).unwrap();
+        let lease = FrameLease {
+            invocation_id: "i1".to_string(),
+            run_id: "r1".to_string(),
+            frame_id: "a".to_string(),
+            lease_holder: "holder-1".to_string(),
+            lease_expires_at: (chrono::Utc::now() + chrono::Duration::seconds(60)).to_rfc3339(),
+            acquired_at: chrono::Utc::now().to_rfc3339(),
+        };
+        assert!(acquire_lease(&conn, &lease).unwrap());
+        // Second acquisition while unexpired is refused.
+        assert!(!acquire_lease(&conn, &lease).unwrap());
+        release_lease(&conn, "i1").unwrap();
+        assert!(acquire_lease(&conn, &lease).unwrap());
+        // Lapsed lease surfaces for the sweeper.
+        let lapsed = lapsed_leases(
+            &conn,
+            &(chrono::Utc::now() + chrono::Duration::minutes(5)).to_rfc3339(),
+        )
+        .unwrap();
+        assert_eq!(lapsed.len(), 1);
+        assert_eq!(lapsed[0].frame_id, "a");
     }
 
     #[test]
