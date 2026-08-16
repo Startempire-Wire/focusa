@@ -308,3 +308,21 @@ bounded core + persistence slices:
 - PR #129 (#128): Spec 152 docs-gate fixed on the PR branch (`0531b8b3`,
   authority-issued concept; gate passes locally, CI re-running).
 - #101 convergence table refreshed; #275 projection updated for #89/#254.
+
+## 5l. #287 export + #289 envelope slices (2026-08-16)
+
+- #287 slice 2: CSV/TSV + Mermaid join the typed projection; GET
+  /v1/callgraphs/{graph_id}/export serves every format with the manifest;
+  `focusa callgraph export` CLI. 6/6 tests. Commits `f7ab1842`,
+  `71a03da1` (pushed `5c97d639`, `0414cd2e`).
+- #289 slice 1: canonical layered CallGraphItemEnvelope
+  (identity/semantic/topology/execution/assignment/authority/verification/
+  completion/provenance + content digest), built explicitly from frame +
+  graph — missing values stay explicit. 3/3 tests. Commit `d2480c65`
+  (pushed `ce2dc334`). Envelope route
+  GET /v1/callgraph-items/{graph_id}/{frame_id} wired.
+- Remote build host lock incident: a stale `focusa-daemon --version`
+  process held /tmp/focusa-ovh-test-daemon.lock on the build host and
+  wedged the runner queue; killed it and the queue drained. Build-host
+  lock hygiene: verify no orphaned runner child processes hold the lock fd
+  after long gates.
