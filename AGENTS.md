@@ -53,6 +53,15 @@ terminal; the JOB runs through focusa bg.)
   FanoutPlan divides work items round-robin across parallel sessions;
   per-lane policy budgets, wait-for-all join (docs/169).
 
+## Production consistency (mandatory default for every feature)
+
+Every Focusa feature ships only when all five proofs exist: versioned
+contract, producer tests, CONSUMER-side tests (producer-green is not
+delivery-green), cross-version interop, and the live e2e proof across
+supported environments. Policy:
+docs/current/PRODUCTION_CONSISTENCY_POLICY.md. The bg-notification
+feature is the reference implementation of the policy.
+
 ## Disk headroom (mandatory)
 
 Never allow the operator filesystem or user quota to reach capacity.
