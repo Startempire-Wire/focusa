@@ -8,6 +8,28 @@
 // Extension = thin bridge. Focus State = operator manages.
 // Agent uses scratchpad for working notes. Operator manages Focus State.
 
+export function toolResult(
+  ok: boolean,
+  status: string,
+  summary: string,
+  data?: unknown
+) {
+  // The pi-native AgentToolResult shape: text content + typed details.
+  // Every bg/workset/callgraph tool returns through this constructor —
+  // no per-tool envelope re-typing, no as-any escapes.
+  return {
+    content: [{ type: "text" as const, text: summary }],
+    details: {
+      schema: "focusa.tool_result_v1",
+      canonical: true,
+      ok,
+      status,
+      summary,
+      ...(data !== undefined ? { data } : {}),
+    },
+  };
+}
+
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { createHash } from "crypto";
@@ -2314,7 +2336,7 @@ export function registerTools(pi: ExtensionAPI) {
   }) as typeof pi.registerTool;
   registerAgentRuntimeTools(pi);
 
-  pi.registerTool({
+pi.registerTool({
     name: "focusa_daemon_routing_status",
     label: "Daemon Routing Status",
     description:
@@ -4625,16 +4647,14 @@ export function registerTools(pi: ExtensionAPI) {
     const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
     const res = await fetch(`${base}/v1/worksets/${encodeURIComponent(params.workset_id)}/projection`);
     const body = await res.json();
-    return {
-      schema: "focusa.tool_result_v1",
-      canonical: true,
-      ok: res.ok,
-      status: body.status || "ok",
-      summary: body.projection
+    return toolResult(
+      res.ok,
+      body.status || "ok",
+      body.projection
         ? `Workset ${params.workset_id}: ${Object.keys(body.projection.requirements || {}).length} requirements, settled=${body.projection.settled}`
         : String(body.error || body.status || "missing"),
-      data: body,
-    } as any;
+      body
+    );
   },
 });
 
@@ -4655,14 +4675,14 @@ pi.registerTool({
       body: JSON.stringify(params.graph),
     });
     const body = await res.json();
-    return {
-      schema: "focusa.tool_result_v1",
-      canonical: true,
-      ok: res.ok,
-      status: body.status || "valid",
-      summary: body.valid ? "CallGraph definition validates." : `CallGraph invalid: ${(body.issues || []).map((i: any) => i.path + ": " + i.message).join("; ")}`,
-      data: body,
-    } as any;
+    return toolResult(
+      res.ok,
+      body.status || "valid",
+      body.valid
+        ? "CallGraph definition validates."
+        : `CallGraph invalid: ${(body.issues || []).map((i: any) => i.path + ": " + i.message).join("; ")}`,
+      body
+    );
   },
 });
 
@@ -4683,14 +4703,12 @@ pi.registerTool({
     ]);
     const run = await runRes.json();
     const paths = await pathsRes.json();
-    return {
-      schema: "focusa.tool_result_v1",
-      canonical: true,
-      ok: runRes.ok,
-      status: run.status || "ok",
-      summary: `Run ${params.run_id}: state=${run.run?.state || run.status}, dispatches=${(run.dispatches || []).length}`,
-      data: { run, paths },
-    } as any;
+    return toolResult(
+      runRes.ok,
+      run.status || "ok",
+      `Run ${params.run_id}: state=${run.run?.state || run.status}, dispatches=${(run.dispatches || []).length}`,
+      { run, paths }
+    );
   },
 });
 
@@ -4715,19 +4733,17 @@ pi.registerTool({
       { detached: true, stdio: "ignore" }
     );
     pid.unref?.();
-    return {
-      schema: "focusa.tool_result_v1",
-      canonical: true,
-      ok: true,
-      status: "dispatched",
-      summary: `Background job "${params.name}" dispatched. The completion notification (with output tail) arrives on the agent front terminal via SSE; inspect with focusa_bg_status when needed.`,
-      data: {
+    return toolResult(
+      true,
+      "dispatched",
+      `Background job "${params.name}" dispatched. The completion notification (with output tail) arrives on the agent front terminal via SSE; inspect with focusa_bg_status when needed.`,
+      {
         job_name: params.name,
         command: params.command,
         cwd,
         delivery: "background_job_completion SSE notification (front terminal)",
-      },
-    } as any;
+      }
+    );
   },
 });
 
@@ -4757,16 +4773,14 @@ pi.registerTool({
       body: JSON.stringify(body),
     });
     const result = await res.json();
-    return {
-      schema: "focusa.tool_result_v1",
-      canonical: true,
-      ok: res.ok,
-      status: result.status || "planned",
-      summary: result.plan
+    return toolResult(
+      res.ok,
+      result.status || "planned",
+      result.plan
         ? `${result.plan.session_count} fast-forward lanes planned (${result.plan.multiplier}x); create + start each lane as a silent session bound to its work items.`
         : String(result.error || result.status || "fanout rejected"),
-      data: result,
-    } as any;
+      result
+    );
   },
 });
 
@@ -4799,14 +4813,12 @@ pi.registerTool({
       pid.unref?.();
       dispatched.push({ name: job.name, command: job.command, cwd, delivery: "background_job_completion SSE per job" });
     }
-    return {
-      schema: "focusa.tool_result_v1",
-      canonical: true,
-      ok: true,
-      status: "dispatched",
-      summary: `${dispatched.length} background jobs dispatched in parallel; each delivers its own completion notification to the front terminal.`,
-      data: { dispatched },
-    } as any;
+    return toolResult(
+      true,
+      "dispatched",
+      `${dispatched.length} background jobs dispatched in parallel; each delivers its own completion notification to the front terminal.`,
+      { dispatched }
+    );
   },
 });
 
@@ -4826,14 +4838,7 @@ name: "focusa_bg_status",
       : "/v1/background-jobs";
     const res = await fetch(`${base}${path}`);
     const body = await res.json();
-    return {
-      schema: "focusa.tool_result_v1",
-      canonical: true,
-      ok: true,
-      status: "ok",
-      summary: "Background job ledger snapshot (instant query).",
-      data: body,
-    } as any;
+    return toolResult(true, "ok", "Background job ledger snapshot (instant query).", body);
   },
 });
 

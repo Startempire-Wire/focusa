@@ -52,6 +52,18 @@ the command with full logging + an explicit EXIT marker). Two false
 greens were caught this round (workspace gate, daemon build) and both
 chains were replaced with pipefail-safe scripts.
 
+## Deslop first run (2026-08-16, v0.32.0)
+
+- Before: 26.2% duplicated (98k/374k LOC), top clone = a committed
+  6.8MB extension backup (26k-node identical copy) — REMOVED.
+- Generated/fixture surfaces report-hidden (tool-contracts registry,
+  reducer test fixtures) per the generated-code philosophy.
+- After: 18.2% duplicated (61k/338k LOC) — under the 20% committed
+  ceiling. This is the honest baseline.
+- The toolResult constructor (pi-native shape) now backs the six new
+  tools; the remaining 102 `} as any;` escapes in pre-existing tools
+  are the tracked convergence target.
+
 ## Release-readiness for the Workstream/Workset/CallGraph release
 
 - e2e-live-route-matrix.mjs gates every bug-fix + feature surface
