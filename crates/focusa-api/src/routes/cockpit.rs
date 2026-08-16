@@ -13,13 +13,13 @@ use axum::extract::State;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
-use crate::app_state::AppState;
+use crate::server::AppState;
 
 const MAX_WORKSETS: usize = 50;
 const MAX_RUNS: usize = 20;
 const MAX_JOBS: usize = 30;
 
-async fn workset_summaries(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> {
+fn workset_summaries(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> {
     focusa_core::workset_store::ensure_schema(conn)?;
     let mut stmt = conn.prepare(
         "SELECT workset_id, revision, definition_json FROM worksets ORDER BY workset_id, revision",
@@ -74,7 +74,7 @@ async fn workset_summaries(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Va
     Ok(out)
 }
 
-async fn callgraph_frontiers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> {
+fn callgraph_frontiers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> {
     focusa_core::callgraph_store::ensure_schema(conn)?;
     let mut stmt = conn.prepare(
         "SELECT run_id, graph_id, revision, state FROM callgraph_runs WHERE state IN ('running','paused') ORDER BY updated_at DESC LIMIT ?1",
@@ -90,7 +90,7 @@ async fn callgraph_frontiers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<
     let mut out = Vec::new();
     for row in rows {
         let (run_id, graph_id, revision, state) = row?;
-        let Some(stored) = focusa_core::callgraph_store::load_definition(conn, &graph_id, revision)?
+        let Some(stored) = focusa_core::callgraph_store::load_definition(conn, &graph_id, revision.try_into().unwrap_or(u64::MAX))?
         else {
             continue;
         };
@@ -108,7 +108,7 @@ async fn callgraph_frontiers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<
     Ok(out)
 }
 
-async fn direction_steers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> {
+fn direction_steers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> {
     focusa_core::direction_ledger::ensure_schema(conn)?;
     Ok(focusa_core::direction_ledger::list_operations(conn)?
         .into_iter()
@@ -138,7 +138,7 @@ async fn direction_steers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Val
         .collect())
 }
 
-async fn background_board(conn: &rusqlite::Connection) -> anyhow::Result<Value> {
+fn background_board(conn: &rusqlite::Connection) -> anyhow::Result<Value> {
     focusa_core::background_job_store::ensure_schema(conn)?;
     let jobs = focusa_core::background_job_store::list_jobs(conn)?;
     let active = jobs
@@ -166,11 +166,10 @@ pub async fn projection(State(state): State<Arc<AppState>>) -> Json<Value> {
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         let worksets = workset_summaries(&conn)
-            .await
             .map(|items| items.into_iter().take(MAX_WORKSETS).collect::<Vec<_>>())?;
-        let callgraph = callgraph_frontiers(&conn).await?;
-        let steers = direction_steers(&conn).await?;
-        let background = background_board(&conn).await?;
+        let callgraph = callgraph_frontiers(&conn)?;
+        let steers = direction_steers(&conn)?;
+        let background = background_board(&conn)?;
         Ok(json!({
             "status": "ok",
             "worksets": worksets,
