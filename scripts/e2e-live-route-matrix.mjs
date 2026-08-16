@@ -219,7 +219,7 @@ check("workstream partition zero-bleed (#125 acceptance)", async () => {
 });
 
 check("workset ledger (#269/#271)", async () => {
-  const created = await call("POST", "/v1/worksets", {
+  const created = await call("POST", "/worksets", {
     schema: "focusa.workset_ledger.v1",
     workset_id: "ws-e2e",
     revision: 1,
@@ -227,26 +227,26 @@ check("workset ledger (#269/#271)", async () => {
     completion_contract: { required_requirement_ids: ["r1"], release_gate_ref: null },
   });
   if (created.json?.status !== "stored") return false;
-  const admitted = await call("POST", "/v1/worksets/ws-e2e/events", {
+  const admitted = await call("POST", "/worksets/ws-e2e/events", {
     event_type: "requirement_admitted",
     requirement_id: "r1",
     provider_ref: "p1",
     evidence_ref: null,
   });
-  const disposed = await call("POST", "/v1/worksets/ws-e2e/events", {
+  const disposed = await call("POST", "/worksets/ws-e2e/events", {
     event_type: "requirement_disposed",
     requirement_id: "r1",
     disposition: "met",
-    evidence_ref: null,
+    evidence_ref: "settlement-receipt",
   });
-  const projection = await call("GET", "/v1/worksets/ws-e2e/projection");
+  const projection = await call("GET", "/worksets/ws-e2e/projection");
   return admitted.json?.status === "appended"
     && disposed.json?.status === "appended"
     && projection.json?.projection?.settled === true;
 });
 
 check("workset transitions (#274)", async () => {
-  const r = await call("POST", "/v1/worksets/ws-e2e/transition", {
+  const r = await call("POST", "/worksets/ws-e2e/transition", {
     from: "checkpointed",
     to: "settled",
   });
