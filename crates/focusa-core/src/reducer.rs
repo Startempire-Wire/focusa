@@ -4200,6 +4200,12 @@ pub fn reduce_with_meta(
             // The event itself is recorded in the event log via emitted_events.
         }
 
+        // CallGraph dispatches/settlements are authority-recorded in the
+        // SQLite ledger (callgraph_store) and surfaced here as log-only
+        // events for SSE/audit visibility. No FocusaState mutation.
+        FocusaEvent::CallGraphFrameDispatched { .. }
+        | FocusaEvent::CallGraphFrameSettled { .. } => {}
+
         // ─── Thread Ownership ────────────────────────────────────────────
         FocusaEvent::ThreadOwnershipTransferred {
             thread_id,

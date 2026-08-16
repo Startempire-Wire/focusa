@@ -303,6 +303,7 @@ async fn control_run(
     Json(body): Json<ControlBody>,
 ) -> Json<Value> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let events_tx = state.events_tx.clone();
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         focusa_core::callgraph_store::ensure_schema(&conn)?;
@@ -374,6 +375,19 @@ async fn control_run(
                         "invocation_id": invocation_id,
                         "frame_id": entry,
                     }));
+                    if let Ok(serialized) = serde_json::to_string(
+                        &focusa_core::types::FocusaEvent::CallGraphFrameDispatched {
+                            run_id: run_id.clone(),
+                            dispatch_id,
+                            frame_id: entry.clone(),
+                            invocation_id: invocation_id.clone(),
+                            adapter_id: "pending".to_string(),
+                            model: "pending".to_string(),
+                            attempt: 1,
+                        },
+                    ) {
+                        let _ = events_tx.send(serialized);
+                    }
                 }
                 if !dispatched.is_empty() {
                     focusa_core::callgraph_store::transition_run(

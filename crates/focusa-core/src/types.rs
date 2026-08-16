@@ -4036,6 +4036,25 @@ pub enum FocusaEvent {
         invariant: String,
         details: String,
     },
+
+    // ─── CallGraph Execution Authority (Spec 155, #254) ──────────────────
+    #[serde(rename = "callgraph_frame_dispatched")]
+    CallGraphFrameDispatched {
+        run_id: String,
+        dispatch_id: String,
+        frame_id: String,
+        invocation_id: String,
+        adapter_id: String,
+        model: String,
+        attempt: u32,
+    },
+    #[serde(rename = "callgraph_frame_settled")]
+    CallGraphFrameSettled {
+        run_id: String,
+        frame_id: String,
+        invocation_id: String,
+        receipt_ref: String,
+    },
 }
 
 /// Incremental Focus State delta — only changed fields.
