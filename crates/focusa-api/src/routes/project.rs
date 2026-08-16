@@ -3701,7 +3701,7 @@ async fn card(
         .get("project_identity")
         .cloned()
         .unwrap_or_else(|| json!({}));
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &request_scope).await;
     let project_root = project
         .get("project_root")
         .and_then(Value::as_str)

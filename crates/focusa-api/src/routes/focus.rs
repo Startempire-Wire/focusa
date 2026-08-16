@@ -434,7 +434,7 @@ async fn get_stack(
     Query(query): Query<FocusStackQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Json<serde_json::Value> {
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
     let mut scoped_stack = focusa.focus_stack.clone();
     scoped_stack
         .frames
@@ -503,7 +503,7 @@ async fn get_scoped_frame(
         }));
     }
 
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
     let resolved = resolve_scoped_frame(
         &focusa.focus_stack,
         query.frame_id,
@@ -676,7 +676,7 @@ async fn push_frame(
     Json(body): Json<PushFrameBody>,
 ) -> FocusResult {
     {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
             return Ok(Json(resp));
         }
@@ -777,7 +777,7 @@ async fn pop_frame(
     Json(body): Json<PopFrameBody>,
 ) -> FocusResult {
     {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
             return Ok(Json(resp));
         }
@@ -837,7 +837,7 @@ async fn set_active(
     Json(body): Json<SetActiveBody>,
 ) -> FocusResult {
     {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
             return Ok(Json(resp));
         }
@@ -1015,7 +1015,7 @@ async fn update_delta(
     // §AsccSections: validate ALL slots at API boundary before any write.
     let delta = &body.delta;
     let frame = {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         if let Some(target_frame_id) = body.frame_id {
             focusa
                 .focus_stack
@@ -1034,7 +1034,7 @@ async fn update_delta(
     };
 
     if let Some(target_frame_id) = body.frame_id {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         let active_frame_id = focusa.focus_stack.active_id;
         let target = focusa
             .focus_stack
@@ -1136,7 +1136,7 @@ async fn update_delta(
     // Prefer explicit frame_id; otherwise resolve by ProjectRootKey + WorkstreamKey.
     // Never adopt the daemon-global active frame as canonical Focus State write authority.
     let (fid, auto_started_session) = {
-        let focusa = state.focusa.read().await;
+        let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &scope).await;
         let session_active = focusa
             .session
             .as_ref()

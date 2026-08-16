@@ -2322,7 +2322,7 @@ async fn view(
     Query(query): Query<TrajectoryViewQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Json<Value> {
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &_scope).await;
     Json(attach_trajectory_tool_result(
         trajectory_view_payload(&focusa, &query),
         vec![],
@@ -2420,7 +2420,7 @@ async fn define_goal(
         ));
     }
 
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &_scope).await;
     let mut payload = define_goal_payload(&focusa, &body);
     let trajectory_record = trajectory_record_from_define_payload(&payload, &body);
     // Get old HLT before dispatch (for ledger entry)
@@ -2603,7 +2603,7 @@ async fn assess(
             ));
         }
     }
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &_scope).await;
     let payload = assess_payload(&focusa, &body);
     let trajectory_id = payload
         .pointer("/trajectory/trajectory_id")
@@ -2642,7 +2642,7 @@ async fn propose_workpoint(
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryProposeWorkpointRequest>,
 ) -> Json<Value> {
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &_scope).await;
     Json(attach_trajectory_tool_result(
         propose_workpoint_payload(&focusa, &body),
         vec![],
@@ -2655,7 +2655,7 @@ async fn checkpoint(
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryCheckpointRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &_scope).await;
     let mut payload = checkpoint_payload(&focusa, &body);
     let trajectory_id = payload
         .pointer("/trajectory_checkpoint/trajectory_id")
@@ -2697,7 +2697,7 @@ async fn resume(
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryResumeRequest>,
 ) -> Json<Value> {
-    let focusa = state.focusa.read().await;
+    let focusa = crate::workstream_store::scoped_focusa_read(state.clone(), &_scope).await;
     Json(attach_trajectory_tool_result(
         resume_payload(&focusa, &body),
         vec![],

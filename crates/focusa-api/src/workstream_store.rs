@@ -43,6 +43,22 @@ impl WorkstreamStateStore {
     }
 }
 
+/// Shared migration helper (#125): resolve the partitioned workstream state
+/// for a scope, falling back to the global state for unmigrated scopes.
+/// Owned guards keep lifetimes simple across both branches.
+pub async fn scoped_focusa_read(
+    state: Arc<crate::server::AppState>,
+    scope: &crate::scope::ScopeContext,
+) -> tokio::sync::OwnedRwLockReadGuard<FocusaState> {
+    match (&scope.project_root, &scope.continuity_id) {
+        (Some(root), Some(continuity)) => {
+            let partition = state.workstream_states.get_or_create(root, continuity).await;
+            partition.read_owned().await
+        }
+        _ => state.focusa.clone().read_owned().await,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
