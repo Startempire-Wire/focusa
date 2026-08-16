@@ -91,6 +91,7 @@ pub mod software_domain;
 pub mod background_job_store;
 pub mod background_jobs;
 pub mod callgraph;
+pub mod infrastructure_inventory;
 pub mod callgraph_envelope;
 pub mod callgraph_export;
 pub mod callgraph_store;
