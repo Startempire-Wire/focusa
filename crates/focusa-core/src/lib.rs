@@ -101,6 +101,7 @@ pub mod capability_truth;
 pub mod completion_authority;
 pub mod runtime_bundle;
 pub mod workset_ledger;
+pub mod workset_providers;
 pub mod workset_store;
 pub mod runtime_constitution;
 pub mod error_envelope;

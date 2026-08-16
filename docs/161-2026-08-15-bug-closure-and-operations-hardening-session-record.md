@@ -450,3 +450,20 @@ bounded core + persistence slices:
   the deployed daemon; fanout route requires the rebuild (in flight).
 - Extension: focusa_bg_run / focusa_bg_run_many / focusa_bg_status /
   focusa_fast_forward tools — tsc green.
+
+
+## 5x. FINISH wave — full Spec 155 + Workset start (2026-08-16)
+
+- CallGraph SPEC SURFACE COMPLETE: 12-step disposition (§12 all steps),
+  frame settlement with receipts + run transition + §16 compensation
+  unroll, evidence link (§17), paths/frontier/events routes, Flow Mesh
+  binding preflight/execute (§13), Pi tools (§19.2). CG-FINISH + CG-FINAL
+  green. Commit 91ab7b9a.
+- Workstream live zero-bleed acceptance: 19/19 e2e matrix.
+- WORKSET STARTED (operator-authorized; Spec 149 says NOT AUTHORIZED —
+  the operator directive 2026-08-16 is the authorization; #267 authority
+  separation honored: membership/disposition/completion only, NO
+  execution state): workset_ledger (deterministic replay + digests),
+  workset_store (SQLite), /v1/worksets API, focusa workset CLI,
+  focusa_workset_projection tool, workset_providers reconciliation.
+  Checks green.
