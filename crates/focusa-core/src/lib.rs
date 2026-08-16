@@ -91,6 +91,7 @@ pub mod software_domain;
 pub mod background_job_store;
 pub mod background_jobs;
 pub mod callgraph;
+pub mod completion_authority;
 pub mod runtime_bundle;
 pub mod runtime_constitution;
 pub mod error_envelope;
