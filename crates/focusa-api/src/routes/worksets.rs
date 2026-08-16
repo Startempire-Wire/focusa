@@ -20,6 +20,10 @@ pub fn router() -> Router<Arc<AppState>> {
             "/v1/worksets/{workset_id}/projection",
             get(get_projection),
         )
+        .route(
+            "/v1/worksets/{workset_id}/freshness",
+            get(get_freshness),
+        )
 }
 
 async fn create_definition(
@@ -90,6 +94,39 @@ async fn append_event(
         focusa_core::workset_store::ensure_schema(&conn)?;
         let seq = focusa_core::workset_store::append_event(&conn, &workset_id, &event)?;
         Ok(json!({"status": "appended", "workset_id": workset_id, "seq": seq}))
+    })
+    .await;
+    match result {
+        Ok(Ok(payload)) => Json(payload),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
+        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+    }
+}
+
+async fn get_freshness(
+    State(state): State<Arc<AppState>>,
+    Path(workset_id): Path<String>,
+) -> Json<Value> {
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let conn = rusqlite::Connection::open(path)?;
+        focusa_core::workset_store::ensure_schema(&conn)?;
+        let definition = conn
+            .query_row(
+                "SELECT definition_json FROM worksets WHERE workset_id = ?1 ORDER BY revision DESC LIMIT 1",
+                [&workset_id],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .and_then(|raw| serde_json::from_str::<WorksetDefinition>(&raw).ok());
+        let Some(definition) = definition else {
+            return Ok(json!({"status": "missing", "workset_id": workset_id}));
+        };
+        let events = focusa_core::workset_store::list_events(&conn, &workset_id)?;
+        match focusa_core::workset_freshness::canonical_stamp(&definition, &events) {
+            Ok(stamp) => Ok(json!({"status": "ok", "stamp": stamp})),
+            Err(reason) => Ok(json!({"status": "replay_rejected", "error": reason})),
+        }
     })
     .await;
     match result {
