@@ -44,6 +44,14 @@ Fixes landed this round marked [FIXED].
 4. [IN FLIGHT] daemon rebuild carrying the closure gating (last matrix
    check pending deploy).
 
+## False-green discipline (hard-won this round)
+
+`cmd 2>&1 | tail -N && echo GREEN` masks failures — the pipe's exit is
+tail's, not cmd's. Every gate chain must use `set -o pipefail` (or run
+the command with full logging + an explicit EXIT marker). Two false
+greens were caught this round (workspace gate, daemon build) and both
+chains were replaced with pipefail-safe scripts.
+
 ## Release-readiness for the Workstream/Workset/CallGraph release
 
 - e2e-live-route-matrix.mjs gates every bug-fix + feature surface
