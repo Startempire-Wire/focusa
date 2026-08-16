@@ -4,6 +4,7 @@ pub mod audit;
 pub mod autonomy;
 pub mod awareness;
 pub mod binary;
+pub mod bg;
 pub mod bloatgaurd;
 pub mod cache;
 pub mod call_stack;

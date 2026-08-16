@@ -88,6 +88,8 @@ pub mod silent_session_writer;
 pub mod silent_sessions;
 pub mod skills;
 pub mod software_domain;
+pub mod background_job_store;
+pub mod background_jobs;
 pub mod callgraph;
 pub mod callgraph_envelope;
 pub mod callgraph_export;

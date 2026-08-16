@@ -579,6 +579,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::remote_workspaces::router())
         .merge(routes::compaction_controller::router())
         .merge(routes::callgraph::router())
+        .merge(routes::background_jobs::router())
         .merge(routes::session::router())
         .merge(routes::silent_sessions::router())
         .merge(routes::proxy::router())
