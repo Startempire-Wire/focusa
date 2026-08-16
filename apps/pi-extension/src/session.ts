@@ -31,6 +31,7 @@ import {
   isWorkpointPacketScopedToCurrentSession,
   normalizeWorkpointResumePacketEnvelope,
   refreshTrajectoryClarityLifecycle,
+  refreshOntologyContextLifecycle,
   stampWorkpointPacketForCurrentPiSession,
   resetPiSessionScopedState,
   adoptPiProjectRoot,
@@ -49,6 +50,8 @@ import {
   setLastTrajectoryClarity,
   getLastProjectVerify,
   setLastProjectVerify,
+  currentProjectBindingDecision,
+  setCurrentProjectBindingDecision,
   setLatestReportSummary,
   getLatestReportSummary,
   getLastProjectRootResolution,
@@ -62,9 +65,17 @@ import {
 } from "./state.js";
 import { loadPersistedRecoveryState } from "./persistence.js";
 import { measureNativeSessionPressure, type NativeSessionPressureV1 } from "./session-pressure.js";
-import { queueLifecycleAdvisory } from "./lifecycle-advisory.js";
+import { queueLifecycleAdvisory, queueStartupReceptionistTurn } from "./lifecycle-advisory.js";
 import { pushDelta } from "./tools.js";
+import { updateNorthStarCard } from "./north-star.js";
 import { LifecycleGenerationGuard } from "./lifecycle-guard.js";
+import {
+  canReuseFreshVerifiedBindingOffline,
+  reconcileProjectBindingDecision,
+  shouldEmitProjectScopeRecoveryPacket,
+  type ProjectBindingDecisionV1,
+} from "./project-binding.js";
+import { publishScopedStateChange, rehydrateScopedStateChanges } from "./scoped-surface-refresh.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
@@ -152,15 +163,21 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
   if (pi.getFlag("--nag-suppress")) return;
   const cwd = normalizeProjectRoot(ctx?.cwd || process.cwd());
   if (markerExistsAtCwd(cwd)) return;
+  const inferred = resolvePiProjectRootCandidate(cwd);
+  if (inferred.safe === true && inferred.requiresOperatorConfirmation !== true) {
+    // A verified parent marker/project root is sufficient. Preserve the Pi cwd
+    // as the active working subpath and avoid injecting a false degraded nag.
+    return;
+  }
   const key = `pi_unbound_project_nag:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${cwd}`;
   if (getAttachmentRuntime().vitalInfoPrompted[key]) return;
   const prompt = [
     "Focusa project not bound: no .focusa-project.json marker found at this Pi session cwd.",
     `cwd: ${cwd}`,
-    "Next steps:",
-    "- focusa about        # inspect current Focusa/project binding",
-    "- focusa init         # create a local project marker when this is the right project root",
-    "- focusa onboard --remote <git-url> --project-root <path>  # bind a remote/VPS checkout marker",
+    "Bind this existing repository:",
+    `focusa init --quickstart --project-root ${JSON.stringify(cwd)} --json`,
+    "Success must report the .focusa-project.json marker and one next action before HLT/Workpoint guidance.",
+    "For a remote checkout instead: focusa onboard --remote <git-url> --project-root <path>",
     "Suppress for this session with --nag-suppress when intentionally working unbound.",
   ].join("\n");
   focusaPost("/telemetry/trace", {
@@ -259,6 +276,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
     return;
   }
   try {
+    const currentAsk = String(getAttachmentRuntime().currentAsk?.text || "").trim();
     const packet = await focusaFetch("/workpoint/resume", {
       method: "POST",
       body: JSON.stringify({
@@ -266,6 +284,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
         continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
         session_id: getAttachmentRuntime().sessionFrameKey,
         project_root: getSessionCwd() || process.cwd(),
+        current_ask: currentAsk || undefined,
       }),
     });
     if (packet?.status === "rejected_scope_mismatch") {
@@ -275,11 +294,25 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
     }
     if (packet?.status === "completed") {
       const candidate = normalizeWorkpointResumePacketEnvelope(packet);
-      if (!isWorkpointPacketScopedToCurrentSession(candidate)) {
+      if (
+        packet?.action_authority_for_current_ask !== true ||
+        packet?.matches_current_ask_scope === false ||
+        !isWorkpointPacketScopedToCurrentSession(candidate)
+      ) {
         setActiveWorkpointPacket(null);
         setActiveWorkpointSummary("");
+        focusaPost("/telemetry/trace", {
+          event_type: "workpoint_resume_rejected_stale_current_ask",
+          payload: {
+            reason,
+            workpoint_id: packet?.workpoint_id,
+            action_authority_for_current_ask: packet?.action_authority_for_current_ask,
+            matches_current_ask_scope: packet?.matches_current_ask_scope,
+          },
+        });
         return;
       }
+      candidate.current_ask_binding = currentAsk;
       setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(candidate));
       setActiveWorkpointSummary(
         packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || ""
@@ -574,76 +607,154 @@ function parseTrajectoryEditor(text: string): TrajectoryGoalDraft | null {
 }
 
 async function promptForProjectVerifyIfNeeded(
+  pi: ExtensionAPI,
   ctx: any,
   projectRoot: string,
   reason: string
-): Promise<boolean> {
+): Promise<ProjectBindingDecisionV1> {
   const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
-  if (
-    !vitalPromptSurfaceEnabled("project_verify") ||
-    mode === "off" ||
-    !isProjectRootAuthoritySafe(projectRoot)
-  )
-    return true;
-  const payload = { cwd: projectRoot, project_root: projectRoot };
-  const res = await focusaFetch("/project/verify", { method: "POST", body: JSON.stringify(payload) }).catch(
-    () => null
+  const promptEnabled = vitalPromptSurfaceEnabled("project_verify") && mode !== "off";
+  const previous = currentProjectBindingDecision();
+  const rootSafe = isProjectRootAuthoritySafe(projectRoot);
+  const payload = {
+    cwd: projectRoot,
+    project_root: projectRoot,
+    persisted_project_root: previous?.selected_project_root,
+  };
+  const res = rootSafe
+    ? await focusaFetch("/project/verify", { method: "POST", body: JSON.stringify(payload) }).catch(
+        () => null
+      )
+    : null;
+  const status = String(
+    res?.project_identity?.status || res?.status || (rootSafe ? "unavailable" : "unsafe")
   );
-  setLastProjectVerify(res || null);
-  persistState();
-  if (res?.verification?.verified === true || res?.canonical === true) {
+  const verified = res?.verification?.verified === true || res?.canonical === true;
+  const candidates = Array.isArray(res?.binding_candidates)
+    ? res.binding_candidates
+    : [
+        {
+          project_root: projectRoot,
+          score: verified ? 1000 : 700,
+          sources: [verified ? "project_verify" : "pi_detected_project_root"],
+          markers: [],
+        },
+      ];
+  const recoveryRef = `project-scope-recovery:${getAttachmentRuntime().sessionFrameKey || "no-session"}`;
+  const decision = reconcileProjectBindingDecision({
+    selectedProjectRoot: projectRoot,
+    selectedWorktreeRoot: res?.project_identity?.active_worktree_root,
+    canonicalParentRoot: res?.project_identity?.canonical_parent_root || res?.project_root,
+    continuityId: ensureContinuityId(projectRoot),
+    candidates,
+    ambiguous: res?.binding_decision?.ambiguous === true || status === "ambiguous_project_binding",
+    selectedRootSafe: rootSafe,
+    verificationCanonical: verified,
+    verificationStatus: status,
+    daemonAvailable: res !== null,
+    evidenceFreshness: verified ? "current" : res ? "unknown" : "stale",
+    repoFingerprint: res?.project_identity?.repo_fingerprint,
+    projectFingerprint: res?.project_identity?.project_fingerprint,
+    rejectionReasons: verified
+      ? []
+      : [String(res?.verification?.required_recovery || "project_verify_not_canonical")],
+    recoveryPacketRef: recoveryRef,
+    previousDecision: previous,
+  });
+  setCurrentProjectBindingDecision(decision);
+  setLastProjectVerify({ ...(res || {}), binding_decision_v1: decision });
+  if (decision.state === "BOUND") {
+    getAttachmentRuntime().projectBindingTelemetry.automatic_resolution_count += 1;
+    ctx.ui.setWidget("focusa-vital", undefined);
     focusaPost("/telemetry/trace", {
-      event_type: "pi_vital_project_verify_passed",
+      event_type: "pi_project_binding_bound",
       payload: {
         reason,
-        project_root: projectRoot,
-        status: res?.project_identity?.status || res?.status || "verified",
+        decision_id: decision.decision_id,
+        evidence_revision: decision.evidence_revision,
+        status,
       },
     });
-    return true;
+    persistState();
+    return decision;
   }
-  const status = String(res?.project_identity?.status || res?.status || "unknown");
-  const recovery = String(
-    res?.verification?.required_recovery ||
-      "verify project identity before durable cross-project state writes"
-  );
-  ctx.ui.setWidget(
-    "focusa-vital",
-    ["🧭 Focusa project verify needed", `project_root=${projectRoot}`, `status=${status}; ${recovery}`],
-    { placement: "belowEditor" }
-  );
-  ctx.ui.notify(`Focusa project verify is not clean for ${projectRoot}: ${status}`, "warning");
-  focusaPost("/telemetry/trace", {
-    event_type: "pi_vital_project_verify_failed",
-    payload: { reason, project_root: projectRoot, status, mode },
-  });
-  // Verification uncertainty must never seize the operator input surface.
-  // Conversation and diagnosis continue, while durable project writes remain
-  // fail-closed until the agent follows the machine-readable recovery route.
-  const advisoryKey = `project_verify_recovery:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${projectRoot}:${status}`;
-  const pi = getAttachmentRuntime().pi;
-  const outcome = pi
-    ? queueLifecycleAdvisory(pi, ctx, {
-        advisoryKey,
-        advisoryKind: "project_verify_recovery",
-        title: "Focusa project verification needs agent recovery",
+
+  const blockedReason = decision.rejection_reasons[0] || "scope_recovery_required";
+  getAttachmentRuntime().projectBindingTelemetry.blocked_write_reasons[blockedReason] =
+    (getAttachmentRuntime().projectBindingTelemetry.blocked_write_reasons[blockedReason] || 0) + 1;
+  if (promptEnabled) {
+    ctx.ui.setWidget(
+      "focusa-vital",
+      [
+        `🧭 Focusa project binding: ${decision.state}`,
+        `capability=${decision.permitted_capability_tier}; status=${status}`,
+        "Conversation and diagnosis continue; project writes wait for canonical verification.",
+      ],
+      { placement: "belowEditor" }
+    );
+    const startupBlocked = reason === "session_start" || reason === "session_project_mismatch";
+    if (startupBlocked) {
+      getAttachmentRuntime().startupReceptionistActive = true;
+      getAttachmentRuntime().startupReceptionistStartedAt = Date.now();
+      getAttachmentRuntime().startupReceptionistPreviousThinkingLevel = String(pi.getThinkingLevel?.() || "");
+      pi.setThinkingLevel?.("off");
+      queueStartupReceptionistTurn(pi, ctx, {
+        advisoryKey: `${recoveryRef}:receptionist:${getAttachmentRuntime().sessionFrameKey || "no-session"}`,
+        advisoryKind: "startup_receptionist",
+        title: "Focusa is helping orient this session",
         content: [
-          `project_root=${projectRoot}; status=${status}`,
-          "Conversation and read-only diagnosis continue without an operator modal.",
-          "Durable project-aware writes remain blocked until verification is canonical.",
-          "Agent route: focusa_project_identity -> focusa_project_verify -> focusa_workpoint_checkpoint/resume.",
-          `Recovery detail: ${recovery}`,
+          "Act as Focusa's warm, environment-aware receptionist for an opened Pi session; never assume the operator is new to Focusa because trajectory or project state is missing.",
+          "Before replying, refresh canonical operator awareness (preferred address, timezone, and current local time) using available agent-kb/operator context; never expose private details.",
+          `In the background, perform a bounded read-only scan of the current directory, nearby project markers, known workspace roots, and recent verified Focusa project candidates. Search candidate workspace directories at least two levels deep, cap results at 20, and exclude dependency/build/cache/system trees such as .git, node_modules, target, vendor, cache, proc, sys, and dev. The coding agent launched from ${projectRoot || "an unknown directory"}; this launch location is not project intent, consent to bind Focusa, or proof that a project lives there. Project writes are not yet verified.`,
+          "Use bounded predictive analysis to distinguish: continue an existing project, start a new project, jump directly to a task without setup, conversation-only help, or an optional quick guided orientation.",
+          "A missing trajectory means only that trajectory is not configured; it does not mean the operator or project is new.",
+          "Older Focusa projects may have no current project marker. Treat a missing marker as weak evidence only: inspect git identity/remotes, Beads, prior Pi sessions, persisted Workpoints, aliases, and legacy Focusa state before suggesting a new project.",
+          "Never initialize, migrate, or add a project marker automatically during reception; explain any likely legacy-project match and ask before mutation.",
+          "Your first emitted assistant text—before any planning narration or tool call—must immediately acknowledge the operator with an appropriate local-time greeting and preferred address, and say in one sentence what you are checking while they wait.",
+          "After that acknowledgement, summarize any likely project match in one plain sentence when evidence is available.",
+          "Use plain language only—do not mention HLT, MLG, STG, Workpoint, frontier, quarantine, scope envelopes, or internal Focusa mechanics.",
+          "Do not echo internal Focusa advisories, tool routing, packet text, warnings, or planning scratchwork to the operator.",
+          "During reception, do not call north-star, utility-card, Workpoint, Trajectory, or broad Focusa bootstrap tools. Use bounded read-only environment/directory inspection first; use project identity only for a specific evidence-backed candidate.",
+          "Ask exactly one friendly, tailored question. Offer choices without forcing setup. If evidence is inconclusive, ask: Would you like me to look for an existing project, start something new, jump straight to a task, or do a quick guided setup to clarify the outcome and constraints?",
+          "If the operator wants a new project, ask where they want it. Offer two or three evidence-backed base-directory suggestions discovered from the environment, briefly flag system or broad home directories that are poor project homes, and always leave a custom path open without being overbearing.",
+          "Do not bind Focusa to cwd or initialize any directory merely because Pi started there.",
+          "The optional guided setup is a brief conversational CRIST-style experience, but never name internal frameworks or require it before ordinary help.",
+          "Do not make durable project changes until the operator answers or project identity becomes canonical.",
         ].join("\n"),
-        reason,
+        reason: blockedReason,
         projectRoot,
         sessionId: getAttachmentRuntime().sessionFrameKey,
-      })
-    : "pi_runtime_unavailable";
+      });
+    } else if (shouldEmitProjectScopeRecoveryPacket(previous, decision)) {
+      queueLifecycleAdvisory(pi, ctx, {
+        advisoryKey: recoveryRef,
+        advisoryKind: "project_scope_recovery",
+        title: `Focusa project binding is ${decision.state}`,
+        content: [
+          `ProjectBindingDecisionV1=${decision.decision_id}`,
+          `state=${decision.state}; capability=${decision.permitted_capability_tier}`,
+          "Run focusa_project_identity, then focusa_project_verify, then resume or checkpoint the Workpoint.",
+          "Do not perform durable project-aware writes until state=BOUND.",
+        ].join("\n"),
+        reason: blockedReason,
+        projectRoot,
+        sessionId: getAttachmentRuntime().sessionFrameKey,
+      });
+    }
+  }
   focusaPost("/telemetry/trace", {
-    event_type: "pi_vital_project_verify_recovery_queued",
-    payload: { reason, project_root: projectRoot, status, mode, outcome, advisory_key: advisoryKey },
+    event_type: "pi_project_binding_recovery_required",
+    payload: {
+      reason,
+      decision_id: decision.decision_id,
+      state: decision.state,
+      capability: decision.permitted_capability_tier,
+      evidence_revision: decision.evidence_revision,
+      blocked_write_reason: blockedReason,
+    },
   });
-  return false;
+  persistState();
+  return decision;
 }
 
 async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<boolean> {
@@ -782,6 +893,7 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
   if (res?.canonical === true || res?.persisted === true) {
     ctx.ui.notify("Focusa trajectory defined for this project.", "info");
     await refreshTrajectoryClarityLifecycle(`${reason}_trajectory_defined`, projectRoot);
+    await refreshOntologyContextLifecycle(`${reason}_ontology_refreshed`);
     persistState();
   } else {
     ctx.ui.notify(
@@ -894,8 +1006,48 @@ function connectSSE() {
 
 // §30: Metacognitive awareness indicators + §37.10: Cross-surface events
 function handleSSEEvent(evt: any) {
-  // #45: the daemon SSE envelope carries `event_type` (focusa.stream_event.v1).
-  switch (evt.event_type || evt.type) {
+  const scopedRefreshEvents = new Set([
+    "project_bound",
+    "project_verified",
+    "trajectory_goal_defined",
+    "trajectory_updated",
+    "workpoint_checkpointed",
+    "workpoint_updated",
+    "evidence_linked",
+    "bead_updated",
+    "focus_state_updated",
+    "work_loop_updated",
+  ]);
+  // #45: the daemon SSE envelope carries `event_type` (focusa.stream_event.v1);
+  // reading `type` here silently ignored every scoped event and left the
+  // canvas/advisories stale after scoped mutations.
+  const eventType = String(evt?.event_type || evt?.type || "");
+  if (scopedRefreshEvents.has(eventType)) {
+    const eventRoot = normalizeProjectRoot(
+      evt?.scope?.project_root || evt?.project_root || evt?.data?.project_root
+    );
+    const eventContinuity = String(
+      evt?.scope?.continuity_id || evt?.continuity_id || evt?.data?.continuity_id || ""
+    ).trim();
+    const currentRoot = normalizeProjectRoot(getSessionCwd());
+    const currentContinuity = getContinuityId();
+    if (
+      eventRoot &&
+      eventRoot === currentRoot &&
+      (!eventContinuity || !currentContinuity || eventContinuity === currentContinuity)
+    ) {
+      publishScopedStateChange({
+        source: "sse",
+        mutation_kind: String(evt.type),
+        project_root: currentRoot,
+        continuity_id: currentContinuity,
+        status: "observed",
+        evidence_revision: String(evt?.revision || evt?.event_id || "").trim() || undefined,
+        effective_at: new Date().toISOString(),
+      });
+    }
+  }
+  switch (evt.type) {
     case "worker_started":
       getAttachmentRuntime().lastMetacogEvent = "thinking...";
       break;
@@ -922,22 +1074,6 @@ function handleSSEEvent(evt: any) {
           .catch(() => {}); // no-op to access ctx
       }
       break;
-    case "silent_session_completed":
-      // #311: background terminal-blocking queries report their completion
-      // back into this terminal instead of the agent polling for them.
-      try {
-        const session = String(evt?.session_id || "").slice(0, 8);
-        const status = String(evt?.status || "completed");
-        const kind = status === "failed" || status === "cancelled" ? "warning" : "info";
-        const summary = String(evt?.summary || "").slice(0, 120);
-        getAttachmentRuntime().uiCtx?.notify(
-          `Silent session ${session} ${status}${summary ? `: ${summary}` : ""}`,
-          kind
-        );
-      } catch {
-        /* §30: fail silent; notification must never crash Pi */
-      }
-      break;
     case "trajectory_goal_defined":
       // §93: high-priority agent alert on HLT continuity change
       if (evt.data?.trajectory) {
@@ -953,18 +1089,71 @@ function handleSSEEvent(evt: any) {
         }
       }
       break;
+    case "background_job_completion": {
+      // First-class background execution completion notification (#311-family).
+      // The daemon records the completion durably, then broadcasts this
+      // envelope; every surface (agent UI, TUI, waiters) reads it.
+      const name = String(evt?.name || evt?.job_id || "background job");
+      const status = String(evt?.status || "completed");
+      const exit = evt?.exit_code != null ? ` (exit ${evt.exit_code})` : "";
+      getAttachmentRuntime().uiCtx?.notify(
+        `[bg] ${name} ${status}${exit}`,
+        status === "completed" ? "info" : "error"
+      );
+      // Deliver the completion + bounded output tail INTO the agent's
+      // front terminal (appendEntry writes a visible entry).
+      const tail = String(evt?.output_tail || "");
+      const output = tail.trim()
+        ? `\n--- ${name} output (tail) ---\n${tail.trim()}\n--- end ${name} ---`
+        : `(no output captured; log: ${String(evt?.log_path || "n/a")})`;
+      try {
+        getAttachmentRuntime().pi?.appendEntry("background_job_completion", {
+          job_id: String(evt?.job_id || ""),
+          name,
+          status,
+          exit_code: evt?.exit_code ?? null,
+          log_path: String(evt?.log_path || ""),
+          completed_at: String(evt?.completed_at || ""),
+          message: `[bg] ${name} ${status}${exit}${output}`,
+        });
+      } catch {
+        /* best effort — the notify banner already fired */
+      }
+      getAttachmentRuntime().lastMetacogEvent = `[bg] ${name} ${status}`;
+      setTimeout(() => {
+        getAttachmentRuntime().lastMetacogEvent = "";
+      }, 15000);
+      break;
+    }
     default:
       break;
   }
 }
 
-async function ensureProjectGenesis(projectRoot: string, reason: string): Promise<boolean> {
+async function ensureProjectGenesis(
+  projectRoot: string,
+  reason: string,
+  operatorConfirmed = false
+): Promise<boolean> {
   const continuityId = ensureContinuityId(projectRoot);
   const idempotencyKey = `genesis:${continuityId}:project-bootstrap`;
   const status = await focusaFetch(
     `/project/genesis/status?project_root=${encodeURIComponent(projectRoot)}`
   ).catch(() => null);
   if (status?.status === "ready") return true;
+  if (!operatorConfirmed) {
+    focusaPost("/telemetry/trace", {
+      event_type: "pi_project_genesis_next_action_preserved",
+      payload: {
+        reason,
+        project_root: projectRoot,
+        continuity_id: continuityId,
+        status: status?.status || "incomplete",
+        next_action: status?.next_action || "run project bootstrap/genesis with explicit confirmation",
+      },
+    });
+    return false;
+  }
 
   const payload = {
     project_root: projectRoot,
@@ -1025,6 +1214,7 @@ export function registerSession(pi: ExtensionAPI) {
     getAttachmentRuntime().sessionFrameKey = eventSessionId;
     getAttachmentRuntime().sessionCwd = adoptPiProjectRoot(ctx.cwd);
     resetPiSessionScopedState("session_start");
+    rehydrateScopedStateChanges(ctx.sessionManager.getBranch());
     syncRuntimeFieldsToScopeStore();
 
     // §37.5: Check CLI flags FIRST
@@ -1045,6 +1235,7 @@ export function registerSession(pi: ExtensionAPI) {
     const entries = ctx.sessionManager.getEntries();
     refreshNativeSessionPressure(ctx, "session_start", entries);
     let persistedBindingRoot = "";
+    let persistedBindingDecision: ProjectBindingDecisionV1 | null = null;
     for (let i = entries.length - 1; i >= 0; i--) {
       const entry = entries[i];
       if (
@@ -1054,10 +1245,20 @@ export function registerSession(pi: ExtensionAPI) {
       ) {
         const recovered = loadPersistedRecoveryState(entry.data);
         persistedBindingRoot = persistedProjectRootFromState(recovered);
-        if (persistedBindingRoot) break;
+        const recoveredDecisions = recovered?.projectBindingDecisions;
+        if (recoveredDecisions && typeof recoveredDecisions === "object") {
+          const latest = Object.values(recoveredDecisions).at(-1);
+          if (latest && typeof latest === "object")
+            persistedBindingDecision = latest as ProjectBindingDecisionV1;
+        }
+        if (persistedBindingRoot || persistedBindingDecision) break;
       }
     }
 
+    if (persistedBindingDecision) setCurrentProjectBindingDecision(persistedBindingDecision, eventSessionId);
+
+    const bindingResolutionStartedAt = Date.now();
+    getAttachmentRuntime().projectBindingTelemetry.startup_count += 1;
     const localBinding = resolvePiProjectRootCandidate(ctx.cwd);
     const bindingQuery = new URLSearchParams({ cwd: String(ctx.cwd || process.cwd()) });
     if (persistedBindingRoot) bindingQuery.set("persisted_project_root", persistedBindingRoot);
@@ -1068,7 +1269,7 @@ export function registerSession(pi: ExtensionAPI) {
     const bindingCandidates = Array.isArray(bindingPayload?.binding_candidates)
       ? bindingPayload.binding_candidates
       : localBinding.candidates || [];
-    const bindingAmbiguous =
+    const apiBindingAmbiguous =
       bindingDecision?.ambiguous === true || bindingPayload?.status === "ambiguous_project_binding";
     const selectedBindingRoot = normalizeProjectRoot(
       bindingDecision?.selected_project_root || localBinding.projectRoot
@@ -1080,10 +1281,26 @@ export function registerSession(pi: ExtensionAPI) {
       (candidate: any) =>
         normalizeProjectRoot(candidate?.project_root) === normalizeProjectRoot(persistedBindingRoot)
     );
-    const sameCanonicalProject =
+    const sameRepoFingerprint =
+      !!selectedBindingCandidate?.repo_fingerprint &&
+      selectedBindingCandidate.repo_fingerprint === persistedBindingCandidate?.repo_fingerprint;
+    const sameProjectFingerprint =
+      !!selectedBindingCandidate?.project_fingerprint &&
+      selectedBindingCandidate.project_fingerprint === persistedBindingCandidate?.project_fingerprint;
+    const sameCanonicalParent =
       !!selectedBindingCandidate?.canonical_parent_root &&
       normalizeProjectRoot(selectedBindingCandidate.canonical_parent_root) ===
         normalizeProjectRoot(persistedBindingCandidate?.canonical_parent_root);
+    const sameCanonicalProject = sameRepoFingerprint || sameProjectFingerprint || sameCanonicalParent;
+    const persistedConflict =
+      !!persistedBindingRoot &&
+      !!selectedBindingRoot &&
+      normalizeProjectRoot(persistedBindingRoot) !== selectedBindingRoot &&
+      !!persistedBindingCandidate &&
+      Number(persistedBindingCandidate.score || 0) >= 800 &&
+      Number(selectedBindingCandidate?.score || 0) >= 800 &&
+      !sameCanonicalProject;
+    const bindingAmbiguous = apiBindingAmbiguous || persistedConflict;
     if (selectedBindingRoot) {
       const score = Number(selectedBindingCandidate?.score || localBinding.confidenceScore * 1000 || 0);
       setLastProjectRootResolution({
@@ -1107,6 +1324,40 @@ export function registerSession(pi: ExtensionAPI) {
         })),
       });
     }
+
+    const previousBindingDecision = currentProjectBindingDecision(eventSessionId);
+    const offlineBindingReuse =
+      bindingPayload === null &&
+      canReuseFreshVerifiedBindingOffline(previousBindingDecision, {
+        selectedProjectRoot: selectedBindingRoot,
+        repoFingerprint: selectedBindingCandidate?.repo_fingerprint,
+        projectFingerprint: selectedBindingCandidate?.project_fingerprint,
+      });
+    const provisionalBindingDecision = reconcileProjectBindingDecision({
+      selectedProjectRoot: selectedBindingRoot || undefined,
+      selectedWorktreeRoot: selectedBindingCandidate?.active_worktree_root,
+      canonicalParentRoot: selectedBindingCandidate?.canonical_parent_root,
+      continuityId: selectedBindingRoot ? ensureContinuityId(selectedBindingRoot) : "unbound",
+      candidates: bindingCandidates,
+      ambiguous: bindingAmbiguous,
+      selectedRootSafe: !!selectedBindingRoot && isProjectRootAuthoritySafe(selectedBindingRoot),
+      verificationCanonical: offlineBindingReuse,
+      verificationStatus: String(
+        offlineBindingReuse
+          ? "offline_fresh_verified_binding"
+          : bindingPayload?.status || bindingDecision?.status || "identity_discovered"
+      ),
+      daemonAvailable: bindingPayload !== null || offlineBindingReuse,
+      evidenceFreshness: sameCanonicalProject && persistedBindingRoot ? "current" : "unknown",
+      rejectionReasons: persistedConflict
+        ? ["persisted_binding_conflicts_with_current_repo"]
+        : bindingAmbiguous
+          ? ["conflicting_strong_candidates"]
+          : [],
+      recoveryPacketRef: `project-scope-recovery:${eventSessionId}`,
+      previousDecision: previousBindingDecision,
+    });
+    setCurrentProjectBindingDecision(provisionalBindingDecision, eventSessionId);
 
     if (!bindingAmbiguous && selectedBindingRoot && isProjectRootAuthoritySafe(selectedBindingRoot)) {
       getAttachmentRuntime().sessionCwd = selectedBindingRoot;
@@ -1155,27 +1406,12 @@ export function registerSession(pi: ExtensionAPI) {
           intent: d.intent || "",
           currentFocus: d.currentFocus || "",
         };
-        if (d.projectRootResolution) setLastProjectRootResolution(d.projectRootResolution);
-        if (d.lastProjectIdentity) {
-          const pi = d.lastProjectIdentity;
-          const piRoot = pi.project_root ? normalizeProjectRoot(pi.project_root) : "";
-          const cwdRoot = normalizeProjectRoot(ctx.cwd);
-          setLastProjectIdentity(piRoot && piRoot === cwdRoot ? pi : null);
-        }
-        if (d.lastTrajectoryClarity) {
-          const c = d.lastTrajectoryClarity;
-          const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";
-          const cwdRoot = adoptPiProjectRoot(ctx.cwd);
-          setLastTrajectoryClarity(
-            (!cRoot || cRoot === cwdRoot) &&
-              (!c.session_id ||
-                c.session_id === eventSessionId ||
-                c.fallback_prior_project_trajectory === true)
-              ? c
-              : null
-          );
-        }
+        // Stable ProjectIdentity ScopeRef must be registered before any scoped
+        // recovery shadow is restored. Rolling session ids never grant authority.
         if (d.lastProjectVerify) setLastProjectVerify(d.lastProjectVerify);
+        if (d.lastProjectIdentity) setLastProjectIdentity(d.lastProjectIdentity);
+        if (d.projectRootResolution) setLastProjectRootResolution(d.projectRootResolution);
+        if (d.lastTrajectoryClarity) setLastTrajectoryClarity(d.lastTrajectoryClarity);
         if (d.latestReportSummary?.handle) setLatestReportSummary(d.latestReportSummary);
         if (d.toolOutputPressure?.recapRequired)
           getAttachmentRuntime().toolOutputPressure = d.toolOutputPressure;
@@ -1262,7 +1498,17 @@ export function registerSession(pi: ExtensionAPI) {
 
     const detectedProjectRoot = adoptPiProjectRoot(ctx.cwd);
     if (sessionProjectClassification === "session_project_mismatch") {
-      queueProjectIdentityBootstrapTurn(pi, ctx, detectedProjectRoot, "session_project_mismatch");
+      getAttachmentRuntime().projectBindingTelemetry.recovery_duration_ms =
+        Date.now() - bindingResolutionStartedAt;
+      ctx.ui.setWidget(
+        "focusa-vital",
+        [
+          "🧭 Focusa project binding: QUARANTINED",
+          "Conversation and diagnosis continue in unbound/read-only mode.",
+          "Candidate selection is deferred until a project-aware mutation is requested.",
+        ],
+        { placement: "belowEditor" }
+      );
       focusaPost("/telemetry/trace", {
         event_type: "pi_session_project_mismatch_blocked",
         payload: { session_id: eventSessionId, project_root: detectedProjectRoot },
@@ -1284,15 +1530,41 @@ export function registerSession(pi: ExtensionAPI) {
       return;
     }
     ensureContinuityId(projectRoot);
-    await promptForProjectVerifyIfNeeded(ctx, projectRoot, "session_start");
+    const projectBindingDecisionV1 = await promptForProjectVerifyIfNeeded(
+      pi,
+      ctx,
+      projectRoot,
+      "session_start"
+    );
+    const projectVerified = projectBindingDecisionV1.state === "BOUND";
+    getAttachmentRuntime().projectBindingTelemetry.recovery_duration_ms =
+      Date.now() - bindingResolutionStartedAt;
+    if (!projectVerified) {
+      setActiveWorkpointPacket(null);
+      setActiveWorkpointSummary("");
+      // Receptionist UX already explains the wait in plain language. Keep
+      // internal binding state in telemetry/agent context, not operator warnings.
+      focusaPost("/telemetry/trace", {
+        event_type: "pi_project_startup_waiting_for_binding",
+        payload: { state: projectBindingDecisionV1.state, project_root: projectRoot },
+      });
+      // Progressive receptionist status owns startup UI until the operator has
+      // chosen a project path; hide internal hierarchy and empty work-rail data.
+      ctx.ui.setWidget("focusa-north-star", undefined);
+      ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
+      return;
+    }
     await ensureFocusaSession({ ...ctx, cwd: projectRoot });
     await ensureActiveFrame(
       { ...ctx, cwd: projectRoot },
       (event as any).sessionId || `pi-session-${Date.now()}`
     );
-    await refreshSessionWorkpointPacket("session_start");
+    // North-star order is binding → HLT/MLG/STG/waypoints → Workpoint.
+    // A Workpoint loaded before trajectory refresh can be canonical for a stale
+    // saved ask while lacking authority for the current session.
     await refreshTrajectoryClarityLifecycle("session_start", projectRoot);
     await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start");
+    await refreshSessionWorkpointPacket("session_start");
     if (!getActiveWorkpointPacket()) {
       await refreshTrajectoryClarityLifecycle("session_start_genesis", projectRoot);
       const genesisReady = await ensureProjectGenesis(projectRoot, "session_start");
@@ -1306,6 +1578,8 @@ export function registerSession(pi: ExtensionAPI) {
         );
       }
     }
+    await refreshOntologyContextLifecycle("session_start");
+    updateNorthStarCard(ctx, "session_start_ready_check");
 
     // §35.8: Pi owns the session display name (/name, session selector).
     // Focusa may cache its scoped frame title for context/status, but must not call the Pi session naming API.
@@ -1532,6 +1806,7 @@ export function registerSession(pi: ExtensionAPI) {
       }).catch(() => null);
       await refreshSessionWorkpointPacket("fork");
       await refreshTrajectoryClarityLifecycle("handoff_fork", getSessionCwd() || process.cwd());
+      await refreshOntologyContextLifecycle("handoff_fork");
     }
     await persistAuthoritativeState();
     if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {

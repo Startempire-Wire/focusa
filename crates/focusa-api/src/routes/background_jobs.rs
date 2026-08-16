@@ -156,6 +156,14 @@ async fn complete_job(
         else {
             return Ok(json!({"status": "missing", "job_id": job_id}));
         };
+        // Idempotent settlement: a completed/failed/monitor-lost job can
+        // never be re-settled (forged completions rejected).
+        if record.completed_at.is_some() {
+            return Ok(json!({
+                "status": "already_settled",
+                "job": record,
+            }));
+        }
         let status = match body.status.as_deref() {
             Some(value) => BackgroundJobStatus::parse(value),
             None if body.exit_code == 0 => BackgroundJobStatus::Completed,
@@ -234,12 +242,21 @@ async fn wait_job(
 ) -> Json<Value> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let deadline = std::time::Instant::now() + Duration::from_millis(query.timeout_ms);
+    // One connection reused for the whole wait — no per-poll open cost.
+    let conn = match rusqlite::Connection::open(&path) {
+        Ok(conn) => {
+            if let Err(error) = focusa_core::background_job_store::ensure_schema(&conn) {
+                return Json(json!({"status": "failed", "error": error.to_string()}));
+            }
+            conn
+        }
+        Err(error) => {
+            return Json(json!({"status": "failed", "error": error.to_string()}));
+        }
+    };
     loop {
-        let path = path.clone();
         let job_id = query.job_id.clone();
         let record = tokio::task::spawn_blocking(move || -> anyhow::Result<Option<BackgroundJobRecord>> {
-            let conn = rusqlite::Connection::open(path)?;
-            focusa_core::background_job_store::ensure_schema(&conn)?;
             focusa_core::background_job_store::load_job(&conn, &job_id)
         })
         .await;

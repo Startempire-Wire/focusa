@@ -8,9 +8,11 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
+import { prewarmCompactionPolicy } from "./compaction-policy-adapter.js";
 import type { PiGoverningPriorKind } from "./state.js";
 import {
   getAttachmentRuntime,
+  currentProjectBindingDecision,
   nativeSessionAllowsNonessentialPersistence,
   focusaFetch,
   focusaPost,
@@ -43,11 +45,13 @@ import {
   getCachedSemanticMemorySummary,
   getEcsHandlesSummary,
   getCachedEcsHandlesSummary,
+  getCachedOntologyContext,
   getScopedWorkpointPacket,
   ensureContinuityId,
   isProjectRootAuthoritySafe,
   isWorkpointPacketScopedToCurrentSession,
   refreshTrajectoryClarityLifecycle,
+  refreshOntologyContextLifecycle,
   stampWorkpointPacketForCurrentPiSession,
   adoptPiProjectRoot,
   persistState,
@@ -71,6 +75,7 @@ import {
   getLastTrajectoryClarity,
   setLastTrajectoryClarity,
   getLastProjectVerify,
+  getCurrentScopeStore,
   getLatestReportSummary,
   setLastStreamLen,
   resetToolUsageBatch,
@@ -112,6 +117,7 @@ import {
 } from "./cache-safe-context.js";
 import { selectFocusSliceToolAffordances } from "./tool-contracts.js";
 import { resolveInteractionMode } from "./config.js";
+import { updateNorthStarCard } from "./north-star.js";
 
 const cacheSafetyMonitor = new CacheSafetyMonitor();
 const CACHE_SAFE_DEGRADED_RETAINED_SECTIONS = new Set([
@@ -332,6 +338,23 @@ function hardGateVitalProjectRoot(ctx: any): string | null {
   return null;
 }
 
+function predictionAuthorityProjectionPath(
+  verified: any,
+  continuityId: string
+): string | undefined {
+  const scope = verified?.project_identity?.scope_ref;
+  const continuity = String(continuityId || "").trim();
+  if (!scope || !continuity || !(verified?.canonical === true || verified?.verification?.verified === true)) {
+    return undefined;
+  }
+  const fields = ["scope_kind", "scope_id", "root_path", "canonical_name", "fingerprint"];
+  if (fields.some((field) => !String(scope?.[field] || "").trim())) return undefined;
+  const query = new URLSearchParams();
+  for (const field of fields) query.set(field, String(scope[field]));
+  query.set("continuity_id", continuity);
+  return `/prediction-authority/projection?${query.toString()}`;
+}
+
 function queueTraceTelemetry(event: Record<string, any>): void {
   traceBatch.push(event);
 }
@@ -470,21 +493,47 @@ function trajectoryWaypointTitle(value: any): string {
   return "";
 }
 
-function formatHandleTrajectorySummary(handle: any): string {
+function currentVerifiedTrajectoryScope(): { projectRoot: string; continuityId: string } | null {
+  const store = getCurrentScopeStore();
+  if (!store || store.identity.scopeKind !== "project") return null;
+  const projectRoot = String(store.identity.rootPath || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const continuityId = String(store.identity.continuityId || "").trim();
+  return projectRoot && continuityId ? { projectRoot, continuityId } : null;
+}
+
+function handleTrajectoryMatchesCurrentScope(handle: any): boolean {
+  const current = currentVerifiedTrajectoryScope();
+  if (!current) return false;
   const trajectory = handle?.trajectory || {};
-  const parts = [
-    trajectory.trajectory_id ? `id=${boundedTrajectoryText(trajectory.trajectory_id, 80)}` : "",
-    trajectory.hlt ? `HLT=${boundedTrajectoryText(trajectory.hlt, 140)}` : "",
-    trajectory.mlg ? `MLG=${boundedTrajectoryText(trajectory.mlg, 120)}` : "",
-    trajectory.stg ? `STG=${boundedTrajectoryText(trajectory.stg, 120)}` : "",
-    Array.isArray(trajectory.waypoints) && trajectory.waypoints.length
-      ? `waypoints=${trajectory.waypoints
-          .slice(0, 3)
-          .map((item: any) => boundedTrajectoryText(trajectoryWaypointTitle(item), 80))
-          .join(" | ")}`
-      : "",
-  ].filter(Boolean);
-  return parts.length ? `TRAJECTORY_CONTEXT: ${parts.join("; ")}\n` : "";
+  const scope = trajectory?.scope || handle?.scope || {};
+  const candidateRoot = String(scope.project_root || trajectory.project_root || handle?.project_root || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const candidateContinuity = String(
+    scope.continuity_id || trajectory.continuity_id || handle?.continuity_id || ""
+  ).trim();
+  if (candidateRoot !== current.projectRoot || candidateContinuity !== current.continuityId) return false;
+
+  // Outer scope metadata is insufficient: a stale ECS handle can retain the
+  // current root/workstream while carrying a foreign trajectory payload.
+  // Render only when its canonical trajectory identity matches the active
+  // exact-scoped trajectory cache; missing identity fails closed.
+  const candidateTrajectoryId = String(trajectory.trajectory_id || "").trim();
+  const active = getLastTrajectoryClarity();
+  const activeTrajectoryId = String(active?.trajectory_id || "").trim();
+  const activeRoot = String(active?.project_root || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const activeContinuity = String(active?.continuity_id || "").trim();
+  return Boolean(
+    candidateTrajectoryId &&
+      activeTrajectoryId &&
+      candidateTrajectoryId === activeTrajectoryId &&
+      activeRoot === current.projectRoot &&
+      activeContinuity === current.continuityId
+  );
 }
 
 function safeExists(root: string, rel: string): boolean {
@@ -607,8 +656,60 @@ function formatTrajectoryFallbackFocusSlice(root: string, reason: string): strin
   ];
 }
 
+function trajectoryViewMatchesCurrentScope(view: any): boolean {
+  const current = currentVerifiedTrajectoryScope();
+  if (!current || !view || typeof view !== "object") return false;
+  const project = view.project_identity || {};
+  const projectApi = project.project_identity_api || {};
+  const scopeRef = project.scope_ref || projectApi.scope_ref || {};
+  const projectRoot = String(project.project_root || projectApi.project_root || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const scopeRoot = String(scopeRef.root_path || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const continuityId = String(project.continuity_id || "").trim();
+  const trajectory = view.trajectory || {};
+  const trajectoryId = String(trajectory.trajectory_id || "").trim();
+  const receipt = trajectory.scope_verification || {};
+  const receiptScope = receipt.scope_ref || {};
+  const receiptRoot = String(receipt.project_root || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const receiptContinuity = String(receipt.continuity_id || "").trim();
+  if (
+    project.status !== "verified" ||
+    scopeRef.scope_kind !== "project" ||
+    !String(scopeRef.scope_id || "").trim() ||
+    !String(scopeRef.fingerprint || "").trim() ||
+    projectRoot !== current.projectRoot ||
+    scopeRoot !== current.projectRoot ||
+    continuityId !== current.continuityId ||
+    !trajectoryId ||
+    String(receipt.rendered_trajectory_id || "").trim() !== trajectoryId ||
+    !String(receipt.source_trajectory_id || "").trim() ||
+    receiptRoot !== current.projectRoot ||
+    receiptScope.scope_kind !== scopeRef.scope_kind ||
+    String(receiptScope.scope_id || "") !== String(scopeRef.scope_id || "") ||
+    String(receiptScope.fingerprint || "") !== String(scopeRef.fingerprint || "") ||
+    String(receiptScope.root_path || "").replace(/\/+$/, "") !== current.projectRoot
+  ) {
+    return false;
+  }
+  if (trajectory.fallback_prior_project_trajectory === true) {
+    const sourceContinuity = String(trajectory.fallback_source_continuity_id || "").trim();
+    return Boolean(
+      receipt.status === "verified_same_project_fallback" &&
+        sourceContinuity &&
+        sourceContinuity !== current.continuityId &&
+        receiptContinuity === sourceContinuity
+    );
+  }
+  return receipt.status === "verified_exact" && receiptContinuity === current.continuityId;
+}
+
 function formatTrajectoryFocusSlice(view: any): string[] {
-  if (!view || typeof view !== "object") return [];
+  if (!trajectoryViewMatchesCurrentScope(view)) return [];
   const project = view.project_identity || {};
   const trajectory = view.trajectory || {};
   const intelligence = view.intelligence_view || {};
@@ -846,14 +947,15 @@ function getToolAffordanceFocusSliceLines(options: {
 }
 
 function getCachedTrajectoryFocusSliceLines(): string[] {
-  const root = getSessionCwd() || process.cwd();
-  if (!isProjectRootAuthoritySafe(root)) return [];
-  return formatTrajectoryFallbackFocusSlice(root, "prompt_hot_path_cache");
+  const scope = currentVerifiedTrajectoryScope();
+  if (!scope || !isProjectRootAuthoritySafe(scope.projectRoot)) return [];
+  return formatTrajectoryFallbackFocusSlice(scope.projectRoot, "prompt_hot_path_cache");
 }
 
 async function getTrajectoryFocusSliceLines(): Promise<string[]> {
-  const root = getSessionCwd() || process.cwd();
-  if (!isProjectRootAuthoritySafe(root)) return [];
+  const scope = currentVerifiedTrajectoryScope();
+  if (!scope || !isProjectRootAuthoritySafe(scope.projectRoot)) return [];
+  const root = scope.projectRoot;
   if (!getAttachmentRuntime().focusaAvailable)
     return formatTrajectoryFallbackFocusSlice(root, "focusa_unavailable");
   try {
@@ -863,7 +965,7 @@ async function getTrajectoryFocusSliceLines(): Promise<string[]> {
     params.set("allow_prior_project_trajectory", "true");
     if (getAttachmentRuntime().sessionFrameKey)
       params.set("session_id", getAttachmentRuntime().sessionFrameKey);
-    if (getContinuityId()) params.set("continuity_id", getContinuityId());
+    params.set("continuity_id", scope.continuityId);
     const view = await focusaFetch(`/trajectory/view?${params.toString()}`);
     const lines = formatTrajectoryFocusSlice(view);
     return lines.length ? lines : formatTrajectoryFallbackFocusSlice(root, "empty_trajectory_view");
@@ -995,6 +1097,52 @@ function emitCacheSafetyObservation(observation: CacheSafetyObservation, ctx: an
 
 export function registerTurns(pi: ExtensionAPI) {
   // ── before_agent_start (§35.2 behavioral + §29 WBM injection) ────────────
+  // #256 slice 1: the behavioral law is the canonical Runtime Constitution
+  // served by the daemon (hash-bound). The inline text below is ONLY the
+  // offline fallback projection — never canonical authority.
+  let cachedConstitution: { text: string; digest: string } | null = null;
+  const offlineLaw = [
+      "\n## Focusa Cognitive Guidance",
+      "You are operating within Focusa, a cognitive runtime that preserves focus and decisions.\n",
+      "RULES:",
+      "- Use the focusa_decide tool when you make a significant decision",
+      "- Use the focusa_constraint tool ONLY for hard constraints (e.g. 'NEVER delete production data', 'must preserve X')",
+      "- Use the focusa_failure tool when something fails",
+      "- Do NOT record internal monologue, reasoning, or self-referential notes as constraints",
+      "  (e.g. 'cannot advance without operator direction' is NOT a constraint — it's context)",
+      "- Check the dynamic Focusa Focus Slice before acting and do not violate its constraints",
+      "- Do not contradict decisions in the dynamic Focusa Focus Slice without explanation",
+      "- If context was compacted, a scoped canonical Workpoint packet outranks transcript tail",
+      "- Project-aware writes fail closed unless the dynamic Focusa Focus Slice verifies project_root + continuity_id authority",
+      "- If project identity is ambiguous, infer from bounded repository evidence and ask the operator only when multiple plausible roots remain",
+      "- Treat cwd as the coding agent launch location only; it is not consent to bind Focusa or proof of project identity",
+      "- Older Focusa projects may lack current markers; consult git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting a new project",
+      "- Stay aware of the operator's preferred address, local time, goals, constraints, desired pace, and confirmed timeline; adapt detail and interruption level to canonical operator state",
+      "- Never invent urgency or deadlines. Use Focusa temporal authority for consequential time claims and state uncertainty as a range",
+      "- For meaningful tasks, record a wall-clock start, make a bounded delivery prediction, observe actual elapsed time at completion, evaluate the prediction, and preserve reusable timing lessons",
+      "- Use Focusa tools to accomplish the operator's desired outcome within operator constraints; do not make Focusa mechanics the center of the conversation",
+    ].join("\n");
+  let constitutionText = "";
+
+  // #256: activate the canonical constitution artifact at extension load;
+  // verify the served digest against the embedded fallback's provenance.
+  void focusaFetch("/runtime-constitution")
+    .then((payload) => {
+      const constitution = payload?.constitution;
+      const law = constitution?.behavioral_law;
+      if (typeof law === "string" && law.trim().length > 0) {
+        constitutionText = law;
+        cachedConstitution = {
+          text: law,
+          digest: String(constitution?.content_digest || ""),
+        };
+      }
+    })
+    .catch(() => {
+      // Offline fallback: the projection below is used until the daemon
+      // serves the canonical artifact again.
+    });
+
   pi.on("before_agent_start", (event, ctx) => {
     // Reconnect check
     if (!getAttachmentRuntime().focusaAvailable) {
@@ -1011,21 +1159,9 @@ export function registerTurns(pi: ExtensionAPI) {
     // Cache boundary: system instructions must remain byte-stable across adjacent turns.
     // Project identity, Workpoint state, recaps, recent turns, and WBM context are volatile
     // and are attached by the context hook to the newest user turn instead.
-    const behavioral = [
-      "\n## Focusa Cognitive Guidance",
-      "You are operating within Focusa, a cognitive runtime that preserves focus and decisions.\n",
-      "RULES:",
-      "- Use the focusa_decide tool when you make a significant decision",
-      "- Use the focusa_constraint tool ONLY for hard constraints (e.g. 'NEVER delete production data', 'must preserve X')",
-      "- Use the focusa_failure tool when something fails",
-      "- Do NOT record internal monologue, reasoning, or self-referential notes as constraints",
-      "  (e.g. 'cannot advance without operator direction' is NOT a constraint — it's context)",
-      "- Check the dynamic Focusa Focus Slice before acting and do not violate its constraints",
-      "- Do not contradict decisions in the dynamic Focusa Focus Slice without explanation",
-      "- If context was compacted, a scoped canonical Workpoint packet outranks transcript tail",
-      "- Project-aware writes fail closed unless the dynamic Focusa Focus Slice verifies project_root + continuity_id authority",
-      "- If project identity is ambiguous, infer from bounded repository evidence and ask the operator only when multiple plausible roots remain",
-    ].join("\n");
+    // #256: activate the canonical constitution artifact; the offline law
+    // array is the fallback projection only.
+    const behavioral = constitutionText || offlineLaw;
     const interactionMode = resolveInteractionMode(getSessionCwd());
     const interactionModeLaw = [
       "\n## Focusa Interaction Mode",
@@ -1115,6 +1251,27 @@ export function registerTurns(pi: ExtensionAPI) {
   // Per spec doc 44 §33.2: compute a bounded Focusa slice for each LLM call.
   pi.on("context", (event: any, ctx: any) => {
     const contextMessages = elideOldRehydratableToolHistory(event.messages || []);
+    const startupReceptionistTurn = contextMessages.slice(-8).some((message: any) => {
+      if (
+        message?.customType === "focusa-startup-receptionist" ||
+        message?.custom_type === "focusa-startup-receptionist" ||
+        message?.details?.schema === "focusa.pi_startup_receptionist.v1"
+      )
+        return true;
+      try {
+        const encoded = JSON.stringify(message);
+        return (
+          encoded.includes("focusa-startup-receptionist") ||
+          encoded.includes("focusa.pi_startup_receptionist.v1")
+        );
+      } catch {
+        return false;
+      }
+    });
+    // The receptionist prompt already carries bounded, plain-language startup
+    // policy. Do not append internal Focusa packets, Workpoint state, tool routes,
+    // or attention diagnostics that the model could echo to an uninformed user.
+    if (startupReceptionistTurn) return { messages: contextMessages };
     const cacheSafeLayoutEnabled = getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled !== false;
     const cacheSafeDegraded = cacheSafeLayoutEnabled && cacheSafetyMonitor.isDegraded(cacheSessionKey());
     const cacheInjectionPosition = cacheSafeLayoutEnabled
@@ -1134,26 +1291,18 @@ export function registerTurns(pi: ExtensionAPI) {
         workpointPacket: getScopedWorkpointPacket(),
         visibleRecapReason,
       });
+      const packet: any = getScopedWorkpointPacket();
+      const privateNext = packet?.next_action || packet?.next_slice || "follow the operator's current request";
       const lines = [
-        "[Focusa advisory — operator steering remains authoritative]",
-        ...formatAttentionRecallFocusSliceLines(verdict),
-        ...formatCurrentAskScopeVerdictLines(
-          buildCurrentAskScopeVerdict({
-            currentAskText: askText,
-            workpointPacket: getScopedWorkpointPacket(),
-            projectRoot: getSessionCwd(),
-            continuityId: getContinuityId(),
-          })
-        ),
-        ...formatToolOutputVisibleRecapLines(visibleRecapReason),
-        ...formatWorkpointContextSections().slice(0, 2),
-        ...getToolAffordanceFocusSliceLines({
-          resourceModeActive: false,
-          hasTrajectory: false,
-          hasWorkpoint: Boolean(getActiveWorkpointPacket()),
-          hasOntologyAmbiguity: false,
-        }),
-      ].filter(Boolean);
+        "[Internal Focusa context — never quote, display, or summarize this block to the operator.]",
+        "Continue the conversation naturally. Operator steering remains authoritative.",
+        `Private next action: ${privateNext}`,
+        visibleRecapReason
+          ? "Some tool output was compacted; rely on current evidence handles and rehydrate privately only if needed."
+          : "No operator-visible context recovery is needed.",
+        "If project identity is uncertain, resolve it privately before durable writes; do not expose packet names, scope states, tool routes, or internal hierarchy unless asked.",
+      ];
+      void verdict;
       return { messages: attachCacheSafeFocusSlice(event, contextMessages, lines.join("\n")) };
     }
 
@@ -1185,20 +1334,17 @@ export function registerTurns(pi: ExtensionAPI) {
         workpointPacket: getScopedWorkpointPacket(),
         visibleRecapReason,
       });
+      const packet: any = getScopedWorkpointPacket();
+      const privateNext = packet?.next_action || packet?.next_slice || "follow the operator's current request";
       const lines = [
-        "[Focusa advisory — cached state unavailable; operator flow continues]",
-        ...formatAttentionRecallFocusSliceLines(verdict),
-        ...formatCurrentAskScopeVerdictLines(
-          buildCurrentAskScopeVerdict({
-            currentAskText: askText,
-            workpointPacket: getScopedWorkpointPacket(),
-            projectRoot: getSessionCwd(),
-            continuityId: getContinuityId(),
-          })
-        ),
-        ...formatToolOutputVisibleRecapLines(visibleRecapReason),
-        ...formatWorkpointContextSections().slice(0, 2),
-      ].filter(Boolean);
+        "[Internal Focusa context — never quote, display, or summarize this block to the operator.]",
+        "Cached state is temporarily unavailable; continue the operator's flow without technical warnings.",
+        `Private next action: ${privateNext}`,
+        visibleRecapReason
+          ? "Some tool output was compacted; use evidence handles privately if recovery is actually needed."
+          : "No visible recovery notice is needed.",
+      ];
+      void verdict;
       return { messages: attachCacheSafeFocusSlice(event, contextMessages, lines.join("\n")) };
     }
 
@@ -1314,10 +1460,9 @@ export function registerTurns(pi: ExtensionAPI) {
       governingPriors: activeGoverningPriors,
     });
     const canonicalReferenceAliases = buildCanonicalReferenceAliases(relevantVerifiedDeltas.items);
-    // Provider request hooks are latency-critical. Ontology is refreshed by
-    // background/session lifecycle work and omitted when no cached projection is
-    // available; a daemon timeout must never delay the operator's prompt.
-    const ontologyContext: any = null;
+    // Provider request hooks are latency-critical. Read only the exact-workstream
+    // verified cache; lifecycle refresh runs outside this hot path.
+    const ontologyContext: any = getCachedOntologyContext();
     const ontologyPayload = ontologyContext?.ontology_context || ontologyContext;
     const ontologyObjectLines = Array.isArray(ontologyPayload?.active_object_set)
       ? ontologyPayload.active_object_set
@@ -1343,7 +1488,11 @@ export function registerTurns(pi: ExtensionAPI) {
     const ontologyEvidenceLines = Array.isArray(ontologyPayload?.evidence_handles)
       ? ontologyPayload.evidence_handles.slice(0, 4).map((item: any) => {
           const trajectory = item?.trajectory || {};
-          const stg = boundedTrajectoryText(trajectory.stg || trajectory.short_term_goal, 70);
+          const verifiedTrajectory = handleTrajectoryMatchesCurrentScope({ trajectory }) ? trajectory : {};
+          const stg = boundedTrajectoryText(
+            verifiedTrajectory.stg || verifiedTrajectory.short_term_goal,
+            70
+          );
           return `${item.kind || "evidence"}:${item.label || item.id || "unknown"}${stg ? ` (STG=${stg})` : ""}`;
         })
       : [];
@@ -1399,6 +1548,62 @@ export function registerTurns(pi: ExtensionAPI) {
         selectedCount: 1,
         excludedCount: 0,
         priority: 2,
+        relevanceScore: 100,
+      },
+      {
+        key: "temporal_priority",
+        text: (() => {
+          const temporal = (getAttachmentRuntime() as any).temporalPriorityContext;
+          if (!temporal)
+            return "TEMPORAL_PRIORITY: status=missing; durable_or_consequential_action=blocked; recovery=focusa_temporal_authority";
+          const calendar = temporal.human_calendar_context;
+          const frame = temporal.temporal_priority_frame;
+          const guard = temporal.temporal_execution_guard;
+          const now = Date.now();
+          const stale =
+            !calendar ||
+            !frame ||
+            !guard ||
+            Date.parse(calendar.expires_at || "") <= now ||
+            Date.parse(frame.expires_at || "") <= now ||
+            Date.parse(guard.expires_at || "") <= now;
+          return `TEMPORAL_PRIORITY: status=${stale ? "missing_or_stale" : "verified"}; durable_or_consequential_action=${stale ? "blocked" : "authorized_by_guard_only"}; calendar=${calendar?.context_id || "missing"}; frame=${frame?.frame_id || "missing"}; guard=${guard?.guard_id || "missing"}; deadline=${temporal.deadline_status || "none"}; slack_ms=${temporal.slack_ms ?? "unknown"}; urgency=${temporal.urgency?.subject_ref || "none"}; warnings=${Array.isArray(temporal.warnings) ? temporal.warnings.join("|") : "none"}`;
+        })(),
+        include: true,
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 3,
+        relevanceScore: 100,
+      },
+      {
+        key: "epistemic_authority",
+        text: (() => {
+          const authority = (getAttachmentRuntime() as any).predictionAuthorityContext;
+          if (!authority)
+            return "EPISTEMIC_AUTHORITY: status=missing; claims=unverified; recovery=focusa_prediction_authority projection";
+          const projection = authority.projection || {};
+          const conformance = authority.profile_conformance?.full_conformance_status || "unknown";
+          const count = (key: string) => Object.keys(projection[key] || {}).length;
+          return `EPISTEMIC_AUTHORITY: status=${authority.status || "unknown"}; canonical=${authority.canonical === true}; conformance=${conformance}; events=${authority.event_count ?? 0}; questions=${count("questions")}; commitments=${count("commitments")}; outcomes=${count("outcome_authority_events")}; evaluations=${count("evaluations")}; learning=${count("learning")}; legacy=${authority.legacy_event_count ?? 0}`;
+        })(),
+        include: true,
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 3,
+        relevanceScore: 100,
+      },
+      {
+        key: "instruction_integrity",
+        text: (() => {
+          const integrity = (getAttachmentRuntime() as any).instructionIntegrityContext;
+          if (!integrity)
+            return "INSTRUCTION_INTEGRITY: status=missing; durable_or_consequential_action=blocked; recovery=focusa_instruction_integrity_status";
+          return `INSTRUCTION_INTEGRITY: status=${integrity.status || "unknown"}; canonical=${integrity.canonical === true}; mission_canvas_authority=${integrity.mission_canvas_required === false ? "false" : "unknown"}; outage=${integrity.dynamic_authority_outage_posture || "unknown"}; amendment=${integrity.amendment_activation_requires || "unknown"}`;
+        })(),
+        include: true,
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 3,
         relevanceScore: 100,
       },
       {
@@ -2022,9 +2227,61 @@ export function registerTurns(pi: ExtensionAPI) {
   });
 
   // ── input (§36.3 signal + §35.7 correction — single handler) ──────────────
-  pi.on("input", (event, _ctx) => {
+  pi.on("input", async (event, _ctx) => {
     const text = (event as any).text || (event as any).message || "";
     const cleanedText = stripQuotedFocusaContext(String(text));
+    const runtime = getAttachmentRuntime();
+    if (runtime.focusaAvailable) {
+      const verified = getLastProjectVerify() as any;
+      const projectRoot = verified?.project_root || verified?.root || getSessionCwd();
+      const continuityId = getContinuityId();
+      if (projectRoot && continuityId) {
+        void focusaFetch(
+          `/temporal/status?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}`
+        ).then(
+          (temporal) => {
+            (runtime as any).temporalPriorityContext = (temporal as any)?.projection || temporal;
+          },
+          () => {
+            (runtime as any).temporalPriorityContext = undefined;
+          }
+        );
+        const predictionAuthorityPath = predictionAuthorityProjectionPath(verified, continuityId);
+        if (predictionAuthorityPath) void focusaFetch(predictionAuthorityPath).then(
+          (authority) => {
+            (runtime as any).predictionAuthorityContext = authority;
+          },
+          () => {
+            (runtime as any).predictionAuthorityContext = undefined;
+          }
+        );
+      }
+      void focusaFetch("/agent-runtime/instruction-integrity/status").then(
+        (integrity) => {
+          (runtime as any).instructionIntegrityContext = integrity;
+        },
+        () => {
+          (runtime as any).instructionIntegrityContext = undefined;
+        }
+      );
+    }
+    if (
+      cleanedText.trim() &&
+      (runtime.compactionVerifyPendingKey ||
+        ["pending", "unknown_completion", "deferred_to_next_turn"].includes(
+          runtime.compactResumeDeliveryState
+        ))
+    ) {
+      runtime.compactResumePending = false;
+      runtime.compactResumeDeliveryState = "superseded_by_operator";
+      runtime.pi?.appendEntry("focusa-compaction-delivery-outcome", {
+        schema: "focusa.compaction_delivery_outcome.v1",
+        delivery_key: runtime.compactResumeDeliveryKey || runtime.compactionVerifyPendingKey,
+        outcome: "superseded_by_operator",
+        recorded_at: new Date().toISOString(),
+      });
+      persistState();
+    }
 
     // §5.12.10: recall-intent trigger — detect and force re-emit.
     const intent = detectRecallIntent(cleanedText);
@@ -2069,6 +2326,23 @@ export function registerTurns(pi: ExtensionAPI) {
       projectRoot: getSessionCwd(),
       continuityId: getContinuityId(),
     };
+    const activeWorkpoint = getActiveWorkpointPacket();
+    const boundAsk = String((activeWorkpoint as any)?.current_ask_binding || "").trim();
+    if (activeWorkpoint && newTaskText && boundAsk !== newTaskText) {
+      setActiveWorkpointPacket({
+        ...activeWorkpoint,
+        action_authority_for_current_ask: false,
+        matches_current_ask_scope: false,
+        current_ask_scope: {
+          ...(activeWorkpoint as any).current_ask_scope,
+          action_authority_for_current_ask: false,
+          matches_current_ask_scope: false,
+          scope_conflict_reason: "operator_ask_changed_since_workpoint_binding",
+        },
+      });
+      persistState();
+    }
+    updateNorthStarCard(_ctx, "operator_input");
     observeProjectThreadHintsFromText(newTaskText, sourceTurnId, "current_ask", "current_ask_project_hints");
     const queryScope = deriveQueryScope(askKind);
     const steeringDetected = isOperatorSteeringInput(String(text), askKind);
@@ -2118,6 +2392,11 @@ export function registerTurns(pi: ExtensionAPI) {
         .catch(() => null);
       if (steeringDetected && rootConfirmed) {
         refreshTrajectoryClarityLifecycle("operator_steering", projectRoot).catch(() => null);
+        refreshOntologyContextLifecycle(
+          "operator_steering",
+          getAttachmentRuntime().currentAsk?.text,
+          true
+        ).catch(() => null);
       }
     }
 
@@ -2274,6 +2553,10 @@ export function registerTurns(pi: ExtensionAPI) {
         refreshTrajectoryClarityLifecycle("failure_or_degradation", getSessionCwd() || process.cwd()).catch(
           () => null
         );
+        refreshOntologyContextLifecycle(
+          "failure_or_degradation",
+          getAttachmentRuntime().currentAsk?.text
+        ).catch(() => null);
       }
       if (scopeFailures.length === 0) {
         queueTraceTelemetry({
@@ -2445,7 +2728,10 @@ export function registerTurns(pi: ExtensionAPI) {
     const asciiWorkRail = process.env.FOCUSA_ASCII_UI === "1" || process.env.TERM === "dumb";
     // Pi ExtensionContext exposes hasUI, not a runtime mode discriminator.
     // Keep widgets out of print/RPC surfaces while remaining compatible across Pi builds.
-    if (ctx.hasUI) {
+    const projectBinding = currentProjectBindingDecision();
+    if (!projectBinding || projectBinding.state !== "BOUND") {
+      ctx.ui.setWidget("focusa", undefined);
+    } else if (ctx.hasUI) {
       ctx.ui.setWidget("focusa", (_tui, theme) => ({
         render(width: number) {
           return renderWorkRailWidget(
@@ -2508,11 +2794,41 @@ export function registerTurns(pi: ExtensionAPI) {
   });
 
   // ── model_select (§37.8) ──────────────────────────────────────────────────
-  pi.on("model_select", async (event, _ctx) => {
+  pi.on("model_select", async (event, ctx) => {
     if (!getAttachmentRuntime().focusaAvailable) return;
+    await prewarmCompactionPolicy(ctx, getAttachmentRuntime().cfg).catch(() => undefined);
     const model = (event as any).model;
     getAttachmentRuntime().activeContextWindow =
       model?.contextWindow || getAttachmentRuntime().activeContextWindow;
+    const verified = getLastProjectVerify() as any;
+    const projectRoot = verified?.project_root || verified?.root || getSessionCwd();
+    const continuityId = getContinuityId();
+    try {
+      const temporal =
+        projectRoot && continuityId
+          ? await focusaFetch(
+              `/temporal/status?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}`
+            )
+          : undefined;
+      (getAttachmentRuntime() as any).temporalPriorityContext = (temporal as any)?.projection || temporal;
+    } catch {
+      (getAttachmentRuntime() as any).temporalPriorityContext = undefined;
+    }
+    try {
+      const predictionAuthorityPath = predictionAuthorityProjectionPath(verified, continuityId);
+      (getAttachmentRuntime() as any).predictionAuthorityContext = predictionAuthorityPath
+        ? await focusaFetch(predictionAuthorityPath)
+        : undefined;
+    } catch {
+      (getAttachmentRuntime() as any).predictionAuthorityContext = undefined;
+    }
+    try {
+      (getAttachmentRuntime() as any).instructionIntegrityContext = await focusaFetch(
+        "/agent-runtime/instruction-integrity/status"
+      );
+    } catch {
+      (getAttachmentRuntime() as any).instructionIntegrityContext = undefined;
+    }
     // §37.8: Wire model change to Focusa with frame context
     await checkpointDiscontinuity("model_switch", { active_object_refs: [model?.id || "unknown-model"] });
     focusaPost("/focus-gate/ingest-signal", {
@@ -2528,6 +2844,7 @@ export function registerTurns(pi: ExtensionAPI) {
     // because model/provider discontinuities are not prefix regressions.
     getAttachmentRuntime().lastRecentTurnsSliceTurn = -1;
     cacheSafetyMonitor.resetForDiscontinuity(cacheSessionKey());
+    updateNorthStarCard(ctx, "model_switch");
   });
 
   // Provider overflow boundary: Pi auto-compacts, but Focusa checkpoints first when HTTP status exposes overflow-like failure.
@@ -2669,6 +2986,8 @@ export function registerTurns(pi: ExtensionAPI) {
           content: content.slice(0, 32_000),
           surface: "pi",
           turn_id: `pi-turn-${getTurnCount()}`,
+          project_root: getSessionCwd(),
+          continuity_id: getContinuityId(),
         }),
       });
       if (handle?.id) {
@@ -2681,7 +3000,6 @@ export function registerTurns(pi: ExtensionAPI) {
               type: "text",
               text:
                 `[HANDLE:text:${handle.id} "${toolName} output" (${content.length} bytes, ~${tokens} tokens)]\n` +
-                formatHandleTrajectorySummary(handle) +
                 `Use /focusa-rehydrate ${handle.id} to retrieve full content.\n\n` +
                 content.slice(0, 1000) +
                 (content.length > 1000 ? "\n...[truncated, full content in ECS]" : ""),
