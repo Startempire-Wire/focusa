@@ -89,6 +89,7 @@ pub mod silent_sessions;
 pub mod skills;
 pub mod software_domain;
 pub mod callgraph;
+pub mod callgraph_store;
 pub mod sync;
 pub mod telemetry;
 pub mod threads;
