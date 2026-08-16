@@ -364,3 +364,13 @@ bounded core + persistence slices:
   with the inline law as offline fallback projection. 3/3 + tsc green.
 - #257/#258/#263/#264 slices recorded in 5n; #275 projection refreshed.
 - Commit `c7cc9960` (pushed `c9e7be06`).
+
+## 5p. #253/#259/#256 slices + housekeeping (2026-08-16)
+
+- #253 slice 1: lifecycle chain conformance (proposal → promotion → goal
+  → CallGraph log-only → claim-gate honesty). Commit `744581e7`.
+- #259 slice 1: skills manifest + ownership audit (22 skills, triples
+  verified). Commit `20ecbbdd`.
+- #256 slice 1: canonical hash-bound Runtime Constitution + daemon route
+  + extension activation with offline fallback. Commit `c7cc9960`.
+- #275 projection refreshed for #253/#256/#259.
