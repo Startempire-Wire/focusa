@@ -290,12 +290,14 @@ fn sqlite_persistence_rolls_back_to_fresh_state_on_incompatible_snapshot() {
     .unwrap();
 
     let p = SqlitePersistence::new(&cfg).unwrap();
-    let state = p
+    // #276/#263: load_state fails CLOSED over a canonical snapshot — a parse
+    // failure must never silently start fresh over real stored state.
+    let error = p
         .load_state()
-        .expect("load_state should not fail for incompatible legacy snapshot");
+        .expect_err("load_state must fail closed on an unparsable canonical snapshot");
     assert!(
-        state.is_none(),
-        "incompatible snapshot should trigger fresh-state fallback"
+        error.to_string().contains("refusing to start fresh"),
+        "unexpected failure shape: {error}"
     );
 }
 
