@@ -374,3 +374,11 @@ bounded core + persistence slices:
 - #256 slice 1: canonical hash-bound Runtime Constitution + daemon route
   + extension activation with offline fallback. Commit `c7cc9960`.
 - #275 projection refreshed for #253/#256/#259.
+
+## 5q. Completion truth + capability truth (2026-08-16)
+
+- #276/#277 slices 1-2: deterministic acceptance-atom coverage evaluation
+  (completion_authority.rs, 5/5) + POST /v1/completion-claims/evaluate.
+  Commits `0ec54d80`, `ba06d813` (pushed `cb59d1a1`, `d5909c17`).
+- #279 slice 1: CapabilityTruthClaim + public-safe HonestyManifest (5/5).
+  Commit `4c37c8fd` (pushed `c75ae5e6`).
