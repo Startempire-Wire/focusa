@@ -114,6 +114,80 @@ try {
 
 const drift = [];
 
+// Capability truth (#279/#260): the installed extension's runtime contract
+// set must match the source registry (names + families).
+let capabilityTruth = { source_contracts: 0, installed_contracts: 0, missing: [], extra: [], family_mismatches: [] };
+if (piExtDir && existsSync(join(piExtDir, "src/tool-contracts.ts"))) {
+  try {
+    const source = readFileSync(join(piExtDir, "src/tool-contracts.ts"), "utf8");
+    const sourceRegistry = readJson(join(ROOT, "docs/current/focusa-tool-contracts.json"));
+    const sourceList = Array.isArray(sourceRegistry)
+      ? sourceRegistry
+      : sourceRegistry?.tools ?? sourceRegistry?.contracts ?? [];
+    const sourceNames = new Map(
+      sourceList.filter((c) => c?.name).map((c) => [c.name, c.family ?? c.result_envelope ?? null])
+    );
+    // Installed extension runtime registry: transpile the real TS module to
+    // CommonJS and evaluate it — the registry ends in a ternary, so regex
+    // parsing is not trustworthy for capability truth.
+    const installedNames = new Map();
+    const tsCandidates = [
+      join(piExtDir, "node_modules/typescript"),
+      "/root/.pi/agent/extensions/focusa/node_modules/typescript",
+    ];
+    let ts = null;
+    for (const candidate of tsCandidates) {
+      try {
+        ts = (await import(`file://${candidate}/lib/typescript.js`)).default;
+        break;
+      } catch {
+        /* try next */
+      }
+    }
+    if (ts) {
+      const compiled = ts.transpileModule(source, {
+        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+      }).outputText;
+      const evaluate = new Function("exports", `${compiled}; return exports;`);
+      const exports = evaluate({});
+      const registry = exports?.FOCUSA_TOOL_CONTRACTS;
+      if (Array.isArray(registry)) {
+        for (const contract of registry) {
+          if (contract?.name) installedNames.set(contract.name, contract.family ?? null);
+        }
+      }
+    }
+    capabilityTruth.source_contracts = sourceNames.size;
+    capabilityTruth.installed_contracts = installedNames.size;
+    for (const [name] of sourceNames) {
+      if (!installedNames.has(name)) capabilityTruth.missing.push(name);
+    }
+    for (const [name] of installedNames) {
+      if (!sourceNames.has(name)) capabilityTruth.extra.push(name);
+    }
+    for (const [name, family] of sourceNames) {
+      if (installedNames.has(name) && installedNames.get(name) !== family && family) {
+        capabilityTruth.family_mismatches.push({ name, source_family: family, installed_family: installedNames.get(name) });
+      }
+    }
+    const truthDrift =
+      capabilityTruth.missing.length +
+      capabilityTruth.extra.length +
+      capabilityTruth.family_mismatches.length;
+    if (truthDrift > 0) {
+      drift.push({
+        surface: "capability_truth",
+        expected: "source_registry",
+        source_value: String(sourceNames.size),
+        observed_value: String(installedNames.size),
+        detail: `${capabilityTruth.missing.length} missing, ${capabilityTruth.extra.length} extra, ${capabilityTruth.family_mismatches.length} family mismatches`,
+      });
+    }
+  } catch {
+    capabilityTruth = { source_contracts: 0, installed_contracts: 0, missing: [], extra: [], family_mismatches: [], error: "capability-truth comparison unavailable" };
+  }
+}
+
 // #260 digest axis: the installed extension's key runtime files must match
 // the canonical tree (or be explicitly flagged as deployed-line divergence).
 const digestFiles = ["src/tools.ts", "src/session.ts", "src/north-star.ts", "src/ota-activation.ts"];
@@ -149,6 +223,7 @@ const manifest = {
   installed,
   live,
   digests,
+  capability_truth: capabilityTruth,
   drift,
   parity_ok: drift.length === 0,
 };
