@@ -68,7 +68,7 @@ fn workset_summaries(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> 
             "status": status,
             "met": met.len(),
             "open": open.len(),
-            "digest": focusa_core::workset_ledger::workset_digest(&definition).unwrap_or_default(),
+            "digest": focusa_core::workset_ledger::workset_digest(&definition),
         }));
     }
     Ok(out)
