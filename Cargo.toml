@@ -20,11 +20,6 @@ exclude = [
     "apps/menubar/src-tauri",
 ]
 
-agent-stateful-cognitive-runtime = { path = "crates/agent-stateful-cognitive-runtime" }
-letta-adapter = { path = "crates/letta-adapter" }
-pi-client-tool-gateway = { path = "crates/pi-client-tool-gateway" }
-cognitive-state-projection = { path = "crates/cognitive-state-projection" }
-
 [workspace.package]
 version = "0.9.121-dev"
 edition = "2024"
@@ -52,6 +47,11 @@ unused_imports = "allow"
 unused_variables = "allow"
 
 [workspace.dependencies]
+agent-stateful-cognitive-runtime = { path = "crates/agent-stateful-cognitive-runtime" }
+letta-adapter = { path = "crates/letta-adapter" }
+pi-client-tool-gateway = { path = "crates/pi-client-tool-gateway" }
+cognitive-state-projection = { path = "crates/cognitive-state-projection" }
+
 # Async runtime
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "process", "fs", "net", "io-util", "io-std", "signal"] }
 
