@@ -233,6 +233,26 @@ else
   exit 1
 fi
 
+# #280: revalidation triggers — every release re-runs the envelope, skill
+# ownership, and tool taxonomy audits; any gap reopens the corresponding
+# issue class instead of shipping silently.
+echo "Revalidation triggers gate (#280)"
+if ! node scripts/audit-error-envelope-parity.mjs > /tmp/envelope-parity-report.txt 2>/dev/null; then
+  echo "error-envelope parity audit failed; refusing release" >&2
+  tail -5 /tmp/envelope-parity-report.txt >&2
+  exit 1
+fi
+if ! node scripts/audit-skill-ownership.mjs > /tmp/skill-ownership-report.txt 2>/dev/null; then
+  echo "skill ownership audit failed; refusing release" >&2
+  cat /tmp/skill-ownership-report.txt >&2
+  exit 1
+fi
+if ! node scripts/audit-tool-taxonomy.mjs > /tmp/tool-taxonomy-report.txt 2>/dev/null; then
+  echo "tool taxonomy audit failed; refusing release" >&2
+  exit 1
+fi
+echo "revalidation triggers gate passed"
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
   git checkout -- Cargo.toml Cargo.lock \
