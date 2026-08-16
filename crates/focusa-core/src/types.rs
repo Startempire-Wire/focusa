@@ -978,6 +978,48 @@ pub struct TrajectoryDefinitionOfDoneRecord {
     pub not_done_if: Vec<String>,
 }
 
+/// Backward-compatible waypoint deserialization: legacy snapshots stored
+/// waypoints as structured objects (waypoint_id/title/desired_state_delta);
+/// current surfaces consume flat strings. Maps convert to the stable
+/// waypoint_id (falling back to title, then compact JSON).
+fn deserialize_waypoints<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    struct WaypointVisitor;
+    impl<'de> serde::de::Visitor<'de> for WaypointVisitor {
+        type Value = Vec<String>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a sequence of strings or legacy waypoint objects")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut out = Vec::new();
+            while let Some(value) = seq.next_element::<serde_json::Value>()? {
+                match value {
+                    serde_json::Value::String(text) => out.push(text),
+                    serde_json::Value::Object(map) => {
+                        let text = map
+                            .get("waypoint_id")
+                            .and_then(|v| v.as_str())
+                            .or_else(|| map.get("title").and_then(|v| v.as_str()))
+                            .unwrap_or("legacy-waypoint")
+                            .to_string();
+                        out.push(text);
+                    }
+                    other => out.push(other.to_string()),
+                }
+            }
+            Ok(out)
+        }
+    }
+    deserializer.deserialize_seq(WaypointVisitor)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrajectoryProjectionRecord {
     pub trajectory_id: String,
@@ -989,7 +1031,7 @@ pub struct TrajectoryProjectionRecord {
     pub desired_end_state: String,
     pub mid_level_goal: Option<String>,
     pub short_term_goal: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_waypoints")]
     pub waypoints: Vec<String>,
     pub current_state: Option<String>,
     pub root_goal_stability: TrajectoryRootGoalStability,

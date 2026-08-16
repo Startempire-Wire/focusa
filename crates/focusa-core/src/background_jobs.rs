@@ -73,6 +73,28 @@ pub struct BackgroundJobCompletionEvent {
     pub log_path: String,
     pub started_at: String,
     pub completed_at: String,
+    /// Bounded tail of the job's output — the agent's front terminal
+    /// displays this on completion (never the whole log).
+    #[serde(default)]
+    pub output_tail: String,
+}
+
+/// Read the bounded tail of a job log (last N bytes, line-aligned).
+pub fn bounded_log_tail(log_path: &str, max_bytes: usize) -> String {
+    let Ok(bytes) = std::fs::read(log_path) else {
+        return String::new();
+    };
+    if bytes.len() <= max_bytes {
+        return String::from_utf8_lossy(&bytes).to_string();
+    }
+    let start = bytes.len() - max_bytes;
+    let tail = &bytes[start..];
+    // Align to the next newline boundary.
+    let aligned = match tail.iter().position(|b| *b == b'\n') {
+        Some(index) => &tail[index + 1..],
+        None => tail,
+    };
+    String::from_utf8_lossy(aligned).to_string()
 }
 
 impl BackgroundJobCompletionEvent {
@@ -92,6 +114,7 @@ impl BackgroundJobCompletionEvent {
                 .completed_at
                 .clone()
                 .unwrap_or_else(|| record.started_at.clone()),
+            output_tail: bounded_log_tail(&record.log_path, 4096),
         }
     }
 }
