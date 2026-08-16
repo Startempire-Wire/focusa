@@ -175,14 +175,21 @@ async fn complete_job(
         focusa_core::background_job_store::upsert_job(&conn, &record)?;
         let envelope = BackgroundJobCompletionEvent::from_record(&record);
         // Duration stats feed the ETA for the next same-name job.
-        if let (Some(started), Some(completed)) = (&record.started_at.parse::<chrono::DateTime<chrono::Utc>>().ok(), &record.completed_at.as_ref().and_then(|t| t.parse::<chrono::DateTime<chrono::Utc>>().ok())) {
-            if let (Ok(started), Ok(completed)) = (started, completed) {
-                let duration_ms = (completed - *started).num_milliseconds();
-                if duration_ms > 0 {
-                    let _ = focusa_core::background_job_store::record_job_duration(
-                        &conn, &record.name, duration_ms,
-                    );
-                }
+        if let (Some(started), Some(completed)) = (
+            &record
+                .started_at
+                .parse::<chrono::DateTime<chrono::Utc>>()
+                .ok(),
+            &record
+                .completed_at
+                .as_ref()
+                .and_then(|t| t.parse::<chrono::DateTime<chrono::Utc>>().ok()),
+        ) {
+            let duration_ms = (completed - started).num_milliseconds();
+            if duration_ms > 0 {
+                let _ = focusa_core::background_job_store::record_job_duration(
+                    &conn, &record.name, duration_ms,
+                );
             }
         }
         Ok(json!({
