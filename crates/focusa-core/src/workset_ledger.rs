@@ -96,7 +96,11 @@ pub struct WorksetProjection {
 /// Canonical digest over the definition (stable — serde field order).
 pub fn workset_digest(definition: &WorksetDefinition) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(serde_json::to_string(definition).unwrap_or_default().as_bytes());
+    // Serialize types never fail serialization; the expect documents the
+    // invariant instead of silently hashing an empty string.
+    let canonical = serde_json::to_string(definition)
+        .expect("WorksetDefinition always serializes");
+    hasher.update(canonical.as_bytes());
     format!("sha256:{}", hex(&hasher.finalize()))
 }
 
