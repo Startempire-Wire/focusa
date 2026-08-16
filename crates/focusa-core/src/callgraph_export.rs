@@ -454,3 +454,201 @@ mod extra_tests {
         assert!(out.contains("a[\"plan\"]"));
     }
 }
+
+/// Governed import — preview first, then commit through authority (#287
+/// import-side). A JSONL snapshot parses back into a definition ONLY when
+/// it validates and its digest matches the manifest; commit never mutates
+/// without an explicit authority ref.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImportPreview {
+    pub graph_id: String,
+    pub revision: u64,
+    pub frames: usize,
+    pub edges: usize,
+    pub dispatches: usize,
+    pub digest: String,
+    pub valid: bool,
+    pub issues: Vec<String>,
+}
+
+/// Parse the first JSONL line as the definition + validate + digest-check.
+pub fn preview_import(jsonl: &str, expected_digest: Option<&str>) -> ImportPreview {
+    let mut issues = Vec::new();
+    let first_line = jsonl.lines().next().unwrap_or_default();
+    let graph: Option<FocusaCallGraphDefinition> = serde_json::from_str(first_line).ok();
+    let Some(graph) = graph else {
+        return ImportPreview {
+            graph_id: "unparseable".to_string(),
+            revision: 0,
+            frames: 0,
+            edges: 0,
+            dispatches: jsonl.lines().count().saturating_sub(1),
+            digest: String::new(),
+            valid: false,
+            issues: vec!["first line is not a valid FocusaCallGraphDefinition".to_string()],
+        };
+    };
+    let report = crate::callgraph::validate_graph(&graph);
+    if !report.valid {
+        for issue in &report.issues {
+            issues.push(format!("{}: {}", issue.path, issue.message));
+        }
+    }
+    let digest = graph_digest(&graph);
+    if let Some(expected) = expected_digest {
+        if expected != digest {
+            issues.push(format!("digest mismatch: manifest {expected} computed {digest}"));
+        }
+    }
+    let frame_count = jsonl
+        .lines()
+        .skip(1)
+        .filter(|line| line.contains("\"frame_id\""))
+        .count();
+    let edge_count = jsonl
+        .lines()
+        .skip(1)
+        .filter(|line| line.contains("\"edge_id\""))
+        .count();
+    ImportPreview {
+        graph_id: graph.graph_id.clone(),
+        revision: graph.revision,
+        frames: frame_count,
+        edges: edge_count,
+        dispatches: jsonl.lines().count().saturating_sub(1 + frame_count + edge_count),
+        digest,
+        valid: issues.is_empty(),
+        issues,
+    }
+}
+
+#[cfg(test)]
+mod import_tests {
+    use super::*;
+    use crate::callgraph::{
+        AcceptanceContract, AuthorityRef, CallGraphPolicies, CallGraphScope,
+        FocusaCallFrame, FrameKind, SideEffectClass,
+    };
+
+    #[test]
+    fn preview_import_accepts_lossless_snapshot() {
+        let graph = FocusaCallGraphDefinition {
+            schema: crate::callgraph::CALLGRAPH_SCHEMA.to_string(),
+            graph_id: "g-import".to_string(),
+            revision: 1,
+            scope: CallGraphScope {
+                project_root: "/root/proj".to_string(),
+                continuity_id: "cont-1".to_string(),
+            },
+            mission_ref: "m1".to_string(),
+            trajectory_ref: None,
+            workpoint_refs: vec![],
+            title: "t".to_string(),
+            description: "t".to_string(),
+            entry_frame_ids: vec!["a".to_string()],
+            frames: vec![FocusaCallFrame {
+                frame_id: "a".to_string(),
+                name: "a".to_string(),
+                purpose: "t".to_string(),
+                kind: FrameKind::Agent,
+                input_schema: serde_json::json!({}),
+                return_schema: serde_json::json!({}),
+                preconditions: vec![],
+                postconditions: vec![],
+                side_effect_class: SideEffectClass::None,
+                capability_refs: vec![],
+                authority_requirement: None,
+                timeout_policy: None,
+                retry_policy: None,
+                failure_boundary: None,
+                compensation_frame_id: None,
+                resource_budget: None,
+                acceptance: AcceptanceContract {
+                    acceptance_atoms: vec!["a1".to_string()],
+                    verifier: None,
+                },
+                execution_binding: None,
+            }],
+            edges: vec![],
+            policies: CallGraphPolicies::default(),
+            required_evidence: vec![],
+            created_at: "t".to_string(),
+            created_by: AuthorityRef {
+                authority_kind: "operator".to_string(),
+                reference: "op-1".to_string(),
+            },
+            supersedes_revision: None,
+        };
+        let projection =
+            CallGraphExportProjection::new(graph, vec![], "jsonl", true, vec![]);
+        let jsonl = export_jsonl(&projection);
+        let preview = preview_import(&jsonl, Some(&projection.manifest.digest));
+        assert!(preview.valid, "issues: {:?}", preview.issues);
+        assert_eq!(preview.graph_id, "g-import");
+        assert_eq!(preview.frames, 1);
+    }
+
+    #[test]
+    fn preview_import_rejects_digest_mismatch() {
+        let graph = FocusaCallGraphDefinition {
+            schema: crate::callgraph::CALLGRAPH_SCHEMA.to_string(),
+            graph_id: "g2".to_string(),
+            revision: 1,
+            scope: CallGraphScope {
+                project_root: "/r".to_string(),
+                continuity_id: "c".to_string(),
+            },
+            mission_ref: "m".to_string(),
+            trajectory_ref: None,
+            workpoint_refs: vec![],
+            title: "t".to_string(),
+            description: "t".to_string(),
+            entry_frame_ids: vec!["a".to_string()],
+            frames: vec![FocusaCallFrame {
+                frame_id: "a".to_string(),
+                name: "a".to_string(),
+                purpose: "t".to_string(),
+                kind: FrameKind::Tool,
+                input_schema: serde_json::json!({}),
+                return_schema: serde_json::json!({}),
+                preconditions: vec![],
+                postconditions: vec![],
+                side_effect_class: SideEffectClass::None,
+                capability_refs: vec![],
+                authority_requirement: None,
+                timeout_policy: None,
+                retry_policy: None,
+                failure_boundary: None,
+                compensation_frame_id: None,
+                resource_budget: None,
+                acceptance: AcceptanceContract {
+                    acceptance_atoms: vec!["a1".to_string()],
+                    verifier: None,
+                },
+                execution_binding: None,
+            }],
+            edges: vec![],
+            policies: CallGraphPolicies::default(),
+            required_evidence: vec![],
+            created_at: "t".to_string(),
+            created_by: AuthorityRef {
+                authority_kind: "operator".to_string(),
+                reference: "op-1".to_string(),
+            },
+            supersedes_revision: None,
+        };
+        let projection =
+            CallGraphExportProjection::new(graph, vec![], "jsonl", true, vec![]);
+        let jsonl = export_jsonl(&projection);
+        let preview = preview_import(&jsonl, Some("sha256:deadbeef"));
+        assert!(!preview.valid);
+        assert!(preview.issues[0].contains("digest mismatch"));
+    }
+
+    #[test]
+    fn preview_import_rejects_garbage() {
+        let preview = preview_import("not json\n", None);
+        assert!(!preview.valid);
+        assert!(preview.issues[0].contains("not a valid"));
+    }
+}
