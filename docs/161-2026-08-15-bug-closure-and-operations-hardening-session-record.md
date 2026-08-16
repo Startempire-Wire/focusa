@@ -227,3 +227,39 @@ Node stays the canonical runtime (Pi loads the extension in-process). Bun is
 adopted only for one-shot script execution where startup speed helps and no
 repo change is required; extension installs stay on npm/package-lock to
 avoid dual-lockfile drift with CI.
+
+## 5i. #125 family migration batches (2026-08-16 continuation)
+
+After the workpoint-family migration went green (commit `e4b5ba29`), the
+remaining route families were migrated with the same partitioned-state-first
+/ global-fallback pattern:
+
+- `trajectory.rs` — 6 read sites via `scoped_focusa_read` (ScopeContext params).
+- `focus.rs` — 8 read sites via `scoped_focusa_read`.
+- `project.rs` — 1 read site via `scoped_focusa_read`.
+- `work_loop.rs` — 6 sites incl. the `WorkLoopScope` extractor itself via the
+  WorkstreamKey-aware `scoped_focusa_read_workstream` helper.
+- Reducer helpers (`trajectory::dispatch_event`, `focus::materialize_focus_event`)
+  now derive the partition from the event payload via the new core helper
+  `focusa_core::scoped_state::workstream_scope_of_event` (matches
+  `TrajectoryGoalDefined`, `FocusFramePushed`, `WorkpointCheckpointProposed`;
+  falls back to the global canonical state for scope-less events). 4/4 new
+  unit tests.
+- Commits: `9ae8e4a0` (trajectory/focus/project), `bc08c8d5` (work_loop),
+  `f722744b` (scope extractor), plus the event-scope commit; each verified
+  with `cargo check` + `cargo clippy --all-targets -- -D warnings` on the
+  remote build host.
+
+### Sweep-corruption lessons (recorded for future agents)
+
+The first two family sweeps corrupted route files in two distinct ways:
+(1) regex matched `let focusa = state.focusa.read().await;` inside string
+literals; (2) left-to-right in-place replacement used stale match indices,
+so replacements landed mid-string/mid-signature. The corrected sweep
+(`family-sweep3.py`) uses a line-anchored pattern, right-to-left
+(reversed) iteration, and an enclosing-fn-signature check (brace-scan
+backwards from the match) that only migrates sites whose handler carries a
+`ScopeContext`/`WorkLoopScope` param. Files touched by the broken sweeps
+were restored with `git checkout --` and re-owned to uid 549 before the
+corrected run. Never apply regex sweeps to Rust files without an
+immediate `git diff` sanity check on the hunk shapes.

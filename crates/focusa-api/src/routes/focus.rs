@@ -618,7 +618,17 @@ async fn materialize_focus_event(
     correlation_id: &'static str,
 ) -> FocusUnitResult {
     let _guard = state.write_serial_lock.lock().await;
-    let current = { state.focusa.read().await.clone() };
+    let event_scope = focusa_core::scoped_state::workstream_scope_of_event(&event);
+    let current = match &event_scope {
+        Some((root, continuity)) => state
+            .workstream_states
+            .get_or_create(root, continuity)
+            .await
+            .read()
+            .await
+            .clone(),
+        None => { state.focusa.read().await.clone() }
+    };
     let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
         tracing::warn!(error = %error, correlation_id, "focus event rejected by reducer");
         focus_reducer_failed(error)
