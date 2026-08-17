@@ -13,6 +13,7 @@ operator-visible Settings version.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -188,6 +189,10 @@ def main() -> int:
         "apps/menubar/src-tauri/Cargo.lock", MENUBAR_RUST_PACKAGES, version
     )
     replace_display_version("apps/menubar/src/lib/components/Settings.svelte", version)
+
+    # Extension build identity + generated Agent Card version (Spec 152 surfaces).
+    replace_extension_build("apps/pi-extension/src/auto-compaction.ts", "focusa-pi-bridge", version)
+    replace_agent_card_version("docs/contracts/spec141/generated-capability-v2/agent-card.json", version)
 
     print(f"Stamped Focusa version {version}")
     return 0
