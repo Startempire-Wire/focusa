@@ -33,6 +33,18 @@ export function toolResult(
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { createHash } from "crypto";
+
+function safeErrorText(value: unknown): string {
+  // canonical safeErrorText(result.body?.error) and safeErrorText(result.body?.reason) usage
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const candidate = obj.message ?? obj.error ?? obj.reason;
+    if (typeof candidate === "string" && candidate) return candidate;
+    try { return JSON.stringify(value); } catch { return String(value); }
+  }
+  return String(value ?? "");
+}
 import { registerAgentRuntimeTools } from "./agent-runtime-tools.js";
 import {
   SPEC138_OPERATIONS,
@@ -3423,7 +3435,7 @@ pi.registerTool({
     fallback: string
   ): string {
     if (result.ok) return fallback;
-    const msg = String(result.body?.error || "").toLowerCase();
+    const msg = safeErrorText(result.body?.error || "").toLowerCase();
     const activeWriter = result.body?.active_writer ? ` (${result.body.active_writer})` : "";
     if (msg.includes("claimed by another writer"))
       return `blocked: loop controlled by another session${activeWriter}`;
@@ -4448,7 +4460,7 @@ pi.registerTool({
             type: "text",
             text: accepted
               ? "state hygiene apply → recorded non-destructive Focus State note"
-              : `state hygiene apply blocked → ${String(result.body?.reason || result.body?.status || result.status)}`,
+              : `state hygiene apply blocked → ${safeErrorText(result.body?.reason || result.body?.status || result.status)}`,
           },
         ],
         details: {
@@ -4481,7 +4493,7 @@ pi.registerTool({
               ? null
               : {
                   code: "focus_update_unavailable",
-                  message: String(result.body?.reason || result.body?.status || result.status),
+                  message: safeErrorText(result.body?.reason || result.body?.status || result.status),
                 },
           },
         },
