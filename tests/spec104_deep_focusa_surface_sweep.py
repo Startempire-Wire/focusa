@@ -831,6 +831,7 @@ def static_audit() -> None:
         "bounded.rs",
         "device_pairing.rs",
         "license.rs",
+        "license_developer_origin.rs",
         "metacognition.rs",
         "ontology.rs",
         "predictions.rs",
