@@ -60,17 +60,18 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
-- `focusa_tool_doctor` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
+- `focusa_callgraph_validate` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_tool_doctor`.
+Likely next: `focusa_workpoint_resume`, `focusa_callgraph_validate`.
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-work-loop`
 - Runbooks: `runbook:workset`
 - Pi: `focusa_workset_projection`; MCP: `focusa.workset.projection`; OpenAI: `focusa_workset_projection`.
 - CLI: none.
 - REST: `/v1/worksets `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:e4328eb508b96a5356476f0f90649adddb48a527e77ea27bb3a4c80cc16e4ffc`.
+- Descriptor digest: `sha256:d5350211c874cf4ebd08b6b589633dbe53e70b29b5bab857db7aec93e996aa4c`.

@@ -58,17 +58,18 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
-- `focusa_tool_doctor` (likely_next)
+- `focusa_workset_projection` (likely_next)
+- `focusa_bg_status` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_tool_doctor`.
+Likely next: `focusa_workset_projection`, `focusa_bg_status`.
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-work-loop`
 - Runbooks: `runbook:cockpit`
 - Pi: `focusa_cockpit_projection`; MCP: `focusa.cockpit.projection`; OpenAI: `focusa_cockpit_projection`.
 - CLI: none.
 - REST: `/v1/cockpit/projection `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a071e8cf9e39d8ba2fe3deaf5d1d9c268f3bf12759ade75b5d98fe305b8b83b6`.
+- Descriptor digest: `sha256:4e37245b027360e92c155738f725a535d8159c86c62bd732902d1f835081554c`.

@@ -63,17 +63,18 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
-- `focusa_tool_doctor` (likely_next)
+- `focusa_bg_status` (likely_next)
+- `focusa_workpoint_checkpoint` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_tool_doctor`.
+Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-silent-sessions`
 - Runbooks: `runbook:session_fanout`
 - Pi: `focusa_fast_forward`; MCP: `focusa.fast.forward`; OpenAI: `focusa_fast_forward`.
 - CLI: none.
 - REST: `/v1/silent-sessions/fanout `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:aecd83a1aed438d48e1b1a0e4892163ba89d7cd8b90a3ef9ca2b52693b6fc4be`.
+- Descriptor digest: `sha256:183f47716986075680888bcb95f0906c5548fe30e3cbecbd6d1853142912d83c`.

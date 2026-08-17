@@ -1,6 +1,6 @@
 {
   "schema": "focusa.mcp_tool_projection.v2",
-  "registry_digest": "sha256:ac04e8fed04f213bc488e20a654daaad72f135faca61b4a399b4f1183ef47d6d",
+  "registry_digest": "sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0",
   "tools": [
     {
       "name": "focusa.active.object.resolve",
@@ -2977,7 +2977,8 @@
         "capability_id": "focusa.bg.run",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-silent-sessions"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bg_run.md",
         "rest": [
@@ -3264,7 +3265,8 @@
         "capability_id": "focusa.bg.run.many",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-silent-sessions"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bg_run_many.md",
         "rest": [
@@ -3527,7 +3529,8 @@
         "capability_id": "focusa.bg.status",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-silent-sessions"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bg_status.md",
         "rest": [
@@ -8247,12 +8250,13 @@
         "capability_id": "focusa.callgraph.observe",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-spec-implementation"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_callgraph_observe.md",
         "rest": [
           {
-            "method": "/v1/callgraph-runs",
+            "method": "/v1/callgraph-runs/{run_id}/frontier",
             "path": ""
           }
         ],
@@ -8514,12 +8518,13 @@
         "capability_id": "focusa.callgraph.validate",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-spec-implementation"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_callgraph_validate.md",
         "rest": [
           {
-            "method": "/v1/callgraph/validate",
+            "method": "/v1/callgraph-runs/{run_id}/frontier",
             "path": ""
           }
         ],
@@ -9318,7 +9323,8 @@
         "capability_id": "focusa.cockpit.projection",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-work-loop"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_cockpit_projection.md",
         "rest": [
@@ -11976,7 +11982,8 @@
         "capability_id": "focusa.credentials.verify",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-security-auth-licensing"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_credentials_verify.md",
         "rest": [
@@ -16852,7 +16859,8 @@
         "capability_id": "focusa.fast.forward",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-silent-sessions"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_fast_forward.md",
         "rest": [
@@ -40982,7 +40990,8 @@
         "capability_id": "focusa.workset.projection",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-work-loop"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_workset_projection.md",
         "rest": [

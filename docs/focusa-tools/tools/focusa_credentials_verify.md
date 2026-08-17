@@ -71,17 +71,18 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+- `focusa_credentials_verify` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_tool_doctor`.
+Likely next: `focusa_credentials_verify`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
 - Runbooks: `runbook:credential`
 - Pi: `focusa_credentials_verify`; MCP: `focusa.credentials.verify`; OpenAI: `focusa_credentials_verify`.
 - CLI: none.
 - REST: `/v1/credentials/verify-requirement `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:c4a885359a9ba261e4f5f6c8267de11d5f62b99caa8662dfd9fb16f6a6743ba1`.
+- Descriptor digest: `sha256:34d363b87644a57983a035075cf6d6aaa76f47cb9895c238fa64870e4c888e48`.

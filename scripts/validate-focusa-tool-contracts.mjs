@@ -174,9 +174,9 @@ const extraContracts = contractNames.filter((name) => !toolSet.has(name));
 if (missingContracts.length) fail('tools missing contracts', missingContracts);
 if (extraContracts.length) fail('contracts without registered tools', extraContracts);
 
-const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal', 'session_transfer', 'awareness', 'preload', 'agent_runtime']);
-const validParity = new Set(['full', 'domain', 'pi_only', 'local_only', 'degraded_known', 'api_only']);
-const validExemptions = new Set(['local_scratchpad_only', 'pi_session_only', 'doctor_composition_only', 'domain_cli_only', 'api_domain_only', 'pi_session_snapshot_only', 'pi_only', 'api_only']);
+const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal', 'session_transfer', 'awareness', 'preload', 'agent_runtime', 'workset', 'callgraph', 'credential', 'cockpit', 'background_job', 'session_fanout']);
+const validParity = new Set(['full', 'domain', 'pi_only', 'local_only', 'degraded_known', 'api_only', 'daemon_backed']);
+const validExemptions = new Set(['local_scratchpad_only', 'pi_session_only', 'doctor_composition_only', 'domain_cli_only', 'api_domain_only', 'pi_session_snapshot_only', 'pi_only', 'api_only', 'daemon_backed_no_cli']);
 
 const routeInventory = new Set([...fs.readdirSync(path.join(root, 'crates/focusa-api/src/routes'))
   .filter((file) => file.endsWith('.rs'))

@@ -5327,7 +5327,9 @@
           "rest"
         ],
         "parity_status": "daemon_backed",
-        "exemptions": []
+        "exemptions": [
+          "daemon_backed_no_cli"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -5707,15 +5709,21 @@
       ],
       "dependencies": [
         {
-          "capability": "focusa_tool_doctor",
+          "capability": "focusa_bg_status",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_workpoint_checkpoint",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
-        "focusa_tool_doctor"
+        "focusa_bg_status",
+        "focusa_workpoint_checkpoint"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-silent-sessions"
       ],
       "runbook_refs": [
         "runbook:background_job"
@@ -5748,7 +5756,7 @@
         "snippet": "The canonical non-blocking dispatch for builds/tests/long scans.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2d9552df2186e4ce30181331989eb7c07ae692212650386169aaf338490ef2b5"
+      "descriptor_digest": "sha256:eba3886251790b86ae7ae5d6ef010a17a68f985d54838f3710102dcc910e7d13"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5838,7 +5846,9 @@
           "rest"
         ],
         "parity_status": "daemon_backed",
-        "exemptions": []
+        "exemptions": [
+          "daemon_backed_no_cli"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -6229,15 +6239,21 @@
       ],
       "dependencies": [
         {
-          "capability": "focusa_tool_doctor",
+          "capability": "focusa_bg_status",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_workpoint_checkpoint",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
-        "focusa_tool_doctor"
+        "focusa_bg_status",
+        "focusa_workpoint_checkpoint"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-silent-sessions"
       ],
       "runbook_refs": [
         "runbook:background_job"
@@ -6270,7 +6286,7 @@
         "snippet": "Use to parallelize independent long-running commands.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7b8e177c9335b5a9d8b173e754d64115f5aa8294f33c8d5f6d3ff888fb1d0261"
+      "descriptor_digest": "sha256:c98365944e03db22475a74229e965d2e6f1cf97670ffe2adeb7159235477c75c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -6360,7 +6376,9 @@
           "rest"
         ],
         "parity_status": "daemon_backed",
-        "exemptions": []
+        "exemptions": [
+          "daemon_backed_no_cli"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -6725,15 +6743,21 @@
       ],
       "dependencies": [
         {
-          "capability": "focusa_tool_doctor",
+          "capability": "focusa_bg_run",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_workpoint_resume",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
-        "focusa_tool_doctor"
+        "focusa_bg_run",
+        "focusa_workpoint_resume"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-silent-sessions"
       ],
       "runbook_refs": [
         "runbook:background_job"
@@ -6764,7 +6788,7 @@
         "snippet": "Use for a one-shot ledger snapshot; never poll with it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:65db616af5a5efef2dff90f7de55ff374a7bd7584c07b7b31a2079a81140e7a0"
+      "descriptor_digest": "sha256:84e636c178998523f36e461a92b4394a0d90775ff378854ba48aee3fe96d3ddf"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -15301,7 +15325,7 @@
         "cli": [],
         "rest": [
           {
-            "method": "/v1/callgraph-runs",
+            "method": "/v1/callgraph-runs/{run_id}/frontier",
             "path": ""
           }
         ]
@@ -15314,7 +15338,7 @@
       "namespace": "focusa.callgraph",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/callgraph-runs",
+        "method": "/v1/callgraph-runs/{run_id}/frontier",
         "path": "",
         "operation_class": "read",
         "capability_family": "read_projection",
@@ -15329,7 +15353,7 @@
       "operation_policies": [
         {
           "operation_id": null,
-          "method": "/v1/callgraph-runs",
+          "method": "/v1/callgraph-runs/{run_id}/frontier",
           "path": "",
           "operation_class": "read",
           "capability_family": "read_projection",
@@ -15360,7 +15384,9 @@
           "rest"
         ],
         "parity_status": "daemon_backed",
-        "exemptions": []
+        "exemptions": [
+          "daemon_backed_no_cli"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -15656,7 +15682,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/callgraph-runs",
+          "route": "/v1/callgraph-runs/{run_id}/frontier",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -15730,15 +15756,21 @@
       ],
       "dependencies": [
         {
-          "capability": "focusa_tool_doctor",
+          "capability": "focusa_trajectory_view",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_workpoint_resume",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
-        "focusa_tool_doctor"
+        "focusa_trajectory_view",
+        "focusa_workpoint_resume"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-spec-implementation"
       ],
       "runbook_refs": [
         "runbook:callgraph"
@@ -15769,7 +15801,7 @@
         "snippet": "Use to inspect run progress and settlement state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:63c2380bc4d39854322b81c0c5257a0dbeef97b1317b7dd3c6074e055723c9b0"
+      "descriptor_digest": "sha256:532febcbb0a88c75d7fe4b831066fea5f04809840310b905c94a0df9a3807d31"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -15800,7 +15832,7 @@
         "cli": [],
         "rest": [
           {
-            "method": "/v1/callgraph/validate",
+            "method": "/v1/callgraph-runs/{run_id}/frontier",
             "path": ""
           }
         ]
@@ -15813,7 +15845,7 @@
       "namespace": "focusa.callgraph",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/callgraph/validate",
+        "method": "/v1/callgraph-runs/{run_id}/frontier",
         "path": "",
         "operation_class": "read",
         "capability_family": "read_projection",
@@ -15828,7 +15860,7 @@
       "operation_policies": [
         {
           "operation_id": null,
-          "method": "/v1/callgraph/validate",
+          "method": "/v1/callgraph-runs/{run_id}/frontier",
           "path": "",
           "operation_class": "read",
           "capability_family": "read_projection",
@@ -15859,7 +15891,9 @@
           "rest"
         ],
         "parity_status": "daemon_backed",
-        "exemptions": []
+        "exemptions": [
+          "daemon_backed_no_cli"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -16156,7 +16190,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/callgraph/validate",
+          "route": "/v1/callgraph-runs/{run_id}/frontier",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -16230,15 +16264,21 @@
       ],
       "dependencies": [
         {
-          "capability": "focusa_tool_doctor",
+          "capability": "focusa_callgraph_observe",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_tool_describe",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
-        "focusa_tool_doctor"
+        "focusa_callgraph_observe",
+        "focusa_tool_describe"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-spec-implementation"
       ],
       "runbook_refs": [
         "runbook:callgraph"
@@ -16269,7 +16309,7 @@
         "snippet": "Use before creating or dispatching any CallGraph.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:99114c282b3275840de7a3b962c85ca17be21baff2dd647ec3d9d93ab0133560"
+      "descriptor_digest": "sha256:3579475ac96ddab54e5ce8b02808ae5e6973fe34174b21bb761be73cf26dd5d5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17401,7 +17441,9 @@
           "rest"
         ],
         "parity_status": "daemon_backed",
-        "exemptions": []
+        "exemptions": [
+          "daemon_backed_no_cli"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -17766,15 +17808,21 @@
       ],
       "dependencies": [
         {
-          "capability": "focusa_tool_doctor",
+          "capability": "focusa_workset_projection",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_bg_status",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
-        "focusa_tool_doctor"
+        "focusa_workset_projection",
+        "focusa_bg_status"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-work-loop"
       ],
       "runbook_refs": [
         "runbook:cockpit"
@@ -17805,7 +17853,7 @@
         "snippet": "One read = worksets + callgraph frontier + steers + bg board.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a071e8cf9e39d8ba2fe3deaf5d1d9c268f3bf12759ade75b5d98fe305b8b83b6"
+      "descriptor_digest": "sha256:4e37245b027360e92c155738f725a535d8159c86c62bd732902d1f835081554c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22237,7 +22285,9 @@
           "rest"
         ],
         "parity_status": "daemon_backed",
-        "exemptions": []
+        "exemptions": [
+          "daemon_backed_no_cli"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -22664,15 +22714,21 @@
       ],
       "dependencies": [
         {
+          "capability": "focusa_credentials_verify",
+          "relation": "likely_next"
+        },
+        {
           "capability": "focusa_tool_doctor",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
+        "focusa_credentials_verify",
         "focusa_tool_doctor"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
       ],
       "runbook_refs": [
         "runbook:credential"
@@ -22703,7 +22759,7 @@
         "snippet": "Grant verdicts only — no secrets in or out.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c4a885359a9ba261e4f5f6c8267de11d5f62b99caa8662dfd9fb16f6a6743ba1"
+      "descriptor_digest": "sha256:34d363b87644a57983a035075cf6d6aaa76f47cb9895c238fa64870e4c888e48"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31890,7 +31946,9 @@
           "rest"
         ],
         "parity_status": "daemon_backed",
-        "exemptions": []
+        "exemptions": [
+          "daemon_backed_no_cli"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -32273,15 +32331,21 @@
       ],
       "dependencies": [
         {
-          "capability": "focusa_tool_doctor",
+          "capability": "focusa_bg_status",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_workpoint_checkpoint",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
-        "focusa_tool_doctor"
+        "focusa_bg_status",
+        "focusa_workpoint_checkpoint"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-silent-sessions"
       ],
       "runbook_refs": [
         "runbook:session_fanout"
@@ -32314,7 +32378,7 @@
         "snippet": "Use to parallelize a set of work items across session lanes.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:aecd83a1aed438d48e1b1a0e4892163ba89d7cd8b90a3ef9ca2b52693b6fc4be"
+      "descriptor_digest": "sha256:183f47716986075680888bcb95f0906c5548fe30e3cbecbd6d1853142912d83c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -80179,7 +80243,9 @@
           "rest"
         ],
         "parity_status": "daemon_backed",
-        "exemptions": []
+        "exemptions": [
+          "daemon_backed_no_cli"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -80549,15 +80615,21 @@
       ],
       "dependencies": [
         {
-          "capability": "focusa_tool_doctor",
+          "capability": "focusa_workpoint_resume",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_callgraph_validate",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
-        "focusa_tool_doctor"
+        "focusa_workpoint_resume",
+        "focusa_callgraph_validate"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-work-loop"
       ],
       "runbook_refs": [
         "runbook:workset"
@@ -80588,8 +80660,8 @@
         "snippet": "Use to inspect workset membership + completion contract state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e4328eb508b96a5356476f0f90649adddb48a527e77ea27bb3a4c80cc16e4ffc"
+      "descriptor_digest": "sha256:d5350211c874cf4ebd08b6b589633dbe53e70b29b5bab857db7aec93e996aa4c"
     }
   ],
-  "registry_digest": "sha256:ac04e8fed04f213bc488e20a654daaad72f135faca61b4a399b4f1183ef47d6d"
+  "registry_digest": "sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0"
 }

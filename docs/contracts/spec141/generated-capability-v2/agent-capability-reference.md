@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:ac04e8fed04f213bc488e20a654daaad72f135faca61b4a399b4f1183ef47d6d`
+Registry digest: `sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -131,8 +131,8 @@ Run a terminal-blocking command in the background as a first-class Focusa job. T
 - Capability: `focusa.bg.run`
 - Family: `background_job`
 - Side effects: `durable_dispatch`, `durable_dispatch`
-- Skills: `skill:focusa`
-- Dependencies/next: `focusa_tool_doctor`
+- Skills: `skill:focusa`, `skill:focusa-silent-sessions`
+- Dependencies/next: `focusa_bg_status`, `focusa_workpoint_checkpoint`
 - Documentation: `docs/focusa-tools/tools/focusa_bg_run.md`
 
 ## focusa_bg_run_many
@@ -142,8 +142,8 @@ Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs.
 - Capability: `focusa.bg.run.many`
 - Family: `background_job`
 - Side effects: `durable_dispatch`, `durable_dispatch`
-- Skills: `skill:focusa`
-- Dependencies/next: `focusa_tool_doctor`
+- Skills: `skill:focusa`, `skill:focusa-silent-sessions`
+- Dependencies/next: `focusa_bg_status`, `focusa_workpoint_checkpoint`
 - Documentation: `docs/focusa-tools/tools/focusa_bg_run_many.md`
 
 ## focusa_bg_status
@@ -153,8 +153,8 @@ Instant single-query status for Focusa background jobs (bg list / bg status). Us
 - Capability: `focusa.bg.status`
 - Family: `background_job`
 - Side effects: `read_status`, `read_status`
-- Skills: `skill:focusa`
-- Dependencies/next: `focusa_tool_doctor`
+- Skills: `skill:focusa`, `skill:focusa-silent-sessions`
+- Dependencies/next: `focusa_bg_run`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_bg_status.md`
 
 ## focusa_bloatgaurd_domain
@@ -340,8 +340,8 @@ Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic re
 - Capability: `focusa.callgraph.observe`
 - Family: `callgraph`
 - Side effects: `read_observation`, `read_observation`
-- Skills: `skill:focusa`
-- Dependencies/next: `focusa_tool_doctor`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_trajectory_view`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_callgraph_observe.md`
 
 ## focusa_callgraph_validate
@@ -351,8 +351,8 @@ Validate a CallGraph definition against the Spec 155 structural rules (identity,
 - Capability: `focusa.callgraph.validate`
 - Family: `callgraph`
 - Side effects: `read_validation`, `read_validation`
-- Skills: `skill:focusa`
-- Dependencies/next: `focusa_tool_doctor`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_callgraph_observe`, `focusa_tool_describe`
 - Documentation: `docs/focusa-tools/tools/focusa_callgraph_validate.md`
 
 ## focusa_canonical_instruction_amendment_activate
@@ -384,8 +384,8 @@ Read the whole flywheel in one bounded payload: workset summaries, open CallGrap
 - Capability: `focusa.cockpit.projection`
 - Family: `cockpit`
 - Side effects: `read_projection`, `read_projection`
-- Skills: `skill:focusa`
-- Dependencies/next: `focusa_tool_doctor`
+- Skills: `skill:focusa`, `skill:focusa-work-loop`
+- Dependencies/next: `focusa_workset_projection`, `focusa_bg_status`
 - Documentation: `docs/focusa-tools/tools/focusa_cockpit_projection.md`
 
 ## focusa_constraint
@@ -483,8 +483,8 @@ Ask the Credential Authority whether a requirement is satisfied by the given gra
 - Capability: `focusa.credentials.verify`
 - Family: `credential`
 - Side effects: `read_verdict`, `read_verdict`
-- Skills: `skill:focusa`
-- Dependencies/next: `focusa_tool_doctor`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_credentials_verify`, `focusa_tool_doctor`
 - Documentation: `docs/focusa-tools/tools/focusa_credentials_verify.md`
 
 ## focusa_current_focus
@@ -670,8 +670,8 @@ Fast-forward session completion by multiplying parallel workloop-bound silent se
 - Capability: `focusa.fast.forward`
 - Family: `session_fanout`
 - Side effects: `durable_dispatch`, `durable_dispatch`
-- Skills: `skill:focusa`
-- Dependencies/next: `focusa_tool_doctor`
+- Skills: `skill:focusa`, `skill:focusa-silent-sessions`
+- Dependencies/next: `focusa_bg_status`, `focusa_workpoint_checkpoint`
 - Documentation: `docs/focusa-tools/tools/focusa_fast_forward.md`
 
 ## focusa_hlt_history
@@ -1616,6 +1616,6 @@ Read a Spec 149 Workset: the deterministic replay projection (membership, requir
 - Capability: `focusa.workset.projection`
 - Family: `workset`
 - Side effects: `read_projection`, `read_projection`
-- Skills: `skill:focusa`
-- Dependencies/next: `focusa_tool_doctor`
+- Skills: `skill:focusa`, `skill:focusa-work-loop`
+- Dependencies/next: `focusa_workpoint_resume`, `focusa_callgraph_validate`
 - Documentation: `docs/focusa-tools/tools/focusa_workset_projection.md`

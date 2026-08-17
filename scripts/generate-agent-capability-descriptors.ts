@@ -185,6 +185,12 @@ function annotations(contract: FocusaToolContract) {
 function skillRefs(contract: FocusaToolContract): string[] {
   const refs = new Set(["skill:focusa"]);
   const byFamily: Record<string, string> = {
+    workset: "skill:focusa-work-loop",
+    callgraph: "skill:focusa-spec-implementation",
+    credential: "skill:focusa-security-auth-licensing",
+    cockpit: "skill:focusa-work-loop",
+    background_job: "skill:focusa-silent-sessions",
+    session_fanout: "skill:focusa-silent-sessions",
     workpoint: "skill:focusa-workpoint",
     work_loop: "skill:focusa-work-loop",
     focus_state: "skill:focusa-workpoint",

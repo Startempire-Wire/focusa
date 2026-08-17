@@ -58,17 +58,18 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
-- `focusa_tool_doctor` (likely_next)
+- `focusa_bg_run` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_tool_doctor`.
+Likely next: `focusa_bg_run`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-silent-sessions`
 - Runbooks: `runbook:background_job`
 - Pi: `focusa_bg_status`; MCP: `focusa.bg.status`; OpenAI: `focusa_bg_status`.
 - CLI: none.
 - REST: `/v1/background-jobs `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:65db616af5a5efef2dff90f7de55ff374a7bd7584c07b7b31a2079a81140e7a0`.
+- Descriptor digest: `sha256:84e636c178998523f36e461a92b4394a0d90775ff378854ba48aee3fe96d3ddf`.

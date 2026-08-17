@@ -1,6 +1,6 @@
 {
   "schema": "focusa.pi_tool_projection.v2",
-  "registry_digest": "sha256:ac04e8fed04f213bc488e20a654daaad72f135faca61b4a399b4f1183ef47d6d",
+  "registry_digest": "sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0",
   "tools": [
     {
       "name": "focusa_active_object_resolve",
@@ -2767,7 +2767,8 @@
         }
       },
       "next_tools": [
-        "focusa_tool_doctor"
+        "focusa_bg_status",
+        "focusa_workpoint_checkpoint"
       ]
     },
     {
@@ -3034,7 +3035,8 @@
         }
       },
       "next_tools": [
-        "focusa_tool_doctor"
+        "focusa_bg_status",
+        "focusa_workpoint_checkpoint"
       ]
     },
     {
@@ -3277,7 +3279,8 @@
         }
       },
       "next_tools": [
-        "focusa_tool_doctor"
+        "focusa_bg_run",
+        "focusa_workpoint_resume"
       ]
     },
     {
@@ -7642,7 +7645,8 @@
         }
       },
       "next_tools": [
-        "focusa_tool_doctor"
+        "focusa_trajectory_view",
+        "focusa_workpoint_resume"
       ]
     },
     {
@@ -7889,7 +7893,8 @@
         }
       },
       "next_tools": [
-        "focusa_tool_doctor"
+        "focusa_callgraph_observe",
+        "focusa_tool_describe"
       ]
     },
     {
@@ -8629,7 +8634,8 @@
         }
       },
       "next_tools": [
-        "focusa_tool_doctor"
+        "focusa_workset_projection",
+        "focusa_bg_status"
       ]
     },
     {
@@ -11101,6 +11107,7 @@
         }
       },
       "next_tools": [
+        "focusa_credentials_verify",
         "focusa_tool_doctor"
       ]
     },
@@ -15535,7 +15542,8 @@
         }
       },
       "next_tools": [
-        "focusa_tool_doctor"
+        "focusa_bg_status",
+        "focusa_workpoint_checkpoint"
       ]
     },
     {
@@ -39009,7 +39017,8 @@
         }
       },
       "next_tools": [
-        "focusa_tool_doctor"
+        "focusa_workpoint_resume",
+        "focusa_callgraph_validate"
       ]
     }
   ]

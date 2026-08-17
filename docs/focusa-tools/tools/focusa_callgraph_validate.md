@@ -60,17 +60,18 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
-- `focusa_tool_doctor` (likely_next)
+- `focusa_callgraph_observe` (likely_next)
+- `focusa_tool_describe` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_tool_doctor`.
+Likely next: `focusa_callgraph_observe`, `focusa_tool_describe`.
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
 - Runbooks: `runbook:callgraph`
 - Pi: `focusa_callgraph_validate`; MCP: `focusa.callgraph.validate`; OpenAI: `focusa_callgraph_validate`.
 - CLI: none.
-- REST: `/v1/callgraph/validate `.
+- REST: `/v1/callgraph-runs/{run_id}/frontier `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:99114c282b3275840de7a3b962c85ca17be21baff2dd647ec3d9d93ab0133560`.
+- Descriptor digest: `sha256:3579475ac96ddab54e5ce8b02808ae5e6973fe34174b21bb761be73cf26dd5d5`.
