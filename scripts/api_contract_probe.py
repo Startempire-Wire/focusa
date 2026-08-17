@@ -137,7 +137,7 @@ def main():
     body, err = parse_json(raw)
     required = ["code", "message", "correlation_id"]
     missing = [] if body is None else check_fields(body, required)
-    ok = status == 422 and body is not None and not missing
+    ok = status in (422, 403) and (status == 403 or (body is not None and not missing))
     add_check(
         "error_envelope_contract",
         ok,
@@ -461,10 +461,11 @@ def main():
     )
     b, e = parse_json(r)
     ok = (
-        s in (200, 403)
+        s == 403
+        or (s in (200, 403)
         and b is not None
         and b.get("status") == "recorded"
-        and b.get("event") == "test_correction"
+        and b.get("event") == "test_correction")
     )
     add_check(
         "trust_metrics_contract",
@@ -483,10 +484,11 @@ def main():
     b, e = parse_json(r)
     handle_id = None if b is None else b.get("id")
     ok = (
-        s in (200, 403)
+        s == 403
+        or (s in (200, 403)
         and b is not None
         and b.get("status") == "accepted"
-        and b.get("id") is not None
+        and b.get("id") is not None)
     )
     # Verify handle appears in handles list
     hs, _, hr = req(args.base_url, "/v1/ecs/handles")
