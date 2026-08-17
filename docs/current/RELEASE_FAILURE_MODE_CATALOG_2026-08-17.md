@@ -44,3 +44,5 @@ For every future agent touching the focusa release line. Each entry = a mode we 
 
 27. **Use the canonical release cycle; do not re-invent gates.** `scripts/create-dev-release-tag.sh --push` is the pipeline; GitHub CI (with correct env) is the authority for the full test chain. Pre-run only the FAST local pre-gates (spec145, spec152, tag-trigger, learning-guard), fix them ONCE, then dispatch the tag and act on CI results. Manual full-gate loops on OVH are the failure mode this whole catalog exists to prevent.
 28. **Time-box the release path to <1h**: squash (policy: main-wins + additive + surgical list) → local pre-gates → tag dispatch → CI → deploy. Anything longer means one of the modes above is active — stop and re-strategize at the forest level, not the tree level.
+
+29. **Local `npm`/`npx`/`tsc` on PATH are OVH-wrapper stubs** — `npm install` "succeeds" but creates no node_modules; `npx tsc` prints "not the tsc you are looking for". RULE: use `/opt/cpanel/ea-nodejs20/bin/npm` and `node_modules/.bin/*` directly for local JS work.
