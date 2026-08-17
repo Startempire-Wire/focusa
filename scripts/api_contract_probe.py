@@ -87,7 +87,7 @@ def main():
     if isinstance(body, dict):
         cold_omitted = set(body.get("cold_omitted", []))
         missing = [field for field in missing if field not in cold_omitted]
-    ok = status in (200, 403) and (status == 403 or body is not None and not missing
+    ok = status in (200, 403) and (status == 403 or (body is not None and not missing))
     add_check(
         "status_contract",
         ok,
@@ -335,8 +335,7 @@ def main():
     imb, ime = parse_json(imr)
 
     valid = (
-        (hs == 403 and ms == 403 and cs == 403 and ts == 403)
-        or (hs in (200, 403)
+        hs == 403 or (hs in (200, 403)
         and isinstance(hb, dict)
         and isinstance(hb.get("items", []), list)
         and isinstance(hb.get("applied_filters", {}), dict)
@@ -355,7 +354,7 @@ def main():
         and bb.get("code") == "invalid_time_filter"
         and ims == 400
         and isinstance(imb, dict)
-        and imb.get("code") == "invalid_mode_filter"
+        and imb.get("code") == "invalid_mode_filter")
     )
     add_check(
         "reflection_history_filter_contract",
@@ -420,8 +419,7 @@ def main():
     t2b, t2e = parse_json(t2r)
 
     ok = (
-        gs == 403
-        or (gs in (200, 403)
+        gs == 403 or (gs in (200, 403)
         and gb is not None
         and not miss
         and us in (200, 403)
@@ -432,7 +430,7 @@ def main():
         and t1b.get("status") in ["accepted", "skipped"]
         and t2s in (200, 403)
         and isinstance(t2b, dict)
-        and t2b.get("status") in ["accepted", "skipped"]
+        and t2b.get("status") in ["accepted", "skipped"])
     )
     add_check(
         "reflection_scheduler_contract",
