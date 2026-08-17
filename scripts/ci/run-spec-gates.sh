@@ -24,7 +24,7 @@ export FOCUSA_BIND="${FOCUSA_BIND:-127.0.0.1:18787}"
 export FOCUSA_DATA_DIR="${FOCUSA_DATA_DIR:-$(mktemp -d /tmp/focusa-spec-gates.XXXXXX)}"
 # Isolated CI daemon must exercise real entitlement path, not 403.
 # FOCUSA_TEST_MODE=1 grants a bounded test lease (active, sha256, 1h) so write
-gating still executes. See crates/focusa-api/src/main.rs:322 and
+# gating still executes. See crates/focusa-api/src/main.rs:322 and
 # crates/focusa-api/src/middleware/entitlement.rs:369.
 export FOCUSA_TEST_MODE="${FOCUSA_TEST_MODE:-1}"
 
