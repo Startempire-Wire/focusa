@@ -77,4 +77,4 @@ Likely next: `focusa_tree_head`, `focusa_tree_path`, `focusa_evidence_capture`.
 - CLI: `focusa state snapshot restore`.
 - REST: `POST /v1/focus/snapshots/restore`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:731327943438d0ea3138b5595db7c75cedc885863ffcb33d371b087c1c17698d`.
+- Descriptor digest: `sha256:879d0a73e565d00338d11476d99d7c1e54562dabcb1992cc891888ff7df34bb9`.

@@ -77,4 +77,4 @@ Likely next: `focusa_traverse`, `focusa_tool_doctor`, `focusa_workpoint_resume`.
 - CLI: none.
 - REST: `GET /v1/reflex/primitives`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:b4d93df854eb544f8c1d99d5de05b8904d103039dada16a78371863b91245b87`.
+- Descriptor digest: `sha256:d6fe251e1a6f38694be66655f6c7c568ede7033a057a879324f2ef8ee17ea845`.

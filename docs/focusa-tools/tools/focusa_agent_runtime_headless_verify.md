@@ -76,4 +76,4 @@ Likely next: `focusa_instruction_integrity_status`, `focusa_agent_runtime_doctor
 - CLI: `focusa agent-runtime headless-verify`.
 - REST: `POST /v1/agent-runtime/headless/verify`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:1ebe07f939538be79ad4b7b1fb38638b1bb0f76c2c536b81af6e7ef23e102ff9`.
+- Descriptor digest: `sha256:52255a772e312631b2aca1aca39966f7c9d22264de8c0c6293897efd517b5a4e`.

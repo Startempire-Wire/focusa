@@ -88,4 +88,4 @@ Likely next: `focusa_evidence_capture`, `focusa_predict_evaluate`, `focusa_metac
 - CLI: `focusa predict record`.
 - REST: `POST /v1/predictions`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:f989b63532585de1626adaeb5c8748c13a24aafa8fdcb7497934bb06b7d53cd3`.
+- Descriptor digest: `sha256:0808f703cef6ba55401a8bbffaabdd95df5d601cfc8b33de6d32f6fe5d356fa9`.

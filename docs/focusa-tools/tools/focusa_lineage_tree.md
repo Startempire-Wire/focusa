@@ -76,4 +76,4 @@ Likely next: `focusa_li_tree_extract`, `focusa_tree_path`, `focusa_traverse`.
 - CLI: `focusa lineage tree`.
 - REST: `GET /v1/lineage/tree`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:2ef222f2362da1f16a0e168832f22e68eb7428aecde6c5be69f7b619bf4ece20`.
+- Descriptor digest: `sha256:95228461e6b0b6f1f402f8ad25dcbfaa086dc287272b677d74a227f7b2b89cb2`.

@@ -75,4 +75,4 @@ Likely next: `focusa_tree_diff_context`, `focusa_tree_restore_state`, `focusa_ev
 - CLI: `focusa state snapshot compare-latest`.
 - REST: `GET /v1/focus/snapshots/recent`, `POST /v1/focus/snapshots`, `POST /v1/focus/snapshots/diff`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:8333996626f792a814eae10c160b1047ce8df91a090861587c2692ac891a1952`.
+- Descriptor digest: `sha256:2f58330b84ba6f703ad17952d5178f78e6fd604aca4649ee7e2185559f3255cc`.

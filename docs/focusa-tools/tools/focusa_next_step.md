@@ -76,4 +76,4 @@ Likely next: `focusa_workpoint_checkpoint`, `focusa_active_object_resolve`, `foc
 - CLI: `focusa focus update --next-step`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:ffa2a367f72ecdc2303225d979ae8aa70afecf670e91f13065632b1616e75cb9`.
+- Descriptor digest: `sha256:961caee184a2796bf0f5973c09b42a8daa1264fd83a3b9ce35ed4eaaa44790e0`.

@@ -2,9 +2,9 @@
   "schema": "focusa.agent_skill_runbook_coverage.v1",
   "registry_version": "2.0.0",
   "generated_skill_count": 29,
-  "installed_root_skill_count": 29,
-  "packaged_skill_count": 29,
-  "runbook_count": 31,
+  "installed_root_skill_count": 30,
+  "packaged_skill_count": 30,
+  "runbook_count": 32,
   "runbook_coverage_complete": true,
   "runbook_coverage_gaps": [],
   "root_packaged_parity": true,
@@ -464,6 +464,16 @@
         "focusa_context_cognition_optimizer_artifacts"
       ],
       "generated": true
+    },
+    {
+      "name": "focusa-deslop",
+      "manifest": ".pi/skills/focusa-deslop/SKILL.md",
+      "packaged_manifest": "apps/pi-extension/skills/focusa-deslop/SKILL.md",
+      "runbooks": [
+        ".pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md"
+      ],
+      "declared_tools": [],
+      "generated": false
     },
     {
       "name": "focusa-device-pairing",

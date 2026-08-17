@@ -76,4 +76,4 @@ Likely next: `focusa_trajectory_assess`, `focusa_traverse`, `focusa_metacog_retr
 - CLI: `focusa focus update --open-question`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9276a2d9248a7185e582927a543651284b665adee2ac1f1ef2615fb0617d1c6e`.
+- Descriptor digest: `sha256:c4f66d93d08f7f639f81fa56b74dae28feda1059193c7a30f6792b9ff2a92e52`.

@@ -38,6 +38,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_verify.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - assuming unsafe broad cwd is canonical
@@ -51,15 +61,6 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
 - Confirmation required: `false`; preview supported: `false`.
 
-## Missing-marker routing (#243)
-
-When verification succeeds but no `.focusa-project.json` marker exists,
-route the operator to the formal command — never write the marker JSON
-manually: `focusa init --project-root <path> --quickstart` (existing
-non-empty projects: `focusa init --project-root <path>`; legacy markers:
-inspect then apply enrichment). Marker production is owned by the canonical
-core service (atomic, idempotent, ownership-preserving).
-
 ## Failure and recovery
 
 Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
@@ -70,12 +71,14 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+- `focusa_project_bootstrap` (likely_next)
+- `focusa_project_genesis` (likely_next)
 - `focusa_trajectory_view` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`.
+Likely next: `focusa_project_bootstrap`, `focusa_project_genesis`, `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
 
@@ -85,4 +88,4 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_d
 - CLI: `focusa project verify`.
 - REST: `POST /v1/project/verify`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:bb09ec069011fa1dd6e4669076544c84c6fd230c2462b7a6bbede99202efd185`.
+- Descriptor digest: `sha256:dc04f2f9187cfd61c5c08ad830f1203778e99c369e6516181a31ab81df6fdd95`.

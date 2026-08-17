@@ -78,4 +78,4 @@ Likely next: `focusa_instruction_explain`, `focusa_instruction_simulate`, `focus
 - CLI: `focusa agent-runtime conflicts`.
 - REST: `GET /v1/agent-runtime/instructions/conflicts`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:637fb614f4dc31bf40b27330f37d8884ec7b58cdfcc71d0f41bb50a7755d9c77`.
+- Descriptor digest: `sha256:cd7ce3bd2cbd23d3095e3e767b34f0e09dab4cb633396300d42b0fbd1ceacff2`.

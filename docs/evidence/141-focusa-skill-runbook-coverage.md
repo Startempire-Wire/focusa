@@ -1,9 +1,9 @@
 # Spec141 Focusa Skill and Runbook Coverage
 
 - Generated domain skills: `29`
-- Installed root skills: `29`
-- Packaged skills: `29`
-- Runbooks: `31`
+- Installed root skills: `30`
+- Packaged skills: `30`
+- Runbooks: `32`
 - Complete runbook coverage: `True`
 - Root/package parity: `True`
 
@@ -46,6 +46,7 @@
 - `focusa-browser-uiai` → `.pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md`
 - `focusa-cli-api` → `.pi/skills/focusa-cli-api/references/01-focusa-cli-api-runbook.md`
 - `focusa-context-cognition` → `.pi/skills/focusa-context-cognition/references/01-focusa-context-cognition-runbook.md`
+- `focusa-deslop` → `.pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md`
 - `focusa-device-pairing` → `.pi/skills/focusa-device-pairing/references/01-focusa-device-pairing-runbook.md`
 - `focusa-docs-maintenance` → `.pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md`
 - `focusa-dxux-recovery` → `.pi/skills/focusa-dxux-recovery/references/01-focusa-dxux-recovery-runbook.md`

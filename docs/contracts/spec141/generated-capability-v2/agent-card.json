@@ -41,18 +41,19 @@
       "guided_orientation_optional": true
     }
   },
-  "registry_digest": "sha256:e66e33d5ce48ea86030e8f5e000fc86cc8721ae5be29df8247ae0b3fe7ac54f5",
-  "pi_tool_count": 137,
-  "pi_tool_docs_count": 137,
+  "registry_digest": "sha256:ac04e8fed04f213bc488e20a654daaad72f135faca61b4a399b4f1183ef47d6d",
+  "pi_tool_count": 146,
+  "pi_tool_docs_count": 141,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
   "pi_tool_docs_path": "docs/focusa-tools/tools/",
-  "skill_count": 29,
+  "skill_count": 30,
   "skills": [
     "skill:focusa",
     "skill:focusa-agent-bootstrap",
     "skill:focusa-browser-uiai",
     "skill:focusa-cli-api",
     "skill:focusa-context-cognition",
+    "skill:focusa-deslop",
     "skill:focusa-device-pairing",
     "skill:focusa-docs-maintenance",
     "skill:focusa-dxux-recovery",
@@ -118,6 +119,14 @@
       "packaged_manifest_ref": "apps/pi-extension/skills/focusa-context-cognition/SKILL.md",
       "runbook_refs": [
         ".pi/skills/focusa-context-cognition/references/01-focusa-context-cognition-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-deslop",
+      "manifest_ref": ".pi/skills/focusa-deslop/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-deslop/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md"
       ]
     },
     {
@@ -333,12 +342,13 @@
     "skill:focusa-workpoint",
     "skill:predictive-power"
   ],
-  "runbook_count": 31,
+  "runbook_count": 32,
   "runbook_refs": [
     ".pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md",
     ".pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md",
     ".pi/skills/focusa-cli-api/references/01-focusa-cli-api-runbook.md",
     ".pi/skills/focusa-context-cognition/references/01-focusa-context-cognition-runbook.md",
+    ".pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md",
     ".pi/skills/focusa-device-pairing/references/01-focusa-device-pairing-runbook.md",
     ".pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md",
     ".pi/skills/focusa-dxux-recovery/references/01-focusa-dxux-recovery-runbook.md",
@@ -370,18 +380,24 @@
   "capability_families": [
     "agent_runtime",
     "awareness",
+    "background_job",
+    "callgraph",
+    "cockpit",
+    "credential",
     "diagnostics_hygiene",
     "focus_state",
     "metacognition",
     "preload",
     "project_identity",
+    "session_fanout",
     "session_transfer",
     "trajectory",
     "traversal",
     "tree_lineage",
     "work_loop",
-    "workpoint"
+    "workpoint",
+    "workset"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:938c230321e5e411d29fd000a70f2257616fabfa7e363ae600fc78f7c4080f32"
+  "card_digest": "sha256:a069eb920f2def080e5423a6de2ac180a30a8c6f8b56213f179138f013775d0c"
 }

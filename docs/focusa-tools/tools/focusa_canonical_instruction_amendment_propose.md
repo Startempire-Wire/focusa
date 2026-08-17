@@ -76,4 +76,4 @@ Likely next: `focusa_canonical_instruction_amendment_activate`, `focusa_instruct
 - CLI: `focusa agent-runtime amendment-propose`.
 - REST: `POST /v1/agent-runtime/amendments/propose`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:39b9865e65b4b1e5d32d0f5b9540d0e8a2bbcb825473bee941bf3af40efc8e09`.
+- Descriptor digest: `sha256:99ddfad22c0d8885c977540ebea513cdde61f626b85e62933679df04edfb3d92`.

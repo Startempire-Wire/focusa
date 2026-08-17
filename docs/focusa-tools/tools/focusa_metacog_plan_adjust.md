@@ -77,4 +77,4 @@ Likely next: `focusa_metacog_evaluate_outcome`, `focusa_predict_record`, `focusa
 - CLI: `focusa metacognition adjust`.
 - REST: `POST /v1/metacognition/adjust`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:b3d4244628e17a3889e0cae106596fa76bc9c2a67e4fff8c02d43071e694d7f8`.
+- Descriptor digest: `sha256:9f9cd3740a2f66df45b7da95d91fd5b9ad3dc7a4f26a055d191e7a0f2eb141c3`.

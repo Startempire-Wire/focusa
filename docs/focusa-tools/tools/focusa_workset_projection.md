@@ -1,19 +1,18 @@
-# `focusa_tree_snapshot_state`
+# `focusa_workset_projection`
 
-Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason. Use it when Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason.
-- Capability family: `tree_lineage`; namespace: `focusa.tree_lineage`.
+- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Capability family: `workset`; namespace: `focusa.workset`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
 ## Parameters and strict input schema
 
-- `clt_node_id` (optional; string): Optional CLT node id. Defaults to current head.
-- `snapshot_reason` (optional; string): Reason label for snapshot.
+- `workset_id` (required; string): Workset id.
 
-Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_tree_snapshot_state`.
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_workset_projection`.
 
 ## Output
 
@@ -22,10 +21,12 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 ## Example
 
 ```json
-{}
+{
+  "workset_id": "example"
+}
 ```
 
-Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_snapshot_state.md
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workset_projection.md
 
 ## Operator alignment
 
@@ -39,14 +40,13 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Anti-examples
 
-- treating lineage as current project authority
-- restore without explicit rollback intent
+- when another narrower tool is explicitly indicated
 
 ## Authority, permissions, and side effects
 
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
-- Side effects: `read_only`, `read_only`
+- Side effects: `read_projection`, `read_projection`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
 - Confirmation required: `false`; preview supported: `false`.
 
@@ -60,19 +60,17 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
-- `focusa_tree_recent_snapshots` (likely_next)
-- `focusa_tree_diff_context` (likely_next)
-- `focusa_tree_restore_state` (likely_next)
+- `focusa_tool_doctor` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_tree_recent_snapshots`, `focusa_tree_diff_context`, `focusa_tree_restore_state`.
+Likely next: `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-session-recovery`
-- Runbooks: `runbook:tree_lineage`
-- Pi: `focusa_tree_snapshot_state`; MCP: `focusa.tree.snapshot.state`; OpenAI: `focusa_tree_snapshot_state`.
-- CLI: `focusa state snapshot create`.
-- REST: `POST /v1/focus/snapshots`.
+- Skills: `skill:focusa`
+- Runbooks: `runbook:workset`
+- Pi: `focusa_workset_projection`; MCP: `focusa.workset.projection`; OpenAI: `focusa_workset_projection`.
+- CLI: none.
+- REST: `/v1/worksets `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:d47faceb1dc2222cd114577370aabf4f7f7bab0b0f54c9228bc24a5cdafda34d`.
+- Descriptor digest: `sha256:e4328eb508b96a5356476f0f90649adddb48a527e77ea27bb3a4c80cc16e4ffc`.

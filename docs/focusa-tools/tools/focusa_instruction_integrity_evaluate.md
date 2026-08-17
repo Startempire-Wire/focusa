@@ -76,4 +76,4 @@ Likely next: `focusa_instruction_integrity_status`, `focusa_agent_runtime_headle
 - CLI: `focusa agent-runtime integrity-evaluate`.
 - REST: `POST /v1/agent-runtime/instruction-integrity/evaluate`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:cfcd397a777014e15919173788f0e45865ccfcfd0f81d3cde51ffa6f70e60a0a`.
+- Descriptor digest: `sha256:f5c9e12cd1bc505d10faea71f83178c0c9306b568bc03b8b3e964100231d0f4c`.

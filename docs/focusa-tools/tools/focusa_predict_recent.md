@@ -76,4 +76,4 @@ Likely next: `focusa_predict_stats`, `focusa_predict_evaluate`, `focusa_metacog_
 - CLI: `focusa predict recent`.
 - REST: `GET /v1/predictions/recent`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:f956babeecf635cc93e0eb18c6fdc4c4e9edd536cf0795867c1c78f682a181db`.
+- Descriptor digest: `sha256:a494b1daf846fe5b54045c5835122d2eabfc636c6d15e48074863258a6765eee`.

@@ -76,4 +76,4 @@ Likely next: `focusa_tree_snapshot_state`, `focusa_tree_diff_context`, `focusa_t
 - CLI: `focusa lineage path`.
 - REST: `GET /v1/lineage/path/{clt_node_id}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:4dae5ccc1c794185fd6d9edfa5570cd7f6832f0daae6ebeb2031aac956030573`.
+- Descriptor digest: `sha256:80ff02b7a9e6526f623ec84971c3a3fbcc29272138ed0b07c8b238b9e8112436`.

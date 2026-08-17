@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:e66e33d5ce48ea86030e8f5e000fc86cc8721ae5be29df8247ae0b3fe7ac54f5",
+  "registry_digest": "sha256:ac04e8fed04f213bc488e20a654daaad72f135faca61b4a399b4f1183ef47d6d",
   "tools": [
     {
       "type": "function",
@@ -244,6 +244,96 @@
                   "type": "string"
                 }
               ]
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_bg_run",
+        "description": "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "name",
+            "command"
+          ],
+          "properties": {
+            "name": {
+              "description": "Human job name (appears in the completion notification).",
+              "type": "string"
+            },
+            "command": {
+              "description": "The full command line to execute (after -- semantics).",
+              "type": "string"
+            },
+            "cwd": {
+              "description": "Working directory (defaults to the current session cwd).",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_bg_run_many",
+        "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "jobs"
+          ],
+          "properties": {
+            "jobs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "command"
+                ],
+                "properties": {
+                  "name": {
+                    "description": "Job name (appears in its completion notification).",
+                    "type": "string"
+                  },
+                  "command": {
+                    "description": "Full command line to execute.",
+                    "type": "string"
+                  },
+                  "cwd": {
+                    "description": "Working directory override.",
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_bg_status",
+        "description": "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "description": "Optional job id; omit to list recent jobs.",
+              "type": "string"
             }
           },
           "additionalProperties": false
@@ -739,6 +829,49 @@
     {
       "type": "function",
       "function": {
+        "name": "focusa_callgraph_observe",
+        "description": "Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "run_id"
+          ],
+          "properties": {
+            "run_id": {
+              "description": "CallGraph run id.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_callgraph_validate",
+        "description": "Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "graph"
+          ],
+          "properties": {
+            "graph": {
+              "additionalProperties": true,
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "focusa_canonical_instruction_amendment_activate",
         "description": "Activate a separately operator-approved amendment only after its official documentation sweep is complete. Use it when Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
@@ -775,6 +908,24 @@
           "properties": {
             "request": {
               "description": "Typed amendment proposal envelope."
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_cockpit_projection",
+        "description": "Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_root": {
+              "description": "Project root scope (defaults to the session cwd).",
+              "type": "string"
             }
           },
           "additionalProperties": false
@@ -1141,6 +1292,74 @@
               "maxLength": 256,
               "description": "Optional continuity id filter.",
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_credentials_verify",
+        "description": "Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "requirement",
+            "grants"
+          ],
+          "properties": {
+            "requirement": {
+              "type": "object",
+              "required": [
+                "schema",
+                "credential_role_ref",
+                "required_operation",
+                "required_exposure_mode",
+                "exact_consumer_ref",
+                "exact_target_refs",
+                "use_count_required",
+                "evidence_requirement_refs"
+              ],
+              "properties": {
+                "schema": {
+                  "type": "string"
+                },
+                "credential_role_ref": {
+                  "type": "string"
+                },
+                "required_operation": {
+                  "type": "string"
+                },
+                "required_exposure_mode": {
+                  "type": "string"
+                },
+                "exact_consumer_ref": {
+                  "type": "string"
+                },
+                "exact_target_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "use_count_required": {
+                  "type": "number"
+                },
+                "evidence_requirement_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "grants": {
+              "type": "array",
+              "items": {}
             }
           },
           "additionalProperties": false
@@ -1691,6 +1910,39 @@
             "recovery": {
               "description": "What was done to recover or workaround.",
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_fast_forward",
+        "description": "Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "multiplier",
+            "work_items"
+          ],
+          "properties": {
+            "multiplier": {
+              "description": "Speed multiplier: 2, 4, 6, 8...",
+              "type": "number"
+            },
+            "work_items": {
+              "type": "array",
+              "items": {
+                "description": "Work item refs to divide across lanes.",
+                "type": "string"
+              }
+            },
+            "policy_max_turns_per_session": {
+              "description": "Per-lane turn cap (default 12).",
+              "type": "number"
             }
           },
           "additionalProperties": false
@@ -5538,6 +5790,27 @@
             },
             "current_ask": {
               "description": "Optional latest operator ask used to compute current-action authority; defaults to Pi current ask.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_workset_projection",
+        "description": "Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "workset_id"
+          ],
+          "properties": {
+            "workset_id": {
+              "description": "Workset id.",
               "type": "string"
             }
           },

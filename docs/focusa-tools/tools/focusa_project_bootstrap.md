@@ -93,4 +93,4 @@ Likely next: `focusa_project_genesis`, `focusa_project_verify`, `focusa_workpoin
 - CLI: `focusa project bootstrap preview|apply|status|repair`.
 - REST: `POST /v1/project/bootstrap/preview`, `POST /v1/project/bootstrap/apply`, `GET /v1/project/bootstrap/status`, `POST /v1/project/bootstrap/repair`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:2c84b8714a3ecc0b1d97c9fcbe0acb9ce36865ff6cc44c6d4f8fc76ce13d49b1`.
+- Descriptor digest: `sha256:a35ccf2e393d5ebd0fbb3292e03a9bb75b94a861dd9541366182b1b136872452`.

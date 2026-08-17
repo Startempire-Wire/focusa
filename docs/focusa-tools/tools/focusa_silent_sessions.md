@@ -87,4 +87,4 @@ Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_r
 - CLI: `focusa silent`.
 - REST: `GET /v1/silent-sessions`, `POST /v1/silent-sessions/preflight`, `GET /v1/silent-sessions/{session_id}`, `GET /v1/silent-sessions/{session_id}/output`, `POST /v1/silent-sessions/{session_id}/input`, `POST /v1/silent-sessions/{session_id}/start`, `POST /v1/silent-sessions/{session_id}/pause`, `POST /v1/silent-sessions/{session_id}/resume`, `POST /v1/silent-sessions/{session_id}/interrupt`, `POST /v1/silent-sessions/{session_id}/cancel`, `POST /v1/silent-sessions/{session_id}/restart`, `POST /v1/silent-sessions/{session_id}/config/preview`, `GET /v1/silent-sessions/{session_id}/receipts`, `GET /v1/silent-sessions/capabilities`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:76e069bd2fdbaec227495751e9276ef4a14a1af900bf751c578958a24fdf7fed`.
+- Descriptor digest: `sha256:dfebb97ecd003d3b389ecc60f3adb4f26c7ceb7d8c707b5bfe6c0232435b4485`.

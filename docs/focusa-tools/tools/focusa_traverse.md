@@ -92,4 +92,4 @@ Likely next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_
 - CLI: none.
 - REST: `POST /v1/traverse`, `POST /v1/traverse/verify-tags`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:1b32ed95aa98b05f556ddaf1bc7139a367b333fb0a275592552b22ef471b35b0`.
+- Descriptor digest: `sha256:cd7132926507e5eaed7dc20843d4a9f713a2d318c281995fb453422fc3b88c61`.

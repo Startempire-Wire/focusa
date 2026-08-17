@@ -84,4 +84,4 @@ Likely next: `focusa_project_card`, `focusa_predict_record`, `focusa_metacog_cap
 - CLI: `focusa project card-outcome`.
 - REST: `POST /v1/project/card/outcome`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:661955b51e88f777552c90d97957e38f4efa52da998eeff52bd0068b77d5d7c6`.
+- Descriptor digest: `sha256:5120fc2b9c24f233996481c1743228b4e55a1e3ebd89845a324aabbaea0b3e02`.

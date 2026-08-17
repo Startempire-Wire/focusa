@@ -79,4 +79,4 @@ Likely next: `focusa_instruction_simulate`, `focusa_agent_runtime_effective`.
 - CLI: `focusa agent-runtime claims`.
 - REST: `GET /v1/agent-runtime/instructions/claims`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:91134ddb7b89bb0eb53aa70c3662293237aa8a26f114cf0d82062ee0e38678fb`.
+- Descriptor digest: `sha256:3e6fd572be14b350890f571446dea5b32d856ac3ae7f3d4d7413f040960fef1b`.

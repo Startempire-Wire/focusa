@@ -78,4 +78,4 @@ Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`.
 - CLI: `focusa device pair-complete`.
 - REST: `POST /v1/device/pair/complete`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:fe12174495deeb12f347f02446c51fd420a8b3e320474004d0c354096e1175dc`.
+- Descriptor digest: `sha256:aea9abebe1097b1f5eb82751da559ff8f5dd9b34728f7ca636939bf4f25d6983`.

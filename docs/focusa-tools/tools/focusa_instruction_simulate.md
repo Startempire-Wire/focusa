@@ -80,4 +80,4 @@ Likely next: `focusa_runtime_constitution_preview`, `focusa_instruction_integrit
 - CLI: `focusa agent-runtime simulate`.
 - REST: `POST /v1/agent-runtime/instructions/simulate`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:b92187058be247b73e8c81d71259dab78438ecc0ee6d9c8a517404c3cc1713bf`.
+- Descriptor digest: `sha256:a5a5b841ed536f9e3c79ebb10064dcca8889f7a80c1f29605e7ddff4226dc0c0`.

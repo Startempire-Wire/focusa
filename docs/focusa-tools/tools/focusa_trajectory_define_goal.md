@@ -95,4 +95,4 @@ Likely next: `focusa_trajectory_assess`, `focusa_trajectory_propose_workpoint`, 
 - CLI: `focusa trajectory define-goal`.
 - REST: `POST /v1/trajectory/define-goal`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:af2fb8612ecce461feb74ce7a2e3efdd71d470d4ebcbf1fe42bf036eefddd4f6`.
+- Descriptor digest: `sha256:2d41e9556a317136f143599bfd3b1df2ccb889018d775f0ad05516007d3a3d4a`.

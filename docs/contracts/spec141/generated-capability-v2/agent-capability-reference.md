@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:e66e33d5ce48ea86030e8f5e000fc86cc8721ae5be29df8247ae0b3fe7ac54f5`
+Registry digest: `sha256:ac04e8fed04f213bc488e20a654daaad72f135faca61b4a399b4f1183ef47d6d`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -123,6 +123,39 @@ Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed
 - Skills: `skill:focusa`, `skill:focusa-agent-bootstrap`
 - Dependencies/next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_tool_doctor`
 - Documentation: `docs/focusa-tools/tools/focusa_awareness_packet.md`
+
+## focusa_bg_run
+
+Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.bg.run`
+- Family: `background_job`
+- Side effects: `durable_dispatch`, `durable_dispatch`
+- Skills: `skill:focusa`
+- Dependencies/next: `focusa_tool_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_bg_run.md`
+
+## focusa_bg_run_many
+
+Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.bg.run.many`
+- Family: `background_job`
+- Side effects: `durable_dispatch`, `durable_dispatch`
+- Skills: `skill:focusa`
+- Dependencies/next: `focusa_tool_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_bg_run_many.md`
+
+## focusa_bg_status
+
+Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.bg.status`
+- Family: `background_job`
+- Side effects: `read_status`, `read_status`
+- Skills: `skill:focusa`
+- Dependencies/next: `focusa_tool_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_bg_status.md`
 
 ## focusa_bloatgaurd_domain
 
@@ -300,6 +333,28 @@ Verify a Call Stack Design against bounded implementation surfaces and report dr
 - Dependencies/next: `focusa_call_stack_design`, `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`
 - Documentation: `docs/focusa-tools/tools/focusa_call_stack_verify.md`
 
+## focusa_callgraph_observe
+
+Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.callgraph.observe`
+- Family: `callgraph`
+- Side effects: `read_observation`, `read_observation`
+- Skills: `skill:focusa`
+- Dependencies/next: `focusa_tool_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_callgraph_observe.md`
+
+## focusa_callgraph_validate
+
+Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.callgraph.validate`
+- Family: `callgraph`
+- Side effects: `read_validation`, `read_validation`
+- Skills: `skill:focusa`
+- Dependencies/next: `focusa_tool_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_callgraph_validate.md`
+
 ## focusa_canonical_instruction_amendment_activate
 
 Activate a separately operator-approved amendment only after its official documentation sweep is complete. Use it when Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -321,6 +376,17 @@ Record an operator-originated canonical instruction amendment proposal without a
 - Skills: `skill:focusa`, `skill:focusa-spec-implementation`, `skill:focusa-security-auth-licensing`
 - Dependencies/next: `focusa_canonical_instruction_amendment_activate`, `focusa_instruction_integrity_evaluate`
 - Documentation: `docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md`
+
+## focusa_cockpit_projection
+
+Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.cockpit.projection`
+- Family: `cockpit`
+- Side effects: `read_projection`, `read_projection`
+- Skills: `skill:focusa`
+- Dependencies/next: `focusa_tool_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_cockpit_projection.md`
 
 ## focusa_constraint
 
@@ -409,6 +475,17 @@ Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menub
 - Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Dependencies/next: `focusa_context_cognition`, `focusa_context_cognition_proof`
 - Documentation: `docs/focusa-tools/tools/focusa_context_cognition_render.md`
+
+## focusa_credentials_verify
+
+Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.credentials.verify`
+- Family: `credential`
+- Side effects: `read_verdict`, `read_verdict`
+- Skills: `skill:focusa`
+- Dependencies/next: `focusa_tool_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_credentials_verify.md`
 
 ## focusa_current_focus
 
@@ -585,6 +662,17 @@ Record a specific failure with diagnosis in Focus State. Must identify WHAT fail
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_tool_doctor`, `focusa_workpoint_resume`, `focusa_metacog_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_failure.md`
+
+## focusa_fast_forward
+
+Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.fast.forward`
+- Family: `session_fanout`
+- Side effects: `durable_dispatch`, `durable_dispatch`
+- Skills: `skill:focusa`
+- Dependencies/next: `focusa_tool_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_fast_forward.md`
 
 ## focusa_hlt_history
 
@@ -1520,3 +1608,14 @@ Fetch the active Focusa WorkpointResumePacket after compaction, resume, context 
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_trajectory_view`, `focusa_active_object_resolve`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_workpoint_resume.md`
+
+## focusa_workset_projection
+
+Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.workset.projection`
+- Family: `workset`
+- Side effects: `read_projection`, `read_projection`
+- Skills: `skill:focusa`
+- Dependencies/next: `focusa_tool_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_workset_projection.md`

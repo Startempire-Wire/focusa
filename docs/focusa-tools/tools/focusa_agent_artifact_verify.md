@@ -76,4 +76,4 @@ Likely next: `focusa_agent_runtime_effective`, `focusa_agent_runtime_doctor`.
 - CLI: `focusa agent-runtime artifacts verify`.
 - REST: `POST /v1/agent-runtime/delivery/verify`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:f1800866c4d6c5fc9834bbe4243574affc02b2e9cdf32965110d3879b43f71e1`.
+- Descriptor digest: `sha256:9da505ab1325e8643997a210d9844b54355bb63dcfd0ed3b53819c51d70c1d62`.

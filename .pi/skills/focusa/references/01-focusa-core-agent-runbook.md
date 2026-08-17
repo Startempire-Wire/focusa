@@ -2,11 +2,12 @@
 
 ## Fast start
 
-1. Verify the project with `focusa_project_identity` and `focusa_project_verify`.
-2. Resume `focusa_trajectory_view` and `focusa_workpoint_resume`; do not infer authority from transcript memory.
-3. Discover the narrowest capability with `focusa_tool_search`, then cold-load its schema with `focusa_tool_describe`.
-4. Use `docs/contracts/spec141/generated-capability-v2/pi-tools.json` or `docs/focusa-tools/tools/` for all 112 Focusa Pi tools.
-5. Capture stable evidence and checkpoint before compaction, model changes, or release work.
+1. Detect the intended project with `focusa_project_identity` and verify it with `focusa_project_verify`.
+2. When the safe operator-named folder has no valid marker, call `focusa_project_bootstrap` in `preview` mode, apply only with explicit confirmation, then verify identity again.
+3. Resume or complete `focusa_project_genesis`, `focusa_trajectory_view`, and `focusa_workpoint_resume`; do not infer authority from transcript memory.
+4. Discover the narrowest capability with `focusa_tool_search`, then cold-load its schema with `focusa_tool_describe`.
+5. Use `docs/contracts/spec141/generated-capability-v2/pi-tools.json` or `docs/focusa-tools/tools/` for all 115 Focusa Pi tools.
+6. Capture stable evidence and checkpoint before compaction, model changes, or release work.
 
 ## Authority and recovery
 

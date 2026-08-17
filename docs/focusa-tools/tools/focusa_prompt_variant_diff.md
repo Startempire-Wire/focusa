@@ -78,4 +78,4 @@ Likely next: `focusa_prompt_variant_preview`, `focusa_agent_runtime_doctor`.
 - CLI: `focusa agent-runtime prompt diff`.
 - REST: Pi-local only.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:364ca41faafc6dfee8a3c782cebe643f89de82d85a7ec643547f0496385abdc4`.
+- Descriptor digest: `sha256:d7e74b63ab478954af036d8f8cf2281a0851390c31c91a4e2e679f6fbd89d8df`.
