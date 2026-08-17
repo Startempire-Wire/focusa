@@ -595,7 +595,12 @@ if [[ "$PUSH" -eq 1 ]]; then
     '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)' \
     <<<"$CANDIDATE_CHANGED_PATHS"; then
     ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
-    wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
+    if [[ "${RELEASE_CHANNEL:-dev}" == "stable" ]]; then
+      wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
+    else
+      echo "Advisory: Spec 132 not yet green for ${HEAD_SHA} — dev continues, Release will re-check" >&2
+      wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA" || echo "source_gate_advisory: Spec 132 pending for ${HEAD_SHA}" >&2
+    fi
   fi
 fi
 
