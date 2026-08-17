@@ -51,7 +51,7 @@ fi
 
 # Test 1: GET default state
 log_info "Test 1: GET default state (should be enabled=true)"
-resp=$(curl -sf "${BASE_URL}/v1/focusa/enabled")
+resp=$(curl -s "${BASE_URL}/v1/focusa/enabled" || true)
 if echo "$resp" | grep -q '"enabled":true'; then
   log_pass "Default state is enabled=true"
 else
@@ -60,7 +60,7 @@ fi
 
 # Test 2: PATCH disable
 log_info "Test 2: PATCH disable"
-resp=$(curl -sf -X PATCH "${BASE_URL}/v1/focusa/enabled" \
+resp=$(curl -s -X PATCH "${BASE_URL}/v1/focusa/enabled" \
   -H "Content-Type: application/json" \
   -d '{"enabled":false}')
 if echo "$resp" | grep -q '"status":"updated"' && echo "$resp" | grep -q '"enabled":false'; then
@@ -85,7 +85,7 @@ fi
 
 # Test 4: GET disabled state
 log_info "Test 4: GET returns disabled state"
-resp=$(curl -sf "${BASE_URL}/v1/focusa/enabled")
+resp=$(curl -s "${BASE_URL}/v1/focusa/enabled" || true)
 if echo "$resp" | grep -q '"enabled":false'; then
   log_pass "GET returns enabled=false"
 else
@@ -94,7 +94,7 @@ fi
 
 # Test 5: PATCH enable
 log_info "Test 5: PATCH enable"
-resp=$(curl -sf -X PATCH "${BASE_URL}/v1/focusa/enabled" \
+resp=$(curl -s -X PATCH "${BASE_URL}/v1/focusa/enabled" \
   -H "Content-Type: application/json" \
   -d '{"enabled":true}')
 if echo "$resp" | grep -q '"status":"updated"' && echo "$resp" | grep -q '"enabled":true'; then
@@ -119,7 +119,7 @@ fi
 
 # Test 7: GET enabled state
 log_info "Test 7: GET returns enabled state"
-resp=$(curl -sf "${BASE_URL}/v1/focusa/enabled")
+resp=$(curl -s "${BASE_URL}/v1/focusa/enabled" || true)
 if echo "$resp" | grep -q '"enabled":true'; then
   log_pass "GET returns enabled=true"
 else
