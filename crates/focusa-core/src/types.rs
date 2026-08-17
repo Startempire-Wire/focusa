@@ -1069,8 +1069,9 @@ pub struct TrajectoryMilestoneRecord {
 }
 #[derive(Debug, Clone, Serialize)]
 pub struct TrajectoryProjectionRecord {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub milestones: Vec<TrajectoryMilestoneRecord>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_milestone_id: Option<String>,
     pub trajectory_id: String,
     #[serde(default)]
@@ -1238,7 +1239,7 @@ impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
         }
         Ok(Self {
             milestones: vec![],
-            active_milestone_id: wire.active_milestone_id.clone().or(wire.active_waypoint_id.clone()),
+            active_milestone_id: None,
             trajectory_id: wire.trajectory_id,
             scope_ref: wire.scope_ref,
             session_identity: wire.session_identity,
