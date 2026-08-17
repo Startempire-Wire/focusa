@@ -33,10 +33,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
-      - uses: Swatinem/rust-cache@v2
         with:
           toolchain: nightly-2026-01-08
           components: clippy
+      - uses: Swatinem/rust-cache@v2
       - name: Process-health check + unit/integration tests
         env:
           FOCUSA_TEST_MODE: "1"
@@ -124,6 +124,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           toolchain: nightly-2026-01-08
+          components: clippy
       - name: Install Pi extension runtime dependencies
         working-directory: apps/pi-extension
         run: |
