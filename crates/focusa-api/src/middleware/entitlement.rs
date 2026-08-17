@@ -366,7 +366,7 @@ fn reserve_route_limit(
         .or_else(|| {
             // Under test mode, accept a generated key so CI probes do not
             // require a real Idempotency-Key header.
-            if std::env::var("FOCUSA_TEST_MODE").is_ok() {
+            if std::env::var("FOCUSA_TEST_MODE").map(|value| value == "1").unwrap_or(false) {
                 Some("ci-test-idempotency-key")
             } else {
                 None
@@ -393,9 +393,9 @@ fn reserve_route_limit(
     let lease_id = snapshot.lease_id.as_deref().unwrap_or_default();
     let lease_sequence = snapshot.sequence.unwrap_or_default();
     let mut available = snapshot.limits.get(bucket).copied().unwrap_or(0);
-    // CI test-mode daemons bypass real limit enforcement.
-    if std::env::var("FOCUSA_TEST_MODE").is_ok() && available == 0 {
-        available = u64::MAX;
+    // CI test-mode daemons bypass real limit enforcement (bounded: 1k units, not MAX, and only when FOCUSA_TEST_MODE=1).
+    if std::env::var("FOCUSA_TEST_MODE").map(|value| value == "1").unwrap_or(false) && available == 0 {
+        available = 1000;
     }
     let reservation_id = format!(
         "sha256:{:x}",

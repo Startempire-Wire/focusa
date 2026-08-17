@@ -322,7 +322,7 @@ async fn main() -> anyhow::Result<()> {
     // Isolated e2e/CI daemons run with FOCUSA_TEST_MODE=1 and no operator lease;
     // grant a bound test entitlement so value-producing e2e surfaces exercise
     // the full entitlement path instead of failing at the gate.
-    if std::env::var("FOCUSA_TEST_MODE").is_ok()
+    if std::env::var("FOCUSA_TEST_MODE").map(|value| value == "1").unwrap_or(false)
         && license_guard
             .entitlement
             .as_ref()
