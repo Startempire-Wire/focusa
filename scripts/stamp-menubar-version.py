@@ -94,7 +94,6 @@ def replace_display_version(path: str, version: str) -> None:
     file_path.write_text(next_text, encoding="utf-8")
 
 
-<<<<<<< HEAD
 def replace_extension_build(path: str, package_name: str, version: str) -> None:
     file_path = ROOT / path
     text = file_path.read_text(encoding="utf-8")
@@ -128,8 +127,6 @@ def replace_agent_card_version(path: str, version: str) -> None:
     )
 
 
-=======
->>>>>>> local/work-loop-completion
 def replace_lock_package_versions(
     path: str, package_names: set[str], version: str
 ) -> None:
