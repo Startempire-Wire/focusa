@@ -148,6 +148,18 @@ Every tool family must close the loop with the others — no isolated tool, no b
 
 No hard-coded paths or magic roots anywhere in requests, tests, or fixtures. Scopes derive from the caller's actual project root; safety classification lives in one place (`scope_safety.rs`) and the json_guard accepts both the typed ScopeKind enum and query scope kinds.
 
+## Structural guards (hooks — release failure-mode prevention)
+
+`scripts/structural-guards.sh` blocks the cataloged failure modes at
+commit/push/CI time: conflict markers, double `pub pub`, crates missing
+from workspace members, regex-style tag patterns, squash deletions of
+main-owned files, sleep-poll scripts. It is wired into `.git/hooks/
+pre-commit` + `pre-push` and the `structural-guards.yml` workflow.
+Every failure message points at
+`docs/current/RELEASE_FAILURE_MODE_CATALOG_2026-08-17.md`. When a new
+failure mode is found, ADD IT to both the catalog and this guard — never
+just fix the instance.
+
 ## Turn closure
 
 Every turn ends with the suggested next logical step, stated in one line.
