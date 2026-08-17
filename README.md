@@ -198,7 +198,7 @@ bash tests/spec_cli_cross_phase_smoke_test.sh
 
 ## Agent-first capability discovery
 
-Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. All 112 Focusa Pi tools are projected one-to-one into strict machine contracts and per-tool docs. Agents start with metadata—not 112 hot schemas—and progressively load only what the next action needs:
+Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. All 146 Focusa Pi tools are projected one-to-one into strict machine contracts and per-tool docs. Agents start with metadata—not 146 hot schemas—and progressively load only what the next action needs:
 
 1. `focusa_agent_card` — interfaces, auth, families, capability count, and discovery entry points.
 2. `focusa_tool_search` — ranked metadata by action, object, failure, or workflow.
