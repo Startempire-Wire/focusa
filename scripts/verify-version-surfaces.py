@@ -24,7 +24,9 @@ ROOT_RUST_PACKAGES = {
     "focusa-bench",
     "focusa-cli",
     "focusa-core",
+    "focusa-harness-adapters",
     "focusa-license",
+    "focusa-session-runner",
     "focusa-terminal-ui",
     "focusa-tui",
 }
