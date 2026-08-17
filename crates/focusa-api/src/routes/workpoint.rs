@@ -7,7 +7,6 @@ use crate::routes::bounded::{
 use crate::routes::permissions::{forbid, permission_context};
 use crate::scope::ScopeContext;
 use crate::server::AppState;
-use focusa_core::types::FocusaState;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::{
@@ -300,25 +299,6 @@ fn normalize_project_root_authority(value: &str) -> String {
     }
 }
 
-/// #125 migration pattern: resolve the partitioned workstream state for a
-/// scope, falling back to the global state when the scope is unmigrated.
-/// Owned guards keep lifetimes simple across both branches.
-async fn workstream_scoped_state(
-    state: Arc<AppState>,
-    scope: &crate::scope::ScopeContext,
-) -> tokio::sync::OwnedRwLockReadGuard<FocusaState> {
-    match (&scope.project_root, &scope.continuity_id) {
-        (Some(root), Some(continuity)) => {
-            let partition = state
-                .workstream_states
-                .get_or_create(root, continuity)
-                .await;
-            partition.read_owned().await
-        }
-        _ => state.focusa.clone().read_owned().await,
-    }
-}
-
 fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
     classify_project_root_option(value).reason()
 }
@@ -426,6 +406,10 @@ fn unconfirmed_project_root_rejection(
             "candidates": &identity.project_root_candidates,
             "retry_posture": "operator_required",
             "next_tools": ["focusa_project_identity", "focusa_workpoint_checkpoint"],
+            "next_actions": [{
+                "action_type": "operator_input_required",
+                "prompt": "Confirm the exact existing project_root, choose new-project Genesis, or resume an authorized handoff."
+            }],
             "next_step_hint": "ask the operator to confirm the exact project_root before mutating Workpoint/evidence state"
         })),
     )
@@ -1340,7 +1324,7 @@ async fn wait_for_workpoint_record(
     let attempts = workpoint_visibility_wait_attempts();
     for attempt in 0..attempts {
         {
-            let focusa = workstream_scoped_state(state.clone(), &_scope).await;
+            let focusa = state.focusa.read().await;
             if let Some(record) = focusa
                 .workpoint
                 .records
@@ -1479,6 +1463,21 @@ fn workpoint_dispatch_timeout() -> (StatusCode, Json<Value>) {
     )
 }
 
+fn explicit_workpoint_not_found(workpoint_id: Uuid) -> (StatusCode, Json<Value>) {
+    let (status, Json(mut body)) = workpoint_failure(
+        StatusCode::NOT_FOUND,
+        format!("Workpoint {workpoint_id} does not exist in the exact scoped read model"),
+        "not_found",
+        "The explicitly requested Workpoint was not found after bounded read-model reconciliation.",
+        "Resume a known Workpoint or checkpoint a new exact-scope Workpoint before linking evidence.",
+        "Never treat an unknown Workpoint id as eventual evidence-link success.",
+        vec!["focusa_workpoint_resume", "focusa_workpoint_checkpoint"],
+    );
+    body["workpoint_id"] = json!(workpoint_id);
+    body["requested_mutation"] = json!("workpoint_evidence_link");
+    (status, Json(body))
+}
+
 fn workpoint_no_active_to_link() -> (StatusCode, Json<Value>) {
     workpoint_failure(
         StatusCode::NOT_FOUND,
@@ -1495,14 +1494,16 @@ fn workpoint_no_active_to_link() -> (StatusCode, Json<Value>) {
     )
 }
 
-async fn materialize_workpoint_events(
+pub(crate) async fn materialize_workpoint_events(
     _scope: ScopeContext,
     state: &Arc<AppState>,
     events: Vec<FocusaEvent>,
     correlation_id: &'static str,
 ) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
-    let _guard = state.write_serial_lock.lock().await;
-    let mut current = workstream_scoped_state(state.clone(), &_scope).await.clone();
+    let guard = state.write_serial_lock.lock().await;
+    let mut current = { state.focusa.read().await.clone() };
+    let mut entries = Vec::new();
+    let temporal = focusa_core::temporal_clock::capture_operator_temporal_action_envelope();
 
     for event in events {
         let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
@@ -1512,41 +1513,34 @@ async fn materialize_workpoint_events(
         current = result.new_state;
 
         for emitted in result.emitted_events {
-            let entry = EventLogEntry {
-                id: Uuid::now_v7(),
-                timestamp: Utc::now(),
-                event: emitted,
-                correlation_id: Some(correlation_id.to_string()),
-                origin: SignalOrigin::Adapter,
-                machine_id: None,
-                instance_id: None,
-                session_id: current.session.as_ref().map(|session| session.session_id),
-                thread_id: None,
-                is_observation: false,
-            };
-            if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
-                tracing::error!(error = %error, correlation_id, "failed to persist workpoint event");
-                return Err(workpoint_persistence_failed(error));
-            } else if let Ok(serialized) = serde_json::to_string(&entry) {
-                let _ = state.events_tx.send(serialized);
-            }
+            let mut entry = EventLogEntry::with_temporal(
+                emitted,
+                SignalOrigin::Adapter,
+                Some(correlation_id.to_string()),
+                temporal.clone(),
+            );
+            entry.session_id = current.session.as_ref().map(|session| session.session_id);
+            entries.push(entry);
         }
     }
 
-    // This route reduces Workpoint events directly instead of sending them
-    // through the daemon action loop. Persist the resulting canonical state
-    // before publishing it in memory, otherwise checkpoints disappear after
-    // a daemon restart even though the request returned canonical=true.
-    state.persist_checkpoint(current.clone()).await.map_err(|error| {
-        tracing::error!(error = %error, correlation_id, "failed to persist canonical workpoint state");
-        workpoint_persistence_failed(error)
-    })?;
+    // Commit the complete event batch and resulting state through one actor
+    // round-trip. Per-event fsync while holding the serial writer lock made
+    // immediate Work Loop continuation race the 1.5s lock timeout.
+    state
+        .persist_events_checkpoint(entries.clone(), current.clone())
+        .await
+        .map_err(|error| {
+            tracing::error!(error = %error, correlation_id, "failed to persist canonical workpoint transaction");
+            workpoint_persistence_failed(error)
+        })?;
     *state.focusa.write().await = current.clone();
     state.mark_external_mutation();
-    if let (Some(root), Some(continuity)) = (_scope.project_root.as_deref(), _scope.continuity_id.as_deref()) {
-        crate::workstream_store::scoped_write_through(
-            state.clone(), root, continuity, current.clone(),
-        ).await;
+    drop(guard);
+    for entry in entries {
+        if let Ok(serialized) = serde_json::to_string(&entry) {
+            let _ = state.events_tx.send(serialized);
+        }
     }
     Ok(current)
 }
@@ -1768,23 +1762,9 @@ async fn rollover_target_materialize(
 
     let working_subpath_id = clean_resume_scope_value(req.working_subpath_id.as_deref())
         .unwrap_or_else(|| "primary".to_string());
-    let focusa_guard;
-    let focusa = match (Some(project_root.as_str()), Some(source_continuity_id.as_str())) {
-        (Some(root), Some(continuity)) => {
-            let partition = state
-                .workstream_states
-                .get_or_create(root, continuity)
-                .await;
-            focusa_guard = partition.read_owned().await;
-            &focusa_guard
-        }
-        _ => {
-            focusa_guard = state.focusa.clone().read_owned().await;
-            &focusa_guard
-        }
-    };
+    let focusa = state.focusa.read().await;
     let source_record = active_workpoint_for_context(
-        focusa,
+        &focusa,
         Some(project_root.as_str()),
         Some(source_continuity_id.as_str()),
         Some(working_subpath_id.as_str()),
@@ -1874,7 +1854,7 @@ async fn rollover_target_materialize(
             })),
         ));
     }
-    let _ = focusa;
+    drop(focusa);
 
     let mut target_session_identity = source_record.session_identity.clone();
     if let Some(identity) = target_session_identity.as_mut() {
@@ -2062,7 +2042,7 @@ fn validate_workpoint_checkpoint_request(
 }
 
 async fn checkpoint(
-    _scope: ScopeContext,
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(mut req): Json<WorkpointCheckpointRequest>,
@@ -2070,6 +2050,54 @@ async fn checkpoint(
     let permissions = permission_context(&headers, state.config.auth_token.is_some());
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
+    }
+    if let Some(canonical_root) = scope.project_root.as_deref() {
+        let requested_root = req
+            .project_root
+            .as_deref()
+            .map(str::trim)
+            .unwrap_or_default();
+        let active_root = scope
+            .active_worktree_root
+            .as_deref()
+            .unwrap_or(canonical_root);
+        if !requested_root.is_empty()
+            && requested_root.trim_end_matches('/') != canonical_root.trim_end_matches('/')
+            && requested_root.trim_end_matches('/') != active_root.trim_end_matches('/')
+        {
+            return Err((
+                StatusCode::CONFLICT,
+                Json(json!({
+                    "status":"scope_mismatch","canonical":false,
+                    "failure_class":"scope_mismatch",
+                    "requested_project_root":requested_root,
+                    "canonical_project_root":canonical_root,
+                    "active_worktree_root":active_root
+                })),
+            ));
+        }
+        req.project_root = Some(canonical_root.to_string());
+        if req.working_subpath_id.is_none() {
+            req.working_subpath_id = scope.working_subpath_id.clone();
+        }
+    }
+    if let Some(scope_continuity) = scope.continuity_id.as_deref() {
+        if req
+            .continuity_id
+            .as_deref()
+            .is_some_and(|value| value.trim() != scope_continuity)
+        {
+            return Err((
+                StatusCode::CONFLICT,
+                Json(json!({
+                    "status":"scope_mismatch","canonical":false,
+                    "failure_class":"scope_mismatch",
+                    "requested_continuity_id":req.continuity_id,
+                    "canonical_continuity_id":scope_continuity
+                })),
+            ));
+        }
+        req.continuity_id = Some(scope_continuity.to_string());
     }
     // BAD-005 fix: Run field-level validation before legacy checks
     validate_workpoint_checkpoint_request(&req)?;
@@ -2116,24 +2144,7 @@ async fn checkpoint(
         .as_ref()
         .filter(|key| !key.trim().is_empty())
     {
-        // #125 migration pattern: partitioned workstream state first.
-        let scoped_state = match (req.project_root.as_deref(), req.continuity_id.as_deref()) {
-            (Some(root), Some(continuity)) => Some(
-                state.workstream_states.get_or_create(root, continuity).await,
-            ),
-            _ => None,
-        };
-        let focusa_guard;
-        let focusa = match &scoped_state {
-            Some(partition) => {
-                focusa_guard = partition.read().await;
-                &focusa_guard
-            }
-            None => {
-                focusa_guard = state.focusa.read().await;
-                &focusa_guard
-            }
-        };
+        let focusa = state.focusa.read().await;
         if let Some(existing) = focusa.workpoint.records.iter().find(|record| {
             record.idempotency_key.as_deref() == Some(key.as_str())
                 && record.project_root.as_deref() == req.project_root.as_deref()
@@ -2162,30 +2173,12 @@ async fn checkpoint(
     let promote = req.promote.unwrap_or(true);
     let requested_canonical = req.canonical.unwrap_or(true);
     if requested_canonical {
-        // #89 slice 6: a verified/stale RemoteWorkspaceBinding owning this
-        // remote project root satisfies the bootstrap precondition — the
-        // controller daemon manages the workstream without a local checkout.
-        let binding_satisfied = match req.project_root.as_deref() {
-            Some(root) => {
-                let db = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
-                rusqlite::Connection::open(&db)
-                    .ok()
-                    .and_then(|conn| {
-                        focusa_core::remote_workspace::resolve_binding_for_root(&conn, root).ok()
-                    })
-                    .flatten()
-                    .is_some()
-            }
-            None => false,
-        };
-        if !binding_satisfied {
-            if let Some(reason) = unsafe_project_root_reason(req.project_root.as_deref()) {
-                return Err(unsafe_checkpoint_rejection(
-                    reason,
-                    "project_root",
-                    req.project_root.as_deref(),
-                ));
-            }
+        if let Some(reason) = unsafe_project_root_reason(req.project_root.as_deref()) {
+            return Err(unsafe_checkpoint_rejection(
+                reason,
+                "project_root",
+                req.project_root.as_deref(),
+            ));
         }
         if clean_resume_scope_value(req.continuity_id.as_deref()).is_none() {
             return Err(unsafe_checkpoint_rejection(
@@ -2230,8 +2223,7 @@ async fn checkpoint(
     }
 
     let materialized_state =
-        materialize_workpoint_events(_scope.clone(), &state, events, "workpoint_checkpoint")
-            .await?;
+        materialize_workpoint_events(scope.clone(), &state, events, "workpoint_checkpoint").await?;
     let promoted_record = if promote && canonical {
         materialized_state
             .workpoint
@@ -2368,31 +2360,9 @@ async fn current(
         } else {
             (effective_project_root, effective_continuity_id, false)
         };
-    // #125 migration pattern: partitioned workstream state first, global
-    // fallback for unmigrated scopes. Every migrated route follows this
-    // exact pattern until the global state is retired.
-    let scoped_state = match (&effective_project_root, &effective_continuity_id) {
-        (Some(root), Some(continuity)) => Some(
-            state
-                .workstream_states
-                .get_or_create(root, continuity)
-                .await,
-        ),
-        _ => None,
-    };
-    let focusa_guard;
-    let focusa = match &scoped_state {
-        Some(partition) => {
-            focusa_guard = partition.read().await;
-            &focusa_guard
-        }
-        None => {
-            focusa_guard = state.focusa.read().await;
-            &focusa_guard
-        }
-    };
+    let focusa = state.focusa.read().await;
     let Some(record) = active_workpoint_for_context(
-        focusa,
+        &focusa,
         effective_project_root.as_deref(),
         effective_continuity_id.as_deref(),
         effective_working_subpath_id.as_deref(),
@@ -2947,6 +2917,27 @@ fn workpoint_migration_posture(record: &WorkpointRecord, canonical: bool) -> Val
     })
 }
 
+fn temporal_resume_context(record: &WorkpointRecord) -> Value {
+    let (Some(project_root), Some(continuity_id)) = (
+        record.project_root.as_deref(),
+        record.continuity_id.as_deref(),
+    ) else {
+        return json!({
+            "schema":"focusa.bounded_temporal_context.v1",
+            "status":"unavailable",
+            "canonical":false,
+            "failure_class":"temporal_scope_missing",
+            "cache_safe_refs_only":true
+        });
+    };
+    super::temporal_context::bounded_temporal_context(
+        project_root,
+        continuity_id,
+        Some(record.workpoint_id.to_string()),
+        record.work_item_id.clone(),
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
 fn workpoint_resume_packet_v2(
     record: &WorkpointRecord,
@@ -3080,7 +3071,7 @@ async fn resume(
         return Err(forbid("work-loop:read"));
     }
     apply_resume_session_identity(&mut req);
-    let focusa = workstream_scoped_state(state.clone(), &_scope).await;
+    let focusa = state.focusa.read().await;
     let requested_workpoint_id = req.workpoint_id;
     let requested_record = requested_workpoint_id.and_then(|id| {
         focusa
@@ -3155,7 +3146,7 @@ async fn resume(
     let mismatch_warnings = scope.warnings.clone();
     let packet = workpoint_packet(record);
     let summary = resume_summary(record);
-    let packet_v2 = workpoint_resume_packet_v2(
+    let mut packet_v2 = workpoint_resume_packet_v2(
         record,
         packet.clone(),
         &summary,
@@ -3165,6 +3156,9 @@ async fn resume(
         &scope,
         &req,
     );
+    if let Some(packet) = packet_v2.as_object_mut() {
+        packet.insert("temporal_context".into(), temporal_resume_context(record));
+    }
     drop(focusa);
 
     let resume_render_dispatch_warning = match dispatch_event(
@@ -3281,6 +3275,13 @@ async fn resume(
     response.insert("failure_class".to_string(), failure_class);
     response.insert("resume_packet".to_string(), packet);
     response.insert("resume_packet_v2".to_string(), packet_v2.clone());
+    response.insert(
+        "temporal_context".to_string(),
+        packet_v2
+            .get("temporal_context")
+            .cloned()
+            .unwrap_or(Value::Null),
+    );
     response.insert("rendered_summary".to_string(), json!(summary));
     response.insert(
         "handoff_quality".to_string(),
@@ -3352,7 +3353,7 @@ async fn resolve_active_object(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ActiveObjectResolveRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let focusa = workstream_scoped_state(state.clone(), &_scope).await;
+    let focusa = state.focusa.read().await;
     let record = active_workpoint(&focusa);
     let mut refs: Vec<String> = record
         .map(|record| record.active_object_refs.clone())
@@ -3416,7 +3417,7 @@ async fn link_evidence(
             .unwrap_or_else(|| "primary".to_string());
     let record = if let Some(workpoint_id) = explicit_workpoint_id {
         let visible = {
-            let focusa = workstream_scoped_state(state.clone(), &_scope).await;
+            let focusa = state.focusa.read().await;
             focusa
                 .workpoint
                 .records
@@ -3431,7 +3432,7 @@ async fn link_evidence(
     } else {
         let expected_project_root = session_identity_project_root(req.session_identity.as_ref());
         let expected_continuity_id = session_identity_continuity_id(req.session_identity.as_ref());
-        let focusa = workstream_scoped_state(state.clone(), &_scope).await;
+        let focusa = state.focusa.read().await;
         if expected_project_root.is_some() || expected_continuity_id.is_some() {
             active_workpoint_for_context(
                 &focusa,
@@ -3446,21 +3447,7 @@ async fn link_evidence(
     };
     let Some(record) = record else {
         if let Some(workpoint_id) = explicit_workpoint_id {
-            return Err((
-                StatusCode::ACCEPTED,
-                Json(json!({
-                    "status": "pending",
-                    "canonical": false,
-                    "degraded": true,
-                    "workpoint_id": workpoint_id,
-                    "failure_class": "read_model_lag",
-                    "retry_posture": "safe_retry",
-                    "retry": {"safe": true, "posture": "safe_retry", "reason": "workpoint record accepted but not visible yet"},
-                    "side_effects": [],
-                    "next_tools": ["focusa_workpoint_resume", "focusa_workpoint_link_evidence"],
-                    "next_step_hint": "retry evidence link after Workpoint checkpoint is visible"
-                })),
-            ));
+            return Err(explicit_workpoint_not_found(workpoint_id));
         }
         return Err(workpoint_no_active_to_link());
     };
@@ -3523,7 +3510,7 @@ async fn link_evidence(
         verified_at: None,
     };
     let rollback_snapshot = {
-        let focusa = workstream_scoped_state(state.clone(), &_scope).await;
+        let focusa = state.focusa.read().await;
         json!({"snapshot_id": focusa.clt.head_id, "source": "current_clt_head"})
     };
     if req.preview {
@@ -3622,7 +3609,7 @@ async fn drift_check(
     if req.emit.unwrap_or(false) && !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
-    let focusa = workstream_scoped_state(state.clone(), &_scope).await;
+    let focusa = state.focusa.read().await;
     let record = req
         .workpoint_id
         .and_then(|id| {
@@ -3721,6 +3708,19 @@ mod tests {
         let payload = idempotency_cache_status_payload();
         assert_eq!(payload["status"], "eliminated");
         assert_eq!(payload["cross_scope_fallback"], false);
+    }
+
+    #[test]
+    fn unknown_explicit_workpoint_rejects_evidence_link_without_pending_success() {
+        let workpoint_id = Uuid::nil();
+        let (status, Json(body)) = explicit_workpoint_not_found(workpoint_id);
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        assert_eq!(body["status"], "blocked");
+        assert_eq!(body["canonical"], false);
+        assert_eq!(body["failure_class"], "not_found");
+        assert_eq!(body["workpoint_id"], workpoint_id.to_string());
+        assert_eq!(body["requested_mutation"], "workpoint_evidence_link");
+        assert_eq!(body["details"]["tool_result_v1"]["retry"]["safe"], false);
     }
 
     #[test]

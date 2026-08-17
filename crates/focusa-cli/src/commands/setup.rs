@@ -1,7 +1,6 @@
 //! Spec124 setup namespace.
 
 use crate::commands::first_mission::{self, FirstMissionArgs};
-use crate::commands::walkthrough::{self, WalkthroughArgs};
 use clap::Subcommand;
 use serde_json::json;
 
@@ -13,14 +12,11 @@ pub enum SetupCmd {
     Init,
     /// Show setup doctor migration hint.
     Doctor,
-    /// Canonical Mission Deck walkthrough (setup namespace per deprecation path).
-    Walkthrough(WalkthroughArgs),
 }
 
 pub async fn run(cmd: SetupCmd, json_output: bool) -> anyhow::Result<()> {
     match cmd {
         SetupCmd::Wizard(args) => first_mission::run(args, json_output).await,
-        SetupCmd::Walkthrough(args) => walkthrough::run(args, json_output).await,
         SetupCmd::Init => {
             let payload = json!({
                 "schema": "focusa.setup.v1",

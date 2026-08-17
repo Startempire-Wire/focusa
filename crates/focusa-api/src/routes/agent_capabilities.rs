@@ -22,6 +22,23 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::{Arc, LazyLock};
 
+static CANONICAL_OPERATION_REGISTRY: LazyLock<Result<Value, String>> = LazyLock::new(|| {
+    serde_json::from_str(include_str!(
+        "../../../../docs/contracts/spec135/generated-contract-v1/operation-registry.json"
+    ))
+    .map_err(|error| format!("embedded operation registry is invalid: {error}"))
+});
+
+fn canonical_operation_values() -> Result<Vec<Value>, String> {
+    CANONICAL_OPERATION_REGISTRY
+        .as_ref()
+        .map_err(Clone::clone)?
+        .get("operations")
+        .and_then(Value::as_array)
+        .cloned()
+        .ok_or_else(|| "embedded operation registry has no operations array".to_string())
+}
+
 #[derive(Debug, Serialize)]
 struct CapabilitiesIndex {
     #[serde(rename = "schema")]
@@ -350,168 +367,6 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.health.request.v1",
             "focusa.health.response.v1",
             "docs/focusa-api/routes/health.md",
-            None,
-        ),
-        // ── background jobs (#311-family) ──────────────────────────────────
-        op(
-            "focusa.background.jobs",
-            "Background Jobs",
-            "background",
-            "GET",
-            "/v1/background-jobs",
-            true,
-            None,
-            "none",
-            "advisory_read",
-            vec!["preview", "commit"],
-            false,
-            false,
-            false,
-            vec!["background:read"],
-            false,
-            "light_read",
-            vec!["compact", "standard"],
-            "focusa.background_job.v1",
-            "focusa.background_job.v1",
-            "docs/focusa-tools/tools/focusa_bg_status.md",
-            None,
-        ),
-        op(
-            "focusa.runtime.constitution",
-            "Runtime Constitution",
-            "governance",
-            "GET",
-            "/v1/runtime-constitution",
-            true,
-            None,
-            "none",
-            "advisory_read",
-            vec!["preview"],
-            false,
-            false,
-            false,
-            vec!["governance:read"],
-            false,
-            "light_read",
-            vec!["compact"],
-            "focusa.runtime_constitution.v1",
-            "focusa.runtime_constitution.v1",
-            "docs/focusa-tools/tools/focusa_agent_card.md",
-            None,
-        ),
-        op(
-            "focusa.completion.claims.evaluate",
-            "Completion Claim Evaluate",
-            "completion",
-            "POST",
-            "/v1/completion-claims/evaluate",
-            true,
-            None,
-            "none",
-            "advisory_read",
-            vec!["preview"],
-            false,
-            false,
-            false,
-            vec!["completion:read"],
-            false,
-            "light_read",
-            vec!["compact"],
-            "focusa.completion_claim.v1",
-            "focusa.completion_verdict.v1",
-            "docs/focusa-tools/tools/focusa_bg_status.md",
-            None,
-        ),
-        op(
-            "focusa.callgraph.validate",
-            "CallGraph Validate",
-            "callgraph",
-            "POST",
-            "/v1/callgraphs/validate",
-            true,
-            None,
-            "none",
-            "advisory_read",
-            vec!["preview"],
-            false,
-            false,
-            false,
-            vec!["callgraph:read"],
-            false,
-            "light_read",
-            vec!["compact"],
-            "focusa.callgraph.v1",
-            "focusa.callgraph.v1",
-            "docs/155-focusa-callgraph-workflow-and-flow-mesh-execution-integration-spec.md",
-            None,
-        ),
-        op(
-            "focusa.direction.operations",
-            "Direction Operations",
-            "direction",
-            "GET",
-            "/v1/direction/operations",
-            true,
-            None,
-            "none",
-            "advisory_read",
-            vec!["preview", "commit"],
-            false,
-            false,
-            false,
-            vec!["direction:read"],
-            false,
-            "light_read",
-            vec!["compact"],
-            "focusa.direction_operation.v1",
-            "focusa.direction_receipt.v1",
-            "docs/166-direction-workbench-and-proof-adjudication-design.md",
-            None,
-        ),
-        op(
-            "focusa.silent.fanout",
-            "Silent Session Fanout",
-            "orchestration",
-            "POST",
-            "/v1/silent-sessions/fanout",
-            true,
-            None,
-            "none",
-            "advisory_read",
-            vec!["preview"],
-            false,
-            false,
-            false,
-            vec!["silent:read"],
-            false,
-            "light_read",
-            vec!["compact"],
-            "focusa.session_fanout.v1",
-            "focusa.session_fanout.v1",
-            "docs/169-fast-forward-session-multiplier-design.md",
-            None,
-        ),
-        op(
-            "focusa.adapters.registry",
-            "Adapter Registry",
-            "adapters",
-            "GET",
-            "/v1/adapters",
-            true,
-            None,
-            "none",
-            "advisory_read",
-            vec!["preview", "commit"],
-            false,
-            false,
-            false,
-            vec!["adapters:read"],
-            false,
-            "light_read",
-            vec!["compact"],
-            "focusa.adapter_registry.v1",
-            "focusa.adapter_registry.v1",
-            "docs/155-focusa-callgraph-workflow-and-flow-mesh-execution-integration-spec.md",
             None,
         ),
         // ── project identity ────────────────────────────────────────────────
@@ -2799,39 +2654,65 @@ async fn agent_tool_graph_handler(
 }
 
 pub async fn capabilities_index_handler(State(_state): State<Arc<AppState>>) -> Json<Value> {
-    let operations = build_operations();
-    let families = build_families();
+    let canonical_operations = match canonical_operation_values() {
+        Ok(operations) => operations,
+        Err(message) => {
+            return Json(json!({
+                "status":"blocked",
+                "failure_class":"embedded_contract_invalid",
+                "message":message,
+                "recovery":"regenerate and validate the Spec 135 operation contracts"
+            }));
+        }
+    };
     let index = CapabilitiesIndex {
         schema: "focusa.agent_capabilities.index.v1",
         api_version: "v1",
         generated_at: Utc::now().to_rfc3339(),
-        operation_count: operations.len(),
-        families,
-        operations,
+        operation_count: canonical_operations.len(),
+        families: build_families(),
+        operations: build_operations(),
     };
-    Json(serde_json::to_value(&index).unwrap_or(json!({
-        "status": "failed", "failure_class": "operation_failed", "retry_posture": "safe_retry", "safe_recovery": "retry the operation or inspect the recovery graph",
+    let mut value = serde_json::to_value(&index).unwrap_or(json!({
+        "status": "error",
         "failure_class": "serialization_error",
         "message": "Failed to serialize capabilities index"
-    })))
+    }));
+    value["operation_count"] = json!(canonical_operations.len());
+    value["operations"] = Value::Array(canonical_operations);
+    Json(value)
 }
 
 pub(crate) fn registered_operation_ids() -> std::collections::BTreeSet<String> {
-    build_operations()
+    canonical_operation_values()
+        .unwrap_or_default()
         .into_iter()
-        .map(|operation| operation.operation_id.to_string())
+        .filter_map(|operation| {
+            operation
+                .get("operation_id")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        })
         .collect()
 }
 
 pub async fn operation_registry_handler(State(_state): State<Arc<AppState>>) -> Json<Value> {
-    let operations = build_operations();
-    Json(json!({
-        "schema": "focusa.operation_registry.v1",
-        "registry_version": "1.0.0",
-        "generated_at": Utc::now().to_rfc3339(),
-        "operation_count": operations.len(),
-        "operations": operations,
-    }))
+    match CANONICAL_OPERATION_REGISTRY.as_ref() {
+        Ok(registry) => {
+            let mut registry = registry.clone();
+            registry["generated_at"] = json!(Utc::now().to_rfc3339());
+            Json(registry)
+        }
+        Err(message) => Json(json!({
+            "schema":"focusa.operation_registry.v1",
+            "status":"blocked",
+            "failure_class":"embedded_contract_invalid",
+            "message":message,
+            "operation_count":0,
+            "operations":[],
+            "recovery":"regenerate and validate the Spec 135 operation contracts"
+        })),
+    }
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -4753,6 +4634,50 @@ pub fn routes() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn embedded_registry_exposes_all_advanced_temporal_operations() {
+        let operations = canonical_operation_values().expect("embedded registry must parse");
+        assert_eq!(operations.len(), 157);
+        let by_id: std::collections::BTreeMap<_, _> = operations
+            .iter()
+            .map(|operation| {
+                (
+                    operation["operation_id"].as_str().unwrap(),
+                    operation["path"].as_str().unwrap(),
+                )
+            })
+            .collect();
+        for (operation_id, path) in [
+            (
+                "focusa.temporal.clock.capture",
+                "/v1/temporal/clock/capture",
+            ),
+            (
+                "focusa.temporal.priority.commit",
+                "/v1/temporal/priority/commit",
+            ),
+            (
+                "focusa.temporal.civil.resolve",
+                "/v1/temporal/civil/resolve",
+            ),
+            (
+                "focusa.temporal.high_consequence_preflight",
+                "/v1/temporal/high-consequence/preflight",
+            ),
+            (
+                "focusa.temporal.migrate_signatures",
+                "/v1/temporal/migrate-signatures",
+            ),
+            (
+                "focusa.temporal.settle_closure",
+                "/v1/temporal/settle-closure",
+            ),
+        ] {
+            assert_eq!(by_id.get(operation_id), Some(&path));
+            assert!(registered_operation_ids().contains(operation_id));
+        }
+    }
 
     #[test]
     fn adapter_capability_registry_is_typed_and_truthful() {

@@ -554,7 +554,7 @@ pub fn list_catalog() -> Vec<&'static str> {
     vec!["first-mission", "agent-handoff", "no-proof-no-done"]
 }
 
-#[derive(Args, Debug)]
+#[derive(Args)]
 pub struct WalkthroughArgs {
     /// Sub-action: list, start, advance, reset, show, completed, or progress.
     /// Defaults to `list` when omitted.

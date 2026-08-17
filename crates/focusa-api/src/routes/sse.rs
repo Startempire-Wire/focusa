@@ -241,19 +241,7 @@ async fn sse_handler(
             }
 
             match tokio::time::timeout(Duration::from_secs(1), receiver.recv()).await {
-                // Live path: broadcast events (bg completions, silent
-                // session sweeps, constitution rotations) are yielded to
-                // every SSE client — the durable replay covers history.
-                Ok(Ok(event_string)) => {
-                    if let Ok(value) = serde_json::from_str::<Value>(&event_string) {
-                        let data = value.to_string();
-                        yield Ok(Event::default()
-                            .event("focusa_event")
-                            .data(data));
-                    }
-                    continue;
-                }
-                Ok(Err(broadcast::error::RecvError::Lagged(_))) | Err(_) => continue,
+                Ok(Ok(_)) | Ok(Err(broadcast::error::RecvError::Lagged(_))) | Err(_) => continue,
                 Ok(Err(broadcast::error::RecvError::Closed)) => break,
             }
         }

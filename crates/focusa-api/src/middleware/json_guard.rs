@@ -67,14 +67,9 @@ fn validate_scope_field_value(key: &str, value: &str) -> Result<(), &'static str
         return Err("scope_field_too_long");
     }
     if key == "scope_kind" || key == "query_scope_kind" {
-        // Two vocabularies share this key: the typed ScopeKind enum
-        // (Project/Host — ScopeRef bodies) and the query-scope kinds
-        // below. Both are valid; never reject the typed enum.
         let valid = matches!(
             value,
-            "Project"
-                | "Host"
-                | "project"
+            "project"
                 | "host"
                 | "fresh_question"
                 | "mission_carryover"
@@ -307,23 +302,29 @@ mod tests {
         let value = json!({"checkpoint_reason":"session_start"});
         assert!(validate_scope_fields(&value).is_ok());
     }
-}
-
-#[cfg(test)]
-mod scope_kind_vocabulary_tests {
-    use super::validate_scope_field_value;
 
     #[test]
-    fn typed_scope_kind_enum_is_accepted() {
-        assert!(validate_scope_field_value("scope_kind", "Project").is_ok());
-        assert!(validate_scope_field_value("scope_kind", "Host").is_ok());
-        assert!(validate_scope_field_value("scope_kind", "project").is_ok());
-        assert!(validate_scope_field_value("scope_kind", "host").is_ok());
+    fn scope_guard_accepts_typed_project_and_host_scope_kinds() {
+        for scope_kind in ["project", "host"] {
+            let value = json!({
+                "scope": {
+                    "root_scope": {
+                        "scope_kind": scope_kind,
+                        "scope_id": "project:focusa",
+                        "root_path": "/workspace/focusa",
+                        "canonical_name": "focusa",
+                        "fingerprint": "sha256:focusa"
+                    },
+                    "continuity_id": "release-v135"
+                }
+            });
+            assert!(validate_scope_fields(&value).is_ok());
+        }
     }
 
     #[test]
-    fn query_scope_kinds_still_validated() {
-        assert!(validate_scope_field_value("scope_kind", "meta").is_ok());
-        assert!(validate_scope_field_value("scope_kind", "nonsense").is_err());
+    fn scope_guard_rejects_unknown_scope_kinds() {
+        let value = json!({"scope_kind":"untrusted"});
+        assert_eq!(validate_scope_fields(&value), Err("invalid_scope_kind"));
     }
 }

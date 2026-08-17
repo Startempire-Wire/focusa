@@ -49,19 +49,6 @@ pub enum SilentCmd {
     Delete(RetentionArgs),
     Purge(RetentionArgs),
     Doctor(DoctorArgs),
-    /// Wait (long-poll) for a silent session to settle, then print its
-    /// completion event. Exits 0 when settled; times out after the budget.
-    Wait(WaitArgs),
-}
-
-#[derive(Args, Debug)]
-pub struct WaitArgs {
-    /// Session id to wait for.
-    #[arg(long)]
-    pub session_id: String,
-    /// Total wait budget in seconds.
-    #[arg(long, default_value = "300")]
-    pub timeout_secs: u64,
 }
 
 #[derive(Subcommand, Debug)]
@@ -1131,32 +1118,6 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
             ("status", validate_exact_read(result, &args.session_id, &args.run_id)?)
         }
         SilentCmd::Watch(args) => ("watch", watch_call(client, &args).await?),
-        SilentCmd::Wait(args) => {
-            let deadline =
-                std::time::Instant::now() + std::time::Duration::from_secs(args.timeout_secs);
-            let mut response = serde_json::json!({});
-            loop {
-                let remaining = deadline.saturating_duration_since(std::time::Instant::now());
-                if remaining.is_zero() {
-                    anyhow::bail!("timed out waiting for silent session {}", args.session_id);
-                }
-                let timeout_ms = remaining.as_millis().min(60_000) as u64;
-                response = client
-                    .get(&format!(
-                        "/silent-sessions/wait?session_id={}&timeout_ms={}",
-                        args.session_id, timeout_ms
-                    ))
-                    .await?;
-                let status = response
-                    .get("status")
-                    .and_then(|value| value.as_str())
-                    .unwrap_or("");
-                if status != "waiting" {
-                    break;
-                }
-            }
-            ("wait", response)
-        },
         SilentCmd::Output(args) => {
             anyhow::ensure!((1..=1000).contains(&args.limit), "--limit must be between 1-1000");
             let mut path = format!("/v1/silent-sessions/{}/output?run_id={}&limit={}", args.session_id, urlencoding::encode(&args.run_id), args.limit);

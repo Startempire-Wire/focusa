@@ -2,7 +2,7 @@
 //!
 //! Replaces the shell-heavy `scripts/install-focusa.sh` with a Rust subcommand
 //! that owns all install behavior:
-//!   * license validation (via `license::registry_validate`)
+//!   * signed authority-lease resolution and verified-email device authorization
 //!   * asset download (`focusa`, `focusa-daemon`, `focusa-tui`)
 //!   * SHA256SUMS verification
 //!   * symlink placement (`~/.local/bin > /usr/local/bin`)
@@ -20,6 +20,28 @@ use anyhow::{Context, Result, anyhow, bail};
 use clap::Args;
 use focusa_core::license::load_license_status;
 use focusa_core::update::{UPDATE_POLICY_SCHEMA_V1, UpdatePolicy};
+use focusa_license::authority::{
+    EntitlementSnapshot, EntitlementState, LeaseVerificationContext, SignedEnvelope,
+};
+use focusa_license::authority_client::{
+    DeviceAuthorizationSession, DeviceAuthorizationStatus, DeviceCodePollResponse,
+    DeviceCodeStartRequest, PollAction,
+};
+use focusa_license::authority_credentials::{
+    CredentialHandle, KeyringCredentialStore, load_or_create_node_identity,
+    rotate_refresh_credential,
+};
+use focusa_license::authority_http::{
+    AuthorityEndpointSet, AuthorityHttpClient, AuthorityHttpPolicy, DeviceCodePollRequest,
+};
+use focusa_license::authority_store::{
+    AUTHORITY_STATE_FILE, PersistedAuthorityState, embedded_production_trust_roots,
+    resolve_authority_state,
+};
+use focusa_license::license_migration::{
+    LegacyLicenseSourceClass, LicenseMigrationJournalEntry, LicenseMigrationStatus,
+    append_license_migration_entry, inventory_legacy_license_files, migration_id_for_source_digest,
+};
 use focusa_terminal_ui::install::completion::InstallCompletionSummary;
 use focusa_terminal_ui::install::event::NullEventSink;
 use focusa_terminal_ui::install::presenter::{PlainPresenter, Presenter, presenter_for_mode};
@@ -34,6 +56,7 @@ use std::io::{IsTerminal, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::JoinHandle;
+use std::time::Duration;
 
 struct UiChannel {
     sender: mpsc::Sender<InstallEvent>,
@@ -181,11 +204,13 @@ pub struct InstallArgs {
     #[arg(long, requires = "install_dependencies")]
     pub assume_yes: bool,
 
-    /// License key (commercial install). Eval mode is selected by absence.
+    /// Deprecated raw-key input; installation requires an authority-issued signed lease.
     #[arg(long, value_name = "KEY")]
     pub license_key: Option<String>,
 
-    /// Eval mode: skip license validation, write `eval: true` to license.json.
+    /// Request verified-email limited activation (Spec 172 verified_no_license):
+    /// the authority issues a signed limited-access assertion and no local
+    /// Evaluation grant is ever created.
     #[arg(long)]
     pub eval: bool,
 
@@ -1054,12 +1079,11 @@ fn detect_license_override(args: &InstallArgs) -> LicenseOverrideInventory {
     let local_tier = load_license_status()
         .map(|status| status.tier)
         .unwrap_or_else(|_| "unknown".into());
-    let override_active =
-        args.eval || args.accept_license || args.license_key.is_some() || dev_mode_requested;
+    let override_active = args.license_key.is_some() || dev_mode_requested;
     let effective_mode = if args.eval {
-        "evaluation".into()
+        "authority_limited_access_request".into()
     } else if args.accept_license || args.license_key.is_some() {
-        "license_override".into()
+        "unsupported_legacy_input".into()
     } else if dev_mode_requested {
         "dev_mode".into()
     } else {
@@ -1199,9 +1223,21 @@ fn uiai_engine_url() -> String {
 }
 
 fn uiai_engine_healthy() -> bool {
-    let health_url = format!("{}/v1/health", uiai_engine_url().trim_end_matches('/'));
-    std::process::Command::new("curl")
-        .args(["--max-time", "0.25", "--fail", "--silent", &health_url])
+    let health_url = format!("{}/health", uiai_engine_url().trim_end_matches('/'));
+    let auth_header = std::env::var("UIAI_BEARER_TOKEN")
+        .ok()
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty())
+        .map(|token| format!("Authorization: Bearer {token}"));
+    let mut command = std::process::Command::new("curl");
+    command.args(["--max-time", "2", "--fail", "--silent"]);
+    command.stdout(std::process::Stdio::null());
+    command.stderr(std::process::Stdio::null());
+    if let Some(header) = auth_header.as_deref() {
+        command.args(["--header", header]);
+    }
+    command
+        .arg(health_url)
         .status()
         .is_ok_and(|status| status.success())
 }
@@ -1221,14 +1257,39 @@ fn uiai_engine_install_command() -> String {
          install -d \"$HOME/.focusa/bin\" \"$HOME/.config/systemd/user\" \"$HOME/.local/state/focusa\"; \
          install -m 0755 \"$tmp/uiai-engine\" \"$HOME/.focusa/bin/uiai-engine\"; \
          printf '%s\\n' '[Unit]' 'Description=Focusa-managed UIAI Engine' 'After=network-online.target' '' '[Service]' 'Type=simple' 'ExecStart=%h/.focusa/bin/uiai-engine' 'Restart=on-failure' 'RestartSec=3' 'StandardOutput=append:%h/.local/state/focusa/uiai-engine.log' 'StandardError=append:%h/.local/state/focusa/uiai-engine.log' '' '[Install]' 'WantedBy=default.target' > \"$HOME/.config/systemd/user/focusa-uiai-engine.service\"; \
-         systemctl --user daemon-reload; systemctl --user enable --now focusa-uiai-engine.service; \
-         i=0; until curl --max-time 1 --fail --silent '{}/v1/health' >/dev/null; do i=$((i+1)); [ \"$i\" -lt 20 ] || exit 3; sleep 0.25; done",
+         systemctl --user daemon-reload; systemctl --user enable --now \"$HOME/.config/systemd/user/focusa-uiai-engine.service\"; \
+         i=0; until curl --max-time 1 --fail --silent '{}/health' >/dev/null; do i=$((i+1)); [ \"$i\" -lt 20 ] || exit 3; sleep 0.25; done",
         uiai_engine_url().trim_end_matches('/')
     )
 }
 
 fn command_semver(name: &str) -> Option<(u64, u64, u64)> {
-    let output = std::process::Command::new(name)
+    let command = find_command(name)?;
+    #[cfg(windows)]
+    let output = {
+        let extension = std::path::Path::new(&command)
+            .extension()
+            .and_then(|value| value.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if matches!(extension.as_str(), "cmd" | "bat") {
+            // PowerShell's call operator preserves an absolute script path as
+            // one token even when it contains spaces (for example npm.cmd).
+            let command_line = format!("& '{}' --version", command.replace('\'', "''"));
+            std::process::Command::new("powershell.exe")
+                .args(["-NoProfile", "-NonInteractive", "-Command"])
+                .arg(command_line)
+                .output()
+                .ok()?
+        } else {
+            std::process::Command::new(&command)
+                .arg("--version")
+                .output()
+                .ok()?
+        }
+    };
+    #[cfg(not(windows))]
+    let output = std::process::Command::new(command)
         .arg("--version")
         .output()
         .ok()?;
@@ -1264,8 +1325,8 @@ fn dependency_present(name: &str) -> bool {
         "npm" => command_semver("npm").is_some(),
         "pi" => command_semver("pi").is_some_and(|version| version >= (0, 81, 1)),
         "uiai-engine" => uiai_engine_healthy(),
+        "python3" if cfg!(windows) => have_cmd("python3") || have_cmd("python"),
         "sha256sum" => have_cmd("sha256sum") || have_cmd("shasum"),
-        _ if cfg!(windows) => false,
         _ => have_cmd(name),
     }
 }
@@ -1334,12 +1395,12 @@ fn dependency_install_plan(package_manager: Option<&str>, name: &str) -> Depende
             .into(),
             install_command: uiai_engine_install_command(),
             dry_run_command: format!(
-                "curl --max-time 2 --fail --silent {}/v1/health",
+                "curl --max-time 2 --fail --silent {}/health",
                 uiai_engine_url().trim_end_matches('/')
             ),
             privilege_required: false,
             recovery_hint: format!(
-                "Linux/amd64 may install the pinned checksummed engine. Otherwise set UIAI_ENGINE_URL to a healthy private endpoint and verify {}/v1/health before rerunning Focusa install.",
+                "Linux/amd64 may install the pinned checksummed engine. Otherwise set UIAI_ENGINE_URL to a healthy private endpoint and verify {}/health before rerunning Focusa install.",
                 uiai_engine_url().trim_end_matches('/')
             ),
         };
@@ -1604,19 +1665,32 @@ fn have_cmd(name: &str) -> bool {
 fn find_command(name: &str) -> Option<String> {
     #[cfg(windows)]
     {
-        // Avoid the `which` crate's recursive PATHEXT probing on Windows.
-        // `where.exe` is the native command resolver and does not execute the
-        // candidate, which keeps preflight safe and stack-bounded.
-        let output = std::process::Command::new("where.exe")
-            .arg(name)
-            .output()
-            .ok()?;
-        if !output.status.success() {
-            return None;
+        // Resolve directly from PATH so `.exe` and command shims are reliable
+        // in non-interactive PowerShell/CI processes without executing them.
+        let path = std::env::var_os("PATH")?;
+        let has_extension = std::path::Path::new(name).extension().is_some();
+        let candidates = if has_extension {
+            vec![name.to_string()]
+        } else {
+            vec![
+                // Native executables and Windows command shims must win over
+                // extensionless POSIX shims that npm also places on PATH.
+                format!("{name}.exe"),
+                format!("{name}.cmd"),
+                format!("{name}.bat"),
+                format!("{name}.com"),
+                name.to_string(),
+            ]
+        };
+        for directory in std::env::split_paths(&path) {
+            for candidate in &candidates {
+                let resolved = directory.join(candidate);
+                if resolved.is_file() {
+                    return Some(resolved.display().to_string());
+                }
+            }
         }
-        return String::from_utf8(output.stdout)
-            .ok()
-            .and_then(|value| value.lines().next().map(str::trim).map(str::to_string));
+        return None;
     }
     #[cfg(not(windows))]
     {
@@ -2218,97 +2292,406 @@ pub async fn run(args: InstallArgs) -> Result<()> {
 }
 
 // ----- Phase 1: License re-validation (focusa-112-license-revalidate) -----
-async fn phase_license(args: &InstallArgs) -> Result<String> {
-    use crate::commands::license::{RegistryValidateOutcome, registry_validate};
-    if args.eval {
-        return Ok("eval".to_string());
-    }
-    if args.reuse_existing_license {
-        let home = std::env::var_os("HOME")
-            .map(std::path::PathBuf::from)
-            .ok_or_else(|| anyhow!("HOME not set; cannot reuse existing license"))?;
-        let license_path = home.join(".config/focusa/license.json");
-        if !license_path.is_file() {
-            return Err(anyhow!(
-                "existing license record not found at {}; pass `focusa upgrade --eval` for evaluation mode or `focusa upgrade --license-key <key>` for commercial activation",
-                license_path.display()
-            ));
-        }
-        let status = load_license_status().context("load existing license for upgrade")?;
-        if status.status != "active" {
-            return Err(anyhow!(
-                "existing license status is {}; reactivate the license before upgrading",
-                status.status
-            ));
-        }
+async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
+    let home = std::env::var_os("HOME")
+        .map(std::path::PathBuf::from)
+        .ok_or_else(|| anyhow!("HOME not set; cannot resolve authority entitlement"))?;
+    let config_dir = home.join(".config/focusa");
+    let required_feature = install_channel_feature(channel);
+
+    if let Some(snapshot) = resolve_installer_entitlement(&config_dir, required_feature)? {
         return Ok(format!(
-            "existing_{}",
-            status.mode.label().to_ascii_lowercase()
+            "authority_{}_sequence_{}",
+            entitlement_state_label(snapshot.state),
+            snapshot.sequence.unwrap_or_default()
         ));
     }
-    let key = match args.license_key.as_deref() {
-        Some(k) if !k.trim().is_empty() => k,
-        _ => {
-            return Err(anyhow!(
-                "license_key required for commercial install; pass --license-key <key> or --eval"
-            ));
-        }
+    if args.reuse_existing_license {
+        bail!(
+            "E_AUTHORITY_EXISTING_UNUSABLE: existing signed authority lease is missing, expired, revoked, or lacks {required_feature}; reactivate before upgrade"
+        );
+    }
+    let legacy_path = config_dir.join("license.json");
+    let legacy_status = if legacy_path.is_file() {
+        load_license_status().ok()
+    } else {
+        None
     };
-    // License registry URL. Read from FOCUSA_LICENSE_REGISTRY env var when set,
-    // so operators can point at a private endpoint without baking the URL into the
-    // binary. The default points at wpuiai.com, the actual license authority that
-    // hosts the live /wp-json/wpuiai-ai-cloud/v1/license/validate endpoint.
-    // install.focusa.dev is only the public shell-script distribution facade; its
-    // license API path returns license_not_found.
-    let registry = std::env::var("FOCUSA_LICENSE_REGISTRY")
-        .unwrap_or_else(|_| "https://wpuiai.com".to_string());
-    let outcome = registry_validate(&registry, key).await;
-    match outcome {
-        RegistryValidateOutcome {
-            response: Some(r),
-            error: None,
-        } if r.valid && r.status == "dev_mode" => {
-            // Operator rule (2026-07-07): dev_mode is a test fixture for the
-            // operator's testing and must not hinder transactions. The
-            // registry returned a successful test-fixture response, not a
-            // real license row. The bash bootstrapper downgrades this to
-            // eval mode before reaching the Rust orchestrator, but if we
-            // hit this branch the caller passed `--license-key` to the
-            // Rust installer directly. Refuse and explain.
-            let require_real = std::env::var("FOCUSA_REQUIRE_REAL_LICENSE")
-                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                .unwrap_or(false);
-            if require_real {
-                return Err(anyhow!(
-                    "registry returned status=dev_mode for a license key; this is a TEST FIXTURE, not a real purchase. \
-                     unset FOCUSA_REQUIRE_REAL_LICENSE to allow dev_mode downgrades, or purchase at {}/buy.",
-                    registry
-                ));
+    let pending_migration =
+        begin_legacy_license_migration(&config_dir, &legacy_path, legacy_status.as_ref())?;
+    if legacy_status
+        .as_ref()
+        .is_some_and(|legacy| legacy.commercial_use && legacy.status == "active")
+    {
+        bail!(
+            "E_AUTHORITY_PAID_MIGRATION_REQUIRED: an active paid legacy entitlement was found; preserve it and complete authority migration without repurchase before installing any runnable assets"
+        );
+    }
+    if args
+        .license_key
+        .as_deref()
+        .is_some_and(|key| !key.trim().is_empty())
+    {
+        bail!(
+            "E_AUTHORITY_RAW_KEY_FORBIDDEN: raw license keys cannot authorize installation; use authority device authorization so a signed, node-bound lease is issued"
+        );
+    }
+
+    // Spec 152E §21 surface consolidation: an interactive terminal renders
+    // the universal email → verify → offer → checkout/poll → key/lease flow
+    // through the shared activation client. Noninteractive installs keep the
+    // device-code authorization path below (verified-email, signed lease).
+    if crate::commands::activation_flow::interactive_available() {
+        authorize_installer_activation_flow(&config_dir, args, channel).await?;
+    } else {
+        acquire_installer_entitlement(&config_dir, required_feature, args.json).await?;
+    }
+    let snapshot =
+        resolve_installer_entitlement(&config_dir, required_feature)?.ok_or_else(|| {
+            anyhow!(
+                "E_AUTHORITY_LEASE_UNUSABLE: authority authorization completed without a usable signed product/channel lease"
+            )
+        })?;
+    if let Some(migration) = pending_migration {
+        complete_legacy_license_migration(&migration, &snapshot)?;
+    }
+    Ok(format!(
+        "authority_{}_sequence_{}",
+        entitlement_state_label(snapshot.state),
+        snapshot.sequence.unwrap_or_default()
+    ))
+}
+
+struct PendingLegacyMigration {
+    migration_id: uuid::Uuid,
+    source_class: LegacyLicenseSourceClass,
+    source_digest: String,
+    journal_path: std::path::PathBuf,
+}
+
+fn begin_legacy_license_migration(
+    config_dir: &std::path::Path,
+    legacy_path: &std::path::Path,
+    legacy_status: Option<&focusa_core::license::LicenseStatus>,
+) -> Result<Option<PendingLegacyMigration>> {
+    if !legacy_path.is_file() {
+        return Ok(None);
+    }
+    let source_class = if legacy_status.is_some_and(|status| status.commercial_use) {
+        LegacyLicenseSourceClass::PaidKeyRecord
+    } else {
+        LegacyLicenseSourceClass::EvaluationRecord
+    };
+    let inventory = inventory_legacy_license_files(&[(source_class, legacy_path.to_path_buf())])
+        .context("inventory legacy license for authority migration")?;
+    let Some(item) = inventory.into_iter().next() else {
+        return Ok(None);
+    };
+    let migration = PendingLegacyMigration {
+        migration_id: migration_id_for_source_digest(&item.source_digest),
+        source_class,
+        source_digest: item.source_digest,
+        journal_path: config_dir.join("license-migration.jsonl"),
+    };
+    for status in [
+        LicenseMigrationStatus::Discovered,
+        LicenseMigrationStatus::AwaitingAuthority,
+    ] {
+        append_license_migration_entry(
+            &migration.journal_path,
+            migration_entry(&migration, status, None),
+        )
+        .context("persist legacy license migration preflight")?;
+    }
+    Ok(Some(migration))
+}
+
+fn complete_legacy_license_migration(
+    migration: &PendingLegacyMigration,
+    snapshot: &EntitlementSnapshot,
+) -> Result<()> {
+    for status in [
+        LicenseMigrationStatus::AuthorityIssued,
+        LicenseMigrationStatus::Committed,
+    ] {
+        append_license_migration_entry(
+            &migration.journal_path,
+            migration_entry(migration, status, Some(snapshot)),
+        )
+        .context("commit authority-backed legacy license migration")?;
+    }
+    Ok(())
+}
+
+fn migration_entry(
+    migration: &PendingLegacyMigration,
+    status: LicenseMigrationStatus,
+    snapshot: Option<&EntitlementSnapshot>,
+) -> LicenseMigrationJournalEntry {
+    LicenseMigrationJournalEntry {
+        schema: String::new(),
+        migration_id: migration.migration_id,
+        sequence: 0,
+        source_class: migration.source_class,
+        source_digest: migration.source_digest.clone(),
+        status,
+        authority_lease_id: snapshot.and_then(|value| value.lease_id.clone()),
+        authority_lease_sequence: snapshot.and_then(|value| value.sequence),
+        authority_lease_digest: snapshot.and_then(|value| value.lease_digest.clone()),
+        preserved_data_refs: vec![
+            "node_identity".into(),
+            "device_pairing".into(),
+            "projects".into(),
+            "workpoints".into(),
+            "evidence".into(),
+        ],
+        evidence_refs: vec!["evidence:legacy-license-source-digest".into()],
+        observed_at: chrono::Utc::now(),
+        previous_entry_hash: String::new(),
+        entry_hash: String::new(),
+    }
+}
+
+fn resolve_installer_entitlement(
+    config_dir: &std::path::Path,
+    required_feature: &str,
+) -> Result<Option<EntitlementSnapshot>> {
+    let identity = load_or_create_node_identity(config_dir, "focusa")
+        .context("resolve node identity for authority entitlement")?;
+    let context = LeaseVerificationContext {
+        expected_product: "focusa".into(),
+        expected_node_id: identity.node_id,
+        now: chrono::Utc::now(),
+        minimum_sequence: None,
+        expected_previous_digest: None,
+    };
+    let snapshot = resolve_authority_state(
+        &config_dir.join(AUTHORITY_STATE_FILE),
+        embedded_production_trust_roots(),
+        &context,
+    );
+    if !matches!(
+        snapshot.state,
+        EntitlementState::Active | EntitlementState::OfflineGrace
+    ) || snapshot.product != "focusa"
+        || !snapshot
+            .features
+            .get(required_feature)
+            .copied()
+            .unwrap_or(false)
+    {
+        return Ok(None);
+    }
+    Ok(Some(snapshot))
+}
+
+async fn acquire_installer_entitlement(
+    config_dir: &std::path::Path,
+    required_feature: &str,
+    json_output: bool,
+) -> Result<()> {
+    let identity = load_or_create_node_identity(config_dir, "focusa")
+        .context("create node-bound authority identity")?;
+    let request = DeviceCodeStartRequest {
+        request_id: uuid::Uuid::now_v7(),
+        product: "focusa".into(),
+        node_id: identity.node_id.clone(),
+        requested_features: vec![required_feature.into()],
+    };
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
+        .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".into());
+    let origin = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
+    let endpoints = AuthorityEndpointSet {
+        start: origin.join("device/start")?,
+        poll: origin.join("device/poll")?,
+        refresh: origin.join("lease/refresh")?,
+        nodes: origin.join("nodes")?,
+        deactivate_node: origin.join("nodes/deactivate")?,
+    };
+    let client = AuthorityHttpClient::new(AuthorityHttpPolicy {
+        endpoints,
+        timeout: Duration::from_secs(30),
+        max_response_bytes: 1024 * 1024,
+    })
+    .context("initialize authority client")?;
+    let challenge = client
+        .start(&request)
+        .await
+        .context("start device authorization")?;
+    if json_output {
+        eprintln!(
+            "authority_verification_uri={} authority_user_code={}",
+            challenge.verification_uri, challenge.user_code
+        );
+    } else {
+        eprintln!(
+            "Verify your email and authorize this install at {} using code {}",
+            challenge.verification_uri, challenge.user_code
+        );
+    }
+    let device_code = challenge.device_code.clone();
+    let mut session = DeviceAuthorizationSession::new(
+        &request,
+        challenge,
+        chrono::Utc::now().timestamp_millis(),
+        180,
+    )
+    .context("initialize device authorization session")?;
+    loop {
+        let now_ms = chrono::Utc::now().timestamp_millis();
+        match session
+            .poll_action(now_ms)
+            .context("evaluate device authorization poll")?
+        {
+            PollAction::Wait { until_unix_ms } => {
+                let delay = until_unix_ms.saturating_sub(now_ms) as u64;
+                tokio::time::sleep(Duration::from_millis(delay.min(60_000))).await;
             }
-            eprintln!(
-                "[focusa-install] registry returned status=dev_mode for license key; downgrading to eval. \
-                 this is a TEST FIXTURE — purchase at {}/buy for a real commercial license.",
-                registry
-            );
-            Ok("dev_mode_downgraded_to_eval".to_string())
+            PollAction::Poll => {
+                let response: DeviceCodePollResponse = client
+                    .poll(&DeviceCodePollRequest {
+                        request_id: request.request_id,
+                        device_code: device_code.clone(),
+                    })
+                    .await
+                    .context("poll device authorization")?;
+                session
+                    .observe_poll(response, chrono::Utc::now().timestamp_millis())
+                    .context("apply device authorization response")?;
+            }
+            PollAction::Terminal => break,
         }
-        RegistryValidateOutcome {
-            response: Some(r),
-            error: None,
-        } if r.valid => Ok("active".to_string()),
-        RegistryValidateOutcome {
-            response: Some(_),
-            error: None,
-        } => Ok("not_valid".to_string()),
-        RegistryValidateOutcome {
-            response: None,
-            error: Some(err),
-        } => Err(anyhow!(
-            "license validation failed: {} ({})",
-            err,
-            err.recovery_hint()
-        )),
-        _ => Err(anyhow!("license validation: unexpected outcome")),
+    }
+    if session.status() != DeviceAuthorizationStatus::Authorized {
+        bail!(
+            "E_AUTHORITY_DEVICE_DENIED: authority device authorization ended without an issued lease"
+        );
+    }
+    let material = session
+        .material()
+        .ok_or_else(|| anyhow!("authority omitted authorized lease material"))?;
+    let key_set_raw = material.key_set_envelope.as_deref().ok_or_else(|| {
+        anyhow!("E_AUTHORITY_KEYSET_MISSING: authority omitted signed key-set envelope")
+    })?;
+    let key_set: SignedEnvelope =
+        serde_json::from_str(key_set_raw).context("decode authority key-set envelope")?;
+    let lease: SignedEnvelope =
+        serde_json::from_str(&material.signed_lease).context("decode authority lease envelope")?;
+    let context = LeaseVerificationContext {
+        expected_product: "focusa".into(),
+        expected_node_id: identity.node_id.clone(),
+        now: chrono::Utc::now(),
+        minimum_sequence: None,
+        expected_previous_digest: None,
+    };
+    let roots = embedded_production_trust_roots().context("load production authority roots")?;
+    let (state, snapshot) =
+        PersistedAuthorityState::from_verified_envelopes(key_set, lease, &roots, &context)
+            .context("verify issued authority lease")?;
+    if !matches!(
+        snapshot.state,
+        EntitlementState::Active | EntitlementState::OfflineGrace
+    ) || !snapshot
+        .features
+        .get(required_feature)
+        .copied()
+        .unwrap_or(false)
+    {
+        bail!("E_AUTHORITY_LEASE_UNUSABLE: issued lease does not grant {required_feature}");
+    }
+    let handle = CredentialHandle::for_node("focusa", &identity.node_id)
+        .context("derive protected refresh-credential handle")?;
+    rotate_refresh_credential(
+        &KeyringCredentialStore,
+        &handle,
+        &material.refresh_credential,
+        chrono::Utc::now(),
+    )
+    .context("persist refresh credential in native protected storage")?;
+    state
+        .write_atomic(&config_dir.join(AUTHORITY_STATE_FILE))
+        .context("persist verified authority state")?;
+    Ok(())
+}
+
+/// Spec 152E §21 + Spec 172 §2.7: the Rust installer renders the universal
+/// activation flow (email → verify → offer → checkout/poll → key/lease,
+/// existing key, verified-email limited access via the Spec 172
+/// limited-access overlay, resume, cancel, timeout, recovery) through the
+/// shared activation client when an interactive terminal is available.
+/// `--eval` maps to limited-access intent; the authority decides eligibility
+/// and no client-side Evaluation or local grant exists. Terminal delivery
+/// persists the verified signed lease through the canonical authority store
+/// and the poll credential through the protected store. Card data is never
+/// accepted and nothing is self-issued.
+async fn authorize_installer_activation_flow(
+    config_dir: &std::path::Path,
+    args: &InstallArgs,
+    channel: Channel,
+) -> Result<()> {
+    use crate::commands::activation_flow::{
+        INSTALLER_FLOW, ActivationFlowSessionPersist, StdinFlowInput, interactive_available,
+        resolve_flow_node_identity, run_activation_flow,
+    };
+    use focusa_license::{ActivationHttpClient, ActivationHttpPolicy};
+
+    if !interactive_available() {
+        bail!("E_AUTHORITY_INTERACTIVE_REQUIRED: universal activation flow needs an interactive terminal; use device-code authorization for noninteractive installs");
+    }
+    let identity = resolve_flow_node_identity(config_dir)
+        .map_err(|error| anyhow!(error.to_string()))?;
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN").unwrap_or_else(|_| {
+        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string()
+    });
+    let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
+    let policy = ActivationHttpPolicy {
+        base_url,
+        timeout: Duration::from_secs(30),
+        max_response_bytes: 1024 * 1024,
+    };
+    let client = ActivationHttpClient::new(policy)
+        .map_err(|error| anyhow!("initialize activation authority transport: {error}"))?;
+    let persist = ActivationFlowSessionPersist::new(config_dir);
+    let mut input = StdinFlowInput;
+    let outcome = run_activation_flow(
+        client,
+        INSTALLER_FLOW,
+        &mut input,
+        None,
+        Some(identity.node_id.clone()),
+        if args.eval {
+            Some(focusa_license::ActivationJourney::LimitedAccess)
+        } else {
+            None
+        },
+        Some(600),
+        args.json,
+        Some(&persist),
+    )?;
+    if !outcome.terminal || outcome.presenter_state != "activated" {
+        bail!(
+            "E_AUTHORITY_ACTIVATION_UNSETTLED: interactive activation settled as {} without a usable lease; recovery, export, repair, and uninstall remain available",
+            outcome.presenter_state
+        );
+    }
+    let _ = channel; // channel grants are validated by phase_license after this.
+    Ok(())
+}
+
+fn install_channel_feature(channel: Channel) -> &'static str {
+    match channel {
+        Channel::Stable => "focusa.install.channel.stable",
+        Channel::Preview => "focusa.install.channel.preview",
+        Channel::Nightly => "focusa.install.channel.nightly",
+    }
+}
+
+fn entitlement_state_label(state: EntitlementState) -> &'static str {
+    match state {
+        EntitlementState::Unactivated => "unactivated",
+        EntitlementState::Active => "active",
+        EntitlementState::OfflineGrace => "offline_grace",
+        EntitlementState::RecoveryOnly => "recovery_only",
     }
 }
 
@@ -2436,7 +2819,7 @@ async fn phase_asset_download(
     Ok(out)
 }
 
-pub(crate) fn redact_url(raw: &str) -> String {
+fn redact_url(raw: &str) -> String {
     // Error paths may include a credentialed fixture URL. Redact userinfo and
     // query credentials before it reaches either a presenter or durable log.
     if let Ok(mut url) = reqwest::Url::parse(raw) {
@@ -2689,7 +3072,7 @@ async fn stream_asset_to_staged(
     Ok(())
 }
 
-pub(crate) fn tar_command() -> std::process::Command {
+fn tar_command() -> std::process::Command {
     if cfg!(windows) {
         return std::process::Command::new("tar");
     }
@@ -2706,23 +3089,265 @@ pub(crate) fn tar_command() -> std::process::Command {
     command
 }
 
+fn resolve_npm_binary(explicit: Option<&std::path::Path>) -> Result<std::path::PathBuf> {
+    let candidate = explicit
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("FOCUSA_NPM_BIN").map(std::path::PathBuf::from))
+        .or_else(|| find_command("npm").map(std::path::PathBuf::from))
+        .or_else(|| {
+            find_command("node").and_then(|node| {
+                std::path::Path::new(&node)
+                    .parent()
+                    .map(|parent| parent.join(if cfg!(windows) { "npm.cmd" } else { "npm" }))
+                    .filter(|path| path.is_file())
+            })
+        })
+        .ok_or_else(|| {
+            anyhow!("npm executable unavailable; set FOCUSA_NPM_BIN to the absolute npm path")
+        })?;
+    let candidate = if candidate.is_absolute() {
+        candidate
+    } else {
+        std::env::current_dir()
+            .context("resolve current directory for npm executable")?
+            .join(candidate)
+    };
+    if !candidate.is_file() {
+        bail!(
+            "resolve npm executable {} (exists={})",
+            candidate.display(),
+            candidate.exists()
+        );
+    }
+    // Preserve the launcher/symlink path: its parent commonly contains `node`.
+    Ok(candidate)
+}
+
+fn rename_pi_extension_path(source: &std::path::Path, destination: &std::path::Path) -> Result<()> {
+    const WINDOWS_LOCK_RETRIES: usize = 120;
+    for attempt in 0..WINDOWS_LOCK_RETRIES {
+        match std::fs::rename(source, destination) {
+            Ok(()) => return Ok(()),
+            Err(error)
+                if cfg!(target_os = "windows")
+                    && error.raw_os_error() == Some(5)
+                    && attempt + 1 < WINDOWS_LOCK_RETRIES =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
+            Err(error) => return Err(error.into()),
+        }
+    }
+    unreachable!("bounded Pi extension rename loop always returns")
+}
+
+fn retired_focusa_pi_extension_name(name: &str) -> bool {
+    [
+        "focusa.legacy-",
+        "focusa-runtime.legacy-",
+        "focusa-pi-bridge.legacy-",
+    ]
+    .iter()
+    .any(|prefix| name.starts_with(prefix))
+}
+
+fn focusa_pi_bridge_package(path: &std::path::Path) -> bool {
+    std::fs::read(path.join("package.json"))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+        .and_then(|value| value.get("name")?.as_str().map(str::to_string))
+        .is_some_and(|name| name == "focusa-pi-bridge")
+}
+
+/// Move retired Focusa extension packages outside Pi's auto-discovery root.
+///
+/// A backup name such as `focusa-runtime.legacy-0.9.143` does not disable the
+/// package: Pi sees its `pi.extensions` manifest and registers every tool a
+/// second time. Preserve verified Focusa packages for recovery, but never
+/// leave them under `~/.pi/agent/extensions` where they can break startup.
+fn quarantine_retired_focusa_pi_extensions(
+    extensions_root: &std::path::Path,
+) -> Result<Vec<std::path::PathBuf>> {
+    if !extensions_root.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut retired = Vec::new();
+    for entry in std::fs::read_dir(extensions_root)
+        .with_context(|| format!("inspect Pi extension root {}", extensions_root.display()))?
+    {
+        let entry = entry?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        let candidate = entry.path();
+        if !retired_focusa_pi_extension_name(name) || !focusa_pi_bridge_package(&candidate) {
+            continue;
+        }
+        let retired_root = extensions_root
+            .parent()
+            .unwrap_or(extensions_root)
+            .join("retired-extensions");
+        std::fs::create_dir_all(&retired_root).with_context(|| {
+            format!(
+                "create retired Pi extension root {}",
+                retired_root.display()
+            )
+        })?;
+        let destination = retired_root.join(format!("{name}-{}", uuid::Uuid::now_v7()));
+        rename_pi_extension_path(&candidate, &destination).with_context(|| {
+            format!(
+                "quarantine retired Focusa extension {} outside Pi auto-discovery",
+                candidate.display()
+            )
+        })?;
+        retired.push(destination);
+    }
+    Ok(retired)
+}
+
 pub(crate) fn integrate_pi_extension(
     asset: &InstalledAsset,
     install_root: &std::path::Path,
     destination_root: Option<&std::path::Path>,
     npm_binary: Option<&std::path::Path>,
 ) -> Result<String> {
-    // Shared Pi package activation transaction (issue #309). The installer
-    // stages/verifies, activates through the shared typed-receipt boundary,
-    // and settles immediately because install is a single-package transaction.
-    let prepared =
-        crate::commands::pi_package::prepare_pi_package(asset, install_root, npm_binary)?;
-    let root = crate::commands::pi_package::resolve_pi_extensions_root(destination_root)?;
-    let receipt =
-        crate::commands::pi_package::activate_pi_package(&prepared.staged, &root, &asset.version)?;
-    prepared.cleanup();
-    crate::commands::pi_package::commit_pi_activation(&receipt)?;
-    Ok(receipt.destination.display().to_string())
+    let archive = std::path::Path::new(&asset.install_path);
+    let listing = tar_command()
+        .args(["-tzf"])
+        .arg(archive)
+        .output()
+        .context("inspect Pi extension archive")?;
+    if !listing.status.success() {
+        bail!("Pi extension archive listing failed");
+    }
+    let listing = String::from_utf8_lossy(&listing.stdout);
+    if listing.lines().any(|entry| {
+        entry.starts_with('/')
+            || entry.split('/').any(|component| component == "..")
+            || !(entry == "pi-extension" || entry.starts_with("pi-extension/"))
+    }) || !listing
+        .lines()
+        .any(|entry| entry == "pi-extension/package.json")
+    {
+        bail!("Pi extension archive contains unsafe or incomplete paths");
+    }
+    let stage_root = install_root.join(format!(".pi-extension-stage-{}", uuid::Uuid::now_v7()));
+    std::fs::create_dir_all(&stage_root)?;
+    let cleanup = || {
+        let _ = std::fs::remove_dir_all(&stage_root);
+    };
+    let extracted = tar_command()
+        .args(["-xzf"])
+        .arg(archive)
+        .arg("-C")
+        .arg(&stage_root)
+        .status()
+        .context("extract Pi extension archive")?;
+    if !extracted.success() {
+        cleanup();
+        bail!("Pi extension archive extraction failed");
+    }
+    let staged_candidate = stage_root.join("pi-extension");
+    let staged = match staged_candidate.canonicalize() {
+        Ok(path) => path,
+        Err(error) => {
+            cleanup();
+            bail!(
+                "resolve extracted Pi extension directory {} (exists={}): {error}",
+                staged_candidate.display(),
+                staged_candidate.exists()
+            );
+        }
+    };
+    let npm_binary = match resolve_npm_binary(npm_binary) {
+        Ok(path) => path,
+        Err(error) => {
+            cleanup();
+            return Err(error);
+        }
+    };
+    let npm_parent = npm_binary
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new(""));
+    let command_path = match std::env::join_paths(
+        std::iter::once(npm_parent.to_path_buf()).chain(
+            std::env::var_os("PATH")
+                .as_deref()
+                .map(std::env::split_paths)
+                .into_iter()
+                .flatten(),
+        ),
+    ) {
+        Ok(path) => path,
+        Err(error) => {
+            cleanup();
+            return Err(error).context("construct npm dependency PATH");
+        }
+    };
+    let npm = match std::process::Command::new(&npm_binary)
+        .args(["install", "--omit=dev", "--ignore-scripts"])
+        .env("PATH", command_path)
+        .current_dir(&staged)
+        .output()
+    {
+        Ok(output) => output,
+        Err(error) => {
+            cleanup();
+            bail!(
+                "run npm dependency setup: executable={} executable_exists={} cwd={} cwd_exists={} cause={error}",
+                npm_binary.display(),
+                npm_binary.exists(),
+                staged.display(),
+                staged.is_dir()
+            );
+        }
+    };
+    if !npm.status.success() {
+        cleanup();
+        let detail: String = String::from_utf8_lossy(&npm.stderr)
+            .chars()
+            .take(512)
+            .collect();
+        bail!(
+            "Pi extension dependency setup failed: {}",
+            redact_url(&detail)
+        );
+    }
+    let root = destination_root
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("FOCUSA_PI_EXT_DIR").map(std::path::PathBuf::from))
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .map(|home| std::path::PathBuf::from(home).join(".pi/agent/extensions"))
+        })
+        .ok_or_else(|| anyhow!("HOME is unavailable; cannot locate Pi extensions"))?;
+    std::fs::create_dir_all(&root)
+        .with_context(|| format!("create Pi extension root {}", root.display()))?;
+    quarantine_retired_focusa_pi_extensions(&root)
+        .context("quarantine retired Focusa Pi extension packages")?;
+    let destination = root.join("focusa");
+    let backup = root.join(format!(".focusa-backup-{}", uuid::Uuid::now_v7()));
+    if destination.exists() {
+        rename_pi_extension_path(&destination, &backup)
+            .with_context(|| format!("backup active Pi extension {}", destination.display()))?;
+    }
+    if let Err(error) = rename_pi_extension_path(&staged, &destination) {
+        if backup.exists() {
+            let _ = rename_pi_extension_path(&backup, &destination);
+        }
+        cleanup();
+        return Err(error).with_context(|| {
+            format!(
+                "activate Pi extension {} from {}",
+                destination.display(),
+                staged.display()
+            )
+        });
+    }
+    let _ = std::fs::remove_dir_all(&backup);
+    cleanup();
+    Ok(destination.display().to_string())
 }
 
 fn install_agent_context_archive(
@@ -2792,6 +3417,163 @@ fn install_agent_context_archive(
     let _ = std::fs::remove_dir_all(&backup);
     let _ = std::fs::remove_dir_all(&stage_parent);
     Ok(destination)
+}
+
+fn remove_path_if_present(path: &std::path::Path) -> Result<()> {
+    let Ok(metadata) = std::fs::symlink_metadata(path) else {
+        return Ok(());
+    };
+    if metadata.file_type().is_dir() && !metadata.file_type().is_symlink() {
+        std::fs::remove_dir_all(path)?;
+    } else {
+        std::fs::remove_file(path)?;
+    }
+    Ok(())
+}
+
+fn copy_skill_tree(source: &std::path::Path, destination: &std::path::Path) -> Result<()> {
+    std::fs::create_dir_all(destination)?;
+    for entry in std::fs::read_dir(source)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let target = destination.join(entry.file_name());
+        if file_type.is_dir() {
+            copy_skill_tree(&entry.path(), &target)?;
+        } else if file_type.is_file() {
+            std::fs::copy(entry.path(), target)?;
+        } else {
+            bail!("agent context skill contains unsupported link or special file");
+        }
+    }
+    Ok(())
+}
+
+fn synchronize_agent_context_skills(
+    context_root: &std::path::Path,
+    home: &std::path::Path,
+) -> Result<Vec<std::path::PathBuf>> {
+    let canonical_root = context_root.join("skills");
+    let mut skills = std::fs::read_dir(&canonical_root)?
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
+        .filter(|entry| entry.path().join("SKILL.md").is_file())
+        .collect::<Vec<_>>();
+    skills.sort_by_key(|entry| entry.file_name());
+    if skills.is_empty() {
+        bail!("agent context has no synchronizable skills");
+    }
+    if skills.iter().any(|entry| {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        !name.starts_with("focusa") && name != "predictive-power"
+    }) {
+        bail!("agent context skill synchronization is limited to Focusa-owned names");
+    }
+
+    // Pi discovers ~/.pi/agent/skills natively. Keep exactly one canonical
+    // destination and reconcile only Focusa-owned names from the legacy root;
+    // unrelated user skills remain untouched.
+    let canonical_root = home.join(".pi/agent/skills");
+    let legacy_root = home.join(".pi/skills");
+    let transaction = uuid::Uuid::now_v7();
+    let mut activated = Vec::<(std::path::PathBuf, Option<std::path::PathBuf>)>::new();
+    let mut reconciled_legacy = Vec::<(std::path::PathBuf, std::path::PathBuf)>::new();
+    let result = (|| -> Result<Vec<std::path::PathBuf>> {
+        std::fs::create_dir_all(&canonical_root)?;
+        for skill in &skills {
+            let name = skill.file_name();
+            let destination = canonical_root.join(&name);
+            let stage = canonical_root.join(format!(
+                ".focusa-skill-stage-{transaction}-{}",
+                name.to_string_lossy()
+            ));
+            let backup = canonical_root.join(format!(
+                ".focusa-skill-backup-{transaction}-{}",
+                name.to_string_lossy()
+            ));
+            remove_path_if_present(&stage)?;
+            copy_skill_tree(&skill.path(), &stage)?;
+            let prior = if destination.exists() || destination.is_symlink() {
+                std::fs::rename(&destination, &backup)?;
+                Some(backup)
+            } else {
+                None
+            };
+            if let Err(error) = std::fs::rename(&stage, &destination) {
+                if let Some(backup) = prior.as_ref() {
+                    let _ = std::fs::rename(backup, &destination);
+                }
+                let _ = remove_path_if_present(&stage);
+                return Err(error).context("activate synchronized Focusa skill");
+            }
+            activated.push((destination, prior));
+        }
+
+        if legacy_root.is_dir() {
+            for skill in &skills {
+                let name = skill.file_name();
+                let legacy = legacy_root.join(&name);
+                if !legacy.exists() && !legacy.is_symlink() {
+                    continue;
+                }
+                let backup = legacy_root.join(format!(
+                    ".focusa-skill-legacy-backup-{transaction}-{}",
+                    name.to_string_lossy()
+                ));
+                std::fs::rename(&legacy, &backup)?;
+                reconciled_legacy.push((legacy, backup));
+            }
+        }
+
+        Ok(activated
+            .iter()
+            .map(|(destination, _)| destination.clone())
+            .collect())
+    })();
+
+    let destinations = match result {
+        Ok(destinations) => destinations,
+        Err(error) => {
+            for (legacy, backup) in reconciled_legacy.into_iter().rev() {
+                let _ = std::fs::rename(backup, legacy);
+            }
+            for (destination, backup) in activated.into_iter().rev() {
+                let _ = remove_path_if_present(&destination);
+                if let Some(backup) = backup {
+                    let _ = std::fs::rename(backup, destination);
+                }
+            }
+            return Err(error);
+        }
+    };
+    for (_, backup) in &activated {
+        if let Some(backup) = backup {
+            remove_path_if_present(backup)?;
+        }
+    }
+    for (_, backup) in &reconciled_legacy {
+        remove_path_if_present(backup)?;
+    }
+    Ok(destinations)
+}
+
+fn install_skill_doctor(
+    context_root: &std::path::Path,
+    install_root: &std::path::Path,
+) -> Result<()> {
+    let source = context_root.join("bin/focusa-skill-doctor");
+    if !source.is_file() {
+        return Ok(());
+    }
+    let destination = install_root.join("bin/focusa-skill-doctor");
+    std::fs::create_dir_all(install_root.join("bin"))?;
+    std::fs::copy(&source, &destination)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&destination, std::fs::Permissions::from_mode(0o755))?;
+    }
+    Ok(())
 }
 
 fn install_root_for(target: InstallTarget) -> std::path::PathBuf {
@@ -3137,7 +3919,7 @@ pub fn build_first_install_walkthrough(
                 integrated: uiai_healthy,
                 config_path: Some(uiai_url.clone()),
                 next_step: Some(format!(
-                    "curl --fail --silent {}/v1/health",
+                    "curl --fail --silent {}/health",
                     uiai_url.trim_end_matches('/')
                 )),
                 expected_outcome: Some("UIAI Engine returns a healthy JSON envelope".into()),
@@ -3421,7 +4203,7 @@ async fn execute_real_install(
         phase: InstallPhase::ValidateLicense,
         message: "Validating installation license".into(),
     });
-    let phase = phase_license(args).await?;
+    let phase = phase_license(args, channel).await?;
     sink.emit(InstallEvent::PhaseSucceeded {
         phase: InstallPhase::ValidateLicense,
         detail: Some(phase.clone()),
@@ -3532,7 +4314,8 @@ async fn execute_real_install(
         .iter()
         .find(|asset| asset.triple == "all")
         .ok_or_else(|| anyhow!("verified agent context asset missing"))?;
-    install_agent_context_archive(agent_context_asset, install_root)?;
+    let agent_context_root = install_agent_context_archive(agent_context_asset, install_root)?;
+    install_skill_doctor(&agent_context_root, install_root)?;
     // Prove all promoted binaries before any external symlink, service, or shell
     // profile mutation. A failed fresh install can then remove the install root
     // without leaving dangling links or a partially registered service.
@@ -3603,6 +4386,10 @@ async fn execute_real_install(
         message: "Preparing installed-binary health checks".into(),
     });
 
+    let home = install_root
+        .parent()
+        .ok_or_else(|| anyhow!("install root has no home parent"))?;
+    synchronize_agent_context_skills(&agent_context_root, home)?;
     let walkthrough =
         build_first_install_walkthrough(target, channel, &bin_dir, install_root, assets.len());
     sink.emit(InstallEvent::PhaseSucceeded {
@@ -3759,16 +4546,16 @@ fn build_plan(
             "~/.zshrc".to_string(),
             "~/.config/fish/config.fish".to_string(),
         ],
-        license_mode: if args.eval {
-            "eval".to_string()
-        } else if args.license_key.is_some() {
-            "commercial".to_string()
+        license_mode: if args.license_key.is_some() {
+            "unsupported_raw_key".to_string()
+        } else if args.eval {
+            "authority_limited_access".to_string()
         } else {
-            "missing".to_string()
+            "authority_existing_or_limited_access".to_string()
         },
         notes: vec![
             "--target auto-detected from uname / GetSystemInfo".to_string(),
-            "license json shape parity audit must pass before live install".to_string(),
+            "runnable assets activate only after signed product/channel entitlement".to_string(),
             "PATH automation writes idemptoent export lines to rc files".to_string(),
         ],
         first_install_walkthrough_v1: Some(build_first_install_walkthrough(
@@ -3835,12 +4622,30 @@ fn triple_for(target: InstallTarget) -> String {
 #[path = "install_e6_failure_matrix_tests.rs"]
 mod install_e6_failure_matrix_tests;
 
-#[path = "install_pi_package_transaction_tests.rs"]
-mod install_pi_package_transaction_tests;
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn npm_resolution_accepts_absolute_nonstandard_install() {
+        use std::os::unix::fs::PermissionsExt;
+        let fixture =
+            std::env::temp_dir().join(format!("focusa-npm-resolution-{}", uuid::Uuid::now_v7()));
+        let npm = fixture.join("servbay/node/bin/npm");
+        let npm_cli = fixture.join("servbay/node/lib/npm-cli.js");
+        std::fs::create_dir_all(npm.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(npm_cli.parent().unwrap()).unwrap();
+        std::fs::write(&npm_cli, "#!/usr/bin/env node\n").unwrap();
+        std::fs::set_permissions(&npm_cli, std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::os::unix::fs::symlink(&npm_cli, &npm).unwrap();
+        let resolved = resolve_npm_binary(Some(&npm)).unwrap();
+        assert_eq!(
+            resolved, npm,
+            "launcher path must preserve sibling node lookup"
+        );
+        let _ = std::fs::remove_dir_all(fixture);
+    }
 
     #[test]
     fn target_auto_resolves_to_platform() {
@@ -3935,11 +4740,14 @@ mod tests {
                 .iter()
                 .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
         );
-        assert_eq!(plan.license_mode, "missing");
+        assert_eq!(
+            plan.license_mode,
+            "authority_existing_or_limited_access"
+        );
     }
 
     #[test]
-    fn dry_run_plan_with_eval_flag_marks_eval_license() {
+    fn dry_run_plan_with_eval_flag_marks_limited_access_license() {
         let args = InstallArgs {
             target: InstallTarget::Darwin,
             channel: Channel::Stable,
@@ -3967,7 +4775,7 @@ mod tests {
             std::path::Path::new("/tmp/.focusa"),
         )
         .unwrap();
-        assert_eq!(plan.license_mode, "eval");
+        assert_eq!(plan.license_mode, "authority_limited_access");
         assert!(plan.service_manager_planned.contains("launchd"));
     }
 
@@ -3982,6 +4790,13 @@ mod tests {
         let extensions = fixture.join("extensions");
         std::fs::create_dir_all(&package).unwrap();
         std::fs::create_dir_all(&fake_bin).unwrap();
+        let legacy = extensions.join("focusa-runtime.legacy-0.9.143");
+        std::fs::create_dir_all(&legacy).unwrap();
+        std::fs::write(
+            legacy.join("package.json"),
+            r#"{"name":"focusa-pi-bridge","version":"0.9.143","pi":{"extensions":["./src/index.ts"]}}"#,
+        )
+        .unwrap();
         std::fs::write(
             package.join("package.json"),
             r#"{"name":"focusa-pi-bridge"}"#,
@@ -4032,9 +4847,52 @@ mod tests {
                 .join("focusa/node_modules/.focusa-smoke")
                 .is_file()
         );
+        assert!(!legacy.exists());
+        let retired = std::fs::read_dir(fixture.join("retired-extensions"))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert_eq!(retired.len(), 1);
+        assert!(retired[0].path().join("package.json").is_file());
         println!(
             "E6_PI_PRESENT_SUCCESS destination_preserved={destination_preserved} package_json={package_json_present} smoke_marker={smoke_marker_present}"
         );
+        let _ = std::fs::remove_dir_all(fixture);
+    }
+
+    #[test]
+    fn retired_focusa_pi_extension_is_preserved_outside_auto_discovery() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-retired-pi-extension-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let extensions = fixture.join("extensions");
+        let legacy = extensions.join("focusa-runtime.legacy-0.9.143");
+        let unrelated = extensions.join("vendor.legacy-1");
+        std::fs::create_dir_all(&legacy).unwrap();
+        std::fs::create_dir_all(&unrelated).unwrap();
+        std::fs::write(
+            legacy.join("package.json"),
+            r#"{"name":"focusa-pi-bridge","version":"0.9.143","pi":{"extensions":["./src/index.ts"]}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            unrelated.join("package.json"),
+            r#"{"name":"vendor-extension"}"#,
+        )
+        .unwrap();
+
+        let retired = quarantine_retired_focusa_pi_extensions(&extensions).unwrap();
+
+        assert_eq!(retired.len(), 1);
+        assert!(!legacy.exists());
+        assert!(unrelated.is_dir());
+        assert!(retired[0].starts_with(fixture.join("retired-extensions")));
+        assert!(retired[0].join("package.json").is_file());
+        let package: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(retired[0].join("package.json")).unwrap())
+                .unwrap();
+        assert_eq!(package["version"], "0.9.143");
         let _ = std::fs::remove_dir_all(fixture);
     }
 
@@ -4046,10 +4904,16 @@ mod tests {
         ));
         let package = fixture.join("package/focusa-agent-context");
         std::fs::create_dir_all(package.join("skills/focusa")).unwrap();
+        std::fs::create_dir_all(package.join("bin")).unwrap();
         std::fs::write(package.join("AGENTS.md"), "# Focusa agents\n").unwrap();
         std::fs::write(
             package.join("skills/focusa/SKILL.md"),
             "---\nname: focusa\n---\n",
+        )
+        .unwrap();
+        std::fs::write(
+            package.join("bin/focusa-skill-doctor"),
+            "#!/bin/sh\nexit 0\n",
         )
         .unwrap();
         let archive = fixture.join("focusa-agent-context-vtest.tar.gz");
@@ -4062,9 +4926,18 @@ mod tests {
             .status()
             .unwrap();
         assert!(status.success());
-        let install_root = fixture.join("install");
+        let home = fixture.join("home");
+        let install_root = home.join(".focusa");
         std::fs::create_dir_all(install_root.join("agent-context")).unwrap();
         std::fs::write(install_root.join("agent-context/old-marker"), "old").unwrap();
+        std::fs::create_dir_all(home.join(".pi/skills/focusa")).unwrap();
+        std::fs::write(home.join(".pi/skills/focusa/SKILL.md"), "stale").unwrap();
+        std::fs::create_dir_all(home.join(".pi/skills/operator-custom")).unwrap();
+        std::fs::write(
+            home.join(".pi/skills/operator-custom/SKILL.md"),
+            "---\nname: operator-custom\n---\n",
+        )
+        .unwrap();
         let asset = InstalledAsset {
             name: "focusa-agent-context-vtest.tar.gz".to_string(),
             version: "vtest".to_string(),
@@ -4076,6 +4949,39 @@ mod tests {
         assert!(installed.join("AGENTS.md").is_file());
         assert!(installed.join("skills/focusa/SKILL.md").is_file());
         assert!(!installed.join("old-marker").exists());
+        let synchronized = synchronize_agent_context_skills(&installed, &home).unwrap();
+        assert_eq!(synchronized, vec![home.join(".pi/agent/skills/focusa")]);
+        assert_eq!(
+            std::fs::read_to_string(home.join(".pi/agent/skills/focusa/SKILL.md")).unwrap(),
+            "---\nname: focusa\n---\n"
+        );
+        assert!(!home.join(".pi/skills/focusa").exists());
+        assert_eq!(
+            std::fs::read_to_string(home.join(".pi/skills/operator-custom/SKILL.md")).unwrap(),
+            "---\nname: operator-custom\n---\n"
+        );
+
+        // Model Pi's combined built-in, settings/project, and extension-provided
+        // discovery paths. Only the canonical user root may contain Focusa's
+        // installed skill; unrelated skills on every other path survive.
+        let project_skills = fixture.join("project/.pi/skills");
+        let extension_skills = fixture.join("extension/skills");
+        std::fs::create_dir_all(project_skills.join("operator-project")).unwrap();
+        std::fs::create_dir_all(extension_skills.join("operator-extension")).unwrap();
+        let discovery_roots = [
+            home.join(".pi/agent/skills"),
+            home.join(".pi/skills"),
+            project_skills,
+            extension_skills,
+        ];
+        let focusa_discoveries = discovery_roots
+            .iter()
+            .filter(|root| root.join("focusa/SKILL.md").is_file())
+            .count();
+        assert_eq!(focusa_discoveries, 1);
+
+        install_skill_doctor(&installed, &install_root).unwrap();
+        assert!(install_root.join("bin/focusa-skill-doctor").is_file());
         let _ = std::fs::remove_dir_all(fixture);
     }
 
@@ -4232,7 +5138,7 @@ mod tests {
             std::path::Path::new("/tmp/.focusa"),
         )
         .unwrap();
-        assert_eq!(plan.license_mode, "commercial");
+        assert_eq!(plan.license_mode, "unsupported_raw_key");
     }
 
     #[test]
@@ -4299,7 +5205,10 @@ mod tests {
                 .contains(UIAI_ENGINE_LINUX_AMD64_SHA256)
         );
         assert!(!uiai.install_command.contains("/latest/"));
-        assert!(uiai.dry_run_command.contains("/v1/health"));
+        assert!(uiai.install_command.contains(
+            "systemctl --user enable --now \"$HOME/.config/systemd/user/focusa-uiai-engine.service\""
+        ));
+        assert!(uiai.dry_run_command.contains("/health"));
     }
 
     #[test]
@@ -4347,6 +5256,117 @@ mod tests {
         assert_eq!(execution.installed, vec!["python3"]);
         assert_eq!(execution.retryable_failures.len(), 1);
         assert_eq!(execution.rollback_status, "not_needed");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_dependency_preflight_native_resolves_path_semver_and_health() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+
+        static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _lock = ENV_LOCK.lock().unwrap();
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-windows-dependency-preflight-{}",
+            uuid::Uuid::now_v7()
+        ));
+        std::fs::create_dir_all(&fixture).unwrap();
+        let rustc = find_command("rustc").expect("Windows Rust toolchain must expose rustc.exe");
+        let pi_source = fixture.join("pi_fixture.rs");
+        std::fs::write(&pi_source, "fn main() { println!(\"pi 0.81.1\"); }").unwrap();
+        let pi_exe = fixture.join("pi.exe");
+        assert!(
+            std::process::Command::new(rustc)
+                .arg(&pi_source)
+                .arg("-o")
+                .arg(&pi_exe)
+                .status()
+                .unwrap()
+                .success(),
+            "failed to compile native pi.exe fixture"
+        );
+        std::fs::write(fixture.join("pi.cmd"), "@echo off\r\necho pi 0.81.1\r\n").unwrap();
+        std::fs::write(
+            fixture.join("pi"),
+            "#!/bin/sh\necho extensionless shim must not win\n",
+        )
+        .unwrap();
+        let script_fixture = fixture.join("Program Files fixture");
+        std::fs::create_dir_all(&script_fixture).unwrap();
+        std::fs::write(
+            script_fixture.join("npm.cmd"),
+            "@echo off\r\necho 10.9.2\r\n",
+        )
+        .unwrap();
+        std::fs::write(
+            script_fixture.join("npm"),
+            "#!/bin/sh\necho extensionless shim must not win\n",
+        )
+        .unwrap();
+        let previous_path = std::env::var_os("PATH");
+        let previous_uiai = std::env::var_os("UIAI_ENGINE_URL");
+        let mut paths = vec![fixture.clone(), script_fixture];
+        if let Some(path) = previous_path.as_ref() {
+            paths.extend(std::env::split_paths(path));
+        }
+        // SAFETY: this Windows-only test is the sole filtered test in its CI
+        // process and holds ENV_LOCK for the complete mutation/restoration.
+        unsafe { std::env::set_var("PATH", std::env::join_paths(paths).unwrap()) };
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+            loop {
+                match listener.accept() {
+                    Ok((mut stream, _)) => {
+                        let mut request = [0_u8; 1024];
+                        let _ = stream.read(&mut request);
+                        stream
+                            .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
+                            .unwrap();
+                        return;
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        if std::time::Instant::now() >= deadline {
+                            panic!("UIAI health fixture received no request");
+                        }
+                        std::thread::sleep(std::time::Duration::from_millis(20));
+                    }
+                    Err(error) => panic!("UIAI health fixture accept failed: {error}"),
+                }
+            }
+        });
+        // SAFETY: guarded and restored before this test releases ENV_LOCK.
+        unsafe { std::env::set_var("UIAI_ENGINE_URL", format!("http://{address}")) };
+
+        let result = std::panic::catch_unwind(|| {
+            // Consume the bounded health fixture before assertions that can
+            // unwind, so its server thread always terminates deterministically.
+            assert!(dependency_present("uiai-engine"));
+            assert!(find_command("pi").is_some_and(|path| path.ends_with("pi.exe")));
+            assert!(command_semver("pi").is_some_and(|version| version >= (0, 81, 1)));
+            assert!(dependency_present("pi"));
+            assert_eq!(command_semver("npm"), Some((10, 9, 2)));
+            assert!(dependency_present("npm"));
+        });
+        server.join().unwrap();
+        // SAFETY: restore the process environment while ENV_LOCK is held.
+        unsafe {
+            if let Some(path) = previous_path {
+                std::env::set_var("PATH", path);
+            } else {
+                std::env::remove_var("PATH");
+            }
+            if let Some(url) = previous_uiai {
+                std::env::set_var("UIAI_ENGINE_URL", url);
+            } else {
+                std::env::remove_var("UIAI_ENGINE_URL");
+            }
+        }
+        let _ = std::fs::remove_dir_all(fixture);
+        result.unwrap();
     }
 
     #[test]

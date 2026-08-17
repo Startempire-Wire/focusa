@@ -1285,7 +1285,6 @@ mod tests {
 
         let state = Arc::new(AppState {
             focusa,
-            workstream_states: crate::workstream_store::WorkstreamStateStore::default(),
             command_tx: tx,
             events_tx,
             event_broadcaster: crate::routes::sse::EventBroadcaster::new(),

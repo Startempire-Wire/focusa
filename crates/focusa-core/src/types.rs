@@ -860,7 +860,6 @@ pub struct WorkpointState {
 // ─── Trajectory Projection (Spec96) ────────────────────────────────────────
 
 pub mod trajectory_caps {
-    pub const MILESTONES: usize = 32;
     pub const RECORDS: usize = 32;
     pub const WAYPOINTS: usize = 32;
     pub const PROVENANCE: usize = 32;
@@ -1046,34 +1045,8 @@ pub struct TrajectoryDefinitionOfDoneRecord {
     pub not_done_if: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TrajectoryMilestoneStatus {
-    Pending,
-    InProgress,
-    Reached,
-    Deferred,
-}
-
-/// Milestone record carried on trajectory projections (session lineage).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TrajectoryMilestoneRecord {
-    pub milestone_id: String,
-    pub title: String,
-    pub desired_state_delta: String,
-    #[serde(default)]
-    pub current_state_evidence_refs: Vec<String>,
-    #[serde(default)]
-    pub completion_evidence_refs: Vec<String>,
-    pub status: TrajectoryMilestoneStatus,
-    #[serde(default)]
-    pub next_workpoint_candidate: serde_json::Value,
-}
-
 #[derive(Debug, Clone, Serialize)]
 pub struct TrajectoryProjectionRecord {
-    #[serde(default)]
-    pub milestones: Vec<TrajectoryMilestoneRecord>,
     pub trajectory_id: String,
     #[serde(default)]
     pub scope_ref: Option<crate::scoped_state::ScopeRef>,
@@ -1239,7 +1212,6 @@ impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
             merge_legacy_waypoint(&mut waypoints, legacy);
         }
         Ok(Self {
-            milestones: vec![],
             trajectory_id: wire.trajectory_id,
             scope_ref: wire.scope_ref,
             session_identity: wire.session_identity,
@@ -1276,7 +1248,6 @@ impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
 impl Default for TrajectoryProjectionRecord {
     fn default() -> Self {
         Self {
-            milestones: vec![],
             trajectory_id: String::new(),
             scope_ref: None,
             session_identity: None,
@@ -4641,22 +4612,6 @@ pub enum FocusaEvent {
     InvariantViolation {
         invariant: String,
         details: String,
-    },
-
-    CallGraphFrameDispatched {
-        run_id: String,
-        dispatch_id: String,
-        frame_id: String,
-        invocation_id: String,
-        adapter_id: String,
-        model: String,
-        attempt: u32,
-    },
-    CallGraphFrameSettled {
-        run_id: String,
-        frame_id: String,
-        invocation_id: String,
-        receipt_ref: String,
     },
 }
 

@@ -11,7 +11,6 @@
 pub mod context_retrieval;
 pub mod daemon;
 pub mod event_bus;
-pub mod event_retention;
 pub mod events;
 pub mod interview_strategy;
 pub mod persistence;

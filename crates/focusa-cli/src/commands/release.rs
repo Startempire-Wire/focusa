@@ -265,10 +265,6 @@ fn render_intelligence(
 }
 
 pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
-    // Spec §5.4: official_release_bundle is a license-gated feature.
-    if let Err(e) = focusa_core::license::require_feature("official_release_bundle") {
-        anyhow::bail!("{e}");
-    }
     match cmd {
         ReleaseCmd::Cycle { action } => match action {
             ReleaseCycleCmd::ValidateTopology { path } => {

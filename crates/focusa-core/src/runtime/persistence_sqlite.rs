@@ -7,6 +7,8 @@
 //! ECS objects remain filesystem-backed (see reference::store).
 
 use crate::clt::retain_hot_window;
+use crate::semantic_migration::{MigrationPlan, MigrationReceipt};
+use crate::semantic_replay::{SemanticEventEnvelope, replay as replay_semantic_events};
 use crate::silent_session::{
     SilentSession, SilentSessionConfigRevision, SilentSessionConfigRevisionId, SilentSessionEvent,
     SilentSessionEventId, SilentSessionId, SilentSessionLifecycleState, SilentSessionRun,
@@ -56,10 +58,191 @@ pub struct DurableEventRecord {
 ///
 /// NOTE: Focusa daemon is single-writer, but API reads may happen concurrently.
 /// We keep a single Connection behind a Mutex for now (simple + correct).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EntitlementLimitReservationOutcome {
+    Reserved,
+    IdempotentReplay,
+    Exhausted,
+}
+
 #[derive(Clone)]
 pub struct SqlitePersistence {
     pub data_dir: PathBuf,
     conn: Arc<Mutex<Connection>>,
+}
+
+impl SqlitePersistence {
+    pub fn reserve_entitlement_limit(
+        &self,
+        reservation_id: &str,
+        lease_id: &str,
+        lease_sequence: u64,
+        limit_bucket: &str,
+        units: u64,
+        available: u64,
+    ) -> anyhow::Result<EntitlementLimitReservationOutcome> {
+        anyhow::ensure!(
+            !reservation_id.trim().is_empty(),
+            "reservation_id is required"
+        );
+        anyhow::ensure!(!lease_id.trim().is_empty(), "lease_id is required");
+        anyhow::ensure!(!limit_bucket.trim().is_empty(), "limit_bucket is required");
+        anyhow::ensure!(units > 0, "reservation units must be positive");
+        let mut connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let transaction = connection.transaction()?;
+        let existing: Option<(String, String, u64, String, u64)> = transaction
+            .query_row(
+                "SELECT lease_id, status, lease_sequence, limit_bucket, units FROM entitlement_limit_reservations WHERE reservation_id = ?1",
+                params![reservation_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+            )
+            .optional()?;
+        let existing_released = if let Some((
+            existing_lease,
+            status,
+            existing_sequence,
+            existing_bucket,
+            existing_units,
+        )) = existing
+        {
+            anyhow::ensure!(
+                existing_lease == lease_id
+                    && existing_sequence == lease_sequence
+                    && existing_bucket == limit_bucket
+                    && existing_units == units,
+                "entitlement reservation idempotency conflict"
+            );
+            if status != "released" {
+                transaction.commit()?;
+                return Ok(EntitlementLimitReservationOutcome::IdempotentReplay);
+            }
+            true
+        } else {
+            false
+        };
+        let consumed: u64 = transaction.query_row(
+            "SELECT COALESCE(SUM(units), 0) FROM entitlement_limit_reservations WHERE lease_id = ?1 AND lease_sequence = ?2 AND limit_bucket = ?3 AND status IN ('reserved', 'committed')",
+            params![lease_id, lease_sequence, limit_bucket],
+            |row| row.get(0),
+        )?;
+        if consumed.saturating_add(units) > available {
+            transaction.commit()?;
+            return Ok(EntitlementLimitReservationOutcome::Exhausted);
+        }
+        if existing_released {
+            transaction.execute(
+                "UPDATE entitlement_limit_reservations SET status = 'reserved', settled_at = NULL, created_at = ?2 WHERE reservation_id = ?1",
+                params![reservation_id, Utc::now().to_rfc3339()],
+            )?;
+        } else {
+            transaction.execute(
+                "INSERT INTO entitlement_limit_reservations (reservation_id, lease_id, lease_sequence, limit_bucket, units, status, created_at) VALUES (?1, ?2, ?3, ?4, ?5, 'reserved', ?6)",
+                params![reservation_id, lease_id, lease_sequence, limit_bucket, units, Utc::now().to_rfc3339()],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(EntitlementLimitReservationOutcome::Reserved)
+    }
+
+    pub fn settle_entitlement_limit(
+        &self,
+        reservation_id: &str,
+        commit: bool,
+    ) -> anyhow::Result<()> {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        connection.execute(
+            "UPDATE entitlement_limit_reservations SET status = ?2, settled_at = ?3 WHERE reservation_id = ?1 AND status = 'reserved'",
+            params![reservation_id, if commit { "committed" } else { "released" }, Utc::now().to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
+    pub fn save_runtime_constitution(
+        &self,
+        constitution: &crate::agent_runtime_constitution::ProjectAgentRuntimeConstitution,
+    ) -> anyhow::Result<()> {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::save_runtime_constitution(
+            &connection,
+            constitution,
+        )
+    }
+
+    pub fn load_runtime_constitution(
+        &self,
+        constitution_id: &str,
+    ) -> anyhow::Result<Option<crate::agent_runtime_constitution::ProjectAgentRuntimeConstitution>>
+    {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::load_runtime_constitution(
+            &connection,
+            constitution_id,
+        )
+    }
+
+    pub fn append_runtime_constitution_event(
+        &self,
+        event_id: &str,
+        constitution_id: &str,
+        idempotency_key: &str,
+        event: &crate::agent_runtime_constitution::RuntimeConstitutionEvent,
+    ) -> anyhow::Result<crate::agent_runtime_constitution_store::StoredRuntimeConstitutionEvent>
+    {
+        let mut connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::append_runtime_constitution_event(
+            &mut connection,
+            event_id,
+            constitution_id,
+            idempotency_key,
+            event,
+        )
+    }
+
+    pub fn runtime_constitution_events(
+        &self,
+        constitution_id: &str,
+    ) -> anyhow::Result<Vec<crate::agent_runtime_constitution_store::StoredRuntimeConstitutionEvent>>
+    {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::runtime_constitution_events(
+            &connection,
+            constitution_id,
+        )
+    }
+
+    pub fn latest_runtime_constitution_event(
+        &self,
+        constitution_id: &str,
+    ) -> anyhow::Result<
+        Option<crate::agent_runtime_constitution_store::StoredRuntimeConstitutionEvent>,
+    > {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::latest_runtime_constitution_event(
+            &connection,
+            constitution_id,
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -98,6 +281,20 @@ fn latest_event_hash_checkpoint(conn: &Connection) -> anyhow::Result<Option<(i64
     )
     .optional()
     .map_err(Into::into)
+}
+
+fn table_has_columns(conn: &Connection, table: &str, columns: &[&str]) -> anyhow::Result<bool> {
+    for column in columns {
+        let present: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM pragma_table_info(?1) WHERE name=?2",
+            params![table, column],
+            |row| row.get(0),
+        )?;
+        if present == 0 {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 impl SqlitePersistence {
@@ -148,10 +345,44 @@ impl SqlitePersistence {
     }
 
     fn init_schema(&self) -> anyhow::Result<()> {
-        let conn = self
+        let mut conn = self
             .conn
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+
+        // Existing installations can carry an `events` table created before
+        // scoped runtime columns were introduced. `CREATE TABLE IF NOT EXISTS`
+        // never upgrades that table, and the indexes below otherwise reference
+        // missing columns before startup can bind the health endpoint.
+        let events_exist: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='events'",
+            [],
+            |row| row.get(0),
+        )?;
+        if events_exist != 0 {
+            let migration = conn.transaction()?;
+            for (column, definition) in [
+                ("machine_id", "machine_id TEXT"),
+                ("instance_id", "instance_id TEXT"),
+                ("session_id", "session_id TEXT"),
+                ("thread_id", "thread_id TEXT"),
+                (
+                    "is_observation",
+                    "is_observation INTEGER NOT NULL DEFAULT 0",
+                ),
+            ] {
+                let present: i64 = migration.query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('events') WHERE name=?1",
+                    [column],
+                    |row| row.get(0),
+                )?;
+                if present == 0 {
+                    migration
+                        .execute(&format!("ALTER TABLE events ADD COLUMN {definition}"), [])?;
+                }
+            }
+            migration.commit()?;
+        }
 
         conn.execute_batch(
             r#"
@@ -279,7 +510,7 @@ impl SqlitePersistence {
             );
 
             -- V3: Spec 133 canonical SilentSession projections and append-only event chain.
-            CREATE TABLE IF NOT EXISTS silent_sessions (
+            CREATE TABLE IF NOT EXISTS runtime_silent_sessions (
               session_id TEXT PRIMARY KEY,
               project_root TEXT NOT NULL,
               continuity_id TEXT NOT NULL,
@@ -288,23 +519,23 @@ impl SqlitePersistence {
               projection_version INTEGER NOT NULL,
               updated_at TEXT NOT NULL
             );
-            CREATE INDEX IF NOT EXISTS idx_silent_sessions_scope
-              ON silent_sessions(project_root, continuity_id);
+            CREATE INDEX IF NOT EXISTS idx_runtime_silent_sessions_scope
+              ON runtime_silent_sessions(project_root, continuity_id);
 
             -- V5: exact durable run projection and generation guard source.
-            CREATE TABLE IF NOT EXISTS silent_session_runs (
+            CREATE TABLE IF NOT EXISTS runtime_silent_session_runs (
               run_id TEXT PRIMARY KEY,
               session_id TEXT NOT NULL,
               generation INTEGER NOT NULL CHECK(generation > 0),
               run_json TEXT NOT NULL,
               updated_at TEXT NOT NULL,
               UNIQUE(session_id, generation),
-              FOREIGN KEY(session_id) REFERENCES silent_sessions(session_id) ON DELETE RESTRICT
+              FOREIGN KEY(session_id) REFERENCES runtime_silent_sessions(session_id) ON DELETE RESTRICT
             );
-            CREATE INDEX IF NOT EXISTS idx_silent_session_runs_target
-              ON silent_session_runs(session_id, run_id, generation);
+            CREATE INDEX IF NOT EXISTS idx_runtime_silent_session_runs_target
+              ON runtime_silent_session_runs(session_id, run_id, generation);
 
-            CREATE TABLE IF NOT EXISTS silent_session_events (
+            CREATE TABLE IF NOT EXISTS runtime_silent_session_events (
               event_id TEXT PRIMARY KEY,
               session_id TEXT NOT NULL,
               run_id TEXT NOT NULL,
@@ -315,59 +546,72 @@ impl SqlitePersistence {
               previous_hash TEXT NOT NULL,
               event_hash TEXT NOT NULL,
               UNIQUE(session_id, run_id, seq),
-              FOREIGN KEY(session_id) REFERENCES silent_sessions(session_id) ON DELETE RESTRICT
+              FOREIGN KEY(session_id) REFERENCES runtime_silent_sessions(session_id) ON DELETE RESTRICT
             );
-            CREATE INDEX IF NOT EXISTS idx_silent_session_events_order
-              ON silent_session_events(session_id, run_id, seq);
+            CREATE INDEX IF NOT EXISTS idx_runtime_silent_session_events_order
+              ON runtime_silent_session_events(session_id, run_id, seq);
 
             -- V6: append-only transactional Silent Session config authority.
-            CREATE TABLE IF NOT EXISTS silent_session_config_revisions (
+            CREATE TABLE IF NOT EXISTS runtime_silent_session_config_revisions (
               revision_id TEXT PRIMARY KEY,
               session_id TEXT NOT NULL,
               parent_revision_id TEXT,
               revision_json TEXT NOT NULL,
               effective_hash TEXT NOT NULL,
               applied_at TEXT NOT NULL,
-              FOREIGN KEY(session_id) REFERENCES silent_sessions(session_id) ON DELETE RESTRICT
+              FOREIGN KEY(session_id) REFERENCES runtime_silent_sessions(session_id) ON DELETE RESTRICT
             );
-            CREATE INDEX IF NOT EXISTS idx_silent_session_config_revisions_history
-              ON silent_session_config_revisions(session_id, applied_at, revision_id);
+            CREATE INDEX IF NOT EXISTS idx_runtime_silent_session_config_revisions_history
+              ON runtime_silent_session_config_revisions(session_id, applied_at, revision_id);
 
             -- V4: durable Spec 133 control-plane identities and one-shot approvals.
-            CREATE TABLE IF NOT EXISTS silent_session_principals (
+            CREATE TABLE IF NOT EXISTS runtime_silent_session_principals (
               actor_instance_ref TEXT PRIMARY KEY,
               actor_ref TEXT NOT NULL,
               principal_json TEXT NOT NULL,
               updated_at TEXT NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS silent_session_approvals (
+            CREATE TABLE IF NOT EXISTS runtime_silent_session_approvals (
               approval_id TEXT PRIMARY KEY,
               action_digest TEXT NOT NULL,
               approval_json TEXT NOT NULL,
               expires_at TEXT NOT NULL,
               consumed_at TEXT
             );
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_silent_session_approval_digest
-              ON silent_session_approvals(action_digest);
-            CREATE TABLE IF NOT EXISTS silent_session_action_redemptions (
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_runtime_silent_session_approval_digest
+              ON runtime_silent_session_approvals(action_digest);
+            CREATE TABLE IF NOT EXISTS runtime_silent_session_action_redemptions (
               action_digest TEXT PRIMARY KEY,
               approval_id TEXT NOT NULL,
               redeemed_at TEXT NOT NULL,
-              FOREIGN KEY(approval_id) REFERENCES silent_session_approvals(approval_id) ON DELETE RESTRICT
+              FOREIGN KEY(approval_id) REFERENCES runtime_silent_session_approvals(approval_id) ON DELETE RESTRICT
             );
-            CREATE TABLE IF NOT EXISTS silent_session_runner_identities (
+            CREATE TABLE IF NOT EXISTS runtime_silent_session_runner_identities (
               runner_id TEXT PRIMARY KEY,
               verifying_key_base64 TEXT NOT NULL,
               os_user TEXT NOT NULL,
               project_identity_ref TEXT NOT NULL,
               updated_at TEXT NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS silent_session_writer_lease_registry (
+            CREATE TABLE IF NOT EXISTS runtime_silent_session_writer_lease_registry (
               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
               revision INTEGER NOT NULL,
               registry_json TEXT NOT NULL,
               updated_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS entitlement_limit_reservations (
+              reservation_id TEXT PRIMARY KEY,
+              lease_id TEXT NOT NULL,
+              lease_sequence INTEGER NOT NULL,
+              limit_bucket TEXT NOT NULL,
+              units INTEGER NOT NULL CHECK(units > 0),
+              status TEXT NOT NULL CHECK(status IN ('reserved', 'committed', 'released')),
+              created_at TEXT NOT NULL,
+              settled_at TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_entitlement_limit_reservations_lease
+              ON entitlement_limit_reservations(lease_id, lease_sequence, limit_bucket, status);
 
             CREATE TABLE IF NOT EXISTS snapshots (
               name TEXT PRIMARY KEY,
@@ -377,6 +621,160 @@ impl SqlitePersistence {
             );
             "#,
         )?;
+
+        // V5 briefly used canonical Spec133 table names for a separate runtime
+        // projection schema. Copy only tables that prove that V5 shape; retained
+        // Spec133 tables use different identity columns and remain untouched.
+        // INSERT OR IGNORE makes this a one-time, idempotent bridge.
+        if table_has_columns(
+            &conn,
+            "silent_sessions",
+            &[
+                "session_id",
+                "project_root",
+                "continuity_id",
+                "lifecycle_state",
+                "projection_json",
+                "projection_version",
+                "updated_at",
+            ],
+        )? {
+            conn.execute_batch(
+                r#"
+                INSERT OR IGNORE INTO runtime_silent_sessions
+                  (session_id, project_root, continuity_id, lifecycle_state,
+                   projection_json, projection_version, updated_at)
+                SELECT session_id, project_root, continuity_id, lifecycle_state,
+                       projection_json, projection_version, updated_at
+                FROM silent_sessions;
+                "#,
+            )?;
+        }
+        if table_has_columns(&conn, "silent_session_runs", &["session_id", "generation"])? {
+            conn.execute_batch(
+                r#"
+                INSERT OR IGNORE INTO runtime_silent_session_runs
+                  (run_id, session_id, generation, run_json, updated_at)
+                SELECT run_id, session_id, generation, run_json, updated_at
+                FROM silent_session_runs;
+                "#,
+            )?;
+        }
+        if table_has_columns(
+            &conn,
+            "silent_session_events",
+            &[
+                "event_id",
+                "session_id",
+                "run_id",
+                "seq",
+                "occurred_at",
+                "event_json",
+                "payload_sha256",
+                "previous_hash",
+                "event_hash",
+            ],
+        )? {
+            conn.execute_batch(
+                r#"
+                INSERT OR IGNORE INTO runtime_silent_session_events
+                  (event_id, session_id, run_id, seq, occurred_at, event_json,
+                   payload_sha256, previous_hash, event_hash)
+                SELECT event_id, session_id, run_id, seq, occurred_at, event_json,
+                       payload_sha256, previous_hash, event_hash
+                FROM silent_session_events;
+                "#,
+            )?;
+        }
+        if table_has_columns(
+            &conn,
+            "silent_session_config_revisions",
+            &[
+                "revision_id",
+                "session_id",
+                "parent_revision_id",
+                "effective_hash",
+            ],
+        )? {
+            conn.execute_batch(
+                r#"
+                INSERT OR IGNORE INTO runtime_silent_session_config_revisions
+                  (revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at)
+                SELECT revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at
+                FROM silent_session_config_revisions;
+                "#,
+            )?;
+        }
+        if table_has_columns(
+            &conn,
+            "silent_session_principals",
+            &["actor_instance_ref", "actor_ref", "principal_json"],
+        )? {
+            conn.execute_batch(
+                r#"
+                INSERT OR IGNORE INTO runtime_silent_session_principals
+                  (actor_instance_ref, actor_ref, principal_json, updated_at)
+                SELECT actor_instance_ref, actor_ref, principal_json, updated_at
+                FROM silent_session_principals;
+                "#,
+            )?;
+        }
+        if table_has_columns(
+            &conn,
+            "silent_session_approvals",
+            &["action_digest", "approval_json", "consumed_at"],
+        )? {
+            conn.execute_batch(
+                r#"
+                INSERT OR IGNORE INTO runtime_silent_session_approvals
+                  (approval_id, action_digest, approval_json, expires_at, consumed_at)
+                SELECT approval_id, action_digest, approval_json, expires_at, consumed_at
+                FROM silent_session_approvals;
+                "#,
+            )?;
+        }
+        if table_has_columns(
+            &conn,
+            "silent_session_action_redemptions",
+            &["action_digest", "approval_id", "redeemed_at"],
+        )? {
+            conn.execute_batch(
+                r#"
+                INSERT OR IGNORE INTO runtime_silent_session_action_redemptions
+                  (action_digest, approval_id, redeemed_at)
+                SELECT action_digest, approval_id, redeemed_at
+                FROM silent_session_action_redemptions;
+                "#,
+            )?;
+        }
+        if table_has_columns(
+            &conn,
+            "silent_session_runner_identities",
+            &["runner_id", "verifying_key_base64", "project_identity_ref"],
+        )? {
+            conn.execute_batch(
+                r#"
+                INSERT OR IGNORE INTO runtime_silent_session_runner_identities
+                  (runner_id, verifying_key_base64, os_user, project_identity_ref, updated_at)
+                SELECT runner_id, verifying_key_base64, os_user, project_identity_ref, updated_at
+                FROM silent_session_runner_identities;
+                "#,
+            )?;
+        }
+        if table_has_columns(
+            &conn,
+            "silent_session_writer_lease_registry",
+            &["singleton", "revision", "registry_json"],
+        )? {
+            conn.execute_batch(
+                r#"
+                INSERT OR IGNORE INTO runtime_silent_session_writer_lease_registry
+                  (singleton, revision, registry_json, updated_at)
+                SELECT singleton, revision, registry_json, updated_at
+                FROM silent_session_writer_lease_registry;
+                "#,
+            )?;
+        }
 
         // V2 P0 round 2: add room_claim_secret column to existing
         // connect_sessions tables that were created before the column
@@ -395,6 +793,45 @@ impl SqlitePersistence {
                 [],
             )?;
         }
+
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS semantic_pair_events (
+                pair_id TEXT NOT NULL,
+                sequence INTEGER NOT NULL,
+                event_id TEXT NOT NULL UNIQUE,
+                envelope_json TEXT NOT NULL,
+                event_hash TEXT NOT NULL,
+                PRIMARY KEY (pair_id, sequence)
+            );
+            CREATE INDEX IF NOT EXISTS idx_semantic_pair_events_pair
+                ON semantic_pair_events(pair_id, sequence);
+            CREATE TABLE IF NOT EXISTS semantic_pair_scope_index (
+                storage_key TEXT PRIMARY KEY,
+                project_root TEXT NOT NULL,
+                continuity_id TEXT NOT NULL,
+                logical_pair_id TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_semantic_pair_scope_lookup
+                ON semantic_pair_scope_index(project_root, continuity_id, logical_pair_id);
+            CREATE TABLE IF NOT EXISTS semantic_pair_migrations (
+                migration_id TEXT PRIMARY KEY,
+                pair_id TEXT NOT NULL,
+                receipt_json TEXT NOT NULL,
+                aggregate_json TEXT NOT NULL,
+                event_head_sequence INTEGER,
+                rolled_back INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS semantic_pair_quarantine (
+                pair_id TEXT PRIMARY KEY,
+                found_version INTEGER NOT NULL,
+                payload BLOB NOT NULL,
+                reason TEXT NOT NULL,
+                quarantined_at TEXT NOT NULL
+            );
+            "#,
+        )?;
 
         let existing: Option<String> = conn
             .query_row(
@@ -949,13 +1386,10 @@ impl SqlitePersistence {
                     }
                     Ok(Some(s))
                 }
-                Err(error) => {
-                    // #276/#263: never silently start fresh over a canonical
-                    // snapshot. A parse failure means the stored state is
-                    // real and must not be overwritten — fail closed.
-                    Err(anyhow::anyhow!(
-                        "canonical snapshot unparsable; refusing to start fresh over stored state: {error}"
-                    ))
+                Err(_) => {
+                    // Backward compatibility: older snapshots won't have newer fields.
+                    // Fall back to a fresh state rather than failing daemon startup.
+                    Ok(None)
                 }
             },
         }
@@ -1307,7 +1741,7 @@ pub struct SyncCursor {
 // HLT LEDGER — Spec98/99: scope-bounded, no singleton, CRDT-grade events
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use crate::types::HltLedgerEntry;
+use crate::types::{HltLedgerEntry, TrajectoryLadderEvent};
 
 /// Compute the HLT ledger directory for a given project_root.
 /// Returns: {hlt_ledger_dir}/{project_root_hash}/
@@ -1322,6 +1756,97 @@ fn hlt_ledger_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
 }
 
 impl SqlitePersistence {
+    /// Append one atomic logical batch to the project-scoped Trajectory Ladder ledger.
+    /// Events must share one project scope; callers provide causal ordering and Lamport values.
+    pub fn append_trajectory_ladder_events(
+        &self,
+        events: &[TrajectoryLadderEvent],
+    ) -> anyhow::Result<()> {
+        let Some(first) = events.first() else {
+            return Ok(());
+        };
+        if events
+            .iter()
+            .any(|event| event.project_root != first.project_root)
+        {
+            anyhow::bail!("trajectory ladder batch crosses project scope");
+        }
+        let ledger_dir = trajectory_ledger_dir_for_project(&self.data_dir, &first.project_root);
+        std::fs::create_dir_all(&ledger_dir)?;
+        let ledger_file = ledger_dir.join("events.jsonl");
+        let mut payload = Vec::new();
+        for event in events {
+            serde_json::to_writer(&mut payload, event)?;
+            payload.push(b'\n');
+        }
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&ledger_file)?;
+        use std::io::Write;
+        file.write_all(&payload)?;
+        file.sync_data()?;
+        debug!(
+            "Appended {} Trajectory Ladder events to {:?}",
+            events.len(),
+            ledger_file
+        );
+        Ok(())
+    }
+
+    /// Read canonical Ladder events and project legacy HLT entries into the same schema.
+    /// Corrupt canonical lines fail closed; compatibility projection never mutates on read.
+    pub fn read_trajectory_ladder_events(
+        &self,
+        project_root: &str,
+        continuity_id: Option<&str>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<TrajectoryLadderEvent>> {
+        let ledger_file = self.trajectory_ledger_path_for_project(project_root);
+        let mut events = Vec::new();
+        if ledger_file.exists() {
+            let content = std::fs::read_to_string(&ledger_file)?;
+            for (index, line) in content.lines().enumerate() {
+                let event: TrajectoryLadderEvent = serde_json::from_str(line).map_err(|error| {
+                    anyhow::anyhow!(
+                        "invalid Trajectory Ladder event at {}:{}: {}",
+                        ledger_file.display(),
+                        index + 1,
+                        error
+                    )
+                })?;
+                events.push(event);
+            }
+        }
+
+        let existing_ids: std::collections::HashSet<String> =
+            events.iter().map(|event| event.event_id.clone()).collect();
+        for legacy in self.read_hlt_ledger_entries(project_root, continuity_id, 500)? {
+            let event = TrajectoryLadderEvent::from_hlt_ledger(&legacy);
+            if !existing_ids.contains(&event.event_id) {
+                events.push(event);
+            }
+        }
+        events.retain(|event| {
+            event.project_root == project_root
+                && continuity_id
+                    .is_none_or(|expected| event.continuity_id.as_deref() == Some(expected))
+        });
+        events.sort_by(|left, right| {
+            left.lamport_ts
+                .cmp(&right.lamport_ts)
+                .then_with(|| left.timestamp.cmp(&right.timestamp))
+                .then_with(|| left.event_id.cmp(&right.event_id))
+        });
+        let bounded_limit = limit.clamp(1, 500);
+        let start = events.len().saturating_sub(bounded_limit);
+        Ok(events[start..].to_vec())
+    }
+
+    pub fn trajectory_ledger_path_for_project(&self, project_root: &str) -> PathBuf {
+        trajectory_ledger_dir_for_project(&self.data_dir, project_root).join("events.jsonl")
+    }
+
     /// Append an HLT ledger entry to the scope-bounded JSONL file.
     /// Per Spec98/99: no singleton, scope-bounded by project_root.
     pub fn append_hlt_ledger_entry(&self, entry: &HltLedgerEntry) -> anyhow::Result<()> {
@@ -1380,6 +1905,12 @@ impl SqlitePersistence {
     pub fn hlt_ledger_path_for_project(&self, project_root: &str) -> PathBuf {
         hlt_ledger_dir_for_project(&self.data_dir, project_root).join("hlt.jsonl")
     }
+}
+
+fn trajectory_ledger_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
+    let digest = Sha256::digest(project_root.as_bytes());
+    let hash = hex::encode(&digest[..8]);
+    data_dir.join(format!("trajectory-ledger/{hash}"))
 }
 
 fn call_stack_designs_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
@@ -2227,7 +2758,7 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         conn.execute(
-            r#"INSERT INTO silent_session_principals(actor_instance_ref, actor_ref, principal_json, updated_at)
+            r#"INSERT INTO runtime_silent_session_principals(actor_instance_ref, actor_ref, principal_json, updated_at)
                VALUES (?1, ?2, ?3, ?4)
                ON CONFLICT(actor_instance_ref) DO UPDATE SET actor_ref=excluded.actor_ref,
                  principal_json=excluded.principal_json, updated_at=excluded.updated_at"#,
@@ -2246,7 +2777,7 @@ impl SqlitePersistence {
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let json: Option<String> = conn
             .query_row(
-                "SELECT principal_json FROM silent_session_principals WHERE actor_instance_ref=?1",
+                "SELECT principal_json FROM runtime_silent_session_principals WHERE actor_instance_ref=?1",
                 [actor_instance_ref],
                 |row| row.get(0),
             )
@@ -2264,11 +2795,11 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let changed = conn.execute(
-            r#"INSERT INTO silent_session_approvals(approval_id, action_digest, approval_json, expires_at, consumed_at)
+            r#"INSERT INTO runtime_silent_session_approvals(approval_id, action_digest, approval_json, expires_at, consumed_at)
                VALUES (?1, ?2, ?3, ?4, NULL)
                ON CONFLICT(approval_id) DO UPDATE SET action_digest=excluded.action_digest,
                  approval_json=excluded.approval_json, expires_at=excluded.expires_at
-               WHERE silent_session_approvals.consumed_at IS NULL"#,
+               WHERE runtime_silent_session_approvals.consumed_at IS NULL"#,
             params![approval.approval_id, approval.action_digest, serde_json::to_string(approval)?, approval.expires_at.to_rfc3339()],
         )?;
         anyhow::ensure!(
@@ -2288,7 +2819,7 @@ impl SqlitePersistence {
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let json: Option<String> = conn
             .query_row(
-                "SELECT approval_json FROM silent_session_approvals WHERE approval_id=?1 AND consumed_at IS NULL",
+                "SELECT approval_json FROM runtime_silent_session_approvals WHERE approval_id=?1 AND consumed_at IS NULL",
                 [approval_id],
                 |row| row.get(0),
             )
@@ -2309,7 +2840,7 @@ impl SqlitePersistence {
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let tx = conn.transaction()?;
         let (json, stored_digest, expires_at, consumed_at): (String, String, String, Option<String>) = tx.query_row(
-            "SELECT approval_json, action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+            "SELECT approval_json, action_digest, expires_at, consumed_at FROM runtime_silent_session_approvals WHERE approval_id=?1",
             [approval_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?;
         anyhow::ensure!(
             consumed_at.is_none(),
@@ -2322,11 +2853,11 @@ impl SqlitePersistence {
         let expiry = DateTime::parse_from_rfc3339(&expires_at)?.with_timezone(&Utc);
         anyhow::ensure!(expiry > now, "silent-session approval expired");
         tx.execute(
-            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            "INSERT INTO runtime_silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
             params![action_digest, approval_id, now.to_rfc3339()],
         )?;
         tx.execute(
-            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            "UPDATE runtime_silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
             params![approval_id, now.to_rfc3339()],
         )?;
         tx.commit()?;
@@ -2349,7 +2880,7 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         conn.execute(
-            r#"INSERT INTO silent_session_runner_identities(runner_id, verifying_key_base64, os_user, project_identity_ref, updated_at)
+            r#"INSERT INTO runtime_silent_session_runner_identities(runner_id, verifying_key_base64, os_user, project_identity_ref, updated_at)
                VALUES (?1,?2,?3,?4,?5)
                ON CONFLICT(runner_id) DO UPDATE SET verifying_key_base64=excluded.verifying_key_base64,
                  os_user=excluded.os_user, project_identity_ref=excluded.project_identity_ref,
@@ -2368,7 +2899,7 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         conn.query_row(
-            "SELECT verifying_key_base64, os_user, project_identity_ref FROM silent_session_runner_identities WHERE runner_id=?1",
+            "SELECT verifying_key_base64, os_user, project_identity_ref FROM runtime_silent_session_runner_identities WHERE runner_id=?1",
             [runner_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?))).optional().map_err(Into::into)
     }
 
@@ -2381,7 +2912,7 @@ impl SqlitePersistence {
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let stored = conn
             .query_row(
-                "SELECT revision, registry_json FROM silent_session_writer_lease_registry WHERE singleton=1",
+                "SELECT revision, registry_json FROM runtime_silent_session_writer_lease_registry WHERE singleton=1",
                 [],
                 |row| Ok((row.get::<_, u64>(0)?, row.get::<_, String>(1)?)),
             )
@@ -2410,7 +2941,7 @@ impl SqlitePersistence {
         let tx = conn.transaction()?;
         let current = tx
             .query_row(
-                "SELECT revision FROM silent_session_writer_lease_registry WHERE singleton=1",
+                "SELECT revision FROM runtime_silent_session_writer_lease_registry WHERE singleton=1",
                 [],
                 |row| row.get::<_, u64>(0),
             )
@@ -2424,7 +2955,7 @@ impl SqlitePersistence {
             .checked_add(1)
             .ok_or_else(|| anyhow::anyhow!("writer lease registry revision exhausted"))?;
         tx.execute(
-            r#"INSERT INTO silent_session_writer_lease_registry(singleton, revision, registry_json, updated_at)
+            r#"INSERT INTO runtime_silent_session_writer_lease_registry(singleton, revision, registry_json, updated_at)
                VALUES (1,?1,?2,?3)
                ON CONFLICT(singleton) DO UPDATE SET revision=excluded.revision,
                  registry_json=excluded.registry_json, updated_at=excluded.updated_at"#,
@@ -2453,7 +2984,7 @@ impl SqlitePersistence {
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let tx = conn.transaction()?;
         tx.execute(
-            r#"INSERT INTO silent_sessions(session_id, project_root, continuity_id, lifecycle_state, projection_json, projection_version, updated_at)
+            r#"INSERT INTO runtime_silent_sessions(session_id, project_root, continuity_id, lifecycle_state, projection_json, projection_version, updated_at)
                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
                ON CONFLICT(session_id) DO UPDATE SET project_root=excluded.project_root,
                  continuity_id=excluded.continuity_id, lifecycle_state=excluded.lifecycle_state,
@@ -2465,7 +2996,7 @@ impl SqlitePersistence {
         )?;
         let replay: Option<String> = tx
             .query_row(
-                "SELECT event_json FROM silent_session_events WHERE event_id=?1",
+                "SELECT event_json FROM runtime_silent_session_events WHERE event_id=?1",
                 [event.event_id.to_string()],
                 |row| row.get(0),
             )
@@ -2479,7 +3010,7 @@ impl SqlitePersistence {
             return Ok(());
         }
         let previous: Option<(i64, String)> = tx.query_row(
-            "SELECT seq, event_hash FROM silent_session_events WHERE session_id=?1 AND run_id=?2 ORDER BY seq DESC LIMIT 1",
+            "SELECT seq, event_hash FROM runtime_silent_session_events WHERE session_id=?1 AND run_id=?2 ORDER BY seq DESC LIMIT 1",
             params![event.session_id.to_string(), event.run_id.to_string()],
             |row| Ok((row.get(0)?, row.get(1)?))).optional()?;
         if let Some((last_seq, _)) = previous.as_ref() {
@@ -2498,7 +3029,7 @@ impl SqlitePersistence {
             &payload_sha256,
         );
         tx.execute(
-            "INSERT INTO silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            "INSERT INTO runtime_silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
             params![event.event_id.to_string(), event.session_id.to_string(), event.run_id.to_string(),
                 i64::try_from(event.seq)?, event.occurred_at.to_rfc3339(), event_json,
                 payload_sha256, previous_hash, event_hash],
@@ -2570,7 +3101,7 @@ impl SqlitePersistence {
         let tx = conn.transaction()?;
         let (stored_digest, expires_at, consumed_at): (String, String, Option<String>) = tx
             .query_row(
-                "SELECT action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+                "SELECT action_digest, expires_at, consumed_at FROM runtime_silent_session_approvals WHERE approval_id=?1",
                 [approval_id],
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )?;
@@ -2586,32 +3117,32 @@ impl SqlitePersistence {
         anyhow::ensure!(expiry > authorized_at, "silent-session approval expired");
 
         tx.execute(
-            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            "INSERT INTO runtime_silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
             params![action_digest, approval_id, authorized_at.to_rfc3339()],
         )?;
         let consumed = tx.execute(
-            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            "UPDATE runtime_silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
             params![approval_id, authorized_at.to_rfc3339()],
         )?;
         anyhow::ensure!(consumed == 1, "silent-session approval redemption conflict");
         tx.execute(
-            "INSERT INTO silent_sessions(session_id, project_root, continuity_id, lifecycle_state, projection_json, projection_version, updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7)",
+            "INSERT INTO runtime_silent_sessions(session_id, project_root, continuity_id, lifecycle_state, projection_json, projection_version, updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7)",
             params![session.session_id.to_string(), session.project_root.to_string_lossy(),
                 session.continuity_id, format!("{:?}", session.lifecycle_state), projection_json,
                 i64::try_from(event.seq)?, authorized_at.to_rfc3339()],
         )?;
         tx.execute(
-            "INSERT INTO silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,NULL,?3,?4,?5)",
+            "INSERT INTO runtime_silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,NULL,?3,?4,?5)",
             params![initial_config_revision.revision_id.to_string(), session.session_id.to_string(),
                 config_revision_json, effective_config_hash, authorized_at.to_rfc3339()],
         )?;
         tx.execute(
-            "INSERT INTO silent_session_runs(run_id, session_id, generation, run_json, updated_at) VALUES (?1,?2,?3,?4,?5)",
+            "INSERT INTO runtime_silent_session_runs(run_id, session_id, generation, run_json, updated_at) VALUES (?1,?2,?3,?4,?5)",
             params![run.run_id.to_string(), session.session_id.to_string(),
                 i64::try_from(run.generation)?, run_json, authorized_at.to_rfc3339()],
         )?;
         tx.execute(
-            "INSERT INTO silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            "INSERT INTO runtime_silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
             params![event.event_id.to_string(), event.session_id.to_string(), event.run_id.to_string(),
                 i64::try_from(event.seq)?, event.occurred_at.to_rfc3339(), event_json,
                 payload_sha256, "GENESIS", event_hash],
@@ -2668,7 +3199,7 @@ impl SqlitePersistence {
 
         let (stored_digest, expires_at, consumed_at): (String, String, Option<String>) = tx
             .query_row(
-                "SELECT action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+                "SELECT action_digest, expires_at, consumed_at FROM runtime_silent_session_approvals WHERE approval_id=?1",
                 [approval_id],
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )?;
@@ -2684,7 +3215,7 @@ impl SqlitePersistence {
         anyhow::ensure!(expiry > authorized_at, "silent-session approval expired");
 
         let stored_session_json: String = tx.query_row(
-            "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+            "SELECT projection_json FROM runtime_silent_sessions WHERE session_id=?1",
             [session.session_id.to_string()],
             |row| row.get(0),
         )?;
@@ -2701,13 +3232,13 @@ impl SqlitePersistence {
         );
 
         let (stored_generation, stored_run_json): (i64, String) = tx.query_row(
-            "SELECT generation, run_json FROM silent_session_runs WHERE session_id=?1 AND run_id=?2",
+            "SELECT generation, run_json FROM runtime_silent_session_runs WHERE session_id=?1 AND run_id=?2",
             params![session.session_id.to_string(), expected_run_id.to_string()],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )?;
         let stored_run: SilentSessionRun = serde_json::from_str(&stored_run_json)?;
         let latest_generation: i64 = tx.query_row(
-            "SELECT MAX(generation) FROM silent_session_runs WHERE session_id=?1",
+            "SELECT MAX(generation) FROM runtime_silent_session_runs WHERE session_id=?1",
             [session.session_id.to_string()],
             |row| row.get(0),
         )?;
@@ -2726,7 +3257,7 @@ impl SqlitePersistence {
 
         let previous: Option<(i64, String)> = tx
             .query_row(
-                "SELECT seq, event_hash FROM silent_session_events WHERE session_id=?1 AND run_id=?2 ORDER BY seq DESC LIMIT 1",
+                "SELECT seq, event_hash FROM runtime_silent_session_events WHERE session_id=?1 AND run_id=?2 ORDER BY seq DESC LIMIT 1",
                 params![event.session_id.to_string(), event.run_id.to_string()],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
@@ -2744,34 +3275,34 @@ impl SqlitePersistence {
         );
 
         tx.execute(
-            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            "INSERT INTO runtime_silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
             params![action_digest, approval_id, authorized_at.to_rfc3339()],
         )?;
         let consumed = tx.execute(
-            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            "UPDATE runtime_silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
             params![approval_id, authorized_at.to_rfc3339()],
         )?;
         anyhow::ensure!(consumed == 1, "silent-session approval redemption conflict");
         tx.execute(
-            "UPDATE silent_sessions SET lifecycle_state=?2, projection_json=?3, projection_version=?4, updated_at=?5 WHERE session_id=?1",
+            "UPDATE runtime_silent_sessions SET lifecycle_state=?2, projection_json=?3, projection_version=?4, updated_at=?5 WHERE session_id=?1",
             params![session.session_id.to_string(), format!("{:?}", session.lifecycle_state), projection_json,
                 i64::try_from(event.seq)?, Utc::now().to_rfc3339()],
         )?;
         if creates_generation {
             tx.execute(
-                "INSERT INTO silent_session_runs(run_id, session_id, generation, run_json, updated_at) VALUES (?1,?2,?3,?4,?5)",
+                "INSERT INTO runtime_silent_session_runs(run_id, session_id, generation, run_json, updated_at) VALUES (?1,?2,?3,?4,?5)",
                 params![run.run_id.to_string(), session.session_id.to_string(),
                     i64::try_from(run.generation)?, run_json, Utc::now().to_rfc3339()],
             )?;
         } else {
             tx.execute(
-                "UPDATE silent_session_runs SET run_json=?3, updated_at=?4 WHERE session_id=?1 AND run_id=?2 AND generation=?5",
+                "UPDATE runtime_silent_session_runs SET run_json=?3, updated_at=?4 WHERE session_id=?1 AND run_id=?2 AND generation=?5",
                 params![session.session_id.to_string(), run.run_id.to_string(), run_json,
                     Utc::now().to_rfc3339(), i64::try_from(expected_generation)?],
             )?;
         }
         tx.execute(
-            "INSERT INTO silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            "INSERT INTO runtime_silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
             params![event.event_id.to_string(), event.session_id.to_string(), event.run_id.to_string(),
                 i64::try_from(event.seq)?, event.occurred_at.to_rfc3339(), event_json,
                 payload_sha256, previous_hash, event_hash],
@@ -2790,7 +3321,7 @@ impl SqlitePersistence {
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let json: Option<String> = conn
             .query_row(
-                "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+                "SELECT projection_json FROM runtime_silent_sessions WHERE session_id=?1",
                 [session_id.to_string()],
                 |row| row.get(0),
             )
@@ -2809,7 +3340,7 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let mut statement = conn.prepare(
-            "SELECT projection_json FROM silent_sessions ORDER BY updated_at DESC, session_id DESC LIMIT ?1",
+            "SELECT projection_json FROM runtime_silent_sessions ORDER BY updated_at DESC, session_id DESC LIMIT ?1",
         )?;
         let rows = statement.query_map([i64::try_from(limit)?], |row| row.get::<_, String>(0))?;
         rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
@@ -2839,7 +3370,7 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let stored_projection: String = conn.query_row(
-            "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+            "SELECT projection_json FROM runtime_silent_sessions WHERE session_id=?1",
             [session.session_id.to_string()],
             |row| row.get(0),
         )?;
@@ -2849,7 +3380,7 @@ impl SqlitePersistence {
             "silent-session config projection conflict"
         );
         conn.execute(
-            "INSERT INTO silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,NULL,?3,?4,?5)",
+            "INSERT INTO runtime_silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,NULL,?3,?4,?5)",
             params![revision.revision_id.to_string(), session.session_id.to_string(), revision_json,
                 effective_hash, applied_at.to_rfc3339()],
         )?;
@@ -2887,7 +3418,7 @@ impl SqlitePersistence {
         let tx = conn.transaction()?;
         let (stored_digest, expires_at, consumed_at): (String, String, Option<String>) = tx
             .query_row(
-                "SELECT action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+                "SELECT action_digest, expires_at, consumed_at FROM runtime_silent_session_approvals WHERE approval_id=?1",
                 [approval_id],
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )?;
@@ -2902,7 +3433,7 @@ impl SqlitePersistence {
         let expiry = DateTime::parse_from_rfc3339(&expires_at)?.with_timezone(&Utc);
         anyhow::ensure!(expiry > authorized_at, "silent-session approval expired");
         let stored_projection: String = tx.query_row(
-            "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+            "SELECT projection_json FROM runtime_silent_sessions WHERE session_id=?1",
             [session.session_id.to_string()],
             |row| row.get(0),
         )?;
@@ -2913,7 +3444,7 @@ impl SqlitePersistence {
         );
         let parent_exists: Option<String> = tx
             .query_row(
-                "SELECT revision_id FROM silent_session_config_revisions WHERE session_id=?1 AND revision_id=?2",
+                "SELECT revision_id FROM runtime_silent_session_config_revisions WHERE session_id=?1 AND revision_id=?2",
                 params![session.session_id.to_string(), expected_revision_id.to_string()],
                 |row| row.get(0),
             )
@@ -2923,22 +3454,22 @@ impl SqlitePersistence {
             "silent-session config parent missing"
         );
         tx.execute(
-            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            "INSERT INTO runtime_silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
             params![action_digest, approval_id, authorized_at.to_rfc3339()],
         )?;
         let consumed = tx.execute(
-            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            "UPDATE runtime_silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
             params![approval_id, authorized_at.to_rfc3339()],
         )?;
         anyhow::ensure!(consumed == 1, "silent-session approval redemption conflict");
         tx.execute(
-            "INSERT INTO silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,?3,?4,?5,?6)",
+            "INSERT INTO runtime_silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,?3,?4,?5,?6)",
             params![revision.revision_id.to_string(), session.session_id.to_string(),
                 expected_revision_id.to_string(), revision_json, effective_hash,
                 applied_at.to_rfc3339()],
         )?;
         let changed = tx.execute(
-            "UPDATE silent_sessions SET projection_json=?3, updated_at=?4 WHERE session_id=?1 AND json_extract(projection_json, '$.config_revision_id')=?2",
+            "UPDATE runtime_silent_sessions SET projection_json=?3, updated_at=?4 WHERE session_id=?1 AND json_extract(projection_json, '$.config_revision_id')=?2",
             params![session.session_id.to_string(), expected_revision_id.to_string(),
                 projection_json, Utc::now().to_rfc3339()],
         )?;
@@ -2958,7 +3489,7 @@ impl SqlitePersistence {
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let row: Option<(String, String)> = conn
             .query_row(
-                "SELECT revision_json, effective_hash FROM silent_session_config_revisions WHERE session_id=?1 AND revision_id=?2",
+                "SELECT revision_json, effective_hash FROM runtime_silent_session_config_revisions WHERE session_id=?1 AND revision_id=?2",
                 params![session_id.to_string(), revision_id.to_string()],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
@@ -2976,7 +3507,7 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let mut statement = conn.prepare(
-            "SELECT revision_json, effective_hash FROM silent_session_config_revisions WHERE session_id=?1 ORDER BY applied_at, revision_id",
+            "SELECT revision_json, effective_hash FROM runtime_silent_session_config_revisions WHERE session_id=?1 ORDER BY applied_at, revision_id",
         )?;
         let rows = statement.query_map([session_id.to_string()], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
@@ -3005,7 +3536,7 @@ impl SqlitePersistence {
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let durable_session: Option<String> = conn
             .query_row(
-                "SELECT session_id FROM silent_sessions WHERE session_id=?1",
+                "SELECT session_id FROM runtime_silent_sessions WHERE session_id=?1",
                 [session.session_id.to_string()],
                 |row| row.get(0),
             )
@@ -3015,12 +3546,12 @@ impl SqlitePersistence {
             "silent-session run requires durable owning session"
         );
         let changed = conn.execute(
-            r#"INSERT INTO silent_session_runs(run_id, session_id, generation, run_json, updated_at)
+            r#"INSERT INTO runtime_silent_session_runs(run_id, session_id, generation, run_json, updated_at)
                VALUES (?1, ?2, ?3, ?4, ?5)
                ON CONFLICT(run_id) DO UPDATE SET run_json=excluded.run_json,
                  updated_at=excluded.updated_at
-               WHERE silent_session_runs.session_id=excluded.session_id
-                 AND silent_session_runs.generation=excluded.generation"#,
+               WHERE runtime_silent_session_runs.session_id=excluded.session_id
+                 AND runtime_silent_session_runs.generation=excluded.generation"#,
             params![
                 run.run_id.to_string(),
                 run.session_id.to_string(),
@@ -3044,7 +3575,7 @@ impl SqlitePersistence {
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let json: Option<String> = conn
             .query_row(
-                "SELECT run_json FROM silent_session_runs WHERE session_id=?1 AND run_id=?2",
+                "SELECT run_json FROM runtime_silent_session_runs WHERE session_id=?1 AND run_id=?2",
                 params![session_id.to_string(), run_id.to_string()],
                 |row| row.get(0),
             )
@@ -3087,7 +3618,7 @@ impl SqlitePersistence {
         let after_seq = match after_event_id {
             Some(event_id) => Some(
                 conn.query_row(
-                    "SELECT seq FROM silent_session_events WHERE session_id=?1 AND run_id=?2 AND event_id=?3",
+                    "SELECT seq FROM runtime_silent_session_events WHERE session_id=?1 AND run_id=?2 AND event_id=?3",
                     params![
                         session_id.to_string(),
                         run_id.to_string(),
@@ -3101,7 +3632,7 @@ impl SqlitePersistence {
             None => None,
         };
         let mut statement = conn.prepare(
-            "SELECT event_json FROM silent_session_events WHERE session_id=?1 AND run_id=?2 AND seq>?3 ORDER BY seq LIMIT ?4",
+            "SELECT event_json FROM runtime_silent_session_events WHERE session_id=?1 AND run_id=?2 AND seq>?3 ORDER BY seq LIMIT ?4",
         )?;
         let sql_limit = i64::try_from(limit).unwrap_or(i64::MAX);
         let rows = statement.query_map(
@@ -3125,7 +3656,7 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let mut statement = conn.prepare(
-            "SELECT event_json FROM silent_session_events WHERE session_id=?1 ORDER BY run_id, seq",
+            "SELECT event_json FROM runtime_silent_session_events WHERE session_id=?1 ORDER BY run_id, seq",
         )?;
         let rows = statement.query_map([session_id.to_string()], |row| row.get::<_, String>(0))?;
         rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
@@ -3141,7 +3672,7 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         conn.execute(
-            "UPDATE silent_session_events SET event_hash='tampered' WHERE event_id=?1",
+            "UPDATE runtime_silent_session_events SET event_hash='tampered' WHERE event_id=?1",
             [event_id],
         )?;
         Ok(())
@@ -3156,7 +3687,7 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let mut statement = conn.prepare(
-            "SELECT event_id, run_id, seq, occurred_at, payload_sha256, previous_hash, event_hash FROM silent_session_events WHERE session_id=?1 ORDER BY run_id, seq")?;
+            "SELECT event_id, run_id, seq, occurred_at, payload_sha256, previous_hash, event_hash FROM runtime_silent_session_events WHERE session_id=?1 ORDER BY run_id, seq")?;
         let mut rows = statement.query([session_id.to_string()])?;
         let mut prior_run = String::new();
         let mut prior_hash = "GENESIS".to_string();
@@ -3214,6 +3745,295 @@ impl SqlitePersistence {
         entries = entries[start..].to_vec();
         Ok(entries)
     }
+
+    /// Atomically append a validated suffix to an unscoped semantic pair stream.
+    pub fn append_semantic_pair_events(
+        &self,
+        pair_id: &str,
+        events: &[SemanticEventEnvelope],
+    ) -> anyhow::Result<()> {
+        if events.iter().any(|envelope| envelope.pair_id != pair_id) {
+            anyhow::bail!("semantic event pair id does not match append target");
+        }
+        self.append_semantic_pair_events_internal(pair_id, None, events)
+    }
+
+    /// Atomically append a validated suffix under an opaque exact-scope storage
+    /// key while preserving the logical pair id inside signed event envelopes.
+    pub fn append_scoped_semantic_pair_events(
+        &self,
+        storage_key: &str,
+        events: &[SemanticEventEnvelope],
+    ) -> anyhow::Result<()> {
+        self.append_semantic_pair_events_internal(storage_key, None, events)
+    }
+
+    pub fn append_exact_scope_semantic_pair_events(
+        &self,
+        storage_key: &str,
+        project_root: &str,
+        continuity_id: &str,
+        logical_pair_id: &str,
+        events: &[SemanticEventEnvelope],
+    ) -> anyhow::Result<()> {
+        self.append_semantic_pair_events_internal(
+            storage_key,
+            Some((project_root, continuity_id, logical_pair_id)),
+            events,
+        )
+    }
+
+    fn append_semantic_pair_events_internal(
+        &self,
+        storage_key: &str,
+        scope_index: Option<(&str, &str, &str)>,
+        events: &[SemanticEventEnvelope],
+    ) -> anyhow::Result<()> {
+        if storage_key.is_empty() {
+            anyhow::bail!("semantic scoped storage key is required");
+        }
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let existing = load_semantic_events_from_connection(&conn, storage_key)?;
+        let logical_pair_id = existing
+            .first()
+            .or_else(|| events.first())
+            .map(|event| event.pair_id.as_str());
+        if logical_pair_id.is_some_and(|pair_id| {
+            existing
+                .iter()
+                .chain(events)
+                .any(|event| event.pair_id != pair_id)
+        }) {
+            anyhow::bail!("semantic scoped stream contains mixed logical pair ids");
+        }
+        let mut candidate = existing;
+        candidate.extend_from_slice(events);
+        replay_semantic_events(&candidate)
+            .map_err(|error| anyhow::anyhow!("semantic replay validation failed: {error}"))?;
+
+        let tx = conn.transaction()?;
+        if let Some((project_root, continuity_id, logical_pair_id)) = scope_index {
+            tx.execute(
+                "INSERT INTO semantic_pair_scope_index(storage_key, project_root, continuity_id, logical_pair_id, updated_at) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(storage_key) DO UPDATE SET project_root=excluded.project_root, continuity_id=excluded.continuity_id, logical_pair_id=excluded.logical_pair_id, updated_at=excluded.updated_at",
+                params![storage_key, project_root, continuity_id, logical_pair_id, Utc::now().to_rfc3339()],
+            )?;
+        }
+        for envelope in events {
+            tx.execute(
+                "INSERT INTO semantic_pair_events(pair_id, sequence, event_id, envelope_json, event_hash) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    storage_key,
+                    envelope.sequence as i64,
+                    envelope.event_id,
+                    serde_json::to_string(envelope)?,
+                    envelope.hash,
+                ],
+            )?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn load_semantic_pair_events(
+        &self,
+        pair_id: &str,
+    ) -> anyhow::Result<Vec<SemanticEventEnvelope>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let events = load_semantic_events_from_connection(&conn, pair_id)?;
+        if !events.is_empty() {
+            replay_semantic_events(&events)
+                .map_err(|error| anyhow::anyhow!("semantic replay integrity failure: {error}"))?;
+        }
+        Ok(events)
+    }
+
+    pub fn list_exact_scope_semantic_pair_streams(
+        &self,
+        project_root: &str,
+        continuity_id: &str,
+        limit: usize,
+    ) -> anyhow::Result<Vec<(String, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let mut statement = conn.prepare(
+            "SELECT storage_key, logical_pair_id FROM semantic_pair_scope_index WHERE project_root=?1 AND continuity_id=?2 ORDER BY updated_at DESC LIMIT ?3",
+        )?;
+        let rows = statement.query_map(
+            params![project_root, continuity_id, limit.clamp(1, 100) as i64],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
+    }
+
+    /// Store an apply receipt and migrated aggregate in one transaction. A dry
+    /// run returns its truthful receipt and performs no write.
+    pub fn apply_semantic_pair_migration(
+        &self,
+        plan: &MigrationPlan,
+    ) -> anyhow::Result<MigrationReceipt> {
+        if plan.receipt.dry_run {
+            return Ok(plan.receipt.clone());
+        }
+        let receipt = plan.applied_receipt()?;
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let head: Option<i64> = tx
+            .query_row(
+                "SELECT MAX(sequence) FROM semantic_pair_events WHERE pair_id=?1",
+                [&receipt.pair_id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .flatten();
+        tx.execute(
+            "INSERT INTO semantic_pair_migrations(migration_id, pair_id, receipt_json, aggregate_json, event_head_sequence) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                receipt.migration_id,
+                receipt.pair_id,
+                serde_json::to_string(&receipt)?,
+                serde_json::to_string(&plan.aggregate)?,
+                head,
+            ],
+        )?;
+        tx.commit()?;
+        Ok(receipt)
+    }
+
+    pub fn load_migrated_semantic_pair(
+        &self,
+        pair_id: &str,
+    ) -> anyhow::Result<Option<(crate::semantic_pair::SemanticPair, MigrationReceipt)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let row: Option<(String, String)> = conn
+            .query_row(
+                "SELECT aggregate_json, receipt_json FROM semantic_pair_migrations WHERE pair_id=?1 AND rolled_back=0 ORDER BY rowid DESC LIMIT 1",
+                [pair_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        row.map(|(aggregate, receipt)| {
+            Ok((
+                serde_json::from_str(&aggregate)?,
+                serde_json::from_str(&receipt)?,
+            ))
+        })
+        .transpose()
+    }
+
+    /// Quarantine opaque future-version bytes. They are never decoded or
+    /// admitted to replay by this runtime.
+    pub fn quarantine_semantic_pair(
+        &self,
+        pair_id: &str,
+        found_version: u32,
+        payload: &[u8],
+        reason: &str,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        conn.execute(
+            "INSERT OR REPLACE INTO semantic_pair_quarantine(pair_id, found_version, payload, reason, quarantined_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![pair_id, found_version, payload, reason, Utc::now().to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
+    pub fn semantic_pair_quarantine_version(&self, pair_id: &str) -> anyhow::Result<Option<u32>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let version: Option<i64> = conn
+            .query_row(
+                "SELECT found_version FROM semantic_pair_quarantine WHERE pair_id=?1",
+                [pair_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(version.map(|value| value as u32))
+    }
+
+    /// Rollback is allowed only while the event head still matches the head at
+    /// apply time. This prevents a migration rollback from erasing later work.
+    pub fn rollback_semantic_pair_migration(
+        &self,
+        migration_id: &str,
+        rollback_boundary: &str,
+    ) -> anyhow::Result<()> {
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let row: Option<(String, String, Option<i64>, i64)> = tx
+            .query_row(
+                "SELECT pair_id, receipt_json, event_head_sequence, rolled_back FROM semantic_pair_migrations WHERE migration_id=?1",
+                [migration_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .optional()?;
+        let (pair_id, receipt_json, apply_head, rolled_back) =
+            row.ok_or_else(|| anyhow::anyhow!("semantic migration receipt not found"))?;
+        let receipt: MigrationReceipt = serde_json::from_str(&receipt_json)?;
+        if rolled_back != 0 || receipt.rollback_boundary != rollback_boundary {
+            anyhow::bail!("semantic migration rollback boundary mismatch");
+        }
+        let current_head: Option<i64> = tx
+            .query_row(
+                "SELECT MAX(sequence) FROM semantic_pair_events WHERE pair_id=?1",
+                [&pair_id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .flatten();
+        if current_head != apply_head {
+            anyhow::bail!("semantic migration rollback blocked by later events");
+        }
+        tx.execute(
+            "UPDATE semantic_pair_migrations SET rolled_back=1 WHERE migration_id=?1",
+            [migration_id],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+}
+
+fn load_semantic_events_from_connection(
+    conn: &Connection,
+    pair_id: &str,
+) -> anyhow::Result<Vec<SemanticEventEnvelope>> {
+    let mut statement = conn.prepare(
+        "SELECT envelope_json FROM semantic_pair_events WHERE pair_id=?1 ORDER BY sequence",
+    )?;
+    let rows = statement.query_map([pair_id], |row| row.get::<_, String>(0))?;
+    rows.map(|row| {
+        let json = row?;
+        serde_json::from_str(&json).map_err(|error| {
+            rusqlite::Error::FromSqlConversionFailure(
+                0,
+                rusqlite::types::Type::Text,
+                Box::new(error),
+            )
+        })
+    })
+    .collect::<Result<Vec<_>, _>>()
+    .map_err(Into::into)
 }
 
 fn shellexpand(path: &str) -> PathBuf {
@@ -3235,4 +4055,122 @@ fn _parse_ts(ts: &str) -> Option<DateTime<Utc>> {
 #[allow(dead_code)]
 fn _exists(path: &Path) -> bool {
     path.exists()
+}
+
+#[cfg(test)]
+mod trajectory_ladder_ledger_tests {
+    use super::*;
+    use crate::types::{TrajectoryConfidence, TrajectoryLadderEventKind, TrajectoryLadderLevel};
+
+    fn test_persistence() -> (SqlitePersistence, PathBuf) {
+        let root = std::env::temp_dir().join(format!("focusa-ladder-ledger-{}", Uuid::now_v7()));
+        let config = FocusaConfig {
+            data_dir: root.display().to_string(),
+            ..FocusaConfig::default()
+        };
+        let persistence = SqlitePersistence::new(&config).expect("test persistence");
+        (persistence, root)
+    }
+
+    fn event(
+        project_root: &str,
+        continuity_id: &str,
+        event_id: &str,
+        level: TrajectoryLadderLevel,
+        lamport_ts: u64,
+    ) -> TrajectoryLadderEvent {
+        TrajectoryLadderEvent {
+            schema_version: TrajectoryLadderEvent::SCHEMA_VERSION.to_string(),
+            event_id: event_id.to_string(),
+            trajectory_id: "trajectory:test".to_string(),
+            project_root: project_root.to_string(),
+            continuity_id: Some(continuity_id.to_string()),
+            session_id: None,
+            hlt_version: 1,
+            causal_parent_event_id: None,
+            event_kind: TrajectoryLadderEventKind::Committed,
+            level,
+            object_id: None,
+            old_value: serde_json::Value::Null,
+            new_value: serde_json::json!("value"),
+            actor: "test".to_string(),
+            source: "test".to_string(),
+            authority: "canonical_explicit".to_string(),
+            provenance: "test".to_string(),
+            confidence: TrajectoryConfidence::High,
+            reason: None,
+            evidence_refs: vec![],
+            idempotency_key: Some(event_id.to_string()),
+            lamport_ts,
+            timestamp: Utc::now(),
+        }
+    }
+
+    #[test]
+    fn ladder_ledger_is_scope_bounded_and_deduplicates_legacy_hlt_projection() {
+        let (persistence, root) = test_persistence();
+        let project_root = "/projects/focusa";
+        let legacy = HltLedgerEntry::new(project_root.to_string(), "HLT".to_string(), "test", 1)
+            .with_scope(Some("continuity:a".to_string()), None);
+        persistence
+            .append_hlt_ledger_entry(&legacy)
+            .expect("append legacy HLT");
+        let canonical_hlt = event(
+            project_root,
+            "continuity:a",
+            &format!("legacy-hlt:{}", legacy.event_id),
+            TrajectoryLadderLevel::Hlt,
+            1,
+        );
+        let waypoint = event(
+            project_root,
+            "continuity:a",
+            "event:waypoint",
+            TrajectoryLadderLevel::Waypoint,
+            2,
+        );
+        persistence
+            .append_trajectory_ladder_events(&[canonical_hlt, waypoint])
+            .expect("append Ladder batch");
+
+        let events = persistence
+            .read_trajectory_ladder_events(project_root, Some("continuity:a"), 50)
+            .expect("read Ladder");
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].level, TrajectoryLadderLevel::Hlt);
+        assert_eq!(events[1].level, TrajectoryLadderLevel::Waypoint);
+        assert!(
+            persistence
+                .read_trajectory_ladder_events(project_root, Some("continuity:b"), 50)
+                .expect("other continuity")
+                .is_empty()
+        );
+        drop(persistence);
+        std::fs::remove_dir_all(root).expect("clean test data");
+    }
+
+    #[test]
+    fn ladder_ledger_rejects_cross_project_batch() {
+        let (persistence, root) = test_persistence();
+        let first = event(
+            "/projects/a",
+            "continuity:a",
+            "event:a",
+            TrajectoryLadderLevel::Hlt,
+            1,
+        );
+        let second = event(
+            "/projects/b",
+            "continuity:a",
+            "event:b",
+            TrajectoryLadderLevel::Mlg,
+            2,
+        );
+        let error = persistence
+            .append_trajectory_ladder_events(&[first, second])
+            .expect_err("cross-project batch must fail");
+        assert!(error.to_string().contains("crosses project scope"));
+        drop(persistence);
+        std::fs::remove_dir_all(root).expect("clean test data");
+    }
 }

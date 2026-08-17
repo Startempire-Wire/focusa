@@ -23,7 +23,184 @@
 
 use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
+use crate::scoped_state::WorkstreamKey;
 use crate::types::*;
+
+fn ontology_value_matches_workstream(
+    value: &serde_json::Value,
+    expected: &Option<WorkstreamKey>,
+) -> bool {
+    match expected {
+        Some(expected) => value.get("workstream") == Some(&serde_json::json!(expected)),
+        None => value
+            .get("workstream")
+            .is_none_or(serde_json::Value::is_null),
+    }
+}
+
+fn apply_ontology_scope_migration_selection(
+    state: &mut FocusaState,
+    target: &WorkstreamKey,
+    selection: &OntologyScopeMigrationSelection,
+) -> Result<OntologyScopeMigrationEntry, ReducerError> {
+    if selection.evidence_refs.is_empty()
+        || selection
+            .evidence_refs
+            .iter()
+            .any(|value| value.trim().is_empty())
+    {
+        return Err(ReducerError::InvalidEvent(
+            "ontology scope migration requires non-empty evidence per record".to_string(),
+        ));
+    }
+
+    macro_rules! clone_typed_record {
+        ($records:expr) => {{
+            let matches = $records
+                .iter()
+                .filter(|record| {
+                    record.workstream.is_none()
+                        && ontology_scope_record_hash(*record) == selection.source_hash
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            if matches.len() != 1 {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "ontology migration source hash must identify exactly one unowned record: {} matches={}",
+                    selection.source_hash,
+                    matches.len()
+                )));
+            }
+            let mut cloned = matches.into_iter().next().expect("one migration match");
+            cloned.workstream = Some(target.clone());
+            let clone_hash = ontology_scope_record_hash(&cloned);
+            $records.push(cloned);
+            clone_hash
+        }};
+    }
+
+    let clone_hash = match selection.record_kind {
+        OntologyScopeMigrationRecordKind::Object | OntologyScopeMigrationRecordKind::Link => {
+            let records = if matches!(
+                selection.record_kind,
+                OntologyScopeMigrationRecordKind::Object
+            ) {
+                &mut state.ontology.objects
+            } else {
+                &mut state.ontology.links
+            };
+            let matches = records
+                .iter()
+                .filter(|record| {
+                    record
+                        .get("workstream")
+                        .is_none_or(serde_json::Value::is_null)
+                        && ontology_scope_record_hash(*record) == selection.source_hash
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            if matches.len() != 1 {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "ontology migration source hash must identify exactly one unowned JSON record: {} matches={}",
+                    selection.source_hash,
+                    matches.len()
+                )));
+            }
+            let mut cloned = matches.into_iter().next().expect("one migration match");
+            cloned["workstream"] = serde_json::json!(target);
+            let clone_hash = ontology_scope_record_hash(&cloned);
+            records.push(cloned);
+            clone_hash
+        }
+        OntologyScopeMigrationRecordKind::Proposal => {
+            clone_typed_record!(&mut state.ontology.proposals)
+        }
+        OntologyScopeMigrationRecordKind::Verification => {
+            clone_typed_record!(&mut state.ontology.verifications)
+        }
+        OntologyScopeMigrationRecordKind::WorkingSetRefresh => {
+            clone_typed_record!(&mut state.ontology.working_set_refreshes)
+        }
+        OntologyScopeMigrationRecordKind::Delta => {
+            clone_typed_record!(&mut state.ontology.delta_log)
+        }
+        OntologyScopeMigrationRecordKind::PreProposal => {
+            clone_typed_record!(&mut state.pre.proposals)
+        }
+    };
+
+    Ok(OntologyScopeMigrationEntry {
+        record_kind: selection.record_kind,
+        source_hash: selection.source_hash.clone(),
+        clone_hash,
+        evidence_refs: selection.evidence_refs.clone(),
+    })
+}
+
+fn rollback_ontology_scope_migration_entry(
+    state: &mut FocusaState,
+    target: &WorkstreamKey,
+    entry: &OntologyScopeMigrationEntry,
+) -> Result<(), ReducerError> {
+    macro_rules! remove_typed_clone {
+        ($records:expr) => {{
+            let matches = $records
+                .iter()
+                .filter(|record| {
+                    record.workstream.as_ref() == Some(target)
+                        && ontology_scope_record_hash(*record) == entry.clone_hash
+                })
+                .count();
+            if matches != 1 {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "ontology migration rollback requires one unchanged clone: {} matches={}",
+                    entry.clone_hash, matches
+                )));
+            }
+            $records.retain(|record| ontology_scope_record_hash(record) != entry.clone_hash);
+        }};
+    }
+
+    match entry.record_kind {
+        OntologyScopeMigrationRecordKind::Object | OntologyScopeMigrationRecordKind::Link => {
+            let records = if matches!(entry.record_kind, OntologyScopeMigrationRecordKind::Object) {
+                &mut state.ontology.objects
+            } else {
+                &mut state.ontology.links
+            };
+            let matches = records
+                .iter()
+                .filter(|record| {
+                    ontology_value_matches_workstream(record, &Some(target.clone()))
+                        && ontology_scope_record_hash(*record) == entry.clone_hash
+                })
+                .count();
+            if matches != 1 {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "ontology migration rollback requires one unchanged JSON clone: {} matches={}",
+                    entry.clone_hash, matches
+                )));
+            }
+            records.retain(|record| ontology_scope_record_hash(record) != entry.clone_hash);
+        }
+        OntologyScopeMigrationRecordKind::Proposal => {
+            remove_typed_clone!(&mut state.ontology.proposals)
+        }
+        OntologyScopeMigrationRecordKind::Verification => {
+            remove_typed_clone!(&mut state.ontology.verifications)
+        }
+        OntologyScopeMigrationRecordKind::WorkingSetRefresh => {
+            remove_typed_clone!(&mut state.ontology.working_set_refreshes)
+        }
+        OntologyScopeMigrationRecordKind::Delta => {
+            remove_typed_clone!(&mut state.ontology.delta_log)
+        }
+        OntologyScopeMigrationRecordKind::PreProposal => {
+            remove_typed_clone!(&mut state.pre.proposals)
+        }
+    }
+    Ok(())
+}
 
 fn upsert_context_claim(
     state: &mut FocusaState,
@@ -203,17 +380,6 @@ fn bound_workpoint_record(record: &mut WorkpointRecord) {
     }
 }
 
-/// Find an ontology object by its id — the canonical lookup extracted
-/// from 68 near-identical copies (deslop run 2026-08-16).
-fn ontology_object_mut<'a>(
-    objects: &'a mut [serde_json::Value],
-    id: &str,
-) -> Option<&'a mut serde_json::Value> {
-    objects
-        .iter_mut()
-        .find(|o| o.get("id").and_then(|v| v.as_str()) == Some(id))
-}
-
 fn find_workpoint_mut(
     state: &mut FocusaState,
     workpoint_id: WorkpointId,
@@ -250,23 +416,22 @@ fn upsert_workpoint_record(
 }
 
 fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
-    truncate_front(&mut record.waypoints, trajectory_caps::MILESTONES);
-    truncate_front(&mut record.milestones, trajectory_caps::MILESTONES);
-    for milestone in &mut record.milestones {
+    truncate_front(&mut record.waypoints, trajectory_caps::WAYPOINTS);
+    for waypoint in &mut record.waypoints {
         truncate_front(
-            &mut milestone.current_state_evidence_refs,
+            &mut waypoint.current_state_evidence_refs,
             trajectory_caps::EVIDENCE_REFS,
         );
         truncate_front(
-            &mut milestone.completion_evidence_refs,
+            &mut waypoint.completion_evidence_refs,
             trajectory_caps::EVIDENCE_REFS,
         );
     }
     truncate_front(&mut record.goal_provenance, trajectory_caps::PROVENANCE);
-    truncate_front(&mut record.blockers, trajectory_caps::MILESTONES);
-    truncate_front(&mut record.open_questions, trajectory_caps::MILESTONES);
+    truncate_front(&mut record.blockers, trajectory_caps::WAYPOINTS);
+    truncate_front(&mut record.open_questions, trajectory_caps::WAYPOINTS);
     if let Some(dod) = &mut record.definition_of_done {
-        truncate_front(&mut dod.criteria, trajectory_caps::MILESTONES);
+        truncate_front(&mut dod.criteria, trajectory_caps::WAYPOINTS);
         truncate_front(&mut dod.evidence_required, trajectory_caps::EVIDENCE_REFS);
         truncate_front(
             &mut dod.verified_evidence_refs,
@@ -276,9 +441,9 @@ fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
             &mut dod.required_evidence_refs,
             trajectory_caps::EVIDENCE_REFS,
         );
-        truncate_front(&mut dod.required_checks, trajectory_caps::MILESTONES);
-        truncate_front(&mut dod.acceptance_risks, trajectory_caps::MILESTONES);
-        truncate_front(&mut dod.not_done_if, trajectory_caps::MILESTONES);
+        truncate_front(&mut dod.required_checks, trajectory_caps::WAYPOINTS);
+        truncate_front(&mut dod.acceptance_risks, trajectory_caps::WAYPOINTS);
+        truncate_front(&mut dod.not_done_if, trajectory_caps::WAYPOINTS);
     }
 }
 
@@ -378,9 +543,6 @@ pub fn reduce_with_meta(
     let emitted_event = event.clone();
 
     match event {
-        FocusaEvent::TemporalFrameContextProjected { .. }
-        | FocusaEvent::OntologyScopeMigrationApplied { .. }
-        | FocusaEvent::OntologyScopeMigrationRolledBack { .. } => {}
         // ─── Context corpus ─────────────────────────────────────────────
         FocusaEvent::ContextSourceCommitted { source } => {
             if source.receipt.before_state_version != state.version
@@ -1760,6 +1922,11 @@ pub fn reduce_with_meta(
             state.work_loop.execution_workpoint_id = workpoint_id;
             state.work_loop.enabled = true;
             state.work_loop.status = WorkLoopStatus::Idle;
+            state.work_loop.current_task = None;
+            state.work_loop.deferred_items.clear();
+            state.work_loop.run.task_run_id = None;
+            state.work_loop.run.tranche_run_id = None;
+            state.work_loop.run.worker_session_id = None;
             state.work_loop.policy = policy;
             state.work_loop.run.project_run_id = project_run_id;
             state.work_loop.last_blocker_class = None;
@@ -1796,6 +1963,10 @@ pub fn reduce_with_meta(
             state.work_loop.enabled = false;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.current_task = None;
+            state.work_loop.deferred_items.clear();
+            state.work_loop.run.task_run_id = None;
+            state.work_loop.run.tranche_run_id = None;
+            state.work_loop.run.worker_session_id = None;
             state.work_loop.last_continue_reason = Some(reason);
             state.work_loop.enabled_at = None;
             state.work_loop.budget_epoch_id = None;
@@ -1887,6 +2058,17 @@ pub fn reduce_with_meta(
             state.work_loop.transport_session_state = Some("attached".to_string());
             state.work_loop.last_transport_event_kind = Some("session_attached".to_string());
             state.work_loop.last_transport_event_summary = Some(session_id);
+            if state.work_loop.enabled
+                && state.work_loop.status == WorkLoopStatus::TransportDegraded
+            {
+                state.work_loop.status = if state.work_loop.current_task.is_some() {
+                    WorkLoopStatus::SelectingReadyWork
+                } else {
+                    WorkLoopStatus::Idle
+                };
+                state.work_loop.last_blocker_class = None;
+                state.work_loop.last_blocker_reason = None;
+            }
         }
         FocusaEvent::ContinuousTransportAbortForwarded { reason } => {
             state.work_loop.transport_abort_reason = Some(reason.clone());
@@ -2208,7 +2390,6 @@ pub fn reduce_with_meta(
             }
 
             stack.frames.push(FrameRecord {
-                temporal_context: None,
                 id: frame_id,
                 parent_id,
                 created_at: now,
@@ -2225,6 +2406,7 @@ pub fn reduce_with_meta(
                 stats: FrameStats::default(),
                 constraints,
                 focus_state: FocusState::default(),
+                temporal_context: None,
                 completed_at: None,
                 completion_reason: None,
             });
@@ -2417,6 +2599,39 @@ pub fn reduce_with_meta(
 
             apply_delta(&mut frame.focus_state, &delta);
             frame.updated_at = Utc::now();
+        }
+        FocusaEvent::TemporalFrameContextProjected { frame_id, context } => {
+            let frame = state
+                .focus_stack
+                .frames
+                .iter_mut()
+                .find(|candidate| candidate.id == frame_id)
+                .ok_or_else(|| ReducerError::FrameNotFound(frame_id.to_string()))?;
+            if frame.status == FrameStatus::Completed {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "TemporalFrameContextProjected for completed frame {}",
+                    frame_id
+                )));
+            }
+            let frame_root = frame.project_root.as_deref().unwrap_or_default();
+            let frame_continuity = frame.continuity_id.as_deref().unwrap_or_default();
+            if frame_root != context.projection.scope.project_root
+                || frame_continuity != context.projection.scope.continuity_id
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "temporal context scope mismatch for frame {}",
+                    frame_id
+                )));
+            }
+            if context.projected_at < context.projection.as_of {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "temporal context projection time precedes source projection for frame {}",
+                    frame_id
+                )));
+            }
+            frame.updated_at = context.projected_at;
+            frame.temporal_context = Some(context);
+            state.focus_stack.version += 1;
         }
 
         // ─── Intuition → Gate ────────────────────────────────────────────
@@ -2619,7 +2834,7 @@ pub fn reduce_with_meta(
 
         // ─── Ontology Classification / Reducer ──────────────────────────
         FocusaEvent::OntologyObjectUpsertProposed {
-            workstream: _,
+            workstream,
             proposal_id,
             object_type,
             object_id,
@@ -2627,7 +2842,7 @@ pub fn reduce_with_meta(
         } => {
             let now = Utc::now();
             let record = OntologyProposalRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 proposal_id,
                 proposal_kind: "object_upsert".to_string(),
                 target_class: object_type.clone(),
@@ -2645,20 +2860,20 @@ pub fn reduce_with_meta(
                 .ontology
                 .proposals
                 .iter_mut()
-                .find(|p| p.proposal_id == proposal_id)
+                .find(|p| p.proposal_id == proposal_id && p.workstream == workstream)
             {
                 *existing = record;
             } else {
                 state.ontology.proposals.push(record);
             }
             if let Some(id) = object_id.clone() {
-                let exists = state
-                    .ontology
-                    .objects
-                    .iter()
-                    .any(|o| o.get("id").and_then(|v| v.as_str()) == Some(id.as_str()));
+                let exists = state.ontology.objects.iter().any(|o| {
+                    o.get("id").and_then(|v| v.as_str()) == Some(id.as_str())
+                        && ontology_value_matches_workstream(o, &workstream)
+                });
                 if !exists {
                     state.ontology.objects.push(serde_json::json!({
+                        "workstream": workstream,
                         "id": id,
                         "object_type": object_type,
                         "status": "proposed",
@@ -2668,7 +2883,7 @@ pub fn reduce_with_meta(
                 }
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 delta_kind: "ontology_object_upsert_proposed".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -2680,7 +2895,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyLinkUpsertProposed {
-            workstream: _,
+            workstream,
             proposal_id,
             link_type,
             source_id,
@@ -2689,7 +2904,7 @@ pub fn reduce_with_meta(
         } => {
             let now = Utc::now();
             let record = OntologyProposalRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 proposal_id,
                 proposal_kind: "link_upsert".to_string(),
                 target_class: link_type.clone(),
@@ -2707,13 +2922,14 @@ pub fn reduce_with_meta(
                 .ontology
                 .proposals
                 .iter_mut()
-                .find(|p| p.proposal_id == proposal_id)
+                .find(|p| p.proposal_id == proposal_id && p.workstream == workstream)
             {
                 *existing = record;
             } else {
                 state.ontology.proposals.push(record);
             }
             state.ontology.links.push(serde_json::json!({
+                "workstream": workstream,
                 "type": link_type,
                 "source_id": source_id,
                 "target_id": target_id,
@@ -2723,7 +2939,7 @@ pub fn reduce_with_meta(
                 "source": source,
             }));
             state.ontology.delta_log.push(OntologyDeltaRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 delta_kind: "ontology_link_upsert_proposed".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -2736,7 +2952,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyStatusChangeProposed {
-            workstream: _,
+            workstream,
             proposal_id,
             subject,
             from_status,
@@ -2745,7 +2961,7 @@ pub fn reduce_with_meta(
         } => {
             let now = Utc::now();
             let record = OntologyProposalRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 proposal_id,
                 proposal_kind: "status_change".to_string(),
                 target_class: "status".to_string(),
@@ -2767,22 +2983,21 @@ pub fn reduce_with_meta(
                 .ontology
                 .proposals
                 .iter_mut()
-                .find(|p| p.proposal_id == proposal_id)
+                .find(|p| p.proposal_id == proposal_id && p.workstream == workstream)
             {
                 *existing = record;
             } else {
                 state.ontology.proposals.push(record);
             }
-            if let Some(object) = state
-                .ontology
-                .objects
-                .iter_mut()
-                .find(|o| o.get("id").and_then(|v| v.as_str()) == Some(subject.as_str()))
-            {
+            if let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                ontology_value_matches_workstream(o, &workstream)
+                    && o.get("id").and_then(|v| v.as_str()) == Some(subject.as_str())
+                    && ontology_value_matches_workstream(o, &workstream)
+            }) {
                 object["status"] = serde_json::Value::String(to_status.clone());
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 delta_kind: "ontology_status_change_proposed".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -2795,7 +3010,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyWorkingSetMembershipProposed {
-            workstream: _,
+            workstream,
             proposal_id,
             subject,
             operation,
@@ -2803,7 +3018,7 @@ pub fn reduce_with_meta(
         } => {
             let now = Utc::now();
             let record = OntologyProposalRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 proposal_id,
                 proposal_kind: "working_set_membership".to_string(),
                 target_class: "working_set".to_string(),
@@ -2821,18 +3036,17 @@ pub fn reduce_with_meta(
                 .ontology
                 .proposals
                 .iter_mut()
-                .find(|p| p.proposal_id == proposal_id)
+                .find(|p| p.proposal_id == proposal_id && p.workstream == workstream)
             {
                 *existing = record;
             } else {
                 state.ontology.proposals.push(record);
             }
-            if let Some(object) = state
-                .ontology
-                .objects
-                .iter_mut()
-                .find(|o| o.get("id").and_then(|v| v.as_str()) == Some(subject.as_str()))
-            {
+            if let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                ontology_value_matches_workstream(o, &workstream)
+                    && o.get("id").and_then(|v| v.as_str()) == Some(subject.as_str())
+                    && ontology_value_matches_workstream(o, &workstream)
+            }) {
                 let mut memberships = object
                     .get("working_set_memberships")
                     .and_then(|v| v.as_array())
@@ -2857,7 +3071,7 @@ pub fn reduce_with_meta(
                 object["status"] = serde_json::Value::String("candidate".to_string());
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 delta_kind: "ontology_working_set_membership_proposed".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -2869,7 +3083,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyProposalPromoted {
-            workstream: _,
+            workstream,
             proposal_id,
             target_class,
             applied_kind,
@@ -2879,7 +3093,7 @@ pub fn reduce_with_meta(
                 .ontology
                 .proposals
                 .iter()
-                .position(|p| p.proposal_id == proposal_id)
+                .position(|p| p.proposal_id == proposal_id && p.workstream == workstream)
             {
                 let proposal = state.ontology.proposals[proposal_idx].clone();
                 state.ontology.proposals[proposal_idx].status = "promoted".to_string();
@@ -2888,7 +3102,11 @@ pub fn reduce_with_meta(
                 match proposal.proposal_kind.as_str() {
                     "object_upsert" => {
                         if let Some(object_id) = proposal.object_id.as_ref() {
-                            if let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str()) {
+                            if let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            }) {
                                 object["status"] =
                                     serde_json::Value::String("promoted".to_string());
                                 object["provenance_class"] =
@@ -2897,6 +3115,7 @@ pub fn reduce_with_meta(
                                     serde_json::Value::String(proposal_id.to_string());
                             } else {
                                 state.ontology.objects.push(serde_json::json!({
+                                    "workstream": workstream,
                                     "id": object_id,
                                     "object_type": proposal
                                         .object_type
@@ -2916,7 +3135,9 @@ pub fn reduce_with_meta(
                             proposal.target_id.as_ref(),
                         ) {
                             if let Some(link) = state.ontology.links.iter_mut().find(|l| {
-                                l.get("type").and_then(|v| v.as_str()) == Some(link_type.as_str())
+                                ontology_value_matches_workstream(l, &workstream)
+                                    && l.get("type").and_then(|v| v.as_str())
+                                        == Some(link_type.as_str())
                                     && l.get("source_id").and_then(|v| v.as_str())
                                         == Some(source_id.as_str())
                                     && l.get("target_id").and_then(|v| v.as_str())
@@ -2927,6 +3148,7 @@ pub fn reduce_with_meta(
                                     serde_json::Value::String(proposal_id.to_string());
                             } else {
                                 state.ontology.links.push(serde_json::json!({
+                                    "workstream": workstream,
                                     "type": link_type,
                                     "source_id": source_id,
                                     "target_id": target_id,
@@ -2939,7 +3161,11 @@ pub fn reduce_with_meta(
                     }
                     "status_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["provenance_class"] =
@@ -2948,7 +3174,11 @@ pub fn reduce_with_meta(
                     }
                     "working_set_membership" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["membership_class"] =
@@ -2961,7 +3191,11 @@ pub fn reduce_with_meta(
                 match applied_kind.as_str() {
                     "execute_migration" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("migrated".to_string());
                             object["migration_state"] =
@@ -2971,7 +3205,11 @@ pub fn reduce_with_meta(
                     }
                     "resolve_identity" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("canonical".to_string());
                             object["entity_class"] =
@@ -3004,7 +3242,11 @@ pub fn reduce_with_meta(
                     }
                     "decompose_goal" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["decomposition_state"] =
@@ -3013,7 +3255,11 @@ pub fn reduce_with_meta(
                     }
                     "prioritize_work" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["priority_state"] =
@@ -3022,7 +3268,11 @@ pub fn reduce_with_meta(
                     }
                     "record_decision" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["decision_state"] =
@@ -3031,7 +3281,11 @@ pub fn reduce_with_meta(
                     }
                     "register_constraint" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["constraint_state"] =
@@ -3040,7 +3294,11 @@ pub fn reduce_with_meta(
                     }
                     "identify_risk" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("candidate".to_string());
                             object["risk_state"] =
@@ -3049,14 +3307,22 @@ pub fn reduce_with_meta(
                     }
                     "mark_blocked" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("blocked".to_string());
                         }
                     }
                     "restore_progress" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["progress_state"] =
@@ -3065,7 +3331,11 @@ pub fn reduce_with_meta(
                     }
                     "verify_progress" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["progress_state"] =
@@ -3074,7 +3344,11 @@ pub fn reduce_with_meta(
                     }
                     "refresh_working_set" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["membership_class"] =
@@ -3083,7 +3357,11 @@ pub fn reduce_with_meta(
                     }
                     "close_loop" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("completed".to_string());
                             object["completion_state"] =
@@ -3092,7 +3370,11 @@ pub fn reduce_with_meta(
                     }
                     "complete_task" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("completed".to_string());
                             object["completion_state"] =
@@ -3101,7 +3383,11 @@ pub fn reduce_with_meta(
                     }
                     "detect_affordances" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("candidate".to_string());
                             object["affordance_state"] =
@@ -3110,7 +3396,11 @@ pub fn reduce_with_meta(
                     }
                     "verify_permissions" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["permission_state"] =
@@ -3119,7 +3409,11 @@ pub fn reduce_with_meta(
                     }
                     "verify_preconditions" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["precondition_state"] =
@@ -3128,7 +3422,11 @@ pub fn reduce_with_meta(
                     }
                     "evaluate_dependencies" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["dependency_state"] =
@@ -3137,7 +3435,11 @@ pub fn reduce_with_meta(
                     }
                     "estimate_cost" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
@@ -3146,7 +3448,11 @@ pub fn reduce_with_meta(
                     }
                     "estimate_latency" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
@@ -3155,7 +3461,11 @@ pub fn reduce_with_meta(
                     }
                     "estimate_reliability" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
@@ -3164,7 +3474,11 @@ pub fn reduce_with_meta(
                     }
                     "estimate_reversibility" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
@@ -3173,7 +3487,11 @@ pub fn reduce_with_meta(
                     }
                     "choose_execution_path" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["execution_path_state"] =
@@ -3182,7 +3500,11 @@ pub fn reduce_with_meta(
                     }
                     "escalate_authority" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["authority_state"] =
@@ -3191,7 +3513,11 @@ pub fn reduce_with_meta(
                     }
                     "mark_unavailable" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("blocked".to_string());
                             object["availability_state"] =
@@ -3200,7 +3526,11 @@ pub fn reduce_with_meta(
                     }
                     "determine_current_ask" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["ask_state"] =
@@ -3209,7 +3539,11 @@ pub fn reduce_with_meta(
                     }
                     "build_query_scope" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["scope_state"] = serde_json::Value::String("built".to_string());
@@ -3217,7 +3551,11 @@ pub fn reduce_with_meta(
                     }
                     "select_relevant_context" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["selection_state"] =
@@ -3226,7 +3564,11 @@ pub fn reduce_with_meta(
                     }
                     "exclude_irrelevant_context" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("stale".to_string());
                             object["selection_state"] =
@@ -3235,7 +3577,11 @@ pub fn reduce_with_meta(
                     }
                     "verify_answer_scope" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["scope_state"] =
@@ -3244,7 +3590,11 @@ pub fn reduce_with_meta(
                     }
                     "record_scope_failure" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("failed".to_string());
                             object["scope_state"] = serde_json::Value::String("failed".to_string());
@@ -3252,7 +3602,11 @@ pub fn reduce_with_meta(
                     }
                     "establish_identity" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["identity_state"] =
@@ -3261,7 +3615,11 @@ pub fn reduce_with_meta(
                     }
                     "load_role_profile" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["role_state"] = serde_json::Value::String("loaded".to_string());
@@ -3269,7 +3627,11 @@ pub fn reduce_with_meta(
                     }
                     "verify_capability_profile" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["capability_state"] =
@@ -3278,7 +3640,11 @@ pub fn reduce_with_meta(
                     }
                     "verify_permission_profile" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["permission_state"] =
@@ -3287,7 +3653,11 @@ pub fn reduce_with_meta(
                     }
                     "assign_responsibility" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["responsibility_state"] =
@@ -3296,7 +3666,11 @@ pub fn reduce_with_meta(
                     }
                     "determine_handoff_boundary" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["handoff_state"] =
@@ -3305,7 +3679,11 @@ pub fn reduce_with_meta(
                     }
                     "restore_identity_continuity" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["continuity_state"] =
@@ -3314,7 +3692,11 @@ pub fn reduce_with_meta(
                     }
                     "form_intention" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["intention_state"] =
@@ -3323,7 +3705,11 @@ pub fn reduce_with_meta(
                     }
                     "promote_commitment" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["commitment_state"] =
@@ -3332,7 +3718,11 @@ pub fn reduce_with_meta(
                     }
                     "apply_inhibition" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("blocked".to_string());
                             object["inhibition_state"] =
@@ -3341,7 +3731,11 @@ pub fn reduce_with_meta(
                     }
                     "evaluate_switch" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["switch_state"] =
@@ -3350,7 +3744,11 @@ pub fn reduce_with_meta(
                     }
                     "maintain_commitment" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["commitment_state"] =
@@ -3359,7 +3757,11 @@ pub fn reduce_with_meta(
                     }
                     "authorize_abandonment" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("retired".to_string());
                             object["abandonment_state"] =
@@ -3368,7 +3770,11 @@ pub fn reduce_with_meta(
                     }
                     "push_to_completion" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("completed".to_string());
                             object["completion_state"] =
@@ -3377,7 +3783,11 @@ pub fn reduce_with_meta(
                     }
                     "record_goal_conflict" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("blocked".to_string());
                             object["conflict_state"] =
@@ -3386,7 +3796,11 @@ pub fn reduce_with_meta(
                     }
                     "detect_aliases" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("candidate".to_string());
                             object["alias_state"] =
@@ -3395,7 +3809,11 @@ pub fn reduce_with_meta(
                     }
                     "build_resolution_candidates" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("candidate".to_string());
                             object["resolution_state"] =
@@ -3404,7 +3822,11 @@ pub fn reduce_with_meta(
                     }
                     "verify_resolution" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["resolution_state"] =
@@ -3413,7 +3835,11 @@ pub fn reduce_with_meta(
                     }
                     "build_projection" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["projection_state"] =
@@ -3422,7 +3848,11 @@ pub fn reduce_with_meta(
                     }
                     "compress_projection" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["projection_state"] =
@@ -3431,7 +3861,11 @@ pub fn reduce_with_meta(
                     }
                     "verify_projection_fidelity" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["projection_state"] =
@@ -3440,7 +3874,11 @@ pub fn reduce_with_meta(
                     }
                     "evaluate_retention" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["retention_state"] =
@@ -3449,7 +3887,11 @@ pub fn reduce_with_meta(
                     }
                     "apply_decay" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("stale".to_string());
                             object["retention_state"] =
@@ -3458,7 +3900,11 @@ pub fn reduce_with_meta(
                     }
                     "archive_object" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("retired".to_string());
                             object["archive_state"] =
@@ -3467,7 +3913,11 @@ pub fn reduce_with_meta(
                     }
                     "prune_active_context" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("stale".to_string());
                             object["context_state"] =
@@ -3476,7 +3926,11 @@ pub fn reduce_with_meta(
                     }
                     "restore_from_archive" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["archive_state"] =
@@ -3485,7 +3939,11 @@ pub fn reduce_with_meta(
                     }
                     "record_supersession" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("superseded".to_string());
                             object["supersession_state"] =
@@ -3494,7 +3952,11 @@ pub fn reduce_with_meta(
                     }
                     "create_version" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] =
                                 serde_json::Value::String("experimental".to_string());
@@ -3504,7 +3966,11 @@ pub fn reduce_with_meta(
                     }
                     "declare_compatibility" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("declared".to_string());
                             object["compatibility_state"] =
@@ -3513,7 +3979,11 @@ pub fn reduce_with_meta(
                     }
                     "build_migration_plan" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("planned".to_string());
                             object["migration_state"] =
@@ -3522,7 +3992,11 @@ pub fn reduce_with_meta(
                     }
                     "deprecate_schema_element" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("retired".to_string());
                             object["lifecycle"] =
@@ -3531,7 +4005,11 @@ pub fn reduce_with_meta(
                     }
                     "review_governance_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("approved".to_string());
                             object["governance_state"] =
@@ -3540,7 +4018,11 @@ pub fn reduce_with_meta(
                     }
                     "verify_post_migration_conformance" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["conformance_state"] =
@@ -3551,7 +4033,7 @@ pub fn reduce_with_meta(
                 }
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 delta_kind: "ontology_proposal_promoted".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -3562,7 +4044,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyProposalRejected {
-            workstream: _,
+            workstream,
             proposal_id,
             target_class,
             reason,
@@ -3582,7 +4064,11 @@ pub fn reduce_with_meta(
                 match proposal.proposal_kind.as_str() {
                     "object_upsert" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("rejected".to_string());
                             object["rejection_reason"] = serde_json::Value::String(reason.clone());
@@ -3594,7 +4080,9 @@ pub fn reduce_with_meta(
                             proposal.source_id.as_ref(),
                             proposal.target_id.as_ref(),
                         ) && let Some(link) = state.ontology.links.iter_mut().find(|l| {
-                            l.get("type").and_then(|v| v.as_str()) == Some(link_type.as_str())
+                            ontology_value_matches_workstream(l, &workstream)
+                                && l.get("type").and_then(|v| v.as_str())
+                                    == Some(link_type.as_str())
                                 && l.get("source_id").and_then(|v| v.as_str())
                                     == Some(source_id.as_str())
                                 && l.get("target_id").and_then(|v| v.as_str())
@@ -3606,7 +4094,11 @@ pub fn reduce_with_meta(
                     }
                     "status_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("rejected".to_string());
                             object["rejection_reason"] = serde_json::Value::String(reason.clone());
@@ -3614,7 +4106,11 @@ pub fn reduce_with_meta(
                     }
                     "working_set_membership" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("rejected".to_string());
                             object["rejection_reason"] = serde_json::Value::String(reason.clone());
@@ -3624,7 +4120,7 @@ pub fn reduce_with_meta(
                 }
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 delta_kind: "ontology_proposal_rejected".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -3635,7 +4131,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyVerificationApplied {
-            workstream: _,
+            workstream,
             proposal_id,
             verification,
             outcome,
@@ -3645,7 +4141,7 @@ pub fn reduce_with_meta(
                 .ontology
                 .verifications
                 .push(OntologyVerificationRecord {
-                    workstream: None,
+                    workstream: workstream.clone(),
                     proposal_id,
                     verification: verification.clone(),
                     outcome: outcome.clone(),
@@ -3657,7 +4153,7 @@ pub fn reduce_with_meta(
                     .ontology
                     .proposals
                     .iter()
-                    .find(|p| p.proposal_id == pid)
+                    .find(|p| p.proposal_id == pid && p.workstream == workstream)
                     .cloned()
             {
                 let verified_status = if outcome_is_positive(&outcome) {
@@ -3669,7 +4165,11 @@ pub fn reduce_with_meta(
                 match proposal.proposal_kind.as_str() {
                     "object_upsert" | "status_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] =
                                 serde_json::Value::String(verified_status.to_string());
@@ -3683,7 +4183,9 @@ pub fn reduce_with_meta(
                             proposal.source_id.as_ref(),
                             proposal.target_id.as_ref(),
                         ) && let Some(link) = state.ontology.links.iter_mut().find(|l| {
-                            l.get("type").and_then(|v| v.as_str()) == Some(link_type.as_str())
+                            ontology_value_matches_workstream(l, &workstream)
+                                && l.get("type").and_then(|v| v.as_str())
+                                    == Some(link_type.as_str())
                                 && l.get("source_id").and_then(|v| v.as_str())
                                     == Some(source_id.as_str())
                                 && l.get("target_id").and_then(|v| v.as_str())
@@ -3695,7 +4197,11 @@ pub fn reduce_with_meta(
                     }
                     "working_set_membership" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = ontology_object_mut(&mut state.ontology.objects, object_id.as_str())
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                ontology_value_matches_workstream(o, &workstream)
+                                    && o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                            })
                         {
                             object["status"] =
                                 serde_json::Value::String(verified_status.to_string());
@@ -3708,7 +4214,7 @@ pub fn reduce_with_meta(
             }
 
             state.ontology.delta_log.push(OntologyDeltaRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 delta_kind: "ontology_verification_applied".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -3718,24 +4224,26 @@ pub fn reduce_with_meta(
                 timestamp: Some(now),
             });
         }
-        FocusaEvent::OntologyWorkingSetRefreshed { workstream: _, scope, reason } => {
+        FocusaEvent::OntologyWorkingSetRefreshed {
+            workstream,
+            scope,
+            reason,
+        } => {
             let now = Utc::now();
             state
                 .ontology
                 .working_set_refreshes
                 .push(OntologyWorkingSetRefreshRecord {
-                    workstream: None,
+                    workstream: workstream.clone(),
                     scope: scope.clone(),
                     reason: reason.clone(),
                     timestamp: Some(now),
                 });
             let context_set_id = format!("relevant_context_set:{}:{}", scope, reason);
-            if let Some(existing) = state
-                .ontology
-                .objects
-                .iter_mut()
-                .find(|o| o.get("id").and_then(|v| v.as_str()) == Some(context_set_id.as_str()))
-            {
+            if let Some(existing) = state.ontology.objects.iter_mut().find(|o| {
+                o.get("id").and_then(|v| v.as_str()) == Some(context_set_id.as_str())
+                    && ontology_value_matches_workstream(o, &workstream)
+            }) {
                 existing["status"] = serde_json::Value::String("active".to_string());
                 existing["scope_kind"] = serde_json::Value::String(scope.clone());
                 existing["reason"] = serde_json::Value::String(reason.clone());
@@ -3743,6 +4251,7 @@ pub fn reduce_with_meta(
                     serde_json::Value::String("reducer_promoted".to_string());
             } else {
                 state.ontology.objects.push(serde_json::json!({
+                    "workstream": workstream,
                     "id": context_set_id,
                     "object_type": "relevant_context_set",
                     "selection_kind": scope.clone(),
@@ -3753,7 +4262,7 @@ pub fn reduce_with_meta(
                 }));
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
-                workstream: None,
+                workstream: workstream.clone(),
                 delta_kind: "ontology_working_set_refreshed".to_string(),
                 payload: serde_json::json!({
                     "scope": scope,
@@ -3764,6 +4273,129 @@ pub fn reduce_with_meta(
         }
 
         // ─── Workpoint Continuity (Spec88) ──────────────────────────────
+        FocusaEvent::OntologyScopeMigrationApplied {
+            migration_id,
+            target_workstream,
+            selections,
+            evidence_refs,
+        } => {
+            target_workstream.validate().map_err(|error| {
+                ReducerError::InvalidEvent(format!("invalid migration target workstream: {error}"))
+            })?;
+            if selections.is_empty() || evidence_refs.is_empty() {
+                return Err(ReducerError::InvalidEvent(
+                    "ontology scope migration requires selections and migration evidence"
+                        .to_string(),
+                ));
+            }
+            if state
+                .ontology
+                .scope_migration_receipts
+                .iter()
+                .any(|receipt| receipt.migration_id == migration_id)
+            {
+                return Ok(ReductionResult {
+                    new_state: state,
+                    emitted_events: vec![emitted_event],
+                });
+            }
+            let unique = selections
+                .iter()
+                .map(|selection| (selection.record_kind, selection.source_hash.as_str()))
+                .collect::<std::collections::BTreeSet<_>>();
+            if unique.len() != selections.len() {
+                return Err(ReducerError::InvalidEvent(
+                    "ontology scope migration contains duplicate selections".to_string(),
+                ));
+            }
+            let mut entries = Vec::with_capacity(selections.len());
+            for selection in &selections {
+                entries.push(apply_ontology_scope_migration_selection(
+                    &mut state,
+                    &target_workstream,
+                    selection,
+                )?);
+            }
+            state
+                .ontology
+                .scope_migration_receipts
+                .push(OntologyScopeMigrationReceipt {
+                    receipt_id: migration_id,
+                    migration_id,
+                    operation: "apply".to_string(),
+                    target_workstream,
+                    entries,
+                    evidence_refs,
+                    recorded_at: Utc::now(),
+                });
+        }
+        FocusaEvent::OntologyScopeMigrationRolledBack {
+            rollback_id,
+            migration_id,
+            evidence_refs,
+        } => {
+            if evidence_refs.is_empty() {
+                return Err(ReducerError::InvalidEvent(
+                    "ontology scope migration rollback requires evidence".to_string(),
+                ));
+            }
+            if state
+                .ontology
+                .scope_migration_receipts
+                .iter()
+                .any(|receipt| receipt.receipt_id == rollback_id)
+            {
+                return Ok(ReductionResult {
+                    new_state: state,
+                    emitted_events: vec![emitted_event],
+                });
+            }
+            if state
+                .ontology
+                .scope_migration_receipts
+                .iter()
+                .any(|receipt| {
+                    receipt.migration_id == migration_id && receipt.operation == "rollback"
+                })
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "ontology scope migration already rolled back: {migration_id}"
+                )));
+            }
+            let applied = state
+                .ontology
+                .scope_migration_receipts
+                .iter()
+                .find(|receipt| {
+                    receipt.migration_id == migration_id && receipt.operation == "apply"
+                })
+                .cloned()
+                .ok_or_else(|| {
+                    ReducerError::InvalidEvent(format!(
+                        "ontology scope migration apply receipt not found: {migration_id}"
+                    ))
+                })?;
+            for entry in &applied.entries {
+                rollback_ontology_scope_migration_entry(
+                    &mut state,
+                    &applied.target_workstream,
+                    entry,
+                )?;
+            }
+            state
+                .ontology
+                .scope_migration_receipts
+                .push(OntologyScopeMigrationReceipt {
+                    receipt_id: rollback_id,
+                    migration_id,
+                    operation: "rollback".to_string(),
+                    target_workstream: applied.target_workstream,
+                    entries: applied.entries,
+                    evidence_refs,
+                    recorded_at: Utc::now(),
+                });
+        }
+
         FocusaEvent::WorkpointCheckpointProposed { workpoint } => {
             let now = Utc::now();
             upsert_workpoint_record(&mut state, workpoint, now);
@@ -3828,6 +4460,30 @@ pub fn reduce_with_meta(
                 }
             }
             state.workpoint.active_workpoint_id = Some(workpoint_id);
+            let promoted_scope = state
+                .workpoint
+                .records
+                .iter()
+                .find(|record| record.workpoint_id == workpoint_id)
+                .map(|record| (record.project_root.clone(), record.continuity_id.clone()));
+            if let Some((Some(project_root), Some(continuity_id))) = promoted_scope {
+                let active_trajectory_id = state.trajectory.active_trajectory_id.as_deref();
+                let exact_scope = |trajectory: &TrajectoryProjectionRecord| {
+                    trajectory.project_root.as_deref() == Some(project_root.as_str())
+                        && trajectory.continuity_id.as_deref() == Some(continuity_id.as_str())
+                };
+                let trajectory_index = active_trajectory_id
+                    .and_then(|active_id| {
+                        state.trajectory.records.iter().position(|trajectory| {
+                            trajectory.trajectory_id == active_id && exact_scope(trajectory)
+                        })
+                    })
+                    .or_else(|| state.trajectory.records.iter().rposition(exact_scope));
+                if let Some(index) = trajectory_index {
+                    state.trajectory.records[index].active_workpoint_id = Some(workpoint_id);
+                    state.trajectory.records[index].updated_at = Some(now);
+                }
+            }
         }
         FocusaEvent::WorkpointCheckpointRejected {
             workpoint_id,
@@ -4094,12 +4750,6 @@ pub fn reduce_with_meta(
             // The event itself is recorded in the event log via emitted_events.
         }
 
-        // CallGraph dispatches/settlements are authority-recorded in the
-        // SQLite ledger (callgraph_store) and surfaced here as log-only
-        // events for SSE/audit visibility. No FocusaState mutation.
-        FocusaEvent::CallGraphFrameDispatched { .. }
-        | FocusaEvent::CallGraphFrameSettled { .. } => {}
-
         // ─── Thread Ownership ────────────────────────────────────────────
         FocusaEvent::ThreadOwnershipTransferred {
             thread_id,
@@ -4233,7 +4883,7 @@ pub fn reduce_with_meta(
         }
 
         FocusaEvent::ProposalSubmitted {
-            workstream: _,
+            workstream,
             proposal_id,
             kind,
             source,
@@ -4244,7 +4894,7 @@ pub fn reduce_with_meta(
             let now = Utc::now();
             let deadline = now + chrono::Duration::milliseconds(deadline_ms as i64);
             state.pre.proposals.push(crate::types::Proposal {
-                workstream: None,
+                workstream,
                 id: proposal_id,
                 kind,
                 source,
@@ -4257,7 +4907,7 @@ pub fn reduce_with_meta(
         }
 
         FocusaEvent::ProposalStatusChanged {
-            workstream: _,
+            workstream,
             proposal_id,
             status,
         } => {
@@ -4265,10 +4915,10 @@ pub fn reduce_with_meta(
                 .pre
                 .proposals
                 .iter_mut()
-                .find(|p| p.id == proposal_id)
+                .find(|p| p.id == proposal_id && p.workstream == workstream)
                 .ok_or_else(|| {
                     ReducerError::InvalidEvent(format!(
-                        "Proposal {} not found for status update",
+                        "Proposal {} not found in workstream for status update",
                         proposal_id
                     ))
                 })?;
@@ -4510,6 +5160,44 @@ mod tests {
         (state, frame_id)
     }
 
+    fn temporal_context(
+        project_root: &str,
+        continuity_id: &str,
+        projected_at: chrono::DateTime<Utc>,
+    ) -> TemporalFrameContext {
+        TemporalFrameContext {
+            projection: crate::temporal::TemporalProjection {
+                scope: crate::temporal::TemporalScope {
+                    project_root: project_root.to_string(),
+                    continuity_id: continuity_id.to_string(),
+                    host_id: None,
+                    operator_id: None,
+                    workpoint_id: None,
+                    task_id: None,
+                    item_id: None,
+                },
+                as_of: projected_at,
+                deadline_status: crate::temporal::DeadlineStatus::None,
+                approaching_deadlines: vec![],
+                deadline_conflict_state: "none".to_string(),
+                human_calendar_context: None,
+                temporal_priority_frame: None,
+                temporal_execution_guard: None,
+                authorized_forecast_range: None,
+                latest_forecast_evaluation: None,
+                active_commitment: None,
+                active_forecast: None,
+                observed_duration_count: 0,
+                critical_path_ms: None,
+                slack_ms: None,
+                urgency: None,
+                warnings: vec![],
+            },
+            source_event_count: 0,
+            projected_at,
+        }
+    }
+
     fn workpoint_record(work_item_id: &str) -> WorkpointRecord {
         WorkpointRecord {
             workpoint_id: Uuid::now_v7(),
@@ -4549,7 +5237,15 @@ mod tests {
 
     #[test]
     fn test_workpoint_promote_sets_active_pointer() {
-        let state = fresh_state();
+        let mut state = fresh_state();
+        let trajectory = TrajectoryProjectionRecord {
+            trajectory_id: "trajectory-test".to_string(),
+            project_root: Some("/repo/test".to_string()),
+            continuity_id: Some("cont-test".to_string()),
+            ..TrajectoryProjectionRecord::default()
+        };
+        state.trajectory.active_trajectory_id = Some("stale-trajectory-id".to_string());
+        state.trajectory.records.push(trajectory);
         let record = workpoint_record("focusa-a2w2.2");
         let workpoint_id = record.workpoint_id;
         let state = reduce(
@@ -4580,6 +5276,7 @@ mod tests {
             .unwrap();
         assert_eq!(active.status, WorkpointStatus::Active);
         assert_eq!(active.confidence, WorkpointConfidence::Verified);
+        assert_eq!(state.trajectory.records[0].active_workpoint_id, Some(workpoint_id));
     }
 
     #[test]
@@ -4887,6 +5584,76 @@ mod tests {
         let result = reduce(state, event);
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn temporal_context_projection_is_scoped_and_replayable() {
+        let (state, frame_id) = push_frame(fresh_state(), "Temporal frame");
+        let projected_at = Utc::now();
+        let event = FocusaEvent::TemporalFrameContextProjected {
+            frame_id,
+            context: temporal_context("/repo/test", "cont-test", projected_at),
+        };
+        let first = reduce(state.clone(), event.clone()).unwrap().new_state;
+        let replay = reduce(state, event).unwrap().new_state;
+        assert_eq!(
+            serde_json::to_value(&first.focus_stack).unwrap(),
+            serde_json::to_value(&replay.focus_stack).unwrap()
+        );
+        let frame = first
+            .focus_stack
+            .frames
+            .iter()
+            .find(|frame| frame.id == frame_id)
+            .unwrap();
+        assert_eq!(
+            frame
+                .temporal_context
+                .as_ref()
+                .unwrap()
+                .projection
+                .scope
+                .continuity_id,
+            "cont-test"
+        );
+    }
+
+    #[test]
+    fn temporal_context_projection_rejects_foreign_scope() {
+        let (state, frame_id) = push_frame(fresh_state(), "Temporal frame");
+        let event = FocusaEvent::TemporalFrameContextProjected {
+            frame_id,
+            context: temporal_context("/repo/foreign", "cont-foreign", Utc::now()),
+        };
+        assert!(matches!(
+            reduce(state, event),
+            Err(ReducerError::InvalidEvent(message))
+                if message.contains("temporal context scope mismatch")
+        ));
+    }
+
+    #[test]
+    fn temporal_context_projection_rejects_completed_frame() {
+        let (state, _) = push_frame(fresh_state(), "Temporal root");
+        let (state, frame_id) = push_frame(state, "Temporal child");
+        let state = reduce(
+            state,
+            FocusaEvent::FocusFrameCompleted {
+                frame_id,
+                completion_reason: CompletionReason::GoalAchieved,
+            },
+        )
+        .unwrap()
+        .new_state;
+        let event = FocusaEvent::TemporalFrameContextProjected {
+            frame_id,
+            context: temporal_context("/repo/test", "cont-test", Utc::now()),
+        };
+        assert!(matches!(
+            reduce(state, event),
+            Err(ReducerError::InvalidEvent(message))
+                if message.contains("completed frame")
+        ));
     }
 
     #[test]
@@ -5331,6 +6098,7 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state: FocusState::default(),
+            temporal_context: None,
             completed_at: None,
             completion_reason: None,
         });
@@ -5559,12 +6327,204 @@ mod tests {
         assert!(result.is_err());
     }
 
+    fn ontology_test_workstream(id: &str, root: &str) -> WorkstreamKey {
+        let scope = crate::scoped_state::ScopeRef::project(
+            format!("project:{id}"),
+            root,
+            id,
+            format!("fingerprint:{id}"),
+        )
+        .expect("valid test scope");
+        WorkstreamKey::new(scope, "shared-continuity").expect("valid test workstream")
+    }
+
+    #[test]
+    fn ontology_duplicate_ids_remain_isolated_by_workstream() {
+        let proposal_id = Uuid::now_v7();
+        let object_id = "decision:shared-id";
+        let workstream_a = ontology_test_workstream("a", "/tmp/focusa-a");
+        let workstream_b = ontology_test_workstream("b", "/tmp/focusa-b");
+
+        let mut state = fresh_state();
+        for workstream in [&workstream_a, &workstream_b] {
+            state = reduce(
+                state,
+                FocusaEvent::OntologyObjectUpsertProposed {
+                    workstream: Some(workstream.clone()),
+                    proposal_id,
+                    object_type: "decision".into(),
+                    object_id: Some(object_id.into()),
+                    source: "scope-isolation-test".into(),
+                },
+            )
+            .unwrap()
+            .new_state;
+        }
+        assert_eq!(state.ontology.proposals.len(), 2);
+        assert_eq!(state.ontology.objects.len(), 2);
+
+        state = reduce(
+            state,
+            FocusaEvent::OntologyProposalPromoted {
+                workstream: Some(workstream_a.clone()),
+                proposal_id,
+                target_class: "decision".into(),
+                applied_kind: "object_upsert".into(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        state = reduce(
+            state,
+            FocusaEvent::OntologyVerificationApplied {
+                workstream: Some(workstream_b.clone()),
+                proposal_id: Some(proposal_id),
+                verification: "scope-isolation".into(),
+                outcome: "rejected".into(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        let status_for = |workstream: &WorkstreamKey| {
+            state
+                .ontology
+                .objects
+                .iter()
+                .find(|object| ontology_value_matches_workstream(object, &Some(workstream.clone())))
+                .and_then(|object| object.get("status"))
+                .and_then(serde_json::Value::as_str)
+        };
+        assert_eq!(status_for(&workstream_a), Some("promoted"));
+        assert_eq!(status_for(&workstream_b), Some("failed"));
+    }
+
+    #[test]
+    fn ontology_legacy_records_deserialize_as_unowned() {
+        let record: OntologyProposalRecord = serde_json::from_value(serde_json::json!({
+            "proposal_id": Uuid::now_v7(),
+            "proposal_kind": "object_upsert",
+            "target_class": "decision",
+            "status": "proposed",
+            "source": null,
+            "object_type": null,
+            "object_id": null,
+            "link_type": null,
+            "source_id": null,
+            "target_id": null,
+            "notes": null,
+            "updated_at": null
+        }))
+        .expect("legacy proposal remains replayable");
+        assert!(record.workstream.is_none());
+    }
+
+    #[test]
+    fn ontology_scope_migration_clones_and_rolls_back_with_append_only_receipts() {
+        let target = ontology_test_workstream("migration", "/tmp/focusa-migration");
+        let mut state = fresh_state();
+        let source = OntologyProposalRecord {
+            proposal_id: Uuid::now_v7(),
+            proposal_kind: "object_upsert".into(),
+            target_class: "decision".into(),
+            status: "proposed".into(),
+            ..OntologyProposalRecord::default()
+        };
+        let source_hash = ontology_scope_record_hash(&source);
+        state.ontology.proposals.push(source);
+        let migration_id = Uuid::now_v7();
+        let selection = OntologyScopeMigrationSelection {
+            record_kind: OntologyScopeMigrationRecordKind::Proposal,
+            source_hash,
+            evidence_refs: vec!["evidence:operator-confirmed-owner".into()],
+        };
+
+        let apply = || FocusaEvent::OntologyScopeMigrationApplied {
+            migration_id,
+            target_workstream: target.clone(),
+            selections: vec![selection.clone()],
+            evidence_refs: vec!["evidence:migration-plan".into()],
+        };
+        state = reduce(state, apply()).unwrap().new_state;
+        assert_eq!(state.ontology.proposals.len(), 2);
+        assert_eq!(
+            state
+                .ontology
+                .proposals
+                .iter()
+                .filter(|record| record.workstream.as_ref() == Some(&target))
+                .count(),
+            1
+        );
+        assert!(
+            state
+                .ontology
+                .proposals
+                .iter()
+                .any(|record| record.workstream.is_none())
+        );
+        assert_eq!(state.ontology.scope_migration_receipts.len(), 1);
+
+        state = reduce(state, apply()).unwrap().new_state;
+        assert_eq!(state.ontology.proposals.len(), 2);
+        assert_eq!(state.ontology.scope_migration_receipts.len(), 1);
+
+        let rollback_id = Uuid::now_v7();
+        let rollback = || FocusaEvent::OntologyScopeMigrationRolledBack {
+            rollback_id,
+            migration_id,
+            evidence_refs: vec!["evidence:rollback-request".into()],
+        };
+        state = reduce(state, rollback()).unwrap().new_state;
+        assert_eq!(state.ontology.proposals.len(), 1);
+        assert!(state.ontology.proposals[0].workstream.is_none());
+        assert_eq!(state.ontology.scope_migration_receipts.len(), 2);
+        assert_eq!(
+            state.ontology.scope_migration_receipts[1].operation,
+            "rollback"
+        );
+
+        state = reduce(state, rollback()).unwrap().new_state;
+        assert_eq!(state.ontology.proposals.len(), 1);
+        assert_eq!(state.ontology.scope_migration_receipts.len(), 2);
+    }
+
+    #[test]
+    fn ontology_scope_migration_rejects_records_without_evidence() {
+        let target = ontology_test_workstream("migration", "/tmp/focusa-migration");
+        let mut state = fresh_state();
+        let source = OntologyProposalRecord {
+            proposal_id: Uuid::now_v7(),
+            proposal_kind: "object_upsert".into(),
+            target_class: "decision".into(),
+            status: "proposed".into(),
+            ..OntologyProposalRecord::default()
+        };
+        let source_hash = ontology_scope_record_hash(&source);
+        state.ontology.proposals.push(source);
+        let result = reduce(
+            state,
+            FocusaEvent::OntologyScopeMigrationApplied {
+                migration_id: Uuid::now_v7(),
+                target_workstream: target,
+                selections: vec![OntologyScopeMigrationSelection {
+                    record_kind: OntologyScopeMigrationRecordKind::Proposal,
+                    source_hash,
+                    evidence_refs: vec![],
+                }],
+                evidence_refs: vec!["evidence:migration-plan".into()],
+            },
+        );
+        assert!(result.is_err());
+    }
+
     #[test]
     fn ontology_object_upsert_proposal_sets_proposed_status() {
         let proposal_id = Uuid::now_v7();
         let state = reduce(
             fresh_state(),
             FocusaEvent::OntologyObjectUpsertProposed {
+                workstream: None,
                 proposal_id,
                 object_type: "decision".into(),
                 object_id: Some("decision:proposed-1".into()),
@@ -5600,6 +6560,7 @@ mod tests {
         let state = reduce(
             fresh_state(),
             FocusaEvent::OntologyObjectUpsertProposed {
+                workstream: None,
                 proposal_id,
                 object_type: "decision".into(),
                 object_id: Some("decision:failed-1".into()),
@@ -5612,6 +6573,7 @@ mod tests {
         let state = reduce(
             state,
             FocusaEvent::OntologyVerificationApplied {
+                workstream: None,
                 proposal_id: Some(proposal_id),
                 verification: "verification:failed-path".into(),
                 outcome: "rejected".into(),
@@ -5636,7 +6598,6 @@ mod tests {
 
     fn trajectory_record(id: &str, long_term_goal: &str) -> TrajectoryProjectionRecord {
         TrajectoryProjectionRecord {
-            milestones: vec![],
             trajectory_id: id.to_string(),
             project_root: Some("/repo/test".to_string()),
             continuity_id: Some("cont-test".to_string()),
@@ -5740,8 +6701,19 @@ mod tests {
         );
         assert_eq!(enabled.work_loop.execution_workpoint_id, Some(workpoint_id));
 
-        let stopped = reduce(
+        let deferred = reduce(
             enabled,
+            FocusaEvent::ContinuousWorkItemDeferred {
+                work_item_id: "focusa-workloop-completion.2.1".to_string(),
+                reason: "temporary external dependency".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(deferred.work_loop.deferred_items.len(), 1);
+
+        let stopped = reduce(
+            deferred,
             FocusaEvent::ContinuousWorkModeDisabled {
                 reason: "operator stop".to_string(),
             },
@@ -5751,6 +6723,55 @@ mod tests {
         assert_eq!(stopped.work_loop.execution_scope, None);
         assert_eq!(stopped.work_loop.execution_work_item_id, None);
         assert_eq!(stopped.work_loop.execution_workpoint_id, None);
+        assert!(stopped.work_loop.deferred_items.is_empty());
+        assert!(stopped.work_loop.run.task_run_id.is_none());
+        assert!(stopped.work_loop.run.tranche_run_id.is_none());
+        assert!(stopped.work_loop.run.worker_session_id.is_none());
+    }
+
+    #[test]
+    fn reenable_clears_stale_deferred_frontier_and_prior_run_selection() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let mut state = fresh_state();
+        state.work_loop.deferred_items.push(WorkLoopDeferredItem {
+            work_item_id: "settled-atom".to_string(),
+            reason: "prior blocked frontier".to_string(),
+            deferred_at: Utc::now(),
+        });
+        state.work_loop.current_task = Some(SpecLinkedTaskPacket {
+            work_item_id: "settled-atom".to_string(),
+            ..SpecLinkedTaskPacket::default()
+        });
+        state.work_loop.run.task_run_id = Some(Uuid::now_v7());
+        state.work_loop.run.tranche_run_id = Some(Uuid::now_v7());
+        state.work_loop.run.worker_session_id = Some("stale-worker".to_string());
+
+        let rebound = reduce(
+            state,
+            FocusaEvent::ContinuousWorkModeEnabled {
+                project_run_id: Uuid::now_v7(),
+                policy: WorkLoopPolicy::default(),
+                scope: Some(scope),
+                work_item_id: Some("focusa-vbcqu.20.15".to_string()),
+                workpoint_id: Some(Uuid::now_v7()),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert!(rebound.work_loop.deferred_items.is_empty());
+        assert!(rebound.work_loop.current_task.is_none());
+        assert!(rebound.work_loop.run.task_run_id.is_none());
+        assert!(rebound.work_loop.run.tranche_run_id.is_none());
+        assert!(rebound.work_loop.run.worker_session_id.is_none());
+        assert_eq!(rebound.work_loop.status, WorkLoopStatus::Idle);
     }
 
     #[test]
@@ -5886,6 +6907,51 @@ mod tests {
         assert_eq!(
             attached.work_loop.transport_workpoint_id,
             Some(workpoint_id)
+        );
+    }
+
+    #[test]
+    fn replacement_transport_recovers_degraded_selected_task() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let mut state = fresh_state();
+        state.work_loop.enabled = true;
+        state.work_loop.status = WorkLoopStatus::TransportDegraded;
+        state.work_loop.last_blocker_class = Some(BlockerClass::Transport);
+        state.work_loop.last_blocker_reason = Some("rpc stream closed".to_string());
+        state.work_loop.current_task = Some(SpecLinkedTaskPacket {
+            work_item_id: "focusa-vbcqu.20.15.7".to_string(),
+            ..SpecLinkedTaskPacket::default()
+        });
+
+        let recovered = reduce(
+            state,
+            FocusaEvent::ContinuousTransportSessionAttached {
+                adapter: "pi-rpc".to_string(),
+                session_id: "replacement-session".to_string(),
+                scope,
+                work_item_id: "focusa-vbcqu.20.15".to_string(),
+                workpoint_id: Uuid::now_v7(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert_eq!(
+            recovered.work_loop.status,
+            WorkLoopStatus::SelectingReadyWork
+        );
+        assert!(recovered.work_loop.last_blocker_class.is_none());
+        assert!(recovered.work_loop.last_blocker_reason.is_none());
+        assert_eq!(
+            recovered.work_loop.transport_session_id.as_deref(),
+            Some("replacement-session")
         );
     }
 

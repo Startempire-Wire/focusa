@@ -15,7 +15,6 @@ mod middleware;
 mod routes;
 mod scope;
 mod scoped_store;
-mod workstream_store;
 mod server;
 
 use anyhow::anyhow;
@@ -376,7 +375,6 @@ async fn main() -> anyhow::Result<()> {
     ));
     let command_tx = daemon.command_sender();
     let events_tx_for_api = events_tx.clone();
-    let events_tx_for_completion_sweep = events_tx.clone();
 
     // One bounded persistence actor serves daemon and direct API writers.
     let persistence = daemon.persistence();
@@ -396,29 +394,12 @@ async fn main() -> anyhow::Result<()> {
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(8787);
 
-    // #307: surface the developer-origin entitlement state once at startup.
-    {
-        let origin = focusa_core::license_developer_origin::developer_origin_report();
-        tracing::info!(
-            active = origin.active,
-            agent_kb_known = origin.agent_kb_known,
-            tailnet_member = origin.tailnet_member,
-            tailnet_suffix = %origin.tailnet_suffix,
-            "developer-origin entitlement resolved"
-        );
-    }
-
     // Spawn daemon event loop.
     let daemon_handle = tokio::spawn(async move {
         if let Err(e) = daemon.run().await {
             tracing::error!("Daemon error: {}", e);
         }
     });
-
-    let completion_sweep_db = resolved_data_dir(&config).join("focusa.sqlite");
-    let compaction_epoch_db = completion_sweep_db.clone();
-    let callgraph_liveness_db = completion_sweep_db.clone();
-    let retention_data_dir_hoisted = resolved_data_dir(&config);
 
     // Start API server (blocks until shutdown).
     let api_handle = tokio::spawn(async move {
@@ -442,184 +423,9 @@ async fn main() -> anyhow::Result<()> {
     // wizard can auto-discover this daemon on the LAN without operator input.
     // The TXT record carries the `url` so the Mac can skip the Tailscale
     // round-trip when on the same LAN. (G08)
-    //
-    // #251: mDNS availability must never threaten the daemon. Honoring
-    // FOCUSA_DISABLE_MDNS skips advertisement entirely; any registration
-    // failure is logged and the daemon keeps serving.
-    let mdns_disabled = std::env::var("FOCUSA_DISABLE_MDNS")
-        .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
-        .unwrap_or(false);
     let _bonjour_handle = tokio::spawn(async move {
-        if mdns_disabled {
-            tracing::info!("mDNS advertisement disabled via FOCUSA_DISABLE_MDNS");
-            return;
-        }
-        match focusa_core::bonjour::advertise("_focusa._tcp.local.", bonjour_port).await {
-            Ok(_service) => {}
-            Err(error) => {
-                tracing::warn!(error = %error, "Bonjour advertisement failed (non-fatal); daemon continues without LAN discovery. Set FOCUSA_DISABLE_MDNS=1 to silence.");
-            }
-        }
-    });
-
-    // Event-ledger retention sweep. First tick fires immediately; subsequent
-    // sweeps run daily. Bounded batches keep the daemon writer responsive and
-    // cold export lands in <data>/events-cold. Disable with
-    // FOCUSA_EVENT_RETENTION_DISABLED=1; window via FOCUSA_EVENT_RETENTION_DAYS.
-    let retention_data_dir = retention_data_dir_hoisted;
-    let _retention_handle = tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(86_400));
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-        loop {
-            if std::env::var(focusa_core::runtime::event_retention::RETENTION_ENV_DISABLED)
-                .map(|value| value == "1" || value == "true")
-                .unwrap_or(false)
-            {
-                tracing::info!("event retention disabled via environment");
-            } else {
-                let data_dir = retention_data_dir.clone();
-                let result = tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
-                    let db_path = data_dir.join("focusa.sqlite");
-                    let conn = rusqlite::Connection::open(&db_path)?;
-                    conn.busy_timeout(std::time::Duration::from_secs(30))?;
-                    let days: u32 = std::env::var(
-                        focusa_core::runtime::event_retention::RETENTION_ENV_DAYS,
-                    )
-                    .ok()
-                    .and_then(|value| value.parse().ok())
-                    .unwrap_or(focusa_core::runtime::event_retention::DEFAULT_RETENTION_DAYS);
-                    let cutoff = focusa_core::runtime::event_retention::retention_cutoff(days);
-                    let export = data_dir.join("events-cold");
-                    let summary = focusa_core::runtime::event_retention::prune_before(
-                        &conn,
-                        &cutoff,
-                        Some(&export),
-                        5_000,
-                    )?;
-                    tracing::info!(
-                        deleted = summary.deleted_events,
-                        exported = summary.exported_events,
-                        anchor = summary.anchor_chain_index,
-                        cutoff = %summary.cutoff_ts,
-                        "event retention sweep complete"
-                    );
-                    Ok(())
-                })
-                .await;
-                if let Err(error) = result {
-                    tracing::warn!(error = %error, "event retention sweep failed");
-                }
-            }
-            interval.tick().await;
-        }
-    });
-
-    // Silent-session completion sweeper (issue #311): every 30 seconds, scan
-    // settled sessions, record their durable completion events, and broadcast
-    // them over SSE so agents are notified instead of polling. Missed events
-    // remain recoverable through the completions backfill route.
-    let _completion_sweep_handle = tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-        loop {
-            interval.tick().await;
-            let db = completion_sweep_db.clone();
-            let tx = events_tx_for_completion_sweep.clone();
-            let result = tokio::task::spawn_blocking(move || {
-                crate::routes::silent_sessions_wait::sweep_completions(&db, &tx)
-            })
-            .await;
-            match result {
-                Ok(Ok(emitted)) if emitted > 0 => {
-                    tracing::info!(emitted, "silent session completion sweep emitted events");
-                }
-                Ok(Ok(_)) => {}
-                Ok(Err(error)) => {
-                    tracing::warn!(error = %error, "silent session completion sweep failed");
-                }
-                Err(error) => {
-                    tracing::warn!(error = %error, "silent session completion sweep join failed");
-                }
-            }
-        }
-    });
-
-    // Compaction policy controller epoch scheduler (#112 slice 7). Facts and
-    // outcomes arrive through POST /v1/compaction/controller-epoch; this
-    // scheduler owns the epoch clock and observes the current lease each
-    // tick. It never selects policies itself — the pure controller core and
-    // the epoch route own every decision.
-
-    let _compaction_epoch_handle = tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(300));
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-        loop {
-            interval.tick().await;
-            let db = compaction_epoch_db.clone();
-            let observed = tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
-                let conn = rusqlite::Connection::open(&db)?;
-                let controller =
-                    focusa_core::compaction_policy::load_controller_state_sqlite(&conn)?;
-                tracing::info!(
-                    epochs = controller.epochs_seen,
-                    active_policy = ?controller.active_lease.as_ref().map(|lease| lease.policy),
-                    quarantined = controller.quarantine.len(),
-                    "compaction controller epoch tick"
-                );
-                Ok(())
-            })
-            .await;
-            if let Err(error) = observed {
-                tracing::warn!(error = %error, "compaction epoch tick failed");
-            }
-        }
-    });
-
-    // CallGraph frame-lease liveness sweeper (#254 slice 7): every 30
-    // seconds, release lapsed leases and transition their runs back to a
-    // re-dispatchable state. Liveness is ledger-derived — no in-memory
-    // bookkeeping that a restart could lose.
-    let _callgraph_liveness_handle = tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-        loop {
-            interval.tick().await;
-            let db = callgraph_liveness_db.clone();
-            let result = tokio::task::spawn_blocking(move || -> anyhow::Result<usize> {
-                let conn = rusqlite::Connection::open(&db)?;
-                focusa_core::callgraph_store::ensure_schema(&conn)?;
-                let now = chrono::Utc::now().to_rfc3339();
-                let lapsed = focusa_core::callgraph_store::lapsed_leases(&conn, &now)?;
-                let mut released = 0usize;
-                let mut runs = std::collections::HashSet::new();
-                for lease in lapsed {
-                    focusa_core::callgraph_store::release_lease(&conn, &lease.invocation_id)?;
-                    runs.insert(lease.run_id);
-                    released += 1;
-                }
-                for run_id in runs {
-                    let _ = focusa_core::callgraph_store::transition_run(
-                        &conn,
-                        &run_id,
-                        focusa_core::callgraph_store::RunState::WaitingJoin,
-                        &now,
-                    );
-                }
-                Ok(released)
-            })
-            .await;
-            match result {
-                Ok(Ok(released)) if released > 0 => {
-                    tracing::info!(released, "callgraph liveness sweep released lapsed leases");
-                }
-                Ok(Ok(_)) => {}
-                Ok(Err(error)) => {
-                    tracing::warn!(error = %error, "callgraph liveness sweep failed");
-                }
-                Err(error) => {
-                    tracing::warn!(error = %error, "callgraph liveness sweep join failed");
-                }
-            }
+        if let Err(e) = focusa_core::bonjour::advertise("_focusa._tcp.local.", bonjour_port).await {
+            tracing::warn!(error = %e, "Bonjour advertisement ended (non-fatal)");
         }
     });
 
