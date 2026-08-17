@@ -21,7 +21,7 @@ exclude = [
 ]
 
 [workspace.package]
-version = "0.9.159-dev"
+version = "0.9.160-dev"
 edition = "2024"
 rust-version = "1.91"
 license-file = "LICENSE.md"
