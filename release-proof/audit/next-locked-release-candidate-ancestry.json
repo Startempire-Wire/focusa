@@ -23,12 +23,12 @@
     "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:74aa7c1ff389a86bca6487e9e6270c84b0a74461dcc6f4169b5dce5eef247959",
+  "ancestry_digest": "sha256:3f2d9c6ed4bca5afc43db9de2118277acad21ccd894ac1b2ee233e167a1f9a02",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "c191c871a57fd938f079412b3f3d638ba67939b9",
+    "audit_head": "87db3c6ea5336bf7b52125f07cecae12a4a13f58",
     "changed_after_source_commit": [],
-    "source_commit": "c191c871a57fd938f079412b3f3d638ba67939b9",
+    "source_commit": "87db3c6ea5336bf7b52125f07cecae12a4a13f58",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
@@ -165,9 +165,9 @@
   "schema": "focusa.locked_release_candidate_ancestry.v1",
   "source_version_agreement": true,
   "source_versions": {
-    "menubar": "0.9.153-dev",
-    "pi_extension": "0.9.153-dev",
-    "workspace": "0.9.153-dev"
+    "menubar": "0.9.154-dev",
+    "pi_extension": "0.9.154-dev",
+    "workspace": "0.9.154-dev"
   },
   "status": "verified",
   "tag_chain": {
