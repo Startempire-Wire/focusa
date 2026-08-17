@@ -378,6 +378,9 @@ pub fn reduce_with_meta(
     let emitted_event = event.clone();
 
     match event {
+        FocusaEvent::TemporalFrameContextProjected { .. }
+        | FocusaEvent::OntologyScopeMigrationApplied { .. }
+        | FocusaEvent::OntologyScopeMigrationRolledBack { .. } => {}
         // ─── Context corpus ─────────────────────────────────────────────
         FocusaEvent::ContextSourceCommitted { source } => {
             if source.receipt.before_state_version != state.version
@@ -2205,6 +2208,7 @@ pub fn reduce_with_meta(
             }
 
             stack.frames.push(FrameRecord {
+                temporal_context: None,
                 id: frame_id,
                 parent_id,
                 created_at: now,
@@ -2615,6 +2619,7 @@ pub fn reduce_with_meta(
 
         // ─── Ontology Classification / Reducer ──────────────────────────
         FocusaEvent::OntologyObjectUpsertProposed {
+            workstream: _,
             proposal_id,
             object_type,
             object_id,
@@ -2622,6 +2627,7 @@ pub fn reduce_with_meta(
         } => {
             let now = Utc::now();
             let record = OntologyProposalRecord {
+                workstream: None,
                 proposal_id,
                 proposal_kind: "object_upsert".to_string(),
                 target_class: object_type.clone(),
@@ -2662,6 +2668,7 @@ pub fn reduce_with_meta(
                 }
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
+                workstream: None,
                 delta_kind: "ontology_object_upsert_proposed".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -2673,6 +2680,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyLinkUpsertProposed {
+            workstream: _,
             proposal_id,
             link_type,
             source_id,
@@ -2681,6 +2689,7 @@ pub fn reduce_with_meta(
         } => {
             let now = Utc::now();
             let record = OntologyProposalRecord {
+                workstream: None,
                 proposal_id,
                 proposal_kind: "link_upsert".to_string(),
                 target_class: link_type.clone(),
@@ -2714,6 +2723,7 @@ pub fn reduce_with_meta(
                 "source": source,
             }));
             state.ontology.delta_log.push(OntologyDeltaRecord {
+                workstream: None,
                 delta_kind: "ontology_link_upsert_proposed".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -2726,6 +2736,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyStatusChangeProposed {
+            workstream: _,
             proposal_id,
             subject,
             from_status,
@@ -2734,6 +2745,7 @@ pub fn reduce_with_meta(
         } => {
             let now = Utc::now();
             let record = OntologyProposalRecord {
+                workstream: None,
                 proposal_id,
                 proposal_kind: "status_change".to_string(),
                 target_class: "status".to_string(),
@@ -2770,6 +2782,7 @@ pub fn reduce_with_meta(
                 object["status"] = serde_json::Value::String(to_status.clone());
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
+                workstream: None,
                 delta_kind: "ontology_status_change_proposed".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -2782,6 +2795,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyWorkingSetMembershipProposed {
+            workstream: _,
             proposal_id,
             subject,
             operation,
@@ -2789,6 +2803,7 @@ pub fn reduce_with_meta(
         } => {
             let now = Utc::now();
             let record = OntologyProposalRecord {
+                workstream: None,
                 proposal_id,
                 proposal_kind: "working_set_membership".to_string(),
                 target_class: "working_set".to_string(),
@@ -2842,6 +2857,7 @@ pub fn reduce_with_meta(
                 object["status"] = serde_json::Value::String("candidate".to_string());
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
+                workstream: None,
                 delta_kind: "ontology_working_set_membership_proposed".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -2853,6 +2869,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyProposalPromoted {
+            workstream: _,
             proposal_id,
             target_class,
             applied_kind,
@@ -3534,6 +3551,7 @@ pub fn reduce_with_meta(
                 }
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
+                workstream: None,
                 delta_kind: "ontology_proposal_promoted".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -3544,6 +3562,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyProposalRejected {
+            workstream: _,
             proposal_id,
             target_class,
             reason,
@@ -3605,6 +3624,7 @@ pub fn reduce_with_meta(
                 }
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
+                workstream: None,
                 delta_kind: "ontology_proposal_rejected".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -3615,6 +3635,7 @@ pub fn reduce_with_meta(
             });
         }
         FocusaEvent::OntologyVerificationApplied {
+            workstream: _,
             proposal_id,
             verification,
             outcome,
@@ -3624,6 +3645,7 @@ pub fn reduce_with_meta(
                 .ontology
                 .verifications
                 .push(OntologyVerificationRecord {
+                    workstream: None,
                     proposal_id,
                     verification: verification.clone(),
                     outcome: outcome.clone(),
@@ -3686,6 +3708,7 @@ pub fn reduce_with_meta(
             }
 
             state.ontology.delta_log.push(OntologyDeltaRecord {
+                workstream: None,
                 delta_kind: "ontology_verification_applied".to_string(),
                 payload: serde_json::json!({
                     "proposal_id": proposal_id,
@@ -3695,12 +3718,13 @@ pub fn reduce_with_meta(
                 timestamp: Some(now),
             });
         }
-        FocusaEvent::OntologyWorkingSetRefreshed { scope, reason } => {
+        FocusaEvent::OntologyWorkingSetRefreshed { workstream: _, scope, reason } => {
             let now = Utc::now();
             state
                 .ontology
                 .working_set_refreshes
                 .push(OntologyWorkingSetRefreshRecord {
+                    workstream: None,
                     scope: scope.clone(),
                     reason: reason.clone(),
                     timestamp: Some(now),
@@ -3729,6 +3753,7 @@ pub fn reduce_with_meta(
                 }));
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
+                workstream: None,
                 delta_kind: "ontology_working_set_refreshed".to_string(),
                 payload: serde_json::json!({
                     "scope": scope,
@@ -4208,6 +4233,7 @@ pub fn reduce_with_meta(
         }
 
         FocusaEvent::ProposalSubmitted {
+            workstream: _,
             proposal_id,
             kind,
             source,
@@ -4218,6 +4244,7 @@ pub fn reduce_with_meta(
             let now = Utc::now();
             let deadline = now + chrono::Duration::milliseconds(deadline_ms as i64);
             state.pre.proposals.push(crate::types::Proposal {
+                workstream: None,
                 id: proposal_id,
                 kind,
                 source,
@@ -4230,6 +4257,7 @@ pub fn reduce_with_meta(
         }
 
         FocusaEvent::ProposalStatusChanged {
+            workstream: _,
             proposal_id,
             status,
         } => {
@@ -5608,6 +5636,7 @@ mod tests {
 
     fn trajectory_record(id: &str, long_term_goal: &str) -> TrajectoryProjectionRecord {
         TrajectoryProjectionRecord {
+            milestones: vec![],
             trajectory_id: id.to_string(),
             project_root: Some("/repo/test".to_string()),
             continuity_id: Some("cont-test".to_string()),
