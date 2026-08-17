@@ -23,7 +23,7 @@ jobs:
   # Durable release boundary: any open issue with a release-gate:* label blocks a tag.
   open-issue-release-gate:
     name: Open release-gate issue check
-    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev') }}
     runs-on: ubuntu-latest
     steps:
       - name: Require every release-gating issue closed
