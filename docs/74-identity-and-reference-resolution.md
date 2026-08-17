@@ -166,8 +166,3 @@ Record when a newer representation supersedes an older one.
 # 4. Success Condition
 
 Identity and Reference Resolution is successful when Focusa can maintain canonical identity across domains, turns, and iterations without losing provenance or creating silent fragmentation.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-cognitive-execution-identity -->
-## Spec 144 cognitive and execution identity resolution
-
-Identity resolution MUST distinguish actor, role, model, provider/family/version, Runtime Constitution, prompt assembly, tool and skill bundles, harness, environment, daemon boot, repository/worktree, source set, test generator, and external authority. Equality of one dimension never implies identity or independence across the others. Ambiguous identity blocks affected verification coverage.

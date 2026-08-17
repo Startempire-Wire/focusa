@@ -190,9 +190,6 @@ jobs:
             sudo -n /usr/bin/install -m 0755 -o focusadev -g focusadev \
               scripts/install-focusa.sh \
               /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.sh
-            sudo -n /usr/bin/install -m 0755 -o focusadev -g focusadev \
-              scripts/install-focusa.sh \
-              /home/focusadev/install.focusa.dev/public_html/focusa
             sudo -n /usr/bin/install -m 0644 -o focusadev -g focusadev \
               scripts/install-focusa.ps1 \
               /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.ps1
@@ -365,97 +362,6 @@ jobs:
             /tmp/focusa-release/deploy-success.json.sig \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
-
-      - name: Gate OTA installability against signed deployed release
-        if: ${{ !inputs.dry_run }}
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          TAG='${{ steps.cfg.outputs.tag }}'
-          case "$TAG" in
-            *-nightly.*) CHANNEL='nightly' ;;
-            *-dev|*-rc.*) CHANNEL='dev' ;;
-            *) CHANNEL='stable' ;;
-          esac
-          TRIPLE='x86_64-unknown-linux-musl'
-          RELEASED_CLI="focusa-${TAG}-${TRIPLE}"
-          PUBLISHED_INSTALLER="focusa-installer-${TAG}.sh"
-          PUBLISHED_PS1="focusa-installer-${TAG}.ps1"
-          ASSETS="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
-          for required in \
-            deploy-success.json deploy-success.json.sig \
-            release-manifest.json release-manifest.json.sig \
-            release-provenance.json release-provenance.json.sig \
-            focusa-trusted-release-keys.json focusa-trusted-release-keys.json.sig \
-            SHA256SUMS.txt SHA256SUMS.txt.sig \
-            "$PUBLISHED_INSTALLER" "$PUBLISHED_PS1" \
-            "$RELEASED_CLI" "${RELEASED_CLI}.sig"; do
-            grep -Fxq "$required" <<<"$ASSETS" || {
-              echo "OTA release gate: missing required asset $required" >&2
-              exit 1
-            }
-          done
-          gh release download "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern "$RELEASED_CLI" \
-            --pattern "$PUBLISHED_INSTALLER" \
-            --pattern "$PUBLISHED_PS1" \
-            --pattern 'SHA256SUMS.txt' \
-            --pattern 'release-manifest.json' \
-            --dir /tmp/focusa-release \
-            --clobber
-
-          echo "Gate published bootstrapper asset resolution"
-          grep -Fq 'ASSET="focusa-${RELEASE_TAG}-${TRIPLE}"' "/tmp/focusa-release/$PUBLISHED_INSTALLER"
-          grep -Fq 'return "focusa-$Tag-$Triple.exe"' "/tmp/focusa-release/$PUBLISHED_PS1"
-          for triple in \
-            x86_64-unknown-linux-musl aarch64-unknown-linux-gnu \
-            x86_64-apple-darwin aarch64-apple-darwin \
-            x86_64-pc-windows-msvc aarch64-pc-windows-msvc; do
-            ASSET="focusa-${TAG}-${triple}"
-            case "$triple" in *-pc-windows-msvc) ASSET="${ASSET}.exe" ;; esac
-            grep -Fxq "$ASSET" <<<"$ASSETS" || {
-              echo "published bootstrapper gate: missing $ASSET" >&2
-              exit 1
-            }
-            awk -v asset="$ASSET" \
-              '$2 == asset || $2 == "*" asset { found=1 } END { exit !found }' \
-              /tmp/focusa-release/SHA256SUMS.txt
-            jq -e --arg asset "$ASSET" \
-              '.assets[$asset].sha256 | type == "string" and length == 64' \
-              /tmp/focusa-release/release-manifest.json >/dev/null
-            curl --http1.1 -fsSIL --retry 3 --retry-delay 2 \
-              "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ASSET}" \
-              >/dev/null
-          done
-
-          chmod 0755 "/tmp/focusa-release/$RELEASED_CLI"
-          "/tmp/focusa-release/$RELEASED_CLI" update plan \
-            --channel "$CHANNEL" \
-            --latest-version "$TAG" \
-            --json > /tmp/focusa-release/ota-update-plan.json
-          jq -e '
-            .apply_allowed == true and
-            .latest.trust.release_resolved == true and
-            .latest.trust.checksums_resolved == true and
-            .latest.trust.signature_verified == true and
-            .latest.trust.manifest_signature_verified == true and
-            .latest.trust.provenance_verified == true and
-            .latest.trust.deploy_proof_verified == true and
-            (.apply_blocked_until | length) == 0
-          ' /tmp/focusa-release/ota-update-plan.json >/dev/null
-          echo "OTA release gate: updater trust resolved and apply is eligible for $TAG"
-
-      - name: Upload OTA installability proof
-        if: ${{ !inputs.dry_run }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: ota-installability-proof-${{ steps.cfg.outputs.tag }}
-          path: /tmp/focusa-release/ota-update-plan.json
-          if-no-files-found: error
-          retention-days: 30
 
       - name: Cleanup release artifact temp dir
         if: ${{ !inputs.dry_run }}

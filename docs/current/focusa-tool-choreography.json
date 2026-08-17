@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 137,
-  "edge_count": 387,
+  "tool_count": 112,
+  "edge_count": 323,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -69,82 +69,6 @@
     }
   ],
   "per_tool_next_tools": {
-    "focusa_agent_runtime_effective": [
-      "focusa_instruction_sources",
-      "focusa_instruction_conflicts",
-      "focusa_instruction_integrity_status"
-    ],
-    "focusa_instruction_sources": [
-      "focusa_instruction_conflicts",
-      "focusa_instruction_explain",
-      "focusa_agent_runtime_effective"
-    ],
-    "focusa_instruction_conflicts": [
-      "focusa_instruction_explain",
-      "focusa_instruction_simulate",
-      "focusa_instruction_integrity_evaluate"
-    ],
-    "focusa_instruction_explain": [
-      "focusa_instruction_simulate",
-      "focusa_agent_runtime_effective"
-    ],
-    "focusa_instruction_simulate": [
-      "focusa_runtime_constitution_preview",
-      "focusa_instruction_integrity_evaluate"
-    ],
-    "focusa_runtime_constitution_preview": [
-      "focusa_prompt_variant_preview",
-      "focusa_agent_artifact_preview"
-    ],
-    "focusa_prompt_variant_preview": [
-      "focusa_prompt_variant_diff",
-      "focusa_agent_artifact_preview"
-    ],
-    "focusa_prompt_variant_diff": [
-      "focusa_prompt_variant_preview",
-      "focusa_agent_runtime_doctor"
-    ],
-    "focusa_agent_artifact_preview": [
-      "focusa_agent_artifact_delivery",
-      "focusa_agent_artifact_verify"
-    ],
-    "focusa_agent_artifact_delivery": [
-      "focusa_agent_artifact_verify",
-      "focusa_instruction_integrity_status"
-    ],
-    "focusa_agent_artifact_verify": [
-      "focusa_agent_runtime_effective",
-      "focusa_agent_runtime_doctor"
-    ],
-    "focusa_instruction_integrity_evaluate": [
-      "focusa_instruction_integrity_status",
-      "focusa_agent_runtime_headless_verify"
-    ],
-    "focusa_instruction_integrity_status": [
-      "focusa_instruction_integrity_evaluate",
-      "focusa_agent_runtime_doctor"
-    ],
-    "focusa_canonical_instruction_amendment_propose": [
-      "focusa_canonical_instruction_amendment_activate",
-      "focusa_instruction_integrity_evaluate"
-    ],
-    "focusa_canonical_instruction_amendment_activate": [
-      "focusa_instruction_integrity_evaluate",
-      "focusa_agent_runtime_effective"
-    ],
-    "focusa_agent_runtime_headless_verify": [
-      "focusa_instruction_integrity_status",
-      "focusa_agent_runtime_doctor"
-    ],
-    "focusa_agent_runtime_doctor": [
-      "focusa_agent_runtime_effective",
-      "focusa_instruction_integrity_status"
-    ],
-    "focusa_north_star_gate": [
-      "focusa_project_identity",
-      "focusa_trajectory_view",
-      "focusa_workpoint_resume"
-    ],
     "focusa_tool_search": [
       "focusa_tool_describe",
       "focusa_tool_bundle",
@@ -169,16 +93,6 @@
       "focusa_tool_search",
       "focusa_tool_bundle",
       "focusa_project_identity"
-    ],
-    "focusa_prediction_authority": [
-      "focusa_predict_recent",
-      "focusa_evidence_capture",
-      "focusa_metacog_capture"
-    ],
-    "focusa_ontology_scope_migration": [
-      "focusa_project_verify",
-      "focusa_evidence_capture",
-      "focusa_workpoint_link_evidence"
     ],
     "focusa_browser_capabilities_intake": [
       "focusa_browser_workflow_plan",
@@ -222,11 +136,6 @@
       "focusa_preload_verify",
       "focusa_preload_doctor"
     ],
-    "focusa_daemon_routing_status": [
-      "focusa_project_identity",
-      "focusa_tool_doctor",
-      "focusa_workpoint_resume"
-    ],
     "focusa_project_identity": [
       "focusa_project_card",
       "focusa_project_verify",
@@ -250,34 +159,11 @@
       "focusa_trajectory_view"
     ],
     "focusa_project_verify": [
-      "focusa_project_bootstrap",
-      "focusa_project_genesis",
       "focusa_trajectory_view",
       "focusa_workpoint_resume",
       "focusa_tool_doctor"
     ],
-    "focusa_project_bootstrap": [
-      "focusa_project_genesis",
-      "focusa_project_verify",
-      "focusa_workpoint_resume"
-    ],
-    "focusa_project_genesis": [
-      "focusa_workpoint_resume",
-      "focusa_trajectory_view",
-      "focusa_project_verify"
-    ],
-    "focusa_temporal_authority": [
-      "focusa_trajectory_view",
-      "focusa_workpoint_resume",
-      "focusa_project_verify"
-    ],
-    "focusa_epistemic_operation": [
-      "focusa_prediction_authority",
-      "focusa_metacog_retrieve",
-      "focusa_trajectory_view"
-    ],
     "focusa_trajectory_view": [
-      "focusa_temporal_authority",
       "focusa_trajectory_assess",
       "focusa_trajectory_define_goal",
       "focusa_workpoint_resume"
@@ -733,206 +619,6 @@
   },
   "edges": [
     {
-      "from": "focusa_agent_runtime_effective",
-      "to": "focusa_instruction_sources",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_runtime_effective",
-      "to": "focusa_instruction_conflicts",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_runtime_effective",
-      "to": "focusa_instruction_integrity_status",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_sources",
-      "to": "focusa_instruction_conflicts",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_sources",
-      "to": "focusa_instruction_explain",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_sources",
-      "to": "focusa_agent_runtime_effective",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_conflicts",
-      "to": "focusa_instruction_explain",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_conflicts",
-      "to": "focusa_instruction_simulate",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_conflicts",
-      "to": "focusa_instruction_integrity_evaluate",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_explain",
-      "to": "focusa_instruction_simulate",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_explain",
-      "to": "focusa_agent_runtime_effective",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_simulate",
-      "to": "focusa_runtime_constitution_preview",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_simulate",
-      "to": "focusa_instruction_integrity_evaluate",
-      "weight": 1
-    },
-    {
-      "from": "focusa_runtime_constitution_preview",
-      "to": "focusa_prompt_variant_preview",
-      "weight": 1
-    },
-    {
-      "from": "focusa_runtime_constitution_preview",
-      "to": "focusa_agent_artifact_preview",
-      "weight": 1
-    },
-    {
-      "from": "focusa_prompt_variant_preview",
-      "to": "focusa_prompt_variant_diff",
-      "weight": 1
-    },
-    {
-      "from": "focusa_prompt_variant_preview",
-      "to": "focusa_agent_artifact_preview",
-      "weight": 1
-    },
-    {
-      "from": "focusa_prompt_variant_diff",
-      "to": "focusa_prompt_variant_preview",
-      "weight": 1
-    },
-    {
-      "from": "focusa_prompt_variant_diff",
-      "to": "focusa_agent_runtime_doctor",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_artifact_preview",
-      "to": "focusa_agent_artifact_delivery",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_artifact_preview",
-      "to": "focusa_agent_artifact_verify",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_artifact_delivery",
-      "to": "focusa_agent_artifact_verify",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_artifact_delivery",
-      "to": "focusa_instruction_integrity_status",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_artifact_verify",
-      "to": "focusa_agent_runtime_effective",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_artifact_verify",
-      "to": "focusa_agent_runtime_doctor",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_integrity_evaluate",
-      "to": "focusa_instruction_integrity_status",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_integrity_evaluate",
-      "to": "focusa_agent_runtime_headless_verify",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_integrity_status",
-      "to": "focusa_instruction_integrity_evaluate",
-      "weight": 1
-    },
-    {
-      "from": "focusa_instruction_integrity_status",
-      "to": "focusa_agent_runtime_doctor",
-      "weight": 1
-    },
-    {
-      "from": "focusa_canonical_instruction_amendment_propose",
-      "to": "focusa_canonical_instruction_amendment_activate",
-      "weight": 1
-    },
-    {
-      "from": "focusa_canonical_instruction_amendment_propose",
-      "to": "focusa_instruction_integrity_evaluate",
-      "weight": 1
-    },
-    {
-      "from": "focusa_canonical_instruction_amendment_activate",
-      "to": "focusa_instruction_integrity_evaluate",
-      "weight": 1
-    },
-    {
-      "from": "focusa_canonical_instruction_amendment_activate",
-      "to": "focusa_agent_runtime_effective",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_runtime_headless_verify",
-      "to": "focusa_instruction_integrity_status",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_runtime_headless_verify",
-      "to": "focusa_agent_runtime_doctor",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_runtime_doctor",
-      "to": "focusa_agent_runtime_effective",
-      "weight": 1
-    },
-    {
-      "from": "focusa_agent_runtime_doctor",
-      "to": "focusa_instruction_integrity_status",
-      "weight": 1
-    },
-    {
-      "from": "focusa_north_star_gate",
-      "to": "focusa_project_identity",
-      "weight": 1
-    },
-    {
-      "from": "focusa_north_star_gate",
-      "to": "focusa_trajectory_view",
-      "weight": 1
-    },
-    {
-      "from": "focusa_north_star_gate",
-      "to": "focusa_workpoint_resume",
-      "weight": 1
-    },
-    {
       "from": "focusa_tool_search",
       "to": "focusa_tool_describe",
       "weight": 1
@@ -1005,36 +691,6 @@
     {
       "from": "focusa_agent_card",
       "to": "focusa_project_identity",
-      "weight": 1
-    },
-    {
-      "from": "focusa_prediction_authority",
-      "to": "focusa_predict_recent",
-      "weight": 1
-    },
-    {
-      "from": "focusa_prediction_authority",
-      "to": "focusa_evidence_capture",
-      "weight": 1
-    },
-    {
-      "from": "focusa_prediction_authority",
-      "to": "focusa_metacog_capture",
-      "weight": 1
-    },
-    {
-      "from": "focusa_ontology_scope_migration",
-      "to": "focusa_project_verify",
-      "weight": 1
-    },
-    {
-      "from": "focusa_ontology_scope_migration",
-      "to": "focusa_evidence_capture",
-      "weight": 1
-    },
-    {
-      "from": "focusa_ontology_scope_migration",
-      "to": "focusa_workpoint_link_evidence",
       "weight": 1
     },
     {
@@ -1148,21 +804,6 @@
       "weight": 1
     },
     {
-      "from": "focusa_daemon_routing_status",
-      "to": "focusa_project_identity",
-      "weight": 1
-    },
-    {
-      "from": "focusa_daemon_routing_status",
-      "to": "focusa_tool_doctor",
-      "weight": 1
-    },
-    {
-      "from": "focusa_daemon_routing_status",
-      "to": "focusa_workpoint_resume",
-      "weight": 1
-    },
-    {
       "from": "focusa_project_identity",
       "to": "focusa_project_card",
       "weight": 1
@@ -1234,16 +875,6 @@
     },
     {
       "from": "focusa_project_verify",
-      "to": "focusa_project_bootstrap",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_verify",
-      "to": "focusa_project_genesis",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_verify",
       "to": "focusa_trajectory_view",
       "weight": 1
     },
@@ -1255,71 +886,6 @@
     {
       "from": "focusa_project_verify",
       "to": "focusa_tool_doctor",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_bootstrap",
-      "to": "focusa_project_genesis",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_bootstrap",
-      "to": "focusa_project_verify",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_bootstrap",
-      "to": "focusa_workpoint_resume",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_genesis",
-      "to": "focusa_workpoint_resume",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_genesis",
-      "to": "focusa_trajectory_view",
-      "weight": 1
-    },
-    {
-      "from": "focusa_project_genesis",
-      "to": "focusa_project_verify",
-      "weight": 1
-    },
-    {
-      "from": "focusa_temporal_authority",
-      "to": "focusa_trajectory_view",
-      "weight": 1
-    },
-    {
-      "from": "focusa_temporal_authority",
-      "to": "focusa_workpoint_resume",
-      "weight": 1
-    },
-    {
-      "from": "focusa_temporal_authority",
-      "to": "focusa_project_verify",
-      "weight": 1
-    },
-    {
-      "from": "focusa_epistemic_operation",
-      "to": "focusa_prediction_authority",
-      "weight": 1
-    },
-    {
-      "from": "focusa_epistemic_operation",
-      "to": "focusa_metacog_retrieve",
-      "weight": 1
-    },
-    {
-      "from": "focusa_epistemic_operation",
-      "to": "focusa_trajectory_view",
-      "weight": 1
-    },
-    {
-      "from": "focusa_trajectory_view",
-      "to": "focusa_temporal_authority",
       "weight": 1
     },
     {

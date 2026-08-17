@@ -9,37 +9,5 @@ if [[ -z "$VERSION" ]]; then
   echo "version not found" >&2
   exit 1
 fi
-if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
-  echo "invalid release version: $VERSION" >&2
-  exit 2
-fi
-python3 - "$ROOT_DIR/README.md" "$VERSION" <<'PY'
-import re
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-version = sys.argv[2]
-text = path.read_text()
-encoded = version.replace("-", "--")
-text, badge_count = re.subn(
-    r"(?<=img\.shields\.io/badge/version-)[0-9A-Za-z.\-]+(?=-blue)",
-    encoded,
-    text,
-    count=1,
-)
-text, source_count = re.subn(
-    r"(?<=Current source version: `v)[0-9A-Za-z.+\-]+(?=`)",
-    version,
-    text,
-    count=1,
-)
-if badge_count != 1 or source_count != 1:
-    raise SystemExit(
-        f"README version stamp mismatch: badge_count={badge_count} source_count={source_count}"
-    )
-path.write_text(text)
-PY
 printf '%s\n' "$VERSION" > "$ROOT_DIR/docs/current/.release-version-stamp"
-"$ROOT_DIR/scripts/generate-current-runtime-status"
-echo "stamped release docs version: $VERSION"
+echo "stamped release version: $VERSION"

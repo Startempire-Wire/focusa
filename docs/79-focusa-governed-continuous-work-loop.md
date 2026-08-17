@@ -1731,8 +1731,3 @@ This spec is satisfied only when:
 ## 38. One-Sentence Summary
 
 Focusa continuous work mode should be a daemon-owned, policy-bounded multi-turn execution loop over Pi RPC/SDK transport, with canonical continuation facts expressed through reducer events, scope/current-ask/checkpoint discipline enforced by Focusa policy, and the Pi extension kept thin as UX glue rather than control authority.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-build-verify-loop -->
-## Spec 144 Build↔Verify Work Loop integration
-
-The Work Loop MUST orchestrate the Semantic Execution Pair lifecycle, freeze Work Contracts before building, compile and route obligations, preserve separate sessions and leases, invalidate stale verification after material change, reroute on findings or provider failure, detect oscillation, and request Spec 136 settlement only after complete coverage. Verification availability, placement, and deadline conflicts remain explicit blockers.

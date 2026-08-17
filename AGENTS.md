@@ -21,6 +21,71 @@ Before broad Focusa code changes or after context loss, read `docs/agent/01-focu
 
 Current surfaces: Mission Canvas/Work Rail and generated UI (`docs/135-series-current-manifest.md`), Silent Sessions (`docs/133-silent-sessions-final-release-proof.md`), all-tool/skill machine contracts (`docs/contracts/spec141/generated-capability-v2/`), and public onboarding (`README.md`, `docs/current/FOCUSA_FRIENDLY_ONBOARDING.md`).
 
+## Terminal-blocking queries (TBQs) must run asynchronously (mandatory)
+
+The operator terminal must never stop flowing. Any terminal-blocking query —
+builds, test suites, migrations, long scans, waits for remote jobs — MUST be
+dispatched through the canonical background-execution surface, and the agent
+must continue other work immediately. Blocking is allowed only for
+sub-second commands and commands with an explicit short bound whose output
+is required immediately.
+
+CANONICAL DISPATCH — `focusa bg` is the ONLY background-execution
+mechanism. No raw shells, no alternatives:
+
+```bash
+setsid nohup /usr/local/bin/focusa bg run --name <job> -- <command...> &
+```
+
+(the setsid/nohup above only detaches the bg monitor itself from the
+terminal; the JOB runs through focusa bg.)
+
+- `focusa bg run` creates the durable job row, executes detached,
+  streams output to the job log, records completion durably, then
+  broadcasts `background_job_completion` with the bounded output_tail
+  on the daemon SSE stream.
+- The Pi extension delivers completion + output tail INTO the agent's
+  front terminal (notify + appendEntry). `focusa bg wait --job <id>`
+  long-polls for harnesses without SSE. `bg status`/`bg list` are the
+  only status queries.
+- BANNED: raw `setsid nohup ... > log &` job dispatch, `tail` polling,
+  `sleep N; tail` chains, and treating the envelope as advisory.
+  Completion + output_tail IS the delivery path (docs/165).
+- Multi-agent work = N workloop-bound SILENT SESSIONS with the existing
+  completion stream + bg receipts (docs/168) — never raw shells.
+- Fast-forward multiplier (2x/4x/6x/8x…): operator-conceived #312 —
+  FanoutPlan divides work items round-robin across parallel sessions;
+  per-lane policy budgets, wait-for-all join (docs/169).
+
+## Production consistency (mandatory default for every feature)
+
+Every Focusa feature ships only when all five proofs exist: versioned
+contract, producer tests, CONSUMER-side tests (producer-green is not
+delivery-green), cross-version interop, and the live e2e proof across
+supported environments. Policy:
+docs/current/PRODUCTION_CONSISTENCY_POLICY.md. The bg-notification
+feature is the reference implementation of the policy.
+
+## Disk headroom (mandatory)
+
+Never allow the operator filesystem or user quota to reach capacity.
+Always remove safe removables **first and proactively**: build caches
+(`target/`, `node_modules/`), toolchain caches, age-bounded rollback
+backups, staging clones, and temp artifacts. Check `df` and user quota
+before and after large operations; when headroom drops, free rebuildable
+space immediately — never reactively under pressure. Live data (daemon
+databases, evidence, ledgers, user files) is never a removable.
+
+## De-duplication discipline (deslop, mandatory)
+
+Before writing a new helper, envelope block, or test setup, check the
+deslop analysis for an existing similar implementation (`deslop` CLI in
+CI reports; the Deslop MCP `find-similar` when connected). Renamed
+copies of existing helpers are rejected in review; converge intentional
+boilerplate (error envelopes, tool results) through the canonical
+constructors (focusa_core::error_envelope, tool_result_v1) instead of
+re-typing them. The duplication ceiling lives in `.deslop.toml`.
+
 ## Pre-work rule: always check remote first (mandatory)
 
 Before any durable state change (commit, push, branch switch, merge, rebase, tag), or before resuming work after a session reload, agent context drift, or gap in continuity:
@@ -55,6 +120,41 @@ Commit subjects must remain meaningful Conventional Commit descriptions because
 GitHub changelogs and tagged release summaries use the first line. Bead IDs may
 appear only below the subject as a `Beads:` body trailer; ID-only subjects are
 rejected by local hooks, CI, and the release-tag gate.
+
+## One canonical Focusa Pi package (mandatory)
+
+Exactly **one canonical Focusa Pi package** may be loadable from each Pi
+extension discovery root (`~/.pi/agent/extensions/`, or `FOCUSA_PI_EXT_DIR`).
+Backup, stage, legacy, rollback, disabled, and quarantine copies must live
+under the sibling non-discovery root `~/.pi/agent/retired-extensions/`.
+Compatibility symlinks may resolve only to that same canonical target without
+duplicate registration. Starting Pi with `-ne`/`--no-extensions` never
+satisfies acceptance: a fresh Pi process must start with zero duplicate tool
+and zero duplicate flag errors. Install and OTA activation flow through the
+typed receipt in `crates/focusa-cli/src/commands/pi_package.rs`.
+
+## Per-turn metacognition + prediction loop (mandatory)
+
+Every turn ends with the learning loop, recorded through Focusa itself:
+
+1. **Reflect** — capture what worked and what failed that turn (`POST /v1/metacognition/capture`, or the `focusa_metacog_capture` tool) with kind `reflection` + a strategy_class.
+2. **Predict** — record a bounded prediction for the next task (`POST /v1/predictions`: predicted_outcome, confidence, recommended_action, why).
+3. **Evaluate** — on the next turn, evaluate the prior prediction against the actual outcome (`POST /v1/predictions/capture-outcome`).
+4. **Retrieve** — before a related ask, `POST /v1/metacognition/retrieve` so prior lessons apply.
+
+Predictions use a typed scope body (`scope.root_scope.scope_kind` = `Project`/`Host`).
+
+## Tool flywheel + health discipline (mandatory)
+
+Every tool family must close the loop with the others — no isolated tool, no broken tool. Before any feature work on tooling, and after any route/guard change, run `scripts/audit-route-health.mjs` and require a healthy sweep. Broken-tool reports are release blockers, not backlog. The ecosystem audit (docs/170) orders the cross-family work.
+
+## Dynamic scope discipline
+
+No hard-coded paths or magic roots anywhere in requests, tests, or fixtures. Scopes derive from the caller's actual project root; safety classification lives in one place (`scope_safety.rs`) and the json_guard accepts both the typed ScopeKind enum and query scope kinds.
+
+## Turn closure
+
+Every turn ends with the suggested next logical step, stated in one line.
 
 ## Quick Reference
 

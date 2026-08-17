@@ -12,103 +12,66 @@
 <p align="center">
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml/badge.svg"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.9.152-blue">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.9.121--dev-blue">
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.91%2B-dea584?logo=rust">
   <img alt="License" src="https://img.shields.io/badge/license-BSL--1.1-orange">
   <img alt="Local first" src="https://img.shields.io/badge/local--first-proof%20layer-2b82ff">
 </p>
 
-Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.152`.
+Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.121-dev`.
 
-> **Evaluator/customer distribution status:** Focusa's lifecycle, release, Workpoint, Evidence, Pi, TUI, and Mission Canvas foundations are advanced, but mandatory authority-issued licensing is not yet implemented end to end. The current Bash/PowerShell `--eval` path self-issues local Evaluation and is now release-blocked. New evaluator/customer installs must wait for Spec 152, Spec 150A, and applicable Spec 152A proof rather than using that legacy bypass.
+When a coding session gets long, context compacts, the mission drifts, proof gets buried, or another agent takes over, Focusa preserves the work as a proof-backed **Workpoint** with linked **Evidence** and a **next safe action**. The next agent should not have to guess from transcript memory.
 
-When a coding session gets long, context compacts, the mission drifts, proof gets buried, or another agent takes over, Focusa preserves work as a proof-backed **Workpoint** with linked **Evidence** and a **next safe action**. The next agent should not have to guess from transcript memory.
-
-## Current architecture
+### Current release architecture
 
 - **Exact scope and worktrees:** authority is `project_root + continuity_id`; worktrees are verified working subpaths, not accidental new projects.
 - **Daemon-native Silent Sessions:** durable background runs support observation, steering, pause/resume/restart, approvals, idempotency, and receipts.
-- **Governed work loop and recovery:** one writer, canonical checkpoints, proactive compaction, cache-safe context, and governed rollover.
-- **Mission Canvas and Work Rail:** scoped Work Surfaces, interviews, workspace artifacts, UIAI browser context, connectors, software/domain projections, and adaptive generated UI.
-- **Customer lifecycle mechanics:** typed install/repair/update/rollback/uninstall transactions with data preservation and proof; uninstall with user data preserved by default, purge explicit.
-- **Agent-ready contracts:** every Focusa Pi tool has runtime, generated machine, documentation, skill, and runbook projections.
-- **Mandatory licensing target:** authority-issued signed Evaluation/paid/developer leases, recovery-only missing state, product-qualified features/limits, UIAI independent grants, and protected private workers/capsules for selected commercial functionality.
+- **Governed work loop and recovery:** one writer, canonical checkpoints, proactive compaction, cache-safe context, and automatic rollover after bounded transport exhaustion.
+- **Mission Canvas and Work Rail:** scoped Work Surfaces, CRIST interviews, workspace artifacts, UIAI browser context, live refresh, connectors, software/domain projections, and adaptive generated UI.
+- **Customer lifecycle:** idempotent install/repair, trusted Linux/macOS/Windows release assets, OTA/update rollback, and uninstall with user data preserved unless purge is explicit.
+- **Agent-ready by construction:** every Focusa Pi tool has a runtime contract, generated machine schema, per-tool document, skill routing, and a progressively disclosed runbook.
 
-Trajectory ladder: **HLT** → **MLG** → **STG** → **Waypoints**. Workpoint remains immediate action authority. The operator has authority; agents may propose trajectory-aligned work without silently changing the root goal.
+Trajectory ladder: **HLT** (High-Level Trajectory) → **MLG** (Mid-Level Goal) → **STG** (Short-Term Goal) → **Waypoints** (concrete progress markers). Workpoint remains immediate action authority. The operator has authority; agents actively offer HLT-aligned Waypoints, STGs, and MLGs without silently changing the root goal.
 
-## Install and lifecycle status
+## Install
 
-### Approved current operations
-
-Until mandatory entitlement implementation lands, public guidance is limited to non-mutating inspection and data-preserving removal:
+[Release Install Postcard](docs/RELEASE_INSTALL_POSTCARD.md) — install, verify health, quickstart, and open Mission Deck.
 
 ```bash
-# Inspect platform, dependencies, current install, and release/update posture.
-# This does not create Evaluation and must not activate runnable product components.
+curl -fsS https://install.focusa.dev/focusa | bash
+
+Evaluation and entitlement issuance are authority-issued under Spec 152 (spec152): the bootstrapper resolves a signed, node-bound authority lease and never creates local evaluation state. Recovery posture: the same authority reissues device grants; no local credential persistence.
+focusa start
+focusa setup wizard --dry-run
+focusa doctor
+```
+
+Interactive install offers the complete agent workflow and asks before installing missing Node.js/npm, Pi, the bundled Focusa Pi extension, and UIAI Engine. For unattended installation, pass `--install-dependencies --assume-yes`. Linux/amd64 can install the pinned checksummed UIAI binary; other platforms must set `UIAI_ENGINE_URL` to a healthy private endpoint. Focusa does not report full workflow readiness until Pi/plugin and `${UIAI_ENGINE_URL:-http://127.0.0.1:7456}/v1/health` checks pass.
+
+Safe installer/update checks before changing anything:
+
+```bash
 focusa install --preflight --json
 focusa update status --json
 focusa update plan --json
-
-# Remove managed software while preserving user data.
-curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall
+focusa update apply --yes --allow-apply --dry-run false --json
+focusa update scheduler --install --json  # Linux/root: verified two-minute timer
 ```
 
-Do not use or recommend:
+These commands report stale CLI/daemon/TUI surfaces, dependency prompts, update policy, rollback/safety gates, and notification routes. `update apply` promotes only checksum + Sigstore signature verified assets using an atomic staged rename and rollback journal; `scheduler --install` enables persistent two-minute verified refresh checks. Neither overwrites `.env`, license, or project data; daemon restart remains separately gated.
 
-```text
-scripts/install-focusa.sh --eval
-install-focusa.ps1 -Eval
-curl ... | bash -s -- --eval
-```
-
-Those are current-code migration surfaces, not approved evaluator onboarding.
-
-### Required target onboarding
-
-```text
-verify official release
-→ choose Evaluate / Activate / Purchase
-→ authority device code
-→ verified account/email and current terms
-→ separate promotional-email choice
-→ authority-issued signed product lease
-→ node/features/limits verification
-→ atomic install and recovery/entitled daemon status
-→ optional UIAI independent product grant and child token
-→ pairing
-→ optional first project and Workpoint
-```
-
-Target CLI examples such as `focusa license start --product bundle` are normative in Spec 152 but must not be treated as shipped until implementation and release proof exist.
-
-### Source development
-
-The repository is source-available under BSL 1.1. A source checkout is not an authority-issued Evaluation and does not include protected private components.
-
-Maintainer/development build example:
+Prefer a local build while evaluating from source?
 
 ```bash
 git clone https://github.com/Startempire-Wire/focusa.git
 cd focusa
 cargo build -p focusa-cli -p focusa-api
-cargo test -p focusa-license
+./target/debug/focusa help all
 ```
 
-Developer access to production/private workers, capsules, channels, or signing systems requires a separate authority-issued developer license and private-repository authorization. Repository access or environment variables never create production entitlement.
+## Five-minute proof
 
-## Continuity proof model
-
-Once an entitled or authorized development runtime is available, the core continuity flow is:
-
-```text
-project identity
-→ Trajectory
-→ Workpoint checkpoint/resume
-→ Evidence linkage
-→ safe next action
-```
-
-Representative commands:
+Run a non-destructive continuity proof in any project folder:
 
 ```bash
 focusa project discover --max-depth 2 --json
@@ -121,8 +84,8 @@ focusa workpoint checkpoint \
   --json
 focusa workpoint evidence-link \
   --target-ref tests \
-  --result "focused test passed" \
-  --evidence-ref "test:focused" \
+  --result "cargo test -p focusa-cli passed" \
+  --evidence-ref "test:cargo test -p focusa-cli" \
   --json
 focusa workpoint resume \
   --project-root "$PWD" \
@@ -130,82 +93,159 @@ focusa workpoint resume \
   --copy-prompt
 ```
 
-The final implementation must deny mutation before these commands produce side effects when the canonical lease/product/feature/time/node/limit gate fails. Recovery-safe inspection remains available.
+For the complete non-destructive Operator Preview path, run `scripts/demo-workpoint-happy-path.sh`.
 
-## Core product surfaces
+Expected result: a typed resume packet with mission, scope, proof handle, and next action. If scope is unsafe or unclear, Focusa returns a blocked envelope instead of pretending the work is canonical.
 
-### Workpoints and Evidence
+## The Focusa you can use today
 
-A Workpoint is a typed continuation contract containing mission, scope, current/next action, blockers, and proof handles. Evidence links tests, files, routes, screenshots, command output, and release checks to that Workpoint.
+### 01 · Resume after compaction
 
-### Context Authority
+![Focusa resume packet](docs/assets/readme/01-resume-after-compaction.svg)
 
-Before risky changes, Focusa checks whether the task, project, environment, and install role match the operator's intent. Entitlement Authority is separate: context alignment cannot override a missing product or feature grant.
+A Workpoint gives the next agent a typed continuation contract instead of a transcript guess. It carries mission, scope, next action, and proof links.
 
-### Mission Deck and TUI
+```bash
+focusa workpoint resume --project-root "$PWD" --continuity-id demo-continuity --copy-prompt
+```
+
+### 02 · Evidence that survives handoff
+
+![Focusa evidence refs](docs/assets/readme/02-evidence-refs.svg)
+
+Focusa stores proof as Evidence refs tied to the active Workpoint: tests, files, routes, screenshots, command output, and release checks.
+
+```bash
+focusa workpoint evidence-link \
+  --target-ref crates/focusa-cli \
+  --result "CLI smoke passed" \
+  --evidence-ref "test:cross_phase_smoke_e2e" \
+  --json
+```
+
+### 03 · Context Authority stops off-mission mutation
+
+![Focusa Context Authority](docs/assets/readme/03-context-authority.svg)
+
+Before risky changes, Focusa checks whether the current task, project, environment, and install role match the operator’s actual intent.
+
+```bash
+focusa action preflight \
+  --current-ask "install Focusa locally" \
+  --kind binary_replace \
+  --target /usr/local/bin/focusa \
+  --source github_release_asset \
+  --install-role live_build_host \
+  --project-root "$PWD" \
+  --json
+```
+
+### 04 · Mission Deck in the terminal
+
+![Focusa TUI Mission Deck](docs/assets/readme/04-mission-deck.svg)
+
+The Mission Deck gives operators a compact cockpit: current focus, Workpoint, proof state, trajectory, health, and next safe action.
 
 ```bash
 focusa deck --headless-self-test --json
+# or
 focusa tui --headless-self-test --json
 ```
 
-### Pi integration
+### 05 · Pi extension integration
 
-The Pi extension lets agents call Focusa's Workpoint, Evidence, trajectory, recovery, prediction, metacognition, and lifecycle surfaces without inventing a parallel memory system. Future generated descriptors must expose product-qualified `license_feature` and optional limit metadata for execution-capable tools.
+![Focusa Pi extension](docs/assets/readme/05-pi-extension.svg)
 
-v0.9.142 route: `focusa_project_identity → focusa_trajectory_view → focusa_workpoint_resume → focusa_evidence_capture → focusa_predict_evaluate`; checkpoint with `focusa_workpoint_checkpoint` before compaction or risky continuation.
+The Pi extension lets agents call Focusa directly, linking Workpoints, Evidence, trajectory, recovery tools, and bounded state without inventing a parallel memory system.
 
-### Local daemon and typed API
+```text
+focusa_workpoint_resume → focusa_trajectory_view → focusa_evidence_capture
+```
 
-Focusa runs beside agents as a Rust daemon. State stays on the operator's machine or VPS. The final licensing architecture allows the daemon to start without a valid lease only in recovery mode.
+### 06 · Local daemon, typed API
 
-### Menubar preview
+![Focusa local daemon](docs/assets/readme/06-local-api.svg)
 
-The macOS/Tauri menubar remains a preview surface. The required first-run order is entitlement → optional UIAI grant → pairing → project/Workpoint, not pairing as a license substitute.
+Focusa runs beside the agent as a local Rust daemon. State stays on your machine or VPS. The HTTP API is typed, inspectable, and scriptable.
 
-### UIAI Engine
+```bash
+curl -fsS http://127.0.0.1:8787/v1/health
+focusa status operator --json
+focusa help migration
+```
 
-UIAI Engine is an optional proof-browser/execution plane. Health, loopback, a local API token, extension token, or Focusa pairing never grants UIAI entitlement. UIAI independently verifies its product/features/limits or a scoped child token derived from a valid parent bundle lease.
+### 07 · Menubar cockpit preview
 
-### Protected distribution
+![Focusa menubar preview](docs/assets/readme/07-menubar-preview.svg)
 
-Selected commercially valuable Focusa/UIAI implementations may move to private, signed workers or encrypted feature capsules. Patching a public license Boolean must not create the missing worker, node-bound key envelope, operation capability, or official protected update.
+The macOS/Tauri menubar is a preview surface. The primary Operator Preview today is daemon, CLI, TUI, Workpoints, Evidence, and Pi integration.
+
+```bash
+focusa pairing start --help
+focusa device pair-start --device-name operator-macbook --platform macos
+```
+
+### 08 · Public proof, redacted by default
+
+![Focusa public proof cards](docs/assets/readme/08-public-proof.svg)
+
+Focusa can produce public-safe proof summaries without exposing local paths, full chat logs, license data, secrets, or personal operator state.
+
+```bash
+focusa release prove --tag v0.9.80-dev --fast --json
+bash tests/spec_cli_cross_phase_smoke_test.sh
+```
 
 ## Agent-first capability discovery
 
-Focusa publishes generated capability descriptors across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. Agents progressively load only what the next action needs:
+Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. All 112 Focusa Pi tools are projected one-to-one into strict machine contracts and per-tool docs. Agents start with metadata—not 112 hot schemas—and progressively load only what the next action needs:
 
-1. `focusa_agent_card`
-2. `focusa_tool_search`
-3. `focusa_tool_describe`
-4. `focusa_tool_graph`
-5. `focusa_tool_bundle`
+1. `focusa_agent_card` — interfaces, auth, families, capability count, and discovery entry points.
+2. `focusa_tool_search` — ranked metadata by action, object, failure, or workflow.
+3. `focusa_tool_describe` — one strict input/output/error contract.
+4. `focusa_tool_graph` — bounded dependency and likely-next edges.
+5. `focusa_tool_bundle` — one family, schemas deferred by default.
 
-All 135 Focusa Pi tools are documented across the machine contracts, Agent Card, per-tool docs, and 29 generated skills. Machine contracts: [`docs/contracts/spec141/generated-capability-v2/`](docs/contracts/spec141/generated-capability-v2/)
+MCP exposes the generated callable catalog with pagination, `listChanged`, strict schemas, structured output, safety annotations, and scoped REST authority. UIAI/WebMCP capabilities are bound to one browser session and origin; page safety claims remain untrusted, mutations require governance, and results become evidence.
 
-Every Pi tool: [`docs/focusa-tools/tools/`](docs/focusa-tools/tools/)  
-Skills/runbooks: [`.pi/skills/`](.pi/skills/)  
-Agent fast start: [`docs/agent/01-focusa-agent-docs-index.md`](docs/agent/01-focusa-agent-docs-index.md)
+Machine contracts: [`docs/contracts/spec141/generated-capability-v2/`](docs/contracts/spec141/generated-capability-v2/) · Every Pi tool: [`docs/focusa-tools/tools/`](docs/focusa-tools/tools/) · Skills/runbooks: [`.pi/skills/`](.pi/skills/) · Agent fast start: [`docs/agent/01-focusa-agent-docs-index.md`](docs/agent/01-focusa-agent-docs-index.md) · Release gate: [`docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`](docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md)
 
-## Core read-only and recovery-safe discovery
+## Core commands
 
 ```bash
 focusa help all
-focusa help migration
 focusa project
 focusa setup wizard --dry-run
 focusa first-mission --project-root "$PWD" --dry-run --json
 focusa status operator --json
+focusa workpoint checkpoint --project-root "$PWD" --continuity-id demo --mission "Ship proof" --next-action "Run smoke" --json
+focusa workpoint resume --project-root "$PWD" --continuity-id demo --copy-prompt
+focusa silent --help
 focusa update --help
 focusa tui --headless-self-test
 focusa cleanup --safe --project-root "$PWD" --dry-run --json
 ```
 
-Current commands do not yet all share the final canonical entitlement gate. Do not interpret command availability as product permission.
+Migration help is built in:
+
+```bash
+focusa help migration
+```
+
+Deprecated aliases warn and point to canonical commands; for example, `focusa pair` routes users toward `focusa pairing start`.
+
+## Architecture at a glance
+
+- **`focusa-api`** — local Rust daemon and typed HTTP API.
+- **`focusa-cli`** — operator and agent command surface.
+- **`focusa-core`** — Workpoints, Evidence, reducers, runtime state, and persistence.
+- **`focusa-tui`** — terminal Mission Deck.
+- **`apps/pi-extension`** — Pi coding-agent integration.
+- **`apps/menubar`** — preview macOS/Tauri cockpit.
 
 ## Proof and CI
 
-Existing product/lifecycle proof:
+Focusa’s public proof posture is command-first:
 
 ```bash
 cargo test -p focusa-cli
@@ -214,43 +254,26 @@ cargo test -p focusa-core persistence_sqlite
 bash tests/spec_cli_cross_phase_smoke_test.sh
 ```
 
-Mandatory licensing/documentation proof adds:
-
-```bash
-python3 tests/spec152_documentation_consistency_gate.py
-```
-
-Final distribution additionally requires signed-lease golden vectors, authority staging E2E, lifecycle entitlement receipts, UIAI endpoint-feature coverage, installer Bash/PowerShell parity, fixture exclusion, redaction, and protected-component adversarial proof where applicable.
+The cross-phase smoke suite checks project dashboard commands, first-mission dry run, status aliases, Mission Deck self-test, scope rejection, uninstall keep flags, route parity, and daemon-global mutation blocking.
 
 ## Documentation
 
-### Mandatory licensing and lifecycle authority
-
-- [Spec 152 — authority-issued licensing, Evaluation, and unified onboarding](docs/152-mandatory-authority-licensing-evaluation-entitlements-and-unified-onboarding-spec.md)
-- [Spec 150A — entitlement overlay for verified lifecycle contracts](docs/150a-spec152-entitlement-overlay-and-lifecycle-integration.md)
-- [Spec 152A — protected distribution and anti-tamper](docs/152a-protected-distribution-private-feature-capsules-and-anti-tamper-spec.md)
-- [Supersession and contradiction matrix](docs/contracts/spec152-supersession-and-integration-matrix.v1.yaml)
-- [Current first-run flow](docs/current/FIRST_RUN_FLOW.md)
-- [Current installer/update policy](docs/current/INSTALLER_UPDATE_POLICY.md)
-- [Commercial packaging](docs/current/COMMERCIAL_PACKAGING.md)
-
-### Product and agent docs
-
-- [Current CLI reference](docs/current/CLI_REFERENCE_CURRENT.md)
-- [Troubleshooting](docs/current/TROUBLESHOOTING_CURRENT.md)
-- [Agent architecture and discovery](docs/agent/01-focusa-agent-docs-index.md)
-- [Tool Implementation-to-Spec Audit](docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md)
-- [Model-Visible Awareness Surfaces](docs/current/FOCUSA_MODEL_VISIBLE_AWARENESS.md)
-- [Non-Pi Agent Focusa Usage](docs/current/NON_PI_AGENT_FOCUSA_USAGE.md)
-- [Friendly Focusa Onboarding Q](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
-- [Agent Awareness Quickstart](docs/current/AGENT_AWARENESS_QUICKSTART.md)
-- [Focusa Utility Card](docs/current/FOCUSA_AGENT_UTILITY_CARD.md)
-- [Focusa Tool Choreography Map](docs/current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md)
-- [Current Runtime Status](docs/current/CURRENT_RUNTIME_STATUS.md)
-- [Mission Canvas/current generated UI](docs/135-series-current-manifest.md)
-- [Complete tool documentation](docs/focusa-tools/README.md)
-- [Public shipped/planned status](docs/PUBLIC_DOCS_SYNC.md)
+- Current CLI reference: [`docs/current/CLI_REFERENCE_CURRENT.md`](docs/current/CLI_REFERENCE_CURRENT.md)
+- Production/release commands: [`docs/current/PRODUCTION_RELEASE_COMMANDS.md`](docs/current/PRODUCTION_RELEASE_COMMANDS.md)
+- Troubleshooting: [`docs/current/TROUBLESHOOTING_CURRENT.md`](docs/current/TROUBLESHOOTING_CURRENT.md)
+- Spec-first lifecycle and claim discipline: [`docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md`](docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md)
+- Complete Focusa tool documentation index: [`docs/focusa-tools/README.md`](docs/focusa-tools/README.md)
+- Agent architecture, every-Pi-tool discovery, and skill/runbook onboarding: [`docs/agent/01-focusa-agent-docs-index.md`](docs/agent/01-focusa-agent-docs-index.md)
+- Friendly onboarding walkthrough: [`docs/current/FOCUSA_FRIENDLY_ONBOARDING.md`](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
+- Install/update/rollback/uninstall policy: [`docs/current/INSTALLER_UPDATE_POLICY.md`](docs/current/INSTALLER_UPDATE_POLICY.md)
+- Mission Canvas and generated-UI manifest: [`docs/135-series-current-manifest.md`](docs/135-series-current-manifest.md)
+- Public shipped/planned status map: [`docs/PUBLIC_DOCS_SYNC.md`](docs/PUBLIC_DOCS_SYNC.md)
+- Agent Awareness Quickstart: [`docs/current/AGENT_AWARENESS_QUICKSTART.md`](docs/current/AGENT_AWARENESS_QUICKSTART.md)
+- Friendly Focusa Onboarding Q: [`docs/current/FOCUSA_FRIENDLY_ONBOARDING.md`](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
+- Tool Implementation-to-Spec Audit: [`docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md`](docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md)
+- Model-Visible Awareness Surfaces: [`docs/current/FOCUSA_MODEL_VISIBLE_AWARENESS.md`](docs/current/FOCUSA_MODEL_VISIBLE_AWARENESS.md)
+- Non-Pi Agent Focusa Usage: [`docs/current/NON_PI_AGENT_FOCUSA_USAGE.md`](docs/current/NON_PI_AGENT_FOCUSA_USAGE.md)
 
 ## License
 
-Focusa is source-available under the Business Source License 1.1. See [`LICENSE.md`](LICENSE.md). Source-use permission and official product entitlement are distinct boundaries. Evaluation is an authority-issued license class under the target runtime architecture, not absence of a license.
+Focusa is source-available under the Business Source License 1.1. See [`LICENSE.md`](LICENSE.md).

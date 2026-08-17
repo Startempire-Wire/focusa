@@ -610,8 +610,3 @@ last_closure_audit
 Focusa is not a task manager.
 
 Focusa is the closure authority: typed, provider-neutral, evidence-backed, auditable, and agent-readable.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-closure-input -->
-## Spec 144 closure-authority input
-
-Provider-neutral closure validation MUST consume structured Spec 144 requirement coverage, Verification Plan, snapshot identity, open findings/conflicts, independence/common-mode posture, placement, settlement evaluation, and revalidation state when activated. A provider `done` status or generic Verifier pass cannot close work with uncovered obligations or an invalidated settlement.

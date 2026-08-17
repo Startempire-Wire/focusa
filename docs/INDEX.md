@@ -60,15 +60,9 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 139 | [139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md](139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md) | Distributed presence primacy, environment identity, execution placement, expensive-operation deduplication, and multi-daemon coordination |
 | 140 | [140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md](140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md) | C.R.I.S.T.-derived Project Agent Runtime Constitution, instruction authority graph, Pi system-prompt compiler, AGENTS/rules/skills, enforcement, and cross-harness delivery |
 | 140A | [140a-foundational-instruction-integrity-temporal-adaptation-canonical-amendment-and-headless-enforcement-addendum.md](140a-foundational-instruction-integrity-temporal-adaptation-canonical-amendment-and-headless-enforcement-addendum.md) | Mandatory foundational instruction fidelity, Spec 137 temporal adaptation interlock, two-stage canonical amendment, headless enforcement, and Mission Canvas independence for Spec 140 |
-| 141 | [141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md](141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md) | Agent-first tools, skills, runbooks, documentation parity, and release-gate proof |
-| 142 | [142-focusa-release-requirement-trace-matrix.md](142-focusa-release-requirement-trace-matrix.md) | Locked release requirements, dependency traceability, implementation admission, and no-pass truth |
-| 143 | [143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md](143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md) | Master release cycle, Trajectory Ladder, Project Genesis, frictionless flow, release truth, and locked implementation scope |
-| 144 | [144-focusa-semantic-integrity-rdf-owl-shacl-build-verify-routing-and-vertical-intelligence-spec.md](144-focusa-semantic-integrity-rdf-owl-shacl-build-verify-routing-and-vertical-intelligence-spec.md) | RDF/OWL/SHACL semantic integrity, domain-specific Build↔Verify routing, Vertical Intelligence Bundles, and Spec 137/138 verification integration |
-| 145 | [145-focusa-canonical-core-release-cycle-fast-release-architecture.md](145-focusa-canonical-core-release-cycle-fast-release-architecture.md) | Provider-neutral release kernel, topology DAG, scope lock, call stack, GitHub adapter, and fast-release invariants |
-| 146 | [146-focusa-canonical-release-cycle-operations-and-proof-runbook.md](146-focusa-canonical-release-cycle-operations-and-proof-runbook.md) | Automatic OTA operation, benchmark, security, migration, acceptance, proof, and rollback runbook |
+| 156 | [156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md](156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md) | Provider-neutral, project-scoped Credential Authority, secret custody/use separation, delegated autonomy, MFA/TOTP, and cross-surface injection |
 | contract | [contracts/spec139-complete-feature-ledger.v1.yaml](contracts/spec139-complete-feature-ledger.v1.yaml) | Initial machine-readable Spec 139 implementation and closure ledger |
 | contract | [contracts/spec140-complete-feature-ledger.v1.yaml](contracts/spec140-complete-feature-ledger.v1.yaml) | Initial machine-readable Spec 140 implementation and closure ledger |
-| contract | [contracts/spec140a-complete-feature-ledger.v1.yaml](contracts/spec140a-complete-feature-ledger.v1.yaml) | Initial machine-readable Spec 140A instruction-integrity and headless temporal-adaptation ledger |
 | evidence | [evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md](evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md) | Code-reality audit and maximal primitive derivation supporting Spec 138 |
 | current | [current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md](current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md) | Proposed project-vitals/stuck-detector/governor layer for continuous coding agents |
 | current | [current/FOCUSA_SECURITY_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_REVIEW_2026-05-26.md) | Five-part whole-project security review and remediation backlog |
@@ -123,7 +117,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | #   | File                                                         | Subsystem                    |
 | --- | ------------------------------------------------------------ | ---------------------------- |
 | 23  | [23-capabilities-api.md](23-capabilities-api.md)             | Capabilities API             |
-| 24  | [24-capabilities-cli.md](24-capabilities-cli.md)             | Capabilities CLI (`focusa capability ...`) |
+| 24  | [24-capabilities-cli.md](24-capabilities-cli.md)             | Capabilities CLI             |
 | 25  | [25-capability-permissions.md](25-capability-permissions.md) | Capability permissions model |
 | 26  | [26-agent-capability-scope.md](26-agent-capability-scope.md) | Agent capability scope model |
 
@@ -176,13 +170,25 @@ Every feature submits reusable behavior to greater Focusa primitives.
 Every requirement remains in the machine-readable closure graph.
 ```
 
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-closure-contracts -->
-## Specs 137A/138A/144 architecture-closure contracts
+## 2026-08-15 session additions
 
-The populated machine-readable source coverage, ledgers, delivery DAGs, ownership, profile, placement, dispute, migration, proof, and placeholder-audit contracts are under `docs/contracts/spec137a-*`, `docs/contracts/spec138*`, and `docs/contracts/spec144-*`. They close documentation architecture and make remaining runtime work explicit; they do not claim runtime implementation.
+- docs/162-remote-workspace-binding-design.md — RemoteWorkspaceBinding (#89)
+- docs/163-safe-self-adaptive-compaction-policy-controller-design.md (#112)
+- docs/164-workstream-rooted-canonical-runtime-design.md (#125)
+- docs/current/CONSOLIDATION_AUDIT_2026-08-15.md (#52)
+- docs/current/LICENSING_DIVERGENCE_AUDIT_2026-08-15.md (#119)
+- docs/current/CONVERGENCE_STATE_2026-08-15.md (#101)
+- docs/current/PROJECT_MARKER_PATHS.md (#243)
+- docs/current/BACKGROUND_EXECUTION_AND_COMPLETION_NOTIFICATION.md (#311)
 
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-closure-audit -->
-## Documentation architecture closure evidence
-
-- [`Specs 137A/138A/144 documentation architecture closure audit`](evidence/spec137a-138a-144-documentation-architecture-closure-audit-2026-07-26.md)
-- [`Machine-readable closure manifest`](contracts/spec137a-138a-144-documentation-architecture-closure-manifest.v1.yaml)
+- docs/165-background-execution-and-completion-notification.md (#311 spec)
+- docs/168-multi-agent-silent-session-orchestration-workflow.md (silent-session orchestration)
+- docs/170-tool-ecosystem-interconnection-audit.md (flywheel audit + gap plan)
+- docs/current/WORKSTREAM_CONFORMANCE_2026-08-16.md (#125)
+- docs/current/WORKSET_IMPLEMENTATION_STATE_2026-08-16.md (#267-#274)
+- docs/current/CALLGRAPH_IMPLEMENTATION_STATE_2026-08-16.md (#254)
+- docs/current/E2E_VERIFICATION_2026-08-16.md (21/21 live matrix)
+- docs/current/IMPROVEMENT_AUDIT_2026-08-16.md (security/perf + false-green + SSE root cause + deslop)
+- docs/current/PRODUCTION_CONSISTENCY_POLICY.md (five proofs + 11-surface matrix)
+- docs/current/CHANGES_2026-08-16.md (everything + reasons)
+- scripts/audit-route-health.mjs (tool flywheel health sweep — release blocker when red)

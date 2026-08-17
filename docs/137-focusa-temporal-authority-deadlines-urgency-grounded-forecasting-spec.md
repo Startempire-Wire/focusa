@@ -6,10 +6,6 @@ Normative draft — standalone core Focusa temporal-authority specification. Thi
 
 Canonical label: **Spec 137 — Temporal Authority, Deadlines, Urgency, and Grounded Forecasting**
 
-**Mandatory companion:** [`Spec 137A — Temporal Zero-Deferral, Applicability, and Omission Firewall`](137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md). The combined normative source is Spec 137 + Spec 137A + activated inherited primitive-owner requirements. Full Spec 137 conformance or closure is prohibited unless both documents, their combined source coverage, and their closure artifacts validate.
-
-**Current truth:** existing temporal runtime surfaces may satisfy verified slices only; they do not by themselves establish combined Spec 137 + 137A full conformance.
-
 Depends on: Specs 55, 56, 66, 67, 78, 79, 88, 96, 98, 100, 101, 104, 106, 107, 108, 109, 110, 111, 113, 116, 119, 120, 125, 130, 130A, 131, 133, and 136.
 
 Cross-spec boundary: Spec 130 owns compaction continuity; true addendum Spec 130A owns compaction performance, cache preservation, and zero-waste gates; Spec 131 owns Workpoint Item timing, velocity, and closure authority; proposed Spec 136 owns proposal-to-settlement lifecycle and outcome truth subject to its stated activation conditions. Spec 137 owns the cross-system temporal primitives defined below and consumes—rather than duplicates—those neighboring authorities. Where an implementation requirement touches another owner's domain, the owning spec remains normative and Spec 137 records only the required temporal integration.
@@ -2342,34 +2338,3 @@ Spec 137 is complete only when Focusa can prove that:
 The governing watchword remains:
 
 > **THE CALENDAR AND THE CLOCK NEVER WAIT. TO BE EARLY IS TO BE ON TIME; TO BE ON TIME IS TO BE LATE.**
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec137a-parent-integration -->
-## Mandatory Spec 137A integration and combined-source closure
-
-Spec 137A is not optional guidance. It governs sequencing, applicability, variance, platform and domain qualification, surface parity, migration, proof, and closure for this parent specification. Any parent wording that could permit a weaker interpretation is resolved by Spec 137A.
-
-The following are mandatory before a full-conformance claim:
-
-- combined parent/addendum source coverage and hashes;
-- Spec 137A requirement rows in the complete feature ledger;
-- explicit applicability decisions with affirmative non-activation evidence;
-- all accepted requirements in the root delivery DAG;
-- updated proof, parity, migration, conformance, and placeholder-audit artifacts;
-- a zero-unapproved-deferral and zero-omission Receipt.
-
-The existing temporal implementation and release gate are classified as verified implementation slices until the combined closure system proves otherwise.
-
-## Current implementation snapshot
-
-The Spec 137 implementation slice now includes:
-
-- signed append-only temporal ledgers with predecessor digests, fsync, idempotent replay, restart recovery, signature verification, and legacy-signature migration;
-- explicit `HumanCalendarContext`, `TemporalPriorityFrame`, and `TemporalExecutionGuard` packets bound to project scope, operator-ask digest, expiry, evidence, and authorized action refs;
-- IANA civil-time resolution with explicit DST fold/gap policy and versioned resolution evidence;
-- wall, monotonic, suspend-inclusive, uncertainty, and unsupported/degraded platform-clock reporting without synthesized capabilities;
-- external commitment, internal target, estimate, forecast, urgency, and presentation separation plus reconciliation, slack, due-soon, overdue, conflict, breach, revision, and receipt state;
-- empirical p50/p80/p95 forecasting with authority metadata, censoring/correlation fields, reliability, bias, coverage, sharpness, proper score, skill, decision value, error bounds, cohort drift, exact-target evaluation, and invalidation fingerprints;
-- `/v1/temporal/*`, CLI, Pi tool, Work Loop, Silent Session, Project Card, Mission Canvas, resume/compaction, and reconnect projections;
-- fail-closed high-consequence activation/dispatch preflight, signed event evidence, and explicit recovery paths.
-
-This snapshot is not a combined-source closure claim; Spec 137A applicability, proof, parity, migration, and zero-omission receipts remain independently mandatory.

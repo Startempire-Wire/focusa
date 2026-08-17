@@ -239,8 +239,3 @@ Full implementation is complete when:
 6. Update README, docs index, changelog.
 7. Run validation, TypeScript compile, targeted docs secret scan.
 8. Commit and push initial Spec90 foundation.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-tool-contract-parity -->
-## Spec 144 verification operation and tool-contract parity
-
-Every Spec 144 operation and projection MUST derive from the canonical Operation Registry and ontology-backed tool contract, including Work Contract validation, obligation compilation, plan validation, snapshot freeze, findings/dispositions, rerouting, dispute/appeal, placement inspection, settlement evaluation, and revalidation. API, CLI, Pi, MCP/REST, generated clients, and UI bindings cannot invent divergent schemas or authority.

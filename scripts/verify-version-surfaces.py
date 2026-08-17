@@ -24,9 +24,7 @@ ROOT_RUST_PACKAGES = {
     "focusa-bench",
     "focusa-cli",
     "focusa-core",
-    "focusa-harness-adapters",
     "focusa-license",
-    "focusa-session-runner",
     "focusa-terminal-ui",
     "focusa-tui",
 }
@@ -59,6 +57,7 @@ def read_settings_version(path: str) -> str:
     return match.group(0).lstrip("v")
 
 
+<<<<<<< HEAD
 def read_extension_build_version(path: str, package_name: str) -> str:
     text = (ROOT / path).read_text(encoding="utf-8")
     match = re.search(
@@ -79,6 +78,8 @@ def read_installer_version(path: str) -> str:
     return match.group(1)
 
 
+=======
+>>>>>>> local/work-loop-completion
 def read_lock_versions(path: str, package_names: set[str]) -> dict[str, str]:
     current_name: str | None = None
     versions: dict[str, str] = {}
@@ -115,6 +116,7 @@ def main() -> int:
             "apps/pi-extension/package-lock.json",
             read_json_version("apps/pi-extension/package-lock.json"),
         ),
+<<<<<<< HEAD
         (
             "apps/pi-extension/src/auto-compaction.ts::EXTENSION_BUILD",
             read_extension_build_version(
@@ -131,6 +133,8 @@ def main() -> int:
             "scripts/install-focusa.sh::FOCUSA_INSTALLER_VERSION",
             read_installer_version("scripts/install-focusa.sh"),
         ),
+=======
+>>>>>>> local/work-loop-completion
         ("apps/menubar/package.json", read_json_version("apps/menubar/package.json")),
         (
             "apps/menubar/src-tauri/tauri.conf.json",

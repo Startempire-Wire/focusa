@@ -543,6 +543,7 @@ pub fn reduce_with_meta(
     let emitted_event = event.clone();
 
     match event {
+        FocusaEvent::CallGraphFrameDispatched { .. } | FocusaEvent::CallGraphFrameSettled { .. } => {}
         // ─── Context corpus ─────────────────────────────────────────────
         FocusaEvent::ContextSourceCommitted { source } => {
             if source.receipt.before_state_version != state.version

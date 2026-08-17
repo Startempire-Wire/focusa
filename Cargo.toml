@@ -9,19 +9,19 @@ members = [
     "crates/focusa-license",
     "crates/focusa-tui",
     "crates/focusa-terminal-ui",
+    "crates/focusa-bench",
+    "crates/focusa-session-runner",
     "crates/agent-stateful-cognitive-runtime",
     "crates/letta-adapter",
     "crates/pi-client-tool-gateway",
     "crates/cognitive-state-projection",
-    "crates/focusa-bench",
-    "crates/focusa-session-runner",
 ]
 exclude = [
     "apps/menubar/src-tauri",
 ]
 
 [workspace.package]
-version = "0.9.152"
+version = "0.9.121-dev"
 edition = "2024"
 rust-version = "1.91"
 license-file = "LICENSE.md"
@@ -47,6 +47,11 @@ unused_imports = "allow"
 unused_variables = "allow"
 
 [workspace.dependencies]
+agent-stateful-cognitive-runtime = { path = "crates/agent-stateful-cognitive-runtime" }
+letta-adapter = { path = "crates/letta-adapter" }
+pi-client-tool-gateway = { path = "crates/pi-client-tool-gateway" }
+cognitive-state-projection = { path = "crates/cognitive-state-projection" }
+
 # Async runtime
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "process", "fs", "net", "io-util", "io-std", "signal"] }
 
@@ -92,10 +97,6 @@ hex = "0.4"
 focusa-core = { path = "crates/focusa-core" }
 focusa-license = { path = "crates/focusa-license" }
 focusa-terminal-ui = { path = "crates/focusa-terminal-ui" }
-agent-stateful-cognitive-runtime = { path = "crates/agent-stateful-cognitive-runtime" }
-letta-adapter = { path = "crates/letta-adapter" }
-pi-client-tool-gateway = { path = "crates/pi-client-tool-gateway" }
-cognitive-state-projection = { path = "crates/cognitive-state-projection" }
 
 # Terminal UI (shared between CLI installer and TUI)
 ratatui = "0.30"

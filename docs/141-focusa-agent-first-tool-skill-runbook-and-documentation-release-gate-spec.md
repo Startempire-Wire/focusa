@@ -663,8 +663,3 @@ bash tests/release_notes_workflow_static_test.sh
 ```
 
 Final release proof additionally runs the behavioral conformance suite introduced by Phase G.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-documentation-gates -->
-## Specs 137A/138A/144 documentation and tool-release truth
-
-Public and agent-facing documentation MUST distinguish verified runtime slices, profile subsets, documentation-only architecture, activation state, and full conformance. Tools, skills, runbooks, generated clients, and release surfaces cannot advertise Spec 144 operations until registered runtime implementations and proof exist. The combined-source and required-artifact gate is mandatory in CI.

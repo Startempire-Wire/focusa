@@ -3430,8 +3430,3 @@ The governing architectural decision is:
 ## 35. One-sentence summary
 
 Focusa Silent Sessions should let an authorized operator launch, observe, steer, pause, recover, verify, and prove autonomous agent work from the daemon—using an exact model and isolated workspace—without depending on a foreground Pi process, a tmux pane, or transcript memory.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-session-classes -->
-## Spec 144 governed session classes
-
-Silent Sessions MUST distinguish Builder, Verifier, Router, coverage-challenger, arbiter, and settlement-evaluator assignments. Verifier source posture is read-only, writable work occurs only in an isolated sandbox, writer leases never transfer by role label, and every run binds CognitiveExecutionIdentity, placement, immutable snapshot, obligations, checkpoints, Evidence, and Receipt lineage.

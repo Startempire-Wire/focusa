@@ -1,0 +1,41 @@
+# Deslop duplication policy — Focusa codebase (MIT tooling, free).
+# Tuned for this repo: build output + vendored/generated surfaces are
+# excluded, fixtures are hidden (analysed, never headline), the ceiling
+# starts high (20%) and ratchets down as the error-envelope + tool-result
+# convergence (#261) lands.
+
+[defaults]
+exclude = [
+  "**/node_modules/**",
+  "**/target/**",
+  "**/dist/**",
+  "**/data/**",
+  "**/.beads/**",
+  "**/tests/fixtures/**",
+  "**/crates/focusa-core/tests/fixtures/**",
+  "**/docs/contracts/**",
+  "**/apps/pi-extension/node_modules/**",
+  "**/release-proof/**",
+]
+
+report_hide = [
+  "**/docs/contracts/**",
+  "**/*.generated.*",
+  # Generated per-tool contract registry — intentional sibling records.
+  "**/apps/pi-extension/src/tool-contracts.ts",
+]
+
+[defaults.boilerplate]
+imports = "report"
+
+[threshold]
+max_duplication_percent = 20
+
+[ranking]
+data_clones = "demote"
+data_clone_weight = 0.15
+structural_only = "demote"
+structural_only_weight = 0.15
+
+[report]
+split_by_language = true
