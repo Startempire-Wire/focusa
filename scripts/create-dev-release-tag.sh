@@ -575,8 +575,16 @@ fi
 if [[ "$PUSH" -eq 1 ]]; then
   push_candidate_main_with_auto_rebase
   HEAD_SHA=$(git rev-parse HEAD)
-  echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
-  wait_for_source_workflow "CI" "$HEAD_SHA"
+  # Lean canonical (F38): dev/preview advisory — tag push is cheap, CI is async.
+  # Stable waits for exact candidate CI; dev logs advisory and continues so
+  # releases remain unnoticeable. Release workflow re-checks candidate gate.
+  if [[ "${RELEASE_CHANNEL:-dev}" == "stable" ]]; then
+    echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
+    wait_for_source_workflow "CI" "$HEAD_SHA"
+  else
+    echo "Advisory: skipping blocking CI wait for dev channel (async CI will gate Release): ${HEAD_SHA}" >&2
+    echo "source_gate_advisory: tag push continues, Release Contract Check will re-check CI green for ${HEAD_SHA}" >&2
+  fi
   if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
     journal_client progress --tag "$TAG" --stage "candidate-ci" --status "completed" \
       --details "exact stamped candidate passed pre-tag CI" \
