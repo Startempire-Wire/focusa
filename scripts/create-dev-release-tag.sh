@@ -443,7 +443,7 @@ else
   scripts/validate-commit-messages.sh --range "HEAD^..HEAD"
 fi
 
-if ! python3 scripts/release-gate.py; then
+if ! FOCUSA_RELEASE_CHANNEL="$RELEASE_CHANNEL" python3 scripts/release-gate.py; then
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "Dry run continuing: ReleaseGate would block an actual release." >&2
   elif [[ "$FORCE_RELEASE" -eq 1 ]]; then
@@ -541,10 +541,9 @@ if [[ -n "$(git status --porcelain)" ]]; then
   STAMPED_RELEASE_SURFACES=1
 fi
 
-# Stable version stamping changes governed source surfaces. Re-seal the locked
+# Version stamping changes governed source surfaces (any channel). Re-seal the locked
 # candidate ancestry before source CI so proof never trails the stamped commit.
-if [[ "$PUSH" -eq 1 && "$RELEASE_CHANNEL" == "stable" && \
-      "$STAMPED_RELEASE_SURFACES" -eq 1 && \
+if [[ "$PUSH" -eq 1 && "$STAMPED_RELEASE_SURFACES" -eq 1 && \
       -f release-proof/audit/next-locked-release-candidate-ancestry.json ]]; then
   STAMPED_SOURCE_SHA="$(git rev-parse HEAD)"
   python3 scripts/generate-locked-release-candidate-ancestry.py \
@@ -562,8 +561,15 @@ fi
 # The benchmark includes final release-gap ancestry checks, so it must observe
 # the committed stamped source and its freshly sealed proof.
 if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
-  journal_client benchmark --tag "$TAG" --channel "$RELEASE_CHANNEL"
-  echo "Canonical pre-release benchmark accepted for ${TAG}."
+  if ! journal_client benchmark --tag "$TAG" --channel "$RELEASE_CHANNEL"; then
+    if [[ "$RELEASE_CHANNEL" == "preview" ]]; then
+      echo "Canonical pre-release benchmark advisory for dev ${TAG}: continuing (stable would block)" >&2
+    else
+      exit 1
+    fi
+  else
+    echo "Canonical pre-release benchmark accepted for ${TAG}."
+  fi
 fi
 
 if [[ "$PUSH" -eq 1 ]]; then

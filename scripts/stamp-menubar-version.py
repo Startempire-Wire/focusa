@@ -128,6 +128,19 @@ def replace_agent_card_version(path: str, version: str) -> None:
     )
 
 
+
+def replace_readme_version(path: str, version: str) -> None:
+    file_path = ROOT / path
+    text = file_path.read_text(encoding="utf-8")
+    next_text, count = re.subn(
+        r"Current source version: `v" + OLD_VERSION_RE.pattern + r"`",
+        f"Current source version: `v{version}`",
+        text,
+    )
+    if count != 1:
+        raise SystemExit(f"Expected one Current source version badge in {path}")
+    file_path.write_text(next_text, encoding="utf-8")
+
 def replace_lock_package_versions(
     path: str, package_names: set[str], version: str
 ) -> None:
@@ -193,6 +206,11 @@ def main() -> int:
     # Extension build identity + generated Agent Card version (Spec 152 surfaces).
     replace_extension_build("apps/pi-extension/src/auto-compaction.ts", "focusa-pi-bridge", version)
     replace_agent_card_version("docs/contracts/spec141/generated-capability-v2/agent-card.json", version)
+
+    # README source-version badge (validate-docs-runtime-parity requires v< Cargo version).
+    replace_readme_version("README.md", version)
+    # Release stamp artifact (used by release invariant inputs).
+    (ROOT / "docs/current/.release-version-stamp").write_text(version + "\n", encoding="utf-8")
 
     print(f"Stamped Focusa version {version}")
     return 0
