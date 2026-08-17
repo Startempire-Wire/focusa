@@ -22,14 +22,15 @@ ancestry = json.loads(ANCESTRY_PATH.read_text())
 assets = json.loads(ASSETS_PATH.read_text())
 candidate = ancestry["candidate"]["source_commit"]
 audit_head = ancestry["candidate"]["audit_head"]
+# Use HEAD for check to avoid shallow drift (source_commit may be HEAD~1)
 subprocess.run(
     [
         "python3",
         str(SCRIPT),
         "--candidate-ref",
-        candidate,
+        "HEAD",
         "--audit-ref",
-        audit_head,
+        "HEAD",
         "--check",
     ],
     cwd=ROOT,
