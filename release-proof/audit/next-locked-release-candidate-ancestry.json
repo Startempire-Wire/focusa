@@ -23,12 +23,14 @@
     "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:fb6b04c534319a20f8f7522c4ac1f460c32a25cae4c230431115f95f9a043c1b",
-  "audit_errors": [],
+  "ancestry_digest": "sha256:dcd19bf0e1ae5e96ad55b26c4d2970fc96f17c7aa51e8c1cf8cbe2f3c2fcd6a1",
+  "audit_errors": [
+    "candidate_source_version_not_immutable_or_next_stable"
+  ],
   "candidate": {
-    "audit_head": "156958048e456f3e3e6c9279c4641897edc10ff1",
+    "audit_head": "9b9269ebb08d5613fb40a12613957169695f8ac9",
     "changed_after_source_commit": [],
-    "source_commit": "156958048e456f3e3e6c9279c4641897edc10ff1",
+    "source_commit": "9b9269ebb08d5613fb40a12613957169695f8ac9",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
@@ -107,17 +109,17 @@
     "publish_release": false,
     "rewrite_v0.9.143": false
   },
-  "next_stable_tag": "v0.9.152",
+  "next_stable_tag": "v0.9.153",
   "next_version_selection": {
     "base": "0.9",
     "channel_maxima": {
       "dev": 137,
       "preview": null,
       "rc": null,
-      "stable": 151
+      "stable": 152
     },
-    "considered_tags": 153,
-    "highest_patch": 151,
+    "considered_tags": 154,
+    "highest_patch": 152,
     "ignored_malformed_tags": [
       "spec-integration-v1",
       "spec-integraton-v1-start"
@@ -126,12 +128,32 @@
     "monotonic": true,
     "schema": "focusa.release_version_selection.v1",
     "selected_channel": "dev",
-    "selected_patch": 152,
-    "selected_tag": "v0.9.152-dev",
-    "selected_version": "0.9.152-dev",
+    "selected_patch": 153,
+    "selected_tag": "v0.9.153-dev",
+    "selected_version": "0.9.153-dev",
     "status": "completed"
   },
   "pull_request_ancestry": [
+    {
+      "commit": "4e5d3a7e42ec24574eeafa0236f1ff76de3e058f",
+      "pr": 314,
+      "subject": "Merge pull request #314 from Startempire-Wire/release/canon-final"
+    },
+    {
+      "commit": "7e24490c9c671e45ba3383c9f17350227fbf6113",
+      "pr": 299,
+      "subject": "feat(credentials): grant/verify HTTP surface (#299 slice 3)"
+    },
+    {
+      "commit": "02255aad471632aeeedf7bb7c776266206798396",
+      "pr": 107,
+      "subject": "feat(letta): wire the 4 stateful-runtime crates into the workspace (#107)"
+    },
+    {
+      "commit": "a2407fd858259f57ef9924471b82b5031c155e7d",
+      "pr": 310,
+      "subject": "fix(pi): invalidate Mission Canvas callbacks on session replacement (#310)"
+    },
     {
       "commit": "872f35b955931b450b7dbad44e33d5610dec0bed",
       "pr": 115,
@@ -145,11 +167,11 @@
   "schema": "focusa.locked_release_candidate_ancestry.v1",
   "source_version_agreement": true,
   "source_versions": {
-    "menubar": "0.9.152",
-    "pi_extension": "0.9.152",
-    "workspace": "0.9.152"
+    "menubar": "0.9.153-dev",
+    "pi_extension": "0.9.153-dev",
+    "workspace": "0.9.153-dev"
   },
-  "status": "verified",
+  "status": "blocked",
   "tag_chain": {
     "dev": [
       {
