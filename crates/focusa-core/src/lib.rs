@@ -201,6 +201,37 @@ pub mod utility_card;
 pub mod uxp;
 pub mod work_item;
 pub mod workers;
+pub mod acceptance_atoms;
+pub mod adapter_registry;
+pub mod background_job_store;
+pub mod background_jobs;
+pub mod callgraph;
+pub mod callgraph_envelope;
+pub mod callgraph_export;
+pub mod callgraph_store;
+pub mod capability_truth;
+pub mod completion_authority;
+pub mod credential_authority;
+pub mod direction_ledger;
+pub mod direction_operations;
+pub mod error_envelope;
+pub mod infrastructure_inventory;
+pub mod license_developer_origin;
+pub mod procedure_compiler;
+pub mod project_marker;
+pub mod remote_workspace;
+pub mod runtime_bundle;
+pub mod runtime_constitution;
+pub mod session_fanout;
+pub mod silent_session_completion_events;
+pub mod workset_context;
+pub mod workset_freshness;
+pub mod workset_ledger;
+pub mod workset_providers;
+pub mod workset_store;
+pub mod workset_transitions;
+pub mod workstream_root;
+
 pub mod working_subpath;
 
 pub use entitlement_execution_guard::{
