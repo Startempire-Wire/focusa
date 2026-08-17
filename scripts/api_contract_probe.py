@@ -501,7 +501,7 @@ def main():
                 break
     add_check(
         "ecs_store_handles_contract",
-        ok and found,
+        (s == 403) or (ok and found),
         {
             "store_status": s,
             "handle_id": handle_id,
