@@ -724,6 +724,26 @@
       "status": "infra_allowed",
       "target": "Digest-validated immutable entitlement-policy registry; signed snapshots and authority sequence remain request-specific",
       "acceptance_test": "embedded policy registry validation tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "path": "crates/focusa-cli/src/commands/install_pi_package_transaction_tests.rs",
+      "symbol": "PI_TEST_ENV_LOCK",
+      "classification": "infra_allowlist",
+      "status": "infra_allowed",
+      "annex_id": "INF-01",
+      "target": "test-only async env lock, no authority-bearing state",
+      "acceptance_test": "tests/spec104_singleton_inventory_gate.py",
+      "authority_bearing": false
+    },
+    {
+      "path": "crates/focusa-core/src/license_developer_origin.rs",
+      "symbol": "CACHE",
+      "classification": "infra_allowlist",
+      "status": "infra_allowed",
+      "annex_id": "INF-01",
+      "target": "license cache, non-authority infra memo",
+      "acceptance_test": "tests/spec104_singleton_inventory_gate.py",
+      "authority_bearing": false
     }
   ]
 }
