@@ -1,18 +1,22 @@
 schema: focusa.spec137_complete_feature_ledger.v1
 spec_ref: docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md
-source_spec_sha256: 35f78d1d2d25786dc230bfac10f54eab353ba287d12b6cc8a8525898fb864ae6
+source_spec_sha256: b3f3aceb1b534a07f18bb0b265d9013d493cafed091114159bce95cfc4c0078d
 generated_at: '2026-07-30T09:09:32.365590+00:00'
 status: verified_complete
-authority: Spec 137 acceptance criteria normalize detailed normative clauses; implementation truth remains Evidence/Receipt-gated; Specs 130A,
-  131, and 136 retain their declared neighboring authority.
+authority: Spec 137 acceptance criteria normalize detailed normative clauses; implementation
+  truth remains Evidence/Receipt-gated; Specs 130A, 131, and 136 retain their declared
+  neighboring authority.
 coverage_policy:
   stable_id_rule: Acceptance criteria 1..86 map immutably to S137-REQ-001..S137-REQ-086.
-  inherited_heading_rule: Top-level heading coverage includes every descendant subsection until the next top-level heading.
-  many_to_one_rule: Equivalent clauses may share a requirement only when the strongest normative class and every behavior, applicability, failure,
-    and proof obligation are preserved.
-  edit_rule: Any normative spec edit invalidates source_spec_sha256 and requires regeneration plus human review; IDs are never reused for different
-    semantics.
-  closure_rule: No row is complete without applicable implementation, tests, Evidence, Receipt, parity, and zero-unapproved-omission proof.
+  inherited_heading_rule: Top-level heading coverage includes every descendant subsection
+    until the next top-level heading.
+  many_to_one_rule: Equivalent clauses may share a requirement only when the strongest
+    normative class and every behavior, applicability, failure, and proof obligation
+    are preserved.
+  edit_rule: Any normative spec edit invalidates source_spec_sha256 and requires regeneration
+    plus human review; IDs are never reused for different semantics.
+  closure_rule: No row is complete without applicable implementation, tests, Evidence,
+    Receipt, parity, and zero-unapproved-omission proof.
 requirement_sets:
   all_requirements:
   - S137-REQ-001
@@ -281,7 +285,8 @@ normative_source_coverage:
   requirement_set_refs:
   - agent_cross_system
   - deadline_calendar
-- source_heading: Temporal claim types, Estimate Claim, and conversational response gate
+- source_heading: Temporal claim types, Estimate Claim, and conversational response
+    gate
   includes_descendants: true
   requirement_set_refs:
   - estimate_truth
@@ -655,8 +660,9 @@ requirements:
   source_clause_refs:
   - acceptance:1
   - coverage-set:temporal_authority_and_scope
-  requirement_text: Trusted wall, per-boot monotonic, suspend-aware, and TAI-capability clocks are distinct, typed, health-checked, capability-tested,
-    and linked across restart only through uncertainty-bearing ClockSamplePairs.
+  requirement_text: Trusted wall, per-boot monotonic, suspend-aware, and TAI-capability
+    clocks are distinct, typed, health-checked, capability-tested, and linked across
+    restart only through uncertainty-bearing ClockSamplePairs.
   requirement_text_sha256: 455eefe6d8d6bc69a3c8b61312ddfbeb6b75fd864b3ec3f6b1481a382378457f
   requirement_class: must
   applicability: required
@@ -737,9 +743,10 @@ requirements:
   source_clause_refs:
   - acceptance:2
   - coverage-set:temporal_authority_and_scope
-  requirement_text: DST/tzdb/timezone change, NTP step/slew, source disagreement/authentication loss, manual clock correction, sleep/wake, reboot,
-    daemon outage, leap/smear policy, and client/daemon skew cannot create negative, cross-epoch-monotonic, falsely exact, or silently missing
-    elapsed time.
+  requirement_text: DST/tzdb/timezone change, NTP step/slew, source disagreement/authentication
+    loss, manual clock correction, sleep/wake, reboot, daemon outage, leap/smear policy,
+    and client/daemon skew cannot create negative, cross-epoch-monotonic, falsely
+    exact, or silently missing elapsed time.
   requirement_text_sha256: f5405d85d6e15b4b3d8f84c75eb436be2b93ad4d4dbadd37782cf59b0ec0296e
   requirement_class: must
   applicability: required
@@ -820,7 +827,8 @@ requirements:
   source_clause_refs:
   - acceptance:3
   - coverage-set:temporal_authority_and_scope
-  requirement_text: Every temporal record is bound to its exact applicable host/operator/project/continuity/Workpoint/item/task scope.
+  requirement_text: Every temporal record is bound to its exact applicable host/operator/project/continuity/Workpoint/item/task
+    scope.
   requirement_text_sha256: 14a583c5c5a200d1417459446f966a485a95454536f78b27525e1669ed2624a0
   requirement_class: must
   applicability: required
@@ -894,8 +902,9 @@ requirements:
   source_clause_refs:
   - acceptance:4
   - coverage-set:temporal_authority_and_scope
-  requirement_text: Spec 98 reconciliation converges duplicate/concurrent replicated or portable projection records without cross-scope merge,
-    authority invention, or elapsed double-counting; canonical mutation remains reducer/CAS/lease/fencing-owned.
+  requirement_text: Spec 98 reconciliation converges duplicate/concurrent replicated
+    or portable projection records without cross-scope merge, authority invention,
+    or elapsed double-counting; canonical mutation remains reducer/CAS/lease/fencing-owned.
   requirement_text_sha256: 9c541804fd3b4dbdcc221a033db98d1cb3e421a0066d11f4be71f3f33ed73468
   requirement_class: must
   applicability: required
@@ -971,7 +980,8 @@ requirements:
   source_clause_refs:
   - acceptance:5
   - coverage-set:temporal_authority_and_scope
-  requirement_text: Corrections append superseding records; no history is rewritten in place.
+  requirement_text: Corrections append superseding records; no history is rewritten
+    in place.
   requirement_text_sha256: 2d5a47a7646ef50ae6ab37127b8c08c0a9bafcd4748fd2f5b935de5ca02a4cdd
   requirement_class: must
   applicability: required
@@ -1047,7 +1057,8 @@ requirements:
   source_clause_refs:
   - acceptance:6
   - coverage-set:temporal_authority_and_scope
-  requirement_text: Temporal authority outage fails closed for estimates and deadline arithmetic with explicit recovery.
+  requirement_text: Temporal authority outage fails closed for estimates and deadline
+    arithmetic with explicit recovery.
   requirement_text_sha256: 49e78054ccdd22b2e3950116a6393140557146b3d77b75c24384ab73bc02ddd9
   requirement_class: must
   applicability: required
@@ -1125,7 +1136,8 @@ requirements:
   source_clause_refs:
   - acceptance:7
   - coverage-set:deadline_doctrine
-  requirement_text: Deadline contracts distinguish readiness target, external deadline, safety margin, completion target, and settlement requirement.
+  requirement_text: Deadline contracts distinguish readiness target, external deadline,
+    safety margin, completion target, and settlement requirement.
   requirement_text_sha256: 8ba9a3d6162a841bedebcb14280ddefa82b581c2da29882e2fd88b78a64e167e
   requirement_class: must
   applicability: required
@@ -1203,9 +1215,11 @@ requirements:
   source_clause_refs:
   - acceptance:8
   - coverage-set:deadline_doctrine
-  requirement_text: Under the contract's inclusive/exclusive boundary policy and trusted-time uncertainty, definitely settled before readiness
-    is `on_time`, definitely between readiness and deadline is `late_window`, definitely beyond the deadline boundary is `breached`, and boundary-straddling
-    cases remain `possibly_crossed` or `indeterminate` until reconciled.
+  requirement_text: Under the contract's inclusive/exclusive boundary policy and trusted-time
+    uncertainty, definitely settled before readiness is `on_time`, definitely between
+    readiness and deadline is `late_window`, definitely beyond the deadline boundary
+    is `breached`, and boundary-straddling cases remain `possibly_crossed` or `indeterminate`
+    until reconciled.
   requirement_text_sha256: 1f463b8ae19ac0cabd79bce348614c0627e05f3e6c4d45853c90d4accad05703
   requirement_class: must
   applicability: required
@@ -1286,7 +1300,8 @@ requirements:
   source_clause_refs:
   - acceptance:9
   - coverage-set:deadline_doctrine
-  requirement_text: Pause, compaction, model switch, restart, operator wait, and budget renewal do not move deadlines.
+  requirement_text: Pause, compaction, model switch, restart, operator wait, and budget
+    renewal do not move deadlines.
   requirement_text_sha256: 4143a49b9d5c6b7f5505e8b27af9085241f7e79c8a76bec854d2b627f177be5c
   requirement_class: must
   applicability: required
@@ -1363,8 +1378,9 @@ requirements:
   source_clause_refs:
   - acceptance:10
   - coverage-set:deadline_doctrine
-  requirement_text: Agents cannot set, extend, clear, weaken, or reinterpret deadlines outside an authorized CAS reducer operation; no operation
-    may imply that Focusa can change an immutable external/legal/regulatory/venue boundary.
+  requirement_text: Agents cannot set, extend, clear, weaken, or reinterpret deadlines
+    outside an authorized CAS reducer operation; no operation may imply that Focusa
+    can change an immutable external/legal/regulatory/venue boundary.
   requirement_text_sha256: 561cd13631fb4fab2db32453c42ef2c0011543b707ab3c7c1e007e7e8bc4d538
   requirement_class: must
   applicability: required
@@ -1441,8 +1457,9 @@ requirements:
   source_clause_refs:
   - acceptance:11
   - coverage-set:deadline_doctrine
-  requirement_text: Deadline inheritance, civil-time resolution, boundary semantics, conflicts/infeasibility, multiple commitments, working windows,
-    uncertainty intervals, and unknown slack are visible.
+  requirement_text: Deadline inheritance, civil-time resolution, boundary semantics,
+    conflicts/infeasibility, multiple commitments, working windows, uncertainty intervals,
+    and unknown slack are visible.
   requirement_text_sha256: 4c7c45260e8d0b80fcde17ca8ad15db1d45e4a5b1c0eaabaa285f8cbfef5871d
   requirement_class: must
   applicability: required
@@ -1524,10 +1541,12 @@ requirements:
   source_clause_refs:
   - acceptance:12
   - coverage-set:deadline_doctrine
-  requirement_text: A definitely crossed deadline or authoritative breach evidence creates a TemporalBreach and evidence-backed OverdueOpportunityAssessment;
-    possibly-crossed/indeterminate posture creates visible OpportunityRisk and reconciliation. Confirmed breach pins the smallest valid delivery/partial/alternate
-    path above unrelated optional work and blocks expired/harmful dispatch while preserving reconciliation, compensation, cleanup, evidence, and
-    settlement.
+  requirement_text: A definitely crossed deadline or authoritative breach evidence
+    creates a TemporalBreach and evidence-backed OverdueOpportunityAssessment; possibly-crossed/indeterminate
+    posture creates visible OpportunityRisk and reconciliation. Confirmed breach pins
+    the smallest valid delivery/partial/alternate path above unrelated optional work
+    and blocks expired/harmful dispatch while preserving reconciliation, compensation,
+    cleanup, evidence, and settlement.
   requirement_text_sha256: c621a19da4bb816f5d22642e1ec0a70750d996e4549d32552db3720f48feddc4
   requirement_class: must
   applicability: required
@@ -1605,8 +1624,10 @@ requirements:
   source_clause_refs:
   - acceptance:13
   - coverage-set:estimate_truth
-  requirement_text: Every forecast identifies claim kind, target state, scope revision, expiry, estimator version, cohort, evidence basis, comparable/all-attempt
-    samples, censoring/correlation method, uncertainty/coverage, calibration profile, and grounding status.
+  requirement_text: Every forecast identifies claim kind, target state, scope revision,
+    expiry, estimator version, cohort, evidence basis, comparable/all-attempt samples,
+    censoring/correlation method, uncertainty/coverage, calibration profile, and grounding
+    status.
   requirement_text_sha256: c09958059e445d28e4dd3f2386d3c566bf528cc1f0aba2a71779350b400ae962
   requirement_class: must
   applicability: required
@@ -1690,9 +1711,10 @@ requirements:
   source_clause_refs:
   - acceptance:14
   - coverage-set:estimate_truth
-  requirement_text: Unsupported numeric and qualitative agent forecasts are blocked across API, CLI, Pi, UI, Work Loop, Silent Session, project
-    card, and generated reports; attributed operator expectations/deadlines/commitments/budgets and verified progress remain displayable as their
-    own claim kinds.
+  requirement_text: Unsupported numeric and qualitative agent forecasts are blocked
+    across API, CLI, Pi, UI, Work Loop, Silent Session, project card, and generated
+    reports; attributed operator expectations/deadlines/commitments/budgets and verified
+    progress remain displayable as their own claim kinds.
   requirement_text_sha256: 94233ebc9874efbe901283b714884d92af37bb6f9d228c990249673af323e77c
   requirement_class: must
   applicability: required
@@ -1774,7 +1796,8 @@ requirements:
   source_clause_refs:
   - acceptance:15
   - coverage-set:estimate_truth
-  requirement_text: Insufficient history produces refusal, never a heuristic task-count conversion.
+  requirement_text: Insufficient history produces refusal, never a heuristic task-count
+    conversion.
   requirement_text_sha256: be255430cfd5f65742183b9e995fdef0649365edd14a8693db8d895b04d58a69
   requirement_class: must
   applicability: required
@@ -1850,7 +1873,8 @@ requirements:
   source_clause_refs:
   - acceptance:16
   - coverage-set:estimate_truth
-  requirement_text: Forecast history includes relevant failed, abandoned, reopened, blocked, rolled-back, and censored attempts.
+  requirement_text: Forecast history includes relevant failed, abandoned, reopened,
+    blocked, rolled-back, and censored attempts.
   requirement_text_sha256: 38aa6ff889dda85bedf61ade76ca95bb98b71d928f9a61d5ceb88b0370f0983f
   requirement_class: must
   applicability: required
@@ -2004,7 +2028,8 @@ requirements:
   source_clause_refs:
   - acceptance:18
   - coverage-set:estimate_truth
-  requirement_text: Scope/target/dependency/deadline/material environment changes invalidate affected estimates.
+  requirement_text: Scope/target/dependency/deadline/material environment changes
+    invalidate affected estimates.
   requirement_text_sha256: e299b8a661df9a6b910ebaf1b8c01fe09d2d1099fed94b7755e9885bd77e94ee
   requirement_class: must
   applicability: required
@@ -2082,8 +2107,9 @@ requirements:
   source_clause_refs:
   - acceptance:19
   - coverage-set:estimate_truth
-  requirement_text: Every displayable forecast is evaluated against its exact actual target event for reliability/calibration, bias, coverage,
-    sharpness, skill baseline, decision value, sample uncertainty, and cohort drift.
+  requirement_text: Every displayable forecast is evaluated against its exact actual
+    target event for reliability/calibration, bias, coverage, sharpness, skill baseline,
+    decision value, sample uncertainty, and cohort drift.
   requirement_text_sha256: d8aec74c5a57277ebb88d6d978a7646db80da6d58faa7e7307f8e692c4b6dca2
   requirement_class: must
   applicability: required
@@ -2167,8 +2193,9 @@ requirements:
   source_clause_refs:
   - acceptance:20
   - coverage-set:estimate_truth
-  requirement_text: Operator expectations, deadlines, readiness targets, commitments, budgets, forecasts, and observed progress remain separately
-    typed/labeled and cannot masquerade as one another.
+  requirement_text: Operator expectations, deadlines, readiness targets, commitments,
+    budgets, forecasts, and observed progress remain separately typed/labeled and
+    cannot masquerade as one another.
   requirement_text_sha256: 0129b4723397c3e94e3e14c61d75be6f7a39751f6259a24a02f3187bcf5dad5c
   requirement_class: must
   applicability: required
@@ -2404,8 +2431,9 @@ requirements:
   source_clause_refs:
   - acceptance:23
   - coverage-set:progress_and_waste
-  requirement_text: Unchanged rereads, equivalent actions, unbounded research, repeated full proof, silent tools, compaction churn, and duplicated
-    handoff work are detected with false-positive controls.
+  requirement_text: Unchanged rereads, equivalent actions, unbounded research, repeated
+    full proof, silent tools, compaction churn, and duplicated handoff work are detected
+    with false-positive controls.
   requirement_text_sha256: f7f92a644122a3e6c4a40bd58040b2a687cb1995a7f45ee034cfcd1470dd319b
   requirement_class: must
   applicability: required
@@ -2480,7 +2508,8 @@ requirements:
   source_clause_refs:
   - acceptance:24
   - coverage-set:progress_and_waste
-  requirement_text: Long-running processes expose elapsed status, heartbeat/silence posture, timeout, cancellation, cleanup, and partial results.
+  requirement_text: Long-running processes expose elapsed status, heartbeat/silence
+    posture, timeout, cancellation, cleanup, and partial results.
   requirement_text_sha256: f9a547844573a5ae3559d28fcb27a1b311748703901861884083e9b6549f1533
   requirement_class: must
   applicability: required
@@ -2556,8 +2585,10 @@ requirements:
   source_clause_refs:
   - acceptance:25
   - coverage-set:progress_and_waste
-  requirement_text: Daemon temporal pulses continuously recompute urgency, apply bounded hysteresis/debounce/dwell/backpressure/notification budgets,
-    trigger the calm protected-focus gradient, and never rely on model memory, flap, overload, harass, create panic/thrashing, or weaken safety/authority.
+  requirement_text: Daemon temporal pulses continuously recompute urgency, apply bounded
+    hysteresis/debounce/dwell/backpressure/notification budgets, trigger the calm
+    protected-focus gradient, and never rely on model memory, flap, overload, harass,
+    create panic/thrashing, or weaken safety/authority.
   requirement_text_sha256: ffeb3ac3432a9f4724de846599267f21fe45a77bde77d8911baa5dd832c3470c
   requirement_class: must
   applicability: required
@@ -2641,7 +2672,8 @@ requirements:
   source_clause_refs:
   - acceptance:26
   - coverage-set:progress_and_waste
-  requirement_text: Opportunity risk is distinguished from evidence-proven missed opportunity and unknown counterfactual impact.
+  requirement_text: Opportunity risk is distinguished from evidence-proven missed
+    opportunity and unknown counterfactual impact.
   requirement_text_sha256: 68a8f64ebdcc4d56f57fabc3d92169b9c7a92596c3bcddb7fe728b3b4056f746
   requirement_class: must
   applicability: required
@@ -2716,8 +2748,9 @@ requirements:
   source_clause_refs:
   - acceptance:27
   - coverage-set:progress_and_waste
-  requirement_text: Lost-time incidents are append-only, reviewable, disputable, settleable, and linked through prediction evaluation, metacognitive
-    reflection, fixed evals, governed LearningCandidates, promotion/rejection, and rollback.
+  requirement_text: Lost-time incidents are append-only, reviewable, disputable, settleable,
+    and linked through prediction evaluation, metacognitive reflection, fixed evals,
+    governed LearningCandidates, promotion/rejection, and rollback.
   requirement_text_sha256: 28e9b76f6e83d466864bb0549b79a831e15cc39ba78f9daa415d8cf288e637e6
   requirement_class: must
   applicability: required
@@ -2795,8 +2828,10 @@ requirements:
   source_clause_refs:
   - acceptance:28
   - coverage-set:progress_and_waste
-  requirement_text: Agent/model change, compaction, retry, or process restart cannot erase accumulated incident/prediction history; temporal policy
-    improves only from measured settled outcomes without safety, quality, accuracy, or operator-attention regression.
+  requirement_text: Agent/model change, compaction, retry, or process restart cannot
+    erase accumulated incident/prediction history; temporal policy improves only from
+    measured settled outcomes without safety, quality, accuracy, or operator-attention
+    regression.
   requirement_text_sha256: 2e61ca9a328a35f084831202989318c85bafb580ff3d451918cc75cdd29eb991
   requirement_class: must
   applicability: required
@@ -2874,7 +2909,8 @@ requirements:
   source_clause_refs:
   - acceptance:29
   - coverage-set:workpoint_closure_and_settlement
-  requirement_text: Integration consumes append-only Spec 131 Workpoint Item records without creating or mutating a parallel item lifecycle.
+  requirement_text: Integration consumes append-only Spec 131 Workpoint Item records
+    without creating or mutating a parallel item lifecycle.
   requirement_text_sha256: 5948e7abb231e055c6b6339df9e8ae2f804c91dcc839166ed15c72fe8e0648e2
   requirement_class: must
   applicability: required
@@ -2949,8 +2985,9 @@ requirements:
   source_clause_refs:
   - acceptance:30
   - coverage-set:workpoint_closure_and_settlement
-  requirement_text: Cross-system temporal calculations preserve Spec 131 timing categories and overlap rules while adding trusted clock-epoch
-    and bounded/unknown offline semantics.
+  requirement_text: Cross-system temporal calculations preserve Spec 131 timing categories
+    and overlap rules while adding trusted clock-epoch and bounded/unknown offline
+    semantics.
   requirement_text_sha256: ce8ae49709b3b801cfe3fe53ca2ee5169ce5ece899de705565416f50484c89d1
   requirement_class: must
   applicability: required
@@ -3029,8 +3066,8 @@ requirements:
   source_clause_refs:
   - acceptance:31
   - coverage-set:workpoint_closure_and_settlement
-  requirement_text: Forecast and incident calculations consume Spec 131 token/tool attribution and add attention evidence without treating usage
-    as progress.
+  requirement_text: Forecast and incident calculations consume Spec 131 token/tool
+    attribution and add attention evidence without treating usage as progress.
   requirement_text_sha256: 35ab62d5ef7caff21562e33251d10a473c4786da47dc0c80307a692fcda8fce4
   requirement_class: must
   applicability: required
@@ -3107,8 +3144,9 @@ requirements:
   source_clause_refs:
   - acceptance:32
   - coverage-set:workpoint_closure_and_settlement
-  requirement_text: Resume packets preserve canonical Spec 131 active/blocked/next and closure posture while adding Spec 137 deadlines, progress,
-    incidents, and estimates.
+  requirement_text: Resume packets preserve canonical Spec 131 active/blocked/next
+    and closure posture while adding Spec 137 deadlines, progress, incidents, and
+    estimates.
   requirement_text_sha256: b9a74a9b7b23296f552ec7a44555335044302ea468f9110029647ca740fc2bc1
   requirement_class: must
   applicability: required
@@ -3187,8 +3225,9 @@ requirements:
   source_clause_refs:
   - acceptance:33
   - coverage-set:workpoint_closure_and_settlement
-  requirement_text: Task/spec closure remains Spec 131 authority; Spec 137 contributes temporal posture but cannot convert cancellation, accepted
-    risk, variance, abandonment, or scope amendment into factual completion.
+  requirement_text: Task/spec closure remains Spec 131 authority; Spec 137 contributes
+    temporal posture but cannot convert cancellation, accepted risk, variance, abandonment,
+    or scope amendment into factual completion.
   requirement_text_sha256: 4633e8c9859f2b0e1d06b062fd2151b0639c8c05866f9d7dfbbd9ef21ceee352
   requirement_class: must
   applicability: required
@@ -3264,8 +3303,8 @@ requirements:
   source_clause_refs:
   - acceptance:34
   - coverage-set:workpoint_closure_and_settlement
-  requirement_text: HLT, Receipt, Bloatgaurd, Evidence, Spec 130/130A compaction posture, Spec 131 closure posture, and Spec 137 temporal posture
-    survive closure and resume.
+  requirement_text: HLT, Receipt, Bloatgaurd, Evidence, Spec 130/130A compaction posture,
+    Spec 131 closure posture, and Spec 137 temporal posture survive closure and resume.
   requirement_text_sha256: 221d4b1037fa9d2e5d0742d7317704b71ba7393217c535915c791c3e8a47e3b1
   requirement_class: must
   applicability: required
@@ -3340,8 +3379,9 @@ requirements:
   source_clause_refs:
   - acceptance:35
   - coverage-set:workpoint_closure_and_settlement
-  requirement_text: Proposed Spec 136, once activated, can represent functional success with temporal failure; Receipts preserve both without
-    replacing Spec 131 closure authority.
+  requirement_text: Proposed Spec 136, once activated, can represent functional success
+    with temporal failure; Receipts preserve both without replacing Spec 131 closure
+    authority.
   requirement_text_sha256: def566e969db71d2438c0a8af4032a5b8d2a12db20f5d5223013a098116dc0af
   requirement_class: must
   applicability: activated_conditional
@@ -3417,7 +3457,8 @@ requirements:
   source_clause_refs:
   - acceptance:36
   - coverage-set:workpoint_closure_and_settlement
-  requirement_text: Project cards consume canonical Spec 131 and Spec 137 ledgers rather than turn-local timers as estimate authority.
+  requirement_text: Project cards consume canonical Spec 131 and Spec 137 ledgers
+    rather than turn-local timers as estimate authority.
   requirement_text_sha256: aa9a90c9e06ac8495ff6492b254665f3969d5cfb21026e6de37927e23913b2b1
   requirement_class: must
   applicability: required
@@ -3494,9 +3535,10 @@ requirements:
   source_clause_refs:
   - acceptance:37
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: A fresh HumanCalendarContext and TemporalPriorityFrame appear immediately below the verified current operator ask and above
-    all lower-priority context at every interaction/model/decision boundary; deterministic critical paths use only a valid pre-authorized local
-    TemporalExecutionGuard.
+  requirement_text: A fresh HumanCalendarContext and TemporalPriorityFrame appear
+    immediately below the verified current operator ask and above all lower-priority
+    context at every interaction/model/decision boundary; deterministic critical paths
+    use only a valid pre-authorized local TemporalExecutionGuard.
   requirement_text_sha256: 4d5069bd3514a53c3a40bf2b3d5f8b42c311095b3e6d60b11d5319c1b44007e2
   requirement_class: must
   applicability: required
@@ -3574,9 +3616,10 @@ requirements:
   source_clause_refs:
   - acceptance:38
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: Every plan, consequential tool/action, retry, mutation, research branch, checkpoint, continuation, forecast, and final response
-    preserves the TimeAwareness or TemporalExecutionGuard reference used for its temporal decision without copying irrelevant private calendar
-    data.
+  requirement_text: Every plan, consequential tool/action, retry, mutation, research
+    branch, checkpoint, continuation, forecast, and final response preserves the TimeAwareness
+    or TemporalExecutionGuard reference used for its temporal decision without copying
+    irrelevant private calendar data.
   requirement_text_sha256: 0c2b7ba12be0c9eb89a53fc788aff328a3b54d22913436b06c63992a094ac1cb
   requirement_class: must
   applicability: required
@@ -3657,8 +3700,9 @@ requirements:
   source_clause_refs:
   - acceptance:39
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: Missing/stale/mismatched temporal priority or guard blocks new durable work, consequential dispatch, forecast display, and
-    autonomous continuation while preserving bounded repair/reconciliation/cleanup.
+  requirement_text: Missing/stale/mismatched temporal priority or guard blocks new
+    durable work, consequential dispatch, forecast display, and autonomous continuation
+    while preserving bounded repair/reconciliation/cleanup.
   requirement_text_sha256: 95bd8b8851c9cb3da7952e7cfb48fde8677950b17b3a7605fb3bd41f8b672021
   requirement_class: must
   applicability: required
@@ -3737,7 +3781,8 @@ requirements:
   source_clause_refs:
   - acceptance:40
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: Daemon watchdog enforcement continues while the model/tool cannot receive a new prompt.
+  requirement_text: Daemon watchdog enforcement continues while the model/tool cannot
+    receive a new prompt.
   requirement_text_sha256: 971b33da39603472ba88a2b65efa03a6987d2246bbb57aaf06ebc77c369b6f9a
   requirement_class: must
   applicability: required
@@ -3811,8 +3856,9 @@ requirements:
   source_clause_refs:
   - acceptance:41
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: Relevant responses mention trusted time and deadline/progress posture without fabricating an ETA; relative human-calendar
-    phrases resolve to explicit timezone-aware boundaries or trigger clarification.
+  requirement_text: Relevant responses mention trusted time and deadline/progress
+    posture without fabricating an ETA; relative human-calendar phrases resolve to
+    explicit timezone-aware boundaries or trigger clarification.
   requirement_text_sha256: cb2a74c17929ba8fa8f7fdec1ed35071d25785d21047f88fc0b6afcb013d2f31
   requirement_class: must
   applicability: required
@@ -3889,8 +3935,9 @@ requirements:
   source_clause_refs:
   - acceptance:42
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: The agent asks for external deadline, timezone, and readiness/review margin when missing information can materially alter
-    consequential planning or priority, and does not repeat resolved inquiries.
+  requirement_text: The agent asks for external deadline, timezone, and readiness/review
+    margin when missing information can materially alter consequential planning or
+    priority, and does not repeat resolved inquiries.
   requirement_text_sha256: 9e7151dc160e8ca3c52ad0ef819f1a5f22ba154fd9abaa16a46ee90f253b9d7e
   requirement_class: must
   applicability: required
@@ -3968,8 +4015,8 @@ requirements:
   source_clause_refs:
   - acceptance:43
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: A bounded ranked set of top approaching deadlines is visible and shared by Work Loop, Trajectory, Pi, TUI, Mission Canvas,
-    and menubar.
+  requirement_text: A bounded ranked set of top approaching deadlines is visible and
+    shared by Work Loop, Trajectory, Pi, TUI, Mission Canvas, and menubar.
   requirement_text_sha256: 5de3bcb9350fd0f692d2df8a0dbaae3502cb6dbead1708cbda327522dd191639
   requirement_class: must
   applicability: required
@@ -4045,8 +4092,9 @@ requirements:
   source_clause_refs:
   - acceptance:44
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: Priority follows operator steering while surfacing critical deadline conflicts, consequences, and safer sequencing; the agent
-    never silently changes the ask.
+  requirement_text: Priority follows operator steering while surfacing critical deadline
+    conflicts, consequences, and safer sequencing; the agent never silently changes
+    the ask.
   requirement_text_sha256: 13dbe504a53504f08622c32d4faf4678edc6aeb725f49f7a5de5ef1c8286b8f9
   requirement_class: must
   applicability: required
@@ -4124,8 +4172,9 @@ requirements:
   source_clause_refs:
   - acceptance:45
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: API, CLI, Pi, generated clients, TUI, Mission Canvas, menubar, notifications, Work Loop, and Silent Sessions expose semantically
-    equivalent state and reason codes.
+  requirement_text: API, CLI, Pi, generated clients, TUI, Mission Canvas, menubar,
+    notifications, Work Loop, and Silent Sessions expose semantically equivalent state
+    and reason codes.
   requirement_text_sha256: c937ff2c83705386ac7469ee873901f917890944b52bc73207478fe5b7f6c9a7
   requirement_class: must
   applicability: required
@@ -4199,8 +4248,8 @@ requirements:
   source_clause_refs:
   - acceptance:46
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: Bloatgaurd keeps hot temporal context bounded but cannot omit the temporal priority header; all detail remains reachable through
-    rehydrate refs.
+  requirement_text: Bloatgaurd keeps hot temporal context bounded but cannot omit
+    the temporal priority header; all detail remains reachable through rehydrate refs.
   requirement_text_sha256: eb442c8d1108a4f1726410aa3f8a8cb2ceed51ce86941e3ae803a6d183cccc79
   requirement_class: must
   applicability: required
@@ -4278,9 +4327,10 @@ requirements:
   source_clause_refs:
   - acceptance:47
   - coverage-set:cross-system_agent_primacy_and_ux_parity
-  requirement_text: UI clearly distinguishes evidence confidence, slack status, definitely/possibly/indeterminately crossed boundaries, and normal/watch/at-risk/critical/expired;
-    it uses accessible non-color-only presentation, never shows decorative success over a breach, measures operator review burden, and deduplicates/rate-limits
-    alerts.
+  requirement_text: UI clearly distinguishes evidence confidence, slack status, definitely/possibly/indeterminately
+    crossed boundaries, and normal/watch/at-risk/critical/expired; it uses accessible
+    non-color-only presentation, never shows decorative success over a breach, measures
+    operator review burden, and deduplicates/rate-limits alerts.
   requirement_text_sha256: 1eefb8937eca615294984824d006e275f0067de8e866d34b3e9f46ca134d3671
   requirement_class: must
   applicability: required
@@ -4357,7 +4407,8 @@ requirements:
   source_clause_refs:
   - acceptance:48
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: Precision, resolution, accuracy, uncertainty, latency, and ordering are distinct in schemas, UI, policy, and tests.
+  requirement_text: Precision, resolution, accuracy, uncertainty, latency, and ordering
+    are distinct in schemas, UI, policy, and tests.
   requirement_text_sha256: 206e7a06cc1fa35ac123ee37a630b565cda5bdb51d54332251426af799adb093
   requirement_class: must
   applicability: required
@@ -4437,8 +4488,9 @@ requirements:
   source_clause_refs:
   - acceptance:49
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: High-consequence timestamps include exact stable capture point, paired clock sample, source/authentication/diversity posture,
-    clock domain, synchronization/holdover posture, integer unit, uncertainty method/coverage, policy version, and provenance.
+  requirement_text: High-consequence timestamps include exact stable capture point,
+    paired clock sample, source/authentication/diversity posture, clock domain, synchronization/holdover
+    posture, integer unit, uncertainty method/coverage, policy version, and provenance.
   requirement_text_sha256: ea7ce3996e540c98afc4c47452708bfaa7799380b55d5077dd3aa0830c61566e
   requirement_class: must
   applicability: activated_conditional
@@ -4525,8 +4577,8 @@ requirements:
   source_clause_refs:
   - acceptance:50
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: Runtime calibration proves effective accuracy on actual deployed host/network/adapter/provider paths; formatted precision
-    cannot substitute.
+  requirement_text: Runtime calibration proves effective accuracy on actual deployed
+    host/network/adapter/provider paths; formatted precision cannot substitute.
   requirement_text_sha256: b03e728c1a529bd47679c634c6bbda73320fc20c9debbeaaec3f64128d6d3766
   requirement_class: must
   applicability: activated_conditional
@@ -4607,7 +4659,8 @@ requirements:
   source_clause_refs:
   - acceptance:51
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: Policy blocks dispatch when clock uncertainty, market-data age, decision age, or dispatch age exceeds bounds.
+  requirement_text: Policy blocks dispatch when clock uncertainty, market-data age,
+    decision age, or dispatch age exceeds bounds.
   requirement_text_sha256: d5c25982f189d5cf7ddaed09f6abfbff71f02ffd342b4147c26b17fc02a91f2b
   requirement_class: must
   applicability: activated_conditional
@@ -4689,7 +4742,8 @@ requirements:
   source_clause_refs:
   - acceptance:52
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: Cross-host ordering uses sequence/causation evidence rather than timestamp order alone.
+  requirement_text: Cross-host ordering uses sequence/causation evidence rather than
+    timestamp order alone.
   requirement_text_sha256: 709903ec68201df5e8d0148ecab666d9a7f3af0e192bb0200bc463df45026c3b
   requirement_class: must
   applicability: activated_conditional
@@ -4766,7 +4820,8 @@ requirements:
   source_clause_refs:
   - acceptance:53
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: LLM/model paths are absent from latency-critical deterministic execution loops.
+  requirement_text: LLM/model paths are absent from latency-critical deterministic
+    execution loops.
   requirement_text_sha256: e25da651ce5cde2b76f29d48fdb44bf4001da0e43ad78b4d12aec289a7dd9ad2
   requirement_class: must
   applicability: required
@@ -4844,7 +4899,8 @@ requirements:
   - acceptance:54
   - coverage-set:high-consequence_precision_and_markets_profile
   requirement_text: Markets operations preserve event/ingestion/decision/authority/risk-check/dispatch/acknowledgement/fill/cancel/reconciliation
-    timestamps, exact capture points, causal/sequence lineage, and uncertainty-bearing latency distributions.
+    timestamps, exact capture points, causal/sequence lineage, and uncertainty-bearing
+    latency distributions.
   requirement_text_sha256: f46d10873b655efd8ae85bd1fc117e7e3938012579e097e6490143206fb2290f
   requirement_class: must
   applicability: activated_conditional
@@ -4925,8 +4981,9 @@ requirements:
   source_clause_refs:
   - acceptance:55
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: Market calendars, timezone/DST, holidays, early closes, auctions, halts, stale data, gaps, overload, disconnect, leap, restart,
-    and clock drift pass deterministic tests.
+  requirement_text: Market calendars, timezone/DST, holidays, early closes, auctions,
+    halts, stale data, gaps, overload, disconnect, leap, restart, and clock drift
+    pass deterministic tests.
   requirement_text_sha256: 49903900f4ed55e2f20b3a48125f66a5038f999d1e65aecda3e43f733bd1adbb
   requirement_class: must
   applicability: activated_conditional
@@ -5012,8 +5069,9 @@ requirements:
   source_clause_refs:
   - acceptance:56
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: Duplicate prevention, idempotency, unknown-outcome reconciliation, partial-fill, cancellation-race, and kill-switch behavior
-    pass adversarial runtime proof.
+  requirement_text: Duplicate prevention, idempotency, unknown-outcome reconciliation,
+    partial-fill, cancellation-race, and kill-switch behavior pass adversarial runtime
+    proof.
   requirement_text_sha256: ee12c1405b86369e6445f474b4cef13c52b123cdc0474773ced834dea6a09047
   requirement_class: must
   applicability: activated_conditional
@@ -5091,7 +5149,8 @@ requirements:
   source_clause_refs:
   - acceptance:57
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: No expired, stale, uncertainty-violating, out-of-scope, or risk-limit-violating market intent dispatches.
+  requirement_text: No expired, stale, uncertainty-violating, out-of-scope, or risk-limit-violating
+    market intent dispatches.
   requirement_text_sha256: 10c544ed69c7b0ee33d8cdc9f232851b7b587d09d7261448dbef1d577af0ce21
   requirement_class: must
   applicability: activated_conditional
@@ -5171,8 +5230,9 @@ requirements:
   source_clause_refs:
   - acceptance:58
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: Live-market capability remains blocked through simulation/paper/shadow/canary levels until every activation-firewall requirement
-    is evidenced and explicitly approved.
+  requirement_text: Live-market capability remains blocked through simulation/paper/shadow/canary
+    levels until every activation-firewall requirement is evidenced and explicitly
+    approved.
   requirement_text_sha256: 8ffae41a61bfae411e0ed23493d5a7c26979af8a7d8658888611fc241da41001
   requirement_class: must
   applicability: activated_conditional
@@ -5252,8 +5312,10 @@ requirements:
   source_clause_refs:
   - acceptance:59
   - coverage-set:high-consequence_precision_and_markets_profile
-  requirement_text: Every high-consequence domain pack declares and proves an applicable TemporalPrecisionProfile, control owner/reviewer, jurisdiction/rule
-    version, resilience/BCDR posture, retention, and deterministic boundary without creating a parallel temporal runtime.
+  requirement_text: Every high-consequence domain pack declares and proves an applicable
+    TemporalPrecisionProfile, control owner/reviewer, jurisdiction/rule version, resilience/BCDR
+    posture, retention, and deterministic boundary without creating a parallel temporal
+    runtime.
   requirement_text_sha256: 482ac6acedc3700d6c08034e4747c3189c7a82c8d6d6f0d462f12a7fc609629d
   requirement_class: must
   applicability: activated_conditional
@@ -5335,8 +5397,10 @@ requirements:
   source_clause_refs:
   - acceptance:60
   - coverage-set:completeness_and_release
-  requirement_text: Every normative statement has a stable feature-ledger row; every applicable mandatory/activated conditional row has implementation
-    ownership, tests, Evidence, and Receipt, while optional/not-applicable/variance posture is separately evidenced.
+  requirement_text: Every normative statement has a stable feature-ledger row; every
+    applicable mandatory/activated conditional row has implementation ownership, tests,
+    Evidence, and Receipt, while optional/not-applicable/variance posture is separately
+    evidenced.
   requirement_text_sha256: 2b862b77bb33c24f4f48030e623d93f6312d25ee0899c6ce0afe59cf4ffb8b62
   requirement_class: must
   applicability: required
@@ -5410,8 +5474,8 @@ requirements:
   source_clause_refs:
   - acceptance:61
   - coverage-set:completeness_and_release
-  requirement_text: No applicable mandatory row is silently deferred, omitted, mocked, disabled, hidden behind a flag, or marked complete while
-    blocked.
+  requirement_text: No applicable mandatory row is silently deferred, omitted, mocked,
+    disabled, hidden behind a flag, or marked complete while blocked.
   requirement_text_sha256: b6d5d5e6ff942c7f2a5c69c29585efcfa9b025dae5a8c6b93257668d82fbaa02
   requirement_class: must
   applicability: required
@@ -5485,9 +5549,10 @@ requirements:
   source_clause_refs:
   - acceptance:62
   - coverage-set:completeness_and_release
-  requirement_text: Every approved deferral of applicable mandatory scope exists only as an explicit specification amendment and remains visibly
-    open for affected conformance; verified non-applicability and optional unimplemented capability use their typed ledger states instead of fake
-    amendments.
+  requirement_text: Every approved deferral of applicable mandatory scope exists only
+    as an explicit specification amendment and remains visibly open for affected conformance;
+    verified non-applicability and optional unimplemented capability use their typed
+    ledger states instead of fake amendments.
   requirement_text_sha256: 5f7e6b227f17785bb8ba454e707b6dd72cba114baed7198be17e1155fcc3e3a3
   requirement_class: must
   applicability: required
@@ -5561,8 +5626,9 @@ requirements:
   source_clause_refs:
   - acceptance:63
   - coverage-set:completeness_and_release
-  requirement_text: Static, unit, contract, runtime, restart/replay, scope/CAS/fencing, applicable CRDT replication, security/privacy, accessibility,
-    precision, high-consequence, and adversarial fault-injection tests cover all mandatory behavior.
+  requirement_text: Static, unit, contract, runtime, restart/replay, scope/CAS/fencing,
+    applicable CRDT replication, security/privacy, accessibility, precision, high-consequence,
+    and adversarial fault-injection tests cover all mandatory behavior.
   requirement_text_sha256: 84b123efdff2afc4237d54eeaa228ddaa084388b3e2f1fb60264d1ac5a26613c
   requirement_class: must
   applicability: required
@@ -5641,8 +5707,9 @@ requirements:
   source_clause_refs:
   - acceptance:64
   - coverage-set:completeness_and_release
-  requirement_text: Current API/CLI docs, tool registry, generated schemas/clients, migrations, architecture docs, operator docs, and conformance
-    manifests match implementation.
+  requirement_text: Current API/CLI docs, tool registry, generated schemas/clients,
+    migrations, architecture docs, operator docs, and conformance manifests match
+    implementation.
   requirement_text_sha256: 2c4c89eaf3ba00981a0e88e4dd5e8632dbbcf8c16a201ba47db2b837e8e2cc9d
   requirement_class: must
   applicability: required
@@ -5716,7 +5783,8 @@ requirements:
   source_clause_refs:
   - acceptance:65
   - coverage-set:completeness_and_release
-  requirement_text: Final closure includes a requirement-by-requirement proof matrix and explicit zero-unapproved-omission attestation.
+  requirement_text: Final closure includes a requirement-by-requirement proof matrix
+    and explicit zero-unapproved-omission attestation.
   requirement_text_sha256: de48c8b8fdb1c7c0d336e172b3c61f6fcdd613a40d0f3bfc39cb81f10223c3ba
   requirement_class: must
   applicability: required
@@ -5791,8 +5859,8 @@ requirements:
   source_clause_refs:
   - acceptance:66
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Clock trust proves monitored independent/diverse sources, authentication/replay/request-response posture, disagreement handling,
-    synchronization/holdover age, and source quarantine/recovery.
+  requirement_text: Clock trust proves monitored independent/diverse sources, authentication/replay/request-response
+    posture, disagreement handling, synchronization/holdover age, and source quarantine/recovery.
   requirement_text_sha256: e97c078ef49dae5328ead46064a7b9fa3183e8c485f4a327dc2c0da376cf9a87
   requirement_class: must
   applicability: required
@@ -5871,7 +5939,8 @@ requirements:
   source_clause_refs:
   - acceptance:67
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Clock uncertainty records components, method, combined/expanded uncertainty, coverage factor/probability, offset/delay/jitter/dispersion/root
+  requirement_text: Clock uncertainty records components, method, combined/expanded
+    uncertainty, coverage factor/probability, offset/delay/jitter/dispersion/root
     distance/frequency, sample age, and calibration lineage.
   requirement_text_sha256: dd09839e38f7469a03f436c7f5b352b41c40ddfb89f19d4741c45df190344147
   requirement_class: must
@@ -5954,8 +6023,9 @@ requirements:
   source_clause_refs:
   - acceptance:68
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Platform capability evidence distinguishes realtime, suspend-excluding monotonic, suspend-aware, CPU, and TAI behavior; unsupported/fallback
-    behavior is explicit and tested.
+  requirement_text: Platform capability evidence distinguishes realtime, suspend-excluding
+    monotonic, suspend-aware, CPU, and TAI behavior; unsupported/fallback behavior
+    is explicit and tested.
   requirement_text_sha256: ac697b8d8f70a1e441401f1111a172d82959fdf2bb36c6c4a0728bbd5ede371c
   requirement_class: must
   applicability: required
@@ -6035,8 +6105,9 @@ requirements:
   source_clause_refs:
   - acceptance:69
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Civil-time intent preserves original expression, tzdb/calendar/jurisdiction versions, fold/gap policy, recurrence/floating
-    semantics, resolution history, and material rule-change re-resolution.
+  requirement_text: Civil-time intent preserves original expression, tzdb/calendar/jurisdiction
+    versions, fold/gap policy, recurrence/floating semantics, resolution history,
+    and material rule-change re-resolution.
   requirement_text_sha256: 06ca980bd3e503b88cbeb76e25c208ee199d6afd937a8b80ded4376edae82680
   requirement_class: must
   applicability: required
@@ -6117,8 +6188,9 @@ requirements:
   source_clause_refs:
   - acceptance:70
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Deadline/expiry comparisons expose definitely-before, possibly-crossed, definitely-crossed, and indeterminate states; uncertainty
-    crossing a consequential boundary cannot be reported as on time.
+  requirement_text: Deadline/expiry comparisons expose definitely-before, possibly-crossed,
+    definitely-crossed, and indeterminate states; uncertainty crossing a consequential
+    boundary cannot be reported as on time.
   requirement_text_sha256: 7a973806379845ed4a1797869b1759ce509a55ebc482b67ba48eff714f10fd50
   requirement_class: must
   applicability: required
@@ -6198,8 +6270,10 @@ requirements:
   source_clause_refs:
   - acceptance:71
   - coverage-set:research-audit_integrity_additions
-  requirement_text: RPC/process/agent children receive remaining monotonic timeout with elapsed deducted and parent cap; cancellation is observed/acknowledged/effective,
-    and retries share the original deadline/budget with reconciliation-before-retry after possible effect.
+  requirement_text: RPC/process/agent children receive remaining monotonic timeout
+    with elapsed deducted and parent cap; cancellation is observed/acknowledged/effective,
+    and retries share the original deadline/budget with reconciliation-before-retry
+    after possible effect.
   requirement_text_sha256: 07aaed0edc93d9db30092f252ed40887386f8eb6e4808fddcd6a159a39594c06
   requirement_class: must
   applicability: required
@@ -6281,8 +6355,9 @@ requirements:
   source_clause_refs:
   - acceptance:72
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Forecast, operator expectation, external deadline, readiness target, commitment, execution budget, and observed progress use
-    distinct claim types, authority, display, and metric behavior.
+  requirement_text: Forecast, operator expectation, external deadline, readiness target,
+    commitment, execution budget, and observed progress use distinct claim types,
+    authority, display, and metric behavior.
   requirement_text_sha256: 3f28967bf9f74fb6322893238a688768ae96c4990a8ae829e8f772b355de1056
   requirement_class: must
   applicability: required
@@ -6363,8 +6438,8 @@ requirements:
   source_clause_refs:
   - acceptance:73
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Forecast calibration uses policy-selected quantiles, proper scoring/coverage/reliability/bias/sharpness/skill/value measures,
-    sample/error bounds, censoring, correlation, baseline, and drift handling.
+  requirement_text: Forecast calibration uses policy-selected quantiles, proper scoring/coverage/reliability/bias/sharpness/skill/value
+    measures, sample/error bounds, censoring, correlation, baseline, and drift handling.
   requirement_text_sha256: 8ad84e9c20eb4e520822b945c2cbc6fc5b27c6437299d388ee83946d9be0a58b
   requirement_class: must
   applicability: required
@@ -6447,8 +6522,9 @@ requirements:
   source_clause_refs:
   - acceptance:74
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Simultaneous deadlines produce explicit feasible/infeasible/unknown conflict state, one primary objective, preserved non-preemptible
-    obligations, disclosed displacement, and operator escalation when needed.
+  requirement_text: Simultaneous deadlines produce explicit feasible/infeasible/unknown
+    conflict state, one primary objective, preserved non-preemptible obligations,
+    disclosed displacement, and operator escalation when needed.
   requirement_text_sha256: 865e4dbccd9454a241b4132ba86a5e84d2583ffba0a76780c5e5bb8395df79fb
   requirement_class: must
   applicability: required
@@ -6527,8 +6603,8 @@ requirements:
   source_clause_refs:
   - acceptance:75
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Urgency transitions use hysteresis, dwell, debounce, deduplication, backpressure, quiet-hours/availability policy, and notification
-    budgets.
+  requirement_text: Urgency transitions use hysteresis, dwell, debounce, deduplication,
+    backpressure, quiet-hours/availability policy, and notification budgets.
   requirement_text_sha256: 34feb2d1b339d6df7572f5b346484ff2c3f33431d1e971fbae45ef1e879af94b
   requirement_class: must
   applicability: required
@@ -6607,8 +6683,9 @@ requirements:
   source_clause_refs:
   - acceptance:76
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Narrowing under pressure preserves protected safety/security/authority/proof/reconciliation/disconfirming-evidence checklists,
-    independent review where required, workload/fatigue posture, and fresh-reviewer handoff.
+  requirement_text: Narrowing under pressure preserves protected safety/security/authority/proof/reconciliation/disconfirming-evidence
+    checklists, independent review where required, workload/fatigue posture, and fresh-reviewer
+    handoff.
   requirement_text_sha256: 73d9604c9c82d6ac1fd7991dcbb841059e00453bb3be8afc731b00c55500af02
   requirement_class: must
   applicability: required
@@ -6688,8 +6765,9 @@ requirements:
   source_clause_refs:
   - acceptance:77
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Markets proof includes direct/exclusive control ownership, delegated-control due diligence, written/annual review and certification,
-    capacity/integrity/resilience/availability/security, BCDR/RTO/RPO, exact timestamp point/UTC traceability review, and jurisdiction/activity-specific
+  requirement_text: Markets proof includes direct/exclusive control ownership, delegated-control
+    due diligence, written/annual review and certification, capacity/integrity/resilience/availability/security,
+    BCDR/RTO/RPO, exact timestamp point/UTC traceability review, and jurisdiction/activity-specific
     thresholds.
   requirement_text_sha256: 003a2c8e7164296297bb8fca61964bc465ba9472e52e43893b07b01bae0dd4e7
   requirement_class: must
@@ -6774,8 +6852,9 @@ requirements:
   source_clause_refs:
   - acceptance:78
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Temporal data has classification, least privilege, encryption, coarsening, redaction, retention/deletion/legal hold, export,
-    aggregation, audit-access, and side-channel policy.
+  requirement_text: Temporal data has classification, least privilege, encryption,
+    coarsening, redaction, retention/deletion/legal hold, export, aggregation, audit-access,
+    and side-channel policy.
   requirement_text_sha256: 6ff4d8d42fd7bed4d4e1aeff0e7a6ebda35820a3044d0451271de62b70deb4a7
   requirement_class: must
   applicability: required
@@ -6855,8 +6934,9 @@ requirements:
   source_clause_refs:
   - acceptance:79
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Clock samples, correction/deadline/guard/cancellation/closure events, and Receipts are signed/hash-chained; source authentication
-    and ledger integrity are tested as separate controls.
+  requirement_text: Clock samples, correction/deadline/guard/cancellation/closure
+    events, and Receipts are signed/hash-chained; source authentication and ledger
+    integrity are tested as separate controls.
   requirement_text_sha256: 72be182e1b8beee3bcd135b7cf8fdcd9e6b61a04d292b399cfb03ed3997a915b
   requirement_class: must
   applicability: required
@@ -6940,8 +7020,9 @@ requirements:
   source_clause_refs:
   - acceptance:80
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Velocity and temporal-performance reports include cohorts, sample/censored counts, distributions/tails, uncertainty, baselines,
-    policy versions, and split/merge anti-gaming; raw item count or averages cannot prove improvement.
+  requirement_text: Velocity and temporal-performance reports include cohorts, sample/censored
+    counts, distributions/tails, uncertainty, baselines, policy versions, and split/merge
+    anti-gaming; raw item count or averages cannot prove improvement.
   requirement_text_sha256: ab2f12027ddd351f5501a92dc90c0c67f6ecdf2c2bd7ce1fa1601086149a221d
   requirement_class: must
   applicability: required
@@ -7022,8 +7103,9 @@ requirements:
   source_clause_refs:
   - acceptance:81
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Every authority-bearing temporal decision records exact schema, policy, adapter, calendar/tzdb, estimator, and clock-profile
-    versions needed for deterministic replay and settlement.
+  requirement_text: Every authority-bearing temporal decision records exact schema,
+    policy, adapter, calendar/tzdb, estimator, and clock-profile versions needed for
+    deterministic replay and settlement.
   requirement_text_sha256: 6d0f6cde3a398d5257da4f4615fee366043b861d2ecaff838f724e2e87322cd4
   requirement_class: must
   applicability: required
@@ -7104,9 +7186,10 @@ requirements:
   source_clause_refs:
   - acceptance:82
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Fault injection covers wall step/slew, source disagreement/spoof/replay, leap/smear, DST fold/gap, tzdb/calendar revision,
-    suspend, reboot, daemon outage, uncertainty-boundary crossing, propagation delay, queueing, cancellation races, stale data, and alert/pulse
-    overload.
+  requirement_text: Fault injection covers wall step/slew, source disagreement/spoof/replay,
+    leap/smear, DST fold/gap, tzdb/calendar revision, suspend, reboot, daemon outage,
+    uncertainty-boundary crossing, propagation delay, queueing, cancellation races,
+    stale data, and alert/pulse overload.
   requirement_text_sha256: 7c9fa67dd491c3decd15b65ce2edf0abfab7c2ee17e27d1f21fc06067dc8dabc
   requirement_class: must
   applicability: required
@@ -7187,8 +7270,10 @@ requirements:
   source_clause_refs:
   - acceptance:83
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Spec 136 integration remains blocked until its stated activation conditions and an approved immutable dependency contract
-    pin source commit/document hash/schema/ownership/migration/conformance; repository presence, prose, or aliases are not activation authority.
+  requirement_text: Spec 136 integration remains blocked until its stated activation
+    conditions and an approved immutable dependency contract pin source commit/document
+    hash/schema/ownership/migration/conformance; repository presence, prose, or aliases
+    are not activation authority.
   requirement_text_sha256: ee84da2d24a268e074a276b333422553bbf78da15c7c752feba3c3d724b61a31
   requirement_class: must
   applicability: required
@@ -7265,8 +7350,9 @@ requirements:
   source_clause_refs:
   - acceptance:84
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Requirement applicability preserves RFC normative class meaning and cannot hide unsupported required platforms/domains or
-    activate optional claims without proof.
+  requirement_text: Requirement applicability preserves RFC normative class meaning
+    and cannot hide unsupported required platforms/domains or activate optional claims
+    without proof.
   requirement_text_sha256: 7f5dc8314abe6065596a36de7e7c611bfb900bb3024f9987a40a5aec6b104bf5
   requirement_class: must
   applicability: required
@@ -7341,8 +7427,9 @@ requirements:
   source_clause_refs:
   - acceptance:85
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Closure factual status, operator disposition, amendment, degraded posture, and rollup eligibility remain separate through
-    Workpoint/task/spec closure, settlement, Receipts, velocity, and release conformance.
+  requirement_text: Closure factual status, operator disposition, amendment, degraded
+    posture, and rollup eligibility remain separate through Workpoint/task/spec closure,
+    settlement, Receipts, velocity, and release conformance.
   requirement_text_sha256: 29c8274da40b7440ab60283687595edfc565d6169ff5c9ab6a600a0432aa877b
   requirement_class: must
   applicability: required
@@ -7418,9 +7505,11 @@ requirements:
   source_clause_refs:
   - acceptance:86
   - coverage-set:research-audit_integrity_additions
-  requirement_text: Temporal communication explicitly discloses material uncertainty, assumptions, degraded/stale state, failed tools, missing
-    proof, alternatives, and inference boundaries in coherent plain language; confidence percentages identify their object/basis and cannot masquerade
-    as calibrated probability, work completion, or duration evidence.
+  requirement_text: Temporal communication explicitly discloses material uncertainty,
+    assumptions, degraded/stale state, failed tools, missing proof, alternatives,
+    and inference boundaries in coherent plain language; confidence percentages identify
+    their object/basis and cannot masquerade as calibrated probability, work completion,
+    or duration evidence.
   requirement_text_sha256: a36c753269abb4d508fa50c079d713f5fd63f5487818b41633c8d57d6d4433cd
   requirement_class: must
   applicability: required
@@ -7495,7 +7584,6 @@ requirements:
   receipt_refs:
   - docs/contracts/137-focusa-parent-zero-omission-receipt.v1.yaml
   parent_closure_impact: blocking_for_claimed_conformance
-# Combined Spec 137 + 137A closure extension
 combined_normative_source_v2:
   parent_spec: docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md
   mandatory_addendum: docs/137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md
@@ -16185,7 +16273,6 @@ spec137a_requirement_rows:
   documentation_refs:
   - docs/137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md
   - docs/contracts/spec137-complete-feature-ledger.v1.yaml
-
 exhaustive_source_atom_coverage_ref: docs/contracts/spec137a-normative-source-coverage.v1.yaml
 exhaustive_source_atom_count: 2401
 exhaustive_normative_requirement_count: 1173

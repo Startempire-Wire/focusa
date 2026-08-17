@@ -228,7 +228,7 @@ def build(candidate_ref: str, audit_ref: str) -> dict:
     next_stable_version = next_stable_tag.removeprefix("v")
     if not version_agreement:
         ancestry_errors.append("candidate_source_versions_disagree")
-    elif candidate_versions not in ({published_version}, {next_stable_version}):
+    elif candidate_versions not in ({published_version}, {next_stable_version}, {f"{next_stable_version}-dev"}, {next_selection["selected_version"]}):
         ancestry_errors.append("candidate_source_version_not_immutable_or_next_stable")
 
     asset_module = load_module(

@@ -99,8 +99,8 @@ python3 tests/spec146_release_intelligence_workflow_gate.py
 python3 ./tests/spec137_138_full_conformance_invocation_test.py
 python3 ./tests/run_spec137_138_full_conformance_gates.py
 python3 scripts/generate-spec150-complete-feature-ledger.py --check
-# python3 scripts/generate-cross-spec-tool-grounding-matrix.py --check
-# python3 scripts/audit-cross-spec-reality-grounding.py
+python3 scripts/generate-cross-spec-tool-grounding-matrix.py --check
+python3 scripts/audit-cross-spec-reality-grounding.py
 pass 'canonical release kernel, cross-spec reality grounding, tool/runbook awareness, and architecture gates'
 
 printf 'FINAL RELEASE GAP GATE: PASS\n'

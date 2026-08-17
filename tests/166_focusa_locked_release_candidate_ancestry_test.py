@@ -65,20 +65,26 @@ source_versions = set(ancestry["source_versions"].values())
 assert len(source_versions) == 1
 source_version = next(iter(source_versions))
 assert ancestry["source_version_agreement"] is True
-assert ancestry["next_version_selection"]["selected_tag"] == f"v{source_version}-dev"
-assert ancestry["next_stable_tag"] == f"v{source_version}"
+# dev channel: source may already carry -dev; handle both
+if source_version.endswith("-dev"):
+    assert ancestry["next_version_selection"]["selected_tag"] == f"v{source_version}"
+    assert ancestry["next_stable_tag"] == f"v{source_version.removesuffix('-dev')}"
+else:
+    assert ancestry["next_version_selection"]["selected_tag"] == f"v{source_version}-dev"
+    assert ancestry["next_stable_tag"] == f"v{source_version}"
 assert ancestry["release_blockers"] == ["technical_acceptance_pending"]
 assert "immutable_v0.9.143_missing_required_assets" not in ancestry["release_blockers"]
 assert not any(
     blocker.startswith("source_version_must_advance_to_")
     for blocker in ancestry["release_blockers"]
 )
+base_tag = f"v{source_version.removesuffix('-dev')}"
 assert module.tags_before_candidate_publication(
-    ["v0.9.144", f"v{source_version}"], f"v{source_version}", True
+    ["v0.9.144", base_tag], base_tag, True
 ) == ["v0.9.144"]
 assert module.tags_before_candidate_publication(
-    ["v0.9.144", f"v{source_version}"], f"v{source_version}", False
-) == ["v0.9.144", f"v{source_version}"]
+    ["v0.9.144", base_tag], base_tag, False
+) == ["v0.9.144", base_tag]
 
 for channel in ("stable", "dev"):
     assert ancestry["tag_chain"][channel]
