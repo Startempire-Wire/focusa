@@ -1160,7 +1160,7 @@
       ]
     },
     "closure_set_digest": "sha256:410833c5602317fb7742b3ed52119401963e79f0c73bf280bcea9b62913f5f69",
-    "governance_source_commit": "351f1085177f5de35add3250910753868580bc97",
+    "governance_source_commit": "2567eb2a53f573eec631b708dfa86ae8554a9322",
     "input_artifacts": [
       {
         "digest": "sha256:deda390b4067b160bae3110c7ee44cf8bf08ba96c970dce08cf96a53dda7cf27",
@@ -1442,7 +1442,7 @@
           "path": "tests/165_focusa_locked_release_technical_closure_reducer_test.py"
         },
         {
-          "digest": "sha256:a64be54eb92e609f11ffd5a68401270f8712f471d4627449125e7b391bc6ffd6",
+          "digest": "sha256:08d7d7c57b8e8eaef586e8616690571acc00b579c96d7c57fedd1fe9882cf2f7",
           "path": "tests/166_focusa_locked_release_candidate_ancestry_test.py"
         },
         {
@@ -1508,7 +1508,7 @@
         "tests/spec52_onboarding_consolidation_gate.py"
       ]
     },
-    "linkage_digest": "sha256:aebc2f67fbd5702a6c8274b1bc5815ae70a27e40bc174d57aa88c476d338641b",
+    "linkage_digest": "sha256:12d7673f60cf50b313ba762c178a9850b16d592d029142df679e8b44fdd9688f",
     "mutation_policy": {
       "canonical_replay_required": true,
       "detached_signature_required": true,
@@ -1516,7 +1516,7 @@
       "provider_status_is_not_technical_proof": true,
       "rewrite_v0.9.143": false
     },
-    "payload_digest": "sha256:c9594c7748a8fd6894a0845441d7a4cf8f24776be1df8519cd5512d196f94eb4",
+    "payload_digest": "sha256:f77d92e767c8074cd919e5343d90174eb5a7c650e70e7b2c8c9f09e15a3d40b5",
     "release_proof": {
       "ancestry_digest": "sha256:a821aff5c5ee1fc7575b38e17470e959d3afbb1d7dcf87574d16ad35287306cd",
       "candidate_source_commit": "351f1085177f5de35add3250910753868580bc97",
@@ -1552,8 +1552,8 @@
     "authority_boundary": "integrity and replay seal only; not release publication, entitlement, OTA, or production signing authority",
     "key_authority": "one_time_governance_integrity_seal",
     "private_key_persisted": false,
-    "public_key_base64": "G+CYl7PlX7CgmhRQLq7qZB+Ivh19cXUqxB39tKmyEp4=",
-    "public_key_fingerprint": "d315439907570b9d66f39a785d8f3c5163a3d5c07eccfb9a6b182beb0575ba2a",
+    "public_key_base64": "WibiZ/kOHqGOOhlPW9nqgo5/W2dKwlr1KsHn0ssibho=",
+    "public_key_fingerprint": "450ccf2b502e1e1a462aec8344f056732c56d7dec81f312d72916a7b9475e27e",
     "signed_encoding": "canonical-json-sorted-keys-compact-utf8"
   }
 }
