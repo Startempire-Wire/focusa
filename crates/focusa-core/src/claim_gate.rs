@@ -204,6 +204,8 @@ pub struct EvidenceSurface {
 /// Output from the claim gate.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaimGateOutput {
+    #[serde(default)]
+    pub schema: String,
     /// Whether the gate allows closure.
     pub decision: GateDecision,
     /// Primary evidence class determined.
@@ -304,6 +306,7 @@ impl ClaimGateOutput {
         );
 
         Self {
+            schema: "focusa.claim_gate_output.v1".to_string(),
             decision,
             evidence_class,
             citations,
