@@ -141,3 +141,4 @@ done
 for fixture_mode in harness subprocess child-leak prompt-wait output-flood model-mismatch retry-failure isolated-git entitlement runner-disconnect; do
   run_gate python3 ./tests/spec133_fault_fixture.py "$fixture_mode" --lines 32
 done
+python3 ./tests/run_spec137_138_full_conformance_gates.py

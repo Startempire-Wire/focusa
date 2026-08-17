@@ -3878,7 +3878,7 @@ mod tests {
         std::fs::write(root.join("settings.json"), br#"{"extensions":[]}"#)
             .expect("write settings fixture");
         std::fs::write(
-            runtime.join("package.json"),
+            root.join("extensions/focusa-runtime/package.json"),
             br#"{"name":"focusa-pi-bridge","version":"0.9.143"}"#,
         )
         .expect("write runtime package");

@@ -1160,7 +1160,7 @@
       ]
     },
     "closure_set_digest": "sha256:410833c5602317fb7742b3ed52119401963e79f0c73bf280bcea9b62913f5f69",
-    "governance_source_commit": "156958048e456f3e3e6c9279c4641897edc10ff1",
+    "governance_source_commit": "ef009e4e744b8c7a68fba8b4fd7196cbd1d3533c",
     "input_artifacts": [
       {
         "digest": "sha256:deda390b4067b160bae3110c7ee44cf8bf08ba96c970dce08cf96a53dda7cf27",
@@ -1179,7 +1179,7 @@
         "path": "release-proof/audit/next-locked-release-technical-closure-gate.json"
       },
       {
-        "digest": "sha256:224bedec67fa6394bc5b26c4767db953b2335716ea49c3b8fd8bf25ac9a7bfb8",
+        "digest": "sha256:4c5e528b900432065592127daf27fa414d8c687c63aab5169ee97745cd510bfe",
         "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
       },
       {
@@ -1187,7 +1187,7 @@
         "path": "release-proof/audit/next-locked-release-v09143-published-assets.json"
       }
     ],
-    "input_artifacts_digest": "sha256:025bb948c23ae4f5ee135a87c02d48182858368b7ad6c427eb595726e77965a3",
+    "input_artifacts_digest": "sha256:dd1f28da105facfde52a0d870cbf8b9f4cfbcda10c2d1dad15fa95938553c84f",
     "linkage": {
       "artifact_refs": [
         "release-proof/audit/next-locked-release-candidate-ancestry.json",
@@ -1334,11 +1334,11 @@
           "path": "docs/133-silent-sessions-final-release-proof.md"
         },
         {
-          "digest": "sha256:779ffc485b6d82f7615d60d60af3fdd2d8aed57c258ade8667d4130a36e62e64",
+          "digest": "sha256:c20a7e47b3cd317c8cee0876829d801b8735f5346d72cf38ef2a6c397d3f62fe",
           "path": "docs/142-focusa-release-requirement-trace-matrix.md"
         },
         {
-          "digest": "sha256:0a5f2a897c3e9c9af28e744768eb7fca23c91fefef3198bbf9f999a8768f2f4a",
+          "digest": "sha256:10586876cb24ebc1ed8f52fe86ce160bda1779e15391d5f4b440d5aa11b15598",
           "path": "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md"
         },
         {
@@ -1394,7 +1394,7 @@
           "path": "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
         },
         {
-          "digest": "sha256:224bedec67fa6394bc5b26c4767db953b2335716ea49c3b8fd8bf25ac9a7bfb8",
+          "digest": "sha256:4c5e528b900432065592127daf27fa414d8c687c63aab5169ee97745cd510bfe",
           "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
         },
         {
@@ -1418,7 +1418,7 @@
           "path": "release-proof/audit/next-locked-release-macos-ota-run-proof.json"
         },
         {
-          "digest": "sha256:2da6d632c0ee3e65d75d3ec50787f9ead16d6359b1b22b17cda979c67128c8b1",
+          "digest": "sha256:772a60f9f10ec0c33557224652332a841304c06e781dc922371964c8b5c2c48c",
           "path": "release-proof/audit/next-locked-release-scope.json"
         },
         {
@@ -1508,7 +1508,7 @@
         "tests/spec52_onboarding_consolidation_gate.py"
       ]
     },
-    "linkage_digest": "sha256:bd502f3798591626c5f3ec42a84291cef21135f839f16aa22fa1556a8d361380",
+    "linkage_digest": "sha256:afbc5502c2acd55b85737291c0baca4c133897a3e7246ea7031ca5532317e663",
     "mutation_policy": {
       "canonical_replay_required": true,
       "detached_signature_required": true,
@@ -1516,10 +1516,10 @@
       "provider_status_is_not_technical_proof": true,
       "rewrite_v0.9.143": false
     },
-    "payload_digest": "sha256:b2faf24e13801385e334b0b499533cc503cb722189f163713899034ed2507af0",
+    "payload_digest": "sha256:347718e5c32c63cbb6693bb1e9bffb2c72bc01680d897f5038a21d506a6be6ab",
     "release_proof": {
-      "ancestry_digest": "sha256:fb6b04c534319a20f8f7522c4ac1f460c32a25cae4c230431115f95f9a043c1b",
-      "candidate_source_commit": "156958048e456f3e3e6c9279c4641897edc10ff1",
+      "ancestry_digest": "sha256:95ddece7073dbb84b1be5878002d47c547ec2235cef498b1884353418dc6965b",
+      "candidate_source_commit": "ef009e4e744b8c7a68fba8b4fd7196cbd1d3533c",
       "immutable_tag": "v0.9.143",
       "immutable_tag_commit": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
       "missing_required_assets": [
@@ -1536,7 +1536,7 @@
         "pattern:Focusa_*x64*.msi",
         "pattern:Focusa_*arm64*.msi"
       ],
-      "next_stable_tag": "v0.9.152",
+      "next_stable_tag": "v0.9.153",
       "published_asset_count": 66,
       "release_blockers": [
         "technical_acceptance_pending"
@@ -1552,8 +1552,8 @@
     "authority_boundary": "integrity and replay seal only; not release publication, entitlement, OTA, or production signing authority",
     "key_authority": "one_time_governance_integrity_seal",
     "private_key_persisted": false,
-    "public_key_base64": "4Lb6oCjKI4Tzzo22ksTAvVDHRW8XHtKWA3r/VosGB2Q=",
-    "public_key_fingerprint": "a7533bce32c97a2b922386e40fe64530eae37d08a3b56ed0b206b2a126312b33",
+    "public_key_base64": "ieS3rRMFwPmedjjLAl+xdxC77IVuRtj6RnvFisA6oMk=",
+    "public_key_fingerprint": "040c075339cee527440e0422b0222fa41beb3c8ab14adde43a3f31f5449e9d42",
     "signed_encoding": "canonical-json-sorted-keys-compact-utf8"
   }
 }
