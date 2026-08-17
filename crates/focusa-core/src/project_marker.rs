@@ -179,6 +179,10 @@ fn id_name(uid: u32) -> String {
 /// (owner_name, current_name) when they differ. Uses the `id` command so
 /// this stays dependency-free and never links libc struct layouts.
 fn ownership_mismatch(root: &Path) -> Option<(String, String)> {
+    #[cfg(not(unix))]
+    { return None; }
+    #[cfg(unix)]
+    {
     use std::os::unix::fs::MetadataExt;
     let metadata = fs::metadata(root).ok()?;
     let owner_uid = metadata.uid();
@@ -191,9 +195,12 @@ fn ownership_mismatch(root: &Path) -> Option<(String, String)> {
             .unwrap_or(owner_uid)
     };
     if owner_uid == current_uid {
-        return None;
+            return None;
+        }
+        return Some((id_name(owner_uid), id_name(current_uid)));
     }
-    Some((id_name(owner_uid), id_name(current_uid)))
+    #[allow(unreachable_code)]
+    None
 }
 
 /// Canonical marker write: atomic, idempotent, ownership-preserving,
