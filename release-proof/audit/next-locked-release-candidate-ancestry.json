@@ -23,12 +23,12 @@
     "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:be880bd50c9c1d2e1a4cb954b9689e74298cd764a48a7025fb369928fab17ca0",
+  "ancestry_digest": "sha256:58b80132e7e029abcd2f97a1ec0e618515cdeb0b65aae24fd91b0d71ba62f232",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "a9bd53609c41095158a06e3824f16b2d68295f4f",
+    "audit_head": "40355d0b28cf7054c73b1ceec34bf424a10ae700",
     "changed_after_source_commit": [],
-    "source_commit": "a9bd53609c41095158a06e3824f16b2d68295f4f",
+    "source_commit": "40355d0b28cf7054c73b1ceec34bf424a10ae700",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
@@ -107,17 +107,17 @@
     "publish_release": false,
     "rewrite_v0.9.143": false
   },
-  "next_stable_tag": "v0.9.161",
+  "next_stable_tag": "v0.9.162",
   "next_version_selection": {
     "base": "0.9",
     "channel_maxima": {
-      "dev": 160,
+      "dev": 161,
       "preview": null,
       "rc": null,
       "stable": 152
     },
-    "considered_tags": 162,
-    "highest_patch": 160,
+    "considered_tags": 163,
+    "highest_patch": 161,
     "ignored_malformed_tags": [
       "spec-integration-v1",
       "spec-integraton-v1-start"
@@ -126,9 +126,9 @@
     "monotonic": true,
     "schema": "focusa.release_version_selection.v1",
     "selected_channel": "dev",
-    "selected_patch": 161,
-    "selected_tag": "v0.9.161-dev",
-    "selected_version": "0.9.161-dev",
+    "selected_patch": 162,
+    "selected_tag": "v0.9.162-dev",
+    "selected_version": "0.9.162-dev",
     "status": "completed"
   },
   "pull_request_ancestry": [
@@ -165,9 +165,9 @@
   "schema": "focusa.locked_release_candidate_ancestry.v1",
   "source_version_agreement": true,
   "source_versions": {
-    "menubar": "0.9.161-dev",
-    "pi_extension": "0.9.161-dev",
-    "workspace": "0.9.161-dev"
+    "menubar": "0.9.162-dev",
+    "pi_extension": "0.9.162-dev",
+    "workspace": "0.9.162-dev"
   },
   "status": "verified",
   "tag_chain": {
