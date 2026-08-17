@@ -74,14 +74,12 @@ fn lifecycle_chain_proposal_promotion_goal_dispatch_settlement() {
 
     // Stage 3 — Trajectory goal (C.R.I.S.T. clarity) lands scoped.
     let goal = TrajectoryProjectionRecord {
-        scope_ref: None,
-        active_waypoint_id: None,
-        active_milestone_id: None,
-        milestones: vec![],
         trajectory_id: "t-lifecycle".to_string(),
         session_identity: None,
         project_root: Some("/root/lifecycle-proj".to_string()),
         continuity_id: Some("cont-lifecycle".to_string()),
+        scope_ref: None,
+        active_waypoint_id: None,
         root_long_term_goal: "ship the lifecycle".to_string(),
         long_term_goal: "ship the lifecycle".to_string(),
         desired_end_state: "green conformance".to_string(),
