@@ -1071,6 +1071,7 @@ pub struct TrajectoryMilestoneRecord {
 pub struct TrajectoryProjectionRecord {
     #[serde(default)]
     pub milestones: Vec<TrajectoryMilestoneRecord>,
+    pub active_milestone_id: Option<String>,
     pub trajectory_id: String,
     #[serde(default)]
     pub scope_ref: Option<crate::scoped_state::ScopeRef>,
@@ -1237,6 +1238,7 @@ impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
         }
         Ok(Self {
             milestones: vec![],
+            active_milestone_id: wire.active_milestone_id.clone().or(wire.active_waypoint_id.clone()),
             trajectory_id: wire.trajectory_id,
             scope_ref: wire.scope_ref,
             session_identity: wire.session_identity,
@@ -1274,6 +1276,7 @@ impl Default for TrajectoryProjectionRecord {
     fn default() -> Self {
         Self {
             milestones: vec![],
+            active_milestone_id: None,
             trajectory_id: String::new(),
             scope_ref: None,
             session_identity: None,

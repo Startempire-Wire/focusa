@@ -202,6 +202,8 @@ pub struct EvidenceSurface {
 }
 
 /// Output from the claim gate.
+pub const CLAIM_GATE_OUTPUT_SCHEMA: &str = "focusa.claim_gate_output.v1";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaimGateOutput {
     #[serde(default)]
