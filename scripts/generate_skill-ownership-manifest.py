@@ -41,8 +41,8 @@ text = TOOLS.read_text()
 names = set(re.findall(r'name:\s*"(focusa_[^"]+)"', text))
 names.update({f"focusa_preload_{suffix}" for suffix in ["build", "render", "verify", "doctor"]})
 names = sorted(names)
-if len(names) != 116:
-    raise SystemExit(f"expected 116 current advertised Focusa tools, found {len(names)}")
+if len(names) != 129:
+    raise SystemExit(f"expected 129 current advertised Focusa tools, found {len(names)}")
 contracts = set(re.findall(r'name:\s*"(focusa_[^"]+)"', CONTRACTS.read_text()))
 contracts.update({f"focusa_preload_{suffix}" for suffix in [
     "profiles", "build", "render", "write", "verify", "doctor", "receipt_preview", "receipt_commit"
