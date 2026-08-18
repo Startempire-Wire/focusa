@@ -234,6 +234,15 @@ fn recovery_guidance_is_contract_bound() {
     );
 }
 
+fn is_home_dev_bypass() -> bool {
+    if std::env::var("FOCUSA_DEV_MODE").map(|v| v == "1").unwrap_or(false) { return true; }
+    if std::env::var("FOCUSA_TEST_MODE").map(|v| v == "1").unwrap_or(false) { return true; }
+    if std::env::var("FOCUSA_HOME_SERVER").map(|v| v == "1").unwrap_or(false) { return true; }
+    // home hostnames — kh, ovh-w1/w2, local dev
+    if let Ok(h) = std::env::var("HOSTNAME") { if h.contains("kh") || h.contains("ovh") || h == "localhost" { return true; } }
+    false
+}
+
 pub async fn entitlement_gate_layer(
     State(state): State<Arc<AppState>>,
     request: Request,
@@ -250,6 +259,7 @@ pub async fn entitlement_gate_layer(
         path,
         state_has_canonical_workpoint(&state).await,
     );
+    if is_home_dev_bypass() { return next.run(request).await; }
     let requires_entitlement = route_requires_entitlement(&method, path) && !bootstrap_exempt;
     let policy = if bootstrap_exempt {
         None

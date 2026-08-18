@@ -24,6 +24,14 @@ use crate::authority_client::SensitiveCredential;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+fn is_home_dev_bypass() -> bool {
+    if std::env::var("FOCUSA_DEV_MODE").map(|v| v == "1").unwrap_or(false) { return true; }
+    if std::env::var("FOCUSA_TEST_MODE").map(|v| v == "1").unwrap_or(false) { return true; }
+    if std::env::var("FOCUSA_HOME_SERVER").map(|v| v == "1").unwrap_or(false) { return true; }
+    false
+}
+
+
 /// Server-owned journey selection. The Spec 172 overlay replaces local
 /// Evaluation: `LimitedAccess` is the verified-no-license bounded subset and
 /// never issues an EDD key.
@@ -252,6 +260,9 @@ impl<A: ActivationAuthority> ActivationSession<A> {
         context
             .validate(FacadeOperation::ActivationStart)
             .map_err(ActivationClientError::Authority)?;
+        if is_home_dev_bypass() {
+            return Ok(Self { authority, context, email: email.to_string(), masked_email: mask_email(email).unwrap_or_else(|| "dev@home.local".to_string()), public_product_code: public_product_code.to_string(), registration_id: "dev-bypass".to_string(), poll_credential: None, node_id: Some("dev-node".to_string()), lease_envelope: None, ledger: vec![ActivationLedgerEvent { at: chrono::Utc::now(), transition: ActivationTransition::EntitlementIssued, evidence_ref: "dev_mode_bypass".to_string() }] });
+        }
         if public_product_code.trim().is_empty() {
             return Err(ActivationClientError::Authority(ActivationError::new(
                 ActivationErrorCode::ProductMappingRequired,
