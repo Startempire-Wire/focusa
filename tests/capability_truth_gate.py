@@ -3,7 +3,7 @@
 import pathlib, sys
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 text=(ROOT/"crates/focusa-core/src/capability_truth.rs").read_text()
-need=["CapabilityTruth","truth_level","public_claim","HonestyManifest"]
+need=["CapabilityTruthClaim","HonestyManifest","honesty_manifest","public_safe"]
 failed=[n for n in need if n not in text]
 if failed:
   print(f"279 FAIL missing {failed}"); sys.exit(1)
