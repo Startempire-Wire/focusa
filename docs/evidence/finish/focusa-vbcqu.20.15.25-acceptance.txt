@@ -1,0 +1,3 @@
+focusa-vbcqu.20.15.25 172.04.01 — REAL 2026-08-18
+Commit: c5b4755d124ba5a90904b029364f7818dd43cf6c
+python3 tests/spec172_core_api_bypass_test.py PASS
