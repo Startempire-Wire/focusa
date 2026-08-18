@@ -1,0 +1,19 @@
+# 152.03.07 Entitlement-first menubar state machine — evidence 10.7.9
+commit: f259a83b9b41ab181499cb00e22832b0a5a98f5a
+verification: cd apps/menubar && npm ci --ignore-scripts && npm run check && npm test (6/8)
+npm ci: ok 108 packages
+npm run check: svelte-check 0 errors 0 warnings (after allowImportingTsExtensions fix for entitlementPosture activationPresenter import)
+npm test non-e2e: 6 passed
+  - first-run-entitlement.mjs PASS
+  - entitlement-posture.mjs PASS (after import .ts fix)
+  - entitlement-api-errors.mjs PASS
+  - work-loop-scope.mjs PASS
+  - temporal-authority-peek.mjs PASS
+  - semantic-pair-parity.mjs PASS (43-operation)
+e2e-endpoints/post: FAIL 52/63 endpoints 403 without live daemon — waived per bead notes "Menubar dependencies are absent; final EDD flow remain" + requires FOCUSA_HOME_SERVER daemon running
+cargo fmt: ok (1.91.0)
+cargo clippy --workspace --all-targets: ok 0 warnings
+php -l wpuiai-plugin: 3 ok
+bash -n + spec152 shell static: PASS
+evidence_ref: evidence:menubar-entitlement-first-10.7.9
+sha256: f259a83b9

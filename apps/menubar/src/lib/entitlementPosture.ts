@@ -3,7 +3,7 @@ import {
   presenterNextAction,
   presenterStateForEntitlementStatus,
   type PresenterState,
-} from './activationPresenter';
+} from './activationPresenter.ts';
 
 export type EntitlementVisualState =
   | 'active'
