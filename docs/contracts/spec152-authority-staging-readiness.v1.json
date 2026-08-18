@@ -1,0 +1,43 @@
+{
+  "schema": "focusa.spec152.authority_staging_readiness.v1",
+  "version": "1",
+  "authority": {
+    "canonical": "WPUIAI.com EDD",
+    "commit": "edd-authority-kernel-2026-08-18T05:00:00Z",
+    "deployment_digest": "sha256:9c743760745a7365932a5096de5167f7d3b8d9b795f027d5ddaecbfc31684d29",
+    "contract_version": "spec152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md@v2026-08-05"
+  },
+  "endpoints": {
+    "email": true,
+    "device_code": true,
+    "license": true,
+    "node": true,
+    "lease": true,
+    "verify": true,
+    "offers": true,
+    "checkout": true,
+    "poll": true
+  },
+  "golden_vector_digest": "sha256:4e738ca5563c06cfd0018299933d58db1dd8bf97f6973dc99bf6cdc64b5550bd",
+  "golden_vector_ref": "crates/focusa-license/tests/fixtures/spec152-authority-golden-vector.json",
+  "rollback": {
+    "ready": true,
+    "preservation_only": true,
+    "delete_methods": 0
+  },
+  "freshness": {
+    "issued_at": "2026-08-18T05:50:00Z",
+    "expires_at": "2026-08-25T05:50:00Z",
+    "ttl_hours": 168
+  },
+  "evidence": {
+    "contract": "docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md",
+    "openapi": "docs/contracts/spec152e-activation-public-openapi.v1.json",
+    "fixture": "docs/contracts/spec152e-facade-golden-vectors.v1.json"
+  },
+  "provenance": {
+    "bead": "focusa-vbcqu.10.7.2",
+    "spec": "152.02.02",
+    "redaction": "no_secrets_no_raw_email"
+  }
+}
