@@ -1,1 +1,1 @@
-Spec replay focusa-vbcqu.10.7 — candidate 7d348cad1 — accepted_replay — foreground FINISH Sir V3
+Spec replay focusa-vbcqu.10.7 — candidate f112daae4 — accepted_replay — foreground FINISH Sir V3
