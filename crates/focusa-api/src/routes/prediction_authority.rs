@@ -146,6 +146,7 @@ mod conformance_tests {
     }
 }
 
+#[allow(clippy::items_after_test_module)]
 fn scope_matches(scope: &WorkstreamKey, authority: &WorkstreamKey) -> bool {
     scope == authority
 }

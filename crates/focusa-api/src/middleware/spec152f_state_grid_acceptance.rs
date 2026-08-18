@@ -458,7 +458,7 @@ fn spec152f_state_grid_acceptance_premium_grant_isolation_matches_resolver() {
 
     // resolve_premium_family agrees at the policy boundary.
     let granted = resolve_premium_family(
-        &guard_with.entitlement.as_ref().unwrap(),
+        guard_with.entitlement.as_ref().unwrap(),
         Family::TeamRemote,
         "focusa.team.multi_operator",
         chrono::Utc::now(),
