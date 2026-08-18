@@ -300,10 +300,13 @@ pub fn developer_origin_report() -> DeveloperOriginReport {
 
 #[cfg(test)]
 mod tests {
+    static TEST_MUTEX: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
+    fn test_lock() -> std::sync::MutexGuard<'static, ()> { TEST_MUTEX.get_or_init(|| std::sync::Mutex::new(())).lock().unwrap() }
     use super::*;
 
     #[test]
     fn either_source_activates_developer_origin() {
+        let _guard = test_lock();
         invalidate_developer_origin_cache();
         assert!(developer_origin_active_with(|| true, || false));
         invalidate_developer_origin_cache();
@@ -314,9 +317,11 @@ mod tests {
 
     #[test]
     fn cache_serves_within_ttl_and_expires() {
+        let _guard = test_lock();
         invalidate_developer_origin_cache();
         let previous_ttl = std::env::var("FOCUSA_DEV_ORIGIN_TTL_MS").ok();
-        unsafe { std::env::set_var("FOCUSA_DEV_ORIGIN_TTL_MS", "100"); }
+        // Use TTL > padding (250ms) so effective TTL is stable and test is not flaky
+        unsafe { std::env::set_var("FOCUSA_DEV_ORIGIN_TTL_MS", "1000"); }
         let calls = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
         let counter = calls.clone();
         let probe = move || {
@@ -324,11 +329,15 @@ mod tests {
             true
         };
         assert!(developer_origin_active_with(probe, || false));
+        // Within TTL (750ms effective) — should be cached, no extra call
+        std::thread::sleep(Duration::from_millis(50));
         assert!(developer_origin_active_with(|| false, || false)); // cached
         assert_eq!(calls.load(Ordering::SeqCst), 1);
-        std::thread::sleep(Duration::from_millis(150));
-        assert!(developer_origin_active_with(|| true, || false)); // re-probe
-        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        std::thread::sleep(Duration::from_millis(900));
+        // Expired — must re-probe (use same counter via new closure capturing same Arc)
+        let counter2 = calls.clone();
+        assert!(developer_origin_active_with(move || { counter2.fetch_add(1, Ordering::SeqCst); true }, || false)); // re-probe
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
         match previous_ttl {
             Some(value) => unsafe { std::env::set_var("FOCUSA_DEV_ORIGIN_TTL_MS", value) },
             None => unsafe { std::env::remove_var("FOCUSA_DEV_ORIGIN_TTL_MS") },
@@ -338,6 +347,7 @@ mod tests {
 
     #[test]
     fn real_kb_api_probe_resolves_against_a_local_fixture() {
+        let _guard = test_lock();
         use std::net::TcpListener;
         use std::sync::atomic::AtomicU16;
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();

@@ -459,9 +459,9 @@ fn spec172_runtime_policy_core_guard_unknown_future_and_dynamic_fail_closed() {
         authority_policy_state(revoked.entitlement.as_ref().unwrap()),
         State::RefundedOrRevoked
     );
-    assert!(base_product_projection(revoked.entitlement.as_ref())
+    assert!(!base_product_projection(revoked.entitlement.as_ref())
         .expect("projection")
-        .permits_base_mutations == false);
+        .permits_base_mutations);
     for reachable in [Family::AccountRecovery, Family::CustomerDataExport, Family::ReadProjection] {
         assert!(
             evaluate_entitlement_execution(

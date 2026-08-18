@@ -328,7 +328,7 @@ mod tests {
         // Only 4 evaluations — below MIN_EVALUATIONS_FOR_DRIFT (5).
         for i in 0..4 {
             let eval = evaluate_forecast(
-                &range, 500, &format!("target-{}", i),
+                &range, 500, format!("target-{}", i),
                 0.6, 0, 0, 0.0, 1.0,
                 vec!["e".into()],
             ).unwrap();
@@ -363,7 +363,7 @@ mod tests {
         for i in 0..5 {
             let eval = evaluate_forecast(
                 &range, 650, // Exceeds p95=600 → coverage=0
-                &format!("target-{}", i),
+                format!("target-{}", i),
                 0.6, 0, 0, 0.0, 1.0,
                 vec!["e".into()],
             ).unwrap();
@@ -481,7 +481,7 @@ mod tests {
         let range = sample_range();
         for i in 0..3 {
             let eval = evaluate_forecast(
-                &range, 500, &format!("t-{}", i),
+                &range, 500, format!("t-{}", i),
                 0.6, 0, 0, 0.0, 1.0,
                 vec!["e".into()],
             ).unwrap();
@@ -518,7 +518,7 @@ mod tests {
         for i in 0..5 {
             let eval = evaluate_forecast(
                 &range, 700,
-                &format!("t-{}", i),
+                format!("t-{}", i),
                 0.6, 0, 0, 0.0, 1.0,
                 vec!["e".into()],
             ).unwrap();

@@ -425,7 +425,7 @@ fn spec172_core_api_bypass_worker_dispatch_revalidates_queued_before_refund() {
     ));
     let (_readiness, active_dispatch) =
         select_silent_session_dispatch_with_entitlement(
-            &[item.clone()],
+            std::slice::from_ref(&item),
             &query,
             &[queued_candidate(&item, queued_at, context.clone())],
             &entitled,
@@ -450,7 +450,7 @@ fn spec172_core_api_bypass_worker_dispatch_revalidates_queued_before_refund() {
     ));
     let (_readiness, revoked_dispatch) =
         select_silent_session_dispatch_with_entitlement(
-            &[item.clone()],
+            std::slice::from_ref(&item),
             &query,
             &[queued_candidate(&item, queued_at, context.clone())],
             &revoked,
@@ -483,7 +483,7 @@ fn spec172_core_api_bypass_worker_dispatch_revalidates_queued_before_refund() {
         true,
     ));
     let (_readiness, stale_dispatch) = select_silent_session_dispatch_with_entitlement(
-        &[item.clone()],
+        std::slice::from_ref(&item),
         &query,
         &[queued_candidate(&item, queued_at, context)],
         &stale,

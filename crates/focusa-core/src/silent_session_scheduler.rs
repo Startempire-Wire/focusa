@@ -751,7 +751,7 @@ mod tests {
             limit: 100,
         };
         let (_readiness, dispatch) = select_silent_session_dispatch_with_default_entitlement_with_initiating_context(
-            &[first.clone()],
+            std::slice::from_ref(&first),
             &query,
             &[candidate(&first, SilentSessionPriority::Normal, Utc::now())],
             &signed_base_snapshot(),
@@ -771,7 +771,7 @@ mod tests {
             limit: 100,
         };
         let (_readiness, dispatch) = select_silent_session_dispatch_with_default_entitlement(
-            &[first.clone()],
+            std::slice::from_ref(&first),
             &query,
             &[candidate(&first, SilentSessionPriority::Normal, Utc::now())],
             &signed_base_snapshot(),
@@ -809,7 +809,7 @@ mod tests {
         };
 
         let (_readiness, active_dispatch) = select_silent_session_dispatch_with_entitlement(
-            &[first.clone()],
+            std::slice::from_ref(&first),
             &query,
             &[contextual_policy_candidate(
                 &first,
@@ -824,7 +824,7 @@ mod tests {
         assert_eq!(active_dispatch.selected_work_item, Some(first.reference()));
 
         let (_readiness, revoked_dispatch) = select_silent_session_dispatch_with_entitlement(
-            &[first.clone()],
+            std::slice::from_ref(&first),
             &query,
             &[contextual_policy_candidate(
                 &first,
@@ -842,10 +842,7 @@ mod tests {
             revoked_dispatch.deferred[0].reason,
             DispatchDeferralReason::EntitlementDenied
         );
-        assert_eq!(
-            revoked_dispatch.deferred[0].detail.contains("ENTITLEMENT_BASE_REQUIRED"),
-            true
-        );
+        assert!(revoked_dispatch.deferred[0].detail.contains("ENTITLEMENT_BASE_REQUIRED"));
     }
 
     #[test]
@@ -871,7 +868,7 @@ mod tests {
 
         let now = Utc::now();
         let (_readiness, valid_dispatch) = select_silent_session_dispatch_with_entitlement(
-            &[first.clone()],
+            std::slice::from_ref(&first),
             &query,
             &[contextual_policy_candidate(
                 &first,
@@ -897,7 +894,7 @@ mod tests {
             focusa_license::RecoveryAllowance::None,
         );
         let (_readiness, expired_dispatch) = select_silent_session_dispatch_with_entitlement(
-            &[first.clone()],
+            std::slice::from_ref(&first),
             &query,
             &[contextual_policy_candidate(
                 &first,
@@ -910,10 +907,7 @@ mod tests {
         )
         .expect("expired offline grace should stop dispatch");
         assert_eq!(expired_dispatch.selected_work_item, None);
-        assert_eq!(
-            expired_dispatch.deferred[0].detail.contains("ENTITLEMENT_REQUIRED"),
-            true
-        );
+        assert!(expired_dispatch.deferred[0].detail.contains("ENTITLEMENT_REQUIRED"));
     }
 
     #[test]

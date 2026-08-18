@@ -925,7 +925,7 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
     let entitled = entitled_focusa();
     let (_readiness, active_dispatch) =
         select_silent_session_dispatch_with_entitlement(
-            &[item.clone()],
+            std::slice::from_ref(&item),
             &query,
             &[queued_candidate(&item, queued_at, context.clone())],
             &entitled,
@@ -948,7 +948,7 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
     ));
     let (_readiness, revoked_dispatch) =
         select_silent_session_dispatch_with_entitlement(
-            &[item.clone()],
+            std::slice::from_ref(&item),
             &query,
             &[queued_candidate(&item, queued_at, context)],
             &revoked,
