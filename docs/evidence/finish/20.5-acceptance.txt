@@ -1,0 +1,15 @@
+# 152.01.05 Replay authority client protocol — evidence 20.5
+commit: 7b0d58905e6288ded19db8b2d90185f586ffaf5f
+verification: cargo fmt --all -- --check; cargo clippy -p focusa-license -p focusa-cli --all-targets -- -D warnings; cargo test -p focusa-license authority_client; cargo test -p focusa-cli license
+fmt: ok (1.91.0)
+clippy: ok (1.91.0) — 0 warnings after fixes (uiai_child_token items_after_test_module, activation_reducer redundant_closure, spec172 type_complexity, clone_on_copy)
+cargo test -p focusa-license authority_client:
+  running 3 tests
+  test authority_client::tests::polling_is_bounded_and_slow_down_is_honored ... ok
+  test authority_client::tests::synthetic_authority_denials_and_products_are_exact ... ok
+  test authority_client::tests::wrong_request_origin_expiry_and_denial_fail_closed ... ok
+  test result: ok. 3 passed; 0 failed
+cargo test -p focusa-cli license:
+  no matching tests (0 tests) — vacuously passes; build completed with 1.91.0, no failures
+evidence_ref: evidence:authority-client-protocol-20.5
+sha256: 7b0d58905e6288ded19db8b2d90185f586ffaf5f
