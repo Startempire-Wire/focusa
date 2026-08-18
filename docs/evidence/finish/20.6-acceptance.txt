@@ -1,0 +1,14 @@
+# 152.01.06 Replay protected credential storage — evidence 20.6
+commit: c282c1e400c86ebc17ab69e609c99ddb43d97725
+verification: cargo fmt --all -- --check; cargo clippy -p focusa-license --all-targets -- -D warnings; cargo test -p focusa-license authority_credentials
+fmt: ok (1.91.0)
+clippy: ok (1.91.0) — 0 warnings
+cargo test -p focusa-license authority_credentials:
+  running 4 tests
+  test authority_credentials::tests::credential_handle_contains_identity_but_never_secret ... ok
+  test authority_credentials::tests::native_platforms_map_to_os_protected_backends ... ok
+  test authority_credentials::tests::node_identity_is_durable_private_and_fail_closed ... ok
+  test authority_credentials::tests::protected_store_round_trip_redacts_and_deletes ... ok
+  test result: ok. 4 passed
+evidence_ref: evidence:protected-credential-storage-20.6
+sha256: c282c1e40
