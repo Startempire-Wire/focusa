@@ -121,7 +121,7 @@ expect("evidence_refs.is_empty()" in ORCHESTRATOR or "evidence_refs" in ORCHESTR
 
 # ── Lifecycle receipts: product-ready only from a verified binding ────────
 
-expect("EvaluationReady" in RECEIPTS and "PaidReady" in RECEIPTS and "DevelopmentReady" in RECEIPTS,
+expect("LimitedAccessReady" in RECEIPTS and "PaidReady" in RECEIPTS and "DevelopmentReady" in RECEIPTS,
        "receipt classes distinguish Eval/Paid/Development readiness")
 expect("product_ready" in RECEIPTS, "product-ready projection exists")
 expect("LifecycleReceiptError" in RECEIPTS and "not bound to a verified entitlement snapshot" in RECEIPTS,

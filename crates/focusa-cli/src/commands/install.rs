@@ -2344,7 +2344,7 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
     if crate::commands::activation_flow::interactive_available() {
         authorize_installer_activation_flow(&config_dir, args, channel).await?;
     } else {
-        acquire_installer_entitlement(&config_dir, required_feature, args.json).await?;
+        acquire_installer_entitlement(&config_dir, &required_feature, args.json).await?;
     }
     let snapshot =
         resolve_installer_entitlement(&config_dir, required_feature)?.ok_or_else(|| {
