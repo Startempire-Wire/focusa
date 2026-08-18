@@ -1,0 +1,3 @@
+focusa-vbcqu.10.8.6 152.04.06 — REAL 2026-08-18
+Commit: e9bac28102d6c9d895e8da46d8712d598e4c2856
+python3 tests/spec152_tui_entitlement_gate_test.py PASS
