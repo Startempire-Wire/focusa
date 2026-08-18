@@ -1,0 +1,3 @@
+focusa-vbcqu.10.8.3 152.04.03 — REAL 2026-08-18
+Commit: 91bb185863f7ca622f055279fde1fce742ba23d4
+python3 tests/spec152_rest_entitlement_gate_test.py PASS
