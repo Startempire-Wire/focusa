@@ -1,0 +1,3 @@
+focusa-vbcqu.10.11.1 152.08.01 — REAL 2026-08-18
+Commit: 2423a6506cb2c2013e0a0c06fd766353354d18eb
+python3 tests/spec152_documentation_consistency_gate.py PASS
