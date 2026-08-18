@@ -2323,7 +2323,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2455,7 +2455,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2467,7 +2467,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2479,7 +2479,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2491,7 +2491,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2503,7 +2503,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2515,7 +2515,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2563,7 +2563,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2575,7 +2575,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2587,7 +2587,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2599,7 +2599,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2611,7 +2611,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2863,7 +2863,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -2875,7 +2875,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -3103,7 +3103,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -3127,7 +3127,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -3307,7 +3307,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -3319,7 +3319,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -3763,7 +3763,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -3775,7 +3775,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -3787,7 +3787,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -3799,7 +3799,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -3811,7 +3811,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -3823,7 +3823,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -4447,7 +4447,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "Pi tool preflight",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -4459,7 +4459,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "Pi tool preflight",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -5839,7 +5839,7 @@
     },
     {
       "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
+      "gate_location": "Pi tool preflight",
       "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
@@ -7842,8 +7842,8 @@
       "symbol_or_route": "/v1/cancellation/request"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -8892,8 +8892,8 @@
       "symbol_or_route": "/v1/deadline/clear"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -8976,8 +8976,8 @@
       "symbol_or_route": "/v1/deadline/set-civil"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -8990,8 +8990,8 @@
       "symbol_or_route": "/v1/deadline/{id}"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -9354,8 +9354,8 @@
       "symbol_or_route": "/v1/estimate/evaluate"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -9396,8 +9396,8 @@
       "symbol_or_route": "/v1/estimate/validate"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -10365,8 +10365,8 @@
       "symbol_or_route": "/v1/lineage/tree"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -10379,8 +10379,8 @@
       "symbol_or_route": "/v1/lost-time/incidents"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -10799,8 +10799,8 @@
       "symbol_or_route": "/v1/mission-canvas/surfaces/mutate"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -11121,8 +11121,8 @@
       "symbol_or_route": "/v1/opportunities"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -11471,8 +11471,8 @@
       "symbol_or_route": "/v1/progress/record"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -13837,8 +13837,8 @@
       "symbol_or_route": "/v1/time/awareness"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -13851,8 +13851,8 @@
       "symbol_or_route": "/v1/time/capabilities"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -13865,8 +13865,8 @@
       "symbol_or_route": "/v1/time/doctor"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -13879,8 +13879,8 @@
       "symbol_or_route": "/v1/time/now"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -13893,8 +13893,8 @@
       "symbol_or_route": "/v1/time/samples"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
@@ -13921,8 +13921,8 @@
       "symbol_or_route": "/v1/time/stream"
     },
     {
-      "feature": null,
-      "gate_location": null,
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",

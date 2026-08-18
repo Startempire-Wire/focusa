@@ -1,17 +1,17 @@
 {
   "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
   "baseline_counts": {
-    "covered": 691,
+    "covered": 725,
     "total": 1175,
-    "unmatched": 484
+    "unmatched": 450
   },
   "baseline_coverage": "docs/contracts/spec152-entitlement-coverage.v1.json",
-  "coverage_canonical_sha256": "882f01566da48ac3ee3fdee29630a91998bfc4008c776e611face49ec54a0572",
+  "coverage_canonical_sha256": "65f2695172e8699aa98f15ec2c0c05d510b28755e359643505c11f37ddd00cde",
   "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
   "policy_file_sha256": "7aa11eae5eb360325b23441f9c67554604d476027a4a343e5d0fb263f4c4df87",
   "resolution_counts": {
-    "base_entitlement_candidate": 197,
-    "inherit_canonical_operation": 221,
+    "base_entitlement_candidate": 190,
+    "inherit_canonical_operation": 194,
     "premium_family_candidate": 53,
     "recovery_or_read_allowance": 4,
     "scanner_exclusion_test_only": 9
@@ -23,8 +23,8 @@
     "test-only files are excluded without hiding production entrypoints",
     "recovery read export repair rollback and stable security paths remain available subject to security"
   ],
-  "runtime_file_entries": 64,
-  "runtime_file_entries_after_test_exclusion": 55,
+  "runtime_file_entries": 37,
+  "runtime_file_entries_after_test_exclusion": 28,
   "schema": "focusa.spec152f.surface_reconciliation.v1",
   "shards": {
     "cli": {
@@ -39,13 +39,13 @@
     },
     "rest": {
       "path": "docs/contracts/spec152f-surface-reconciliation/rest.v1.json",
-      "row_count": 239,
-      "sha256": "be68784e95d02949d16896b8063d8329a083aba64f1435fb91af0d55aa12b188"
+      "row_count": 232,
+      "sha256": "90619c14ae83921aa57594c8b61361c037e76603fa481d874e32b0010a96b81c"
     },
     "runtime_files": {
       "path": "docs/contracts/spec152f-surface-reconciliation/runtime_files.v1.json",
-      "row_count": 64,
-      "sha256": "949de457934b568251b5a0e00114b794766e12c0371ea6ba4aac7ba9a331372f"
+      "row_count": 37,
+      "sha256": "fe0b0440fb4603bee8da783ee6c4cb499033890038af912ed07902cc1e97a269"
     }
   },
   "source_digests": {
@@ -57,10 +57,9 @@
     "cli": 96,
     "export": 5,
     "menubar": 85,
-    "operation": 24,
-    "pi_tool": 9,
+    "pi_tool": 6,
     "release": 18,
-    "rest": 239,
+    "rest": 232,
     "scheduler": 2,
     "update": 6
   },
