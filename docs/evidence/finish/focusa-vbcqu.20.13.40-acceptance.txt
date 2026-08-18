@@ -1,0 +1,3 @@
+focusa-vbcqu.20.13.40 152E.05.02 — REAL 2026-08-18
+Commit: 5b9798968e2703931325bfacd63658a06d072d47
+bash tests/spec152e_installer_shell_static_test.sh PASS
