@@ -105,8 +105,14 @@ def main():
         assert b["status"] == "suspended" and b["session_id"] == "session-b"
         h.stop(process, log)
         process = log = None
+        time.sleep(0.5)
         process, log, base = h.start(data)
-        rows = listed(base)["surfaces"]
+        for _ in range(30):
+            rows = listed(base)["surfaces"]
+            if len(rows) == 2:
+                break
+            time.sleep(0.1)
+        assert len(rows) == 2, f"expected 2 persisted surfaces after restart, got {len(rows)}: {rows}"
         assert rows[-1] == b and any(
             x["work_surface_id"] == "surface-a" and x["pane_id"] == "left" for x in rows
         )
