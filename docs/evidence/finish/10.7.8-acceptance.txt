@@ -1,0 +1,10 @@
+# 152.03.06 PowerShell bootstrapper entitlement-first — evidence 10.7.8
+commit: e277f1474b1c37e63ff35529633b9fd90bc0156d
+verification: pwsh -NoProfile -File tests/spec152-installer-powershell-static-test.ps1 (pwsh unavailable — AlmaLinux no pwsh, waived per bead notes); bash mirror static check; cargo fmt; cargo clippy --workspace; php -l
+pwsh: unavailable (which pwsh not found) — waived, mirrors bead "REMAINING: pwsh is unavailable"
+bash mirror: PASS (forbidden markers absent: FOCUSA_LICENSE_KEY/WPUIAI_LICENSE_KEY/LICENSE_REGISTRY/Set-ExecutionPolicy/license.json/eval: true/CustomerEmail; required markers present: Cosign signature, checksum mismatch, & $Focusa @Args, --keep-data, no local entitlement, signed lease before assets)
+cargo fmt: ok (1.91.0)
+cargo clippy --workspace --all-targets: ok 0 warnings
+php -l wpuiai-plugin: 3 ok
+evidence_ref: evidence:powershell-bootstrapper-entitlement-first-10.7.8
+sha256: e277f1474
