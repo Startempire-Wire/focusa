@@ -1,5 +1,5 @@
 focusa-3bzz7 — 2026-08-18
-Commit: fb9c8e85d07e81322626284037ae9c119675769d
+Commit: 4dfd69621894ce2dc6502fb573fffaa94b3e141e
 cargo fmt --all -- --check PASS
 cargo clippy -p focusa-core -p focusa-api --all-targets -- -D warnings PASS
 cargo test -p focusa-api entitlement PASS (29)
