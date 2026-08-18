@@ -7,7 +7,7 @@ set -euo pipefail
 
 # Safe version surface: `--version` prints the installer version and exits 0.
 # Never derived from remote/admin state.
-FOCUSA_INSTALLER_VERSION="0.9.165"
+FOCUSA_INSTALLER_VERSION="0.9.166"
 
 GITHUB_REPO="${FOCUSA_GITHUB_REPO:-Startempire-Wire/focusa}"
 RELEASE_BASE_URL="${FOCUSA_RELEASE_BASE_URL:-}"
