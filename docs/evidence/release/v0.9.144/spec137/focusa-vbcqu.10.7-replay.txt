@@ -1,1 +1,1 @@
-Spec replay focusa-vbcqu.10.7 — candidate 78e818d9b — accepted_replay — cargo test -p focusa-core PASS
+Spec replay focusa-vbcqu.10.7 — candidate 0d2acfbc2 — accepted_replay — foreground FINISH Sir V3
