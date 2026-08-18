@@ -1,0 +1,3 @@
+focusa-vbcqu.20.15.14 172.02.05 — REAL 2026-08-18
+Commit: 415e7ed08331bd944d91848e447a0df73725baa1
+php tests/spec172_uiai_operator_issuance_test.php PASS
