@@ -4,7 +4,7 @@
 //! observable (healthy flag + last_seen).
 
 use anyhow::Result;
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 pub const ADAPTER_REGISTRY_SCHEMA: &str = "focusa.adapter_registry.v1";
@@ -75,7 +75,8 @@ pub fn list_adapters(conn: &Connection) -> Result<Vec<AdapterRecord>> {
             last_seen: row.get(5)?,
         })
     })?;
-    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
 }
 
 pub fn set_healthy(conn: &Connection, adapter_id: &str, model: &str, healthy: bool) -> Result<()> {
@@ -86,7 +87,11 @@ pub fn set_healthy(conn: &Connection, adapter_id: &str, model: &str, healthy: bo
     Ok(())
 }
 
-pub fn load_adapter(conn: &Connection, adapter_id: &str, model: &str) -> Result<Option<AdapterRecord>> {
+pub fn load_adapter(
+    conn: &Connection,
+    adapter_id: &str,
+    model: &str,
+) -> Result<Option<AdapterRecord>> {
     conn.query_row(
         "SELECT adapter_id, model, harness, capabilities_json, healthy, last_seen
          FROM adapter_registry WHERE adapter_id = ?1 AND model = ?2",

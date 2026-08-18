@@ -9,8 +9,8 @@ use chrono::{DateTime, Utc};
 use focusa_core::reducer::reduce_with_meta;
 use focusa_core::types::{
     FocusaEvent, FocusaState, TrajectoryDefinitionStatus, TrajectoryProjectionRecord,
-    TrajectoryRootGoalStability, WorkpointCheckpointReason, WorkpointConfidence,
-    WorkpointRecord, WorkpointStatus,
+    TrajectoryRootGoalStability, WorkpointCheckpointReason, WorkpointConfidence, WorkpointRecord,
+    WorkpointStatus,
 };
 
 fn reduce(state: FocusaState, event: FocusaEvent) -> focusa_core::types::ReductionResult {
@@ -137,7 +137,10 @@ fn lifecycle_chain_proposal_promotion_goal_dispatch_settlement() {
     let mut right = serde_json::to_value(&before_callgraph).unwrap();
     left.as_object_mut().unwrap().remove("version");
     right.as_object_mut().unwrap().remove("version");
-    assert_eq!(left, right, "dispatch must not mutate semantic state (version bump only)");
+    assert_eq!(
+        left, right,
+        "dispatch must not mutate semantic state (version bump only)"
+    );
     let after_settlement = reduce(
         after_dispatch,
         FocusaEvent::CallGraphFrameSettled {
@@ -152,7 +155,10 @@ fn lifecycle_chain_proposal_promotion_goal_dispatch_settlement() {
     let mut right = serde_json::to_value(&before_callgraph).unwrap();
     left.as_object_mut().unwrap().remove("version");
     right.as_object_mut().unwrap().remove("version");
-    assert_eq!(left, right, "settlement must not mutate semantic state (version bump only)");
+    assert_eq!(
+        left, right,
+        "settlement must not mutate semantic state (version bump only)"
+    );
 
     // Stage 5 — Settlement honesty: the claim gate evaluates the settled
     // state's evidence class without fabricating evidence.
@@ -165,14 +171,22 @@ fn lifecycle_chain_proposal_promotion_goal_dispatch_settlement() {
         operator_deferred: false,
     };
     let gate = focusa_core::claim_gate::ClaimGateOutput::build(&gate_input);
-    assert_eq!(gate.schema, focusa_core::claim_gate::CLAIM_GATE_OUTPUT_SCHEMA);
+    assert_eq!(
+        gate.schema,
+        focusa_core::claim_gate::CLAIM_GATE_OUTPUT_SCHEMA
+    );
     // No citation of the receipt as evidence → the gate must not allow.
-    assert!(!matches!(gate.decision, focusa_core::claim_gate::GateDecision::Allow));
+    assert!(!matches!(
+        gate.decision,
+        focusa_core::claim_gate::GateDecision::Allow
+    ));
 
     // The chain leaves the workpoint canonical and scoped.
     assert!(after_settlement.workpoint.records[0].canonical);
     assert_eq!(
-        after_settlement.workpoint.records[0].continuity_id.as_deref(),
+        after_settlement.workpoint.records[0]
+            .continuity_id
+            .as_deref(),
         Some("cont-lifecycle")
     );
 }

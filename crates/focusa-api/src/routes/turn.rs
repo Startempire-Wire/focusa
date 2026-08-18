@@ -638,8 +638,10 @@ mod tests {
             event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
             config: cfg.clone(),
             license_guard: {
-                let mut entitlement =
-                    focusa_license::authority::EntitlementSnapshot::unactivated("focusa", "test-node");
+                let mut entitlement = focusa_license::authority::EntitlementSnapshot::unactivated(
+                    "focusa",
+                    "test-node",
+                );
                 entitlement.state = focusa_license::authority::EntitlementState::Active;
                 entitlement.lease_id = Some("test-lease".to_string());
                 entitlement.sequence = Some(1);

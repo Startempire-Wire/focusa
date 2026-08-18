@@ -20,19 +20,19 @@
 use std::path::PathBuf;
 
 use focusa_license::{
-    AccessPosture, BaseProductDecision, CapabilityFamily as Family, CompositeGrant,
-    DecisionReason as Reason, DynamicOperationManifest, EntitlementPolicyPosture as Posture,
-    LicenseTypeCode, LicenseTypeGrant, LicenseTypeVersion, ManifestTrustDecision,
-    OperatorFamilyInheritanceDecision, OperatorSeats, PolicyEntitlementState as State,
-    ProductCode, ResourceRight, SaleStatus, SharedNodeLimit, SPEC172_FOCUSA_OPERATOR_V1_FAMILIES,
-    SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
+    AccessPosture, BaseProductDecision, CanonicalManifestFacts, CapabilityFamily as Family,
+    CompositeGrant, DecisionReason as Reason, DynamicOperationManifest,
+    EntitlementPolicyPosture as Posture, FORBIDDEN_CLIENT_POLICY_FIELDS, LicenseTypeCode,
+    LicenseTypeGrant, LicenseTypeVersion, ManifestTrustDecision, OperatorFamilyInheritanceDecision,
+    OperatorSeats, PolicyEntitlementState as State, ProductCode, REGISTERED_OPERATION_CLASSES,
+    REGISTERED_PRODUCT_OWNERS, REGISTERED_SIDE_EFFECT_CLASSES, ResourceRight,
+    SPEC172_FOCUSA_OPERATOR_V1_FAMILIES, SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
     SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
     SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
-    SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES, classify_operator_family_inheritance,
-    is_focusa_verified_no_license_family_allowed, reduce_entitlement_state,
-    resolve_base_focusa_product, verify_dynamic_operation_manifest, verify_generated_ui_action,
-    CanonicalManifestFacts, FORBIDDEN_CLIENT_POLICY_FIELDS, REGISTERED_OPERATION_CLASSES,
-    REGISTERED_PRODUCT_OWNERS, REGISTERED_SIDE_EFFECT_CLASSES,
+    SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES, SaleStatus, SharedNodeLimit,
+    classify_operator_family_inheritance, is_focusa_verified_no_license_family_allowed,
+    reduce_entitlement_state, resolve_base_focusa_product, verify_dynamic_operation_manifest,
+    verify_generated_ui_action,
 };
 
 const STATES: [State; 7] = [
@@ -126,7 +126,10 @@ fn spec172_runtime_policy_resolver_replays_complete_state_family_matrix() {
     let raw = std::fs::read_to_string(fixture_path()).expect("golden fixture must exist");
     let fixture: serde_json::Value = serde_json::from_str(&raw).expect("golden fixture JSON");
 
-    assert_eq!(fixture["schema"], "focusa.spec152f.entitlement_policy_cases.v1");
+    assert_eq!(
+        fixture["schema"],
+        "focusa.spec152f.entitlement_policy_cases.v1"
+    );
     assert_eq!(fixture["grid_case_count"], 63);
     assert_eq!(fixture["state_count"], 7);
     assert_eq!(fixture["family_count"], 9);
@@ -138,7 +141,9 @@ fn spec172_runtime_policy_resolver_replays_complete_state_family_matrix() {
     for case in cases {
         let state = parse_state(case["state"].as_str().expect("state label"));
         let family = parse_family(case["family"].as_str().expect("family label"));
-        let expected = case["expected_decision"].as_str().expect("expected decision");
+        let expected = case["expected_decision"]
+            .as_str()
+            .expect("expected decision");
         assert!(
             seen.insert((state.label().to_string(), family.label().to_string())),
             "duplicate fixture pair: {state:?}/{family:?}"
@@ -199,7 +204,12 @@ fn spec172_runtime_policy_verified_limited_allowlists_are_exact_and_closed() {
     );
     assert_eq!(
         SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
-        ["automation", "team_remote", "release_proof", "premium_updates"]
+        [
+            "automation",
+            "team_remote",
+            "release_proof",
+            "premium_updates"
+        ]
     );
     // UIAI allowlist is exact.
     assert_eq!(
@@ -229,7 +239,10 @@ fn spec172_runtime_policy_verified_limited_allowlists_are_exact_and_closed() {
     // every blocked family, unknown family, and unknown product is denied.
     for family in SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES {
         let allowed = is_focusa_verified_no_license_family_allowed("focusa", family, 1);
-        assert!(allowed, "allowlisted Focusa family must be allowed: {family}");
+        assert!(
+            allowed,
+            "allowlisted Focusa family must be allowed: {family}"
+        );
     }
     assert!(
         is_focusa_verified_no_license_family_allowed("focusa", "manual_project", 1)
@@ -298,7 +311,9 @@ fn spec172_runtime_policy_verified_limited_allowlists_are_exact_and_closed() {
         resolve_base_focusa_product("focusa", State::VerifiedNoLicense),
         BaseProductDecision::Limited
     );
-    assert!(!resolve_base_focusa_product("focusa", State::VerifiedNoLicense).permits_base_mutations());
+    assert!(
+        !resolve_base_focusa_product("focusa", State::VerifiedNoLicense).permits_base_mutations()
+    );
 }
 
 // ── 3. Operator License Types, Bundle union, future Navigator ──────────────
@@ -311,7 +326,10 @@ fn spec172_runtime_policy_operator_types_and_bundle_are_exact_union() {
     assert!(uiai.validate().is_ok());
 
     assert_eq!(focusa.product, ProductCode::Focusa);
-    assert_eq!(focusa.license_type, LicenseTypeCode::FocusaOperatorLifetimeV1);
+    assert_eq!(
+        focusa.license_type,
+        LicenseTypeCode::FocusaOperatorLifetimeV1
+    );
     assert_eq!(focusa.version, LicenseTypeVersion::V1);
     assert_eq!(focusa.sale_status, SaleStatus::ApprovedNotYetEnabled);
     assert_eq!(focusa.operator_seats, OperatorSeats::One);
@@ -323,8 +341,7 @@ fn spec172_runtime_policy_operator_types_and_bundle_are_exact_union() {
     assert_eq!(uiai.license_type, LicenseTypeCode::UiaiOperatorLifetimeV1);
 
     // Bundle = exact union of the two underlying grants, no third catalog.
-    let bundle =
-        CompositeGrant::operator_bundle_v1([focusa.clone(), uiai.clone()]).expect("bundle union");
+    let bundle = CompositeGrant::operator_bundle_v1([focusa, uiai]).expect("bundle union");
     assert_eq!(bundle.grants(), &[focusa, uiai]);
     assert!(
         CompositeGrant::operator_bundle_v1([
@@ -450,18 +467,15 @@ fn spec172_runtime_policy_refund_revoke_offline_corrupt_preserve_recovery() {
 #[test]
 fn spec172_runtime_policy_unknown_and_future_fail_closed_in_inheritance() {
     // Unknown family in the verified-limited classifier denies.
-    assert!(!is_focusa_verified_no_license_family_allowed("focusa", "unknown_family", 1));
+    assert!(!is_focusa_verified_no_license_family_allowed(
+        "focusa",
+        "unknown_family",
+        1
+    ));
 
     // Operator inheritance: a known family with all 8.2 conditions inherits.
-    let inherited = classify_operator_family_inheritance(
-        "focusa",
-        "automation",
-        true,
-        true,
-        true,
-        true,
-        false,
-    );
+    let inherited =
+        classify_operator_family_inheritance("focusa", "automation", true, true, true, true, false);
     assert_eq!(inherited, OperatorFamilyInheritanceDecision::Inherit);
     assert!(inherited.is_inherited());
 
@@ -475,25 +489,60 @@ fn spec172_runtime_policy_unknown_and_future_fail_closed_in_inheritance() {
         true,
         false,
     );
-    assert_eq!(excluded, OperatorFamilyInheritanceDecision::ExcludedPendingAssignment);
+    assert_eq!(
+        excluded,
+        OperatorFamilyInheritanceDecision::ExcludedPendingAssignment
+    );
     assert!(!excluded.is_inherited());
 
     // Unknown product / future product / unknown owner / unknown side effect
     // all deny.
     assert_eq!(
-        classify_operator_family_inheritance("focusa", "automation", false, true, true, true, false),
+        classify_operator_family_inheritance(
+            "focusa",
+            "automation",
+            false,
+            true,
+            true,
+            true,
+            false
+        ),
         OperatorFamilyInheritanceDecision::DeniedUnknownProduct
     );
     assert_eq!(
-        classify_operator_family_inheritance("future_product", "automation", true, true, true, true, false),
+        classify_operator_family_inheritance(
+            "future_product",
+            "automation",
+            true,
+            true,
+            true,
+            true,
+            false
+        ),
         OperatorFamilyInheritanceDecision::DeniedFutureProduct
     );
     assert_eq!(
-        classify_operator_family_inheritance("focusa", "automation", true, true, false, true, false),
+        classify_operator_family_inheritance(
+            "focusa",
+            "automation",
+            true,
+            true,
+            false,
+            true,
+            false
+        ),
         OperatorFamilyInheritanceDecision::DeniedUnknownOwner
     );
     assert_eq!(
-        classify_operator_family_inheritance("focusa", "automation", true, true, true, false, false),
+        classify_operator_family_inheritance(
+            "focusa",
+            "automation",
+            true,
+            true,
+            true,
+            false,
+            false
+        ),
         OperatorFamilyInheritanceDecision::DeniedUnknownSideEffect
     );
     // Materially new hosted cost denies even for a known family.
@@ -662,15 +711,27 @@ fn spec172_runtime_policy_dynamic_tool_and_generated_ui_fail_closed() {
     // Generated UI: unsigned or unregistered actions fail closed; a signed
     // registered action is trusted and can only render canonical actions.
     assert_eq!(
-        verify_generated_ui_action("focusa.workpoint.checkpoint", &["focusa.workpoint.checkpoint"], false),
+        verify_generated_ui_action(
+            "focusa.workpoint.checkpoint",
+            &["focusa.workpoint.checkpoint"],
+            false
+        ),
         ManifestTrustDecision::QuarantinedUnsigned
     );
     assert_eq!(
-        verify_generated_ui_action("focusa.workpoint.checkpoint", &["focusa.workpoint.checkpoint"], true),
+        verify_generated_ui_action(
+            "focusa.workpoint.checkpoint",
+            &["focusa.workpoint.checkpoint"],
+            true
+        ),
         ManifestTrustDecision::Trusted
     );
     assert_eq!(
-        verify_generated_ui_action("focusa.workpoint.checkpoint", &["focusa.mission.record"], true),
+        verify_generated_ui_action(
+            "focusa.workpoint.checkpoint",
+            &["focusa.mission.record"],
+            true
+        ),
         ManifestTrustDecision::QuarantinedGeneratedUiGrantExpansion
     );
 }
@@ -699,12 +760,8 @@ fn spec172_runtime_policy_node_seat_and_resource_limits_are_authority_only() {
     // caller cannot supply or select more than one seat, more than three
     // nodes, or any hosted resource right.
     assert!(serde_json::from_str::<OperatorSeats>("\"two\"").is_err());
-    assert!(
-        serde_json::from_str::<SharedNodeLimit>("\"operator_shared_v1_four\"").is_err()
-    );
-    assert!(
-        serde_json::from_str::<ResourceRight>("\"hosted_included\"").is_err()
-    );
+    assert!(serde_json::from_str::<SharedNodeLimit>("\"operator_shared_v1_four\"").is_err());
+    assert!(serde_json::from_str::<ResourceRight>("\"hosted_included\"").is_err());
 
     // The exact authority-owned constant is required: any structurally
     // different grant fails canonical validation (e.g., a Focusa code claimed

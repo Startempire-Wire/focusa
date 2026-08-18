@@ -20,9 +20,7 @@ use focusa_core::entitlement_execution_guard::{
 };
 use focusa_core::guarded_mutation::guard_value_mutation;
 use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
-use focusa_license::{
-    CapabilityFamily as Family, LicenseGuard, OperationClass, RecoveryAllowance,
-};
+use focusa_license::{CapabilityFamily as Family, LicenseGuard, OperationClass, RecoveryAllowance};
 
 fn base_mutation_policy() -> EntitlementExecutionPolicy {
     EntitlementExecutionPolicy::new(
@@ -68,9 +66,8 @@ fn spec172_core_api_bypass_stale_client_denied_before_handler() {
     // agree for non-HTTP direct callers.
     for (label, snapshot) in stale_snapshots() {
         let guard = LicenseGuard::from_entitlement(snapshot);
-        let denial =
-            route_entitlement_denial(&guard, &Method::POST, "/v1/workpoint/checkpoint")
-                .unwrap_or_else(|| panic!("stale client ({label}) must be denied by the API gate"));
+        let denial = route_entitlement_denial(&guard, &Method::POST, "/v1/workpoint/checkpoint")
+            .unwrap_or_else(|| panic!("stale client ({label}) must be denied by the API gate"));
         assert_eq!(
             denial.code, "ENTITLEMENT_BASE_REQUIRED",
             "stale client ({label}) must emit the base-required code"
@@ -248,9 +245,21 @@ fn spec172_core_api_bypass_recovery_and_read_remain_reachable_when_blocked() {
 
         let mut reachable_in_state = 0u32;
         for (family, operation_class, recovery_allowance) in [
-            (Family::AccountRecovery, OperationClass::Recovery, RecoveryAllowance::AccountRecovery),
-            (Family::CustomerDataExport, OperationClass::Read, RecoveryAllowance::CustomerDataExport),
-            (Family::ReadProjection, OperationClass::Read, RecoveryAllowance::ReadProjection),
+            (
+                Family::AccountRecovery,
+                OperationClass::Recovery,
+                RecoveryAllowance::AccountRecovery,
+            ),
+            (
+                Family::CustomerDataExport,
+                OperationClass::Read,
+                RecoveryAllowance::CustomerDataExport,
+            ),
+            (
+                Family::ReadProjection,
+                OperationClass::Read,
+                RecoveryAllowance::ReadProjection,
+            ),
         ] {
             if focusa_license::reduce_entitlement_state(*policy_state, family, None).posture()
                 == focusa_license::EntitlementPolicyPosture::Deny
@@ -266,7 +275,8 @@ fn spec172_core_api_bypass_recovery_and_read_remain_reachable_when_blocked() {
                 recovery_allowance,
             );
             assert!(
-                guard_value_mutation(guard, &policy, EntitlementExecutionContext::default()).is_ok(),
+                guard_value_mutation(guard, &policy, EntitlementExecutionContext::default())
+                    .is_ok(),
                 "state {state_label}: {family:?} must stay reachable through the chokepoint"
             );
             reachable_in_state += 1;

@@ -8,7 +8,7 @@
 //! the freshness/revocation state machine. Transport probes and writer-lease
 //! wiring land in slices 2+.
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 
@@ -93,16 +93,13 @@ impl RemoteWorkspaceBinding {
     /// successful probe leaves "verified" for "stale".
     pub fn is_fresh(&self, freshness_window_secs: i64) -> bool {
         match (&self.state.status, &self.state.freshness) {
-            (BindingStatus::Verified, Some(stamp)) => {
-                chrono::DateTime::parse_from_rfc3339(stamp)
-                    .ok()
-                    .map(|parsed| {
-                        (chrono::Utc::now() - parsed.with_timezone(&chrono::Utc))
-                            .num_seconds()
-                            < freshness_window_secs
-                    })
-                    .unwrap_or(false)
-            }
+            (BindingStatus::Verified, Some(stamp)) => chrono::DateTime::parse_from_rfc3339(stamp)
+                .ok()
+                .map(|parsed| {
+                    (chrono::Utc::now() - parsed.with_timezone(&chrono::Utc)).num_seconds()
+                        < freshness_window_secs
+                })
+                .unwrap_or(false),
             _ => false,
         }
     }
@@ -145,14 +142,24 @@ type RowParts = (
 );
 
 fn row_to_binding(parts: RowParts) -> rusqlite::Result<RemoteWorkspaceBinding> {
-    let (binding_id, project_id, repo_remote, continuity_id, status, binding_json, _created_at, updated_at) =
-        parts;
-    let mut binding: RemoteWorkspaceBinding = serde_json::from_str(&binding_json)
-        .map_err(|error| rusqlite::Error::FromSqlConversionFailure(
-            5,
-            rusqlite::types::Type::Text,
-            Box::new(error),
-        ))?;
+    let (
+        binding_id,
+        project_id,
+        repo_remote,
+        continuity_id,
+        status,
+        binding_json,
+        _created_at,
+        updated_at,
+    ) = parts;
+    let mut binding: RemoteWorkspaceBinding =
+        serde_json::from_str(&binding_json).map_err(|error| {
+            rusqlite::Error::FromSqlConversionFailure(
+                5,
+                rusqlite::types::Type::Text,
+                Box::new(error),
+            )
+        })?;
     // Storage columns are the source of truth for identity + status; the
     // JSON carries the full record.
     binding.schema = BINDING_SCHEMA.to_string();
@@ -168,7 +175,10 @@ fn row_to_binding(parts: RowParts) -> rusqlite::Result<RemoteWorkspaceBinding> {
 /// Upsert a binding. Returns `(created, binding)`.
 /// Invariant 1: once verified, identity fields are immutable — a conflicting
 /// upsert for an existing verified binding is refused.
-pub fn upsert_binding(conn: &Connection, binding: &RemoteWorkspaceBinding) -> Result<(bool, RemoteWorkspaceBinding)> {
+pub fn upsert_binding(
+    conn: &Connection,
+    binding: &RemoteWorkspaceBinding,
+) -> Result<(bool, RemoteWorkspaceBinding)> {
     ensure_schema(conn)?;
     if binding.schema != BINDING_SCHEMA {
         return Err(anyhow!("binding schema must be {BINDING_SCHEMA}"));
@@ -224,7 +234,10 @@ pub fn upsert_binding(conn: &Connection, binding: &RemoteWorkspaceBinding) -> Re
 }
 
 /// List bindings by status.
-pub fn list_bindings(conn: &Connection, status: Option<BindingStatus>) -> Result<Vec<RemoteWorkspaceBinding>> {
+pub fn list_bindings(
+    conn: &Connection,
+    status: Option<BindingStatus>,
+) -> Result<Vec<RemoteWorkspaceBinding>> {
     ensure_schema(conn)?;
     let (sql, params): (String, Vec<String>) = match status {
         Some(status) => (
@@ -242,8 +255,14 @@ pub fn list_bindings(conn: &Connection, status: Option<BindingStatus>) -> Result
     let rows = statement
         .query_map(rusqlite::params_from_iter(params), |row| {
             row_to_binding((
-                row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?,
-                row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?,
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+                row.get(5)?,
+                row.get(6)?,
+                row.get(7)?,
             ))
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -267,8 +286,14 @@ pub fn resolve_binding_for_root(
     let rows = statement
         .query_map([], |row| {
             row_to_binding((
-                row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?,
-                row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?,
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+                row.get(5)?,
+                row.get(6)?,
+                row.get(7)?,
             ))
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -325,11 +350,17 @@ pub fn probe_transport(transport: &Transport) -> ProbeOutcome {
                 host_key_fingerprint: None,
                 verified_at: None,
                 error: Some(format!("create keyscan temp file: {error}")),
-            }
+            };
         }
     };
     let mut child = match Command::new("ssh-keyscan")
-        .args(["-t", "ed25519,rsa", "-p", &transport.port.to_string(), &transport.host])
+        .args([
+            "-t",
+            "ed25519,rsa",
+            "-p",
+            &transport.port.to_string(),
+            &transport.host,
+        ])
         .stdin(Stdio::null())
         .stdout(Stdio::from(output_file))
         .stderr(Stdio::null())
@@ -423,7 +454,11 @@ mod tests {
     #[test]
     fn upsert_creates_and_lists() {
         let conn = conn();
-        let (created, _) = upsert_binding(&conn, &binding("b1", "ptm", "git@github.com:planmarr/plan-the-marriage.git")).unwrap();
+        let (created, _) = upsert_binding(
+            &conn,
+            &binding("b1", "ptm", "git@github.com:planmarr/plan-the-marriage.git"),
+        )
+        .unwrap();
         assert!(created);
         let all = list_bindings(&conn, None).unwrap();
         assert_eq!(all.len(), 1);

@@ -10,9 +10,7 @@ use std::path::{Component, Path, PathBuf};
 use thiserror::Error;
 
 use crate::license::{
-    evaluate_entitlement_execution,
-    EntitlementExecutionContext,
-    EntitlementExecutionPolicy,
+    EntitlementExecutionContext, EntitlementExecutionPolicy, evaluate_entitlement_execution,
 };
 
 const ENTITLEMENT_ROUTE_UNCLASSIFIED: &str = "ENTITLEMENT_ROUTE_UNCLASSIFIED";

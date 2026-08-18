@@ -6,9 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::workset_ledger::{
-    replay_projection, workset_digest, WorksetDefinition, WorksetEvent,
-};
+use crate::workset_ledger::{WorksetDefinition, WorksetEvent, replay_projection, workset_digest};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FreshnessStamp {
@@ -44,10 +42,7 @@ pub fn canonical_stamp(
 
 /// Compare a consumer's held stamp against the canonical stamp. Fresh
 /// only when revision, event count, and digest all agree.
-pub fn check_freshness(
-    consumer: &FreshnessStamp,
-    canonical: &FreshnessStamp,
-) -> FreshnessVerdict {
+pub fn check_freshness(consumer: &FreshnessStamp, canonical: &FreshnessStamp) -> FreshnessVerdict {
     let mut divergences = Vec::new();
     if consumer.revision != canonical.revision {
         divergences.push(format!(
@@ -85,9 +80,7 @@ pub fn derive_definition_digest(definition: &WorksetDefinition) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::workset_ledger::{
-        CompletionContract, RequirementDisposition, WorksetScope,
-    };
+    use crate::workset_ledger::{CompletionContract, RequirementDisposition, WorksetScope};
 
     fn definition() -> WorksetDefinition {
         WorksetDefinition {
@@ -141,7 +134,12 @@ mod tests {
         };
         let verdict = check_freshness(&consumer, &canonical);
         assert!(!verdict.fresh);
-        assert!(verdict.divergences.iter().any(|d| d.contains("event_count")));
+        assert!(
+            verdict
+                .divergences
+                .iter()
+                .any(|d| d.contains("event_count"))
+        );
         assert!(verdict.divergences.iter().any(|d| d == "digest diverged"));
     }
 

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 use crate::workset_ledger::{
-    replay_projection, RequirementDisposition, WorksetDefinition, WorksetEvent,
+    RequirementDisposition, WorksetDefinition, WorksetEvent, replay_projection,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -71,9 +71,7 @@ pub fn reconcile_provider(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::workset_ledger::{
-        CompletionContract, WorksetScope,
-    };
+    use crate::workset_ledger::{CompletionContract, WorksetScope};
 
     fn definition() -> WorksetDefinition {
         WorksetDefinition {

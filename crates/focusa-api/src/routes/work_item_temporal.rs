@@ -71,7 +71,9 @@ fn error(status: StatusCode, code: &str, message: impl Into<String>) -> ApiError
 }
 
 fn scope_key(project_root: &str, continuity_id: &str) -> String {
-    hex::encode(Sha256::digest(format!("{project_root}\0{continuity_id}").as_bytes()))
+    hex::encode(Sha256::digest(
+        format!("{project_root}\0{continuity_id}").as_bytes(),
+    ))
 }
 
 fn store_path(state: &AppState, project_root: &str, continuity_id: &str) -> PathBuf {
@@ -80,7 +82,11 @@ fn store_path(state: &AppState, project_root: &str, continuity_id: &str) -> Path
         .join(format!("{}.json", scope_key(project_root, continuity_id)))
 }
 
-fn read_items(state: &AppState, project_root: &str, continuity_id: &str) -> Result<Vec<WorkItem>, ApiError> {
+fn read_items(
+    state: &AppState,
+    project_root: &str,
+    continuity_id: &str,
+) -> Result<Vec<WorkItem>, ApiError> {
     let path = store_path(state, project_root, continuity_id);
     if !path.exists() {
         return Ok(Vec::new());
@@ -92,10 +98,21 @@ fn read_items(state: &AppState, project_root: &str, continuity_id: &str) -> Resu
             e.to_string(),
         )
     })?;
-    serde_json::from_slice(&body).map_err(|e| error(StatusCode::CONFLICT, "work_item_store_invalid", e.to_string()))
+    serde_json::from_slice(&body).map_err(|e| {
+        error(
+            StatusCode::CONFLICT,
+            "work_item_store_invalid",
+            e.to_string(),
+        )
+    })
 }
 
-fn write_items(state: &AppState, project_root: &str, continuity_id: &str, items: &[WorkItem]) -> Result<(), ApiError> {
+fn write_items(
+    state: &AppState,
+    project_root: &str,
+    continuity_id: &str,
+    items: &[WorkItem],
+) -> Result<(), ApiError> {
     let path = store_path(state, project_root, continuity_id);
     let parent = path.parent().ok_or_else(|| {
         error(
@@ -164,17 +181,23 @@ fn require_mutation(request: &Mutation) -> Result<&str, ApiError> {
 }
 
 fn item_index(items: &[WorkItem], request: &Mutation) -> Result<usize, ApiError> {
-    let id = request
-        .item_id
-        .as_deref()
-        .ok_or_else(|| error(StatusCode::BAD_REQUEST, "item_id_required", "item_id is required"))?;
-    items.iter().position(|item| item.item_id == id).ok_or_else(|| {
+    let id = request.item_id.as_deref().ok_or_else(|| {
         error(
-            StatusCode::NOT_FOUND,
-            "work_item_not_found",
-            "item does not exist in this exact scope",
+            StatusCode::BAD_REQUEST,
+            "item_id_required",
+            "item_id is required",
         )
-    })
+    })?;
+    items
+        .iter()
+        .position(|item| item.item_id == id)
+        .ok_or_else(|| {
+            error(
+                StatusCode::NOT_FOUND,
+                "work_item_not_found",
+                "item does not exist in this exact scope",
+            )
+        })
 }
 
 fn completed(schema: &str, item: &WorkItem) -> Json<Value> {
@@ -187,7 +210,13 @@ async fn create(State(state): State<Arc<AppState>>, Json(request): Json<Mutation
         .title
         .as_deref()
         .filter(|v| !v.trim().is_empty())
-        .ok_or_else(|| error(StatusCode::BAD_REQUEST, "title_required", "title is required"))?;
+        .ok_or_else(|| {
+            error(
+                StatusCode::BAD_REQUEST,
+                "title_required",
+                "title is required",
+            )
+        })?;
     let mut items = read_items(&state, &request.project_root, &request.continuity_id)?;
     if let Some(item) = items
         .iter()
@@ -196,7 +225,9 @@ async fn create(State(state): State<Arc<AppState>>, Json(request): Json<Mutation
         return Ok(completed("focusa.workpoint_item_create.v1", item));
     }
     let item = WorkItem {
-        item_id: request.item_id.unwrap_or_else(|| format!("item:{}", Uuid::now_v7())),
+        item_id: request
+            .item_id
+            .unwrap_or_else(|| format!("item:{}", Uuid::now_v7())),
         project_root: request.project_root.clone(),
         continuity_id: request.continuity_id.clone(),
         title: title.to_string(),
@@ -212,7 +243,12 @@ async fn create(State(state): State<Arc<AppState>>, Json(request): Json<Mutation
         idempotency_keys: vec![key],
     };
     items.push(item.clone());
-    write_items(&state, &request.project_root, &request.continuity_id, &items)?;
+    write_items(
+        &state,
+        &request.project_root,
+        &request.continuity_id,
+        &items,
+    )?;
     Ok(completed("focusa.workpoint_item_create.v1", &item))
 }
 
@@ -234,7 +270,11 @@ async fn transition(
     let key = require_mutation(&request)?.to_string();
     let mut items = read_items(state, &request.project_root, &request.continuity_id)?;
     let index = item_index(&items, &request)?;
-    if items[index].idempotency_keys.iter().any(|seen| seen == &key) {
+    if items[index]
+        .idempotency_keys
+        .iter()
+        .any(|seen| seen == &key)
+    {
         return Ok(completed(schema, &items[index]));
     }
     if request.expected_revision != Some(items[index].revision) {
@@ -320,7 +360,10 @@ async fn complete(State(state): State<Arc<AppState>>, Json(request): Json<Mutati
     .await
 }
 
-async fn closure_check(State(state): State<Arc<AppState>>, Json(request): Json<Mutation>) -> ApiResult {
+async fn closure_check(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<Mutation>,
+) -> ApiResult {
     let items = read_items(&state, &request.project_root, &request.continuity_id)?;
     let item = &items[item_index(&items, &request)?];
     let ready = item.status == "completed" && !item.evidence_refs.is_empty();
@@ -329,7 +372,10 @@ async fn closure_check(State(state): State<Arc<AppState>>, Json(request): Json<M
     ))
 }
 
-async fn timing_status(State(state): State<Arc<AppState>>, Query(scope): Query<ScopeQuery>) -> ApiResult {
+async fn timing_status(
+    State(state): State<Arc<AppState>>,
+    Query(scope): Query<ScopeQuery>,
+) -> ApiResult {
     let items = read_items(&state, &scope.project_root, &scope.continuity_id)?;
     let now = Utc::now();
     let rows = items.iter().map(|item| json!({
@@ -342,7 +388,10 @@ async fn timing_status(State(state): State<Arc<AppState>>, Query(scope): Query<S
     ))
 }
 
-async fn velocity(State(state): State<Arc<AppState>>, Query(scope): Query<ScopeQuery>) -> ApiResult {
+async fn velocity(
+    State(state): State<Arc<AppState>>,
+    Query(scope): Query<ScopeQuery>,
+) -> ApiResult {
     let items = read_items(&state, &scope.project_root, &scope.continuity_id)?;
     let durations = items
         .iter()
@@ -355,7 +404,8 @@ async fn velocity(State(state): State<Arc<AppState>>, Query(scope): Query<ScopeQ
             )
         })
         .collect::<Vec<_>>();
-    let average_ms = (!durations.is_empty()).then(|| durations.iter().sum::<u64>() / durations.len() as u64);
+    let average_ms =
+        (!durations.is_empty()).then(|| durations.iter().sum::<u64>() / durations.len() as u64);
     Ok(Json(
         json!({"schema":"focusa.work_velocity.v1","status":"completed","canonical":true,"completed_count":durations.len(),"average_completion_ms":average_ms,"sample_count":durations.len()}),
     ))

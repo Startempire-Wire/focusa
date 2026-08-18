@@ -5,13 +5,11 @@
 
 use chrono::{Duration, Utc};
 use focusa_license::{
-    authority::{EntitlementSnapshot, EntitlementState},
-    premium_family_feature_ids, resolve_premium_family,
-    reduce_entitlement_state,
-    AUTOMATION_PREMIUM_FEATURE_IDS,
-    BaseProductDecision, CapabilityFamily as Family, DecisionReason as Reason,
-    EntitlementPolicyPosture as Posture, PolicyEntitlementState as State,
+    AUTOMATION_PREMIUM_FEATURE_IDS, BaseProductDecision, CapabilityFamily as Family,
+    DecisionReason as Reason, EntitlementPolicyPosture as Posture, PolicyEntitlementState as State,
     PremiumFamilyDecision, PremiumFamilyDenial,
+    authority::{EntitlementSnapshot, EntitlementState},
+    premium_family_feature_ids, reduce_entitlement_state, resolve_premium_family,
 };
 
 // ── Automation family map ──────────────────────────────────────────────────
@@ -19,7 +17,11 @@ use focusa_license::{
 #[test]
 fn spec152f_automation_entitlement_automation_family_has_exact_two_premium_features() {
     let features = AUTOMATION_PREMIUM_FEATURE_IDS;
-    assert_eq!(features.len(), 2, "automation must have exactly two premium features");
+    assert_eq!(
+        features.len(),
+        2,
+        "automation must have exactly two premium features"
+    );
     assert!(features.contains(&"focusa.agent.parallelism"));
     assert!(features.contains(&"focusa.agent.silent_sessions"));
 }
@@ -64,29 +66,49 @@ fn spec152f_automation_entitlement_automation_is_optional_premium_family() {
 #[test]
 fn spec152f_automation_entitlement_automation_denied_for_verified_no_license() {
     let decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::Automation, None);
-    assert_eq!(decision.posture(), Posture::Deny, "automation must be denied for verified-no-license");
+    assert_eq!(
+        decision.posture(),
+        Posture::Deny,
+        "automation must be denied for verified-no-license"
+    );
     assert_eq!(decision.reason(), Reason::Deny);
 }
 
 #[test]
 fn spec152f_automation_entitlement_automation_requires_feature_for_active_paid() {
     let decision = reduce_entitlement_state(State::ActivePaid, Family::Automation, None);
-    assert_eq!(decision.posture(), Posture::Feature, "automation must require feature for active paid");
+    assert_eq!(
+        decision.posture(),
+        Posture::Feature,
+        "automation must require feature for active paid"
+    );
     assert_eq!(decision.reason(), Reason::RequireFeature);
 }
 
 #[test]
 fn spec152f_automation_entitlement_automation_requires_cached_feature_for_offline_grace() {
     let decision = reduce_entitlement_state(State::OfflineGrace, Family::Automation, None);
-    assert_eq!(decision.posture(), Posture::Feature, "automation must require cached feature for offline grace");
+    assert_eq!(
+        decision.posture(),
+        Posture::Feature,
+        "automation must require cached feature for offline grace"
+    );
     assert_eq!(decision.reason(), Reason::RequireCachedFeature);
 }
 
 #[test]
 fn spec152f_automation_entitlement_automation_denied_for_expired_and_revoked() {
-    for state in [State::Expired, State::RefundedOrRevoked, State::MissingOrCorrupt] {
+    for state in [
+        State::Expired,
+        State::RefundedOrRevoked,
+        State::MissingOrCorrupt,
+    ] {
         let decision = reduce_entitlement_state(state, Family::Automation, None);
-        assert_eq!(decision.posture(), Posture::Deny, "automation must be denied for {state:?}");
+        assert_eq!(
+            decision.posture(),
+            Posture::Deny,
+            "automation must be denied for {state:?}"
+        );
         assert_eq!(decision.reason(), Reason::Deny);
     }
 }
@@ -111,11 +133,13 @@ fn spec152f_automation_entitlement_base_focusa_is_not_premium() {
 
     // Base Focusa operations are allowed (limited) for verified-no-license,
     // while automation is denied for the same state.
-    let base_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::BaseFocusa, None);
+    let base_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::BaseFocusa, None);
     assert_eq!(base_decision.posture(), Posture::Allow);
     assert_eq!(base_decision.reason(), Reason::AllowVerifiedLimited);
 
-    let auto_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::Automation, None);
+    let auto_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::Automation, None);
     assert_eq!(auto_decision.posture(), Posture::Deny);
 }
 
@@ -136,7 +160,9 @@ fn active_snapshot() -> EntitlementSnapshot {
 #[test]
 fn spec152f_automation_entitlement_silent_sessions_requires_automation_premium_feature() {
     let mut snapshot = active_snapshot();
-    snapshot.features.insert("focusa.agent.silent_sessions".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.silent_sessions".to_string(), true);
 
     let decision = resolve_premium_family(
         &snapshot,
@@ -144,15 +170,23 @@ fn spec152f_automation_entitlement_silent_sessions_requires_automation_premium_f
         "focusa.agent.silent_sessions",
         Utc::now(),
     );
-    assert!(decision.is_feature(), "silent_sessions must resolve as premium feature");
-    assert_eq!(decision.required_feature().unwrap().as_str(), "focusa.agent.silent_sessions");
+    assert!(
+        decision.is_feature(),
+        "silent_sessions must resolve as premium feature"
+    );
+    assert_eq!(
+        decision.required_feature().unwrap().as_str(),
+        "focusa.agent.silent_sessions"
+    );
     assert_eq!(decision.lease_sequence(), Some(7));
 }
 
 #[test]
 fn spec152f_automation_entitlement_parallelism_requires_automation_premium_feature() {
     let mut snapshot = active_snapshot();
-    snapshot.features.insert("focusa.agent.parallelism".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.parallelism".to_string(), true);
 
     let decision = resolve_premium_family(
         &snapshot,
@@ -160,8 +194,14 @@ fn spec152f_automation_entitlement_parallelism_requires_automation_premium_featu
         "focusa.agent.parallelism",
         Utc::now(),
     );
-    assert!(decision.is_feature(), "parallelism must resolve as premium feature");
-    assert_eq!(decision.required_feature().unwrap().as_str(), "focusa.agent.parallelism");
+    assert!(
+        decision.is_feature(),
+        "parallelism must resolve as premium feature"
+    );
+    assert_eq!(
+        decision.required_feature().unwrap().as_str(),
+        "focusa.agent.parallelism"
+    );
     assert_eq!(decision.lease_sequence(), Some(7));
 }
 
@@ -203,7 +243,9 @@ fn spec152f_automation_entitlement_automation_requires_base_product_first() {
     // Wrong product — base gate fails before feature check
     let mut snapshot = active_snapshot();
     snapshot.product = "uiai-engine".to_string();
-    snapshot.features.insert("focusa.agent.silent_sessions".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.silent_sessions".to_string(), true);
 
     let decision = resolve_premium_family(
         &snapshot,
@@ -222,7 +264,9 @@ fn spec152f_automation_entitlement_automation_requires_base_product_first() {
 #[test]
 fn spec152f_automation_entitlement_automation_requires_non_zero_lease_sequence() {
     let mut snapshot = active_snapshot();
-    snapshot.features.insert("focusa.agent.silent_sessions".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.silent_sessions".to_string(), true);
     snapshot.sequence = None;
 
     let decision = resolve_premium_family(
@@ -240,7 +284,9 @@ fn spec152f_automation_entitlement_automation_requires_non_zero_lease_sequence()
 #[test]
 fn spec152f_automation_entitlement_automation_requires_lease_binding() {
     let mut snapshot = active_snapshot();
-    snapshot.features.insert("focusa.agent.silent_sessions".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.silent_sessions".to_string(), true);
     snapshot.lease_digest = None;
 
     let decision = resolve_premium_family(
@@ -259,7 +305,9 @@ fn spec152f_automation_entitlement_automation_requires_lease_binding() {
 fn spec152f_automation_entitlement_cross_family_feature_is_rejected() {
     let mut snapshot = active_snapshot();
     // Grant a feature from a different family
-    snapshot.features.insert("focusa.release.proof".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.release.proof".to_string(), true);
 
     let decision = resolve_premium_family(
         &snapshot,
@@ -298,7 +346,9 @@ fn spec152f_automation_entitlement_offline_grace_within_window_allows_automation
     let mut snapshot = active_snapshot();
     snapshot.state = EntitlementState::OfflineGrace;
     snapshot.offline_grace_until = Some(now + Duration::minutes(5));
-    snapshot.features.insert("focusa.agent.silent_sessions".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.silent_sessions".to_string(), true);
 
     let decision = resolve_premium_family(
         &snapshot,
@@ -306,7 +356,10 @@ fn spec152f_automation_entitlement_offline_grace_within_window_allows_automation
         "focusa.agent.silent_sessions",
         now,
     );
-    assert!(decision.is_feature(), "offline grace within window must allow automation");
+    assert!(
+        decision.is_feature(),
+        "offline grace within window must allow automation"
+    );
     assert!(matches!(
         decision,
         PremiumFamilyDecision::Feature {
@@ -322,7 +375,9 @@ fn spec152f_automation_entitlement_offline_grace_expired_denies_automation() {
     let mut snapshot = active_snapshot();
     snapshot.state = EntitlementState::OfflineGrace;
     snapshot.offline_grace_until = Some(now - Duration::minutes(1)); // expired
-    snapshot.features.insert("focusa.agent.silent_sessions".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.silent_sessions".to_string(), true);
 
     let decision = resolve_premium_family(
         &snapshot,
@@ -341,7 +396,9 @@ fn spec152f_automation_entitlement_active_lease_expired_denies_automation() {
     let now = Utc::now();
     let mut snapshot = active_snapshot();
     snapshot.expires_at = Some(now - Duration::minutes(1)); // expired
-    snapshot.features.insert("focusa.agent.silent_sessions".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.silent_sessions".to_string(), true);
 
     let decision = resolve_premium_family(
         &snapshot,
@@ -383,7 +440,8 @@ fn spec152f_automation_entitlement_interactive_work_loop_is_base_not_automation(
     assert_eq!(decision.reason(), Reason::AllowVerifiedLimited);
 
     // Same state denies automation.
-    let auto_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::Automation, None);
+    let auto_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::Automation, None);
     assert_eq!(auto_decision.posture(), Posture::Deny);
 }
 
@@ -426,8 +484,7 @@ fn spec152f_automation_entitlement_automation_feature_ids_are_qualified_focusa_i
 fn spec152f_automation_entitlement_automation_features_are_distinct() {
     // The two automation features must be distinct
     assert_ne!(
-        AUTOMATION_PREMIUM_FEATURE_IDS[0],
-        AUTOMATION_PREMIUM_FEATURE_IDS[1],
+        AUTOMATION_PREMIUM_FEATURE_IDS[0], AUTOMATION_PREMIUM_FEATURE_IDS[1],
         "automation premium features must be distinct"
     );
 }
@@ -475,8 +532,16 @@ fn spec152f_automation_entitlement_automation_limits_are_separate_from_base_limi
     // Each automation feature maps to exactly one limit bucket via the
     // route entitlement table and daemon dispatch policy.
     // The feature identifiers themselves encode the limit domain:
-    assert!(AUTOMATION_PREMIUM_FEATURE_IDS.iter().any(|f| f.contains("silent_sessions")));
-    assert!(AUTOMATION_PREMIUM_FEATURE_IDS.iter().any(|f| f.contains("parallelism")));
+    assert!(
+        AUTOMATION_PREMIUM_FEATURE_IDS
+            .iter()
+            .any(|f| f.contains("silent_sessions"))
+    );
+    assert!(
+        AUTOMATION_PREMIUM_FEATURE_IDS
+            .iter()
+            .any(|f| f.contains("parallelism"))
+    );
 }
 
 // ── Revalidation at dispatch ───────────────────────────────────────────────
@@ -490,9 +555,14 @@ fn spec152f_automation_entitlement_automation_requires_revalidation_at_dispatch(
 
     // Active paid with automation feature: premium family resolves
     let mut snapshot = active_snapshot();
-    snapshot.features.insert("focusa.agent.silent_sessions".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.silent_sessions".to_string(), true);
     let decision = resolve_premium_family(
-        &snapshot, Family::Automation, "focusa.agent.silent_sessions", Utc::now(),
+        &snapshot,
+        Family::Automation,
+        "focusa.agent.silent_sessions",
+        Utc::now(),
     );
     assert!(decision.is_feature());
 
@@ -500,7 +570,10 @@ fn spec152f_automation_entitlement_automation_requires_revalidation_at_dispatch(
     let mut recovery = snapshot.clone();
     recovery.state = EntitlementState::RecoveryOnly;
     let decision = resolve_premium_family(
-        &recovery, Family::Automation, "focusa.agent.silent_sessions", Utc::now(),
+        &recovery,
+        Family::Automation,
+        "focusa.agent.silent_sessions",
+        Utc::now(),
     );
     assert!(matches!(
         decision.denial().unwrap(),
@@ -522,9 +595,7 @@ fn spec152f_automation_entitlement_automation_limits_reserved_before_spawn() {
     snapshot
         .features
         .insert("focusa.agent.silent_sessions".to_string(), true);
-    snapshot
-        .limits
-        .insert("silent_session_runs".to_string(), 4);
+    snapshot.limits.insert("silent_session_runs".to_string(), 4);
 
     let decision = resolve_premium_family(
         &snapshot,
@@ -561,7 +632,9 @@ fn spec152f_automation_entitlement_caller_cannot_control_automation_grants() {
 
     let mut snapshot = active_snapshot();
     // Grant only the silent_sessions feature
-    snapshot.features.insert("focusa.agent.silent_sessions".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.silent_sessions".to_string(), true);
 
     // Requesting a different feature that is not granted fails
     let decision = resolve_premium_family(
@@ -593,8 +666,7 @@ fn spec152f_automation_entitlement_caller_cannot_control_automation_grants() {
 #[test]
 fn spec152f_automation_entitlement_all_premium_families_are_distinct() {
     use focusa_license::{
-        PREMIUM_UPDATES_PREMIUM_FEATURE_IDS,
-        RELEASE_PROOF_PREMIUM_FEATURE_IDS,
+        PREMIUM_UPDATES_PREMIUM_FEATURE_IDS, RELEASE_PROOF_PREMIUM_FEATURE_IDS,
         TEAM_REMOTE_PREMIUM_FEATURE_IDS,
     };
 
@@ -604,8 +676,10 @@ fn spec152f_automation_entitlement_all_premium_families_are_distinct() {
         TEAM_REMOTE_PREMIUM_FEATURE_IDS.iter().copied().collect();
     let all_release: std::collections::HashSet<&str> =
         RELEASE_PROOF_PREMIUM_FEATURE_IDS.iter().copied().collect();
-    let all_updates: std::collections::HashSet<&str> =
-        PREMIUM_UPDATES_PREMIUM_FEATURE_IDS.iter().copied().collect();
+    let all_updates: std::collections::HashSet<&str> = PREMIUM_UPDATES_PREMIUM_FEATURE_IDS
+        .iter()
+        .copied()
+        .collect();
 
     // No feature belongs to more than one premium family
     assert!(all_automation.is_disjoint(&all_team));

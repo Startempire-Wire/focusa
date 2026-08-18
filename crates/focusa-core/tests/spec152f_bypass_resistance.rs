@@ -20,21 +20,21 @@ use std::path::PathBuf;
 
 use chrono::{Duration, Utc};
 use focusa_core::license::{
-    evaluate_entitlement_execution, EntitlementExecutionContext, EntitlementExecutionPolicy,
-    EntitlementExecutionFailure,
+    EntitlementExecutionContext, EntitlementExecutionFailure, EntitlementExecutionPolicy,
+    evaluate_entitlement_execution,
 };
 use focusa_core::silent_session::SilentSessionId;
 use focusa_core::silent_session_resources::{
-    AdmissionDenial, ResourceAdmissionDecision, RESOURCE_ADMISSION_SCHEMA,
+    AdmissionDenial, RESOURCE_ADMISSION_SCHEMA, ResourceAdmissionDecision,
 };
 use focusa_core::silent_session_scheduler::{
+    DispatchDeferralReason, SilentSessionDispatchCandidate,
+    SilentSessionDispatchEntitlementContext, SilentSessionPriority,
     select_silent_session_dispatch_with_default_entitlement,
-    select_silent_session_dispatch_with_entitlement, DispatchDeferralReason,
-    SilentSessionDispatchCandidate, SilentSessionDispatchEntitlementContext,
-    SilentSessionPriority,
+    select_silent_session_dispatch_with_entitlement,
 };
 use focusa_core::silent_session_writer::{
-    WriterAdmissionDecision, WriterAdmissionDenial, WRITER_ADMISSION_SCHEMA,
+    WRITER_ADMISSION_SCHEMA, WriterAdmissionDecision, WriterAdmissionDenial,
 };
 use focusa_core::work_item::{WorkItem, WorkItemProvider, WorkItemQuery, WorkItemStatus};
 use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
@@ -251,9 +251,7 @@ fn spec152f_bypass_resistance_worker_premium_dispatch_stops_when_offline_grace_c
         DispatchDeferralReason::EntitlementDenied
     );
     assert!(
-        expired.deferred[0]
-            .detail
-            .contains("ENTITLEMENT_REQUIRED"),
+        expired.deferred[0].detail.contains("ENTITLEMENT_REQUIRED"),
         "closed offline grace defers premium dispatch with a typed entitlement denial"
     );
 }
@@ -390,12 +388,9 @@ fn spec152f_bypass_resistance_recovery_surfaces_survive_outage_and_bypass_attemp
             None,
             allowance,
         );
-        let decision = evaluate_entitlement_execution(
-            &guard,
-            &policy,
-            EntitlementExecutionContext::default(),
-        )
-        .expect("recovery/read/export/maintenance stays available during outage");
+        let decision =
+            evaluate_entitlement_execution(&guard, &policy, EntitlementExecutionContext::default())
+                .expect("recovery/read/export/maintenance stays available during outage");
         assert_eq!(decision.status, expected_status);
         assert_eq!(decision.code, "ENTITLEMENT_ALLOWED");
     }
@@ -411,11 +406,10 @@ fn spec152f_bypass_resistance_recovery_surfaces_survive_outage_and_bypass_attemp
         None,
         RecoveryAllowance::None,
     );
-    let denied: EntitlementExecutionFailure = evaluate_entitlement_execution(
-        &guard,
-        &policy,
-        EntitlementExecutionContext::default(),
-    )
-    .expect_err("unclassified maintenance mutation without initiating posture fails closed");
+    let denied: EntitlementExecutionFailure =
+        evaluate_entitlement_execution(&guard, &policy, EntitlementExecutionContext::default())
+            .expect_err(
+                "unclassified maintenance mutation without initiating posture fails closed",
+            );
     assert_eq!(denied.code, "ENTITLEMENT_ROUTE_UNCLASSIFIED");
 }

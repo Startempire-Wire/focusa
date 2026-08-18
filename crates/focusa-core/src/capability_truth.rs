@@ -97,14 +97,27 @@ mod tests {
     #[test]
     fn manifest_counts_verified_and_names_unverified() {
         let claims = vec![
-            claim("focusa_bg", true, Some("docs/165-background-execution-and-completion-notification.md")),
-            claim("focusa_callgraph_export", true, Some("docs/155-focusa-callgraph-workflow-and-flow-mesh-execution-integration-spec.md")),
+            claim(
+                "focusa_bg",
+                true,
+                Some("docs/165-background-execution-and-completion-notification.md"),
+            ),
+            claim(
+                "focusa_callgraph_export",
+                true,
+                Some(
+                    "docs/155-focusa-callgraph-workflow-and-flow-mesh-execution-integration-spec.md",
+                ),
+            ),
             claim("focusa_video_render", false, None),
         ];
         let manifest = honesty_manifest(&claims);
         assert_eq!(manifest.total_claims, 3);
         assert_eq!(manifest.verified_claims, 2);
-        assert_eq!(manifest.unverified_claims, vec!["focusa_video_render".to_string()]);
+        assert_eq!(
+            manifest.unverified_claims,
+            vec!["focusa_video_render".to_string()]
+        );
         assert!(manifest.public_safe);
     }
 

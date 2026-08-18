@@ -34,11 +34,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::authority::EntitlementSnapshot;
 use crate::entitlement_policy::{
-    authority_policy_state, resolve_base_focusa_product, BaseProductDecision,
+    BaseProductDecision, authority_policy_state, resolve_base_focusa_product,
 };
 use crate::uiai_child_token::{
-    classify_uiai_operation, resolve_uiai_capability, resolve_uiai_operation_capability,
     UiaiCapabilityDecision, UiaiCapabilityDenial, UiaiOperationClass, UiaiOperationError,
+    classify_uiai_operation, resolve_uiai_capability, resolve_uiai_operation_capability,
 };
 
 /// Schema label for the canonical Cockpit action registry (Spec 172 §12

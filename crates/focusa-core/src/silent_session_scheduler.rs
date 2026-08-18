@@ -14,11 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 use crate::guarded_mutation::guard_value_mutation;
-use crate::license::{
-    EntitlementExecutionContext,
-    EntitlementExecutionPolicy,
-};
-
+use crate::license::{EntitlementExecutionContext, EntitlementExecutionPolicy};
 
 pub const SILENT_SESSION_DISPATCH_SCHEMA: &str = "focusa.silent_session_dispatch.v1";
 
@@ -199,9 +195,7 @@ fn resolve_internal_maintenance_posture_from_guard(
         .map(|_| focusa_license::EntitlementPolicyPosture::Base)
 }
 
-fn entitlement_status_to_posture(
-    status: &str,
-) -> Option<focusa_license::EntitlementPolicyPosture> {
+fn entitlement_status_to_posture(status: &str) -> Option<focusa_license::EntitlementPolicyPosture> {
     match status {
         s if s == focusa_license::EntitlementPolicyPosture::Allow.status() => {
             Some(focusa_license::EntitlementPolicyPosture::Allow)
@@ -264,8 +258,7 @@ fn evaluate_silent_session_dispatch_candidate_entitlement(
         .map(|policy| policy.operation_id.as_str())
         .or(fallback_initiating_operation_id);
 
-    let resolved_initiating_posture = if resolved_dispatch_policy
-        .capability_family
+    let resolved_initiating_posture = if resolved_dispatch_policy.capability_family
         == focusa_license::CapabilityFamily::InternalMaintenance
     {
         match reference.and_then(|reference| reference.initiating_policy.as_ref()) {
@@ -281,14 +274,16 @@ fn evaluate_silent_session_dispatch_candidate_entitlement(
                     required_feature: error.required_feature,
                     limit_bucket: error.limit_bucket,
                     initiating_posture: Some(
-                        focusa_license::EntitlementPolicyPosture::Deny.status().to_string(),
+                        focusa_license::EntitlementPolicyPosture::Deny
+                            .status()
+                            .to_string(),
                     ),
                     initiating_operation_id: Some(policy.operation_id.clone()),
                     reservation_id: reference
                         .and_then(|context| context.reservation_id.as_deref())
                         .map(ToString::to_string),
                 })?;
-                let posture = entitlement_status_to_posture(&decision.status).ok_or_else(||
+                let posture = entitlement_status_to_posture(&decision.status).ok_or_else(|| {
                     SilentSessionDispatchEntitlementError {
                         code: "ENTITLEMENT_ROUTE_UNCLASSIFIED".to_string(),
                         message: format!(
@@ -298,14 +293,16 @@ fn evaluate_silent_session_dispatch_candidate_entitlement(
                         required_feature: None,
                         limit_bucket: None,
                         initiating_posture: Some(
-                            focusa_license::EntitlementPolicyPosture::Deny.status().to_string(),
+                            focusa_license::EntitlementPolicyPosture::Deny
+                                .status()
+                                .to_string(),
                         ),
                         initiating_operation_id: Some(policy.operation_id.clone()),
                         reservation_id: reference
                             .and_then(|context| context.reservation_id.as_deref())
                             .map(ToString::to_string),
                     }
-                )?;
+                })?;
                 Some(posture)
             }
             None => fallback_initiating_posture,
@@ -322,8 +319,7 @@ fn evaluate_silent_session_dispatch_candidate_entitlement(
             initiating_posture: resolved_initiating_posture,
         },
         resolved_initiating_operation_id,
-        reference
-            .and_then(|context| context.reservation_id.as_deref()),
+        reference.and_then(|context| context.reservation_id.as_deref()),
     )
 }
 
@@ -333,7 +329,8 @@ pub fn select_silent_session_dispatch_with_entitlement(
     candidates: &[SilentSessionDispatchCandidate],
     entitlement_guard: &focusa_license::LicenseGuard,
     entitlement_policy: &EntitlementExecutionPolicy,
-) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
+) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError>
+{
     select_silent_session_dispatch_with_entitlement_with_initiating_context(
         work_items,
         query,
@@ -353,7 +350,8 @@ pub fn select_silent_session_dispatch_with_entitlement_with_initiating_context(
     entitlement_policy: &EntitlementExecutionPolicy,
     initiating_posture: Option<focusa_license::EntitlementPolicyPosture>,
     initiating_operation_id: Option<&str>,
-) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
+) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError>
+{
     let has_entitlement_context = candidates
         .iter()
         .any(|candidate| candidate.entitlement_context.is_some());
@@ -370,9 +368,7 @@ pub fn select_silent_session_dispatch_with_entitlement_with_initiating_context(
             None,
         )?;
         return Ok(select_silent_session_dispatch(
-            work_items,
-            query,
-            candidates,
+            work_items, query, candidates,
         ));
     }
 
@@ -392,7 +388,8 @@ pub fn select_silent_session_dispatch_with_default_entitlement(
     query: &WorkItemQuery,
     candidates: &[SilentSessionDispatchCandidate],
     entitlement_guard: &focusa_license::LicenseGuard,
-) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
+) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError>
+{
     select_silent_session_dispatch_with_default_entitlement_with_initiating_context(
         work_items,
         query,
@@ -410,7 +407,8 @@ pub fn select_silent_session_dispatch_with_default_entitlement_with_initiating_c
     entitlement_guard: &focusa_license::LicenseGuard,
     initiating_posture: Option<focusa_license::EntitlementPolicyPosture>,
     initiating_operation_id: Option<&str>,
-) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError> {
+) -> Result<(WorkItemReadiness, SilentSessionDispatchDecision), SilentSessionDispatchEntitlementError>
+{
     let policy = silent_session_dispatch_entitlement_policy();
     select_silent_session_dispatch_with_entitlement_with_initiating_context(
         work_items,
@@ -611,7 +609,10 @@ mod tests {
     use crate::silent_session_writer::{WRITER_ADMISSION_SCHEMA, WriterAdmissionDenial};
     use crate::work_item::{WorkItemProvider, WorkItemStatus};
     use chrono::Duration;
-    use focusa_license::{authority::{EntitlementSnapshot, EntitlementState}, EntitlementPolicyPosture};
+    use focusa_license::{
+        EntitlementPolicyPosture,
+        authority::{EntitlementSnapshot, EntitlementState},
+    };
     use std::path::PathBuf;
 
     fn item(id: &str, status: WorkItemStatus, priority: i32) -> WorkItem {
@@ -717,7 +718,10 @@ mod tests {
     }
 
     fn signed_base_snapshot() -> focusa_license::LicenseGuard {
-        signed_snapshot(EntitlementState::Active, Some(Utc::now() + chrono::Duration::hours(1)))
+        signed_snapshot(
+            EntitlementState::Active,
+            Some(Utc::now() + chrono::Duration::hours(1)),
+        )
     }
 
     #[test]
@@ -750,15 +754,16 @@ mod tests {
             parent: None,
             limit: 100,
         };
-        let (_readiness, dispatch) = select_silent_session_dispatch_with_default_entitlement_with_initiating_context(
-            std::slice::from_ref(&first),
-            &query,
-            &[candidate(&first, SilentSessionPriority::Normal, Utc::now())],
-            &signed_base_snapshot(),
-            Some(EntitlementPolicyPosture::Base),
-            Some("focusa.scheduler.dispatch"),
-        )
-        .expect("dispatch with inherited posture should pass");
+        let (_readiness, dispatch) =
+            select_silent_session_dispatch_with_default_entitlement_with_initiating_context(
+                std::slice::from_ref(&first),
+                &query,
+                &[candidate(&first, SilentSessionPriority::Normal, Utc::now())],
+                &signed_base_snapshot(),
+                Some(EntitlementPolicyPosture::Base),
+                Some("focusa.scheduler.dispatch"),
+            )
+            .expect("dispatch with inherited posture should pass");
         assert_eq!(dispatch.selected_work_item, Some(first.reference()));
     }
 
@@ -817,7 +822,10 @@ mod tests {
                 Utc::now(),
                 context.clone(),
             )],
-            &signed_snapshot(EntitlementState::Active, Some(Utc::now() + Duration::hours(1))),
+            &signed_snapshot(
+                EntitlementState::Active,
+                Some(Utc::now() + Duration::hours(1)),
+            ),
             &silent_session_dispatch_entitlement_policy(),
         )
         .expect("active entitlement should permit dispatch");
@@ -842,7 +850,11 @@ mod tests {
             revoked_dispatch.deferred[0].reason,
             DispatchDeferralReason::EntitlementDenied
         );
-        assert!(revoked_dispatch.deferred[0].detail.contains("ENTITLEMENT_BASE_REQUIRED"));
+        assert!(
+            revoked_dispatch.deferred[0]
+                .detail
+                .contains("ENTITLEMENT_BASE_REQUIRED")
+        );
     }
 
     #[test]
@@ -902,12 +914,19 @@ mod tests {
                 now,
                 context,
             )],
-            &signed_snapshot(EntitlementState::OfflineGrace, Some(now - Duration::hours(1))),
+            &signed_snapshot(
+                EntitlementState::OfflineGrace,
+                Some(now - Duration::hours(1)),
+            ),
             &silent_session_dispatch_entitlement_policy(),
         )
         .expect("expired offline grace should stop dispatch");
         assert_eq!(expired_dispatch.selected_work_item, None);
-        assert!(expired_dispatch.deferred[0].detail.contains("ENTITLEMENT_REQUIRED"));
+        assert!(
+            expired_dispatch.deferred[0]
+                .detail
+                .contains("ENTITLEMENT_REQUIRED")
+        );
     }
 
     #[test]
@@ -1017,12 +1036,18 @@ mod tests {
         let mut metrics = SilentSessionDispatchMetrics::default();
         metrics.record(&metrics_decision(
             true,
-            &[(DispatchDeferralReason::EntitlementDenied, "ENTITLEMENT_BASE_REQUIRED")],
+            &[(
+                DispatchDeferralReason::EntitlementDenied,
+                "ENTITLEMENT_BASE_REQUIRED",
+            )],
         ));
         metrics.record(&metrics_decision(
             false,
             &[
-                (DispatchDeferralReason::EntitlementDenied, "ENTITLEMENT_REQUIRED"),
+                (
+                    DispatchDeferralReason::EntitlementDenied,
+                    "ENTITLEMENT_REQUIRED",
+                ),
                 (DispatchDeferralReason::ResourceAdmissionDenied, "quota"),
             ],
         ));
@@ -1034,9 +1059,18 @@ mod tests {
 
         assert_eq!(metrics.selected(), 2);
         assert_eq!(metrics.entitlement_denied(), 2);
-        assert_eq!(metrics.deferred(DispatchDeferralReason::ResourceAdmissionDenied), 1);
-        assert_eq!(metrics.deferred(DispatchDeferralReason::WriterAdmissionDenied), 0);
-        assert_eq!(metrics.deferred(DispatchDeferralReason::WorkItemNotReady), 1);
+        assert_eq!(
+            metrics.deferred(DispatchDeferralReason::ResourceAdmissionDenied),
+            1
+        );
+        assert_eq!(
+            metrics.deferred(DispatchDeferralReason::WriterAdmissionDenied),
+            0
+        );
+        assert_eq!(
+            metrics.deferred(DispatchDeferralReason::WorkItemNotReady),
+            1
+        );
         assert_eq!(metrics.total(), 2 + 2 + 1 + 1);
     }
 
@@ -1045,7 +1079,10 @@ mod tests {
         let mut metrics = SilentSessionDispatchMetrics::default();
         metrics.record(&metrics_decision(
             true,
-            &[(DispatchDeferralReason::EntitlementDenied, "ENTITLEMENT_BASE_REQUIRED")],
+            &[(
+                DispatchDeferralReason::EntitlementDenied,
+                "ENTITLEMENT_BASE_REQUIRED",
+            )],
         ));
         let snapshot = metrics.snapshot();
         assert_eq!(snapshot.len(), metrics.capacity(), "fixed bounded capacity");

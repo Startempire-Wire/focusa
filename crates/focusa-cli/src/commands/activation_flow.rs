@@ -13,6 +13,7 @@
 //! authority through the reducer. This module contains no transition table
 //! and no entitlement logic.
 
+use focusa_license::activation_agent::{AgentActivationEnvelope, AgentKeyReveal};
 use focusa_license::activation_client::{
     ActivationAuthority, ActivationClientError, ActivationJourney, ActivationLedgerEvent,
     ActivationRegistration, ActivationSession, retry_policy_for_code,
@@ -20,14 +21,11 @@ use focusa_license::activation_client::{
 use focusa_license::activation_facade::{
     ActivationError, ActivationErrorCode, ActivationRequestContext,
 };
-use focusa_license::activation_agent::{AgentActivationEnvelope, AgentKeyReveal};
 use focusa_license::activation_http::{ActivationHttpClient, LeaseDeliveryEnvelope};
 use focusa_license::activation_reducer::{
     ActivationOutputEnvelope, ActivationState, RetryPosture, presenter_state,
 };
-use focusa_license::authority::{
-    EntitlementSnapshot, LeaseVerificationContext,
-};
+use focusa_license::authority::{EntitlementSnapshot, LeaseVerificationContext};
 use focusa_license::authority_client::SensitiveCredential;
 use focusa_license::authority_credentials::{
     CredentialHandle, KeyringCredentialStore, NodeIdentity, ProtectedCredentialStore,
@@ -227,7 +225,10 @@ impl ActivationFlowSessionPersist {
 }
 
 impl ActivationFlowPersist<ActivationHttpClient> for ActivationFlowSessionPersist {
-    fn persist(&self, session: &ActivationSession<ActivationHttpClient>) -> Result<(), ActivationFlowError> {
+    fn persist(
+        &self,
+        session: &ActivationSession<ActivationHttpClient>,
+    ) -> Result<(), ActivationFlowError> {
         self.persist_inner(session)
     }
 }
@@ -326,20 +327,20 @@ pub fn run_activation_flow<A: ActivationAuthority>(
         Some(ActivationJourney::Purchase) => "2".to_string(),
         Some(ActivationJourney::ExistingKey) => "1".to_string(),
         Some(ActivationJourney::LimitedAccess) => "3".to_string(),
-        None => input.prompt(
-            "1. Enter existing license  2. Purchase Focusa  3. Request Evaluation:",
-        )?,
+        None => {
+            input.prompt("1. Enter existing license  2. Purchase Focusa  3. Request Evaluation:")?
+        }
     };
     match choice.trim() {
         "1" => {
             let key = input.prompt("License key:")?;
             if key.trim().is_empty() {
-                return Err(ActivationFlowError::Client(ActivationClientError::Authority(
-                    ActivationError::new(
+                return Err(ActivationFlowError::Client(
+                    ActivationClientError::Authority(ActivationError::new(
                         ActivationErrorCode::EddLicenseUnusable,
                         session.registration_id().to_string(),
-                    ),
-                )));
+                    )),
+                ));
             }
             match session.existing_license(key.trim(), device_public_key.as_deref()) {
                 Ok(envelope) => {
@@ -393,7 +394,8 @@ pub fn run_activation_flow<A: ActivationAuthority>(
 
     // Bounded poll: wall-clock timeout and registration poll budget both
     // settle fail-closed (cancel → recovery_only); terminal states stop.
-    let deadline = poll_timeout_seconds.map(|seconds| Instant::now() + Duration::from_secs(seconds));
+    let deadline =
+        poll_timeout_seconds.map(|seconds| Instant::now() + Duration::from_secs(seconds));
     while !session.state().is_terminal() {
         if let Some(deadline) = deadline {
             if Instant::now() >= deadline {
@@ -419,7 +421,7 @@ pub fn run_activation_flow<A: ActivationAuthority>(
                         std::thread::sleep(Duration::from_secs(seconds as u64));
                     }
                     RetryPosture::Restart => {
-                        return Err(ActivationFlowError::RestartVerificationRequired)
+                        return Err(ActivationFlowError::RestartVerificationRequired);
                     }
                     RetryPosture::RecoveryOnly | RetryPosture::None => {
                         emit_error(&error, &mut events, json_output)?;
@@ -457,8 +459,7 @@ pub fn resume_activation_flow<A: ActivationAuthority>(
     persist: Option<&dyn ActivationFlowPersist<A>>,
 ) -> Result<ActivationFlowOutcome, ActivationFlowError> {
     let context = new_context(config);
-    let mut session =
-        ActivationSession::resume(authority, context, registration, poll_credential)?;
+    let mut session = ActivationSession::resume(authority, context, registration, poll_credential)?;
     let mut events = Vec::new();
     if session.state().is_terminal() {
         let envelope = session.envelope(None)?;
@@ -468,7 +469,8 @@ pub fn resume_activation_flow<A: ActivationAuthority>(
     }
     emit(&session, None, &mut events, json_output)?;
     try_persist(&session, persist)?;
-    let deadline = poll_timeout_seconds.map(|seconds| Instant::now() + Duration::from_secs(seconds));
+    let deadline =
+        poll_timeout_seconds.map(|seconds| Instant::now() + Duration::from_secs(seconds));
     while !session.state().is_terminal() {
         if let Some(deadline) = deadline {
             if Instant::now() >= deadline {
@@ -494,7 +496,7 @@ pub fn resume_activation_flow<A: ActivationAuthority>(
                         std::thread::sleep(Duration::from_secs(seconds as u64));
                     }
                     RetryPosture::Restart => {
-                        return Err(ActivationFlowError::RestartVerificationRequired)
+                        return Err(ActivationFlowError::RestartVerificationRequired);
                     }
                     RetryPosture::RecoveryOnly | RetryPosture::None => {
                         emit_error(&error, &mut events, json_output)?;
@@ -589,8 +591,7 @@ pub fn resume_agent_activation<A: ActivationAuthority>(
     reveal: AgentKeyReveal,
 ) -> Result<AgentActivationOutcome, ActivationFlowError> {
     let context = new_context(config);
-    let mut session =
-        ActivationSession::resume(authority, context, registration, poll_credential)?;
+    let mut session = ActivationSession::resume(authority, context, registration, poll_credential)?;
     if session.state().is_terminal() {
         let envelope = AgentActivationEnvelope::from_session(&session, None, reveal, None)?;
         return Ok(AgentActivationOutcome {
@@ -623,7 +624,7 @@ pub fn resume_agent_activation<A: ActivationAuthority>(
                         std::thread::sleep(Duration::from_secs(seconds as u64));
                     }
                     RetryPosture::Restart => {
-                        return Err(ActivationFlowError::RestartVerificationRequired)
+                        return Err(ActivationFlowError::RestartVerificationRequired);
                     }
                     RetryPosture::RecoveryOnly | RetryPosture::None => {
                         session.cancel().map_err(ActivationFlowError::Client)?;
@@ -742,7 +743,10 @@ fn emit_envelope(
         masked_email: envelope.masked_email.clone(),
         safe_url: envelope.safe_url.clone(),
         error_code: envelope.error.as_ref().map(|error| error.code.clone()),
-        next_action: envelope.error.as_ref().map(|error| error.next_action.clone()),
+        next_action: envelope
+            .error
+            .as_ref()
+            .map(|error| error.next_action.clone()),
     };
     events.push(event);
     if json_output {
@@ -958,10 +962,14 @@ pub fn persist_delivered_lease(
         &roots,
         &context,
     )
-    .map_err(|error| ActivationFlowError::Delivery(format!("lease verification failed: {error}")))?;
+    .map_err(|error| {
+        ActivationFlowError::Delivery(format!("lease verification failed: {error}"))
+    })?;
     state
         .write_atomic(&config_dir.join(AUTHORITY_STATE_FILE))
-        .map_err(|error| ActivationFlowError::Delivery(format!("authority state write failed: {error}")))?;
+        .map_err(|error| {
+            ActivationFlowError::Delivery(format!("authority state write failed: {error}"))
+        })?;
     Ok(snapshot)
 }
 
@@ -995,9 +1003,7 @@ fn write_private(path: &Path, bytes: &[u8]) -> Result<(), ActivationFlowError> {
 
 /// Resolve (or create) the node-bound identity used as the device public-key
 /// anchor for activation and lease verification.
-pub fn resolve_flow_node_identity(
-    config_dir: &Path,
-) -> Result<NodeIdentity, ActivationFlowError> {
+pub fn resolve_flow_node_identity(config_dir: &Path) -> Result<NodeIdentity, ActivationFlowError> {
     load_or_create_node_identity(config_dir, "focusa")
         .map_err(|error| ActivationFlowError::Delivery(format!("{error}")))
 }
@@ -1005,7 +1011,9 @@ pub fn resolve_flow_node_identity(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use focusa_license::activation_client::{ActivationStartReply, CheckoutOutcome, PollOutcome, PublicOffer};
+    use focusa_license::activation_client::{
+        ActivationStartReply, CheckoutOutcome, PollOutcome, PublicOffer,
+    };
     use focusa_license::activation_facade::{ActivationError, ActivationErrorCode};
     use focusa_license::activation_reducer::ActivationTransition;
     use std::collections::{BTreeMap, VecDeque};
@@ -1021,7 +1029,9 @@ mod tests {
     }
 
     struct ScriptedAuthority {
-        script: std::sync::Mutex<BTreeMap<&'static str, VecDeque<Result<AuthorityReply, ActivationErrorCode>>>>,
+        script: std::sync::Mutex<
+            BTreeMap<&'static str, VecDeque<Result<AuthorityReply, ActivationErrorCode>>>,
+        >,
     }
 
     impl ScriptedAuthority {
@@ -1217,7 +1227,9 @@ mod tests {
         let authority = scripted_verified();
         authority.push(
             "activation.select_offer",
-            Ok(AuthorityReply::Steps(vec![ActivationTransition::OfferSelected])),
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::OfferSelected,
+            ])),
         );
         authority.push(
             "activation.checkout",
@@ -1309,15 +1321,7 @@ mod tests {
         );
         let mut input = ScriptedFlowInput::new(["owner@example.com", "000000", "1", "FOCUSA-XXXX"]);
         let outcome = run_activation_flow(
-            authority,
-            CLI_FLOW,
-            &mut input,
-            None,
-            None,
-            None,
-            None,
-            false,
-            None,
+            authority, CLI_FLOW, &mut input, None, None, None, None, false, None,
         )
         .expect("existing key flow");
         assert_eq!(outcome.presenter_state, "activated");
@@ -1329,7 +1333,11 @@ mod tests {
             .collect();
         assert_eq!(
             states,
-            vec!["email_verification_pending", "selection_required", "activated"]
+            vec![
+                "email_verification_pending",
+                "selection_required",
+                "activated"
+            ]
         );
         assert_eq!(outcome.ledger.len(), 9);
     }
@@ -1339,7 +1347,9 @@ mod tests {
         let authority = scripted_verified();
         authority.push(
             "activation.select_offer",
-            Ok(AuthorityReply::Steps(vec![ActivationTransition::LimitedAccessChosen])),
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::LimitedAccessChosen,
+            ])),
         );
         authority.push(
             "activation.poll",
@@ -1356,15 +1366,7 @@ mod tests {
         );
         let mut input = ScriptedFlowInput::new(["eval@example.com", "000000", "3"]);
         let outcome = run_activation_flow(
-            authority,
-            CLI_FLOW,
-            &mut input,
-            None,
-            None,
-            None,
-            None,
-            false,
-            None,
+            authority, CLI_FLOW, &mut input, None, None, None, None, false, None,
         )
         .expect("limited access flow");
         assert_eq!(outcome.presenter_state, "activated");
@@ -1398,15 +1400,7 @@ mod tests {
         );
         let mut input = ScriptedFlowInput::new(["customer@example.com", "483921"]);
         let outcome = run_activation_flow(
-            authority,
-            CLI_FLOW,
-            &mut input,
-            None,
-            None,
-            None,
-            None,
-            false,
-            None,
+            authority, CLI_FLOW, &mut input, None, None, None, None, false, None,
         )
         .expect("verification expiry");
         assert_eq!(outcome.presenter_state, "recovery_only");
@@ -1418,7 +1412,9 @@ mod tests {
         let authority = scripted_verified();
         authority.push(
             "activation.select_offer",
-            Ok(AuthorityReply::Steps(vec![ActivationTransition::OfferSelected])),
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::OfferSelected,
+            ])),
         );
         authority.push(
             "activation.checkout",
@@ -1456,7 +1452,9 @@ mod tests {
         let authority = scripted_verified();
         authority.push(
             "activation.select_offer",
-            Ok(AuthorityReply::Steps(vec![ActivationTransition::OfferSelected])),
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::OfferSelected,
+            ])),
         );
         authority.push(
             "activation.checkout",
@@ -1468,15 +1466,7 @@ mod tests {
         authority.push("activation.poll", Err(ActivationErrorCode::Refunded));
         let mut input = ScriptedFlowInput::new(["customer@example.com", "483921", "2"]);
         let outcome = run_activation_flow(
-            authority,
-            CLI_FLOW,
-            &mut input,
-            None,
-            None,
-            None,
-            None,
-            false,
-            None,
+            authority, CLI_FLOW, &mut input, None, None, None, None, false, None,
         )
         .expect("refund settles recovery");
         assert_eq!(outcome.presenter_state, "recovery_only");
@@ -1572,15 +1562,7 @@ mod tests {
         let authority = ScriptedAuthority::new();
         let mut input = ScriptedFlowInput::new([""]);
         let error = run_activation_flow(
-            authority,
-            CLI_FLOW,
-            &mut input,
-            None,
-            None,
-            None,
-            None,
-            false,
-            None,
+            authority, CLI_FLOW, &mut input, None, None, None, None, false, None,
         )
         .unwrap_err();
         assert!(matches!(error, ActivationFlowError::EmailRequired));
@@ -1591,15 +1573,7 @@ mod tests {
         let authority = ScriptedAuthority::new();
         let mut input = ScriptedFlowInput::new(["not-an-email", "000000"]);
         let error = run_activation_flow(
-            authority,
-            CLI_FLOW,
-            &mut input,
-            None,
-            None,
-            None,
-            None,
-            false,
-            None,
+            authority, CLI_FLOW, &mut input, None, None, None, None, false, None,
         )
         .unwrap_err();
         assert!(matches!(
@@ -1613,7 +1587,9 @@ mod tests {
         let authority = scripted_verified();
         authority.push(
             "activation.select_offer",
-            Ok(AuthorityReply::Steps(vec![ActivationTransition::LimitedAccessChosen])),
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::LimitedAccessChosen,
+            ])),
         );
         authority.push(
             "activation.poll",
@@ -1689,14 +1665,20 @@ mod tests {
         )
         .expect("agent begin");
         assert!(!outcome.terminal);
-        assert_eq!(outcome.envelope.schema, "focusa.agent_activation_envelope.v1");
+        assert_eq!(
+            outcome.envelope.schema,
+            "focusa.agent_activation_envelope.v1"
+        );
         assert_eq!(outcome.envelope.state, "email_verification_pending");
         assert!(outcome.envelope.human_action_required);
         assert_eq!(
             outcome.envelope.human_action.as_deref(),
             Some("enter_verification_code")
         );
-        assert_eq!(outcome.envelope.masked_email.as_deref(), Some("c***@example.com"));
+        assert_eq!(
+            outcome.envelope.masked_email.as_deref(),
+            Some("c***@example.com")
+        );
         assert_eq!(outcome.registration_id, outcome.envelope.registration_id);
         let body = serde_json::to_string(&outcome.envelope).unwrap();
         assert!(!body.contains("customer@example.com"));
@@ -1706,14 +1688,8 @@ mod tests {
     #[test]
     fn agent_begin_without_email_fails_closed_without_authority_call() {
         let authority = ScriptedAuthority::new();
-        let error = run_agent_activation(
-            authority,
-            CLI_FLOW,
-            None,
-            None,
-            AgentKeyReveal::denied(),
-        )
-        .unwrap_err();
+        let error = run_agent_activation(authority, CLI_FLOW, None, None, AgentKeyReveal::denied())
+            .unwrap_err();
         assert!(matches!(error, ActivationFlowError::EmailRequired));
     }
 
@@ -1803,7 +1779,10 @@ mod tests {
         assert!(outcome.terminal);
         assert_eq!(outcome.envelope.state, "activated");
         assert!(outcome.envelope.key_present);
-        assert!(!outcome.envelope.key_visible, "key masked by default for agents");
+        assert!(
+            !outcome.envelope.key_visible,
+            "key masked by default for agents"
+        );
         let body = serde_json::to_string(&outcome.envelope).unwrap();
         assert!(!body.contains("key-envelope"));
         assert!(!body.contains("full-key-envelope"));

@@ -99,12 +99,12 @@ impl BdAdapter {
         owned_args.extend(ids.iter().cloned());
         owned_args.push("--json".to_string());
         let args: Vec<&str> = owned_args.iter().map(String::as_str).collect();
-        let (code, stdout, stderr) = self
-            .run_bd_at(project_root, &args)
-            .await
-            .ok_or_else(|| RegistryError::ProviderNotInstalled {
-                provider: self.provider(),
-                missing: vec![self.bd_path.clone()],
+        let (code, stdout, stderr) =
+            self.run_bd_at(project_root, &args).await.ok_or_else(|| {
+                RegistryError::ProviderNotInstalled {
+                    provider: self.provider(),
+                    missing: vec![self.bd_path.clone()],
+                }
             })?;
         if code != 0 {
             return Err(RegistryError::ProviderError {
@@ -322,7 +322,10 @@ impl ProviderAdapter for BdAdapter {
             // issue ledger. `bd show` exposes typed parent-child dependents and
             // dependency edges, so load only the bounded child closure.
             let parent_values = self
-                .show_values(&query.project_root, std::slice::from_ref(&parent.provider_item_id))
+                .show_values(
+                    &query.project_root,
+                    std::slice::from_ref(&parent.provider_item_id),
+                )
                 .await?;
             let Some(parent_value) = parent_values.first() else {
                 return Ok(Vec::new());
@@ -351,7 +354,11 @@ impl ProviderAdapter for BdAdapter {
             let child_id_set: std::collections::BTreeSet<_> = child_ids.iter().cloned().collect();
             let mut dependency_ids: Vec<String> = values
                 .iter()
-                .filter_map(|value| value.get("dependencies").and_then(serde_json::Value::as_array))
+                .filter_map(|value| {
+                    value
+                        .get("dependencies")
+                        .and_then(serde_json::Value::as_array)
+                })
                 .flatten()
                 .filter(|edge| {
                     edge.get("dependency_type")
@@ -365,7 +372,10 @@ impl ProviderAdapter for BdAdapter {
                 .collect();
             dependency_ids.sort();
             dependency_ids.dedup();
-            values.extend(self.show_values(&query.project_root, &dependency_ids).await?);
+            values.extend(
+                self.show_values(&query.project_root, &dependency_ids)
+                    .await?,
+            );
             values
         } else {
             // Global scheduling still requires a complete snapshot before core

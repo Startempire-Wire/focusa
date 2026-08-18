@@ -95,15 +95,30 @@ fn state(label: &str) -> ActivationState {
 
 fn transition(label: &str) -> ActivationTransition {
     let transitions = [
-        ("challenge_delivered", ActivationTransition::ChallengeDelivered),
+        (
+            "challenge_delivered",
+            ActivationTransition::ChallengeDelivered,
+        ),
         ("email_verified", ActivationTransition::EmailVerified),
         ("account_promoted", ActivationTransition::AccountPromoted),
         ("offer_selected", ActivationTransition::OfferSelected),
         ("checkout_started", ActivationTransition::CheckoutStarted),
-        ("limited_access_chosen", ActivationTransition::LimitedAccessChosen),
-        ("existing_key_chosen", ActivationTransition::ExistingKeyChosen),
-        ("entitlement_issued", ActivationTransition::EntitlementIssued),
-        ("terminal_delivery_ready", ActivationTransition::TerminalDeliveryReady),
+        (
+            "limited_access_chosen",
+            ActivationTransition::LimitedAccessChosen,
+        ),
+        (
+            "existing_key_chosen",
+            ActivationTransition::ExistingKeyChosen,
+        ),
+        (
+            "entitlement_issued",
+            ActivationTransition::EntitlementIssued,
+        ),
+        (
+            "terminal_delivery_ready",
+            ActivationTransition::TerminalDeliveryReady,
+        ),
         ("device_registered", ActivationTransition::DeviceRegistered),
         ("lease_issued", ActivationTransition::LeaseIssued),
         ("delivered", ActivationTransition::Delivered),
@@ -131,7 +146,11 @@ fn reducer_matches_the_frozen_machine_encoding_exactly() {
         .iter()
         .map(|row| (row.from.clone(), row.event.clone(), row.to.clone()))
         .collect();
-    assert_eq!(legal.len(), 48, "the frozen machine has exactly 48 transitions");
+    assert_eq!(
+        legal.len(),
+        48,
+        "the frozen machine has exactly 48 transitions"
+    );
 
     let transitions = [
         ActivationTransition::ChallengeDelivered,
@@ -182,7 +201,11 @@ fn reducer_matches_the_frozen_machine_encoding_exactly() {
                 Ok(to) => {
                     accepted += 1;
                     assert!(
-                        legal.contains(&(from.label().into(), event.label().into(), to.label().into())),
+                        legal.contains(&(
+                            from.label().into(),
+                            event.label().into(),
+                            to.label().into()
+                        )),
                         "{} --{}--> {} is not in the frozen machine",
                         from.label(),
                         event.label(),
@@ -191,7 +214,9 @@ fn reducer_matches_the_frozen_machine_encoding_exactly() {
                 }
                 Err(ActivationTransitionError::IllegalTransition) => {
                     assert!(
-                        !legal.iter().any(|(f, e, _)| f == from.label() && e == event.label()),
+                        !legal
+                            .iter()
+                            .any(|(f, e, _)| f == from.label() && e == event.label()),
                         "{} --{}--> must be accepted",
                         from.label(),
                         event.label()
@@ -214,10 +239,7 @@ fn presenter_mapping_matches_the_fixture_for_all_19_states() {
             "presenter mapping mismatch for {registration}"
         );
     }
-    let reachable = fixture
-        .presenter_by_state
-        .values()
-        .collect::<BTreeSet<_>>();
+    let reachable = fixture.presenter_by_state.values().collect::<BTreeSet<_>>();
     assert_eq!(reachable.len(), 10);
     for presenter in &fixture.presenter_states {
         assert!(reachable.contains(presenter), "{presenter} unreachable");
@@ -234,10 +256,17 @@ fn positive_transcripts_replay_deterministically() {
         let mut previous_to = transcript.from.clone();
         for step in &transcript.steps {
             assert_eq!(step.from, previous_to, "{} breaks chain", transcript.id);
-            let next = reduce_activation(current, transition(&step.event)).unwrap_or_else(|error| {
-                panic!("{} step {} failed: {error:?}", transcript.id, step.event)
-            });
-            assert_eq!(next.label(), step.to, "{} step {}", transcript.id, step.event);
+            let next =
+                reduce_activation(current, transition(&step.event)).unwrap_or_else(|error| {
+                    panic!("{} step {} failed: {error:?}", transcript.id, step.event)
+                });
+            assert_eq!(
+                next.label(),
+                step.to,
+                "{} step {}",
+                transcript.id,
+                step.event
+            );
             current = next;
             previous_to = step.to.clone();
         }

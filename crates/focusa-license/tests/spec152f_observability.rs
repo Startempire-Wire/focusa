@@ -13,10 +13,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
 use focusa_license::{
-    embedded_entitlement_policy_registry, reduce_entitlement_state,
-    resolve_base_focusa_product, resolve_premium_family, CapabilityFamily,
-    DecisionReason, EntitlementDecisionCounters, EntitlementPolicyPosture,
-    PolicyEntitlementState as State, PremiumFamilyDecision,
+    CapabilityFamily, DecisionReason, EntitlementDecisionCounters, EntitlementPolicyPosture,
+    PolicyEntitlementState as State, PremiumFamilyDecision, embedded_entitlement_policy_registry,
+    reduce_entitlement_state, resolve_base_focusa_product, resolve_premium_family,
 };
 
 fn active_snapshot() -> EntitlementSnapshot {
@@ -87,7 +86,11 @@ fn spec152f_observability_counters_are_bounded_label_only_and_secret_free() {
     // Every counter starts at zero; snapshot is label-only and its key set is
     // exactly the canonical label set — no raw authority identifier can appear.
     let snapshot: BTreeMap<String, u64> = counters.snapshot();
-    assert_eq!(snapshot.len(), 9 + 13 + 5, "exactly one slot per canonical variant");
+    assert_eq!(
+        snapshot.len(),
+        9 + 13 + 5,
+        "exactly one slot per canonical variant"
+    );
     assert_eq!(
         snapshot.keys().cloned().collect::<BTreeSet<_>>(),
         canonical_snapshot_keys(),
@@ -167,15 +170,13 @@ fn spec152f_observability_resolver_hot_path_is_deterministic_and_bounded() {
     // The per-request state-grid reduction is a pure function: identical inputs
     // always produce identical bounded decisions, with no I/O or network.
     for _ in 0..100 {
-        let decision = reduce_entitlement_state(State::ActivePaid, CapabilityFamily::BaseFocusa, None);
+        let decision =
+            reduce_entitlement_state(State::ActivePaid, CapabilityFamily::BaseFocusa, None);
         assert_eq!(decision.posture(), EntitlementPolicyPosture::Base);
         assert_eq!(decision.reason(), DecisionReason::RequireBase);
     }
-    let denial = reduce_entitlement_state(
-        State::RefundedOrRevoked,
-        CapabilityFamily::BaseFocusa,
-        None,
-    );
+    let denial =
+        reduce_entitlement_state(State::RefundedOrRevoked, CapabilityFamily::BaseFocusa, None);
     assert_eq!(denial.posture(), EntitlementPolicyPosture::Deny);
     assert_eq!(denial.reason(), DecisionReason::Deny);
 }

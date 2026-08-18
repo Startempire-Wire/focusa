@@ -45,9 +45,7 @@ pub fn license_type_label(code: &str) -> Option<&'static str> {
     match code {
         "focusa_operator_lifetime_v1" => Some("Focusa Operator Lifetime v1"),
         "uiai_operator_lifetime_v1" => Some("UIAI Engine Operator Lifetime v1"),
-        "focusa_uiai_operator_bundle_lifetime_v1" => {
-            Some("Focusa + UIAI Operator Lifetime Bundle")
-        }
+        "focusa_uiai_operator_bundle_lifetime_v1" => Some("Focusa + UIAI Operator Lifetime Bundle"),
         _ => None,
     }
 }
@@ -258,9 +256,11 @@ mod tests {
         assert!(posture.upgrade_available);
         assert_eq!(posture.upgrade_action, "activate_or_manage_entitlement");
         assert_eq!(posture.upgrade_label, "Operator upgrade available");
-        assert!(posture
-            .status_line()
-            .contains("Verified no-license limited access (no automatic expiry)"));
+        assert!(
+            posture
+                .status_line()
+                .contains("Verified no-license limited access (no automatic expiry)")
+        );
     }
 
     #[test]
@@ -303,7 +303,11 @@ mod tests {
         );
         assert!(!posture.upgrade_available);
         assert_eq!(posture.upgrade_label, "Manage entitlement");
-        assert!(posture.status_line().contains("Focusa + UIAI Operator Lifetime Bundle"));
+        assert!(
+            posture
+                .status_line()
+                .contains("Focusa + UIAI Operator Lifetime Bundle")
+        );
     }
 
     #[test]

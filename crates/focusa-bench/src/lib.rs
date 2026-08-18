@@ -33,7 +33,7 @@ pub use metrics::{
 pub use model_matrix::{ModelClass, ModelEntry, ModelMatrix};
 pub use reports::{BenchmarkReport, MeasuredClaim, ReportArtifact};
 pub use snapshot::{HashChain, PublicSnapshot, RedactionRule};
-pub use spec144::{EvaluationMetrics, PromotionThresholds, COMPARISON_COHORTS};
+pub use spec144::{COMPARISON_COHORTS, EvaluationMetrics, PromotionThresholds};
 pub use task_suite::{Task, TaskKind, TaskPool};
 
 pub const BENCH_SCHEMA: &str = "focusa.bench.v1";

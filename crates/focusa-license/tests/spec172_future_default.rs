@@ -30,16 +30,14 @@
 
 use focusa_license::{
     CanonicalManifestFacts, CapabilityFamily as Family, CompositeGrant, DecisionReason as Reason,
-    DynamicOperationManifest, EntitlementPolicyPosture as Posture,
-    EntitlementStateDecision, LicenseTypeCode, LicenseTypeGrant,
-    ManifestQuarantineLedger, ManifestTrustDecision, OperatorFamilyInheritanceDecision,
-    PolicyEntitlementState as State, ResourceRight,
-    SPEC172_FOCUSA_OPERATOR_V1_FAMILIES,
+    DynamicOperationManifest, ENTITLEMENT_POLICY_UNKNOWN, EntitlementPolicyPosture as Posture,
+    EntitlementStateDecision, LicenseTypeCode, LicenseTypeGrant, ManifestQuarantineLedger,
+    ManifestTrustDecision, OperatorFamilyInheritanceDecision, PolicyEntitlementState as State,
+    ResourceRight, SPEC172_FOCUSA_OPERATOR_V1_FAMILIES,
     SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
-    SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
-    classify_operator_family_inheritance, is_focusa_verified_no_license_family_allowed,
-    lifetime_entitlement::LifetimeEntitlement, reduce_entitlement_state,
-    verify_dynamic_operation_manifest, ENTITLEMENT_POLICY_UNKNOWN,
+    SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES, classify_operator_family_inheritance,
+    is_focusa_verified_no_license_family_allowed, lifetime_entitlement::LifetimeEntitlement,
+    reduce_entitlement_state, verify_dynamic_operation_manifest,
 };
 
 // ── Synthetic future-evolution fixtures (public non-production values) ─────
@@ -48,11 +46,7 @@ const SYNTHETIC_NEW_FAMILY: &str = "synthetic_future_capability";
 const SYNTHETIC_FUTURE_PRODUCT: &str = "synthetic_future_product";
 const SYNTHETIC_HOSTED_FAMILY: &str = "hosted_metered_compute";
 
-fn decision(
-    state: State,
-    family: Family,
-    initiating: Option<Posture>,
-) -> EntitlementStateDecision {
+fn decision(state: State, family: Family, initiating: Option<Posture>) -> EntitlementStateDecision {
     reduce_entitlement_state(state, family, initiating)
 }
 
@@ -69,7 +63,10 @@ fn spec172_future_default_navigator_is_separate_and_never_mutates_operator() {
     // attempt; nothing about Operator can be mutated by a future type.
     let operator = LicenseTypeGrant::focusa_operator_v1();
     assert_eq!(operator.validate(), Ok(()));
-    assert_eq!(operator.license_type, LicenseTypeCode::FocusaOperatorLifetimeV1);
+    assert_eq!(
+        operator.license_type,
+        LicenseTypeCode::FocusaOperatorLifetimeV1
+    );
     assert_eq!(operator.hosted_resource, ResourceRight::HostedExcluded);
 
     // The Bundle union stays the exact two-grant composition; a Navigator
@@ -105,9 +102,11 @@ fn spec172_future_default_navigator_is_separate_and_never_mutates_operator() {
             1,
             now,
         ),
-        Err(focusa_license::lifetime_entitlement::LifetimeCredentialError::InvalidLicenseType(
-            SYNTHETIC_NAVIGATOR_TYPE.to_string()
-        ))
+        Err(
+            focusa_license::lifetime_entitlement::LifetimeCredentialError::InvalidLicenseType(
+                SYNTHETIC_NAVIGATOR_TYPE.to_string()
+            )
+        )
     );
 
     // Verified-no-license allowlist is untouched by the Navigator attempt.
@@ -155,10 +154,14 @@ fn spec172_future_default_new_family_excluded_pending_versioned_assignment() {
     // blocked family denies in verified_no_license posture.
     assert!(serde_json::from_str::<Family>(&format!("\"{SYNTHETIC_NEW_FAMILY}\"")).is_err());
     for blocked in SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES {
-        assert!(!is_focusa_verified_no_license_family_allowed("focusa", blocked, 1));
+        assert!(!is_focusa_verified_no_license_family_allowed(
+            "focusa", blocked, 1
+        ));
     }
     for allowed in SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES {
-        assert!(is_focusa_verified_no_license_family_allowed("focusa", allowed, 1));
+        assert!(is_focusa_verified_no_license_family_allowed(
+            "focusa", allowed, 1
+        ));
     }
 }
 
@@ -178,17 +181,23 @@ fn spec172_future_default_future_product_and_hosted_resource_denied() {
         true,
         false,
     );
-    assert_eq!(decision, OperatorFamilyInheritanceDecision::DeniedFutureProduct);
+    assert_eq!(
+        decision,
+        OperatorFamilyInheritanceDecision::DeniedFutureProduct
+    );
     assert!(decision.is_denied());
-    assert_eq!(classify_operator_family_inheritance(
-        SYNTHETIC_FUTURE_PRODUCT,
-        "manual_workpoint",
-        true,
-        true,
-        true,
-        true,
-        false,
-    ), OperatorFamilyInheritanceDecision::DeniedFutureProduct);
+    assert_eq!(
+        classify_operator_family_inheritance(
+            SYNTHETIC_FUTURE_PRODUCT,
+            "manual_workpoint",
+            true,
+            true,
+            true,
+            true,
+            false,
+        ),
+        OperatorFamilyInheritanceDecision::DeniedFutureProduct
+    );
     // A completely unknown product denies even harder (fail closed).
     assert_eq!(
         classify_operator_family_inheritance(
@@ -252,9 +261,7 @@ fn spec172_future_default_safe_same_family_implementation_inherits() {
     // implementation when all five conditions hold — no per-tool pricing.
     for family in SPEC172_FOCUSA_OPERATOR_V1_FAMILIES {
         let decision = classify_operator_family_inheritance(
-            "focusa",
-            family,
-            true,  // same registered product
+            "focusa", family, true,  // same registered product
             true,  // family is included in Operator v1
             true,  // known owner
             true,  // known side-effect class
@@ -271,15 +278,39 @@ fn spec172_future_default_safe_same_family_implementation_inherits() {
     // Missing any one of the five conditions fails closed for that family:
     // the family is no longer known, or the product is unknown.
     assert_eq!(
-        classify_operator_family_inheritance("focusa", "manual_workpoint", true, true, false, true, false),
+        classify_operator_family_inheritance(
+            "focusa",
+            "manual_workpoint",
+            true,
+            true,
+            false,
+            true,
+            false
+        ),
         OperatorFamilyInheritanceDecision::DeniedUnknownOwner
     );
     assert_eq!(
-        classify_operator_family_inheritance("focusa", "manual_workpoint", true, true, true, false, false),
+        classify_operator_family_inheritance(
+            "focusa",
+            "manual_workpoint",
+            true,
+            true,
+            true,
+            false,
+            false
+        ),
         OperatorFamilyInheritanceDecision::DeniedUnknownSideEffect
     );
     assert_eq!(
-        classify_operator_family_inheritance("focusa", "manual_workpoint", true, true, true, true, true),
+        classify_operator_family_inheritance(
+            "focusa",
+            "manual_workpoint",
+            true,
+            true,
+            true,
+            true,
+            true
+        ),
         OperatorFamilyInheritanceDecision::DeniedMateriallyNewHostedCost
     );
 
@@ -401,13 +432,29 @@ fn spec172_future_default_dynamic_operation_fixtures_fail_closed() {
     // safe implementation; every record carries the stable error code.
     let mut quarantined = 0;
     for (tool, expected) in [
-        (&navigator_tool, ManifestTrustDecision::QuarantinedClientSelectedPolicy),
-        (&new_family_tool, ManifestTrustDecision::QuarantinedUnregisteredFamily),
-        (&future_product_tool, ManifestTrustDecision::QuarantinedUnknownOwner),
-        (&hosted_tool, ManifestTrustDecision::QuarantinedUnregisteredFamily),
+        (
+            &navigator_tool,
+            ManifestTrustDecision::QuarantinedClientSelectedPolicy,
+        ),
+        (
+            &new_family_tool,
+            ManifestTrustDecision::QuarantinedUnregisteredFamily,
+        ),
+        (
+            &future_product_tool,
+            ManifestTrustDecision::QuarantinedUnknownOwner,
+        ),
+        (
+            &hosted_tool,
+            ManifestTrustDecision::QuarantinedUnregisteredFamily,
+        ),
     ] {
         let decision = verify_dynamic_operation_manifest(tool, &facts_for(tool));
-        assert_eq!(decision, expected, "unexpected verdict for {}", tool.operation_id);
+        assert_eq!(
+            decision, expected,
+            "unexpected verdict for {}",
+            tool.operation_id
+        );
         assert!(decision.is_quarantined());
         assert_eq!(decision.stable_error(), ENTITLEMENT_POLICY_UNKNOWN);
         ledger.quarantine(&tool.operation_id, decision.label());

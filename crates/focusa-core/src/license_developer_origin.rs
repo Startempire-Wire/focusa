@@ -47,8 +47,7 @@ fn ttl_ms() -> u64 {
 }
 
 fn kb_api_url() -> String {
-    std::env::var("FOCUSA_AGENT_KB_API_URL")
-        .unwrap_or_else(|_| DEFAULT_KB_API_URL.to_string())
+    std::env::var("FOCUSA_AGENT_KB_API_URL").unwrap_or_else(|_| DEFAULT_KB_API_URL.to_string())
 }
 
 fn tailnet_suffix() -> String {
@@ -62,19 +61,22 @@ fn http_get_json(url: &str, bearer: Option<&str>) -> Option<Value> {
     let url = url.strip_prefix("http://").unwrap_or(url);
     let (host_port, path) = url.split_once('/').unwrap_or((url, "/"));
     let host = host_port.split(':').next().unwrap_or("127.0.0.1");
-    let port: u16 = host_port.split(':').nth(1).and_then(|p| p.parse().ok()).unwrap_or(80);
+    let port: u16 = host_port
+        .split(':')
+        .nth(1)
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(80);
     let ip = if host == "localhost" {
         "127.0.0.1".parse().ok()?
     } else {
         host.parse().ok()?
     };
-    let mut stream = TcpStream::connect_timeout(
-        &std::net::SocketAddr::new(ip, port),
-        CONNECT_TIMEOUT,
-    )
-    .ok()?;
+    let mut stream =
+        TcpStream::connect_timeout(&std::net::SocketAddr::new(ip, port), CONNECT_TIMEOUT).ok()?;
     stream.set_read_timeout(Some(READ_TIMEOUT)).ok()?;
-    let mut request = format!("GET /{path} HTTP/1.1\r\nHost: {host_port}\r\nAccept: application/json\r\nConnection: close\r\n");
+    let mut request = format!(
+        "GET /{path} HTTP/1.1\r\nHost: {host_port}\r\nAccept: application/json\r\nConnection: close\r\n"
+    );
     if let Some(token) = bearer {
         request.push_str(&format!("Authorization: Bearer {token}\r\n"));
     }
@@ -301,7 +303,12 @@ pub fn developer_origin_report() -> DeveloperOriginReport {
 #[cfg(test)]
 mod tests {
     static TEST_MUTEX: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
-    fn test_lock() -> std::sync::MutexGuard<'static, ()> { TEST_MUTEX.get_or_init(|| std::sync::Mutex::new(())).lock().unwrap() }
+    fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+        TEST_MUTEX
+            .get_or_init(|| std::sync::Mutex::new(()))
+            .lock()
+            .unwrap()
+    }
     use super::*;
 
     #[test]
@@ -321,7 +328,9 @@ mod tests {
         invalidate_developer_origin_cache();
         let previous_ttl = std::env::var("FOCUSA_DEV_ORIGIN_TTL_MS").ok();
         // Use TTL > padding (250ms) so effective TTL is stable and test is not flaky
-        unsafe { std::env::set_var("FOCUSA_DEV_ORIGIN_TTL_MS", "1000"); }
+        unsafe {
+            std::env::set_var("FOCUSA_DEV_ORIGIN_TTL_MS", "1000");
+        }
         let calls = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
         let counter = calls.clone();
         let probe = move || {
@@ -336,7 +345,13 @@ mod tests {
         std::thread::sleep(Duration::from_millis(900));
         // Expired — must re-probe (use same counter via new closure capturing same Arc)
         let counter2 = calls.clone();
-        assert!(developer_origin_active_with(move || { counter2.fetch_add(1, Ordering::SeqCst); true }, || false)); // re-probe
+        assert!(developer_origin_active_with(
+            move || {
+                counter2.fetch_add(1, Ordering::SeqCst);
+                true
+            },
+            || false
+        )); // re-probe
         assert_eq!(calls.load(Ordering::SeqCst), 2);
         match previous_ttl {
             Some(value) => unsafe { std::env::set_var("FOCUSA_DEV_ORIGIN_TTL_MS", value) },

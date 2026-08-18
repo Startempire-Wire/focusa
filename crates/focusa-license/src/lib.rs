@@ -6,8 +6,8 @@
 //! Legacy tier/file parsing is retained solely as non-authoritative migration input;
 //! missing, edited, expired, revoked, or unverifiable state cannot grant capability.
 
-pub mod activation_client;
 pub mod activation_agent;
+pub mod activation_client;
 pub mod activation_facade;
 pub mod activation_http;
 pub mod activation_reducer;
@@ -17,22 +17,22 @@ pub mod authority_credentials;
 pub mod authority_http;
 pub mod authority_store;
 pub mod capsule_manifest;
+pub mod denial_ux;
 pub mod dynamic_operation_manifest;
 mod entitlement_policy;
-pub mod denial_ux;
 pub mod facade_policy_presenter;
 pub mod feature_decision;
 pub mod license_migration;
 pub mod observability;
 
-pub use activation_client::{
-    ActivationClientError, ActivationJourney, ActivationLedgerEvent, ActivationRegistration,
-    ActivationSession, ActivationStartReply, ActivationAuthority, CheckoutOutcome, PollOutcome,
-    PublicOffer, DEFAULT_MAX_POLLS, retry_policy_for_code,
-};
 pub use activation_agent::{
     AGENT_ENVELOPE_SCHEMA, AgentActivationEnvelope, AgentKeyReveal, human_action_for_state,
     human_action_required, mask_key_prefix, masked_email_or_none,
+};
+pub use activation_client::{
+    ActivationAuthority, ActivationClientError, ActivationJourney, ActivationLedgerEvent,
+    ActivationRegistration, ActivationSession, ActivationStartReply, CheckoutOutcome,
+    DEFAULT_MAX_POLLS, PollOutcome, PublicOffer, retry_policy_for_code,
 };
 pub use activation_facade::{
     ActivationError, ActivationErrorCode, ActivationErrorSpec, ActivationRequestContext,
@@ -43,105 +43,89 @@ pub use activation_http::{
     code_from_label,
 };
 pub use activation_reducer::{
-    ActivationEnvelopeError, ActivationErrorEnvelope, ActivationOutputEnvelope,
-    ActivationState, ActivationTransition, ActivationTransitionError, PollRetryPolicy,
-    PresenterActivationState, RetryPosture, presenter_next_action, presenter_state,
-    reduce_activation,
+    ActivationEnvelopeError, ActivationErrorEnvelope, ActivationOutputEnvelope, ActivationState,
+    ActivationTransition, ActivationTransitionError, PollRetryPolicy, PresenterActivationState,
+    RetryPosture, presenter_next_action, presenter_state, reduce_activation,
+};
+pub use capsule_manifest::{
+    CAPSULE_MANIFEST_SCHEMA, CAPSULE_MANIFEST_VERSION, CAPSULE_SIGNATURE_ALGORITHM, CapsuleDigest,
+    CapsuleDigests, CapsuleManifest, CapsuleProvenance, CapsuleRevocation, CapsuleSignature,
+    CapsuleVerificationDecision, CapsuleVerificationFacts, KNOWN_LIMIT_POLICY_VERSION,
+    KeyEnvelopeRef, NODE_KEY_ENVELOPE_SCHEMA, PublicShellContract, REGISTERED_CAPSULE_ARCHES,
+    REGISTERED_CAPSULE_CHANNELS, REGISTERED_CAPSULE_PLATFORMS, REGISTERED_CAPSULE_RELEASE_STATUSES,
+    TrustedSignerKey, canonical_capsule_manifest_bytes, capsule_manifest_sha256,
+    verify_capsule_manifest,
+};
+pub use denial_ux::{
+    ACTION_LABEL_MANAGE_CAPACITY, ACTION_LABEL_REFRESH_DIAGNOSTICS, ACTION_LABEL_RETRY_DIAGNOSTICS,
+    ACTION_LABEL_RETRY_IDENTIFIER, ACTION_LABELS, DENIAL_UX_ACTIONS, DENIAL_UX_CATALOG_JSON,
+    DENIAL_UX_LINK_IDS, DENIAL_UX_SCHEMA, DenialUxError, DenialUxErrorCode, DenialUxErrorSpec,
+    DenialUxKind, DenialUxMessage, LINK_ACCOUNT, LINK_CHECKOUT, LINK_EVALUATION, LINK_RECOVERY,
+    MSG_BASE_REQUIRED, MSG_FEATURE_REQUIRED, MSG_IDEMPOTENCY_REQUIRED, MSG_LIMIT_EXHAUSTED,
+    MSG_POLICY_UNKNOWN, MSG_RECOVERY_ONLY, MSG_REQUIRED, MSG_RESERVATION_FAILED,
+    MSG_ROUTE_UNCLASSIFIED, MSG_SNAPSHOT_MISSING, PUBLIC_MESSAGE_RULES, RETAINED_ACCESS,
+    available_reason_for_family, blocked_action_for_family, denial_ux_action_label, denial_ux_link,
+    denial_ux_message_for, denial_ux_message_for_code, embedded_denial_ux_catalog,
+};
+pub use dynamic_operation_manifest::{
+    CanonicalManifestFacts, DynamicOperationManifest, ENTITLEMENT_POLICY_UNKNOWN,
+    FORBIDDEN_CLIENT_POLICY_FIELDS, ManifestQuarantineLedger, ManifestTrustDecision,
+    QuarantinedManifestRecord, REGISTERED_OPERATION_CLASSES, REGISTERED_PRODUCT_OWNERS,
+    REGISTERED_SIDE_EFFECT_CLASSES, verify_dynamic_operation_manifest, verify_generated_ui_action,
 };
 pub use entitlement_policy::{
-    authority_policy_state, base_product_compatibility_projection,
-    classify_operator_family_inheritance,
+    AUTOMATION_PREMIUM_FEATURE_IDS, AccessPosture, BASE_PRODUCT_CORE_COMPATIBILITY_IDS,
+    BaseProductDecision, CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS, CapabilityFamily,
+    CommercialTreatment, CompositeGrant, DecisionReason, EmbeddedEntitlementPolicyRegistry,
+    EntitlementPolicyPosture, EntitlementPolicyRegistryError, EntitlementPolicyTypeError,
+    EntitlementStateDecision, LicenseTypeCode, LicenseTypeGrant, LicenseTypeVersion, LimitBucket,
+    OperationClass, OperatorFamilyInheritanceDecision, OperatorSeats,
+    PREMIUM_UPDATES_PREMIUM_FEATURE_IDS, PolicyActivation, PolicyEntitlementState,
+    PremiumFamilyDecision, PremiumFamilyDenial, ProductCode, RELEASE_PROOF_PREMIUM_FEATURE_IDS,
+    RecoveryAllowance, RequiredFeature, ResolvedEntitlementPolicy, ResourceRight,
+    SPEC172_FOCUSA_OPERATOR_V1_FAMILIES, SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
+    SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
+    SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
+    SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES, SaleStatus, SecurityPrerequisite,
+    SharedNodeLimit, TEAM_REMOTE_PREMIUM_FEATURE_IDS, authority_policy_state,
+    base_product_compatibility_projection, classify_operator_family_inheritance,
     embedded_entitlement_policy_registry, is_focusa_verified_no_license_family_allowed,
     premium_family_feature_ids, reduce_entitlement_state, resolve_base_focusa_product,
     resolve_export_packaged, resolve_premium_family,
-    AccessPosture, BaseProductDecision, CapabilityFamily, CommercialTreatment,
-    CompositeGrant, DecisionReason, EmbeddedEntitlementPolicyRegistry,
-    EntitlementPolicyPosture, EntitlementPolicyRegistryError, EntitlementPolicyTypeError,
-    EntitlementStateDecision, LicenseTypeCode, LicenseTypeGrant,
-    LicenseTypeVersion, LimitBucket, OperationClass, OperatorFamilyInheritanceDecision,
-    OperatorSeats, PolicyActivation,
-    PolicyEntitlementState, PremiumFamilyDecision, PremiumFamilyDenial, ProductCode,
-    RecoveryAllowance, RequiredFeature, ResolvedEntitlementPolicy, ResourceRight, SaleStatus,
-    SecurityPrerequisite, SharedNodeLimit, AUTOMATION_PREMIUM_FEATURE_IDS,
-    BASE_PRODUCT_CORE_COMPATIBILITY_IDS,
-    CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS,
-    PREMIUM_UPDATES_PREMIUM_FEATURE_IDS,
-    RELEASE_PROOF_PREMIUM_FEATURE_IDS,
-    SPEC172_FOCUSA_OPERATOR_V1_FAMILIES,
-    SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
-    SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
-    SPEC172_UIAI_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
-    SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
-    TEAM_REMOTE_PREMIUM_FEATURE_IDS,
-};
-pub use capsule_manifest::{
-    canonical_capsule_manifest_bytes, capsule_manifest_sha256, verify_capsule_manifest,
-    CapsuleDigest, CapsuleDigests, CapsuleManifest, CapsuleProvenance, CapsuleRevocation,
-    CapsuleSignature, CapsuleVerificationDecision, CapsuleVerificationFacts, KeyEnvelopeRef,
-    PublicShellContract, TrustedSignerKey, CAPSULE_MANIFEST_SCHEMA, CAPSULE_MANIFEST_VERSION,
-    CAPSULE_SIGNATURE_ALGORITHM, KNOWN_LIMIT_POLICY_VERSION, NODE_KEY_ENVELOPE_SCHEMA,
-    REGISTERED_CAPSULE_ARCHES, REGISTERED_CAPSULE_CHANNELS, REGISTERED_CAPSULE_PLATFORMS,
-    REGISTERED_CAPSULE_RELEASE_STATUSES,
-};
-pub use dynamic_operation_manifest::{
-    verify_dynamic_operation_manifest, verify_generated_ui_action,
-    CanonicalManifestFacts, DynamicOperationManifest, ManifestQuarantineLedger,
-    ManifestTrustDecision, QuarantinedManifestRecord,
-    ENTITLEMENT_POLICY_UNKNOWN, FORBIDDEN_CLIENT_POLICY_FIELDS,
-    REGISTERED_OPERATION_CLASSES, REGISTERED_PRODUCT_OWNERS,
-    REGISTERED_SIDE_EFFECT_CLASSES,
 };
 pub use facade_policy_presenter::{
-    facade_family, facade_next_action_for_posture, facade_next_action_for_status,
-    safe_masked_status, FacadeFamily, FacadeMaskedStatus, FacadeNextAction,
-    FacadePolicyDecision, FacadePresenterError, FACADE_ALWAYS_REACHABLE,
-    FACADE_PRESENTER_FIELDS, FACADE_PRESENTER_FORBIDDEN_FIELDS,
-    FACADE_STATUS_ALLOWLIST,
-};
-pub use denial_ux::{
-    blocked_action_for_family, available_reason_for_family,
-    denial_ux_action_label, denial_ux_link,
-    denial_ux_message_for, denial_ux_message_for_code,
-    embedded_denial_ux_catalog,
-    ACTION_LABEL_MANAGE_CAPACITY, ACTION_LABEL_REFRESH_DIAGNOSTICS,
-    ACTION_LABEL_RETRY_DIAGNOSTICS, ACTION_LABEL_RETRY_IDENTIFIER,
-    ACTION_LABELS, DENIAL_UX_ACTIONS, DENIAL_UX_CATALOG_JSON,
-    DENIAL_UX_LINK_IDS, DENIAL_UX_SCHEMA, DenialUxError, DenialUxErrorCode,
-    DenialUxErrorSpec, DenialUxKind, DenialUxMessage, LINK_ACCOUNT,
-    LINK_CHECKOUT, LINK_EVALUATION, LINK_RECOVERY, MSG_BASE_REQUIRED,
-    MSG_FEATURE_REQUIRED, MSG_IDEMPOTENCY_REQUIRED, MSG_LIMIT_EXHAUSTED,
-    MSG_POLICY_UNKNOWN, MSG_RECOVERY_ONLY, MSG_REQUIRED,
-    MSG_RESERVATION_FAILED, MSG_ROUTE_UNCLASSIFIED, MSG_SNAPSHOT_MISSING,
-    PUBLIC_MESSAGE_RULES, RETAINED_ACCESS,
+    FACADE_ALWAYS_REACHABLE, FACADE_PRESENTER_FIELDS, FACADE_PRESENTER_FORBIDDEN_FIELDS,
+    FACADE_STATUS_ALLOWLIST, FacadeFamily, FacadeMaskedStatus, FacadeNextAction,
+    FacadePolicyDecision, FacadePresenterError, facade_family, facade_next_action_for_posture,
+    facade_next_action_for_status, safe_masked_status,
 };
 pub mod bundle_activation;
+pub mod cockpit_action_registry;
+pub mod lifetime_entitlement;
+pub mod limit_reservation;
 pub mod uiai_activation;
 pub mod uiai_child_token;
-pub mod cockpit_action_registry;
-pub mod limit_reservation;
-pub mod lifetime_entitlement;
 
 pub use cockpit_action_registry::{
-    classify_cockpit_action, resolve_cockpit_action, COCKPIT_ACTION_REGISTRY_SCHEMA,
-    CockpitActionDecision, CockpitActionDenial, CockpitActionError, CockpitActionMapEntry,
-    SPEC172_COCKPIT_ACTION_REGISTRY,
+    COCKPIT_ACTION_REGISTRY_SCHEMA, CockpitActionDecision, CockpitActionDenial, CockpitActionError,
+    CockpitActionMapEntry, SPEC172_COCKPIT_ACTION_REGISTRY, classify_cockpit_action,
+    resolve_cockpit_action,
 };
 
 pub use limit_reservation::{
-    declared_server_owned_limit_buckets, family_limit_buckets,
     AUTOMATION_LIMIT_BUCKETS, CUSTOMER_DATA_EXPORT_LIMIT_BUCKETS,
-    DECLARED_SERVER_OWNED_LIMIT_BUCKETS, PREMIUM_UPDATES_LIMIT_BUCKETS,
-    RELEASE_PROOF_LIMIT_BUCKETS, TEAM_REMOTE_LIMIT_BUCKETS,
-    LimitReservationService, ReservationError, ReservationGrant, ReservationScope,
+    DECLARED_SERVER_OWNED_LIMIT_BUCKETS, LimitReservationService, PREMIUM_UPDATES_LIMIT_BUCKETS,
+    RELEASE_PROOF_LIMIT_BUCKETS, ReservationError, ReservationGrant, ReservationScope,
+    TEAM_REMOTE_LIMIT_BUCKETS, declared_server_owned_limit_buckets, family_limit_buckets,
 };
 
 pub use lifetime_entitlement::{
-    DeviceCredentialStatus, DeviceCredentialWindow, LifetimeCredentialError,
+    DEVICE_CREDENTIAL_SCHEMA, DeviceCredentialStatus, DeviceCredentialWindow,
+    LICENSE_TYPE_FOCUSA_OPERATOR_LIFETIME_V1, LICENSE_TYPE_UIAI_OPERATOR_LIFETIME_V1,
+    LIFETIME_ENTITLEMENT_SCHEMA, LIFETIME_STATE_SCHEMA, LIFETIME_TERM, LifetimeCredentialError,
     LifetimeCredentialMachine, LifetimeCredentialState, LifetimeEntitlement,
-    LifetimeEntitlementStatus, PersistedLifetimeState, REFRESH_WINDOW_DAYS,
-    OFFLINE_GRACE_DAYS, DEVICE_CREDENTIAL_SCHEMA, LIFETIME_ENTITLEMENT_SCHEMA,
-    LIFETIME_STATE_SCHEMA, LIFETIME_TERM, LICENSE_TYPE_FOCUSA_OPERATOR_LIFETIME_V1,
-    LICENSE_TYPE_UIAI_OPERATOR_LIFETIME_V1, PRODUCT_FOCUSA, PRODUCT_UIAI_ENGINE,
+    LifetimeEntitlementStatus, OFFLINE_GRACE_DAYS, PRODUCT_FOCUSA, PRODUCT_UIAI_ENGINE,
+    PersistedLifetimeState, REFRESH_WINDOW_DAYS,
 };
 
 pub use observability::EntitlementDecisionCounters;
@@ -710,8 +694,8 @@ mod tests {
         snapshot.state = authority::EntitlementState::Active;
         snapshot.sequence = Some(42);
 
-        let decision = entitlement_decision_projection(Some(&snapshot))
-            .expect("decision projection");
+        let decision =
+            entitlement_decision_projection(Some(&snapshot)).expect("decision projection");
 
         assert_eq!(decision.status, "read");
         assert_eq!(decision.entitlement_state, "active_paid");
@@ -729,7 +713,9 @@ mod tests {
         assert!(!body.contains("node_id"));
         assert_eq!(
             decision.policy_digest,
-            embedded_entitlement_policy_registry().expect("registry").digest()
+            embedded_entitlement_policy_registry()
+                .expect("registry")
+                .digest()
         );
     }
 
@@ -747,7 +733,10 @@ mod tests {
         let decision = entitlement_decision_projection(Some(&snapshot)).expect("decision");
         assert_eq!(decision.status, "deny");
         assert_eq!(decision.reason_code, "deny");
-        assert_eq!(decision.recovery_action, "activate_evaluation_purchase_or_manage_entitlement");
+        assert_eq!(
+            decision.recovery_action,
+            "activate_evaluation_purchase_or_manage_entitlement"
+        );
         assert_eq!(decision.entitlement_state, "pending_unverified");
         assert_eq!(decision.lease_sequence, 0);
     }
@@ -894,7 +883,11 @@ mod tests {
         assert!(decision.permits_base_mutations());
         let projection = base_product_compatibility_projection(decision, &empty);
         for id in BASE_PRODUCT_CORE_COMPATIBILITY_IDS {
-            assert_eq!(projection.get(id), Some(&true), "{id} resolves as base product");
+            assert_eq!(
+                projection.get(id),
+                Some(&true),
+                "{id} resolves as base product"
+            );
         }
 
         // Stored false values are non-authoritative projection claims; the base
@@ -928,7 +921,10 @@ mod tests {
         assert_eq!(projection.product, "focusa");
         assert_eq!(projection.decision, "entitled");
         assert!(projection.permits_base_mutations);
-        assert_eq!(projection.compatibility.get("focusa.core.mission"), Some(&true));
+        assert_eq!(
+            projection.compatibility.get("focusa.core.mission"),
+            Some(&true)
+        );
 
         // No snapshot fails closed.
         assert!(matches!(
@@ -938,7 +934,11 @@ mod tests {
 
         // Offline Grace is usable.
         snapshot.state = authority::EntitlementState::OfflineGrace;
-        assert!(base_product_projection(Some(&snapshot)).unwrap().permits_base_mutations);
+        assert!(
+            base_product_projection(Some(&snapshot))
+                .unwrap()
+                .permits_base_mutations
+        );
 
         // Recovery-only is not base entitlement.
         snapshot.state = authority::EntitlementState::RecoveryOnly;

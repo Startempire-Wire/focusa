@@ -950,27 +950,29 @@ fn spec172_license_type(
 }
 
 /// Stable Spec 172 denial code and upgrade action for a denied base gate.
-fn spec172_base_denial(
-    posture: &str,
-    product: &str,
-) -> (Option<&'static str>, &'static str) {
+fn spec172_base_denial(posture: &str, product: &str) -> (Option<&'static str>, &'static str) {
     match posture {
         "unverified" => (
             Some("EMAIL_VERIFICATION_REQUIRED"),
             "verify_email_or_manage_entitlement",
         ),
-        "refunded_or_revoked" => {
-            (Some("RECOVERY_ONLY"), "review_offer_or_manage_entitlement")
-        }
-        "expired" => (Some("LICENSE_TYPE_REQUIRED"), "purchase_or_manage_entitlement"),
+        "refunded_or_revoked" => (Some("RECOVERY_ONLY"), "review_offer_or_manage_entitlement"),
+        "expired" => (
+            Some("LICENSE_TYPE_REQUIRED"),
+            "purchase_or_manage_entitlement",
+        ),
         "missing_or_corrupt" => (
             Some("ENTITLEMENT_POLICY_UNKNOWN"),
             "review_offer_or_manage_entitlement",
         ),
-        _ if product != "focusa" => {
-            (Some("PRODUCT_NOT_INCLUDED"), "review_offer_or_manage_entitlement")
-        }
-        _ => (Some("LICENSE_TYPE_REQUIRED"), "purchase_or_manage_entitlement"),
+        _ if product != "focusa" => (
+            Some("PRODUCT_NOT_INCLUDED"),
+            "review_offer_or_manage_entitlement",
+        ),
+        _ => (
+            Some("LICENSE_TYPE_REQUIRED"),
+            "purchase_or_manage_entitlement",
+        ),
     }
 }
 
@@ -1008,15 +1010,32 @@ fn spec172_denial_and_upgrade(
     // Optional families re-resolve the exact registered feature identifier so
     // the denial mirrors the canonical premium decision (never a stored claim).
     let (family_enum, feature) = match family {
-        "automation" => (focusa_license::CapabilityFamily::Automation, "focusa.agent.silent_sessions"),
-        "team_remote" => (focusa_license::CapabilityFamily::TeamRemote, "focusa.team.multi_operator"),
-        "release_proof" => (focusa_license::CapabilityFamily::ReleaseProof, "focusa.release.proof"),
-        "premium_updates" => (focusa_license::CapabilityFamily::PremiumUpdates, "focusa.update.unattended"),
+        "automation" => (
+            focusa_license::CapabilityFamily::Automation,
+            "focusa.agent.silent_sessions",
+        ),
+        "team_remote" => (
+            focusa_license::CapabilityFamily::TeamRemote,
+            "focusa.team.multi_operator",
+        ),
+        "release_proof" => (
+            focusa_license::CapabilityFamily::ReleaseProof,
+            "focusa.release.proof",
+        ),
+        "premium_updates" => (
+            focusa_license::CapabilityFamily::PremiumUpdates,
+            "focusa.update.unattended",
+        ),
         "customer_data_export" => (
             focusa_license::CapabilityFamily::CustomerDataExport,
             "focusa.export.packaged",
         ),
-        _ => return (Some("CAPABILITY_FAMILY_NOT_INCLUDED"), "review_offer_or_manage_entitlement"),
+        _ => {
+            return (
+                Some("CAPABILITY_FAMILY_NOT_INCLUDED"),
+                "review_offer_or_manage_entitlement",
+            );
+        }
     };
     let now = chrono::Utc::now();
     let decision = if family == "customer_data_export" {
@@ -1057,8 +1076,7 @@ fn spec172_projection(
     let product = snapshot
         .map(|entry| entry.product.as_str())
         .unwrap_or("unknown");
-    let (denial, upgrade_action) =
-        spec172_denial_and_upgrade(snapshot, family, posture, product);
+    let (denial, upgrade_action) = spec172_denial_and_upgrade(snapshot, family, posture, product);
     json!({
         "schema": SPEC172_PRESENTER_SCHEMA,
         "posture": posture,
@@ -1103,15 +1121,25 @@ async fn run_preflight(json_output: bool, args: PreflightArgs) -> anyhow::Result
                 .to_string();
             (
                 label,
-                focusa_license::DecisionReason::RequireBase.label().to_string(),
-                focusa_license::DecisionReason::RequireBase.recovery_action().to_string(),
+                focusa_license::DecisionReason::RequireBase
+                    .label()
+                    .to_string(),
+                focusa_license::DecisionReason::RequireBase
+                    .recovery_action()
+                    .to_string(),
             )
         }
-        "automation" | "team_remote" | "release_proof" | "premium_updates"
+        "automation"
+        | "team_remote"
+        | "release_proof"
+        | "premium_updates"
         | "customer_data_export" => {
             let row = decision["premium"]
                 .as_array()
-                .and_then(|rows| rows.iter().find(|row| row["family"].as_str() == Some(family)))
+                .and_then(|rows| {
+                    rows.iter()
+                        .find(|row| row["family"].as_str() == Some(family))
+                })
                 .cloned()
                 .unwrap_or_else(|| {
                     json!({
@@ -1149,7 +1177,9 @@ async fn run_preflight(json_output: bool, args: PreflightArgs) -> anyhow::Result
         );
         println!(
             "License type:   {}",
-            payload["spec172"]["license_type"].as_str().unwrap_or("none")
+            payload["spec172"]["license_type"]
+                .as_str()
+                .unwrap_or("none")
         );
         println!("Decision:       {decision_label}");
         println!("Reason:         {reason_code}");
@@ -1177,7 +1207,8 @@ async fn run_preflight(json_output: bool, args: PreflightArgs) -> anyhow::Result
 async fn run_status(json_output: bool) -> anyhow::Result<()> {
     let guard = focusa_license::resolve_license_guard();
     let authority = focusa_license::entitlement_projection(guard.entitlement.as_ref())?;
-    let entitlement_decision = focusa_license::entitlement_decision_projection(guard.entitlement.as_ref())?;
+    let entitlement_decision =
+        focusa_license::entitlement_decision_projection(guard.entitlement.as_ref())?;
     let decision = canonical_decision_payload(guard.entitlement.as_ref());
     let payload = json!({
         "schema": "focusa.authority_license_status.v1",
@@ -1210,24 +1241,36 @@ async fn run_status(json_output: bool) -> anyhow::Result<()> {
         );
         println!(
             "License type:   {}",
-            payload["spec172"]["license_type"].as_str().unwrap_or("none")
+            payload["spec172"]["license_type"]
+                .as_str()
+                .unwrap_or("none")
         );
         println!(
             "Decision:       {} ({})",
-            payload["entitlement_decision"]["status"].as_str().unwrap_or("unknown"),
-            payload["entitlement_decision"]["reason_code"].as_str().unwrap_or("unknown")
+            payload["entitlement_decision"]["status"]
+                .as_str()
+                .unwrap_or("unknown"),
+            payload["entitlement_decision"]["reason_code"]
+                .as_str()
+                .unwrap_or("unknown")
         );
         println!(
             "Recovery action: {}",
-            payload["entitlement_decision"]["recovery_action"].as_str().unwrap_or("unknown")
+            payload["entitlement_decision"]["recovery_action"]
+                .as_str()
+                .unwrap_or("unknown")
         );
         if let Some(sequence) = payload["authority"]["lease_sequence"].as_u64() {
             println!("Lease sequence: {sequence}");
         }
         println!(
             "Base product:   {} (product={})",
-            payload["base_product"]["decision"].as_str().unwrap_or("denied"),
-            payload["base_product"]["product"].as_str().unwrap_or("unknown")
+            payload["base_product"]["decision"]
+                .as_str()
+                .unwrap_or("denied"),
+            payload["base_product"]["product"]
+                .as_str()
+                .unwrap_or("unknown")
         );
         let premium_summary = payload["premium"]
             .as_array()
@@ -2115,12 +2158,11 @@ async fn run_activation_flow_command(
         .map(PathBuf::from)
         .ok_or_else(|| anyhow::anyhow!("HOME not set; cannot resolve activation state"))?;
     let config_dir = home.join(".config/focusa");
-    let identity = resolve_flow_node_identity(&config_dir)
-        .map_err(|error| anyhow::anyhow!("{error}"))?;
+    let identity =
+        resolve_flow_node_identity(&config_dir).map_err(|error| anyhow::anyhow!("{error}"))?;
 
-    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN").unwrap_or_else(|_| {
-        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string()
-    });
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
+        .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string());
     let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
     let policy = ActivationHttpPolicy {
         base_url,
@@ -2226,12 +2268,11 @@ async fn run_agent_activation_command(
         .map(PathBuf::from)
         .ok_or_else(|| anyhow::anyhow!("HOME not set; cannot resolve activation state"))?;
     let config_dir = home.join(".config/focusa");
-    let identity = resolve_flow_node_identity(&config_dir)
-        .map_err(|error| anyhow::anyhow!("{error}"))?;
+    let identity =
+        resolve_flow_node_identity(&config_dir).map_err(|error| anyhow::anyhow!("{error}"))?;
 
-    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN").unwrap_or_else(|_| {
-        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string()
-    });
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
+        .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string());
     let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
     let policy = ActivationHttpPolicy {
         base_url,

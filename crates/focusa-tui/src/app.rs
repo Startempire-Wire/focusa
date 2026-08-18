@@ -3,8 +3,8 @@
 use crate::activation_presenter::{
     TuiActivationView, TuiLicensePosture, project_activation_status, project_license_status,
 };
-use crate::spec172_presenter::{Spec172Posture, project_spec172_posture};
 use crate::api::ApiClient;
+use crate::spec172_presenter::{Spec172Posture, project_spec172_posture};
 use chrono::{DateTime, Local};
 use serde::Deserialize;
 use std::collections::HashMap;

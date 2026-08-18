@@ -40,11 +40,13 @@ impl CliUpdateAuthority {
         let cli = std::env::var_os("FOCUSA_CLI_PATH")
             .map(PathBuf::from)
             .or_else(|| {
-                let sibling = std::env::current_exe().ok()?.with_file_name(if cfg!(windows) {
-                    "focusa.exe"
-                } else {
-                    "focusa"
-                });
+                let sibling = std::env::current_exe()
+                    .ok()?
+                    .with_file_name(if cfg!(windows) {
+                        "focusa.exe"
+                    } else {
+                        "focusa"
+                    });
                 sibling.is_file().then_some(sibling)
             })
             .unwrap_or_else(|| PathBuf::from("/usr/local/bin/focusa"));
@@ -135,7 +137,10 @@ async fn execute_cli(cli: &Path, expected_schema: &str, args: &[String]) -> anyh
         format!(
             "canonical updater returned non-JSON output (exit={:?}, stderr={})",
             output.status.code(),
-            String::from_utf8_lossy(&output.stderr).chars().take(512).collect::<String>()
+            String::from_utf8_lossy(&output.stderr)
+                .chars()
+                .take(512)
+                .collect::<String>()
         )
     })?;
     if value.get("schema").and_then(Value::as_str) != Some(expected_schema) {
@@ -288,7 +293,11 @@ esac
         assert_eq!(applied["status"], "completed");
         assert_eq!(std::fs::read(root.join("live")).unwrap(), b"new");
         let rolled_back = authority
-            .rollback(RollbackRequest { part: "all".into(), dry_run: false, yes: true })
+            .rollback(RollbackRequest {
+                part: "all".into(),
+                dry_run: false,
+                yes: true,
+            })
             .await;
         assert_eq!(rolled_back["status"], "completed");
         assert_eq!(std::fs::read(root.join("live")).unwrap(), b"old");
@@ -297,8 +306,11 @@ esac
 
     #[tokio::test]
     async fn wrong_schema_fails_closed() {
-        let (root, script) = fixture("printf '%s\\n' '{\"schema\":\"wrong\",\"status\":\"completed\"}'");
-        let out = CliUpdateAuthority::new(script).plan(UpdateRequest::default()).await;
+        let (root, script) =
+            fixture("printf '%s\\n' '{\"schema\":\"wrong\",\"status\":\"completed\"}'");
+        let out = CliUpdateAuthority::new(script)
+            .plan(UpdateRequest::default())
+            .await;
         assert_eq!(out["failure_class"], "canonical_update_authority_failed");
         assert_eq!(out["fail_closed"], true);
         std::fs::remove_dir_all(root).unwrap();

@@ -33,7 +33,11 @@ const BASE_MUTATION_ROUTE: (&str, Method, Family) =
 const PREMIUM_ROUTES: [(&str, Method, Family); 4] = [
     ("/v1/silent-sessions", Method::POST, Family::Automation),
     ("/v1/connect/room/create", Method::POST, Family::TeamRemote),
-    ("/v1/release/proof/status", Method::POST, Family::ReleaseProof),
+    (
+        "/v1/release/proof/status",
+        Method::POST,
+        Family::ReleaseProof,
+    ),
     ("/v1/update/scheduler", Method::POST, Family::PremiumUpdates),
 ];
 

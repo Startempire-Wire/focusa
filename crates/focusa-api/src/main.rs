@@ -322,11 +322,15 @@ async fn main() -> anyhow::Result<()> {
     // Isolated e2e/CI daemons run with FOCUSA_TEST_MODE=1 and no operator lease;
     // grant a bound test entitlement so value-producing e2e surfaces exercise
     // the full entitlement path instead of failing at the gate.
-    if std::env::var("FOCUSA_TEST_MODE").map(|value| value == "1").unwrap_or(false)
-        && license_guard
-            .entitlement
-            .as_ref()
-            .is_none_or(|snapshot| !matches!(snapshot.state, focusa_license::authority::EntitlementState::Active))
+    if std::env::var("FOCUSA_TEST_MODE")
+        .map(|value| value == "1")
+        .unwrap_or(false)
+        && license_guard.entitlement.as_ref().is_none_or(|snapshot| {
+            !matches!(
+                snapshot.state,
+                focusa_license::authority::EntitlementState::Active
+            )
+        })
     {
         let mut entitlement =
             focusa_license::authority::EntitlementSnapshot::unactivated("focusa", "test-node");
@@ -565,8 +569,7 @@ mod cli_action_tests {
     use super::*;
 
     fn args(v: &[&str]) -> impl Iterator<Item = String> {
-        std::iter::once("focusa-daemon".to_string())
-            .chain(v.iter().map(|s| s.to_string()))
+        std::iter::once("focusa-daemon".to_string()).chain(v.iter().map(|s| s.to_string()))
     }
 
     #[test]

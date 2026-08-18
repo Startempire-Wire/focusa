@@ -728,7 +728,10 @@ fn supervisor_should_start_pi_driver(
 ) -> bool {
     supervisor_allows_pi_driver(enabled, status)
         && (has_current_task
-            || !matches!(status, WorkLoopStatus::Idle | WorkLoopStatus::TransportDegraded))
+            || !matches!(
+                status,
+                WorkLoopStatus::Idle | WorkLoopStatus::TransportDegraded
+            ))
 }
 
 async fn reflection_scheduler_loop(base_url: String) {
@@ -911,9 +914,9 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             if lease.expires_at <= chrono::Utc::now() {
                 let live_driver = {
                     let mut guard = state.pi_rpc_session.lock().await;
-                    guard.as_mut().is_some_and(|session| {
-                        matches!(session.child.try_wait(), Ok(None))
-                    })
+                    guard
+                        .as_mut()
+                        .is_some_and(|session| matches!(session.child.try_wait(), Ok(None)))
                 };
                 if !live_driver {
                     tokio::time::sleep(Duration::from_millis(delay_ms)).await;
@@ -929,8 +932,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                                 && active.fencing_token == lease.fencing_token
                         })
                         .map(|active| {
-                            active.expires_at =
-                                crate::routes::work_loop::writer_lease_expiry(now);
+                            active.expires_at = crate::routes::work_loop::writer_lease_expiry(now);
                             active.clone()
                         })
                 };
@@ -940,10 +942,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 };
                 lease = renewed;
             }
-            let driver_idempotency_key = format!(
-                "work-loop-supervisor:{}:{}",
-                claim_key, lease.fencing_token
-            );
+            let driver_idempotency_key =
+                format!("work-loop-supervisor:{}:{}", claim_key, lease.fencing_token);
 
             let allows_driver = supervisor_allows_pi_driver(enabled, status);
             let should_start_driver =

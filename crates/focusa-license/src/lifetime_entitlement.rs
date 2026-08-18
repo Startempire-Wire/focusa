@@ -108,12 +108,8 @@ impl LifetimeEntitlement {
         let product = product.into();
         let license_type = license_type.into();
         let valid_product = match product.as_str() {
-            PRODUCT_FOCUSA => {
-                license_type == LICENSE_TYPE_FOCUSA_OPERATOR_LIFETIME_V1
-            }
-            PRODUCT_UIAI_ENGINE => {
-                license_type == LICENSE_TYPE_UIAI_OPERATOR_LIFETIME_V1
-            }
+            PRODUCT_FOCUSA => license_type == LICENSE_TYPE_FOCUSA_OPERATOR_LIFETIME_V1,
+            PRODUCT_UIAI_ENGINE => license_type == LICENSE_TYPE_UIAI_OPERATOR_LIFETIME_V1,
             _ => return Err(LifetimeCredentialError::InvalidProduct(product)),
         };
         if !valid_product {
@@ -340,13 +336,12 @@ impl LifetimeCredentialMachine {
         authority_key_id: impl Into<String>,
     ) -> Result<DeviceCredentialWindow, LifetimeCredentialError> {
         require_entitled(entitlement)?;
-        let sequence = entitlement
-            .sequence
-            .checked_add(1)
-            .ok_or(LifetimeCredentialError::SequenceRollback {
+        let sequence = entitlement.sequence.checked_add(1).ok_or(
+            LifetimeCredentialError::SequenceRollback {
                 new: 0,
                 current: entitlement.sequence,
-            })?;
+            },
+        )?;
         if sequence <= current.sequence {
             return Err(LifetimeCredentialError::SequenceRollback {
                 new: sequence,
@@ -377,13 +372,12 @@ impl LifetimeCredentialMachine {
         authority_key_id: impl Into<String>,
     ) -> Result<DeviceCredentialWindow, LifetimeCredentialError> {
         require_entitled(entitlement)?;
-        let sequence = entitlement
-            .sequence
-            .checked_add(1)
-            .ok_or(LifetimeCredentialError::SequenceRollback {
+        let sequence = entitlement.sequence.checked_add(1).ok_or(
+            LifetimeCredentialError::SequenceRollback {
                 new: 0,
                 current: entitlement.sequence,
-            })?;
+            },
+        )?;
         build_window(
             entitlement,
             node_id.into(),
@@ -439,9 +433,7 @@ impl LifetimeCredentialMachine {
     }
 }
 
-fn require_entitled(
-    entitlement: &LifetimeEntitlement,
-) -> Result<(), LifetimeCredentialError> {
+fn require_entitled(entitlement: &LifetimeEntitlement) -> Result<(), LifetimeCredentialError> {
     if !entitlement.is_lifetime() {
         return Err(LifetimeCredentialError::NotLifetimeTerm(
             entitlement.term.clone(),
@@ -510,8 +502,8 @@ impl PersistedLifetimeState {
         if !path.exists() {
             return Err(LifetimeCredentialError::Read("missing".into()));
         }
-        let raw =
-            std::fs::read(path).map_err(|error| LifetimeCredentialError::Read(error.to_string()))?;
+        let raw = std::fs::read(path)
+            .map_err(|error| LifetimeCredentialError::Read(error.to_string()))?;
         let state: Self =
             serde_json::from_slice(&raw).map_err(|_| LifetimeCredentialError::InvalidJson)?;
         if state.schema != LIFETIME_STATE_SCHEMA {

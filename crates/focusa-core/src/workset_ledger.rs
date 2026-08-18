@@ -98,8 +98,7 @@ pub fn workset_digest(definition: &WorksetDefinition) -> String {
     let mut hasher = Sha256::new();
     // Serialize types never fail serialization; the expect documents the
     // invariant instead of silently hashing an empty string.
-    let canonical = serde_json::to_string(definition)
-        .expect("WorksetDefinition always serializes");
+    let canonical = serde_json::to_string(definition).expect("WorksetDefinition always serializes");
     hasher.update(canonical.as_bytes());
     format!("sha256:{}", hex(&hasher.finalize()))
 }
@@ -117,7 +116,11 @@ pub fn replay_projection(
     let mut membership: Vec<String> = Vec::new();
     for event in events {
         match event {
-            WorksetEvent::RequirementAdmitted { requirement_id, provider_ref, .. } => {
+            WorksetEvent::RequirementAdmitted {
+                requirement_id,
+                provider_ref,
+                ..
+            } => {
                 requirements.insert(
                     requirement_id.clone(),
                     RequirementState {
@@ -127,7 +130,11 @@ pub fn replay_projection(
                     },
                 );
             }
-            WorksetEvent::RequirementDisposed { requirement_id, disposition, .. } => {
+            WorksetEvent::RequirementDisposed {
+                requirement_id,
+                disposition,
+                ..
+            } => {
                 if let Some(state) = requirements.get_mut(requirement_id) {
                     state.disposition = Some(*disposition);
                 } else {
@@ -136,18 +143,20 @@ pub fn replay_projection(
                     ));
                 }
             }
-            WorksetEvent::MembershipRevised { member_item_id, action, .. } => {
-                match action {
-                    MembershipAction::Admitted => {
-                        if !membership.contains(member_item_id) {
-                            membership.push(member_item_id.clone());
-                        }
-                    }
-                    MembershipAction::Removed => {
-                        membership.retain(|id| id != member_item_id);
+            WorksetEvent::MembershipRevised {
+                member_item_id,
+                action,
+                ..
+            } => match action {
+                MembershipAction::Admitted => {
+                    if !membership.contains(member_item_id) {
+                        membership.push(member_item_id.clone());
                     }
                 }
-            }
+                MembershipAction::Removed => {
+                    membership.retain(|id| id != member_item_id);
+                }
+            },
             WorksetEvent::CompletionContracted { .. } => {}
         }
     }

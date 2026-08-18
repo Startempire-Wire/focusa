@@ -10,7 +10,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "agent-stateful-cognitive-runtime"
-version = "0.9.144"
+version = "0.9.172"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -628,7 +628,7 @@ checksum = "c3e64b0cc0439b12df2fa678eae89a1c56a529fd067a9115f7827f1fffd22b32"
 
 [[package]]
 name = "cognitive-state-projection"
-version = "0.9.144"
+version = "0.9.172"
 dependencies = [
  "agent-stateful-cognitive-runtime",
  "hex",
@@ -1422,6 +1422,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "serde_path_to_error",
  "sha2",
  "sqlite-vec",
  "thiserror 2.0.18",
@@ -1454,6 +1455,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "serde_yaml",
  "sha2",
  "thiserror 2.0.18",
  "toml",
@@ -1543,6 +1545,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dff15bf788c671c1934e366d07e30c1814a8ef514e1af724a602e8a2fbe1b10"
 dependencies = [
  "futures-core",
+ "futures-sink",
 ]
 
 [[package]]
@@ -2206,7 +2209,7 @@ checksum = "7a79a3332a6609480d7d0c9eab957bca6b455b91bb84e66d19f5ff66294b85b8"
 
 [[package]]
 name = "letta-adapter"
-version = "0.9.144"
+version = "0.9.172"
 dependencies = [
  "agent-stateful-cognitive-runtime",
  "hex",
@@ -2975,9 +2978,12 @@ dependencies = [
 
 [[package]]
 name = "pi-client-tool-gateway"
-version = "0.9.144"
+version = "0.9.172"
 dependencies = [
  "agent-stateful-cognitive-runtime",
+ "chrono",
+ "focusa-core",
+ "focusa-license",
  "hex",
  "letta-adapter",
  "serde",
@@ -3538,6 +3544,7 @@ checksum = "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "futures-channel",
  "futures-core",
  "futures-util",
  "http",
@@ -3787,6 +3794,19 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
 ]
 
 [[package]]
@@ -4648,6 +4668,12 @@ name = "unicode_categories"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39ec24b3121d976906ece63c9daad25b85969647682eee313cb5779fdd69e14e"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "untrusted"

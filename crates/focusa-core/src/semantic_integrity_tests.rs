@@ -85,7 +85,9 @@ fn validation_profiles_enforce_shapes_imports_and_quarantine() {
 
     let mut invalid = artifact();
     invalid.statements.clear();
-    invalid.import_iris.push("https://untrusted.example/ontology".into());
+    invalid
+        .import_iris
+        .push("https://untrusted.example/ontology".into());
     let report = validate_semantic_artifact(&invalid, &profile()).unwrap();
     assert!(!report.conforms);
     assert!(report.quarantine_required);

@@ -370,23 +370,31 @@ fn explanation(family: FacadeFamily, posture: EntitlementPolicyPosture) -> &'sta
 /// Typed failure for facade-presenter contract violations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Error)]
 pub enum FacadePresenterError {
-    #[error("internal maintenance has no facade-presentable family; present the initiating operation's family")]
+    #[error(
+        "internal maintenance has no facade-presentable family; present the initiating operation's family"
+    )]
     FamilyNotPresentable,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entitlement_policy::{reduce_entitlement_state, PolicyEntitlementState};
+    use crate::entitlement_policy::{PolicyEntitlementState, reduce_entitlement_state};
 
-    fn decision(state: PolicyEntitlementState, family: CapabilityFamily) -> EntitlementStateDecision {
+    fn decision(
+        state: PolicyEntitlementState,
+        family: CapabilityFamily,
+    ) -> EntitlementStateDecision {
         reduce_entitlement_state(state, family, None)
     }
 
     #[test]
     fn base_family_projects_the_canonical_base_decision() {
         let view = FacadePolicyDecision::project(
-            decision(PolicyEntitlementState::ActivePaid, CapabilityFamily::BaseFocusa),
+            decision(
+                PolicyEntitlementState::ActivePaid,
+                CapabilityFamily::BaseFocusa,
+            ),
             CapabilityFamily::BaseFocusa,
             "active_paid",
         )
@@ -395,13 +403,19 @@ mod tests {
         assert_eq!(view.posture(), EntitlementPolicyPosture::Base);
         assert_eq!(view.action(), FacadeNextAction::Manage);
         assert_eq!(view.action_label(), "Manage entitlement");
-        assert_eq!(view.recovery_action(), "activate_evaluation_purchase_or_manage_entitlement");
+        assert_eq!(
+            view.recovery_action(),
+            "activate_evaluation_purchase_or_manage_entitlement"
+        );
     }
 
     #[test]
     fn denied_base_decision_projects_evaluate_action() {
         let view = FacadePolicyDecision::project(
-            decision(PolicyEntitlementState::Expired, CapabilityFamily::BaseFocusa),
+            decision(
+                PolicyEntitlementState::Expired,
+                CapabilityFamily::BaseFocusa,
+            ),
             CapabilityFamily::BaseFocusa,
             "expired",
         )
@@ -414,7 +428,10 @@ mod tests {
     #[test]
     fn premium_family_projects_purchase_or_deny_and_is_premium() {
         let granted = FacadePolicyDecision::project(
-            decision(PolicyEntitlementState::ActivePaid, CapabilityFamily::Automation),
+            decision(
+                PolicyEntitlementState::ActivePaid,
+                CapabilityFamily::Automation,
+            ),
             CapabilityFamily::Automation,
             "active_paid",
         )
@@ -425,7 +442,10 @@ mod tests {
         assert_eq!(granted.action(), FacadeNextAction::Purchase);
 
         let denied = FacadePolicyDecision::project(
-            decision(PolicyEntitlementState::Expired, CapabilityFamily::ReleaseProof),
+            decision(
+                PolicyEntitlementState::Expired,
+                CapabilityFamily::ReleaseProof,
+            ),
             CapabilityFamily::ReleaseProof,
             "expired",
         )
@@ -464,7 +484,10 @@ mod tests {
     #[test]
     fn recovery_only_status_always_shows_recovery_action() {
         let view = FacadePolicyDecision::project(
-            decision(PolicyEntitlementState::Expired, CapabilityFamily::BaseFocusa),
+            decision(
+                PolicyEntitlementState::Expired,
+                CapabilityFamily::BaseFocusa,
+            ),
             CapabilityFamily::BaseFocusa,
             "recovery_only",
         )
@@ -479,12 +502,17 @@ mod tests {
             facade_family(CapabilityFamily::InternalMaintenance),
             Err(FacadePresenterError::FamilyNotPresentable)
         );
-        assert!(FacadePolicyDecision::project(
-            decision(PolicyEntitlementState::ActivePaid, CapabilityFamily::InternalMaintenance),
-            CapabilityFamily::InternalMaintenance,
-            "active_paid",
-        )
-        .is_err());
+        assert!(
+            FacadePolicyDecision::project(
+                decision(
+                    PolicyEntitlementState::ActivePaid,
+                    CapabilityFamily::InternalMaintenance
+                ),
+                CapabilityFamily::InternalMaintenance,
+                "active_paid",
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -504,7 +532,10 @@ mod tests {
             None
         );
         // Raw identity fails closed.
-        assert_eq!(safe_masked_status("active_paid", Some("customer@example.com")), None);
+        assert_eq!(
+            safe_masked_status("active_paid", Some("customer@example.com")),
+            None
+        );
     }
 
     #[test]

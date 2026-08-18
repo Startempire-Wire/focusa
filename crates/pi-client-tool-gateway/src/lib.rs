@@ -3,9 +3,7 @@ use agent_stateful_cognitive_runtime::{
 };
 use chrono::{Duration, Utc};
 use focusa_core::license::{
-    evaluate_entitlement_execution,
-    EntitlementExecutionContext,
-    EntitlementExecutionPolicy,
+    EntitlementExecutionContext, EntitlementExecutionPolicy, evaluate_entitlement_execution,
 };
 use focusa_license::LicenseGuard;
 use letta_adapter::{AdapterFuture, LettaAdapterError, PiClientToolGateway};
@@ -28,7 +26,6 @@ pub struct ToolEntitlementPolicy {
     #[serde(default)]
     pub limit_bucket: Option<String>,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ToolManifest {
@@ -110,7 +107,9 @@ fn entitlement_policy_for_manifest(
     let lowered = manifest.operation.to_lowercase();
     let operation_id = manifest.operation.clone();
     let is_read_fallback = !manifest.mutation;
-    let is_automation = lowered.contains("silent") || lowered.contains("parallel") || lowered.contains("agent_loop");
+    let is_automation = lowered.contains("silent")
+        || lowered.contains("parallel")
+        || lowered.contains("agent_loop");
 
     let explicit = manifest.entitlement_policy.as_ref();
     let operation_class = explicit
@@ -216,10 +215,7 @@ where
         }
     }
 
-    pub fn with_entitlement_guard(
-        mut self,
-        entitlement_guard: LicenseGuard,
-    ) -> Self {
+    pub fn with_entitlement_guard(mut self, entitlement_guard: LicenseGuard) -> Self {
         self.entitlement_guard = Some(entitlement_guard);
         self
     }

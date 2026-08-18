@@ -152,7 +152,10 @@ mod tests {
         assert_eq!(plan.session_count, 5); // 1 orchestrator + 4 workers
         assert_eq!(plan.sessions[0].role, LaneRole::Orchestrator);
         assert_eq!(plan.sessions[0].frame_kind, FrameKind::Agent);
-        assert!(plan.sessions[0].work_items.is_empty(), "orchestrator holds no implementation items");
+        assert!(
+            plan.sessions[0].work_items.is_empty(),
+            "orchestrator holds no implementation items"
+        );
         // Round-robin workers: lane 1 gets a, e; lane 2 gets b, f; …
         assert_eq!(plan.sessions[1].work_items, vec!["a", "e"]);
         assert_eq!(plan.sessions[2].work_items, vec!["b", "f"]);

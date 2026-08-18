@@ -82,7 +82,10 @@ fn adapter() -> AdapterEntitlementPosture {
     }
 }
 
-fn binding_with(state: LifecycleEntitlementState, license_class: &str) -> LifecycleEntitlementBinding {
+fn binding_with(
+    state: LifecycleEntitlementState,
+    license_class: &str,
+) -> LifecycleEntitlementBinding {
     LifecycleEntitlementBinding {
         schema_version: "focusa.lifecycle_entitlement_binding.v1".into(),
         state,
@@ -320,7 +323,10 @@ fn receipt_presenter_posture_uses_shared_presenter_vocabulary() {
 #[test]
 fn receipt_records_canonical_simple_policy_binding() {
     let mut paid = acceptance(LifecycleEntitlementReceiptClass::PaidReady);
-    paid.entitlement_binding = Some(binding_with(LifecycleEntitlementState::ActivePaid, "focusa"));
+    paid.entitlement_binding = Some(binding_with(
+        LifecycleEntitlementState::ActivePaid,
+        "focusa",
+    ));
     let receipt = LifecycleReceiptV1::from_acceptance(
         "receipt:policy-paid",
         &paid,
@@ -401,13 +407,19 @@ fn receipt_recovery_posture_records_recovery_family_state_and_sequence() {
     assert!(blocked_binding.recovery_posture);
     assert!(!blocked_binding.product_ready);
     assert_eq!(blocked_receipt.reconcile_policy(), Ok(()));
-    assert_eq!(blocked_receipt.presenter_posture().presenter_state, "denied");
+    assert_eq!(
+        blocked_receipt.presenter_posture().presenter_state,
+        "denied"
+    );
 }
 
 #[test]
 fn receipt_tampered_policy_binding_fails_reconciliation() {
     let mut paid = acceptance(LifecycleEntitlementReceiptClass::PaidReady);
-    paid.entitlement_binding = Some(binding_with(LifecycleEntitlementState::ActivePaid, "focusa"));
+    paid.entitlement_binding = Some(binding_with(
+        LifecycleEntitlementState::ActivePaid,
+        "focusa",
+    ));
     let mut receipt = LifecycleReceiptV1::from_acceptance(
         "receipt:policy-tamper",
         &paid,
@@ -472,7 +484,10 @@ fn receipt_tampered_policy_binding_fails_reconciliation() {
 #[test]
 fn receipt_policy_binding_never_records_raw_key_material() {
     let mut paid = acceptance(LifecycleEntitlementReceiptClass::PaidReady);
-    paid.entitlement_binding = Some(binding_with(LifecycleEntitlementState::ActivePaid, "focusa"));
+    paid.entitlement_binding = Some(binding_with(
+        LifecycleEntitlementState::ActivePaid,
+        "focusa",
+    ));
     let receipt = LifecycleReceiptV1::from_acceptance(
         "receipt:policy-raw",
         &paid,

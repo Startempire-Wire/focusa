@@ -6,13 +6,11 @@
 
 use chrono::{Duration, Utc};
 use focusa_license::{
-    authority::{EntitlementSnapshot, EntitlementState},
-    premium_family_feature_ids, resolve_premium_family,
-    reduce_entitlement_state,
-    RELEASE_PROOF_PREMIUM_FEATURE_IDS,
     BaseProductDecision, CapabilityFamily as Family, DecisionReason as Reason,
-    EntitlementPolicyPosture as Posture, PolicyEntitlementState as State,
-    PremiumFamilyDecision, PremiumFamilyDenial,
+    EntitlementPolicyPosture as Posture, PolicyEntitlementState as State, PremiumFamilyDecision,
+    PremiumFamilyDenial, RELEASE_PROOF_PREMIUM_FEATURE_IDS,
+    authority::{EntitlementSnapshot, EntitlementState},
+    premium_family_feature_ids, reduce_entitlement_state, resolve_premium_family,
 };
 
 // ── Release-proof family map ───────────────────────────────────────────────
@@ -66,8 +64,7 @@ fn spec152f_release_proof_entitlement_release_proof_is_optional_premium_family()
 
 #[test]
 fn spec152f_release_proof_entitlement_release_proof_denied_for_verified_no_license() {
-    let decision =
-        reduce_entitlement_state(State::VerifiedNoLicense, Family::ReleaseProof, None);
+    let decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::ReleaseProof, None);
     assert_eq!(
         decision.posture(),
         Posture::Deny,
@@ -312,12 +309,8 @@ fn spec152f_release_proof_entitlement_offline_grace_within_window_allows_release
         .features
         .insert("focusa.release.proof".to_string(), true);
 
-    let decision = resolve_premium_family(
-        &snapshot,
-        Family::ReleaseProof,
-        "focusa.release.proof",
-        now,
-    );
+    let decision =
+        resolve_premium_family(&snapshot, Family::ReleaseProof, "focusa.release.proof", now);
     assert!(
         decision.is_feature(),
         "offline grace within window must allow release_proof"
@@ -341,12 +334,8 @@ fn spec152f_release_proof_entitlement_offline_grace_expired_denies_release_proof
         .features
         .insert("focusa.release.proof".to_string(), true);
 
-    let decision = resolve_premium_family(
-        &snapshot,
-        Family::ReleaseProof,
-        "focusa.release.proof",
-        now,
-    );
+    let decision =
+        resolve_premium_family(&snapshot, Family::ReleaseProof, "focusa.release.proof", now);
     assert!(matches!(
         decision.denial().unwrap(),
         PremiumFamilyDenial::CachedGrantExpired
@@ -362,12 +351,8 @@ fn spec152f_release_proof_entitlement_active_lease_expired_denies_release_proof(
         .features
         .insert("focusa.release.proof".to_string(), true);
 
-    let decision = resolve_premium_family(
-        &snapshot,
-        Family::ReleaseProof,
-        "focusa.release.proof",
-        now,
-    );
+    let decision =
+        resolve_premium_family(&snapshot, Family::ReleaseProof, "focusa.release.proof", now);
     assert!(matches!(
         decision.denial().unwrap(),
         PremiumFamilyDenial::ActiveLeaseExpired
@@ -396,11 +381,7 @@ fn spec152f_release_proof_entitlement_non_premium_family_rejected_by_resolver() 
 #[test]
 fn spec152f_release_proof_entitlement_read_projection_is_always_available() {
     // Safe release status reads use ReadProjection family, not ReleaseProof premium.
-    let decision = reduce_entitlement_state(
-        State::VerifiedNoLicense,
-        Family::ReadProjection,
-        None,
-    );
+    let decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::ReadProjection, None);
     assert_eq!(
         decision.posture(),
         Posture::Read,
@@ -518,8 +499,10 @@ fn spec152f_release_proof_entitlement_all_premium_families_are_distinct() {
         AUTOMATION_PREMIUM_FEATURE_IDS.iter().copied().collect();
     let all_team: std::collections::HashSet<&str> =
         TEAM_REMOTE_PREMIUM_FEATURE_IDS.iter().copied().collect();
-    let all_updates: std::collections::HashSet<&str> =
-        PREMIUM_UPDATES_PREMIUM_FEATURE_IDS.iter().copied().collect();
+    let all_updates: std::collections::HashSet<&str> = PREMIUM_UPDATES_PREMIUM_FEATURE_IDS
+        .iter()
+        .copied()
+        .collect();
 
     // No feature belongs to more than one premium family
     assert!(all_release.is_disjoint(&all_automation));
@@ -573,9 +556,7 @@ fn spec152f_release_proof_entitlement_release_proof_limits_reserved_before_orche
     snapshot
         .features
         .insert("focusa.release.proof".to_string(), true);
-    snapshot
-        .limits
-        .insert("release_proof_runs".to_string(), 4);
+    snapshot.limits.insert("release_proof_runs".to_string(), 4);
 
     let decision = resolve_premium_family(
         &snapshot,
@@ -629,11 +610,7 @@ fn spec152f_release_proof_entitlement_release_status_route_is_read_not_premium()
     // premium. Only mutation-class orchestration requires the premium grant.
 
     // ReadProjection is always available
-    let decision = reduce_entitlement_state(
-        State::VerifiedNoLicense,
-        Family::ReadProjection,
-        None,
-    );
+    let decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::ReadProjection, None);
     assert_eq!(decision.posture(), Posture::Read);
 
     // ReleaseProof is denied for the same state
@@ -647,19 +624,13 @@ fn spec152f_release_proof_entitlement_release_status_route_is_read_not_premium()
 #[test]
 fn spec152f_release_proof_entitlement_recovery_paths_remain_available() {
     // Account recovery is always available regardless of release_proof status.
-    let decision = reduce_entitlement_state(
-        State::RefundedOrRevoked,
-        Family::AccountRecovery,
-        None,
-    );
+    let decision =
+        reduce_entitlement_state(State::RefundedOrRevoked, Family::AccountRecovery, None);
     assert_eq!(decision.posture(), Posture::Allow);
 
     // Customer data export is always available for basic access.
-    let decision = reduce_entitlement_state(
-        State::RefundedOrRevoked,
-        Family::CustomerDataExport,
-        None,
-    );
+    let decision =
+        reduce_entitlement_state(State::RefundedOrRevoked, Family::CustomerDataExport, None);
     assert_eq!(decision.posture(), Posture::Allow);
 }
 

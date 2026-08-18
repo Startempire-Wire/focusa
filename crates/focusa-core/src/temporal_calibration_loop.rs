@@ -4,9 +4,7 @@
 //! generates LearningCandidates, and promotes/rolls back calibration profiles.
 //! No self-sovereign learning — every change requires evidence.
 
-use crate::temporal_forecast::{
-    ForecastAuthorityContext, ForecastRange, ReleasePhase, calibrate,
-};
+use crate::temporal_forecast::{ForecastAuthorityContext, ForecastRange, ReleasePhase, calibrate};
 use crate::temporal_forecast_evaluation::{ForecastEvaluation, evaluate_forecast};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
@@ -116,10 +114,7 @@ pub enum LearningAction {
 
 impl CalibrationLoop {
     /// Create a new calibration loop seeded from an authority context.
-    pub fn new(
-        profile_id: impl Into<String>,
-        authority: &ForecastAuthorityContext,
-    ) -> Self {
+    pub fn new(profile_id: impl Into<String>, authority: &ForecastAuthorityContext) -> Self {
         Self {
             profile_id: profile_id.into(),
             baseline_calibration: 0.8, // default prior
@@ -160,15 +155,12 @@ impl CalibrationLoop {
 
         // Update cumulative statistics.
         let n = self.cumulative.total_evaluations as f64 + 1.0;
-        self.cumulative.mean_reliability = (self.cumulative.mean_reliability * (n - 1.0)
-            + evaluation.reliability)
-            / n;
-        self.cumulative.mean_skill_score = (self.cumulative.mean_skill_score * (n - 1.0)
-            + evaluation.skill_score)
-            / n;
-        self.cumulative.mean_coverage = (self.cumulative.mean_coverage * (n - 1.0)
-            + evaluation.empirical_coverage)
-            / n;
+        self.cumulative.mean_reliability =
+            (self.cumulative.mean_reliability * (n - 1.0) + evaluation.reliability) / n;
+        self.cumulative.mean_skill_score =
+            (self.cumulative.mean_skill_score * (n - 1.0) + evaluation.skill_score) / n;
+        self.cumulative.mean_coverage =
+            (self.cumulative.mean_coverage * (n - 1.0) + evaluation.empirical_coverage) / n;
         self.cumulative.total_bias_ms = self
             .cumulative
             .total_bias_ms
@@ -202,9 +194,7 @@ impl CalibrationLoop {
                 ),
                 generated_at: Utc::now(),
                 drift_severity: drift,
-                evidence_evaluation_refs: vec![
-                    evaluation.evaluation_id.clone(),
-                ],
+                evidence_evaluation_refs: vec![evaluation.evaluation_id.clone()],
                 recommended_action: if drift > 0.3 {
                     LearningAction::RebuildProfile
                 } else {
@@ -229,11 +219,7 @@ impl CalibrationLoop {
     /// Promote a learning candidate — update baseline calibration.
     ///
     /// Evidence must be provided to justify the promotion.
-    pub fn promote_candidate(
-        &mut self,
-        candidate_id: &str,
-        evidence_refs: Vec<String>,
-    ) -> bool {
+    pub fn promote_candidate(&mut self, candidate_id: &str, evidence_refs: Vec<String>) -> bool {
         if evidence_refs.is_empty() {
             return false;
         }
@@ -328,12 +314,22 @@ mod tests {
         // Only 4 evaluations — below MIN_EVALUATIONS_FOR_DRIFT (5).
         for i in 0..4 {
             let eval = evaluate_forecast(
-                &range, 500, format!("target-{}", i),
-                0.6, 0, 0, 0.0, 1.0,
+                &range,
+                500,
+                format!("target-{}", i),
+                0.6,
+                0,
+                0,
+                0.0,
+                1.0,
                 vec!["e".into()],
-            ).unwrap();
+            )
+            .unwrap();
             let candidate = loop_.ingest(&eval, &range, 500, "t", 0.6, vec!["e".into()]);
-            assert!(candidate.is_none(), "should not generate candidate before min evaluations");
+            assert!(
+                candidate.is_none(),
+                "should not generate candidate before min evaluations"
+            );
         }
     }
 
@@ -362,11 +358,17 @@ mod tests {
         // 5 evaluations with low reliability should trigger drift.
         for i in 0..5 {
             let eval = evaluate_forecast(
-                &range, 650, // Exceeds p95=600 → coverage=0
+                &range,
+                650, // Exceeds p95=600 → coverage=0
                 format!("target-{}", i),
-                0.6, 0, 0, 0.0, 1.0,
+                0.6,
+                0,
+                0,
+                0.0,
+                1.0,
                 vec!["e".into()],
-            ).unwrap();
+            )
+            .unwrap();
             let candidate = loop_.ingest(&eval, &range, 650, "t", 0.6, vec!["e".into()]);
             if i == 4 {
                 assert!(candidate.is_some(), "should detect drift on 5th evaluation");
@@ -481,10 +483,17 @@ mod tests {
         let range = sample_range();
         for i in 0..3 {
             let eval = evaluate_forecast(
-                &range, 500, format!("t-{}", i),
-                0.6, 0, 0, 0.0, 1.0,
+                &range,
+                500,
+                format!("t-{}", i),
+                0.6,
+                0,
+                0,
+                0.0,
+                1.0,
                 vec!["e".into()],
-            ).unwrap();
+            )
+            .unwrap();
             loop_.ingest(&eval, &range, 500, "t", 0.6, vec!["e".into()]);
         }
         assert_eq!(loop_.cumulative.total_evaluations, 3);
@@ -517,11 +526,17 @@ mod tests {
         // All evaluations outside p95 → severe drift
         for i in 0..5 {
             let eval = evaluate_forecast(
-                &range, 700,
+                &range,
+                700,
                 format!("t-{}", i),
-                0.6, 0, 0, 0.0, 1.0,
+                0.6,
+                0,
+                0,
+                0.0,
+                1.0,
                 vec!["e".into()],
-            ).unwrap();
+            )
+            .unwrap();
             let candidate = loop_.ingest(&eval, &range, 700, "t", 0.6, vec!["e".into()]);
             if i == 4 {
                 let c = candidate.expect("should detect drift");

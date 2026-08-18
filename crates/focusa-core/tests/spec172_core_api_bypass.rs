@@ -19,7 +19,8 @@ use focusa_core::entitlement_execution_guard::{
     EntitlementExecutionContext, EntitlementExecutionPolicy,
 };
 use focusa_core::guarded_mutation::{
-    GuardedStorageLedger, apply_guarded_mutation, apply_guarded_project_mutation, guard_value_mutation,
+    GuardedStorageLedger, apply_guarded_mutation, apply_guarded_project_mutation,
+    guard_value_mutation,
 };
 use focusa_core::reducer::reduce;
 use focusa_core::silent_session::SilentSessionId;
@@ -31,13 +32,9 @@ use focusa_core::silent_session_scheduler::{
 };
 use focusa_core::silent_session_writer::{WRITER_ADMISSION_SCHEMA, WriterAdmissionDecision};
 use focusa_core::types::{FocusaEvent, FocusaState, InstanceKind};
-use focusa_core::work_item::{
-    WorkItem, WorkItemProvider, WorkItemQuery, WorkItemStatus,
-};
+use focusa_core::work_item::{WorkItem, WorkItemProvider, WorkItemQuery, WorkItemStatus};
 use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
-use focusa_license::{
-    CapabilityFamily as Family, LicenseGuard, OperationClass, RecoveryAllowance,
-};
+use focusa_license::{CapabilityFamily as Family, LicenseGuard, OperationClass, RecoveryAllowance};
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -98,7 +95,10 @@ fn spec172_core_api_bypass_direct_core_reducer_storage_bypasses_fail_closed() {
         ("missing_or_corrupt", LicenseGuard::eval(7)),
         (
             "unactivated",
-            LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated("focusa", "node-bypass")),
+            LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated(
+                "focusa",
+                "node-bypass",
+            )),
         ),
         (
             "refunded_or_revoked",
@@ -131,7 +131,11 @@ fn spec172_core_api_bypass_direct_core_reducer_storage_bypasses_fail_closed() {
     let mut ledger = GuardedStorageLedger::default();
     for (label, guard) in &blocked {
         // Direct core chokepoint gate denies the value mutation.
-        let gate = guard_value_mutation(guard, &base_mutation_policy(), EntitlementExecutionContext::default());
+        let gate = guard_value_mutation(
+            guard,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default(),
+        );
         assert!(
             gate.is_err(),
             "direct core call must be denied in state {label}"
@@ -158,7 +162,11 @@ fn spec172_core_api_bypass_direct_core_reducer_storage_bypasses_fail_closed() {
         );
 
         // Direct storage adapter refuses the write: durable writes stay zero.
-        let write = ledger.guarded_write(guard, &base_mutation_policy(), EntitlementExecutionContext::default());
+        let write = ledger.guarded_write(
+            guard,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default(),
+        );
         assert!(
             write.is_err(),
             "direct storage write must be refused in state {label}"
@@ -201,7 +209,11 @@ fn spec172_core_api_bypass_direct_core_reducer_storage_bypasses_fail_closed() {
     assert_eq!(outcome.new_state_version, 1);
     assert_eq!(outcome.emitted_event_count, 1);
     assert_eq!(
-        ledger.guarded_write(&entitled, &base_mutation_policy(), EntitlementExecutionContext::default()),
+        ledger.guarded_write(
+            &entitled,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default()
+        ),
         Ok(1)
     );
 }
@@ -218,9 +230,13 @@ fn spec172_core_api_bypass_stale_client_unbound_and_wrong_product_fail_closed() 
         true,
     ));
     assert_eq!(
-        guard_value_mutation(&stale, &base_mutation_policy(), EntitlementExecutionContext::default())
-            .expect_err("stale lease must be denied")
-            .code,
+        guard_value_mutation(
+            &stale,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default()
+        )
+        .expect_err("stale lease must be denied")
+        .code,
         "ENTITLEMENT_BASE_REQUIRED"
     );
 
@@ -232,9 +248,13 @@ fn spec172_core_api_bypass_stale_client_unbound_and_wrong_product_fail_closed() 
         false,
     ));
     assert_eq!(
-        guard_value_mutation(&unbound, &base_mutation_policy(), EntitlementExecutionContext::default())
-            .expect_err("unbound lease must be denied")
-            .code,
+        guard_value_mutation(
+            &unbound,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default()
+        )
+        .expect_err("unbound lease must be denied")
+        .code,
         "ENTITLEMENT_BASE_REQUIRED"
     );
 
@@ -247,8 +267,12 @@ fn spec172_core_api_bypass_stale_client_unbound_and_wrong_product_fail_closed() 
         true,
     ));
     assert!(
-        guard_value_mutation(&grace, &base_mutation_policy(), EntitlementExecutionContext::default())
-            .is_ok(),
+        guard_value_mutation(
+            &grace,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default()
+        )
+        .is_ok(),
         "valid offline grace must pass the chokepoint"
     );
     let stale_grace = LicenseGuard::from_entitlement(signed_snapshot(
@@ -278,9 +302,13 @@ fn spec172_core_api_bypass_stale_client_unbound_and_wrong_product_fail_closed() 
         true,
     ));
     assert_eq!(
-        guard_value_mutation(&uiai, &base_mutation_policy(), EntitlementExecutionContext::default())
-            .expect_err("UIAI-only lease must not execute Focusa mutations")
-            .code,
+        guard_value_mutation(
+            &uiai,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default()
+        )
+        .expect_err("UIAI-only lease must not execute Focusa mutations")
+        .code,
         "ENTITLEMENT_BASE_REQUIRED"
     );
     let focusa = LicenseGuard::from_entitlement(signed_snapshot(
@@ -290,9 +318,13 @@ fn spec172_core_api_bypass_stale_client_unbound_and_wrong_product_fail_closed() 
         true,
     ));
     assert_eq!(
-        guard_value_mutation(&focusa, &automation_policy(), EntitlementExecutionContext::default())
-            .expect_err("premium family without its exact grant must be denied")
-            .code,
+        guard_value_mutation(
+            &focusa,
+            &automation_policy(),
+            EntitlementExecutionContext::default()
+        )
+        .expect_err("premium family without its exact grant must be denied")
+        .code,
         "ENTITLEMENT_FEATURE_REQUIRED"
     );
 
@@ -423,22 +455,21 @@ fn spec172_core_api_bypass_worker_dispatch_revalidates_queued_before_refund() {
         Some(Duration::hours(1)),
         true,
     ));
-    let (_readiness, active_dispatch) =
-        select_silent_session_dispatch_with_entitlement(
-            std::slice::from_ref(&item),
-            &query,
-            &[queued_candidate(&item, queued_at, context.clone())],
-            &entitled,
-            &EntitlementExecutionPolicy::new(
-                "focusa.silent_session.dispatch",
-                OperationClass::InternalMaintenance,
-                Family::InternalMaintenance,
-                None,
-                None,
-                RecoveryAllowance::None,
-            ),
-        )
-        .expect("queued work must dispatch while entitlement is current");
+    let (_readiness, active_dispatch) = select_silent_session_dispatch_with_entitlement(
+        std::slice::from_ref(&item),
+        &query,
+        &[queued_candidate(&item, queued_at, context.clone())],
+        &entitled,
+        &EntitlementExecutionPolicy::new(
+            "focusa.silent_session.dispatch",
+            OperationClass::InternalMaintenance,
+            Family::InternalMaintenance,
+            None,
+            None,
+            RecoveryAllowance::None,
+        ),
+    )
+    .expect("queued work must dispatch while entitlement is current");
     assert_eq!(active_dispatch.selected_work_item, Some(item.reference()));
 
     // After refund/revoke the same queued item is deferred at dispatch and no
@@ -448,22 +479,21 @@ fn spec172_core_api_bypass_worker_dispatch_revalidates_queued_before_refund() {
         "node-bypass",
         "refunded",
     ));
-    let (_readiness, revoked_dispatch) =
-        select_silent_session_dispatch_with_entitlement(
-            std::slice::from_ref(&item),
-            &query,
-            &[queued_candidate(&item, queued_at, context.clone())],
-            &revoked,
-            &EntitlementExecutionPolicy::new(
-                "focusa.silent_session.dispatch",
-                OperationClass::InternalMaintenance,
-                Family::InternalMaintenance,
-                None,
-                None,
-                RecoveryAllowance::None,
-            ),
-        )
-        .expect("dispatch must stay ordered after entitlement loss");
+    let (_readiness, revoked_dispatch) = select_silent_session_dispatch_with_entitlement(
+        std::slice::from_ref(&item),
+        &query,
+        &[queued_candidate(&item, queued_at, context.clone())],
+        &revoked,
+        &EntitlementExecutionPolicy::new(
+            "focusa.silent_session.dispatch",
+            OperationClass::InternalMaintenance,
+            Family::InternalMaintenance,
+            None,
+            None,
+            RecoveryAllowance::None,
+        ),
+    )
+    .expect("dispatch must stay ordered after entitlement loss");
     assert_eq!(revoked_dispatch.selected_work_item, None);
     assert_eq!(revoked_dispatch.deferred.len(), 1);
     assert_eq!(
@@ -471,7 +501,9 @@ fn spec172_core_api_bypass_worker_dispatch_revalidates_queued_before_refund() {
         DispatchDeferralReason::EntitlementDenied
     );
     assert!(
-        revoked_dispatch.deferred[0].detail.contains("ENTITLEMENT_BASE_REQUIRED"),
+        revoked_dispatch.deferred[0]
+            .detail
+            .contains("ENTITLEMENT_BASE_REQUIRED"),
         "queued-before-refund deferral must carry the base-required code"
     );
 
@@ -523,7 +555,10 @@ fn spec172_core_api_bypass_recovery_read_export_reachable_in_blocked_states() {
         ),
         (
             "unactivated",
-            LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated("focusa", "node-bypass")),
+            LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated(
+                "focusa",
+                "node-bypass",
+            )),
             focusa_license::PolicyEntitlementState::PendingUnverified,
         ),
         (
@@ -545,16 +580,31 @@ fn spec172_core_api_bypass_recovery_read_export_reachable_in_blocked_states() {
             EntitlementExecutionContext::default(),
         )
         .expect_err("protected mutation must be denied");
-        assert_eq!(denied.code, "ENTITLEMENT_BASE_REQUIRED", "state {state_label}");
+        assert_eq!(
+            denied.code, "ENTITLEMENT_BASE_REQUIRED",
+            "state {state_label}"
+        );
 
         // Only the families the resolver keeps reachable may pass; at least
         // one data-protection surface stays reachable in every blocked state,
         // so customer data is never trapped or deleted.
         let mut reachable_in_state = 0u32;
         for (family, operation_class, allowance) in [
-            (Family::AccountRecovery, OperationClass::Recovery, RecoveryAllowance::AccountRecovery),
-            (Family::CustomerDataExport, OperationClass::Read, RecoveryAllowance::CustomerDataExport),
-            (Family::ReadProjection, OperationClass::Read, RecoveryAllowance::ReadProjection),
+            (
+                Family::AccountRecovery,
+                OperationClass::Recovery,
+                RecoveryAllowance::AccountRecovery,
+            ),
+            (
+                Family::CustomerDataExport,
+                OperationClass::Read,
+                RecoveryAllowance::CustomerDataExport,
+            ),
+            (
+                Family::ReadProjection,
+                OperationClass::Read,
+                RecoveryAllowance::ReadProjection,
+            ),
         ] {
             if focusa_license::reduce_entitlement_state(*policy_state, family, None).posture()
                 == focusa_license::EntitlementPolicyPosture::Deny
@@ -570,7 +620,8 @@ fn spec172_core_api_bypass_recovery_read_export_reachable_in_blocked_states() {
                 allowance,
             );
             assert!(
-                guard_value_mutation(guard, &policy, EntitlementExecutionContext::default()).is_ok(),
+                guard_value_mutation(guard, &policy, EntitlementExecutionContext::default())
+                    .is_ok(),
                 "state {state_label}: {family:?} must stay reachable through the chokepoint"
             );
             reachable_in_state += 1;

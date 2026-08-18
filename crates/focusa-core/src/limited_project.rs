@@ -148,10 +148,10 @@ impl ActiveProjectGuard {
                 // The primary gate should have rejected this already.
                 ProjectMutationDecision::DeniedNoSelection {
                     attempted_project_root: project_root.to_string(),
-                    reason: "Base product entitlement is denied for this posture."
-                        .to_string(),
-                    recovery_action: "Upgrade to Focusa Operator or verify mailbox to access limited mode."
-                        .to_string(),
+                    reason: "Base product entitlement is denied for this posture.".to_string(),
+                    recovery_action:
+                        "Upgrade to Focusa Operator or verify mailbox to access limited mode."
+                            .to_string(),
                 }
             }
         }
@@ -221,12 +221,9 @@ pub fn persist_active_project_from_path(
     project_root: &Path,
     selected_by: &str,
 ) -> std::io::Result<ActiveProjectSelection> {
-    let canonical = std::fs::canonicalize(project_root)
-        .unwrap_or_else(|_| project_root.to_path_buf());
-    switch_active_project(
-        canonical.to_string_lossy().to_string(),
-        selected_by,
-    )
+    let canonical =
+        std::fs::canonicalize(project_root).unwrap_or_else(|_| project_root.to_path_buf());
+    switch_active_project(canonical.to_string_lossy().to_string(), selected_by)
 }
 
 #[cfg(test)]
@@ -371,18 +368,22 @@ mod tests {
         // operations are handled by the entitlement state grid reducer and
         // are always available regardless of active project selection.
         // This test confirms the guard's posture classification is correct.
-        assert!(ActiveProjectGuard::check_mutation(
-            focusa_license::BaseProductDecision::Limited,
-            "/home/user/projects/project-a",
-            Some(&selection),
-        )
-        .is_allowed());
-        assert!(ActiveProjectGuard::check_mutation(
-            focusa_license::BaseProductDecision::Limited,
-            "/home/user/projects/project-b",
-            Some(&selection),
-        )
-        .is_denied());
+        assert!(
+            ActiveProjectGuard::check_mutation(
+                focusa_license::BaseProductDecision::Limited,
+                "/home/user/projects/project-a",
+                Some(&selection),
+            )
+            .is_allowed()
+        );
+        assert!(
+            ActiveProjectGuard::check_mutation(
+                focusa_license::BaseProductDecision::Limited,
+                "/home/user/projects/project-b",
+                Some(&selection),
+            )
+            .is_denied()
+        );
     }
 
     #[test]
@@ -394,7 +395,10 @@ mod tests {
         assert_eq!(parsed.schema, SCHEMA_ACTIVE_PROJECT);
         assert_eq!(parsed.project_root, "/home/user/projects/my-focusa");
         assert_eq!(parsed.selected_by, "focusa-cli");
-        assert_eq!(parsed.note.as_deref(), Some("selected for Spec 172 limited mode"));
+        assert_eq!(
+            parsed.note.as_deref(),
+            Some("selected for Spec 172 limited mode")
+        );
         assert!(!parsed.selected_at.is_empty());
     }
 

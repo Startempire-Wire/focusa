@@ -3,10 +3,10 @@
 //! operation is verified before it is recorded (verify_operation).
 
 use anyhow::Result;
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 
-use crate::direction_operations::{verify_operation, DirectionOperation};
+use crate::direction_operations::{DirectionOperation, verify_operation};
 
 pub fn ensure_schema(conn: &Connection) -> Result<()> {
     conn.execute_batch(
@@ -32,7 +32,10 @@ pub struct DirectionReceipt {
 
 /// Record a verified operation + receipt. Returns Err on verification
 /// failure — untyped/free-text operations never enter the ledger.
-pub fn record_operation(conn: &Connection, operation: &DirectionOperation) -> Result<DirectionReceipt> {
+pub fn record_operation(
+    conn: &Connection,
+    operation: &DirectionOperation,
+) -> Result<DirectionReceipt> {
     verify_operation(operation)
         .map_err(|reason| anyhow::anyhow!("direction operation rejected: {reason}"))?;
     let operation_id = uuid::Uuid::now_v7().to_string();
@@ -57,9 +60,8 @@ pub fn record_operation(conn: &Connection, operation: &DirectionOperation) -> Re
 }
 
 pub fn list_operations(conn: &Connection) -> Result<Vec<DirectionReceipt>> {
-    let mut stmt = conn.prepare(
-        "SELECT receipt_json FROM direction_operations ORDER BY recorded_at",
-    )?;
+    let mut stmt =
+        conn.prepare("SELECT receipt_json FROM direction_operations ORDER BY recorded_at")?;
     let rows = stmt.query_map([], |row| {
         let receipt: DirectionReceipt = serde_json::from_str(&row.get::<_, String>(0)?)
             .unwrap_or_else(|_| DirectionReceipt {
@@ -74,7 +76,8 @@ pub fn list_operations(conn: &Connection) -> Result<Vec<DirectionReceipt>> {
             });
         Ok(receipt)
     })?;
-    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
 }
 
 #[cfg(test)]

@@ -65,7 +65,11 @@ fn multi_project_paid_fixture() -> Vec<ProjectData> {
             project_root: PROJECT_ALPHA,
             missions: vec!["alpha-mission-01", "alpha-mission-02"],
             workpoints: vec!["alpha-workpoint-01"],
-            evidence: vec!["alpha-evidence-01", "alpha-evidence-02", "alpha-evidence-03"],
+            evidence: vec![
+                "alpha-evidence-01",
+                "alpha-evidence-02",
+                "alpha-evidence-03",
+            ],
         },
         ProjectData {
             project_root: PROJECT_BETA,
@@ -89,10 +93,7 @@ fn total_data_count(fixture: &[ProjectData]) -> usize {
 fn decision_for(posture: BaseProductDecision, root: &str) -> ProjectMutationDecision {
     // The persisted selection is the ONLY input to the guard besides the
     // posture and the targeted root; no activity heuristic ever participates.
-    let selection = ActiveProjectSelection::new(
-        PROJECT_BETA,
-        "synthetic-operator-cli",
-    );
+    let selection = ActiveProjectSelection::new(PROJECT_BETA, "synthetic-operator-cli");
     ActiveProjectGuard::check_mutation(posture, root, Some(&selection))
 }
 
@@ -121,7 +122,8 @@ fn spec172_downgrade_data_preservation_multi_project_paid_fixture_all_mutable_wh
 }
 
 #[test]
-fn spec172_downgrade_data_preservation_explicit_selection_binds_limited_mutation_after_refund_revoke() {
+fn spec172_downgrade_data_preservation_explicit_selection_binds_limited_mutation_after_refund_revoke()
+ {
     // Refund/revoke returns the still-verified account to limited mode; the
     // reducer maps the refunded/revoked state to the verified-no-license
     // posture for base product resolution.
@@ -131,7 +133,10 @@ fn spec172_downgrade_data_preservation_explicit_selection_binds_limited_mutation
     // The explicitly selected project (project-beta) remains mutable under the
     // limited policy.
     let beta = decision_for(post_refund, PROJECT_BETA);
-    assert!(beta.is_allowed(), "explicitly selected project must stay mutable");
+    assert!(
+        beta.is_allowed(),
+        "explicitly selected project must stay mutable"
+    );
 
     // Every other retained project is read/export only: mutation is denied
     // with the active project preserved.
@@ -147,7 +152,10 @@ fn spec172_downgrade_data_preservation_explicit_selection_binds_limited_mutation
             } => {
                 assert_eq!(active_project_root, PROJECT_BETA);
                 assert_eq!(attempted_project_root, other);
-                assert!(!recovery_action.is_empty(), "denial must carry a recovery action");
+                assert!(
+                    !recovery_action.is_empty(),
+                    "denial must carry a recovery action"
+                );
             }
             _ => panic!("expected DeniedSecondProject for {other}"),
         }
@@ -162,7 +170,11 @@ fn spec172_downgrade_data_preservation_without_explicit_selection_requires_opera
     let post_refund = refund_revoke_limited_posture();
     for project in multi_project_paid_fixture() {
         let decision = decision_without_selection(post_refund, project.project_root);
-        assert!(decision.is_denied(), "no-selection must deny {}", project.project_root);
+        assert!(
+            decision.is_denied(),
+            "no-selection must deny {}",
+            project.project_root
+        );
         match decision {
             ProjectMutationDecision::DeniedNoSelection {
                 attempted_project_root,
@@ -170,8 +182,10 @@ fn spec172_downgrade_data_preservation_without_explicit_selection_requires_opera
                 ..
             } => {
                 assert_eq!(attempted_project_root, project.project_root);
-                assert!(recovery_action.contains("Select an active project"),
-                        "operator must be told to select a project explicitly");
+                assert!(
+                    recovery_action.contains("Select an active project"),
+                    "operator must be told to select a project explicitly"
+                );
             }
             _ => panic!("expected DeniedNoSelection for {}", project.project_root),
         }
@@ -197,9 +211,18 @@ fn spec172_downgrade_data_preservation_preserves_all_project_data_zero_deletion(
         .collect::<Vec<_>>();
     let total_after = total_data_count(&fixture_after);
 
-    assert_eq!(before, after, "every project keeps its exact retained data rows");
-    assert_eq!(total_before, total_after, "total retained data is never reduced");
-    assert_eq!(fixture_before, fixture_after, "fixture rows are byte-identical");
+    assert_eq!(
+        before, after,
+        "every project keeps its exact retained data rows"
+    );
+    assert_eq!(
+        total_before, total_after,
+        "total retained data is never reduced"
+    );
+    assert_eq!(
+        fixture_before, fixture_after,
+        "fixture rows are byte-identical"
+    );
 
     // All three projects remain retained (readable/exportable) after the
     // downgrade; none is deleted or quarantined.
@@ -213,13 +236,11 @@ fn spec172_downgrade_data_preservation_read_export_recovery_never_blocked() {
     // recovery available in the refunded/revoked posture.
     let read = reduce_entitlement_state(State::RefundedOrRevoked, Family::ReadProjection, None);
     assert_eq!(read.posture(), Posture::Read);
-    let export = reduce_entitlement_state(
-        State::RefundedOrRevoked,
-        Family::CustomerDataExport,
-        None,
-    );
+    let export =
+        reduce_entitlement_state(State::RefundedOrRevoked, Family::CustomerDataExport, None);
     assert_eq!(export.posture(), Posture::Allow);
-    let recovery = reduce_entitlement_state(State::RefundedOrRevoked, Family::AccountRecovery, None);
+    let recovery =
+        reduce_entitlement_state(State::RefundedOrRevoked, Family::AccountRecovery, None);
     assert_eq!(recovery.posture(), Posture::Allow);
 
     // The project mutation guard never interferes with read/export: it only
@@ -253,7 +274,8 @@ fn spec172_downgrade_data_preservation_switch_preserves_and_never_uses_heuristic
     assert!(beta_after_switch.is_denied());
     match beta_after_switch {
         ProjectMutationDecision::DeniedSecondProject {
-            active_project_root, ..
+            active_project_root,
+            ..
         } => assert_eq!(active_project_root, PROJECT_GAMMA),
         _ => panic!("expected DeniedSecondProject after switch"),
     }

@@ -355,39 +355,171 @@ impl ActivationErrorCode {
 
     pub const fn spec(self) -> ActivationErrorSpec {
         match self {
-            Self::AccountEmailMismatch => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "verify_account_email" },
-            Self::AccountMergeReviewRequired => ActivationErrorSpec { http_status: 409, retryable: false, safe_next_action: "contact_support" },
-            Self::AuthorityUnavailable => ActivationErrorSpec { http_status: 503, retryable: true, safe_next_action: "retry_or_use_recovery" },
-            Self::EddCheckoutRequired => ActivationErrorSpec { http_status: 409, retryable: false, safe_next_action: "open_checkout" },
-            Self::EddCustomerResolutionFailed => ActivationErrorSpec { http_status: 503, retryable: true, safe_next_action: "retry_or_use_recovery" },
-            Self::EddLicensePending => ActivationErrorSpec { http_status: 202, retryable: true, safe_next_action: "poll_after_retry_after" },
-            Self::EddLicenseUnusable => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "recovery_only" },
-            Self::EddOrderPending => ActivationErrorSpec { http_status: 202, retryable: true, safe_next_action: "poll_after_retry_after" },
-            Self::EddOrderUnverified => ActivationErrorSpec { http_status: 409, retryable: false, safe_next_action: "verify_checkout_identity" },
-            Self::EmailDeliveryFailed => ActivationErrorSpec { http_status: 503, retryable: true, safe_next_action: "retry_or_use_recovery" },
-            Self::EmailRequired => ActivationErrorSpec { http_status: 400, retryable: false, safe_next_action: "provide_email" },
-            Self::EmailVerificationExpired => ActivationErrorSpec { http_status: 410, retryable: false, safe_next_action: "restart_verification" },
-            Self::EmailVerificationFailed => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "retry_verification_within_budget" },
-            Self::EmailVerificationRequired => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "verify_email" },
-            Self::EntitlementFeatureRequired => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "manage_license" },
-            Self::EntitlementLimitExhausted => ActivationErrorSpec { http_status: 429, retryable: false, safe_next_action: "manage_limit" },
-            Self::EntitlementRequired => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "activate_or_manage_license" },
-            Self::EvaluationNotEligible => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "select_paid_or_limited_access" },
-            Self::FacadeOriginDenied => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "use_registered_facade" },
-            Self::FacadeProductDenied => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "select_supported_product" },
-            Self::IdempotencyConflict => ActivationErrorSpec { http_status: 409, retryable: false, safe_next_action: "use_original_request_or_new_key" },
-            Self::IdempotencyKeyRequired => ActivationErrorSpec { http_status: 400, retryable: false, safe_next_action: "send_idempotency_key" },
-            Self::LicenseAccountMismatch => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "verify_license_owner" },
-            Self::LicenseDeliveryFailed => ActivationErrorSpec { http_status: 503, retryable: false, safe_next_action: "authenticated_recovery" },
-            Self::LicenseDeliveryPending => ActivationErrorSpec { http_status: 202, retryable: true, safe_next_action: "poll_after_retry_after" },
-            Self::NodeLimitExhausted => ActivationErrorSpec { http_status: 409, retryable: false, safe_next_action: "manage_nodes" },
-            Self::PollCredentialExpired => ActivationErrorSpec { http_status: 401, retryable: false, safe_next_action: "restart_or_recover_activation" },
-            Self::PollCredentialRequired => ActivationErrorSpec { http_status: 401, retryable: false, safe_next_action: "restart_or_recover_activation" },
-            Self::ProductMappingRequired => ActivationErrorSpec { http_status: 409, retryable: false, safe_next_action: "wait_for_product_mapping" },
-            Self::Refunded => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "recovery_only" },
-            Self::RequestIdRequired => ActivationErrorSpec { http_status: 400, retryable: false, safe_next_action: "send_new_request_id" },
-            Self::RequestInProgress => ActivationErrorSpec { http_status: 409, retryable: true, safe_next_action: "retry_same_idempotency_key" },
-            Self::Revoked => ActivationErrorSpec { http_status: 403, retryable: false, safe_next_action: "recovery_only" },
+            Self::AccountEmailMismatch => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "verify_account_email",
+            },
+            Self::AccountMergeReviewRequired => ActivationErrorSpec {
+                http_status: 409,
+                retryable: false,
+                safe_next_action: "contact_support",
+            },
+            Self::AuthorityUnavailable => ActivationErrorSpec {
+                http_status: 503,
+                retryable: true,
+                safe_next_action: "retry_or_use_recovery",
+            },
+            Self::EddCheckoutRequired => ActivationErrorSpec {
+                http_status: 409,
+                retryable: false,
+                safe_next_action: "open_checkout",
+            },
+            Self::EddCustomerResolutionFailed => ActivationErrorSpec {
+                http_status: 503,
+                retryable: true,
+                safe_next_action: "retry_or_use_recovery",
+            },
+            Self::EddLicensePending => ActivationErrorSpec {
+                http_status: 202,
+                retryable: true,
+                safe_next_action: "poll_after_retry_after",
+            },
+            Self::EddLicenseUnusable => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "recovery_only",
+            },
+            Self::EddOrderPending => ActivationErrorSpec {
+                http_status: 202,
+                retryable: true,
+                safe_next_action: "poll_after_retry_after",
+            },
+            Self::EddOrderUnverified => ActivationErrorSpec {
+                http_status: 409,
+                retryable: false,
+                safe_next_action: "verify_checkout_identity",
+            },
+            Self::EmailDeliveryFailed => ActivationErrorSpec {
+                http_status: 503,
+                retryable: true,
+                safe_next_action: "retry_or_use_recovery",
+            },
+            Self::EmailRequired => ActivationErrorSpec {
+                http_status: 400,
+                retryable: false,
+                safe_next_action: "provide_email",
+            },
+            Self::EmailVerificationExpired => ActivationErrorSpec {
+                http_status: 410,
+                retryable: false,
+                safe_next_action: "restart_verification",
+            },
+            Self::EmailVerificationFailed => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "retry_verification_within_budget",
+            },
+            Self::EmailVerificationRequired => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "verify_email",
+            },
+            Self::EntitlementFeatureRequired => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "manage_license",
+            },
+            Self::EntitlementLimitExhausted => ActivationErrorSpec {
+                http_status: 429,
+                retryable: false,
+                safe_next_action: "manage_limit",
+            },
+            Self::EntitlementRequired => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "activate_or_manage_license",
+            },
+            Self::EvaluationNotEligible => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "select_paid_or_limited_access",
+            },
+            Self::FacadeOriginDenied => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "use_registered_facade",
+            },
+            Self::FacadeProductDenied => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "select_supported_product",
+            },
+            Self::IdempotencyConflict => ActivationErrorSpec {
+                http_status: 409,
+                retryable: false,
+                safe_next_action: "use_original_request_or_new_key",
+            },
+            Self::IdempotencyKeyRequired => ActivationErrorSpec {
+                http_status: 400,
+                retryable: false,
+                safe_next_action: "send_idempotency_key",
+            },
+            Self::LicenseAccountMismatch => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "verify_license_owner",
+            },
+            Self::LicenseDeliveryFailed => ActivationErrorSpec {
+                http_status: 503,
+                retryable: false,
+                safe_next_action: "authenticated_recovery",
+            },
+            Self::LicenseDeliveryPending => ActivationErrorSpec {
+                http_status: 202,
+                retryable: true,
+                safe_next_action: "poll_after_retry_after",
+            },
+            Self::NodeLimitExhausted => ActivationErrorSpec {
+                http_status: 409,
+                retryable: false,
+                safe_next_action: "manage_nodes",
+            },
+            Self::PollCredentialExpired => ActivationErrorSpec {
+                http_status: 401,
+                retryable: false,
+                safe_next_action: "restart_or_recover_activation",
+            },
+            Self::PollCredentialRequired => ActivationErrorSpec {
+                http_status: 401,
+                retryable: false,
+                safe_next_action: "restart_or_recover_activation",
+            },
+            Self::ProductMappingRequired => ActivationErrorSpec {
+                http_status: 409,
+                retryable: false,
+                safe_next_action: "wait_for_product_mapping",
+            },
+            Self::Refunded => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "recovery_only",
+            },
+            Self::RequestIdRequired => ActivationErrorSpec {
+                http_status: 400,
+                retryable: false,
+                safe_next_action: "send_new_request_id",
+            },
+            Self::RequestInProgress => ActivationErrorSpec {
+                http_status: 409,
+                retryable: true,
+                safe_next_action: "retry_same_idempotency_key",
+            },
+            Self::Revoked => ActivationErrorSpec {
+                http_status: 403,
+                retryable: false,
+                safe_next_action: "recovery_only",
+            },
         }
     }
 
@@ -549,7 +681,12 @@ mod tests {
                 "/v1/activation/select-offer",
                 true,
             ),
-            ("activation.checkout", "POST", "/v1/activation/checkout", true),
+            (
+                "activation.checkout",
+                "POST",
+                "/v1/activation/checkout",
+                true,
+            ),
             (
                 "activation.existing_license",
                 "POST",
@@ -568,9 +705,7 @@ mod tests {
             ),
         ];
         assert_eq!(FacadeOperation::ALL.len(), expected.len());
-        for (operation, (id, method, path, mutation)) in
-            FacadeOperation::ALL.iter().zip(expected)
-        {
+        for (operation, (id, method, path, mutation)) in FacadeOperation::ALL.iter().zip(expected) {
             assert_eq!(operation.id(), *id);
             assert_eq!(operation.method(), *method);
             assert_eq!(operation.path(), *path);
@@ -603,12 +738,14 @@ mod tests {
             );
             assert!(!spec.safe_next_action.is_empty());
             if code.retryable() {
-                assert!([
-                    "poll_after_retry_after",
-                    "retry_or_use_recovery",
-                    "retry_same_idempotency_key",
-                ]
-                .contains(&spec.safe_next_action));
+                assert!(
+                    [
+                        "poll_after_retry_after",
+                        "retry_or_use_recovery",
+                        "retry_same_idempotency_key",
+                    ]
+                    .contains(&spec.safe_next_action)
+                );
             }
         }
     }
@@ -667,7 +804,11 @@ mod tests {
             Some("a***@example.com")
         );
         for invalid in ["", "not-an-email", "a@b", "a b@example.com", "@example.com"] {
-            assert_eq!(mask_email(invalid), None, "must fail closed for {invalid:?}");
+            assert_eq!(
+                mask_email(invalid),
+                None,
+                "must fail closed for {invalid:?}"
+            );
         }
     }
 

@@ -1,7 +1,7 @@
 use crate::api_client::ApiClient;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use clap::{Args, Subcommand};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 const CONTRACT: &str = "focusa.semantic_integrity.operation.v1";
 

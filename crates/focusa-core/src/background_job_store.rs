@@ -5,7 +5,7 @@
 //! the silent-session completion boundary (#311).
 
 use anyhow::Result;
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::background_jobs::{BackgroundJobRecord, BackgroundJobStatus};
 
@@ -82,7 +82,8 @@ pub fn list_jobs(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
          FROM background_jobs ORDER BY started_at DESC",
     )?;
     let rows = stmt.query_map([], row_from)?;
-    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
 }
 
 /// Running jobs whose monitor process is gone (monitor-lost detection is
@@ -123,7 +124,8 @@ pub fn list_running(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
          FROM background_jobs WHERE status = 'running' ORDER BY started_at",
     )?;
     let rows = stmt.query_map([], row_from)?;
-    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
 }
 
 fn row_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<BackgroundJobRecord> {

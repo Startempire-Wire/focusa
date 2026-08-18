@@ -25,7 +25,8 @@ use focusa_core::entitlement_execution_guard::{
     EntitlementExecutionContext, EntitlementExecutionPolicy,
 };
 use focusa_core::guarded_mutation::{
-    GuardedStorageLedger, apply_guarded_mutation, apply_guarded_project_mutation, guard_value_mutation,
+    GuardedStorageLedger, apply_guarded_mutation, apply_guarded_project_mutation,
+    guard_value_mutation,
 };
 use focusa_core::silent_session_resources::{RESOURCE_ADMISSION_SCHEMA, ResourceAdmissionDecision};
 use focusa_core::silent_session_scheduler::{
@@ -38,13 +39,12 @@ use focusa_core::types::{FocusaEvent, FocusaState, InstanceKind};
 use focusa_core::work_item::{WorkItem, WorkItemProvider, WorkItemQuery, WorkItemStatus};
 use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
 use focusa_license::{
-    base_product_projection, premium_family_feature_ids, reduce_entitlement_state,
-    resolve_base_focusa_product, resolve_cockpit_action, resolve_premium_family,
-    verify_dynamic_operation_manifest, verify_generated_ui_action,
-    BaseProductDecision, CanonicalManifestFacts, CapabilityFamily as Family,
-    CockpitActionDecision, CockpitActionDenial, DynamicOperationManifest, LicenseGuard,
-    ManifestQuarantineLedger, ManifestTrustDecision, OperationClass,
-    PolicyEntitlementState as State, PremiumFamilyDecision, RecoveryAllowance,
+    BaseProductDecision, CanonicalManifestFacts, CapabilityFamily as Family, CockpitActionDecision,
+    CockpitActionDenial, DynamicOperationManifest, LicenseGuard, ManifestQuarantineLedger,
+    ManifestTrustDecision, OperationClass, PolicyEntitlementState as State, PremiumFamilyDecision,
+    RecoveryAllowance, base_product_projection, premium_family_feature_ids,
+    reduce_entitlement_state, resolve_base_focusa_product, resolve_cockpit_action,
+    resolve_premium_family, verify_dynamic_operation_manifest, verify_generated_ui_action,
 };
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -152,7 +152,11 @@ fn spec172_bypass_resistance_cross_presenter_equivalent_policy_matrix() {
     // value-producing surface. `LicenseGuard::eval` intentionally has no
     // signed snapshot (missing/corrupt).
     let cases: Vec<(&str, LicenseGuard, State)> = vec![
-        ("missing_or_corrupt", LicenseGuard::eval(7), State::MissingOrCorrupt),
+        (
+            "missing_or_corrupt",
+            LicenseGuard::eval(7),
+            State::MissingOrCorrupt,
+        ),
         (
             "unactivated_pairing_only",
             LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated(
@@ -208,8 +212,12 @@ fn spec172_bypass_resistance_cross_presenter_equivalent_policy_matrix() {
     let mut diffs: Vec<String> = Vec::new();
     for (label, guard, _state) in &cases {
         // Surface B: core execution guard chokepoint.
-        let guard_deny = guard_value_mutation(guard, &base_mutation_policy(), EntitlementExecutionContext::default())
-            .is_err();
+        let guard_deny = guard_value_mutation(
+            guard,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default(),
+        )
+        .is_err();
         // Surface C: guarded mutation (direct core/reducer path).
         let outcome = apply_guarded_mutation(
             guard,
@@ -262,8 +270,7 @@ fn spec172_bypass_resistance_cross_presenter_equivalent_policy_matrix() {
                     gate.permits_base_mutations(),
                     "case {label}: projection must equal the base product gate"
                 );
-                if matches!(*label, "stale_client_expired" | "fabricated_unbound_lease")
-                {
+                if matches!(*label, "stale_client_expired" | "fabricated_unbound_lease") {
                     // The base-gate projection is state×product; the presenter
                     // renders the true authority state and the chokepoint
                     // refuses execution — a projection alone is never a grant.
@@ -280,8 +287,7 @@ fn spec172_bypass_resistance_cross_presenter_equivalent_policy_matrix() {
             }
             Err(focusa_license::LicenseError::EntitlementSnapshotMissing) => {
                 assert_eq!(
-                    *label,
-                    "missing_or_corrupt",
+                    *label, "missing_or_corrupt",
                     "only the missing case projects Err"
                 );
             }
@@ -292,7 +298,14 @@ fn spec172_bypass_resistance_cross_presenter_equivalent_policy_matrix() {
     // Allowed baseline: the exact signed Focusa lease passes base mutations on
     // every surface and the projection says Entitled — one usable lease.
     let entitled = entitled_focusa();
-    assert!(guard_value_mutation(&entitled, &base_mutation_policy(), EntitlementExecutionContext::default()).is_ok());
+    assert!(
+        guard_value_mutation(
+            &entitled,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default()
+        )
+        .is_ok()
+    );
     assert!(
         apply_guarded_mutation(
             &entitled,
@@ -303,13 +316,21 @@ fn spec172_bypass_resistance_cross_presenter_equivalent_policy_matrix() {
         )
         .is_ok()
     );
-    let projection = base_product_projection(entitled.entitlement.as_ref()).expect("projection exists");
+    let projection =
+        base_product_projection(entitled.entitlement.as_ref()).expect("projection exists");
     assert_eq!(projection.decision, "entitled");
     assert!(projection.permits_base_mutations);
 
     // Offline Grace passes the same base cells on every surface.
     let grace = offline_grace_focusa();
-    assert!(guard_value_mutation(&grace, &base_mutation_policy(), EntitlementExecutionContext::default()).is_ok());
+    assert!(
+        guard_value_mutation(
+            &grace,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default()
+        )
+        .is_ok()
+    );
     assert_eq!(
         base_product_projection(grace.entitlement.as_ref())
             .expect("projection exists")
@@ -335,7 +356,10 @@ fn spec172_bypass_resistance_cross_presenter_equivalent_policy_matrix() {
         Utc::now(),
     )
     .expect("registered cockpit action resolves");
-    assert!(matches!(display_decision, CockpitActionDecision::FocusaDisplay { .. }));
+    assert!(matches!(
+        display_decision,
+        CockpitActionDecision::FocusaDisplay { .. }
+    ));
 
     let mutate_decision = resolve_cockpit_action(
         "cockpit.focusa.mutate_project",
@@ -345,11 +369,17 @@ fn spec172_bypass_resistance_cross_presenter_equivalent_policy_matrix() {
         Utc::now(),
     )
     .expect("registered cockpit action resolves");
-    assert!(matches!(mutate_decision, CockpitActionDecision::FocusaMutation { .. }));
+    assert!(matches!(
+        mutate_decision,
+        CockpitActionDecision::FocusaMutation { .. }
+    ));
 
     let paired_only_decision = resolve_cockpit_action(
         "cockpit.focusa.mutate_project",
-        Some(&EntitlementSnapshot::unactivated("focusa", "node-paired-only")),
+        Some(&EntitlementSnapshot::unactivated(
+            "focusa",
+            "node-paired-only",
+        )),
         None,
         0,
         Utc::now(),
@@ -385,15 +415,13 @@ fn spec172_bypass_resistance_cross_presenter_equivalent_policy_matrix() {
         "a wrong-product UIAI lease must not mutate Focusa state in the Cockpit"
     );
 
-    let no_snapshot_decision = resolve_cockpit_action(
-        "cockpit.focusa.mutate_project",
-        None,
-        None,
-        0,
-        Utc::now(),
-    )
-    .expect("registered cockpit action resolves");
-    assert!(!no_snapshot_decision.is_allowed(), "no authority snapshot fails closed");
+    let no_snapshot_decision =
+        resolve_cockpit_action("cockpit.focusa.mutate_project", None, None, 0, Utc::now())
+            .expect("registered cockpit action resolves");
+    assert!(
+        !no_snapshot_decision.is_allowed(),
+        "no authority snapshot fails closed"
+    );
 
     // A combined workflow without the UIAI grant side fails closed: the Focusa
     // side alone never satisfies a combined action (Spec 172 §11.3).
@@ -441,11 +469,17 @@ fn spec172_bypass_resistance_dynamic_plugin_and_generated_ui_fail_closed() {
         "manual_workpoint",
         "local",
     );
-    let decision = verify_dynamic_operation_manifest(&unsigned, &canonical_facts("focusa.manual_workpoint.write"));
+    let decision = verify_dynamic_operation_manifest(
+        &unsigned,
+        &canonical_facts("focusa.manual_workpoint.write"),
+    );
     assert_eq!(decision, ManifestTrustDecision::QuarantinedUnsigned);
     // Quarantine sequence starts at zero: the first rejection records
     // sequence 0 and never executes.
-    assert_eq!(ledger.quarantine("focusa.manual_workpoint.write", "unsigned"), 0);
+    assert_eq!(
+        ledger.quarantine("focusa.manual_workpoint.write", "unsigned"),
+        0
+    );
 
     // A tool cannot self-label as recovery to bypass licensing.
     let self_labeled = DynamicOperationManifest::new(
@@ -457,7 +491,10 @@ fn spec172_bypass_resistance_dynamic_plugin_and_generated_ui_fail_closed() {
     )
     .with_signature();
     assert_eq!(
-        verify_dynamic_operation_manifest(&self_labeled, &canonical_facts("focusa.manual_workpoint.write")),
+        verify_dynamic_operation_manifest(
+            &self_labeled,
+            &canonical_facts("focusa.manual_workpoint.write")
+        ),
         ManifestTrustDecision::QuarantinedSelfLabeledRecovery,
         "self-labeled recovery must quarantine even when signed"
     );
@@ -474,7 +511,10 @@ fn spec172_bypass_resistance_dynamic_plugin_and_generated_ui_fail_closed() {
     .with_signature()
     .with_declared_policy_fields(&["product", "license_type", "node"]);
     assert_eq!(
-        verify_dynamic_operation_manifest(&client_selected, &canonical_facts("focusa.manual_workpoint.write")),
+        verify_dynamic_operation_manifest(
+            &client_selected,
+            &canonical_facts("focusa.manual_workpoint.write")
+        ),
         ManifestTrustDecision::QuarantinedClientSelectedPolicy,
         "client-selected policy fields must quarantine"
     );
@@ -513,21 +553,16 @@ fn spec172_bypass_resistance_dynamic_plugin_and_generated_ui_fail_closed() {
 
     // Generated UI may render only canonical registered actions; anything else
     // is a grant-expansion attempt and fails closed even when signed.
-    let canonical_actions = ["focusa.manual_workpoint.write", "focusa.workpoint.checkpoint"];
+    let canonical_actions = [
+        "focusa.manual_workpoint.write",
+        "focusa.workpoint.checkpoint",
+    ];
     assert_eq!(
-        verify_generated_ui_action(
-            "focusa.manual_workpoint.write",
-            &canonical_actions,
-            true,
-        ),
+        verify_generated_ui_action("focusa.manual_workpoint.write", &canonical_actions, true,),
         ManifestTrustDecision::Trusted
     );
     assert_eq!(
-        verify_generated_ui_action(
-            "focusa.synthetic_buy_now.button",
-            &canonical_actions,
-            true,
-        ),
+        verify_generated_ui_action("focusa.synthetic_buy_now.button", &canonical_actions, true,),
         ManifestTrustDecision::QuarantinedGeneratedUiGrantExpansion,
         "generated UI outside the canonical registered action set must quarantine"
     );
@@ -549,7 +584,14 @@ fn spec172_bypass_resistance_offline_stale_sequence_and_pairing_fail_closed() {
     // A valid Offline Grace window passes base mutations and resolves the
     // offline-cached premium family while the signed window holds.
     let grace = offline_grace_focusa();
-    assert!(guard_value_mutation(&grace, &base_mutation_policy(), EntitlementExecutionContext::default()).is_ok());
+    assert!(
+        guard_value_mutation(
+            &grace,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default()
+        )
+        .is_ok()
+    );
 
     let mut grace_with_feature = signed_snapshot(
         "focusa",
@@ -559,7 +601,9 @@ fn spec172_bypass_resistance_offline_stale_sequence_and_pairing_fail_closed() {
         true,
     );
     for feature in premium_family_feature_ids(Family::Automation) {
-        grace_with_feature.features.insert(feature.to_string(), true);
+        grace_with_feature
+            .features
+            .insert(feature.to_string(), true);
     }
     let premium = resolve_premium_family(
         &grace_with_feature,
@@ -570,7 +614,10 @@ fn spec172_bypass_resistance_offline_stale_sequence_and_pairing_fail_closed() {
     assert!(
         matches!(
             premium,
-            PremiumFamilyDecision::Feature { offline_cached: true, .. }
+            PremiumFamilyDecision::Feature {
+                offline_cached: true,
+                ..
+            }
         ),
         "in-window Offline Grace resolves the premium family offline-cached"
     );
@@ -596,9 +643,7 @@ fn spec172_bypass_resistance_offline_stale_sequence_and_pairing_fail_closed() {
     assert!(
         matches!(
             stale_premium,
-            PremiumFamilyDecision::Denied(
-                focusa_license::PremiumFamilyDenial::CachedGrantExpired
-            )
+            PremiumFamilyDecision::Denied(focusa_license::PremiumFamilyDenial::CachedGrantExpired)
         ),
         "past Offline Grace window must deny the cached premium grant"
     );
@@ -614,19 +659,18 @@ fn spec172_bypass_resistance_offline_stale_sequence_and_pairing_fail_closed() {
     );
 
     // An OfflineGrace snapshot without a signed window cannot grant either.
-    let mut no_window = signed_snapshot(
-        "focusa",
-        EntitlementState::OfflineGrace,
-        None,
-        None,
-        true,
-    );
+    let mut no_window = signed_snapshot("focusa", EntitlementState::OfflineGrace, None, None, true);
     for feature in premium_family_feature_ids(Family::Automation) {
         no_window.features.insert(feature.to_string(), true);
     }
     assert!(
         matches!(
-            resolve_premium_family(&no_window, Family::Automation, "focusa.agent.silent_sessions", Utc::now()),
+            resolve_premium_family(
+                &no_window,
+                Family::Automation,
+                "focusa.agent.silent_sessions",
+                Utc::now()
+            ),
             PremiumFamilyDecision::Denied(
                 focusa_license::PremiumFamilyDenial::MissingCachedGrantExpiry
             )
@@ -644,9 +688,13 @@ fn spec172_bypass_resistance_offline_stale_sequence_and_pairing_fail_closed() {
         true,
     ));
     assert_eq!(
-        guard_value_mutation(&stale, &base_mutation_policy(), EntitlementExecutionContext::default())
-            .expect_err("expired Active lease must be denied")
-            .code,
+        guard_value_mutation(
+            &stale,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default()
+        )
+        .expect_err("expired Active lease must be denied")
+        .code,
         "ENTITLEMENT_BASE_REQUIRED"
     );
     let mut stale_premium_snapshot = signed_snapshot(
@@ -657,7 +705,9 @@ fn spec172_bypass_resistance_offline_stale_sequence_and_pairing_fail_closed() {
         true,
     );
     for feature in premium_family_feature_ids(Family::Automation) {
-        stale_premium_snapshot.features.insert(feature.to_string(), true);
+        stale_premium_snapshot
+            .features
+            .insert(feature.to_string(), true);
     }
     assert!(
         matches!(
@@ -706,9 +756,13 @@ fn spec172_bypass_resistance_offline_stale_sequence_and_pairing_fail_closed() {
         ),
     ] {
         assert_eq!(
-            guard_value_mutation(&guard, &base_mutation_policy(), EntitlementExecutionContext::default())
-                .expect_err("pairing/fabrication must never grant")
-                .code,
+            guard_value_mutation(
+                &guard,
+                &base_mutation_policy(),
+                EntitlementExecutionContext::default()
+            )
+            .expect_err("pairing/fabrication must never grant")
+            .code,
             "ENTITLEMENT_BASE_REQUIRED",
             "case {label}"
         );
@@ -720,9 +774,10 @@ fn spec172_bypass_resistance_offline_stale_sequence_and_pairing_fail_closed() {
     assert_eq!(
         resolve_base_focusa_product(
             "focusa",
-            focusa_license::authority_policy_state(
-                &EntitlementSnapshot::unactivated("focusa", "node-paired-device")
-            ),
+            focusa_license::authority_policy_state(&EntitlementSnapshot::unactivated(
+                "focusa",
+                "node-paired-device"
+            )),
         ),
         BaseProductDecision::Denied,
         "pairing-only base gate denies"
@@ -844,7 +899,10 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
         ("direct_core_missing", LicenseGuard::eval(7)),
         (
             "direct_core_unactivated",
-            LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated("focusa", "node-matrix")),
+            LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated(
+                "focusa",
+                "node-matrix",
+            )),
         ),
         (
             "direct_core_refunded",
@@ -885,11 +943,20 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
 
     let mut protected_attempts = 0u64;
     for (label, guard) in &blocked {
-        let denied = guard_value_mutation(guard, &base_mutation_policy(), EntitlementExecutionContext::default())
-            .expect_err("protected mutation must be denied");
+        let denied = guard_value_mutation(
+            guard,
+            &base_mutation_policy(),
+            EntitlementExecutionContext::default(),
+        )
+        .expect_err("protected mutation must be denied");
         assert_eq!(denied.code, "ENTITLEMENT_BASE_REQUIRED", "case {label}");
         assert!(
-            ledger.guarded_write(guard, &base_mutation_policy(), EntitlementExecutionContext::default())
+            ledger
+                .guarded_write(
+                    guard,
+                    &base_mutation_policy(),
+                    EntitlementExecutionContext::default()
+                )
                 .is_err(),
             "case {label}: direct storage write must be refused"
         );
@@ -923,22 +990,21 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
     let context = dispatch_context();
 
     let entitled = entitled_focusa();
-    let (_readiness, active_dispatch) =
-        select_silent_session_dispatch_with_entitlement(
-            std::slice::from_ref(&item),
-            &query,
-            &[queued_candidate(&item, queued_at, context.clone())],
-            &entitled,
-            &EntitlementExecutionPolicy::new(
-                "focusa.silent_session.dispatch",
-                OperationClass::InternalMaintenance,
-                Family::InternalMaintenance,
-                None,
-                None,
-                RecoveryAllowance::None,
-            ),
-        )
-        .expect("dispatch must stay ordered");
+    let (_readiness, active_dispatch) = select_silent_session_dispatch_with_entitlement(
+        std::slice::from_ref(&item),
+        &query,
+        &[queued_candidate(&item, queued_at, context.clone())],
+        &entitled,
+        &EntitlementExecutionPolicy::new(
+            "focusa.silent_session.dispatch",
+            OperationClass::InternalMaintenance,
+            Family::InternalMaintenance,
+            None,
+            None,
+            RecoveryAllowance::None,
+        ),
+    )
+    .expect("dispatch must stay ordered");
     assert_eq!(active_dispatch.selected_work_item, Some(item.reference()));
 
     let revoked = LicenseGuard::from_entitlement(EntitlementSnapshot::recovery_only(
@@ -946,22 +1012,21 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
         "node-matrix",
         "refunded",
     ));
-    let (_readiness, revoked_dispatch) =
-        select_silent_session_dispatch_with_entitlement(
-            std::slice::from_ref(&item),
-            &query,
-            &[queued_candidate(&item, queued_at, context)],
-            &revoked,
-            &EntitlementExecutionPolicy::new(
-                "focusa.silent_session.dispatch",
-                OperationClass::InternalMaintenance,
-                Family::InternalMaintenance,
-                None,
-                None,
-                RecoveryAllowance::None,
-            ),
-        )
-        .expect("dispatch must stay ordered after entitlement loss");
+    let (_readiness, revoked_dispatch) = select_silent_session_dispatch_with_entitlement(
+        std::slice::from_ref(&item),
+        &query,
+        &[queued_candidate(&item, queued_at, context)],
+        &revoked,
+        &EntitlementExecutionPolicy::new(
+            "focusa.silent_session.dispatch",
+            OperationClass::InternalMaintenance,
+            Family::InternalMaintenance,
+            None,
+            None,
+            RecoveryAllowance::None,
+        ),
+    )
+    .expect("dispatch must stay ordered after entitlement loss");
     assert_eq!(revoked_dispatch.selected_work_item, None);
     assert_eq!(revoked_dispatch.deferred.len(), 1);
     assert_eq!(
@@ -969,7 +1034,9 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
         DispatchDeferralReason::EntitlementDenied
     );
     assert!(
-        revoked_dispatch.deferred[0].detail.contains("ENTITLEMENT_BASE_REQUIRED"),
+        revoked_dispatch.deferred[0]
+            .detail
+            .contains("ENTITLEMENT_BASE_REQUIRED"),
         "queued-before-refund deferral must carry the base-required code"
     );
     assert_eq!(
@@ -982,10 +1049,17 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
     // data deletion, never a blocked basic export/repair/rollback/update/
     // uninstall).
     let blocked_states: Vec<(&str, LicenseGuard, State)> = vec![
-        ("missing_or_corrupt", LicenseGuard::eval(7), State::MissingOrCorrupt),
+        (
+            "missing_or_corrupt",
+            LicenseGuard::eval(7),
+            State::MissingOrCorrupt,
+        ),
         (
             "unactivated",
-            LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated("focusa", "node-matrix")),
+            LicenseGuard::from_entitlement(EntitlementSnapshot::unactivated(
+                "focusa",
+                "node-matrix",
+            )),
             State::PendingUnverified,
         ),
         (
@@ -997,20 +1071,36 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
             )),
             State::RefundedOrRevoked,
         ),
-        ("stale_client", LicenseGuard::from_entitlement(signed_snapshot(
-            "focusa",
-            EntitlementState::Active,
-            Some(Duration::seconds(-1)),
-            None,
-            true,
-        )), State::Expired),
+        (
+            "stale_client",
+            LicenseGuard::from_entitlement(signed_snapshot(
+                "focusa",
+                EntitlementState::Active,
+                Some(Duration::seconds(-1)),
+                None,
+                true,
+            )),
+            State::Expired,
+        ),
     ];
     for (label, guard, policy_state) in &blocked_states {
         let mut reachable = 0u32;
         for (family, operation_class, allowance) in [
-            (Family::AccountRecovery, OperationClass::Recovery, RecoveryAllowance::AccountRecovery),
-            (Family::ReadProjection, OperationClass::Read, RecoveryAllowance::ReadProjection),
-            (Family::CustomerDataExport, OperationClass::Read, RecoveryAllowance::CustomerDataExport),
+            (
+                Family::AccountRecovery,
+                OperationClass::Recovery,
+                RecoveryAllowance::AccountRecovery,
+            ),
+            (
+                Family::ReadProjection,
+                OperationClass::Read,
+                RecoveryAllowance::ReadProjection,
+            ),
+            (
+                Family::CustomerDataExport,
+                OperationClass::Read,
+                RecoveryAllowance::CustomerDataExport,
+            ),
         ] {
             if reduce_entitlement_state(*policy_state, family, None).posture()
                 == focusa_license::EntitlementPolicyPosture::Deny
@@ -1026,7 +1116,8 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
                 allowance,
             );
             assert!(
-                guard_value_mutation(guard, &policy, EntitlementExecutionContext::default()).is_ok(),
+                guard_value_mutation(guard, &policy, EntitlementExecutionContext::default())
+                    .is_ok(),
                 "state {label}: {family:?} must stay reachable through the chokepoint"
             );
             reachable += 1;
@@ -1040,12 +1131,23 @@ fn spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable
     // The export read gate itself is never blocked: basic customer-data export
     // passes the chokepoint in blocked states through the recovery allowance.
     for (label, guard, _policy_state) in &blocked_states {
-        let export = guard_value_mutation(guard, &export_policy(), EntitlementExecutionContext::default());
+        let export = guard_value_mutation(
+            guard,
+            &export_policy(),
+            EntitlementExecutionContext::default(),
+        );
         if export.is_err() {
             // If the resolver keeps export blocked in this state, at least the
             // read projection path must still be reachable (asserted above).
-            let read = guard_value_mutation(guard, &read_projection_policy(), EntitlementExecutionContext::default());
-            assert!(read.is_ok(), "state {label}: read projection must stay reachable");
+            let read = guard_value_mutation(
+                guard,
+                &read_projection_policy(),
+                EntitlementExecutionContext::default(),
+            );
+            assert!(
+                read.is_ok(),
+                "state {label}: read projection must stay reachable"
+            );
         }
     }
 

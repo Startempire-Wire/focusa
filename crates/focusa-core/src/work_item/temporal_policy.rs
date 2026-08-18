@@ -229,7 +229,8 @@ mod tests {
     #[test]
     fn overdue_record_only_when_delivered_without_harm() {
         let mode = assess_overdue_delivery(
-            5, 5,
+            5,
+            5,
             Utc::now() - Duration::hours(1),
             Utc::now(),
             false,
@@ -241,7 +242,8 @@ mod tests {
     #[test]
     fn overdue_reconcile_when_partial_delivery() {
         let mode = assess_overdue_delivery(
-            2, 5,
+            2,
+            5,
             Utc::now() - Duration::hours(1),
             Utc::now(),
             false,
@@ -253,7 +255,8 @@ mod tests {
     #[test]
     fn overdue_compensate_when_no_delivery_and_harm() {
         let mode = assess_overdue_delivery(
-            0, 5,
+            0,
+            5,
             Utc::now() - Duration::hours(1),
             Utc::now(),
             true,
@@ -265,7 +268,8 @@ mod tests {
     #[test]
     fn overdue_extend_when_delivery_in_progress() {
         let mode = assess_overdue_delivery(
-            1, 5,
+            1,
+            5,
             Utc::now() - Duration::hours(1),
             Utc::now(),
             true,

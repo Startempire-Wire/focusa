@@ -1,23 +1,25 @@
 use chrono::{Duration, Utc};
 use focusa_license::{
+    BaseProductDecision, CapabilityFamily as Family, DecisionReason as Reason,
+    EntitlementPolicyPosture as Posture, PolicyEntitlementState as State,
     authority::{EntitlementSnapshot, EntitlementState},
-    base_product_compatibility_projection, resolve_base_focusa_product, BaseProductDecision,
+    base_product_compatibility_projection,
     feature_decision::{
         FeatureDecision, FeatureDecisionDenial, FeatureDiscoverability, FeatureOperationClass,
         FeatureRecoveryPosture, ProductFeatureDefinition, ProductFeatureRegistry,
     },
+    resolve_base_focusa_product,
     uiai_child_token::{
-        AuthorityChildTokenEnvelope, UiaiChildTokenBroker, UiaiChildTokenError, UiaiChildTokenRequest,
+        AuthorityChildTokenEnvelope, UiaiChildTokenBroker, UiaiChildTokenError,
+        UiaiChildTokenRequest,
     },
-    CapabilityFamily as Family, DecisionReason as Reason, EntitlementPolicyPosture as Posture,
-    PolicyEntitlementState as State,
 };
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use uuid::Uuid;
 
-use focusa_license::{reduce_entitlement_state};
+use focusa_license::reduce_entitlement_state;
 
 const FIXTURE_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -530,7 +532,10 @@ fn state_grid_matches_entitlement_vectors() {
     for row in &fixture.grid_cases {
         let key = (row.state.clone(), row.family.clone());
         assert_eq!(row.case_id, format!("{}::{}", key.0, key.1));
-        assert!(expected_pairs.remove(&key), "unexpected or duplicate state/family pair: {key:?}");
+        assert!(
+            expected_pairs.remove(&key),
+            "unexpected or duplicate state/family pair: {key:?}"
+        );
 
         let family = family_from_fixture(&row.family)
             .unwrap_or_else(|| panic!("unknown family label: {}", row.family));
@@ -543,18 +548,17 @@ fn state_grid_matches_entitlement_vectors() {
                 continue;
             }
             let reduction = reduce_entitlement_state(state, family, None);
-            assert_eq!(
-                decision.posture,
-                Some(reduction.posture()),
-                "case {key:?}",
-            );
+            assert_eq!(decision.posture, Some(reduction.posture()), "case {key:?}",);
             assert_eq!(decision.reason, reduction.reason(), "case {key:?}");
         } else {
             panic!("unknown state label: {}", row.state);
         }
     }
 
-    assert!(expected_pairs.is_empty(), "fixture must include every state/family combination");
+    assert!(
+        expected_pairs.is_empty(),
+        "fixture must include every state/family combination"
+    );
 }
 
 #[test]
@@ -565,7 +569,10 @@ fn base_product_compatibility_vectors_match_projection_logic() {
             .unwrap_or_else(|| panic!("unknown base state in fixture: {}", case.state));
         let decision = resolve_base_focusa_product(&case.product, state);
         assert_eq!(decision.label(), case.expected_decision);
-        assert_eq!(decision, parse_base_product_decision(&case.expected_decision));
+        assert_eq!(
+            decision,
+            parse_base_product_decision(&case.expected_decision)
+        );
 
         let projected = base_product_compatibility_projection(decision, &case.stored_features);
         for id in BASE_COMPAT_IDS {
@@ -616,20 +623,40 @@ fn feature_vector_cases_match_decision_semantics() {
 
         match (case.expected_outcome.as_str(), decision) {
             ("granted", FeatureDecision::Granted { reserved_units }) => {
-                assert_eq!(reserved_units, case.expected_reserved_units.unwrap_or(reserved_units));
+                assert_eq!(
+                    reserved_units,
+                    case.expected_reserved_units.unwrap_or(reserved_units)
+                );
             }
             ("recovery_allowed", FeatureDecision::RecoveryAllowed) => {}
-            ("denied_unknown_feature", FeatureDecision::Denied(FeatureDecisionDenial::UnknownFeature)) => {}
-            ("denied_wrong_product", FeatureDecision::Denied(FeatureDecisionDenial::WrongProduct)) => {}
-            ("denied_feature_not_granted", FeatureDecision::Denied(FeatureDecisionDenial::FeatureNotGranted)) => {}
-            ("denied_limit_not_granted", FeatureDecision::Denied(FeatureDecisionDenial::LimitNotGranted)) => {}
-            ("denied_limit_exhausted", FeatureDecision::Denied(FeatureDecisionDenial::LimitExhausted)) => {}
-            ("denied_invalid_registry", FeatureDecision::Denied(FeatureDecisionDenial::InvalidRegistry)) => {}
+            (
+                "denied_unknown_feature",
+                FeatureDecision::Denied(FeatureDecisionDenial::UnknownFeature),
+            ) => {}
+            (
+                "denied_wrong_product",
+                FeatureDecision::Denied(FeatureDecisionDenial::WrongProduct),
+            ) => {}
+            (
+                "denied_feature_not_granted",
+                FeatureDecision::Denied(FeatureDecisionDenial::FeatureNotGranted),
+            ) => {}
+            (
+                "denied_limit_not_granted",
+                FeatureDecision::Denied(FeatureDecisionDenial::LimitNotGranted),
+            ) => {}
+            (
+                "denied_limit_exhausted",
+                FeatureDecision::Denied(FeatureDecisionDenial::LimitExhausted),
+            ) => {}
+            (
+                "denied_invalid_registry",
+                FeatureDecision::Denied(FeatureDecisionDenial::InvalidRegistry),
+            ) => {}
             (expected, actual) => {
                 panic!(
                     "feature vector {}/{} produced {actual:?} but expected {expected}",
-                    case.case_id,
-                    case.feature
+                    case.case_id, case.feature
                 )
             }
         }
@@ -648,7 +675,10 @@ fn uiai_child_token_vectors_fail_closed_for_wrong_inputs() {
 
         match case.expected_outcome.as_str() {
             "parent_entitlement_invalid" => {
-                assert_eq!(validation, Err(UiaiChildTokenError::ParentEntitlementInvalid));
+                assert_eq!(
+                    validation,
+                    Err(UiaiChildTokenError::ParentEntitlementInvalid)
+                );
             }
             "uiai_grant_invalid" => {
                 assert_eq!(validation, Err(UiaiChildTokenError::UiaiGrantInvalid));
@@ -658,7 +688,8 @@ fn uiai_child_token_vectors_fail_closed_for_wrong_inputs() {
                 let mut accepting_broker = UiaiChildTokenBroker::default();
                 let envelope = build_uiai_envelope(&case, &request, now);
                 assert_eq!(
-                    accepting_broker.accept_authority_token(&request, &focusa, &uiai, envelope, now),
+                    accepting_broker
+                        .accept_authority_token(&request, &focusa, &uiai, envelope, now),
                     Err(UiaiChildTokenError::AuthorityResponseMismatch),
                 );
             }
@@ -666,9 +697,11 @@ fn uiai_child_token_vectors_fail_closed_for_wrong_inputs() {
                 assert!(validation.is_ok());
                 let mut accepting_broker = UiaiChildTokenBroker::default();
                 let envelope = build_uiai_envelope(&case, &request, now);
-                assert!(accepting_broker
-                    .accept_authority_token(&request, &focusa, &uiai, envelope, now)
-                    .is_ok());
+                assert!(
+                    accepting_broker
+                        .accept_authority_token(&request, &focusa, &uiai, envelope, now)
+                        .is_ok()
+                );
             }
             other => panic!("unexpected uiai child token outcome: {other}"),
         }
@@ -697,31 +730,51 @@ fn dormant_field_vectors_record_no_authority_effect() {
     }
 }
 
-fn build_focusa_snapshot(case: &UiaiChildTokenVectorCase, now: chrono::DateTime<Utc>) -> EntitlementSnapshot {
+fn build_focusa_snapshot(
+    case: &UiaiChildTokenVectorCase,
+    now: chrono::DateTime<Utc>,
+) -> EntitlementSnapshot {
     let mut snapshot = EntitlementSnapshot::unactivated(
         case.focusa_product.as_deref().unwrap_or("focusa"),
         case.focusa_node.as_deref().unwrap_or("node-001"),
     );
     snapshot.state = EntitlementState::Active;
     snapshot.sequence = Some(case.focusa_snapshot_sequence.unwrap_or(7));
-    snapshot.lease_id = Some(case.focusa_lease_id.clone().unwrap_or_else(|| "lease-focusa".to_string()));
-    snapshot.lease_digest = Some(case.focusa_lease_digest.clone().unwrap_or_else(|| "sha256:focusa".to_string()));
+    snapshot.lease_id = Some(
+        case.focusa_lease_id
+            .clone()
+            .unwrap_or_else(|| "lease-focusa".to_string()),
+    );
+    snapshot.lease_digest = Some(
+        case.focusa_lease_digest
+            .clone()
+            .unwrap_or_else(|| "sha256:focusa".to_string()),
+    );
     snapshot.expires_at = Some(now + Duration::minutes(60));
-    snapshot.features.insert("focusa.agent.parallelism".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.parallelism".to_string(), true);
     snapshot
 }
 
-fn build_uiai_snapshot(case: &UiaiChildTokenVectorCase, now: chrono::DateTime<Utc>) -> EntitlementSnapshot {
+fn build_uiai_snapshot(
+    case: &UiaiChildTokenVectorCase,
+    now: chrono::DateTime<Utc>,
+) -> EntitlementSnapshot {
     let mut snapshot = EntitlementSnapshot::unactivated(
         case.uiai_product.as_deref().unwrap_or("uiai-engine"),
-        case.uiai_node.as_deref().unwrap_or_else(|| case.focusa_node.as_deref().unwrap_or("node-001")),
+        case.uiai_node
+            .as_deref()
+            .unwrap_or_else(|| case.focusa_node.as_deref().unwrap_or("node-001")),
     );
     snapshot.state = EntitlementState::Active;
     snapshot.sequence = Some(case.uiai_snapshot_sequence.unwrap_or(11));
     snapshot.lease_id = Some("lease-uiai".to_string());
     snapshot.lease_digest = Some("sha256:uiai".to_string());
     snapshot.expires_at = Some(now + Duration::minutes(60));
-    snapshot.features.insert("focusa.agent.parallelism".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.agent.parallelism".to_string(), true);
     snapshot
 }
 
@@ -729,25 +782,38 @@ fn build_uiai_request(case: &UiaiChildTokenVectorCase) -> UiaiChildTokenRequest 
     let request_id = Uuid::nil();
     UiaiChildTokenRequest {
         request_id,
-        audience: case.request_audience.clone().unwrap_or_else(|| "aud-focusa".to_string()),
+        audience: case
+            .request_audience
+            .clone()
+            .unwrap_or_else(|| "aud-focusa".to_string()),
         node_id: case
             .request_node
             .clone()
             .unwrap_or_else(|| "node-001".to_string()),
-        client_id: case.request_client_id.clone().unwrap_or_else(|| "client-focusa".to_string()),
+        client_id: case
+            .request_client_id
+            .clone()
+            .unwrap_or_else(|| "client-focusa".to_string()),
         parent_lease_id: case.request_parent_lease_id.clone().unwrap_or_else(|| {
             case.focusa_lease_id
                 .as_ref()
                 .cloned()
                 .unwrap_or_else(|| "lease-focusa".to_string())
         }),
-        parent_lease_sequence: case.request_parent_lease_sequence.unwrap_or(case.focusa_snapshot_sequence.unwrap_or(7)),
+        parent_lease_sequence: case
+            .request_parent_lease_sequence
+            .unwrap_or(case.focusa_snapshot_sequence.unwrap_or(7)),
         parent_lease_digest: case
             .focusa_lease_digest
             .clone()
             .unwrap_or_else(|| "sha256:focusa".to_string()),
-        uiai_grant_lease_id: case.request_uiai_lease_id.clone().unwrap_or_else(|| "lease-uiai".to_string()),
-        uiai_grant_sequence: case.request_uiai_grant_sequence.unwrap_or(case.uiai_snapshot_sequence.unwrap_or(11)),
+        uiai_grant_lease_id: case
+            .request_uiai_lease_id
+            .clone()
+            .unwrap_or_else(|| "lease-uiai".to_string()),
+        uiai_grant_sequence: case
+            .request_uiai_grant_sequence
+            .unwrap_or(case.uiai_snapshot_sequence.unwrap_or(11)),
         requested_features: BTreeSet::from(["focusa.agent.parallelism".to_string()]),
         requested_limits: BTreeMap::new(),
         nonce: case

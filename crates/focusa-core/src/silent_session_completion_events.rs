@@ -52,7 +52,10 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
 
 /// Record a completion event. Returns `Ok(true)` when the event is new
 /// (caller should broadcast), `Ok(false)` when it was already recorded.
-pub fn record_completion_event(conn: &Connection, event: &SilentSessionCompletionEvent) -> Result<bool> {
+pub fn record_completion_event(
+    conn: &Connection,
+    event: &SilentSessionCompletionEvent,
+) -> Result<bool> {
     ensure_schema(conn)?;
     let inserted = conn.execute(
         "INSERT OR IGNORE INTO silent_session_completion_events
@@ -72,7 +75,10 @@ pub fn record_completion_event(conn: &Connection, event: &SilentSessionCompletio
 }
 
 /// Latest recorded completion for a session.
-pub fn latest_completion(conn: &Connection, session_id: &str) -> Result<Option<SilentSessionCompletionEvent>> {
+pub fn latest_completion(
+    conn: &Connection,
+    session_id: &str,
+) -> Result<Option<SilentSessionCompletionEvent>> {
     ensure_schema(conn)?;
     let mut statement = conn.prepare(
         "SELECT seq, session_id, run_id, generation, status, summary, evidence_refs, created_at

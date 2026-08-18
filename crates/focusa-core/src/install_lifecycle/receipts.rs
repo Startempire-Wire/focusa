@@ -67,7 +67,9 @@ pub enum LifecycleReceiptError {
     IntegrityFailure,
     #[error("receipt id was replayed with different content")]
     IdempotencyConflict,
-    #[error("lifecycle receipt policy binding does not reconcile with the canonical entitlement policy")]
+    #[error(
+        "lifecycle receipt policy binding does not reconcile with the canonical entitlement policy"
+    )]
     PolicyReconciliation,
 }
 
@@ -287,8 +289,10 @@ impl LifecycleReceiptV1 {
         // from caller input, and never contains raw key material.
         if self.policy_binding.schema_version != "focusa.lifecycle_policy_binding.v1"
             || !valid_digest(&self.policy_binding.policy_digest)
-            || !LIFECYCLE_CAPABILITY_FAMILIES.contains(&self.policy_binding.capability_family.as_str())
-            || !LIFECYCLE_ENTITLEMENT_STATES.contains(&self.policy_binding.entitlement_state.as_str())
+            || !LIFECYCLE_CAPABILITY_FAMILIES
+                .contains(&self.policy_binding.capability_family.as_str())
+            || !LIFECYCLE_ENTITLEMENT_STATES
+                .contains(&self.policy_binding.entitlement_state.as_str())
             || self.policy_binding.recovery_posture == self.policy_binding.product_ready
             || self.policy_binding.product_ready != self.product_ready()
             || self.policy_binding.lease_sequence != self.lease_sequence.unwrap_or_default()
@@ -470,7 +474,12 @@ impl LifecyclePolicyBinding {
         product_ready: bool,
     ) -> Self {
         let (entitlement_state, lease_sequence) = binding
-            .map(|value| (lifecycle_entitlement_state_label(value.state), value.lease_sequence))
+            .map(|value| {
+                (
+                    lifecycle_entitlement_state_label(value.state),
+                    value.lease_sequence,
+                )
+            })
             .unwrap_or_else(|| ("none".to_string(), 0));
         Self {
             schema_version: lifecycle_policy_binding_schema_v1(),
@@ -498,25 +507,27 @@ fn lifecycle_policy_family(
     class: LifecycleEntitlementReceiptClass,
     product_ready: bool,
 ) -> String {
-    if !product_ready
-        || matches!(class, LifecycleEntitlementReceiptClass::RecoveryReady)
-    {
-        return focusa_license::CapabilityFamily::AccountRecovery.label().to_string();
+    if !product_ready || matches!(class, LifecycleEntitlementReceiptClass::RecoveryReady) {
+        return focusa_license::CapabilityFamily::AccountRecovery
+            .label()
+            .to_string();
     }
     match operation {
         LifecycleOperation::Update => focusa_license::CapabilityFamily::PremiumUpdates
             .label()
             .to_string(),
-        LifecycleOperation::Inspect => {
-            focusa_license::CapabilityFamily::ReadProjection.label().to_string()
-        }
+        LifecycleOperation::Inspect => focusa_license::CapabilityFamily::ReadProjection
+            .label()
+            .to_string(),
         LifecycleOperation::Uninstall
         | LifecycleOperation::Purge
-        | LifecycleOperation::Rollback => {
-            focusa_license::CapabilityFamily::AccountRecovery.label().to_string()
-        }
+        | LifecycleOperation::Rollback => focusa_license::CapabilityFamily::AccountRecovery
+            .label()
+            .to_string(),
         LifecycleOperation::Install | LifecycleOperation::Repair | LifecycleOperation::Rerun => {
-            focusa_license::CapabilityFamily::BaseFocusa.label().to_string()
+            focusa_license::CapabilityFamily::BaseFocusa
+                .label()
+                .to_string()
         }
     }
 }
@@ -531,7 +542,9 @@ fn lifecycle_entitlement_state_label(state: LifecycleEntitlementState) -> String
 /// Entitlement-state labels consistent with each receipt class. The recorded
 /// state must be one of these so reconciliation cannot drift into an invented
 /// or contradicting state claim.
-fn lifecycle_receipt_class_states(class: LifecycleEntitlementReceiptClass) -> &'static [&'static str] {
+fn lifecycle_receipt_class_states(
+    class: LifecycleEntitlementReceiptClass,
+) -> &'static [&'static str] {
     match class {
         LifecycleEntitlementReceiptClass::LimitedAccessReady => &["active_verified_limited"],
         LifecycleEntitlementReceiptClass::PaidReady => &["active_paid"],

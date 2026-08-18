@@ -196,9 +196,11 @@ fn entitlement_policy_registry_loads_embedded_digest_bound_overlay() {
         ),
         registry.digest()
     );
-    assert!(!registry
-        .canonical_json()
-        .contains("\"state\":\"evaluation\""));
+    assert!(
+        !registry
+            .canonical_json()
+            .contains("\"state\":\"evaluation\"")
+    );
 }
 
 #[test]
@@ -308,15 +310,20 @@ fn entitlement_policy_types_reject_illegal_combinations() {
 
 #[test]
 fn spec172_no_license_family_classifier_focusa_is_allowlist_backed_and_fail_closed() {
-    assert!(
-        is_focusa_verified_no_license_family_allowed("focusa", "manual_project", 1)
-    );
+    assert!(is_focusa_verified_no_license_family_allowed(
+        "focusa",
+        "manual_project",
+        1
+    ));
     assert!(!is_focusa_verified_no_license_family_allowed(
         "focusa",
         "manual_project",
         2,
     ));
-    for family in SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES.iter().copied() {
+    for family in SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES
+        .iter()
+        .copied()
+    {
         if family != "manual_project" {
             assert!(
                 is_focusa_verified_no_license_family_allowed("focusa", family, 1),

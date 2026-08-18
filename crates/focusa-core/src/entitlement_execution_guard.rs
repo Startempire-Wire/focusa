@@ -52,29 +52,25 @@ impl EntitlementExecutionPolicy {
             (
                 focusa_license::CapabilityFamily::AccountRecovery,
                 focusa_license::OperationClass::Recovery
+            ) | (
+                focusa_license::CapabilityFamily::ReadProjection,
+                focusa_license::OperationClass::Read
+            ) | (
+                focusa_license::CapabilityFamily::CustomerDataExport,
+                focusa_license::OperationClass::Read
+                    | focusa_license::OperationClass::Recovery
+                    | focusa_license::OperationClass::ValueMutation
+            ) | (
+                focusa_license::CapabilityFamily::InternalMaintenance,
+                focusa_license::OperationClass::InternalMaintenance
+            ) | (
+                focusa_license::CapabilityFamily::BaseFocusa
+                    | focusa_license::CapabilityFamily::Automation
+                    | focusa_license::CapabilityFamily::TeamRemote
+                    | focusa_license::CapabilityFamily::ReleaseProof
+                    | focusa_license::CapabilityFamily::PremiumUpdates,
+                focusa_license::OperationClass::ValueMutation
             )
-                | (
-                    focusa_license::CapabilityFamily::ReadProjection,
-                    focusa_license::OperationClass::Read
-                )
-                | (
-                    focusa_license::CapabilityFamily::CustomerDataExport,
-                    focusa_license::OperationClass::Read
-                        | focusa_license::OperationClass::Recovery
-                        | focusa_license::OperationClass::ValueMutation
-                )
-                | (
-                    focusa_license::CapabilityFamily::InternalMaintenance,
-                    focusa_license::OperationClass::InternalMaintenance
-                )
-                | (
-                    focusa_license::CapabilityFamily::BaseFocusa
-                        | focusa_license::CapabilityFamily::Automation
-                        | focusa_license::CapabilityFamily::TeamRemote
-                        | focusa_license::CapabilityFamily::ReleaseProof
-                        | focusa_license::CapabilityFamily::PremiumUpdates,
-                    focusa_license::OperationClass::ValueMutation
-                )
         );
         if !operation_family_compatible {
             return Err(EntitlementExecutionFailure {
@@ -238,29 +234,34 @@ pub fn evaluate_entitlement_execution(
         focusa_license::EntitlementPolicyPosture::Allow
         | focusa_license::EntitlementPolicyPosture::Read => Ok(base_decision),
         focusa_license::EntitlementPolicyPosture::Base => {
-            let snapshot =
-                guard
-                    .entitlement
-                    .as_ref()
-                    .ok_or_else(|| EntitlementExecutionFailure {
-                        code: ENTITLEMENT_BASE_REQUIRED.to_string(),
-                        message: "A usable signed Focusa base entitlement is required for this operation.".to_string(),
-                        required_feature: base_decision.required_feature.clone(),
-                        limit_bucket: base_decision.limit_bucket.clone(),
-                    })?;
-
-            let projection =
-                focusa_license::base_product_projection(Some(snapshot)).map_err(|_| EntitlementExecutionFailure {
+            let snapshot = guard.entitlement.as_ref().ok_or_else(|| {
+                EntitlementExecutionFailure {
                     code: ENTITLEMENT_BASE_REQUIRED.to_string(),
-                    message: "No usable Focusa base entitlement is present for this operation.".to_string(),
+                    message:
+                        "A usable signed Focusa base entitlement is required for this operation."
+                            .to_string(),
                     required_feature: base_decision.required_feature.clone(),
                     limit_bucket: base_decision.limit_bucket.clone(),
+                }
+            })?;
+
+            let projection =
+                focusa_license::base_product_projection(Some(snapshot)).map_err(|_| {
+                    EntitlementExecutionFailure {
+                        code: ENTITLEMENT_BASE_REQUIRED.to_string(),
+                        message: "No usable Focusa base entitlement is present for this operation."
+                            .to_string(),
+                        required_feature: base_decision.required_feature.clone(),
+                        limit_bucket: base_decision.limit_bucket.clone(),
+                    }
                 })?;
 
             if !projection.permits_base_mutations {
                 return Err(EntitlementExecutionFailure {
                     code: ENTITLEMENT_BASE_REQUIRED.to_string(),
-                    message: "Base Focusa entitlement is required for this value-producing operation.".to_string(),
+                    message:
+                        "Base Focusa entitlement is required for this value-producing operation."
+                            .to_string(),
                     required_feature: None,
                     limit_bucket: base_decision.limit_bucket,
                 });
@@ -281,15 +282,14 @@ pub fn evaluate_entitlement_execution(
                         limit_bucket: base_decision.limit_bucket.clone(),
                     })?;
 
-            let required_feature = base_decision
-                .required_feature
-                .as_deref()
-                .ok_or_else(|| EntitlementExecutionFailure {
+            let required_feature = base_decision.required_feature.as_deref().ok_or_else(|| {
+                EntitlementExecutionFailure {
                     code: ENTITLEMENT_FEATURE_REQUIRED.to_string(),
                     message: "premium family requires required_feature".to_string(),
                     required_feature: None,
                     limit_bucket: None,
-                })?;
+                }
+            })?;
 
             let premium = focusa_license::resolve_premium_family(
                 snapshot,
@@ -312,8 +312,11 @@ pub fn evaluate_entitlement_execution(
                     Ok(base_decision)
                 }
                 focusa_license::PremiumFamilyDecision::Denied(denial) => {
-                    let failure =
-                        entitlement_execution_premium_denial(denial, base_decision.required_feature.clone(), base_decision.limit_bucket.clone());
+                    let failure = entitlement_execution_premium_denial(
+                        denial,
+                        base_decision.required_feature.clone(),
+                        base_decision.limit_bucket.clone(),
+                    );
                     Err(failure)
                 }
             }
@@ -331,7 +334,8 @@ pub fn evaluate_entitlement_execution(
             };
             Err(EntitlementExecutionFailure {
                 code: code.to_string(),
-                message: "The operation is denied by the entitlement policy before side effects.".to_string(),
+                message: "The operation is denied by the entitlement policy before side effects."
+                    .to_string(),
                 required_feature: base_decision.required_feature,
                 limit_bucket: base_decision.limit_bucket,
             })
@@ -391,12 +395,14 @@ fn entitlement_execution_premium_denial(
     limit_bucket: Option<String>,
 ) -> EntitlementExecutionFailure {
     match denial {
-        focusa_license::PremiumFamilyDenial::BaseProductRequired { .. } => EntitlementExecutionFailure {
-            code: ENTITLEMENT_BASE_REQUIRED.to_string(),
-            message: "Base Focusa entitlement is required for premium operations.".to_string(),
-            required_feature,
-            limit_bucket,
-        },
+        focusa_license::PremiumFamilyDenial::BaseProductRequired { .. } => {
+            EntitlementExecutionFailure {
+                code: ENTITLEMENT_BASE_REQUIRED.to_string(),
+                message: "Base Focusa entitlement is required for premium operations.".to_string(),
+                required_feature,
+                limit_bucket,
+            }
+        }
         focusa_license::PremiumFamilyDenial::MissingLeaseSequence => EntitlementExecutionFailure {
             code: ENTITLEMENT_FEATURE_REQUIRED.to_string(),
             message: "snapshot sequence is missing or zero".to_string(),
@@ -409,22 +415,20 @@ fn entitlement_execution_premium_denial(
             required_feature,
             limit_bucket,
         },
-        focusa_license::PremiumFamilyDenial::InvalidRequiredFeature { feature: feature_value } => {
-            EntitlementExecutionFailure {
-                code: ENTITLEMENT_FEATURE_REQUIRED.to_string(),
-                message: format!(
-                    "required_feature is not a qualified entitlement feature: {feature_value}"
-                ),
-                required_feature: Some(feature_value),
-                limit_bucket,
-            }
-        }
+        focusa_license::PremiumFamilyDenial::InvalidRequiredFeature {
+            feature: feature_value,
+        } => EntitlementExecutionFailure {
+            code: ENTITLEMENT_FEATURE_REQUIRED.to_string(),
+            message: format!(
+                "required_feature is not a qualified entitlement feature: {feature_value}"
+            ),
+            required_feature: Some(feature_value),
+            limit_bucket,
+        },
         focusa_license::PremiumFamilyDenial::FeatureNotRegistered { family, feature } => {
             EntitlementExecutionFailure {
                 code: ENTITLEMENT_FEATURE_REQUIRED.to_string(),
-                message: format!(
-                    "{family:?} family does not register the requested feature"
-                ),
+                message: format!("{family:?} family does not register the requested feature"),
                 required_feature: Some(feature.as_str().to_string()),
                 limit_bucket,
             }
@@ -439,12 +443,14 @@ fn entitlement_execution_premium_denial(
                 limit_bucket,
             }
         }
-        focusa_license::PremiumFamilyDenial::MissingCachedGrantExpiry => EntitlementExecutionFailure {
-            code: ENTITLEMENT_REQUIRED.to_string(),
-            message: "offline cached feature grants require a grace window".to_string(),
-            required_feature,
-            limit_bucket,
-        },
+        focusa_license::PremiumFamilyDenial::MissingCachedGrantExpiry => {
+            EntitlementExecutionFailure {
+                code: ENTITLEMENT_REQUIRED.to_string(),
+                message: "offline cached feature grants require a grace window".to_string(),
+                required_feature,
+                limit_bucket,
+            }
+        }
         focusa_license::PremiumFamilyDenial::CachedGrantExpired => EntitlementExecutionFailure {
             code: ENTITLEMENT_REQUIRED.to_string(),
             message: "offline cached feature grant has expired".to_string(),
@@ -465,12 +471,14 @@ fn entitlement_execution_premium_denial(
                 limit_bucket,
             }
         }
-        focusa_license::PremiumFamilyDenial::NotPremiumFamily { family } => EntitlementExecutionFailure {
-            code: ENTITLEMENT_ROUTE_UNCLASSIFIED.to_string(),
-            message: format!("{family:?} is not a premium family"),
-            required_feature,
-            limit_bucket,
-        },
+        focusa_license::PremiumFamilyDenial::NotPremiumFamily { family } => {
+            EntitlementExecutionFailure {
+                code: ENTITLEMENT_ROUTE_UNCLASSIFIED.to_string(),
+                message: format!("{family:?} is not a premium family"),
+                required_feature,
+                limit_bucket,
+            }
+        }
     }
 }
 
@@ -478,7 +486,9 @@ fn entitlement_execution_premium_denial(
 mod tests {
     use super::*;
 
-    fn base_snapshot(state: focusa_license::authority::EntitlementState) -> focusa_license::authority::EntitlementSnapshot {
+    fn base_snapshot(
+        state: focusa_license::authority::EntitlementState,
+    ) -> focusa_license::authority::EntitlementSnapshot {
         use focusa_license::authority::EntitlementSnapshot;
         let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-guard");
         snapshot.state = state;
@@ -551,7 +561,9 @@ mod tests {
     #[test]
     fn entitlement_execution_guard_enforces_premium_base_then_feature() {
         let mut snapshot = base_snapshot(focusa_license::authority::EntitlementState::Active);
-        snapshot.features.insert("focusa.agent.parallelism".into(), true);
+        snapshot
+            .features
+            .insert("focusa.agent.parallelism".into(), true);
 
         let good = evaluate_entitlement_execution(
             &focusa_license::LicenseGuard::from_entitlement(snapshot.clone()),
@@ -568,7 +580,9 @@ mod tests {
         .expect("premium operation resolves with signed feature");
         assert_eq!(good.status, "feature");
 
-        snapshot.features.insert("focusa.agent.parallelism".into(), false);
+        snapshot
+            .features
+            .insert("focusa.agent.parallelism".into(), false);
         let denied = evaluate_entitlement_execution(
             &focusa_license::LicenseGuard::from_entitlement(snapshot),
             &EntitlementExecutionPolicy::new(

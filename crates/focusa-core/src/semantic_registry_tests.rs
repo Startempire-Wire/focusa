@@ -1,7 +1,12 @@
 use super::*;
 use crate::semantic_integrity::{SemanticArtifactKind, SemanticProvenance};
 
-fn artifact(id: &str, namespace: &str, version: u64, state: SemanticArtifactState) -> SemanticArtifact {
+fn artifact(
+    id: &str,
+    namespace: &str,
+    version: u64,
+    state: SemanticArtifactState,
+) -> SemanticArtifact {
     SemanticArtifact {
         artifact_id: id.into(),
         kind: SemanticArtifactKind::Ontology,
@@ -50,17 +55,34 @@ fn registry_is_append_only_versioned_and_collision_safe() {
     let mut registry = SemanticRegistry::default();
     registry
         .append(registration(
-            artifact("ontology:test", "https://focusa.dev/test#", 1, SemanticArtifactState::Draft),
+            artifact(
+                "ontology:test",
+                "https://focusa.dev/test#",
+                1,
+                SemanticArtifactState::Draft,
+            ),
             "test",
         ))
         .unwrap();
     assert_eq!(registry.events.len(), 1);
     let conflict = registration(
-        artifact("ontology:foreign", "https://foreign.example/#", 1, SemanticArtifactState::Draft),
+        artifact(
+            "ontology:foreign",
+            "https://foreign.example/#",
+            1,
+            SemanticArtifactState::Draft,
+        ),
         "test",
     );
-    assert_eq!(registry.append(conflict), Err(SemanticRegistryError::NamespaceConflict));
-    assert_eq!(registry.events.len(), 1, "rejected events never partially project");
+    assert_eq!(
+        registry.append(conflict),
+        Err(SemanticRegistryError::NamespaceConflict)
+    );
+    assert_eq!(
+        registry.events.len(),
+        1,
+        "rejected events never partially project"
+    );
 }
 
 #[test]
@@ -80,7 +102,9 @@ fn activation_requires_registered_active_import_closure() {
         SemanticArtifactState::Draft,
     );
     dependent.import_iris = vec!["https://focusa.dev/base#".into()];
-    registry.append(registration(dependent, "dependent")).unwrap();
+    registry
+        .append(registration(dependent, "dependent"))
+        .unwrap();
     registry
         .append(SemanticRegistryEvent::ArtifactActivated {
             artifact_id: "ontology:dependent".into(),
@@ -117,7 +141,10 @@ fn reproducible_build_sorts_sources_and_stabilizes_digest() {
                 evidence_refs: vec!["source:a".into()],
             },
         ],
-        ordered_transform_refs: vec!["transform:expand-jsonld".into(), "transform:canonicalize".into()],
+        ordered_transform_refs: vec![
+            "transform:expand-jsonld".into(),
+            "transform:canonicalize".into(),
+        ],
         signature_ref: "sig:build".into(),
     };
     let left = build_semantic_artifact(&request).unwrap();
@@ -125,5 +152,8 @@ fn reproducible_build_sorts_sources_and_stabilizes_digest() {
     reordered.sources.reverse();
     let right = build_semantic_artifact(&reordered).unwrap();
     assert_eq!(left, right);
-    assert_eq!(semantic_build_manifest_digest(&left.manifest), semantic_build_manifest_digest(&right.manifest));
+    assert_eq!(
+        semantic_build_manifest_digest(&left.manifest),
+        semantic_build_manifest_digest(&right.manifest)
+    );
 }

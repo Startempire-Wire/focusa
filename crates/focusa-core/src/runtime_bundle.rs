@@ -100,7 +100,10 @@ impl RuntimeBundleManifest {
         }
         let computed = self.compute_digest();
         if computed != self.digest {
-            return Err(format!("digest mismatch: manifest {0} computed {1}", self.digest, computed));
+            return Err(format!(
+                "digest mismatch: manifest {0} computed {1}",
+                self.digest, computed
+            ));
         }
         if !self.placement.controller_owned {
             return Err("placement must be controller-owned".to_string());

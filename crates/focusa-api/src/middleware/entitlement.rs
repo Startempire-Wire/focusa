@@ -84,9 +84,8 @@ const ROUTE_CLASSIFICATION_JSON: &str = include_str!(
 const OPERATION_REGISTRY_JSON: &str = include_str!(
     "../../../../docs/contracts/spec135/generated-contract-v1/operation-registry.json"
 );
-const RECOVERY_ONLY_SURFACE_JSON: &str = include_str!(
-    "../../../../docs/contracts/spec152e-recovery-only-surface.v1.json"
-);
+const RECOVERY_ONLY_SURFACE_JSON: &str =
+    include_str!("../../../../docs/contracts/spec152e-recovery-only-surface.v1.json");
 const ROUTE_UNCLASSIFIED_ERROR: &str =
     "This mutation route has no exact entitlement descriptor and is blocked fail-closed.";
 
@@ -155,8 +154,7 @@ fn recovery_guidance_for_code(code: &str) -> RecoveryGuidance {
         let mut map = BTreeMap::new();
         // Fail closed: an unparseable embedded contract yields the default
         // guidance for every code rather than an envelope without recovery.
-        let Ok(contract) =
-            serde_json::from_str::<serde_json::Value>(RECOVERY_ONLY_SURFACE_JSON)
+        let Ok(contract) = serde_json::from_str::<serde_json::Value>(RECOVERY_ONLY_SURFACE_JSON)
         else {
             return map;
         };
@@ -235,11 +233,30 @@ fn recovery_guidance_is_contract_bound() {
 }
 
 fn is_home_dev_bypass() -> bool {
-    if std::env::var("FOCUSA_DEV_MODE").map(|v| v == "1").unwrap_or(false) { return true; }
-    if std::env::var("FOCUSA_TEST_MODE").map(|v| v == "1").unwrap_or(false) { return true; }
-    if std::env::var("FOCUSA_HOME_SERVER").map(|v| v == "1").unwrap_or(false) { return true; }
+    if std::env::var("FOCUSA_DEV_MODE")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return true;
+    }
+    if std::env::var("FOCUSA_TEST_MODE")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return true;
+    }
+    if std::env::var("FOCUSA_HOME_SERVER")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return true;
+    }
     // home hostnames — kh, ovh-w1/w2, local dev
-    if let Ok(h) = std::env::var("HOSTNAME") { if h.contains("kh") || h.contains("ovh") || h == "localhost" { return true; } }
+    if let Ok(h) = std::env::var("HOSTNAME") {
+        if h.contains("kh") || h.contains("ovh") || h == "localhost" {
+            return true;
+        }
+    }
     false
 }
 
@@ -259,7 +276,9 @@ pub async fn entitlement_gate_layer(
         path,
         state_has_canonical_workpoint(&state).await,
     );
-    if is_home_dev_bypass() { return next.run(request).await; }
+    if is_home_dev_bypass() {
+        return next.run(request).await;
+    }
     let requires_entitlement = route_requires_entitlement(&method, path) && !bootstrap_exempt;
     let policy = if bootstrap_exempt {
         None
@@ -376,7 +395,10 @@ fn reserve_route_limit(
         .or_else(|| {
             // Under test mode, accept a generated key so CI probes do not
             // require a real Idempotency-Key header.
-            if std::env::var("FOCUSA_TEST_MODE").map(|value| value == "1").unwrap_or(false) {
+            if std::env::var("FOCUSA_TEST_MODE")
+                .map(|value| value == "1")
+                .unwrap_or(false)
+            {
                 Some("ci-test-idempotency-key")
             } else {
                 None
@@ -404,7 +426,11 @@ fn reserve_route_limit(
     let lease_sequence = snapshot.sequence.unwrap_or_default();
     let mut available = snapshot.limits.get(bucket).copied().unwrap_or(0);
     // CI test-mode daemons bypass real limit enforcement (bounded: 1k units, not MAX, and only when FOCUSA_TEST_MODE=1).
-    if std::env::var("FOCUSA_TEST_MODE").map(|value| value == "1").unwrap_or(false) && available == 0 {
+    if std::env::var("FOCUSA_TEST_MODE")
+        .map(|value| value == "1")
+        .unwrap_or(false)
+        && available == 0
+    {
         available = 1000;
     }
     let reservation_id = format!(
@@ -1133,11 +1159,7 @@ mod tests {
                 &Method::POST,
                 "/v1/workpoint/checkpoint",
             ),
-            (
-                "evidence_capture",
-                &Method::POST,
-                "/v1/evidence/capture",
-            ),
+            ("evidence_capture", &Method::POST, "/v1/evidence/capture"),
             (
                 "metacog_capture",
                 &Method::POST,
@@ -1305,11 +1327,7 @@ mod tests {
                 &Method::POST,
                 "/v1/workpoint/checkpoint",
             ),
-            (
-                "evidence_capture",
-                &Method::POST,
-                "/v1/evidence/capture",
-            ),
+            ("evidence_capture", &Method::POST, "/v1/evidence/capture"),
             (
                 "metacog_capture",
                 &Method::POST,
@@ -1462,7 +1480,10 @@ mod tests {
             std::ptr::eq(first, second),
             "classification metadata must be a single cached instance"
         );
-        assert!(!first.operations.is_empty(), "operations registry must load");
+        assert!(
+            !first.operations.is_empty(),
+            "operations registry must load"
+        );
         assert!(!first.routes.is_empty(), "route classification must load");
 
         // Recovery guidance is also compile-time and OnceLock-cached.
@@ -1487,7 +1508,10 @@ mod tests {
             assert_eq!(again.limit_bucket, first.limit_bucket);
             assert_eq!(again.recovery_allowance, first.recovery_allowance);
         }
-        assert_eq!(first.operation_class, focusa_license::OperationClass::ValueMutation);
+        assert_eq!(
+            first.operation_class,
+            focusa_license::OperationClass::ValueMutation
+        );
         assert_eq!(
             first.capability_family,
             focusa_license::CapabilityFamily::BaseFocusa

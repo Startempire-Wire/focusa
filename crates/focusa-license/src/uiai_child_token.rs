@@ -828,6 +828,32 @@ fn same_evidence_account(parent: &EntitlementSnapshot, grant: &EntitlementSnapsh
     }
 }
 
+fn active_bound(
+    snapshot: &EntitlementSnapshot,
+    product: &str,
+    node: &str,
+    now: DateTime<Utc>,
+) -> bool {
+    snapshot.product == product
+        && snapshot.node_id == node
+        && snapshot
+            .lease_id
+            .as_deref()
+            .is_some_and(|value| !value.is_empty())
+        && snapshot.sequence.is_some_and(|value| value > 0)
+        && snapshot
+            .lease_digest
+            .as_deref()
+            .is_some_and(|value| value.starts_with("sha256:"))
+        && match snapshot.state {
+            EntitlementState::Active => snapshot.expires_at.is_some_and(|expiry| expiry > now),
+            EntitlementState::OfflineGrace => snapshot
+                .offline_grace_until
+                .is_some_and(|expiry| expiry > now),
+            EntitlementState::Unactivated | EntitlementState::RecoveryOnly => false,
+        }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1136,7 +1162,11 @@ mod tests {
             "basic_diagnostics",
         ] {
             let entry = classify_uiai_operation(operation_id).expect(operation_id);
-            assert_eq!(entry.class, UiaiActionPersistenceClass::PublicObserve, "{operation_id}");
+            assert_eq!(
+                entry.class,
+                UiaiActionPersistenceClass::PublicObserve,
+                "{operation_id}"
+            );
             assert_eq!(
                 entry.class.operation_class(),
                 UiaiOperationClass::PublicObservation,
@@ -1157,15 +1187,30 @@ mod tests {
             "browser_submit",
         ] {
             let entry = classify_uiai_operation(operation_id).expect(operation_id);
-            assert_eq!(entry.class, UiaiActionPersistenceClass::Action, "{operation_id}");
+            assert_eq!(
+                entry.class,
+                UiaiActionPersistenceClass::Action,
+                "{operation_id}"
+            );
             assert_eq!(entry.limited_family, "browser_action", "{operation_id}");
             assert_eq!(entry.paid_feature, "uiai_browser_action", "{operation_id}");
         }
         // Persistence is its own class and binds the paid persistence family.
-        for operation_id in ["cookie_persistence", "auth_state_persistence", "session_persistence"] {
+        for operation_id in [
+            "cookie_persistence",
+            "auth_state_persistence",
+            "session_persistence",
+        ] {
             let entry = classify_uiai_operation(operation_id).expect(operation_id);
-            assert_eq!(entry.class, UiaiActionPersistenceClass::Persistence, "{operation_id}");
-            assert_eq!(entry.limited_family, "browser_persistence", "{operation_id}");
+            assert_eq!(
+                entry.class,
+                UiaiActionPersistenceClass::Persistence,
+                "{operation_id}"
+            );
+            assert_eq!(
+                entry.limited_family, "browser_persistence",
+                "{operation_id}"
+            );
             assert_eq!(entry.paid_feature, "uiai_persistence", "{operation_id}");
         }
         // Authenticated/private, unattended, and hosted rights carry NO
@@ -1183,7 +1228,10 @@ mod tests {
                 !SPEC172_UIAI_PAID_FAMILY_FEATURES.contains(&entry.paid_feature),
                 "{operation_id} must carry no canonical paid feature"
             );
-            assert_eq!(entry.class.operation_class(), UiaiOperationClass::RemotePremium);
+            assert_eq!(
+                entry.class.operation_class(),
+                UiaiOperationClass::RemotePremium
+            );
         }
         // Unknown, prefixed, and aliased ids never resolve.
         assert_eq!(classify_uiai_operation("caller_invented_operation"), None);
@@ -1223,16 +1271,16 @@ mod tests {
         ] {
             assert_eq!(
                 resolve_uiai_operation_capability(operation_id, Some(&limited), None, 0, now),
-                Ok(UiaiCapabilityDecision::VerifiedNoLicensePublicObservation {
-                    session_quota: 1
-                }),
+                Ok(UiaiCapabilityDecision::VerifiedNoLicensePublicObservation { session_quota: 1 }),
                 "{operation_id} must be allowed once in limited mode"
             );
         }
         // A second concurrent session is denied before any side effect.
         assert_eq!(
             resolve_uiai_operation_capability("public_search", Some(&limited), None, 1, now),
-            Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::LimitedModeRestricted))
+            Ok(UiaiCapabilityDecision::Denied(
+                UiaiCapabilityDenial::LimitedModeRestricted
+            ))
         );
         // Every action/persistence/hosted operation fails closed in limited mode.
         for operation_id in [
@@ -1254,13 +1302,21 @@ mod tests {
         ] {
             assert_eq!(
                 resolve_uiai_operation_capability(operation_id, Some(&limited), None, 0, now),
-                Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::UiaiGrantRequired)),
+                Ok(UiaiCapabilityDecision::Denied(
+                    UiaiCapabilityDenial::UiaiGrantRequired
+                )),
                 "{operation_id} must fail closed in limited mode"
             );
         }
         // Unknown operations fail before any decision.
         assert_eq!(
-            resolve_uiai_operation_capability("caller_invented_operation", Some(&limited), None, 0, now),
+            resolve_uiai_operation_capability(
+                "caller_invented_operation",
+                Some(&limited),
+                None,
+                0,
+                now
+            ),
             Err(UiaiOperationError::UnknownOperation)
         );
     }
@@ -1295,7 +1351,9 @@ mod tests {
                 0,
                 now,
             ),
-            Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FamilyNotGranted))
+            Ok(UiaiCapabilityDecision::Denied(
+                UiaiCapabilityDenial::FamilyNotGranted
+            ))
         );
         let persistence_grant = grant_with_features(&["uiai_persistence"]);
         assert_eq!(
@@ -1330,19 +1388,25 @@ mod tests {
                     0,
                     now,
                 ),
-                Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FamilyNotGranted)),
+                Ok(UiaiCapabilityDecision::Denied(
+                    UiaiCapabilityDenial::FamilyNotGranted
+                )),
                 "{operation_id} must deny even for paid grants"
             );
         }
         // Focusa-only paid entitlement never grants UIAI — even observation.
         assert_eq!(
             resolve_uiai_operation_capability("public_search", Some(&focusa_paid), None, 0, now),
-            Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::FocusaOnlyCannotGrantUiai))
+            Ok(UiaiCapabilityDecision::Denied(
+                UiaiCapabilityDenial::FocusaOnlyCannotGrantUiai
+            ))
         );
         // No posture at all fails closed.
         assert_eq!(
             resolve_uiai_operation_capability("public_search", None, None, 0, now),
-            Ok(UiaiCapabilityDecision::Denied(UiaiCapabilityDenial::MissingPosture))
+            Ok(UiaiCapabilityDecision::Denied(
+                UiaiCapabilityDenial::MissingPosture
+            ))
         );
     }
 
@@ -1425,30 +1489,4 @@ mod tests {
                 .is_none()
         );
     }
-}
-
-fn active_bound(
-    snapshot: &EntitlementSnapshot,
-    product: &str,
-    node: &str,
-    now: DateTime<Utc>,
-) -> bool {
-    snapshot.product == product
-        && snapshot.node_id == node
-        && snapshot
-            .lease_id
-            .as_deref()
-            .is_some_and(|value| !value.is_empty())
-        && snapshot.sequence.is_some_and(|value| value > 0)
-        && snapshot
-            .lease_digest
-            .as_deref()
-            .is_some_and(|value| value.starts_with("sha256:"))
-        && match snapshot.state {
-            EntitlementState::Active => snapshot.expires_at.is_some_and(|expiry| expiry > now),
-            EntitlementState::OfflineGrace => snapshot
-                .offline_grace_until
-                .is_some_and(|expiry| expiry > now),
-            EntitlementState::Unactivated | EntitlementState::RecoveryOnly => false,
-        }
 }

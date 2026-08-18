@@ -16,8 +16,8 @@ use chrono::{DateTime, Duration, Utc};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use focusa_license::{
     DeviceCredentialStatus, DeviceCredentialWindow, LifetimeCredentialMachine,
-    LifetimeCredentialState, LifetimeEntitlement, LifetimeEntitlementStatus,
-    PersistedLifetimeState, REFRESH_WINDOW_DAYS, OFFLINE_GRACE_DAYS,
+    LifetimeCredentialState, LifetimeEntitlement, LifetimeEntitlementStatus, OFFLINE_GRACE_DAYS,
+    PersistedLifetimeState, REFRESH_WINDOW_DAYS,
 };
 use serde_json::Value;
 
@@ -39,7 +39,11 @@ fn entitled(sequence: u64, updated_at: &str) -> LifetimeEntitlement {
     .expect("canonical lifetime entitlement")
 }
 
-fn credential(sequence: u64, issued_at: &str, status: DeviceCredentialStatus) -> DeviceCredentialWindow {
+fn credential(
+    sequence: u64,
+    issued_at: &str,
+    status: DeviceCredentialStatus,
+) -> DeviceCredentialWindow {
     let issued = at(issued_at);
     let expires_at = issued + Duration::days(REFRESH_WINDOW_DAYS as i64);
     let offline_grace_until = expires_at + Duration::days(OFFLINE_GRACE_DAYS as i64);
@@ -64,7 +68,8 @@ fn vectors_fixture() -> Value {
     ]
     .iter()
     .collect();
-    let payload = fs::read_to_string(path).expect("lifetime credential vectors fixture should exist");
+    let payload =
+        fs::read_to_string(path).expect("lifetime credential vectors fixture should exist");
     serde_json::from_str(&payload).expect("valid JSON fixture")
 }
 
@@ -80,8 +85,10 @@ fn spec172_lifetime_credential_lifetime_survives_credential_rotation() {
         LifetimeCredentialMachine::resolve(Some(&entitlement), Some(&initial), now),
         LifetimeCredentialState::Active
     );
-    assert!(LifetimeCredentialMachine::resolve(Some(&entitlement), Some(&initial), now)
-        .allows_product_use());
+    assert!(
+        LifetimeCredentialMachine::resolve(Some(&entitlement), Some(&initial), now)
+            .allows_product_use()
+    );
 
     // Refresh/rotation issues a strictly higher sequence with a fresh bounded
     // window; the lifetime entitlement stays entitled.
@@ -136,8 +143,10 @@ fn spec172_lifetime_credential_credential_expiry_preserves_lifetime_and_recovery
         LifetimeCredentialMachine::resolve(Some(&entitlement), None, after_grace),
         LifetimeCredentialState::RecoveryOnly
     );
-    assert!(!LifetimeCredentialMachine::resolve(Some(&entitlement), None, after_grace)
-        .allows_product_use());
+    assert!(
+        !LifetimeCredentialMachine::resolve(Some(&entitlement), None, after_grace)
+            .allows_product_use()
+    );
 
     // Verified recovery issuance: a replacement bounded lease at a strictly
     // higher sequence, still lifetime-entitled.
@@ -168,24 +177,29 @@ fn spec172_lifetime_credential_refund_revoke_defeats_stale_and_offline_credentia
 
     // Refund/revoke at a strictly higher authority sequence revokes the
     // lifetime entitlement; stale or offline credentials can never override.
-    let revoked = LifetimeCredentialMachine::revoke_entitlement(
-        &entitlement,
-        5,
-        at("2026-12-14T00:00:00Z"),
-    )
-    .expect("higher authority sequence revokes");
+    let revoked =
+        LifetimeCredentialMachine::revoke_entitlement(&entitlement, 5, at("2026-12-14T00:00:00Z"))
+            .expect("higher authority sequence revokes");
     assert_eq!(revoked.status, LifetimeEntitlementStatus::Revoked);
     assert_eq!(revoked.sequence, 5);
 
     // Even though the device credential is still inside its signed window, the
     // revoked lifetime entitlement defeats it.
     assert_eq!(
-        LifetimeCredentialMachine::resolve(Some(&revoked), Some(&credential), at("2026-09-01T00:00:00Z")),
+        LifetimeCredentialMachine::resolve(
+            Some(&revoked),
+            Some(&credential),
+            at("2026-09-01T00:00:00Z")
+        ),
         LifetimeCredentialState::DeniedRevoked
     );
     // Offline credential (in grace) also defeated.
     assert_eq!(
-        LifetimeCredentialMachine::resolve(Some(&revoked), Some(&credential), at("2026-11-20T00:00:00Z")),
+        LifetimeCredentialMachine::resolve(
+            Some(&revoked),
+            Some(&credential),
+            at("2026-11-20T00:00:00Z")
+        ),
         LifetimeCredentialState::DeniedRevoked
     );
     // And no credential at all is still denied.
@@ -194,15 +208,17 @@ fn spec172_lifetime_credential_refund_revoke_defeats_stale_and_offline_credentia
         LifetimeCredentialState::DeniedRevoked
     );
     // Recovery issuance is refused for a revoked entitlement.
-    assert!(LifetimeCredentialMachine::recover_credential(
-        &revoked,
-        "node-operator-lt-001",
-        at("2026-12-20T00:00:00Z"),
-        REFRESH_WINDOW_DAYS,
-        OFFLINE_GRACE_DAYS,
-        "authority-lease-2026-01",
-    )
-    .is_err());
+    assert!(
+        LifetimeCredentialMachine::recover_credential(
+            &revoked,
+            "node-operator-lt-001",
+            at("2026-12-20T00:00:00Z"),
+            REFRESH_WINDOW_DAYS,
+            OFFLINE_GRACE_DAYS,
+            "authority-lease-2026-01",
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -229,50 +245,55 @@ fn spec172_lifetime_credential_stale_credential_and_unknown_entitlement_fail_clo
         LifetimeCredentialState::DeniedUnknown
     );
     // Non-lifetime terms are rejected at record construction.
-    assert!(LifetimeEntitlement::new(
-        "focusa",
-        "focusa_operator_lifetime_v1",
-        1,
-        "v1.0.0",
-        "sha256:00",
-        3,
-        1,
-        now,
-    )
-    .is_ok());
-    assert!(LifetimeEntitlement::new(
-        "focusa",
-        "uiai_operator_lifetime_v1",
-        1,
-        "v1.0.0",
-        "sha256:00",
-        3,
-        1,
-        now,
-    )
-    .is_err(), "cross-product License Type pairing must fail closed");
-    assert!(LifetimeEntitlement::new(
-        "focusa",
-        "focusa_operator_lifetime_v1",
-        1,
-        "v1.0.0",
-        "sha256:00",
-        0,
-        1,
-        now,
-    )
-    .is_err(), "zero node limit must fail closed");
+    assert!(
+        LifetimeEntitlement::new(
+            "focusa",
+            "focusa_operator_lifetime_v1",
+            1,
+            "v1.0.0",
+            "sha256:00",
+            3,
+            1,
+            now,
+        )
+        .is_ok()
+    );
+    assert!(
+        LifetimeEntitlement::new(
+            "focusa",
+            "uiai_operator_lifetime_v1",
+            1,
+            "v1.0.0",
+            "sha256:00",
+            3,
+            1,
+            now,
+        )
+        .is_err(),
+        "cross-product License Type pairing must fail closed"
+    );
+    assert!(
+        LifetimeEntitlement::new(
+            "focusa",
+            "focusa_operator_lifetime_v1",
+            1,
+            "v1.0.0",
+            "sha256:00",
+            0,
+            1,
+            now,
+        )
+        .is_err(),
+        "zero node limit must fail closed"
+    );
 }
 
 #[test]
 fn spec172_lifetime_credential_key_rotation_never_widens_entitlement() {
     let entitlement = entitled(1, "2026-08-09T06:00:00Z");
     let credential = credential(1, "2026-08-09T06:00:00Z", DeviceCredentialStatus::Active);
-    let rotated_key = LifetimeCredentialMachine::rotate_key(
-        &credential,
-        "authority-lease-2026-02",
-    )
-    .expect("key rotation re-signs the bounded credential");
+    let rotated_key = LifetimeCredentialMachine::rotate_key(&credential, "authority-lease-2026-02")
+        .expect("key rotation re-signs the bounded credential");
     assert_eq!(rotated_key.authority_key_id, "authority-lease-2026-02");
     assert_eq!(rotated_key.sequence, credential.sequence);
     assert_eq!(rotated_key.expires_at, credential.expires_at);
@@ -281,7 +302,11 @@ fn spec172_lifetime_credential_key_rotation_never_widens_entitlement() {
     assert_eq!(entitlement.sequence, 1);
     assert_eq!(entitlement.status, LifetimeEntitlementStatus::Entitled);
     assert_eq!(
-        LifetimeCredentialMachine::resolve(Some(&entitlement), Some(&rotated_key), at("2026-09-01T00:00:00Z")),
+        LifetimeCredentialMachine::resolve(
+            Some(&entitlement),
+            Some(&rotated_key),
+            at("2026-09-01T00:00:00Z")
+        ),
         LifetimeCredentialState::Active
     );
 }
@@ -320,7 +345,12 @@ fn spec172_lifetime_credential_persisted_state_transitions_are_fail_closed() {
     assert_eq!(
         LifetimeCredentialMachine::resolve(
             Some(&rotated.entitlement),
-            Some(&state.device_credential.clone().expect("old credential kept")),
+            Some(
+                &state
+                    .device_credential
+                    .clone()
+                    .expect("old credential kept")
+            ),
             now,
         ),
         LifetimeCredentialState::DeniedStale
@@ -331,16 +361,25 @@ fn spec172_lifetime_credential_persisted_state_transitions_are_fail_closed() {
     let revoked = rotated
         .apply_refund_or_revoke(5, at("2026-12-14T00:00:00Z"))
         .expect("refund at higher sequence");
-    assert_eq!(revoked.entitlement.status, LifetimeEntitlementStatus::Revoked);
-    assert_eq!(revoked.resolve(at("2026-09-01T00:00:00Z")), LifetimeCredentialState::DeniedRevoked);
-    assert!(revoked
-        .rotate_credential(
-            at("2026-09-02T00:00:00Z"),
-            REFRESH_WINDOW_DAYS,
-            OFFLINE_GRACE_DAYS,
-            "authority-lease-2026-01",
-        )
-        .is_err(), "refresh is refused once the lifetime entitlement is revoked");
+    assert_eq!(
+        revoked.entitlement.status,
+        LifetimeEntitlementStatus::Revoked
+    );
+    assert_eq!(
+        revoked.resolve(at("2026-09-01T00:00:00Z")),
+        LifetimeCredentialState::DeniedRevoked
+    );
+    assert!(
+        revoked
+            .rotate_credential(
+                at("2026-09-02T00:00:00Z"),
+                REFRESH_WINDOW_DAYS,
+                OFFLINE_GRACE_DAYS,
+                "authority-lease-2026-01",
+            )
+            .is_err(),
+        "refresh is refused once the lifetime entitlement is revoked"
+    );
 }
 
 // ── cross-language vectors from the WPUIAI issuer ───────────────────────
@@ -372,14 +411,20 @@ fn spec172_lifetime_credential_cross_language_vectors_verify_and_decide() {
         let mut signature_bytes = [0u8; 64];
         hex_decode_into(signature, &mut signature_bytes);
         public_key
-            .verify(&message, &Signature::from_slice(&signature_bytes).expect("64-byte signature"))
+            .verify(
+                &message,
+                &Signature::from_slice(&signature_bytes).expect("64-byte signature"),
+            )
             .unwrap_or_else(|_| panic!("fixture signature must verify for {id}"));
         credentials.insert(id, payload);
     }
     assert_eq!(credentials.len(), 5);
 
     let mut entitlements: BTreeMap<&str, &Value> = BTreeMap::new();
-    for entitlement in fixture["entitlements"].as_array().expect("entitlements list") {
+    for entitlement in fixture["entitlements"]
+        .as_array()
+        .expect("entitlements list")
+    {
         let id = entitlement["id"].as_str().expect("entitlement id");
         entitlements.insert(id, entitlement);
     }
@@ -400,11 +445,8 @@ fn spec172_lifetime_credential_cross_language_vectors_verify_and_decide() {
             .map(credential_from_fixture);
         let now = at(vector["now"].as_str().expect("vector timestamp"));
         let expected = vector["expected"].as_str().expect("expected state");
-        let actual = LifetimeCredentialMachine::resolve(
-            entitlement.as_ref(),
-            credential.as_ref(),
-            now,
-        );
+        let actual =
+            LifetimeCredentialMachine::resolve(entitlement.as_ref(), credential.as_ref(), now);
         assert_eq!(
             actual.label(),
             expected,

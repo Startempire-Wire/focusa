@@ -214,14 +214,12 @@ impl AgentActivationEnvelope {
             max_polls: registration.max_polls,
             retry_posture: "none".to_string(),
             retry_after_seconds: None,
-            next_action: human_action
-                .map(str::to_string)
-                .unwrap_or_else(|| {
-                    crate::activation_reducer::presenter_next_action(
-                        crate::activation_reducer::presenter_state(registration.state),
-                    )
-                    .to_string()
-                }),
+            next_action: human_action.map(str::to_string).unwrap_or_else(|| {
+                crate::activation_reducer::presenter_next_action(
+                    crate::activation_reducer::presenter_state(registration.state),
+                )
+                .to_string()
+            }),
             error: None,
         }
     }
@@ -285,21 +283,27 @@ mod tests {
     #[test]
     fn reveal_requires_explicit_opt_in_and_confirmation() {
         assert!(!AgentKeyReveal::denied().authorized());
-        assert!(!AgentKeyReveal {
-            reveal_key: true,
-            reveal_confirmation: false,
-        }
-        .authorized());
-        assert!(!AgentKeyReveal {
-            reveal_key: false,
-            reveal_confirmation: true,
-        }
-        .authorized());
-        assert!(AgentKeyReveal {
-            reveal_key: true,
-            reveal_confirmation: true,
-        }
-        .authorized());
+        assert!(
+            !AgentKeyReveal {
+                reveal_key: true,
+                reveal_confirmation: false,
+            }
+            .authorized()
+        );
+        assert!(
+            !AgentKeyReveal {
+                reveal_key: false,
+                reveal_confirmation: true,
+            }
+            .authorized()
+        );
+        assert!(
+            AgentKeyReveal {
+                reveal_key: true,
+                reveal_confirmation: true,
+            }
+            .authorized()
+        );
     }
 
     #[test]
@@ -333,11 +337,15 @@ mod tests {
         };
         // Masked by default: key_present true but key_visible false and no
         // envelope content anywhere.
-        let envelope = build_from_canonical(&canonical, Some(&registration), AgentKeyReveal::denied());
+        let envelope =
+            build_from_canonical(&canonical, Some(&registration), AgentKeyReveal::denied());
         assert_eq!(envelope.schema, AGENT_ENVELOPE_SCHEMA);
         assert_eq!(envelope.state, "email_verification_pending");
         assert!(envelope.human_action_required);
-        assert_eq!(envelope.human_action.as_deref(), Some("enter_verification_code"));
+        assert_eq!(
+            envelope.human_action.as_deref(),
+            Some("enter_verification_code")
+        );
         assert!(envelope.key_present);
         assert!(!envelope.key_visible);
         assert!(envelope.masked_key_prefix.is_none());
@@ -431,7 +439,10 @@ mod tests {
         let envelope = AgentActivationEnvelope::from_registration(&pending);
         assert!(!envelope.terminal);
         assert!(envelope.human_action_required);
-        assert_eq!(envelope.human_action.as_deref(), Some("complete_payment_then_poll"));
+        assert_eq!(
+            envelope.human_action.as_deref(),
+            Some("complete_payment_then_poll")
+        );
         assert_eq!(envelope.registration_id, "registration-0002");
     }
 
@@ -470,7 +481,9 @@ mod tests {
                 None
             },
             poll_count: registration.map(|r| r.poll_count).unwrap_or(0),
-            max_polls: registration.map(|r| r.max_polls).unwrap_or(DEFAULT_MAX_POLLS),
+            max_polls: registration
+                .map(|r| r.max_polls)
+                .unwrap_or(DEFAULT_MAX_POLLS),
             retry_posture: canonical.retry.posture.label().to_string(),
             retry_after_seconds: canonical.retry.retry_after_seconds,
             next_action: human_action

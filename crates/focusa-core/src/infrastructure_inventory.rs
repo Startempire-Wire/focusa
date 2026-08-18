@@ -125,7 +125,10 @@ pub fn scan_infrastructure(root: &Path) -> ProjectInfrastructureInventory {
     probe(
         "project_markers",
         &[".focusa-project.json", ".focusa", "project.focusa.json"],
-        vec!["markers identify Focusa projects; absence does not prove a remote host lacks one".to_string()],
+        vec![
+            "markers identify Focusa projects; absence does not prove a remote host lacks one"
+                .to_string(),
+        ],
     );
     probe("repository", &[".git"], vec![]);
     probe("remote_worktrees", &[".git/worktrees"], vec![]);
@@ -147,7 +150,12 @@ pub fn scan_infrastructure(root: &Path) -> ProjectInfrastructureInventory {
     );
     probe(
         "ci",
-        &[".github/workflows", ".gitlab-ci.yml", "Jenkinsfile", "azure-pipelines.yml"],
+        &[
+            ".github/workflows",
+            ".gitlab-ci.yml",
+            "Jenkinsfile",
+            "azure-pipelines.yml",
+        ],
         vec![],
     );
     probe(
@@ -157,17 +165,34 @@ pub fn scan_infrastructure(root: &Path) -> ProjectInfrastructureInventory {
     );
     probe(
         "package_manifest",
-        &["package.json", "Cargo.toml", "pyproject.toml", "go.mod", "pom.xml"],
+        &[
+            "package.json",
+            "Cargo.toml",
+            "pyproject.toml",
+            "go.mod",
+            "pom.xml",
+        ],
         vec![],
     );
     probe(
         "release_versioning",
-        &["CHANGELOG.md", "changelog", "RELEASES.md", ".release-version-stamp"],
+        &[
+            "CHANGELOG.md",
+            "changelog",
+            "RELEASES.md",
+            ".release-version-stamp",
+        ],
         vec![],
     );
     probe(
         "deployment",
-        &["Dockerfile", "docker-compose.yml", "compose.yaml", "fly.toml", "vercel.json"],
+        &[
+            "Dockerfile",
+            "docker-compose.yml",
+            "compose.yaml",
+            "fly.toml",
+            "vercel.json",
+        ],
         vec![],
     );
     probe(
@@ -335,7 +360,10 @@ mod tests {
             .unwrap();
         assert_eq!(specs.action, "propose_focusa_creation");
         assert!(plan.requires_operator_approval);
-        assert!(plan.missing_capabilities.contains(&"specifications".to_string()));
+        assert!(
+            plan.missing_capabilities
+                .contains(&"specifications".to_string())
+        );
         fs::remove_dir_all(&dir).unwrap();
     }
 

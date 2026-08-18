@@ -2,7 +2,7 @@
 //! events, and replay. No execution state (authority separation: #267).
 
 use anyhow::Result;
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::Value;
 
 use crate::workset_ledger::{WorksetDefinition, WorksetEvent};
@@ -56,11 +56,7 @@ pub fn load_definition(
     Ok(raw.and_then(|text: String| serde_json::from_str(&text).ok()))
 }
 
-pub fn append_event(
-    conn: &Connection,
-    workset_id: &str,
-    event: &WorksetEvent,
-) -> Result<i64> {
+pub fn append_event(conn: &Connection, workset_id: &str, event: &WorksetEvent) -> Result<i64> {
     conn.execute(
         "INSERT INTO workset_events (workset_id, event_json, recorded_at)
          VALUES (?1, ?2, ?3)",
@@ -74,15 +70,20 @@ pub fn append_event(
 }
 
 pub fn list_events(conn: &Connection, workset_id: &str) -> Result<Vec<WorksetEvent>> {
-    let mut stmt = conn.prepare(
-        "SELECT event_json FROM workset_events WHERE workset_id = ?1 ORDER BY seq",
-    )?;
+    let mut stmt =
+        conn.prepare("SELECT event_json FROM workset_events WHERE workset_id = ?1 ORDER BY seq")?;
     let rows = stmt.query_map(params![workset_id], |row| {
         let raw: String = row.get(0)?;
-        Ok(serde_json::from_str::<WorksetEvent>(&raw)
-            .unwrap_or_else(|_| WorksetEvent::CompletionContracted { contract_digest: "unparsable".to_string() }))
+        Ok(
+            serde_json::from_str::<WorksetEvent>(&raw).unwrap_or_else(|_| {
+                WorksetEvent::CompletionContracted {
+                    contract_digest: "unparsable".to_string(),
+                }
+            }),
+        )
     })?;
-    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
 }
 
 #[cfg(test)]

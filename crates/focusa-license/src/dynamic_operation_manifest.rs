@@ -33,12 +33,8 @@ pub const ENTITLEMENT_POLICY_UNKNOWN: &str = "ENTITLEMENT_POLICY_UNKNOWN";
 pub const REGISTERED_PRODUCT_OWNERS: [&str; 2] = ["focusa", "uiai_engine"];
 
 /// Registered operation classes (Spec 172 Section 12).
-pub const REGISTERED_OPERATION_CLASSES: [&str; 4] = [
-    "read",
-    "value_mutation",
-    "recovery",
-    "internal_maintenance",
-];
+pub const REGISTERED_OPERATION_CLASSES: [&str; 4] =
+    ["read", "value_mutation", "recovery", "internal_maintenance"];
 
 /// Registered side-effect classes (Spec 172 Section 12).
 pub const REGISTERED_SIDE_EFFECT_CLASSES: [&str; 4] = ["none", "local", "remote", "external"];
@@ -153,7 +149,9 @@ impl ManifestTrustDecision {
             Self::QuarantinedUnregisteredFamily => "quarantined_unregistered_family",
             Self::QuarantinedSelfLabeledRecovery => "quarantined_self_labeled_recovery",
             Self::QuarantinedClientSelectedPolicy => "quarantined_client_selected_policy",
-            Self::QuarantinedGeneratedUiGrantExpansion => "quarantined_generated_ui_grant_expansion",
+            Self::QuarantinedGeneratedUiGrantExpansion => {
+                "quarantined_generated_ui_grant_expansion"
+            }
         }
     }
 
@@ -252,8 +250,7 @@ pub fn verify_dynamic_operation_manifest(
     }
     if facts.canonical_operation_class.as_deref() != Some(manifest.operation_class.as_str())
         || facts.canonical_capability_family.as_deref() != Some(manifest.capability_family.as_str())
-        || facts.canonical_side_effect_class.as_deref()
-            != Some(manifest.side_effect_class.as_str())
+        || facts.canonical_side_effect_class.as_deref() != Some(manifest.side_effect_class.as_str())
         || !manifest.declared_policy_fields.is_empty()
     {
         return ManifestTrustDecision::QuarantinedClientSelectedPolicy;

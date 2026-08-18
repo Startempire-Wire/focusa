@@ -18,14 +18,12 @@ use crate::activation_client::{
     ActivationAuthority, ActivationJourney, ActivationStartReply, CheckoutOutcome, PollOutcome,
     PublicOffer,
 };
-use crate::activation_facade::{
-    ActivationError, ActivationErrorCode, ActivationRequestContext,
-};
+use crate::activation_facade::{ActivationError, ActivationErrorCode, ActivationRequestContext};
 use crate::activation_reducer::ActivationTransition;
 use crate::authority::SignedEnvelope;
 use crate::authority_client::SensitiveCredential;
-use reqwest::blocking::Client as BlockingClient;
 use reqwest::Url;
+use reqwest::blocking::Client as BlockingClient;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use thiserror::Error;
@@ -45,8 +43,8 @@ impl LeaseDeliveryEnvelope {
     pub const SCHEMA: &'static str = "focusa.lease_delivery_envelope.v1";
 
     pub fn parse(raw: &str) -> Result<Self, ActivationHttpError> {
-        let parsed: Self = serde_json::from_str(raw)
-            .map_err(|_| ActivationHttpError::MalformedReply)?;
+        let parsed: Self =
+            serde_json::from_str(raw).map_err(|_| ActivationHttpError::MalformedReply)?;
         if parsed.schema != Self::SCHEMA {
             return Err(ActivationHttpError::MalformedReply);
         }
@@ -202,15 +200,16 @@ impl ActivationHttpClient {
         }
         decode_response_body(
             request_id,
-            response
-                .text()
-                .map_err(|_| self.unavailable(request_id))?,
+            response.text().map_err(|_| self.unavailable(request_id))?,
             self.policy.max_response_bytes,
         )
     }
 
     fn unavailable(&self, request_id: &str) -> ActivationError {
-        ActivationError::new(ActivationErrorCode::AuthorityUnavailable, request_id.to_string())
+        ActivationError::new(
+            ActivationErrorCode::AuthorityUnavailable,
+            request_id.to_string(),
+        )
     }
 }
 
@@ -402,7 +401,10 @@ fn decode_response_body(
         ));
     }
     let value: serde_json::Value = serde_json::from_str(&body).map_err(|_| {
-        ActivationError::new(ActivationErrorCode::AuthorityUnavailable, request_id.to_string())
+        ActivationError::new(
+            ActivationErrorCode::AuthorityUnavailable,
+            request_id.to_string(),
+        )
     })?;
     if let Some(error) = value.get("error") {
         let code = error
@@ -422,7 +424,10 @@ fn decode_transitions(
     serde_json::from_value::<WireTransitions>(value)
         .map(|reply| reply.transitions)
         .map_err(|_| {
-            ActivationError::new(ActivationErrorCode::AuthorityUnavailable, request_id.to_string())
+            ActivationError::new(
+                ActivationErrorCode::AuthorityUnavailable,
+                request_id.to_string(),
+            )
         })
 }
 
@@ -480,8 +485,11 @@ impl ActivationAuthority for ActivationHttpClient {
         context: &ActivationRequestContext,
         registration_id: &str,
     ) -> Result<Vec<PublicOffer>, ActivationError> {
-        let value =
-            self.get(facade_operation_path::OFFERS, &context.request_id, Some(registration_id))?;
+        let value = self.get(
+            facade_operation_path::OFFERS,
+            &context.request_id,
+            Some(registration_id),
+        )?;
         let reply: WireOffersReply = serde_json::from_value(value).map_err(|_| {
             ActivationError::new(
                 ActivationErrorCode::AuthorityUnavailable,
@@ -500,7 +508,7 @@ impl ActivationAuthority for ActivationHttpClient {
                         return Err(ActivationError::new(
                             ActivationErrorCode::AuthorityUnavailable,
                             context.request_id.clone(),
-                        ))
+                        ));
                     }
                 };
                 Ok(PublicOffer {
@@ -626,10 +634,7 @@ impl ActivationAuthority for ActivationHttpClient {
         decode_transitions(&context.request_id, value)
     }
 
-    fn nodes(
-        &self,
-        context: &ActivationRequestContext,
-    ) -> Result<Vec<String>, ActivationError> {
+    fn nodes(&self, context: &ActivationRequestContext) -> Result<Vec<String>, ActivationError> {
         let value = self.get(facade_operation_path::NODES, &context.request_id, None)?;
         let reply: WireNodesReply = serde_json::from_value(value).map_err(|_| {
             ActivationError::new(
@@ -703,21 +708,42 @@ mod tests {
 
     #[test]
     fn transport_paths_match_the_frozen_call_stack() {
-        assert_eq!(facade_operation_path::START, FacadeOperation::ActivationStart.path());
-        assert_eq!(facade_operation_path::VERIFY, FacadeOperation::ActivationVerify.path());
-        assert_eq!(facade_operation_path::OFFERS, FacadeOperation::ActivationOffers.path());
+        assert_eq!(
+            facade_operation_path::START,
+            FacadeOperation::ActivationStart.path()
+        );
+        assert_eq!(
+            facade_operation_path::VERIFY,
+            FacadeOperation::ActivationVerify.path()
+        );
+        assert_eq!(
+            facade_operation_path::OFFERS,
+            FacadeOperation::ActivationOffers.path()
+        );
         assert_eq!(
             facade_operation_path::SELECT_OFFER,
             FacadeOperation::ActivationSelectOffer.path()
         );
-        assert_eq!(facade_operation_path::CHECKOUT, FacadeOperation::ActivationCheckout.path());
+        assert_eq!(
+            facade_operation_path::CHECKOUT,
+            FacadeOperation::ActivationCheckout.path()
+        );
         assert_eq!(
             facade_operation_path::EXISTING_LICENSE,
             FacadeOperation::ActivationExistingLicense.path()
         );
-        assert_eq!(facade_operation_path::POLL, FacadeOperation::ActivationPoll.path());
-        assert_eq!(facade_operation_path::REFRESH, FacadeOperation::LeaseRefresh.path());
-        assert_eq!(facade_operation_path::NODES, FacadeOperation::NodesList.path());
+        assert_eq!(
+            facade_operation_path::POLL,
+            FacadeOperation::ActivationPoll.path()
+        );
+        assert_eq!(
+            facade_operation_path::REFRESH,
+            FacadeOperation::LeaseRefresh.path()
+        );
+        assert_eq!(
+            facade_operation_path::NODES,
+            FacadeOperation::NodesList.path()
+        );
         assert_eq!(
             facade_operation_path::DEACTIVATE_NODE,
             FacadeOperation::NodesDeactivate.path()
@@ -784,7 +810,10 @@ mod tests {
         let body = r#"{"transitions":["challenge_delivered"],"poll_credential":"poll-secret"}"#;
         let value = decode_response_body(request_id, body.to_string(), 1024 * 1024).unwrap();
         let reply: WireStartReply = serde_json::from_value(value).unwrap();
-        assert_eq!(reply.transitions, vec![ActivationTransition::ChallengeDelivered]);
+        assert_eq!(
+            reply.transitions,
+            vec![ActivationTransition::ChallengeDelivered]
+        );
         assert_eq!(reply.poll_credential.as_deref(), Some("poll-secret"));
 
         let error = decode_response_body(
@@ -804,16 +833,12 @@ mod tests {
         .unwrap_err();
         assert_eq!(unknown.code, ActivationErrorCode::AuthorityUnavailable);
 
-        let malformed = decode_response_body(request_id, "not-json".to_string(), 1024 * 1024)
-            .unwrap_err();
+        let malformed =
+            decode_response_body(request_id, "not-json".to_string(), 1024 * 1024).unwrap_err();
         assert_eq!(malformed.code, ActivationErrorCode::AuthorityUnavailable);
 
-        let oversized = decode_response_body(
-            request_id,
-            "{\"transitions\":[]}".to_string(),
-            4,
-        )
-        .unwrap_err();
+        let oversized =
+            decode_response_body(request_id, "{\"transitions\":[]}".to_string(), 4).unwrap_err();
         assert_eq!(oversized.code, ActivationErrorCode::AuthorityUnavailable);
     }
 
@@ -825,7 +850,10 @@ mod tests {
         .unwrap();
         assert_eq!(
             poll.transitions,
-            vec![ActivationTransition::LeaseIssued, ActivationTransition::Delivered]
+            vec![
+                ActivationTransition::LeaseIssued,
+                ActivationTransition::Delivered
+            ]
         );
         assert_eq!(poll.node_id.as_deref(), Some("node-1"));
         let checkout: WireCheckoutReply =

@@ -1290,8 +1290,10 @@ mod tests {
             event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
             config: cfg.clone(),
             license_guard: {
-                let mut entitlement =
-                    focusa_license::authority::EntitlementSnapshot::unactivated("focusa", "test-node");
+                let mut entitlement = focusa_license::authority::EntitlementSnapshot::unactivated(
+                    "focusa",
+                    "test-node",
+                );
                 entitlement.state = focusa_license::authority::EntitlementState::Active;
                 entitlement.lease_id = Some("test-lease".to_string());
                 entitlement.sequence = Some(1);
@@ -1498,8 +1500,17 @@ mod tests {
             .expect("run");
         let run_r = app.clone().oneshot(run).await.expect("run resp");
         let run_status = run_r.status();
-        let run_body = to_bytes(run_r.into_body(), usize::MAX).await.expect("run body");
-        eprintln!("RUN status: {:?} body: {}", run_status, String::from_utf8_lossy(&run_body).chars().take(300).collect::<String>());
+        let run_body = to_bytes(run_r.into_body(), usize::MAX)
+            .await
+            .expect("run body");
+        eprintln!(
+            "RUN status: {:?} body: {}",
+            run_status,
+            String::from_utf8_lossy(&run_body)
+                .chars()
+                .take(300)
+                .collect::<String>()
+        );
         let _ = run_body;
 
         let enable = Request::builder()

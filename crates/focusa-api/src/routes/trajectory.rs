@@ -3614,12 +3614,7 @@ mod tests {
     fn trajectory_view_syncs_focus_current_focus_and_short_term_goal_projection() {
         let root = format!("/tmp/focusa-test-{}", uuid::Uuid::now_v7());
         let mut state = state_with_workpoint(&root);
-        add_active_frame(
-            &mut state,
-            &root,
-            "cont-a",
-            "Frame title fallback",
-        );
+        add_active_frame(&mut state, &root, "cont-a", "Frame title fallback");
         if let Some(frame) = state.focus_stack.frames.last_mut() {
             frame.focus_state.current_state =
                 "Focus State current focus drives short term".to_string();

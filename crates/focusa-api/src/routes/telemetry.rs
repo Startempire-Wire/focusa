@@ -712,7 +712,8 @@ async fn record_operational_event(
     let mut focusa = state.focusa.write().await;
     if let Some(id) = semantic_id {
         let duplicate = focusa.telemetry.trace_events.iter().any(|event| {
-            event.get("payload")
+            event
+                .get("payload")
                 .and_then(|payload| payload.get("semantic_event"))
                 .and_then(|semantic| semantic.get("event_id"))
                 .and_then(|value| value.as_str())

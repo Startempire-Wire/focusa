@@ -137,7 +137,10 @@ fn restart_replay_and_projection_preserve_all_runtime_authority_variants() {
     );
     let replay = restarted.read_all().unwrap();
     assert_eq!(replay.len(), 5);
-    assert_eq!(replay[4].predecessor_digest.as_deref(), Some(replay[3].digest.as_str()));
+    assert_eq!(
+        replay[4].predecessor_digest.as_deref(),
+        Some(replay[3].digest.as_str())
+    );
     let _ = std::fs::remove_dir_all(&scope.root_scope.root_path);
 }
 

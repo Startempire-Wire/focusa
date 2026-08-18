@@ -42,7 +42,10 @@ fn normal_wrap_stderr_has_no_debug_diagnostics() {
     let output = run_wrap(false);
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(output.status.success(), "normal wrap failed: {stderr}");
-    assert!(!stderr.contains("[DEBUG]"), "unexpected debug output: {stderr}");
+    assert!(
+        !stderr.contains("[DEBUG]"),
+        "unexpected debug output: {stderr}"
+    );
 }
 
 #[test]

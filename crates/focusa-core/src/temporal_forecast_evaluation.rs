@@ -95,8 +95,8 @@ pub fn evaluate_forecast(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::temporal_forecast::{ForecastRange, ForecastAuthorityContext, ReleasePhase};
     use crate::temporal::TemporalConfidence;
+    use crate::temporal_forecast::{ForecastAuthorityContext, ForecastRange, ReleasePhase};
 
     fn sample_forecast_range() -> ForecastRange {
         ForecastRange {
@@ -134,8 +134,10 @@ mod tests {
     #[test]
     fn validity_fingerprint_equality_detects_no_change() {
         let fp = ForecastValidityFingerprint {
-            scope_revision: "v1".into(), target_revision: "v1".into(),
-            dependency_digest: "abc".into(), deadline_revision: "v1".into(),
+            scope_revision: "v1".into(),
+            target_revision: "v1".into(),
+            dependency_digest: "abc".into(),
+            deadline_revision: "v1".into(),
             environment_digest: "env1".into(),
         };
         assert!(forecast_remains_valid(&fp, &fp));
@@ -144,22 +146,32 @@ mod tests {
     #[test]
     fn validity_fingerprint_detects_scope_change() {
         let fp = ForecastValidityFingerprint {
-            scope_revision: "v1".into(), target_revision: "v1".into(),
-            dependency_digest: "abc".into(), deadline_revision: "v1".into(),
+            scope_revision: "v1".into(),
+            target_revision: "v1".into(),
+            dependency_digest: "abc".into(),
+            deadline_revision: "v1".into(),
             environment_digest: "env1".into(),
         };
-        let changed = ForecastValidityFingerprint { scope_revision: "v2".into(), ..fp.clone() };
+        let changed = ForecastValidityFingerprint {
+            scope_revision: "v2".into(),
+            ..fp.clone()
+        };
         assert!(!forecast_remains_valid(&fp, &changed));
     }
 
     #[test]
     fn validity_fingerprint_detects_deadline_change() {
         let fp = ForecastValidityFingerprint {
-            scope_revision: "v1".into(), target_revision: "v1".into(),
-            dependency_digest: "abc".into(), deadline_revision: "v1".into(),
+            scope_revision: "v1".into(),
+            target_revision: "v1".into(),
+            dependency_digest: "abc".into(),
+            deadline_revision: "v1".into(),
             environment_digest: "env1".into(),
         };
-        let changed = ForecastValidityFingerprint { deadline_revision: "v2".into(), ..fp.clone() };
+        let changed = ForecastValidityFingerprint {
+            deadline_revision: "v2".into(),
+            ..fp.clone()
+        };
         assert!(!forecast_remains_valid(&fp, &changed));
     }
 
@@ -167,10 +179,17 @@ mod tests {
     fn evaluate_forecast_produces_valid_evaluation() {
         let range = sample_forecast_range();
         let result = evaluate_forecast(
-            &range, 490, "verify-impl",
-            0.6, 2, 1, 0.05, 1.0,
+            &range,
+            490,
+            "verify-impl",
+            0.6,
+            2,
+            1,
+            0.05,
+            1.0,
             vec!["evidence/1.txt".into()],
-        ).expect("valid forecast should evaluate");
+        )
+        .expect("valid forecast should evaluate");
         assert_eq!(result.exact_target_event_ref, "verify-impl");
         assert_eq!(result.sample_count, 10);
         assert!(result.skill_score.is_finite());
@@ -195,21 +214,53 @@ mod tests {
     fn evaluate_forecast_rejects_missing_authority() {
         let mut range = sample_forecast_range();
         range.authority = None;
-        let result = evaluate_forecast(&range, 500, "verify-impl", 0.6, 0, 0, 0.0, 1.0, vec!["e".into()]);
+        let result = evaluate_forecast(
+            &range,
+            500,
+            "verify-impl",
+            0.6,
+            0,
+            0,
+            0.0,
+            1.0,
+            vec!["e".into()],
+        );
         assert!(result.is_err());
     }
 
     #[test]
     fn evaluate_forecast_coverage_is_one_when_actual_within_p95() {
         let range = sample_forecast_range();
-        let eval = evaluate_forecast(&range, 590, "verify-impl", 0.6, 0, 0, 0.0, 1.0, vec!["e".into()]).unwrap();
+        let eval = evaluate_forecast(
+            &range,
+            590,
+            "verify-impl",
+            0.6,
+            0,
+            0,
+            0.0,
+            1.0,
+            vec!["e".into()],
+        )
+        .unwrap();
         assert_eq!(eval.empirical_coverage, 1.0);
     }
 
     #[test]
     fn evaluate_forecast_coverage_is_zero_when_actual_exceeds_p95() {
         let range = sample_forecast_range();
-        let eval = evaluate_forecast(&range, 650, "verify-impl", 0.6, 0, 0, 0.0, 1.0, vec!["e".into()]).unwrap();
+        let eval = evaluate_forecast(
+            &range,
+            650,
+            "verify-impl",
+            0.6,
+            0,
+            0,
+            0.0,
+            1.0,
+            vec!["e".into()],
+        )
+        .unwrap();
         assert_eq!(eval.empirical_coverage, 0.0);
     }
 }

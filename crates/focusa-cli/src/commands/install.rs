@@ -2344,7 +2344,7 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
     if crate::commands::activation_flow::interactive_available() {
         authorize_installer_activation_flow(&config_dir, args, channel).await?;
     } else {
-        acquire_installer_entitlement(&config_dir, &required_feature, args.json).await?;
+        acquire_installer_entitlement(&config_dir, required_feature, args.json).await?;
     }
     let snapshot =
         resolve_installer_entitlement(&config_dir, required_feature)?.ok_or_else(|| {
@@ -2630,19 +2630,20 @@ async fn authorize_installer_activation_flow(
     channel: Channel,
 ) -> Result<()> {
     use crate::commands::activation_flow::{
-        INSTALLER_FLOW, ActivationFlowSessionPersist, StdinFlowInput, interactive_available,
+        ActivationFlowSessionPersist, INSTALLER_FLOW, StdinFlowInput, interactive_available,
         resolve_flow_node_identity, run_activation_flow,
     };
     use focusa_license::{ActivationHttpClient, ActivationHttpPolicy};
 
     if !interactive_available() {
-        bail!("E_AUTHORITY_INTERACTIVE_REQUIRED: universal activation flow needs an interactive terminal; use device-code authorization for noninteractive installs");
+        bail!(
+            "E_AUTHORITY_INTERACTIVE_REQUIRED: universal activation flow needs an interactive terminal; use device-code authorization for noninteractive installs"
+        );
     }
-    let identity = resolve_flow_node_identity(config_dir)
-        .map_err(|error| anyhow!(error.to_string()))?;
-    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN").unwrap_or_else(|_| {
-        "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string()
-    });
+    let identity =
+        resolve_flow_node_identity(config_dir).map_err(|error| anyhow!(error.to_string()))?;
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
+        .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string());
     let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
     let policy = ActivationHttpPolicy {
         base_url,
@@ -4740,10 +4741,7 @@ mod tests {
                 .iter()
                 .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
         );
-        assert_eq!(
-            plan.license_mode,
-            "authority_existing_or_limited_access"
-        );
+        assert_eq!(plan.license_mode, "authority_existing_or_limited_access");
     }
 
     #[test]

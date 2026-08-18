@@ -201,8 +201,22 @@ pub const fn reduce_activation(
         | (S::LimitedAccessReview, T::Denied)
         | (S::ExistingKeyReview, T::Denied)
         | (S::DeviceRegistered, T::Denied) => S::Denied,
-        (S::EntitlementIssued | S::TerminalDeliveryReady | S::DeviceRegistered | S::LeaseIssued | S::Delivered, T::Refunded) => S::Refunded,
-        (S::EntitlementIssued | S::TerminalDeliveryReady | S::DeviceRegistered | S::LeaseIssued | S::Delivered, T::Revoked) => S::Revoked,
+        (
+            S::EntitlementIssued
+            | S::TerminalDeliveryReady
+            | S::DeviceRegistered
+            | S::LeaseIssued
+            | S::Delivered,
+            T::Refunded,
+        ) => S::Refunded,
+        (
+            S::EntitlementIssued
+            | S::TerminalDeliveryReady
+            | S::DeviceRegistered
+            | S::LeaseIssued
+            | S::Delivered,
+            T::Revoked,
+        ) => S::Revoked,
         (S::LeaseIssued | S::Delivered, T::RecoveryOnly) => S::RecoveryOnly,
         (S::Expired | S::Denied | S::Refunded | S::Revoked | S::Superseded, T::RecoveryOnly) => {
             S::RecoveryOnly
@@ -255,9 +269,7 @@ pub const fn presenter_state(state: ActivationState) -> PresenterActivationState
         S::AttemptCreated => P::EmailRequired,
         S::EmailChallengeSent => P::EmailVerificationPending,
         S::EmailVerified => P::EmailVerified,
-        S::AccountPromoted | S::LimitedAccessReview | S::ExistingKeyReview => {
-            P::SelectionRequired
-        }
+        S::AccountPromoted | S::LimitedAccessReview | S::ExistingKeyReview => P::SelectionRequired,
         S::OfferSelected => P::CheckoutRequired,
         S::CheckoutPending => P::PaymentPending,
         S::EntitlementIssued | S::TerminalDeliveryReady | S::DeviceRegistered => {
@@ -499,21 +511,65 @@ mod tests {
     #[test]
     fn reducer_exactly_matches_frozen_contract_transitions() {
         let legal: &[(&str, &str, &str)] = &[
-            ("attempt_created", "challenge_delivered", "email_challenge_sent"),
+            (
+                "attempt_created",
+                "challenge_delivered",
+                "email_challenge_sent",
+            ),
             ("email_challenge_sent", "email_verified", "email_verified"),
             ("email_verified", "account_promoted", "account_promoted"),
             ("account_promoted", "offer_selected", "offer_selected"),
-            ("account_promoted", "limited_access_chosen", "limited_access_review"),
-            ("account_promoted", "existing_key_chosen", "existing_key_review"),
+            (
+                "account_promoted",
+                "limited_access_chosen",
+                "limited_access_review",
+            ),
+            (
+                "account_promoted",
+                "existing_key_chosen",
+                "existing_key_review",
+            ),
             ("offer_selected", "checkout_started", "checkout_pending"),
-            ("offer_selected", "limited_access_chosen", "limited_access_review"),
-            ("offer_selected", "existing_key_chosen", "existing_key_review"),
-            ("checkout_pending", "entitlement_issued", "entitlement_issued"),
-            ("limited_access_review", "device_registered", "device_registered"),
-            ("existing_key_review", "entitlement_issued", "entitlement_issued"),
-            ("entitlement_issued", "terminal_delivery_ready", "terminal_delivery_ready"),
-            ("entitlement_issued", "device_registered", "device_registered"),
-            ("terminal_delivery_ready", "device_registered", "device_registered"),
+            (
+                "offer_selected",
+                "limited_access_chosen",
+                "limited_access_review",
+            ),
+            (
+                "offer_selected",
+                "existing_key_chosen",
+                "existing_key_review",
+            ),
+            (
+                "checkout_pending",
+                "entitlement_issued",
+                "entitlement_issued",
+            ),
+            (
+                "limited_access_review",
+                "device_registered",
+                "device_registered",
+            ),
+            (
+                "existing_key_review",
+                "entitlement_issued",
+                "entitlement_issued",
+            ),
+            (
+                "entitlement_issued",
+                "terminal_delivery_ready",
+                "terminal_delivery_ready",
+            ),
+            (
+                "entitlement_issued",
+                "device_registered",
+                "device_registered",
+            ),
+            (
+                "terminal_delivery_ready",
+                "device_registered",
+                "device_registered",
+            ),
             ("device_registered", "lease_issued", "lease_issued"),
             ("lease_issued", "delivered", "delivered"),
             ("lease_issued", "superseded", "superseded"),
@@ -654,16 +710,13 @@ mod tests {
                     }
                     Err(ActivationTransitionError::IllegalTransition) => {
                         assert!(
-                            !legal
-                                .iter()
-                                .any(|(from, event, _)| *from == state.label()
-                                    && *event == transition.label()),
+                            !legal.iter().any(|(from, event, _)| *from == state.label()
+                                && *event == transition.label()),
                             "{} --{}--> must be accepted",
                             state.label(),
                             transition.label()
                         );
                     }
-
                 }
             }
         }
@@ -689,7 +742,10 @@ mod tests {
 
     #[test]
     fn no_unverified_promotion_or_local_issuance() {
-        for state in [ActivationState::AttemptCreated, ActivationState::EmailChallengeSent] {
+        for state in [
+            ActivationState::AttemptCreated,
+            ActivationState::EmailChallengeSent,
+        ] {
             assert_eq!(
                 reduce_activation(state, ActivationTransition::AccountPromoted),
                 Err(ActivationTransitionError::IllegalTransition)
@@ -773,7 +829,7 @@ mod tests {
         }
         let reachable = all_states()
             .into_iter()
-            .map(|state| presenter_state(state))
+            .map(presenter_state)
             .collect::<std::collections::BTreeSet<_>>();
         assert_eq!(reachable.len(), 10);
     }

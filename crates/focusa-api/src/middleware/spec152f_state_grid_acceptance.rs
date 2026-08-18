@@ -27,18 +27,18 @@
 
 use super::*;
 use focusa_core::limited_project::{ActiveProjectGuard, ActiveProjectSelection};
+use focusa_license::authority::EntitlementSnapshot;
+use focusa_license::uiai_activation::{
+    PUBLIC_CODE_FOCUSA_OPERATOR_LIFETIME_V1, PUBLIC_CODE_UIAI_OPERATOR_LIFETIME_V1,
+};
 use focusa_license::{
     BaseProductDecision, CapabilityFamily as Family, DecisionReason as Reason,
     EntitlementPolicyPosture as Posture, LicenseTypeCode, OperationClass,
     PolicyEntitlementState as State, SPEC172_FOCUSA_OPERATOR_V1_FAMILIES,
     SPEC172_FOCUSA_VERIFIED_NO_LICENSE_ALLOWED_FAMILIES,
-    SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES,
-    authority_policy_state, base_product_projection, premium_family_feature_ids,
-    reduce_entitlement_state, resolve_base_focusa_product, resolve_premium_family,
-};
-use focusa_license::authority::EntitlementSnapshot;
-use focusa_license::uiai_activation::{
-    PUBLIC_CODE_FOCUSA_OPERATOR_LIFETIME_V1, PUBLIC_CODE_UIAI_OPERATOR_LIFETIME_V1,
+    SPEC172_FOCUSA_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES, authority_policy_state,
+    base_product_projection, premium_family_feature_ids, reduce_entitlement_state,
+    resolve_base_focusa_product, resolve_premium_family,
 };
 
 const FIXTURE_PATH: &str = concat!(
@@ -219,7 +219,10 @@ fn spec152f_state_grid_acceptance_golden_vectors_replay_all_63_cells() {
     let raw = std::fs::read_to_string(FIXTURE_PATH).expect("golden fixture must exist");
     let fixture: serde_json::Value = serde_json::from_str(&raw).expect("golden fixture JSON");
 
-    assert_eq!(fixture["schema"], "focusa.spec152f.entitlement_policy_cases.v1");
+    assert_eq!(
+        fixture["schema"],
+        "focusa.spec152f.entitlement_policy_cases.v1"
+    );
     assert_eq!(fixture["policy_id"], "focusa-simple-entitlement");
     assert_eq!(fixture["policy_version"], 1);
     assert_eq!(fixture["grid_case_count"], 63);
@@ -234,7 +237,9 @@ fn spec152f_state_grid_acceptance_golden_vectors_replay_all_63_cells() {
     for case in cases {
         let state_label = case["state"].as_str().expect("state label");
         let family_label = case["family"].as_str().expect("family label");
-        let expected = case["expected_decision"].as_str().expect("expected decision");
+        let expected = case["expected_decision"]
+            .as_str()
+            .expect("expected decision");
         assert_eq!(
             case["case_id"],
             format!("{state_label}::{family_label}"),
@@ -276,7 +281,10 @@ fn spec152f_state_grid_acceptance_resolver_is_deterministic_and_fails_closed() {
         for family in FAMILIES {
             let first = reduce_entitlement_state(state, family, None);
             let second = reduce_entitlement_state(state, family, None);
-            assert_eq!(first, second, "resolver must be deterministic: {state:?}/{family:?}");
+            assert_eq!(
+                first, second,
+                "resolver must be deterministic: {state:?}/{family:?}"
+            );
         }
     }
 
@@ -355,12 +363,14 @@ fn spec152f_state_grid_acceptance_core_guard_identical_to_resolver() {
                     assert_eq!(decision.reason_code, resolver.reason().label());
                 }
                 Posture::Base => {
-                    let decision = outcome.expect("base posture must pass with a usable signed lease");
+                    let decision =
+                        outcome.expect("base posture must pass with a usable signed lease");
                     assert_eq!(decision.status, "base", "{state:?}/{family:?}");
                     assert_eq!(decision.reason_code, resolver.reason().label());
                 }
                 Posture::Feature => {
-                    let decision = outcome.expect("granted premium feature must pass the core guard");
+                    let decision =
+                        outcome.expect("granted premium feature must pass the core guard");
                     assert_eq!(decision.status, "feature", "{state:?}/{family:?}");
                     assert_eq!(decision.reason_code, resolver.reason().label());
                 }
@@ -469,10 +479,7 @@ fn spec152f_state_grid_acceptance_premium_grant_isolation_matches_resolver() {
     // policy state decide. A stored premium grant on a non-usable posture or
     // wrong product stays limited/denied.
     assert_eq!(
-        resolve_base_focusa_product(
-            "focusa",
-            State::VerifiedNoLicense
-        ),
+        resolve_base_focusa_product("focusa", State::VerifiedNoLicense),
         BaseProductDecision::Limited
     );
     assert_eq!(
@@ -502,7 +509,11 @@ const BASE_MUTATION_ROUTE: (&str, Method, Family) =
 const PREMIUM_ROUTES: [(&str, Method, Family); 4] = [
     ("/v1/silent-sessions", Method::POST, Family::Automation),
     ("/v1/connect/room/create", Method::POST, Family::TeamRemote),
-    ("/v1/release/proof/status", Method::POST, Family::ReleaseProof),
+    (
+        "/v1/release/proof/status",
+        Method::POST,
+        Family::ReleaseProof,
+    ),
     ("/v1/update/scheduler", Method::POST, Family::PremiumUpdates),
 ];
 
@@ -609,9 +620,13 @@ fn spec152f_state_grid_acceptance_api_route_gate_identical_to_resolver() {
     expired.expires_at = Some(chrono::Utc::now() - chrono::Duration::seconds(1));
     let expired_guard = LicenseGuard::from_entitlement(expired);
     assert_eq!(
-        route_entitlement_denial(&expired_guard, &BASE_MUTATION_ROUTE.1, BASE_MUTATION_ROUTE.0)
-            .expect("expired base must be denied")
-            .code,
+        route_entitlement_denial(
+            &expired_guard,
+            &BASE_MUTATION_ROUTE.1,
+            BASE_MUTATION_ROUTE.0
+        )
+        .expect("expired base must be denied")
+        .code,
         "ENTITLEMENT_BASE_REQUIRED"
     );
     for (path, method, _family) in &PREMIUM_ROUTES {
@@ -634,7 +649,11 @@ fn spec152f_state_grid_acceptance_recovery_matrix_matches_resolver_rows() {
         ("export_run", &Method::POST, "/v1/export/run"),
         ("export_status", &Method::GET, "/v1/export/status"),
         ("export_history", &Method::GET, "/v1/export/history"),
-        ("export_manifest", &Method::GET, "/v1/export/manifest/manifest-1"),
+        (
+            "export_manifest",
+            &Method::GET,
+            "/v1/export/manifest/manifest-1",
+        ),
         ("node_deactivation", &Method::POST, "/v1/device/pair/revoke"),
         ("pairing_status", &Method::GET, "/v1/device/pair/status"),
         ("diagnostics", &Method::GET, "/v1/doctor"),
@@ -697,8 +716,7 @@ fn spec152f_state_grid_acceptance_recovery_matrix_matches_resolver_rows() {
         );
     }
     assert_eq!(
-        reduce_entitlement_state(State::PendingUnverified, Family::AccountRecovery, None)
-            .posture(),
+        reduce_entitlement_state(State::PendingUnverified, Family::AccountRecovery, None).posture(),
         Posture::Allow
     );
     assert_eq!(
@@ -721,8 +739,14 @@ fn spec152f_state_grid_acceptance_spec172_overlay_verified_no_license_and_operat
     // Lifetime v1 for Focusa and UIAI (and the composite bundle SKU). No
     // Evaluation code, tier, or separately purchased premium family is a
     // License Type.
-    assert_eq!(PUBLIC_CODE_FOCUSA_OPERATOR_LIFETIME_V1, "focusa_operator_lifetime_v1");
-    assert_eq!(PUBLIC_CODE_UIAI_OPERATOR_LIFETIME_V1, "uiai_operator_lifetime_v1");
+    assert_eq!(
+        PUBLIC_CODE_FOCUSA_OPERATOR_LIFETIME_V1,
+        "focusa_operator_lifetime_v1"
+    );
+    assert_eq!(
+        PUBLIC_CODE_UIAI_OPERATOR_LIFETIME_V1,
+        "uiai_operator_lifetime_v1"
+    );
     let operator_codes = [
         LicenseTypeCode::FocusaOperatorLifetimeV1,
         LicenseTypeCode::UiaiOperatorLifetimeV1,
@@ -763,9 +787,13 @@ fn spec152f_state_grid_acceptance_spec172_overlay_verified_no_license_and_operat
     let limited = resolve_base_focusa_product("focusa", State::VerifiedNoLicense);
     assert_eq!(limited, BaseProductDecision::Limited);
     let active_selection = ActiveProjectSelection::new("/synthetic/one", "acceptance");
-    assert!(ActiveProjectGuard::check_mutation(limited, "/synthetic/one", Some(&active_selection)).is_allowed());
     assert!(
-        ActiveProjectGuard::check_mutation(limited, "/synthetic/two", Some(&active_selection)).is_denied()
+        ActiveProjectGuard::check_mutation(limited, "/synthetic/one", Some(&active_selection))
+            .is_allowed()
+    );
+    assert!(
+        ActiveProjectGuard::check_mutation(limited, "/synthetic/two", Some(&active_selection))
+            .is_denied()
     );
     assert!(ActiveProjectGuard::check_mutation(limited, "/synthetic/one", None).is_denied());
 

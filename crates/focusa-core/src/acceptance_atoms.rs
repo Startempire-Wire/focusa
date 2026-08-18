@@ -32,10 +32,7 @@ pub struct AtomVerdict {
 /// ref matches the atom id (case-insensitive) AND the evidence kind
 /// matches the atom's evidence kind. Mismatched kinds are rejected with a
 /// typed reason — never silently accepted.
-pub fn evaluate_atoms(
-    atoms: &[AcceptanceAtom],
-    evidence: &[(String, String)],
-) -> Vec<AtomVerdict> {
+pub fn evaluate_atoms(atoms: &[AcceptanceAtom], evidence: &[(String, String)]) -> Vec<AtomVerdict> {
     atoms
         .iter()
         .map(|atom| {
@@ -98,9 +95,7 @@ mod tests {
     #[test]
     fn atom_satisfies_with_kind_matching_evidence() {
         let atoms = vec![atom("plan-doc", "artifact")];
-        let evidence = vec![
-            ("evidence/plan-doc.md".to_string(), "artifact".to_string()),
-        ];
+        let evidence = vec![("evidence/plan-doc.md".to_string(), "artifact".to_string())];
         let verdicts = evaluate_atoms(&atoms, &evidence);
         assert!(verdicts[0].satisfied);
         assert_eq!(verdicts[0].matched_evidence.len(), 1);
@@ -109,9 +104,7 @@ mod tests {
     #[test]
     fn kind_mismatch_is_rejected_with_reason() {
         let atoms = vec![atom("plan-doc", "artifact")];
-        let evidence = vec![
-            ("evidence/plan-doc.md".to_string(), "screenshot".to_string()),
-        ];
+        let evidence = vec![("evidence/plan-doc.md".to_string(), "screenshot".to_string())];
         let verdicts = evaluate_atoms(&atoms, &evidence);
         assert!(!verdicts[0].satisfied);
         assert!(verdicts[0].reasons[0].contains("kind"));

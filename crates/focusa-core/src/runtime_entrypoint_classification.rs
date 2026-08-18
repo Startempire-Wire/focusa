@@ -218,14 +218,16 @@ pub fn classify_runtime_entrypoint(source_path: &str) -> Option<RuntimeEntrypoin
     RUNTIME_ENTRYPOINT_MAP
         .iter()
         .find(|(path, _, _, _)| *path == canonical)
-        .map(|(path, surface, resolution, rationale)| RuntimeEntrypointClassification {
-            source_path: (*path).to_string(),
-            surface: *surface,
-            resolution: *resolution,
-            capability_family: resolution.capability_family().label().to_string(),
-            operation_class: resolution.operation_class().label().to_string(),
-            rationale: (*rationale).to_string(),
-        })
+        .map(
+            |(path, surface, resolution, rationale)| RuntimeEntrypointClassification {
+                source_path: (*path).to_string(),
+                surface: *surface,
+                resolution: *resolution,
+                capability_family: resolution.capability_family().label().to_string(),
+                operation_class: resolution.operation_class().label().to_string(),
+                rationale: (*rationale).to_string(),
+            },
+        )
 }
 
 /// Returns true when the path is a recognized production release module.
@@ -298,14 +300,16 @@ pub struct RuntimeEntrypointSummary {
 pub fn runtime_entrypoint_classifications() -> Vec<RuntimeEntrypointClassification> {
     RUNTIME_ENTRYPOINT_MAP
         .iter()
-        .map(|(path, surface, resolution, rationale)| RuntimeEntrypointClassification {
-            source_path: (*path).to_string(),
-            surface: *surface,
-            resolution: *resolution,
-            capability_family: resolution.capability_family().label().to_string(),
-            operation_class: resolution.operation_class().label().to_string(),
-            rationale: (*rationale).to_string(),
-        })
+        .map(
+            |(path, surface, resolution, rationale)| RuntimeEntrypointClassification {
+                source_path: (*path).to_string(),
+                surface: *surface,
+                resolution: *resolution,
+                capability_family: resolution.capability_family().label().to_string(),
+                operation_class: resolution.operation_class().label().to_string(),
+                rationale: (*rationale).to_string(),
+            },
+        )
         .collect()
 }
 
@@ -338,7 +342,10 @@ mod tests {
             // No file is granted premium treatment merely because its path
             // contains "release".  All release files must carry explicit
             // ReleaseProof resolution with rationale.
-            if path_base.contains("release") || path_base.contains("update") || path_base.contains("scheduler") {
+            if path_base.contains("release")
+                || path_base.contains("update")
+                || path_base.contains("scheduler")
+            {
                 // Must have a non-default rationale (not empty).
                 assert!(
                     !entry.rationale.is_empty(),
@@ -365,8 +372,7 @@ mod tests {
                 entry.source_path
             );
             assert_eq!(
-                entry.capability_family,
-                "customer_data_export",
+                entry.capability_family, "customer_data_export",
                 "export entrypoint {} must have customer_data_export family",
                 entry.source_path
             );
@@ -394,8 +400,7 @@ mod tests {
                 entry.source_path
             );
             assert_eq!(
-                entry.capability_family,
-                "release_proof",
+                entry.capability_family, "release_proof",
                 "release entrypoint {} must have release_proof capability family",
                 entry.source_path
             );
@@ -418,15 +423,11 @@ mod tests {
                 entry.source_path
             );
             assert_eq!(
-                entry.capability_family,
-                "internal_maintenance",
+                entry.capability_family, "internal_maintenance",
                 "scheduler {} must have internal_maintenance family",
                 entry.source_path
             );
-            assert_eq!(
-                entry.operation_class,
-                "internal_maintenance"
-            );
+            assert_eq!(entry.operation_class, "internal_maintenance");
         }
     }
 
@@ -446,8 +447,7 @@ mod tests {
                 entry.source_path
             );
             assert_eq!(
-                entry.capability_family,
-                "internal_maintenance",
+                entry.capability_family, "internal_maintenance",
                 "update entrypoint {} must have internal_maintenance family with initiating inheritance",
                 entry.source_path
             );
@@ -571,17 +571,14 @@ mod tests {
             .filter(|e| matches!(e.surface, RuntimeSurface::Update))
             .map(|e| e.source_path.as_str())
             .collect();
+        assert!(!export_sources.iter().any(|p| release_sources.contains(p)
+            || scheduler_sources.contains(p)
+            || update_sources.contains(p)));
         assert!(
-            !export_sources.iter().any(|p| release_sources.contains(p)
-                || scheduler_sources.contains(p)
-                || update_sources.contains(p))
+            !release_sources
+                .iter()
+                .any(|p| scheduler_sources.contains(p) || update_sources.contains(p))
         );
-        assert!(
-            !release_sources.iter().any(|p| scheduler_sources.contains(p)
-                || update_sources.contains(p))
-        );
-        assert!(!scheduler_sources
-            .iter()
-            .any(|p| update_sources.contains(p)));
+        assert!(!scheduler_sources.iter().any(|p| update_sources.contains(p)));
     }
 }

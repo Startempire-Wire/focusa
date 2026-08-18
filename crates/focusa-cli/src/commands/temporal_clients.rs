@@ -13,7 +13,11 @@ pub struct ScopeArgs {
 }
 impl ScopeArgs {
     fn query(&self) -> String {
-        format!("project_root={}&continuity_id={}", urlencoding::encode(&self.project_root), urlencoding::encode(&self.continuity_id))
+        format!(
+            "project_root={}&continuity_id={}",
+            urlencoding::encode(&self.project_root),
+            urlencoding::encode(&self.continuity_id)
+        )
     }
     fn body(&self) -> Value {
         json!({"project_root":self.project_root,"continuity_id":self.continuity_id})
@@ -23,7 +27,11 @@ impl ScopeArgs {
     }
 }
 fn query_arg(path: &str, scope: &ScopeArgs, key: &str, value: &str) -> String {
-    format!("{path}?{}&{key}={}", scope.query(), urlencoding::encode(value))
+    format!(
+        "{path}?{}&{key}={}",
+        scope.query(),
+        urlencoding::encode(value)
+    )
 }
 fn packet(path: &std::path::Path) -> Result<Value> {
     let value: Value = serde_json::from_str(&std::fs::read_to_string(path)?)?;
@@ -43,7 +51,13 @@ async fn output(label: &str, response: Value, json_output: bool) -> Result<()> {
     if json_output {
         println!("{}", serde_json::to_string_pretty(&response)?);
     } else {
-        println!("{label}: {}", response.get("status").and_then(Value::as_str).unwrap_or("unknown"));
+        println!(
+            "{label}: {}",
+            response
+                .get("status")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown")
+        );
         if let Some(next) = response.get("next_action").and_then(Value::as_str) {
             println!("  next: {next}");
         }
@@ -93,7 +107,11 @@ pub async fn run_time(cmd: TimeCmd, json_output: bool) -> Result<()> {
     let api = ApiClient::new();
     let response = match cmd {
         TimeCmd::Now => api.get("/v1/time/now").await?,
-        TimeCmd::Status { scope, workpoint, task } => {
+        TimeCmd::Status {
+            scope,
+            workpoint,
+            task,
+        } => {
             scope.validate("time status")?;
             let mut p = format!("/v1/time/status?{}", scope.query());
             if let Some(v) = workpoint {
@@ -106,15 +124,26 @@ pub async fn run_time(cmd: TimeCmd, json_output: bool) -> Result<()> {
         }
         TimeCmd::Trust(TimeTrustCmd::Inspect { scope }) => {
             scope.validate("time trust inspect")?;
-            api.get(&format!("/v1/time/trust?{}", scope.query())).await?
+            api.get(&format!("/v1/time/trust?{}", scope.query()))
+                .await?
         }
         TimeCmd::Samples(TimeSamplesCmd::List { scope, host }) => {
             scope.validate("time samples list")?;
-            api.get(&format!("/v1/time/samples?{}&host_id={}", scope.query(), urlencoding::encode(&host))).await?
+            api.get(&format!(
+                "/v1/time/samples?{}&host_id={}",
+                scope.query(),
+                urlencoding::encode(&host)
+            ))
+            .await?
         }
         TimeCmd::Capabilities { scope, host } => {
             scope.validate("time capabilities")?;
-            api.get(&format!("/v1/time/capabilities?{}&host_id={}", scope.query(), urlencoding::encode(&host))).await?
+            api.get(&format!(
+                "/v1/time/capabilities?{}&host_id={}",
+                scope.query(),
+                urlencoding::encode(&host)
+            ))
+            .await?
         }
         TimeCmd::Doctor => api.get("/v1/time/doctor").await?,
     };
@@ -222,7 +251,17 @@ pub enum DeadlineCmd {
 pub async fn run_deadline(cmd: DeadlineCmd, json_output: bool) -> Result<()> {
     let api = ApiClient::new();
     let response = match cmd {
-        DeadlineCmd::Set { scope, subject, at, timezone, readiness_target, completion_target, evidence_refs, idempotency_key, confirm } => {
+        DeadlineCmd::Set {
+            scope,
+            subject,
+            at,
+            timezone,
+            readiness_target,
+            completion_target,
+            evidence_refs,
+            idempotency_key,
+            confirm,
+        } => {
             scope.validate("deadline set")?;
             let mut b = scope.body();
             b["subject_ref"] = json!(subject);
@@ -235,7 +274,21 @@ pub async fn run_deadline(cmd: DeadlineCmd, json_output: bool) -> Result<()> {
             b["confirm"] = json!(confirm);
             api.post("/v1/deadline/set", &b).await?
         }
-        DeadlineCmd::SetCivil { scope, subject, local, timezone, fold_policy, gap_policy, calendar, calendar_version, tzdb_version, completion_target, evidence_refs, idempotency_key, confirm } => {
+        DeadlineCmd::SetCivil {
+            scope,
+            subject,
+            local,
+            timezone,
+            fold_policy,
+            gap_policy,
+            calendar,
+            calendar_version,
+            tzdb_version,
+            completion_target,
+            evidence_refs,
+            idempotency_key,
+            confirm,
+        } => {
             scope.validate("deadline set-civil")?;
             let mut b = scope.body();
             b["subject_ref"] = json!(subject);
@@ -254,9 +307,19 @@ pub async fn run_deadline(cmd: DeadlineCmd, json_output: bool) -> Result<()> {
         }
         DeadlineCmd::Inspect { deadline_id, scope } => {
             scope.validate("deadline inspect")?;
-            api.get(&query_arg(&format!("/v1/deadline/{}", urlencoding::encode(&deadline_id)), &scope, "view", "canonical")).await?
+            api.get(&query_arg(
+                &format!("/v1/deadline/{}", urlencoding::encode(&deadline_id)),
+                &scope,
+                "view",
+                "canonical",
+            ))
+            .await?
         }
-        DeadlineCmd::ResolveCivil { deadline_id, scope, tzdb_version } => {
+        DeadlineCmd::ResolveCivil {
+            deadline_id,
+            scope,
+            tzdb_version,
+        } => {
             scope.validate("deadline resolve-civil")?;
             let mut b = scope.body();
             b["deadline_id"] = json!(deadline_id);
@@ -265,9 +328,18 @@ pub async fn run_deadline(cmd: DeadlineCmd, json_output: bool) -> Result<()> {
         }
         DeadlineCmd::Conflicts { scope } => {
             scope.validate("deadline conflicts")?;
-            api.get(&format!("/v1/deadline/conflicts?{}", scope.query())).await?
+            api.get(&format!("/v1/deadline/conflicts?{}", scope.query()))
+                .await?
         }
-        DeadlineCmd::Revise { deadline_id, scope, expected_revision, reason, at, idempotency_key, confirm } => {
+        DeadlineCmd::Revise {
+            deadline_id,
+            scope,
+            expected_revision,
+            reason,
+            at,
+            idempotency_key,
+            confirm,
+        } => {
             scope.validate("deadline revise")?;
             let mut b = scope.body();
             b["deadline_id"] = json!(deadline_id);
@@ -278,7 +350,14 @@ pub async fn run_deadline(cmd: DeadlineCmd, json_output: bool) -> Result<()> {
             b["confirm"] = json!(confirm);
             api.post("/v1/deadline/revise", &b).await?
         }
-        DeadlineCmd::Clear { deadline_id, scope, expected_revision, reason, idempotency_key, confirm } => {
+        DeadlineCmd::Clear {
+            deadline_id,
+            scope,
+            expected_revision,
+            reason,
+            idempotency_key,
+            confirm,
+        } => {
             scope.validate("deadline clear")?;
             let mut b = scope.body();
             b["deadline_id"] = json!(deadline_id);
@@ -338,7 +417,12 @@ pub enum EstimateCmd {
 pub async fn run_estimate(cmd: EstimateCmd, json_output: bool) -> Result<()> {
     let api = ApiClient::new();
     let response = match cmd {
-        EstimateCmd::Request { scope, subject, target_state, packet: path } => {
+        EstimateCmd::Request {
+            scope,
+            subject,
+            target_state,
+            packet: path,
+        } => {
             scope.validate("estimate request")?;
             let mut b = scoped_packet(&scope, &path)?;
             b["subject_ref"] = json!(subject);
@@ -347,7 +431,13 @@ pub async fn run_estimate(cmd: EstimateCmd, json_output: bool) -> Result<()> {
         }
         EstimateCmd::Inspect { estimate_id, scope } => {
             scope.validate("estimate inspect")?;
-            api.get(&query_arg(&format!("/v1/estimate/{}", urlencoding::encode(&estimate_id)), &scope, "view", "canonical")).await?
+            api.get(&query_arg(
+                &format!("/v1/estimate/{}", urlencoding::encode(&estimate_id)),
+                &scope,
+                "view",
+                "canonical",
+            ))
+            .await?
         }
         EstimateCmd::Validate { estimate_id, scope } => {
             scope.validate("estimate validate")?;
@@ -355,16 +445,31 @@ pub async fn run_estimate(cmd: EstimateCmd, json_output: bool) -> Result<()> {
             b["estimate_id"] = json!(estimate_id);
             api.post("/v1/estimate/validate", &b).await?
         }
-        EstimateCmd::Evaluate { estimate_id, scope, actual_event, packet: path } => {
+        EstimateCmd::Evaluate {
+            estimate_id,
+            scope,
+            actual_event,
+            packet: path,
+        } => {
             scope.validate("estimate evaluate")?;
             let mut b = scoped_packet(&scope, &path)?;
             b["estimate_id"] = json!(estimate_id);
             b["actual_event_ref"] = json!(actual_event);
             api.post("/v1/estimate/evaluate", &b).await?
         }
-        EstimateCmd::History { scope, task_family, include_censored } => {
+        EstimateCmd::History {
+            scope,
+            task_family,
+            include_censored,
+        } => {
             scope.validate("estimate history")?;
-            api.get(&format!("/v1/estimate/history?{}&task_family={}&include_censored={}", scope.query(), urlencoding::encode(&task_family), include_censored)).await?
+            api.get(&format!(
+                "/v1/estimate/history?{}&task_family={}&include_censored={}",
+                scope.query(),
+                urlencoding::encode(&task_family),
+                include_censored
+            ))
+            .await?
         }
     };
     output("estimate", response, json_output).await
@@ -393,7 +498,13 @@ pub enum ProgressCmd {
 pub async fn run_progress(cmd: ProgressCmd, json_output: bool) -> Result<()> {
     let api = ApiClient::new();
     let response = match cmd {
-        ProgressCmd::Record { scope, item, kind, evidence_refs, idempotency_key } => {
+        ProgressCmd::Record {
+            scope,
+            item,
+            kind,
+            evidence_refs,
+            idempotency_key,
+        } => {
             scope.validate("progress record")?;
             let mut b = scope.body();
             b["item_id"] = json!(item);
@@ -404,7 +515,8 @@ pub async fn run_progress(cmd: ProgressCmd, json_output: bool) -> Result<()> {
         }
         ProgressCmd::Status { scope, item } => {
             scope.validate("progress status")?;
-            api.get(&query_arg("/v1/progress/status", &scope, "item_id", &item)).await?
+            api.get(&query_arg("/v1/progress/status", &scope, "item_id", &item))
+                .await?
         }
     };
     output("progress", response, json_output).await
@@ -450,26 +562,85 @@ pub enum CancellationCmd {
 }
 async fn scoped_get(label: &str, scope: ScopeArgs, path: String, json_output: bool) -> Result<()> {
     scope.validate(label)?;
-    output(label, ApiClient::new().get(&format!("{path}?{}", scope.query())).await?, json_output).await
+    output(
+        label,
+        ApiClient::new()
+            .get(&format!("{path}?{}", scope.query()))
+            .await?,
+        json_output,
+    )
+    .await
 }
 pub async fn run_no_progress(cmd: NoProgressCmd, j: bool) -> Result<()> {
     match cmd {
-        NoProgressCmd::Inspect { scope, item } => scoped_get("no-progress", scope, format!("/v1/no-progress/incidents?item_id={}", urlencoding::encode(&item)), j).await,
+        NoProgressCmd::Inspect { scope, item } => {
+            scoped_get(
+                "no-progress",
+                scope,
+                format!(
+                    "/v1/no-progress/incidents?item_id={}",
+                    urlencoding::encode(&item)
+                ),
+                j,
+            )
+            .await
+        }
     }
 }
 pub async fn run_lost_time(cmd: LostTimeCmd, j: bool) -> Result<()> {
     match cmd {
-        LostTimeCmd::List { scope, subject } => scoped_get("lost-time", scope, format!("/v1/lost-time/incidents?subject_ref={}", urlencoding::encode(&subject)), j).await,
-        LostTimeCmd::Inspect { incident_id, scope } => scoped_get("lost-time", scope, format!("/v1/lost-time/incidents/{}", urlencoding::encode(&incident_id)), j).await,
+        LostTimeCmd::List { scope, subject } => {
+            scoped_get(
+                "lost-time",
+                scope,
+                format!(
+                    "/v1/lost-time/incidents?subject_ref={}",
+                    urlencoding::encode(&subject)
+                ),
+                j,
+            )
+            .await
+        }
+        LostTimeCmd::Inspect { incident_id, scope } => {
+            scoped_get(
+                "lost-time",
+                scope,
+                format!(
+                    "/v1/lost-time/incidents/{}",
+                    urlencoding::encode(&incident_id)
+                ),
+                j,
+            )
+            .await
+        }
     }
 }
 pub async fn run_opportunity(cmd: OpportunityCmd, j: bool) -> Result<()> {
     match cmd {
-        OpportunityCmd::Inspect { subject_ref, scope } => scoped_get("opportunity", scope, format!("/v1/opportunities/{}", urlencoding::encode(&subject_ref)), j).await,
+        OpportunityCmd::Inspect { subject_ref, scope } => {
+            scoped_get(
+                "opportunity",
+                scope,
+                format!("/v1/opportunities/{}", urlencoding::encode(&subject_ref)),
+                j,
+            )
+            .await
+        }
     }
 }
 pub async fn run_cancellation(cmd: CancellationCmd, j: bool) -> Result<()> {
     match cmd {
-        CancellationCmd::Inspect { cancellation_id, scope } => scoped_get("cancellation", scope, format!("/v1/cancellation/{}", urlencoding::encode(&cancellation_id)), j).await,
+        CancellationCmd::Inspect {
+            cancellation_id,
+            scope,
+        } => {
+            scoped_get(
+                "cancellation",
+                scope,
+                format!("/v1/cancellation/{}", urlencoding::encode(&cancellation_id)),
+                j,
+            )
+            .await
+        }
     }
 }

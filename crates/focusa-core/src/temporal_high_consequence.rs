@@ -322,7 +322,8 @@ mod tests {
             maximum_clock_uncertainty_ns: 1000,
             maximum_market_data_age_ms: 500,
             maximum_decision_age_ms: 1000,
-            maximum_dispatch_age_ms: 2000, risk_limit_policy_ref: "risk-1".into(),
+            maximum_dispatch_age_ms: 2000,
+            risk_limit_policy_ref: "risk-1".into(),
         };
         let observation = DispatchAgeObservation {
             clock_uncertainty_ns: 100,
@@ -332,33 +333,75 @@ mod tests {
             in_scope: true,
             within_risk_limits: true,
         };
-        assert!(matches!(authorize_dispatch(&policy, &observation), Err(HighConsequenceError::StaleMarketData)));
+        assert!(matches!(
+            authorize_dispatch(&policy, &observation),
+            Err(HighConsequenceError::StaleMarketData)
+        ));
     }
 
     #[test]
     fn dispatch_rejects_out_of_scope() {
-        let policy = DispatchAgePolicy { maximum_clock_uncertainty_ns: 1000, maximum_market_data_age_ms: 500, maximum_decision_age_ms: 1000, maximum_dispatch_age_ms: 2000, risk_limit_policy_ref: "risk-1".into() };
-        let observation = DispatchAgeObservation { clock_uncertainty_ns: 100, market_data_age_ms: 200, decision_age_ms: 200, dispatch_age_ms: 300, in_scope: false, within_risk_limits: true };
-        assert!(matches!(authorize_dispatch(&policy, &observation), Err(HighConsequenceError::OutOfScope)));
+        let policy = DispatchAgePolicy {
+            maximum_clock_uncertainty_ns: 1000,
+            maximum_market_data_age_ms: 500,
+            maximum_decision_age_ms: 1000,
+            maximum_dispatch_age_ms: 2000,
+            risk_limit_policy_ref: "risk-1".into(),
+        };
+        let observation = DispatchAgeObservation {
+            clock_uncertainty_ns: 100,
+            market_data_age_ms: 200,
+            decision_age_ms: 200,
+            dispatch_age_ms: 300,
+            in_scope: false,
+            within_risk_limits: true,
+        };
+        assert!(matches!(
+            authorize_dispatch(&policy, &observation),
+            Err(HighConsequenceError::OutOfScope)
+        ));
     }
 
     #[test]
     fn dispatch_passes_valid_observation() {
-        let policy = DispatchAgePolicy { maximum_clock_uncertainty_ns: 1000, maximum_market_data_age_ms: 500, maximum_decision_age_ms: 1000, maximum_dispatch_age_ms: 2000, risk_limit_policy_ref: "risk-1".into() };
-        let observation = DispatchAgeObservation { clock_uncertainty_ns: 100, market_data_age_ms: 200, decision_age_ms: 200, dispatch_age_ms: 300, in_scope: true, within_risk_limits: true };
+        let policy = DispatchAgePolicy {
+            maximum_clock_uncertainty_ns: 1000,
+            maximum_market_data_age_ms: 500,
+            maximum_decision_age_ms: 1000,
+            maximum_dispatch_age_ms: 2000,
+            risk_limit_policy_ref: "risk-1".into(),
+        };
+        let observation = DispatchAgeObservation {
+            clock_uncertainty_ns: 100,
+            market_data_age_ms: 200,
+            decision_age_ms: 200,
+            dispatch_age_ms: 300,
+            in_scope: true,
+            within_risk_limits: true,
+        };
         assert!(authorize_dispatch(&policy, &observation).is_ok());
     }
 
     #[test]
     fn market_trace_rejects_empty_causal_lineage() {
         let trace = MarketTemporalTrace {
-            intent_id: "i-1".into(), idempotency_key: "k-1".into(),
-            event_ref: "ev".into(), ingestion_ref: "ing".into(), decision_ref: "dec".into(),
-            authority_ref: "auth".into(), risk_check_ref: "risk".into(),
-            dispatch_ref: None, acknowledgement_ref: None, fill_refs: vec![],
-            cancellation_ref: None, reconciliation_ref: "rec".into(),
-            causal_sequence_refs: vec![], latency_distribution_ref: "lat".into(),
-            unknown_outcome: false, partial_fill: false, cancellation_race: false,
+            intent_id: "i-1".into(),
+            idempotency_key: "k-1".into(),
+            event_ref: "ev".into(),
+            ingestion_ref: "ing".into(),
+            decision_ref: "dec".into(),
+            authority_ref: "auth".into(),
+            risk_check_ref: "risk".into(),
+            dispatch_ref: None,
+            acknowledgement_ref: None,
+            fill_refs: vec![],
+            cancellation_ref: None,
+            reconciliation_ref: "rec".into(),
+            causal_sequence_refs: vec![],
+            latency_distribution_ref: "lat".into(),
+            unknown_outcome: false,
+            partial_fill: false,
+            cancellation_race: false,
             kill_switch_checked: true,
         };
         assert!(validate_market_trace(&trace).is_err());
@@ -367,13 +410,23 @@ mod tests {
     #[test]
     fn market_trace_passes_valid() {
         let trace = MarketTemporalTrace {
-            intent_id: "i-1".into(), idempotency_key: "k-1".into(),
-            event_ref: "ev".into(), ingestion_ref: "ing".into(), decision_ref: "dec".into(),
-            authority_ref: "auth".into(), risk_check_ref: "risk".into(),
-            dispatch_ref: None, acknowledgement_ref: None, fill_refs: vec![],
-            cancellation_ref: None, reconciliation_ref: "rec".into(),
-            causal_sequence_refs: vec!["c1".into()], latency_distribution_ref: "lat".into(),
-            unknown_outcome: false, partial_fill: false, cancellation_race: false,
+            intent_id: "i-1".into(),
+            idempotency_key: "k-1".into(),
+            event_ref: "ev".into(),
+            ingestion_ref: "ing".into(),
+            decision_ref: "dec".into(),
+            authority_ref: "auth".into(),
+            risk_check_ref: "risk".into(),
+            dispatch_ref: None,
+            acknowledgement_ref: None,
+            fill_refs: vec![],
+            cancellation_ref: None,
+            reconciliation_ref: "rec".into(),
+            causal_sequence_refs: vec!["c1".into()],
+            latency_distribution_ref: "lat".into(),
+            unknown_outcome: false,
+            partial_fill: false,
+            cancellation_race: false,
             kill_switch_checked: true,
         };
         assert!(validate_market_trace(&trace).is_ok());
@@ -384,21 +437,31 @@ mod tests {
         let firewall = ActivationFirewall {
             current_level: ActivationLevel::Shadow,
             requested_level: ActivationLevel::Canary,
-            requirement_refs: vec!["r1".into()], evidence_refs: vec!["e1".into()],
-            approval_receipt_refs: vec!["a1".into()], deterministic_loop_has_llm: true,
+            requirement_refs: vec!["r1".into()],
+            evidence_refs: vec!["e1".into()],
+            approval_receipt_refs: vec!["a1".into()],
+            deterministic_loop_has_llm: true,
         };
-        assert!(matches!(authorize_activation(&firewall), Err(HighConsequenceError::LlmInDeterministicLoop)));
+        assert!(matches!(
+            authorize_activation(&firewall),
+            Err(HighConsequenceError::LlmInDeterministicLoop)
+        ));
     }
 
     #[test]
     fn data_policy_rejects_empty_references() {
         let policy = TemporalDataPolicy {
             classification: "restricted".into(),
-            least_privilege_policy_ref: "".into(), encryption_policy_ref: "enc".into(),
-            coarsening_policy_ref: "c".into(), redaction_policy_ref: "r".into(),
-            retention_policy_ref: "ret".into(), deletion_policy_ref: "del".into(),
-            legal_hold_policy_ref: "lh".into(), export_policy_ref: "exp".into(),
-            aggregation_policy_ref: "agg".into(), audit_access_policy_ref: "aud".into(),
+            least_privilege_policy_ref: "".into(),
+            encryption_policy_ref: "enc".into(),
+            coarsening_policy_ref: "c".into(),
+            redaction_policy_ref: "r".into(),
+            retention_policy_ref: "ret".into(),
+            deletion_policy_ref: "del".into(),
+            legal_hold_policy_ref: "lh".into(),
+            export_policy_ref: "exp".into(),
+            aggregation_policy_ref: "agg".into(),
+            audit_access_policy_ref: "aud".into(),
             side_channel_policy_ref: "sc".into(),
         };
         assert!(validate_data_policy(&policy).is_err());
@@ -407,7 +470,15 @@ mod tests {
     #[test]
     fn ledger_controls_require_hash_chain_verified() {
         let mut kinds = BTreeSet::new();
-        for k in &["clock_sample","correction","deadline","guard","cancellation","closure","receipt"] {
+        for k in &[
+            "clock_sample",
+            "correction",
+            "deadline",
+            "guard",
+            "cancellation",
+            "closure",
+            "receipt",
+        ] {
             kinds.insert(k.to_string());
         }
         let controls = SignedTemporalLedgerControl {

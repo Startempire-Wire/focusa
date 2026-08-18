@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::workset_ledger::{replay_projection, WorksetDefinition, WorksetEvent};
+use crate::workset_ledger::{WorksetDefinition, WorksetEvent, replay_projection};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -103,16 +103,16 @@ pub fn evaluate_transition(
         allowed: false,
         reasons: Vec::new(),
     };
-    let edge = TRANSITION_DAG.iter().find(|(f, t, _)| *f == from && *t == to);
+    let edge = TRANSITION_DAG
+        .iter()
+        .find(|(f, t, _)| *f == from && *t == to);
     let Some((_, _, gate)) = edge else {
         verdict
             .reasons
             .push(format!("no DAG edge {from:?} → {to:?}"));
         return Ok(verdict);
     };
-    if gate.requires_all_admitted
-        && projection.requirements.is_empty()
-    {
+    if gate.requires_all_admitted && projection.requirements.is_empty() {
         verdict
             .reasons
             .push("gate requires at least one admitted requirement".to_string());
@@ -133,9 +133,9 @@ pub fn evaluate_transition(
             evidence == Some(required_evidence)
         });
         if !present {
-            verdict.reasons.push(format!(
-                "gate requires evidence {required_evidence}"
-            ));
+            verdict
+                .reasons
+                .push(format!("gate requires evidence {required_evidence}"));
         }
     }
     verdict.allowed = verdict.reasons.is_empty();
@@ -145,9 +145,7 @@ pub fn evaluate_transition(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::workset_ledger::{
-        CompletionContract, RequirementDisposition, WorksetScope,
-    };
+    use crate::workset_ledger::{CompletionContract, RequirementDisposition, WorksetScope};
 
     fn definition() -> WorksetDefinition {
         WorksetDefinition {

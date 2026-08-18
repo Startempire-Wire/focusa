@@ -214,8 +214,9 @@ fn apply_mutation_lease_gate(
     if !base.permits_base_mutations() {
         return Err(EntitlementExecutionFailure {
             code: "ENTITLEMENT_BASE_REQUIRED".to_string(),
-            message: "base Focusa product gate not satisfied; no caller-controlled product may widen it"
-                .to_string(),
+            message:
+                "base Focusa product gate not satisfied; no caller-controlled product may widen it"
+                    .to_string(),
             required_feature: policy.required_feature.clone(),
             limit_bucket: policy.limit_bucket.clone(),
         });
@@ -278,8 +279,9 @@ pub fn apply_guarded_project_mutation(
     event: FocusaEvent,
 ) -> Result<GuardedMutationOutcome, GuardedMutationDenial> {
     let base = resolve_base_product(guard);
-    let decision = guard_project_mutation(guard, policy, context, project_root, active_selection)
-        .map_err(|failure| denial_from_failure(failure, &policy.operation_id, base.label()))?;
+    let decision =
+        guard_project_mutation(guard, policy, context, project_root, active_selection)
+            .map_err(|failure| denial_from_failure(failure, &policy.operation_id, base.label()))?;
     match reduce(state, event) {
         Ok(result) => Ok(GuardedMutationOutcome {
             schema: GUARDED_MUTATION_SCHEMA.to_string(),

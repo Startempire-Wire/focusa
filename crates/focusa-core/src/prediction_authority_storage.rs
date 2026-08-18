@@ -1,4 +1,6 @@
-use crate::prediction_authority_ledger::{PredictionAuthorityLedger, PredictionAuthorityProjection};
+use crate::prediction_authority_ledger::{
+    PredictionAuthorityLedger, PredictionAuthorityProjection,
+};
 use crate::{
     prediction_authority::{EpistemicScope, PredictionAuthorityEvent, ScopedAuthorityEvent},
     scoped_state::ScopeKind,

@@ -100,8 +100,14 @@ fn policy_for(family: Family) -> EntitlementExecutionPolicy {
         Family::AccountRecovery => (OperationClass::Recovery, None),
         Family::ReadProjection => (OperationClass::Read, None),
         Family::BaseFocusa => (OperationClass::ValueMutation, None),
-        Family::Automation => (OperationClass::ValueMutation, Some("focusa.agent.silent_sessions")),
-        Family::TeamRemote => (OperationClass::ValueMutation, Some("focusa.team.multi_operator")),
+        Family::Automation => (
+            OperationClass::ValueMutation,
+            Some("focusa.agent.silent_sessions"),
+        ),
+        Family::TeamRemote => (
+            OperationClass::ValueMutation,
+            Some("focusa.team.multi_operator"),
+        ),
         Family::ReleaseProof => (OperationClass::ValueMutation, Some("focusa.release.proof")),
         Family::PremiumUpdates => (
             OperationClass::ValueMutation,
@@ -166,20 +172,36 @@ fn spec172_runtime_policy_core_guard_decisions_equivalent_to_resolver() {
             match resolver.posture() {
                 Posture::Allow | Posture::Read => {
                     let decision = outcome.expect("allow/read must pass the core guard");
-                    assert_eq!(decision.status, resolver.posture().status(), "{state:?}/{family:?}");
-                    assert_eq!(decision.reason_code, resolver.reason().label(), "{state:?}/{family:?}");
+                    assert_eq!(
+                        decision.status,
+                        resolver.posture().status(),
+                        "{state:?}/{family:?}"
+                    );
+                    assert_eq!(
+                        decision.reason_code,
+                        resolver.reason().label(),
+                        "{state:?}/{family:?}"
+                    );
                 }
                 Posture::Base => {
                     let decision =
                         outcome.expect("base posture must pass with a usable signed lease");
                     assert_eq!(decision.status, "base", "{state:?}/{family:?}");
-                    assert_eq!(decision.reason_code, resolver.reason().label(), "{state:?}/{family:?}");
+                    assert_eq!(
+                        decision.reason_code,
+                        resolver.reason().label(),
+                        "{state:?}/{family:?}"
+                    );
                 }
                 Posture::Feature => {
                     let decision =
                         outcome.expect("granted premium feature must pass the core guard");
                     assert_eq!(decision.status, "feature", "{state:?}/{family:?}");
-                    assert_eq!(decision.reason_code, resolver.reason().label(), "{state:?}/{family:?}");
+                    assert_eq!(
+                        decision.reason_code,
+                        resolver.reason().label(),
+                        "{state:?}/{family:?}"
+                    );
                 }
                 Posture::Deny => {
                     let failure = outcome.expect_err("denied cell must fail the core guard");
@@ -255,8 +277,7 @@ fn spec172_runtime_policy_denied_paths_have_zero_partial_side_effects() {
             if resolver.posture() == Posture::Deny {
                 denied_cells += 1;
                 let before = ledger.writes.len();
-                let result =
-                    ledger.guarded_mutation(&guard, &policy_for(family), &label);
+                let result = ledger.guarded_mutation(&guard, &policy_for(family), &label);
                 assert!(result.is_err(), "denied cell must refuse: {label}");
                 assert_eq!(
                     ledger.writes.len(),
@@ -274,9 +295,7 @@ fn spec172_runtime_policy_denied_paths_have_zero_partial_side_effects() {
                     Family::CustomerDataExport,
                     Family::ReadProjection,
                 ] {
-                    if reduce_entitlement_state(state, reachable, None).posture()
-                        == Posture::Deny
-                    {
+                    if reduce_entitlement_state(state, reachable, None).posture() == Posture::Deny {
                         continue; // surface itself denied in this state
                     }
                     let ok = evaluate_entitlement_execution(
@@ -317,8 +336,7 @@ fn spec172_runtime_policy_denied_paths_have_zero_partial_side_effects() {
 
     assert!(denied_cells > 0, "the matrix must contain denied cells");
     assert_eq!(
-        recovery_reachable_in_blocked,
-        denied_cells,
+        recovery_reachable_in_blocked, denied_cells,
         "every denied cell keeps recovery/export/read reachable"
     );
 
@@ -330,7 +348,10 @@ fn spec172_runtime_policy_denied_paths_have_zero_partial_side_effects() {
         &policy_for(Family::InternalMaintenance),
         "matrix/maintenance",
     );
-    assert_eq!(maintenance, Err("ENTITLEMENT_ROUTE_UNCLASSIFIED".to_string()));
+    assert_eq!(
+        maintenance,
+        Err("ENTITLEMENT_ROUTE_UNCLASSIFIED".to_string())
+    );
     assert_eq!(ledger.writes.len(), before, "maintenance wrote nothing");
 }
 
@@ -459,10 +480,16 @@ fn spec172_runtime_policy_core_guard_unknown_future_and_dynamic_fail_closed() {
         authority_policy_state(revoked.entitlement.as_ref().unwrap()),
         State::RefundedOrRevoked
     );
-    assert!(!base_product_projection(revoked.entitlement.as_ref())
-        .expect("projection")
-        .permits_base_mutations);
-    for reachable in [Family::AccountRecovery, Family::CustomerDataExport, Family::ReadProjection] {
+    assert!(
+        !base_product_projection(revoked.entitlement.as_ref())
+            .expect("projection")
+            .permits_base_mutations
+    );
+    for reachable in [
+        Family::AccountRecovery,
+        Family::CustomerDataExport,
+        Family::ReadProjection,
+    ] {
         assert!(
             evaluate_entitlement_execution(
                 &revoked,

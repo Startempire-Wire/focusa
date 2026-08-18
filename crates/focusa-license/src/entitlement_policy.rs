@@ -281,7 +281,10 @@ impl FutureGranularityClaims {
                 sub_capability: claim,
                 ..self
             },
-            FutureGranularityDimension::Role => Self { role: claim, ..self },
+            FutureGranularityDimension::Role => Self {
+                role: claim,
+                ..self
+            },
             FutureGranularityDimension::Origin => Self {
                 origin: claim,
                 ..self
@@ -290,12 +293,18 @@ impl FutureGranularityClaims {
                 channel: claim,
                 ..self
             },
-            FutureGranularityDimension::Plan => Self { plan: claim, ..self },
+            FutureGranularityDimension::Plan => Self {
+                plan: claim,
+                ..self
+            },
             FutureGranularityDimension::Limit => Self {
                 limit: claim,
                 ..self
             },
-            FutureGranularityDimension::Time => Self { time: claim, ..self },
+            FutureGranularityDimension::Time => Self {
+                time: claim,
+                ..self
+            },
         }
     }
 
@@ -500,7 +509,9 @@ impl GranularityActivationGuard {
         }
         if !policy.activation().permits_runtime_commercial_decision() {
             if claim.activation().permits_runtime_commercial_decision() {
-                return Err(FutureGranularityError::UnapprovedRuntimeActivation(dimension));
+                return Err(FutureGranularityError::UnapprovedRuntimeActivation(
+                    dimension,
+                ));
             }
             return Ok(FutureGranularityDecision::IgnoredDormant);
         }
@@ -516,7 +527,8 @@ impl GranularityActivationGuard {
         let registry = FutureGranularityPolicyRegistry::canonical();
         let mut decisions = [FutureGranularityDecision::IgnoredDormant; 8];
         for dimension in FutureGranularityDimension::ALL {
-            decisions[dimension.index()] = Self::evaluate_one(&registry, dimension, claims.claim(dimension))?;
+            decisions[dimension.index()] =
+                Self::evaluate_one(&registry, dimension, claims.claim(dimension))?;
         }
         Ok(FutureGranularityAuthorization { decisions })
     }
@@ -1230,8 +1242,8 @@ pub struct EntitlementPolicyRegistryError {
 /// Load the validated, digest-bound production registry. The registry was also
 /// validated by build.rs, and is revalidated once after decoding to guard the
 /// generated/runtime boundary.
-pub fn embedded_entitlement_policy_registry(
-) -> Result<&'static EmbeddedEntitlementPolicyRegistry, EntitlementPolicyRegistryError> {
+pub fn embedded_entitlement_policy_registry()
+-> Result<&'static EmbeddedEntitlementPolicyRegistry, EntitlementPolicyRegistryError> {
     static REGISTRY: OnceLock<
         Result<EmbeddedEntitlementPolicyRegistry, EntitlementPolicyRegistryError>,
     > = OnceLock::new();
@@ -1650,23 +1662,17 @@ pub fn classify_operator_family_inheritance(
 /// Authority-owned feature identifiers for each of the four optional premium
 /// families. The operation policy supplies the family and its canonical feature
 /// identifier; callers never supply a grant or expand these sets.
-pub const AUTOMATION_PREMIUM_FEATURE_IDS: &[&str] = &[
-    "focusa.agent.parallelism",
-    "focusa.agent.silent_sessions",
-];
-pub const TEAM_REMOTE_PREMIUM_FEATURE_IDS: &[&str] = &[
-    "focusa.remote.stream",
-    "focusa.team.multi_operator",
-];
+pub const AUTOMATION_PREMIUM_FEATURE_IDS: &[&str] =
+    &["focusa.agent.parallelism", "focusa.agent.silent_sessions"];
+pub const TEAM_REMOTE_PREMIUM_FEATURE_IDS: &[&str] =
+    &["focusa.remote.stream", "focusa.team.multi_operator"];
 pub const RELEASE_PROOF_PREMIUM_FEATURE_IDS: &[&str] = &["focusa.release.proof"];
 pub const PREMIUM_UPDATES_PREMIUM_FEATURE_IDS: &[&str] = &[
     "focusa.install.channel.nightly",
     "focusa.install.channel.preview",
     "focusa.update.unattended",
 ];
-pub const CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS: &[&str] = &[
-    "focusa.export.packaged",
-];
+pub const CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS: &[&str] = &["focusa.export.packaged"];
 
 /// Return the exact registered feature identifiers for one optional family.
 /// Non-premium families (except CustomerDataExport which carries an optional
@@ -1779,8 +1785,12 @@ pub fn authority_policy_state(
     match snapshot.state {
         crate::authority::EntitlementState::Active => PolicyEntitlementState::ActivePaid,
         crate::authority::EntitlementState::OfflineGrace => PolicyEntitlementState::OfflineGrace,
-        crate::authority::EntitlementState::Unactivated => PolicyEntitlementState::PendingUnverified,
-        crate::authority::EntitlementState::RecoveryOnly => PolicyEntitlementState::RefundedOrRevoked,
+        crate::authority::EntitlementState::Unactivated => {
+            PolicyEntitlementState::PendingUnverified
+        }
+        crate::authority::EntitlementState::RecoveryOnly => {
+            PolicyEntitlementState::RefundedOrRevoked
+        }
     }
 }
 
@@ -1991,7 +2001,10 @@ mod premium_family_resolution_tests {
         let mut active = snapshot(EntitlementState::Active);
         for (family, feature_ids) in [
             (CapabilityFamily::Automation, AUTOMATION_PREMIUM_FEATURE_IDS),
-            (CapabilityFamily::TeamRemote, TEAM_REMOTE_PREMIUM_FEATURE_IDS),
+            (
+                CapabilityFamily::TeamRemote,
+                TEAM_REMOTE_PREMIUM_FEATURE_IDS,
+            ),
             (
                 CapabilityFamily::ReleaseProof,
                 RELEASE_PROOF_PREMIUM_FEATURE_IDS,
@@ -2066,7 +2079,9 @@ mod premium_family_resolution_tests {
     #[test]
     fn premium_family_resolution_requires_sequence_and_bounded_cached_grants() {
         let mut active = snapshot(EntitlementState::Active);
-        active.features.insert("focusa.release.proof".to_string(), true);
+        active
+            .features
+            .insert("focusa.release.proof".to_string(), true);
         active.sequence = None;
         assert_eq!(
             resolve_premium_family(
@@ -2079,7 +2094,9 @@ mod premium_family_resolution_tests {
         );
 
         let mut offline = snapshot(EntitlementState::OfflineGrace);
-        offline.features.insert("focusa.release.proof".to_string(), true);
+        offline
+            .features
+            .insert("focusa.release.proof".to_string(), true);
         offline.offline_grace_until = Some(Utc::now() + chrono::Duration::minutes(5));
         let decision = resolve_premium_family(
             &offline,
@@ -2123,28 +2140,38 @@ mod premium_family_resolution_tests {
 #[cfg(test)]
 mod recovery_allowance_tests {
     use super::{
-        reduce_entitlement_state, CapabilityFamily as Family, DecisionReason as Reason,
-        EntitlementPolicyPosture as Posture, PolicyEntitlementState as State,
-        RecoveryAllowance, SecurityPrerequisite,
+        CapabilityFamily as Family, DecisionReason as Reason, EntitlementPolicyPosture as Posture,
+        PolicyEntitlementState as State, RecoveryAllowance, SecurityPrerequisite,
+        reduce_entitlement_state,
     };
 
     #[test]
     fn recovery_allowances_require_typed_security_prerequisites() {
-        assert!(RecoveryAllowance::AccountRecovery
-            .security_prerequisites()
-            .contains(&SecurityPrerequisite::IdentityVerification));
-        assert!(RecoveryAllowance::AccountRecovery
-            .security_prerequisites()
-            .contains(&SecurityPrerequisite::RolePermission));
-        assert!(RecoveryAllowance::StableSecurityUpdate
-            .security_prerequisites()
-            .contains(&SecurityPrerequisite::ArtifactSignature));
-        assert!(RecoveryAllowance::CustomerDataExport
-            .security_prerequisites()
-            .contains(&SecurityPrerequisite::PrivacyRedaction));
-        assert!(RecoveryAllowance::Uninstall
-            .security_prerequisites()
-            .contains(&SecurityPrerequisite::OperatorConfirmation));
+        assert!(
+            RecoveryAllowance::AccountRecovery
+                .security_prerequisites()
+                .contains(&SecurityPrerequisite::IdentityVerification)
+        );
+        assert!(
+            RecoveryAllowance::AccountRecovery
+                .security_prerequisites()
+                .contains(&SecurityPrerequisite::RolePermission)
+        );
+        assert!(
+            RecoveryAllowance::StableSecurityUpdate
+                .security_prerequisites()
+                .contains(&SecurityPrerequisite::ArtifactSignature)
+        );
+        assert!(
+            RecoveryAllowance::CustomerDataExport
+                .security_prerequisites()
+                .contains(&SecurityPrerequisite::PrivacyRedaction)
+        );
+        assert!(
+            RecoveryAllowance::Uninstall
+                .security_prerequisites()
+                .contains(&SecurityPrerequisite::OperatorConfirmation)
+        );
         assert!(RecoveryAllowance::None.security_prerequisites().is_empty());
     }
 
@@ -2164,8 +2191,16 @@ mod recovery_allowance_tests {
             let recovery = reduce_entitlement_state(state, Family::AccountRecovery, None);
             let export = reduce_entitlement_state(state, Family::CustomerDataExport, None);
 
-            assert_ne!(recovery.posture(), Posture::Deny, "{state:?}/account_recovery");
-            assert_ne!(export.posture(), Posture::Deny, "{state:?}/customer_data_export");
+            assert_ne!(
+                recovery.posture(),
+                Posture::Deny,
+                "{state:?}/account_recovery"
+            );
+            assert_ne!(
+                export.posture(),
+                Posture::Deny,
+                "{state:?}/customer_data_export"
+            );
             if state != State::PendingUnverified {
                 let read = reduce_entitlement_state(state, Family::ReadProjection, None);
                 assert_ne!(read.posture(), Posture::Deny, "{state:?}/read_projection");
@@ -2209,9 +2244,9 @@ mod recovery_allowance_tests {
 #[cfg(test)]
 mod dormant_granularity_tests {
     use super::{
-        embedded_entitlement_policy_registry, FutureDimensionClaim, FutureGranularityAuthorization,
-        FutureGranularityClaims, FutureGranularityDecision, FutureGranularityDimension,
-        FutureGranularityError, GranularityActivationGuard,
+        FutureDimensionClaim, FutureGranularityAuthorization, FutureGranularityClaims,
+        FutureGranularityDecision, FutureGranularityDimension, FutureGranularityError,
+        GranularityActivationGuard, embedded_entitlement_policy_registry,
     };
 
     fn active_claims() -> FutureGranularityClaims {
@@ -2254,9 +2289,15 @@ mod dormant_granularity_tests {
 
         let claims = FutureGranularityClaims::default();
         assert_eq!(claims.operation().claim(), None);
-        assert_eq!(claims.sub_capability().activation(), super::PolicyActivation::Dormant);
+        assert_eq!(
+            claims.sub_capability().activation(),
+            super::PolicyActivation::Dormant
+        );
         assert_eq!(claims.role().activation(), super::PolicyActivation::Dormant);
-        assert_eq!(claims.origin().activation(), super::PolicyActivation::Dormant);
+        assert_eq!(
+            claims.origin().activation(),
+            super::PolicyActivation::Dormant
+        );
     }
 
     #[test]
@@ -2341,9 +2382,11 @@ mod dormant_granularity_tests {
         let registry = embedded_entitlement_policy_registry().expect("embedded registry");
         assert!(registry.canonical_json().contains("\"status\":\"dormant\""));
         assert!(registry.canonical_json().contains("\"dimension\":\"plan\""));
-        assert!(registry
-            .canonical_json()
-            .contains("\"licensing_role_grant_forbidden\":true"));
+        assert!(
+            registry
+                .canonical_json()
+                .contains("\"licensing_role_grant_forbidden\":true")
+        );
     }
 }
 

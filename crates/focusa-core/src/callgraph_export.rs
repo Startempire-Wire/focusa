@@ -144,7 +144,11 @@ pub fn export_todo_txt(projection: &CallGraphExportProjection) -> String {
         );
         out.push_str(&format!(
             "{priority} 2026-08-16 frame:{} kind:{} {}{}{}\n",
-            frame.frame_id, frame.kind.label(), frame.name, deps, context
+            frame.frame_id,
+            frame.kind.label(),
+            frame.name,
+            deps,
+            context
         ));
     }
     out
@@ -328,13 +332,7 @@ mod tests {
     #[test]
     fn jsonl_is_lossless_and_deterministic() {
         let graph = sample();
-        let p1 = CallGraphExportProjection::new(
-            graph.clone(),
-            vec![],
-            "jsonl",
-            true,
-            vec![],
-        );
+        let p1 = CallGraphExportProjection::new(graph.clone(), vec![], "jsonl", true, vec![]);
         let p2 = CallGraphExportProjection::new(graph, vec![], "jsonl", true, vec![]);
         assert!(p1.manifest.lossless);
         assert_eq!(export_jsonl(&p1).lines().count(), 4); // def + 2 frames + 1 edge
@@ -345,10 +343,13 @@ mod tests {
     #[test]
     fn todo_txt_carries_provenance_and_priorities() {
         let graph = sample();
-        let projection =
-            CallGraphExportProjection::new(graph, vec![], "todo.txt", false, vec![
-                "edge semantics flattened to dep: tags".to_string(),
-            ]);
+        let projection = CallGraphExportProjection::new(
+            graph,
+            vec![],
+            "todo.txt",
+            false,
+            vec!["edge semantics flattened to dep: tags".to_string()],
+        );
         let out = export_todo_txt(&projection);
         assert!(out.contains("lossy:true"));
         assert!(out.contains("source-of-truth:focusa"));
@@ -371,8 +372,7 @@ mod tests {
 mod extra_tests {
     use super::*;
     use crate::callgraph::{
-        AcceptanceContract, AuthorityRef, CallGraphPolicies, CallGraphScope,
-        SideEffectClass,
+        AcceptanceContract, AuthorityRef, CallGraphPolicies, CallGraphScope, SideEffectClass,
     };
 
     fn minimal() -> FocusaCallGraphDefinition {
@@ -427,8 +427,7 @@ mod extra_tests {
 
     #[test]
     fn csv_has_header_and_frame_row() {
-        let projection =
-            CallGraphExportProjection::new(minimal(), vec![], "csv", true, vec![]);
+        let projection = CallGraphExportProjection::new(minimal(), vec![], "csv", true, vec![]);
         let out = export_csv(&projection, ',');
         let lines: Vec<&str> = out.lines().collect();
         assert_eq!(lines.len(), 2);
@@ -439,16 +438,14 @@ mod extra_tests {
 
     #[test]
     fn tsv_uses_tab_delimiter() {
-        let projection =
-            CallGraphExportProjection::new(minimal(), vec![], "tsv", true, vec![]);
+        let projection = CallGraphExportProjection::new(minimal(), vec![], "tsv", true, vec![]);
         let out = export_csv(&projection, '\t');
         assert!(out.lines().nth(1).unwrap().contains('\t'));
     }
 
     #[test]
     fn mermaid_renders_frames() {
-        let projection =
-            CallGraphExportProjection::new(minimal(), vec![], "mermaid", true, vec![]);
+        let projection = CallGraphExportProjection::new(minimal(), vec![], "mermaid", true, vec![]);
         let out = export_mermaid(&projection);
         assert!(out.starts_with("flowchart LR"));
         assert!(out.contains("a[\"plan\"]"));
@@ -497,7 +494,9 @@ pub fn preview_import(jsonl: &str, expected_digest: Option<&str>) -> ImportPrevi
     let digest = graph_digest(&graph);
     if let Some(expected) = expected_digest {
         if expected != digest {
-            issues.push(format!("digest mismatch: manifest {expected} computed {digest}"));
+            issues.push(format!(
+                "digest mismatch: manifest {expected} computed {digest}"
+            ));
         }
     }
     let frame_count = jsonl
@@ -515,7 +514,10 @@ pub fn preview_import(jsonl: &str, expected_digest: Option<&str>) -> ImportPrevi
         revision: graph.revision,
         frames: frame_count,
         edges: edge_count,
-        dispatches: jsonl.lines().count().saturating_sub(1 + frame_count + edge_count),
+        dispatches: jsonl
+            .lines()
+            .count()
+            .saturating_sub(1 + frame_count + edge_count),
         digest,
         valid: issues.is_empty(),
         issues,
@@ -526,8 +528,8 @@ pub fn preview_import(jsonl: &str, expected_digest: Option<&str>) -> ImportPrevi
 mod import_tests {
     use super::*;
     use crate::callgraph::{
-        AcceptanceContract, AuthorityRef, CallGraphPolicies, CallGraphScope,
-        FocusaCallFrame, FrameKind, SideEffectClass,
+        AcceptanceContract, AuthorityRef, CallGraphPolicies, CallGraphScope, FocusaCallFrame,
+        FrameKind, SideEffectClass,
     };
 
     #[test]
@@ -579,8 +581,7 @@ mod import_tests {
             },
             supersedes_revision: None,
         };
-        let projection =
-            CallGraphExportProjection::new(graph, vec![], "jsonl", true, vec![]);
+        let projection = CallGraphExportProjection::new(graph, vec![], "jsonl", true, vec![]);
         let jsonl = export_jsonl(&projection);
         let preview = preview_import(&jsonl, Some(&projection.manifest.digest));
         assert!(preview.valid, "issues: {:?}", preview.issues);
@@ -637,8 +638,7 @@ mod import_tests {
             },
             supersedes_revision: None,
         };
-        let projection =
-            CallGraphExportProjection::new(graph, vec![], "jsonl", true, vec![]);
+        let projection = CallGraphExportProjection::new(graph, vec![], "jsonl", true, vec![]);
         let jsonl = export_jsonl(&projection);
         let preview = preview_import(&jsonl, Some("sha256:deadbeef"));
         assert!(!preview.valid);

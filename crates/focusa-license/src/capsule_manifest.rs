@@ -297,7 +297,10 @@ pub fn canonical_capsule_manifest_bytes(
 
 /// sha256 (hex) of the deterministic canonical manifest body.
 pub fn capsule_manifest_sha256(manifest: &CapsuleManifest) -> Result<String, serde_json::Error> {
-    Ok(format!("{:x}", Sha256::digest(canonical_capsule_manifest_bytes(manifest)?)))
+    Ok(format!(
+        "{:x}",
+        Sha256::digest(canonical_capsule_manifest_bytes(manifest)?)
+    ))
 }
 
 fn parse_version(value: &str) -> Option<[u64; 3]> {
@@ -337,7 +340,8 @@ pub fn verify_capsule_manifest(
     manifest: &CapsuleManifest,
     facts: &CapsuleVerificationFacts,
 ) -> CapsuleVerificationDecision {
-    if manifest.schema != CAPSULE_MANIFEST_SCHEMA || manifest.manifest_version != CAPSULE_MANIFEST_VERSION
+    if manifest.schema != CAPSULE_MANIFEST_SCHEMA
+        || manifest.manifest_version != CAPSULE_MANIFEST_VERSION
     {
         return CapsuleVerificationDecision::RejectedUnknownManifest;
     }
@@ -645,7 +649,10 @@ mod tests {
             REGISTERED_CAPSULE_RELEASE_STATUSES,
             ["released", "deprecated", "withdrawn"]
         );
-        assert_eq!(NODE_KEY_ENVELOPE_SCHEMA, "focusa.node_capsule_key_envelope.v1");
+        assert_eq!(
+            NODE_KEY_ENVELOPE_SCHEMA,
+            "focusa.node_capsule_key_envelope.v1"
+        );
         assert_eq!(KNOWN_LIMIT_POLICY_VERSION, "focusa.limit_policy.v1");
         assert_eq!(CAPSULE_MANIFEST_SCHEMA, "focusa.capsule_manifest.v1");
         assert_eq!(CAPSULE_SIGNATURE_ALGORITHM, "ed25519");
@@ -667,7 +674,10 @@ mod tests {
         let canonical = canonical_capsule_manifest_bytes(&manifest).unwrap();
         let parsed: serde_json::Value = serde_json::from_slice(&canonical).unwrap();
         assert!(parsed.get("signature").is_none());
-        assert_eq!(parsed["schema"], serde_json::json!("focusa.capsule_manifest.v1"));
+        assert_eq!(
+            parsed["schema"],
+            serde_json::json!("focusa.capsule_manifest.v1")
+        );
     }
 
     #[test]

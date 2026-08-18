@@ -153,7 +153,10 @@ mod tests {
         let mut secret = [0_u8; 32];
         OsRng.fill_bytes(&mut secret);
         let key = SigningKey::from_bytes(&secret);
-        let key_id = format!("test-ed25519:{}", hex::encode(Sha256::digest(key.verifying_key().as_bytes())));
+        let key_id = format!(
+            "test-ed25519:{}",
+            hex::encode(Sha256::digest(key.verifying_key().as_bytes()))
+        );
         (key_id, key)
     }
 
@@ -164,7 +167,8 @@ mod tests {
         sign_temporal_event(&mut event, &key_id, &key);
         assert!(event.signature.is_some());
         assert!(!event.digest.is_empty());
-        verify_temporal_event_signature(&event, Some(&key_id)).expect("valid signature should verify");
+        verify_temporal_event_signature(&event, Some(&key_id))
+            .expect("valid signature should verify");
     }
 
     #[test]
@@ -191,7 +195,10 @@ mod tests {
         sign_temporal_event(&mut event, &key_id, &key);
         event.digest = "tampered-digest".into();
         let result = verify_temporal_event_signature(&event, Some(&key_id));
-        assert!(matches!(result, Err(TemporalIntegrityError::DigestMismatch)));
+        assert!(matches!(
+            result,
+            Err(TemporalIntegrityError::DigestMismatch)
+        ));
     }
 
     #[test]
@@ -202,7 +209,10 @@ mod tests {
         let mut event2 = event1.clone();
         sign_temporal_event(&mut event1, &key_id, &key);
         sign_temporal_event(&mut event2, &key_id, &key);
-        assert_eq!(event1.digest, event2.digest, "identical events should have same digest");
+        assert_eq!(
+            event1.digest, event2.digest,
+            "identical events should have same digest"
+        );
     }
 
     #[test]
@@ -219,11 +229,13 @@ mod tests {
     #[test]
     fn verify_chain_passes_for_all_valid_events() {
         let (key_id, key) = test_signing_key();
-        let mut events: Vec<TemporalEvent> = (0..3).map(|i| {
-            let mut e = create_test_event();
-            e.event_id = format!("event-{}", i);
-            e
-        }).collect();
+        let mut events: Vec<TemporalEvent> = (0..3)
+            .map(|i| {
+                let mut e = create_test_event();
+                e.event_id = format!("event-{}", i);
+                e
+            })
+            .collect();
         for event in &mut events {
             sign_temporal_event(event, &key_id, &key);
         }
@@ -233,11 +245,13 @@ mod tests {
     #[test]
     fn verify_chain_fails_if_one_event_tampered() {
         let (key_id, key) = test_signing_key();
-        let mut events: Vec<TemporalEvent> = (0..3).map(|i| {
-            let mut e = create_test_event();
-            e.event_id = format!("event-{}", i);
-            e
-        }).collect();
+        let mut events: Vec<TemporalEvent> = (0..3)
+            .map(|i| {
+                let mut e = create_test_event();
+                e.event_id = format!("event-{}", i);
+                e
+            })
+            .collect();
         for event in &mut events {
             sign_temporal_event(event, &key_id, &key);
         }
@@ -250,6 +264,7 @@ mod tests {
         let (key_id, key) = test_signing_key();
         let mut event = create_test_event();
         sign_temporal_event(&mut event, &key_id, &key);
-        verify_temporal_event_signature(&event, None).expect("None key_id should accept any valid key");
+        verify_temporal_event_signature(&event, None)
+            .expect("None key_id should accept any valid key");
     }
 }

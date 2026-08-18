@@ -10,9 +10,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::callgraph::{
-    FocusaCallFrame, FocusaCallGraphDefinition, FrameKind,
-};
+use crate::callgraph::{FocusaCallFrame, FocusaCallGraphDefinition, FrameKind};
 
 pub const ITEM_ENVELOPE_SCHEMA: &str = "focusa.callgraph_item_envelope.v1";
 
@@ -154,10 +152,7 @@ pub fn build_item_envelope(
         .filter(|edge| edge.from_frame_id == frame.frame_id)
         .map(|edge| edge.to_frame_id.clone())
         .collect();
-    let canonical_ref = format!(
-        "{}:{}:{}",
-        graph.graph_id, graph.revision, frame.frame_id
-    );
+    let canonical_ref = format!("{}:{}:{}", graph.graph_id, graph.revision, frame.frame_id);
     let assigned = assigned.as_ref();
     let adapter_id = assigned.map(|pair| pair.0.clone());
     let model = assigned.map(|pair| pair.1.clone());
@@ -219,8 +214,14 @@ pub fn build_item_envelope(
         execution: ExecutionLayer {
             side_effect_class: frame.side_effect_class,
             capability_refs: frame.capability_refs.clone(),
-            timeout_ms: frame.timeout_policy.as_ref().map(|policy| policy.timeout_ms),
-            retry_max_attempts: frame.retry_policy.as_ref().map(|policy| policy.max_attempts),
+            timeout_ms: frame
+                .timeout_policy
+                .as_ref()
+                .map(|policy| policy.timeout_ms),
+            retry_max_attempts: frame
+                .retry_policy
+                .as_ref()
+                .map(|policy| policy.max_attempts),
             resource_budget: frame
                 .resource_budget
                 .as_ref()
@@ -260,7 +261,10 @@ pub fn build_item_envelope(
             receipt_ref: None,
         },
         provenance: ProvenanceLayer {
-            source_spec_refs: vec!["docs/155-focusa-callgraph-workflow-and-flow-mesh-execution-integration-spec.md".to_string()],
+            source_spec_refs: vec![
+                "docs/155-focusa-callgraph-workflow-and-flow-mesh-execution-integration-spec.md"
+                    .to_string(),
+            ],
             created_by: graph.created_by.clone(),
             created_at: graph.created_at.clone(),
         },
@@ -416,7 +420,8 @@ mod tests {
     fn envelope_is_layered_and_explicit() {
         let graph = sample();
         let frame = graph.frames[0].clone();
-        let envelope = build_item_envelope(&graph, &frame, Some(("pi".to_string(), "m".to_string())));
+        let envelope =
+            build_item_envelope(&graph, &frame, Some(("pi".to_string(), "m".to_string())));
         assert_eq!(envelope.schema, ITEM_ENVELOPE_SCHEMA);
         assert_eq!(envelope.identity.canonical_ref, "g1:1:a");
         assert_eq!(envelope.identity.item_kind, "agent_task");

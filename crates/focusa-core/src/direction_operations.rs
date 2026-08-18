@@ -34,15 +34,28 @@ pub enum DirectionOperation {
 /// Verify an operation is typed and evidence-bound where required.
 pub fn verify_operation(operation: &DirectionOperation) -> Result<(), String> {
     match operation {
-        DirectionOperation::Steer { target_ref, direction, evidence_ref, .. } => {
+        DirectionOperation::Steer {
+            target_ref,
+            direction,
+            evidence_ref,
+            ..
+        } => {
             if target_ref.trim().is_empty() || direction.trim().is_empty() {
                 return Err("steer requires target_ref + direction".to_string());
             }
             if evidence_ref.as_deref().unwrap_or("").trim().is_empty() {
-                return Err("steer requires an evidence ref (no free-text-only steering)".to_string());
+                return Err(
+                    "steer requires an evidence ref (no free-text-only steering)".to_string(),
+                );
             }
         }
-        DirectionOperation::Adjudicate { claim_ref, verdict, overridden_atom, override_reason, .. } => {
+        DirectionOperation::Adjudicate {
+            claim_ref,
+            verdict,
+            overridden_atom,
+            override_reason,
+            ..
+        } => {
             if claim_ref.trim().is_empty() || verdict.trim().is_empty() {
                 return Err("adjudicate requires claim_ref + verdict".to_string());
             }
@@ -50,7 +63,11 @@ pub fn verify_operation(operation: &DirectionOperation) -> Result<(), String> {
                 return Err("adjudication overrides must name the reason".to_string());
             }
         }
-        DirectionOperation::ReviewDecision { decision_ref, outcome, .. } => {
+        DirectionOperation::ReviewDecision {
+            decision_ref,
+            outcome,
+            ..
+        } => {
             if decision_ref.trim().is_empty() || outcome.trim().is_empty() {
                 return Err("review requires decision_ref + outcome".to_string());
             }
@@ -127,9 +144,7 @@ pub fn steer_targets_item(target_ref: &str, provider_item_id: &str) -> bool {
         return false;
     }
     target == item
-        || target
-            .trim_end_matches('/')
-            .ends_with(&format!("/{item}"))
+        || target.trim_end_matches('/').ends_with(&format!("/{item}"))
         || item.ends_with(target)
         || item
             .trim_end_matches('/')
@@ -172,8 +187,15 @@ mod steer_re_rank_tests {
 
     #[test]
     fn bump_is_deterministic_and_scales_with_steer_count() {
-        let steers = vec![steer("focusa-252"), steer("beads/focusa-252"), steer("other")];
-        assert_eq!(steer_priority_bump("focusa-252", &steers), 2 * STEER_PRIORITY_BUMP);
+        let steers = vec![
+            steer("focusa-252"),
+            steer("beads/focusa-252"),
+            steer("other"),
+        ];
+        assert_eq!(
+            steer_priority_bump("focusa-252", &steers),
+            2 * STEER_PRIORITY_BUMP
+        );
         assert_eq!(steer_priority_bump("focusa-999", &steers), 0);
         assert_eq!(steer_priority_bump("focusa-252", &[]), 0);
     }

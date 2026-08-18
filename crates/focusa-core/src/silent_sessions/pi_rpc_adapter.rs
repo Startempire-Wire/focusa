@@ -5,19 +5,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use super::{
-    HarnessRunRef,
-    InputPayload,
-    ObservedHarnessModel,
-    PromptPayload,
-    SilentSessionId,
+    HarnessRunRef, InputPayload, ObservedHarnessModel, PromptPayload, SilentSessionId,
     SilentSessionRunId,
 };
 
 use crate::license::{
+    EntitlementExecutionContext, EntitlementExecutionDecision, EntitlementExecutionPolicy,
     evaluate_entitlement_execution,
-    EntitlementExecutionContext,
-    EntitlementExecutionDecision,
-    EntitlementExecutionPolicy,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -180,9 +174,7 @@ fn entitlement_policy_for_request(request: &PiRpcRequest) -> EntitlementExecutio
         PiRpcRequest::Steer { .. } => "focusa.agent_runtime.steer",
         PiRpcRequest::Followup { .. } => "focusa.agent_runtime.followup",
         PiRpcRequest::Abort { .. } => "focusa.agent_runtime.abort",
-        PiRpcRequest::ResumeNativeSession { .. } => {
-            "focusa.agent_runtime.resume_native_session"
-        }
+        PiRpcRequest::ResumeNativeSession { .. } => "focusa.agent_runtime.resume_native_session",
         PiRpcRequest::QueryState { .. } => "focusa.agent_runtime.query_state",
         PiRpcRequest::QueryModel { .. } => "focusa.agent_runtime.query_model",
         PiRpcRequest::QueryUsage { .. } => "focusa.agent_runtime.query_usage",

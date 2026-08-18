@@ -162,8 +162,7 @@ pub fn verify_requirement(
     if !has_count {
         reasons.push("no matching grant has remaining use count".to_string());
     }
-    if requirement.use_count_required > 0
-        && usable.len() < requirement.use_count_required as usize
+    if requirement.use_count_required > 0 && usable.len() < requirement.use_count_required as usize
     {
         reasons.push(format!(
             "requirement needs {} grants, {} usable",
@@ -355,9 +354,18 @@ mod lifecycle_tests {
     #[test]
     fn grant_state_tracks_expiry_and_exhaustion() {
         let mut grant = grant("2026-08-17T00:00:00Z", 0, 3);
-        assert_eq!(grant_state(&grant, "2026-08-16T12:00:00Z"), GrantState::Active);
-        assert_eq!(grant_state(&grant, "2026-08-17T00:00:01Z"), GrantState::Expired);
+        assert_eq!(
+            grant_state(&grant, "2026-08-16T12:00:00Z"),
+            GrantState::Active
+        );
+        assert_eq!(
+            grant_state(&grant, "2026-08-17T00:00:01Z"),
+            GrantState::Expired
+        );
         grant.use_count_used = 3;
-        assert_eq!(grant_state(&grant, "2026-08-16T12:00:00Z"), GrantState::Exhausted);
+        assert_eq!(
+            grant_state(&grant, "2026-08-16T12:00:00Z"),
+            GrantState::Exhausted
+        );
     }
 }

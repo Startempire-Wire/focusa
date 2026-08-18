@@ -114,14 +114,12 @@ mod tests {
 
     #[test]
     fn temporal_complete_when_all_on_time() {
-        let records = vec![
-            DeadlineComparisonRecord {
-                deadline_ref: "d1".into(),
-                comparison: "on_time".into(),
-                observed_earliest: None,
-                observed_latest: None,
-            },
-        ];
+        let records = vec![DeadlineComparisonRecord {
+            deadline_ref: "d1".into(),
+            comparison: "on_time".into(),
+            observed_earliest: None,
+            observed_latest: None,
+        }];
         let (status, undelivered) = evaluate_temporal_closure(&records, Utc::now());
         assert_eq!(status, TemporalClosureStatus::TemporalComplete);
         assert!(undelivered.is_empty());
@@ -129,14 +127,12 @@ mod tests {
 
     #[test]
     fn temporal_blocked_when_breached() {
-        let records = vec![
-            DeadlineComparisonRecord {
-                deadline_ref: "d1".into(),
-                comparison: "breached".into(),
-                observed_earliest: Some(Utc::now()),
-                observed_latest: None,
-            },
-        ];
+        let records = vec![DeadlineComparisonRecord {
+            deadline_ref: "d1".into(),
+            comparison: "breached".into(),
+            observed_earliest: Some(Utc::now()),
+            observed_latest: None,
+        }];
         let (status, undelivered) = evaluate_temporal_closure(&records, Utc::now());
         assert_eq!(status, TemporalClosureStatus::TemporalBlocked);
         assert_eq!(undelivered, vec!["d1"]);
@@ -144,14 +140,12 @@ mod tests {
 
     #[test]
     fn late_complete_when_in_late_window() {
-        let records = vec![
-            DeadlineComparisonRecord {
-                deadline_ref: "d1".into(),
-                comparison: "late_window".into(),
-                observed_earliest: None,
-                observed_latest: None,
-            },
-        ];
+        let records = vec![DeadlineComparisonRecord {
+            deadline_ref: "d1".into(),
+            comparison: "late_window".into(),
+            observed_earliest: None,
+            observed_latest: None,
+        }];
         let (status, _) = evaluate_temporal_closure(&records, Utc::now());
         assert_eq!(status, TemporalClosureStatus::TemporalLateComplete);
     }
@@ -179,17 +173,19 @@ mod tests {
 
     #[test]
     fn build_receipt_binds_temporal_status() {
-        let records = vec![
-            DeadlineComparisonRecord {
-                deadline_ref: "d1".into(),
-                comparison: "on_time".into(),
-                observed_earliest: None,
-                observed_latest: None,
-            },
-        ];
-        let receipt = build_temporal_closure_receipt("rec-1", records, Some("retry delivery".into()));
+        let records = vec![DeadlineComparisonRecord {
+            deadline_ref: "d1".into(),
+            comparison: "on_time".into(),
+            observed_earliest: None,
+            observed_latest: None,
+        }];
+        let receipt =
+            build_temporal_closure_receipt("rec-1", records, Some("retry delivery".into()));
         assert_eq!(receipt.receipt_id, "rec-1");
-        assert_eq!(receipt.temporal_status, TemporalClosureStatus::TemporalComplete);
+        assert_eq!(
+            receipt.temporal_status,
+            TemporalClosureStatus::TemporalComplete
+        );
         assert!(receipt.temporal_failure_recovery.is_none());
     }
 }

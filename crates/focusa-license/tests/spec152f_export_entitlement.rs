@@ -6,12 +6,11 @@
 
 use chrono::{Duration, Utc};
 use focusa_license::{
+    CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS, CapabilityFamily as Family, DecisionReason as Reason,
+    EntitlementPolicyPosture as Posture, PolicyEntitlementState as State, PremiumFamilyDecision,
+    PremiumFamilyDenial,
     authority::{EntitlementSnapshot, EntitlementState},
     premium_family_feature_ids, reduce_entitlement_state, resolve_export_packaged,
-    CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS,
-    CapabilityFamily as Family, DecisionReason as Reason,
-    EntitlementPolicyPosture as Posture, PolicyEntitlementState as State,
-    PremiumFamilyDecision, PremiumFamilyDenial,
 };
 
 // ── Export family map ──────────────────────────────────────────────────────
@@ -80,14 +79,16 @@ fn spec152f_export_entitlement_basic_export_allowed_in_every_state() {
 
 #[test]
 fn spec152f_export_entitlement_pending_unverified_export_is_existing_local_only() {
-    let decision = reduce_entitlement_state(State::PendingUnverified, Family::CustomerDataExport, None);
+    let decision =
+        reduce_entitlement_state(State::PendingUnverified, Family::CustomerDataExport, None);
     assert_eq!(decision.posture(), Posture::Allow);
     assert_eq!(decision.reason(), Reason::AllowExistingLocalOnly);
 }
 
 #[test]
 fn spec152f_export_entitlement_verified_no_license_export_is_allowed() {
-    let decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::CustomerDataExport, None);
+    let decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::CustomerDataExport, None);
     assert_eq!(decision.posture(), Posture::Allow);
     assert_eq!(decision.reason(), Reason::Allow);
 }
@@ -115,14 +116,16 @@ fn spec152f_export_entitlement_expired_export_is_allowed() {
 
 #[test]
 fn spec152f_export_entitlement_refunded_or_revoked_export_is_allowed() {
-    let decision = reduce_entitlement_state(State::RefundedOrRevoked, Family::CustomerDataExport, None);
+    let decision =
+        reduce_entitlement_state(State::RefundedOrRevoked, Family::CustomerDataExport, None);
     assert_eq!(decision.posture(), Posture::Allow);
     assert_eq!(decision.reason(), Reason::Allow);
 }
 
 #[test]
 fn spec152f_export_entitlement_missing_or_corrupt_export_is_allowed() {
-    let decision = reduce_entitlement_state(State::MissingOrCorrupt, Family::CustomerDataExport, None);
+    let decision =
+        reduce_entitlement_state(State::MissingOrCorrupt, Family::CustomerDataExport, None);
     assert_eq!(decision.posture(), Posture::Allow);
     assert_eq!(decision.reason(), Reason::Allow);
 }
@@ -345,7 +348,8 @@ fn spec152f_export_entitlement_export_not_blocked_by_base_focusa_denial() {
     let base_decision = reduce_entitlement_state(State::Expired, Family::BaseFocusa, None);
     assert_eq!(base_decision.posture(), Posture::Deny);
 
-    let export_decision = reduce_entitlement_state(State::Expired, Family::CustomerDataExport, None);
+    let export_decision =
+        reduce_entitlement_state(State::Expired, Family::CustomerDataExport, None);
     assert_eq!(export_decision.posture(), Posture::Allow);
     assert_eq!(export_decision.reason(), Reason::Allow);
 }
@@ -353,37 +357,45 @@ fn spec152f_export_entitlement_export_not_blocked_by_base_focusa_denial() {
 #[test]
 fn spec152f_export_entitlement_export_not_blocked_by_automation_denial() {
     // When automation is denied, export must still be allowed.
-    let auto_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::Automation, None);
+    let auto_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::Automation, None);
     assert_eq!(auto_decision.posture(), Posture::Deny);
 
-    let export_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::CustomerDataExport, None);
+    let export_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::CustomerDataExport, None);
     assert_eq!(export_decision.posture(), Posture::Allow);
 }
 
 #[test]
 fn spec152f_export_entitlement_export_not_blocked_by_team_remote_denial() {
-    let team_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::TeamRemote, None);
+    let team_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::TeamRemote, None);
     assert_eq!(team_decision.posture(), Posture::Deny);
 
-    let export_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::CustomerDataExport, None);
+    let export_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::CustomerDataExport, None);
     assert_eq!(export_decision.posture(), Posture::Allow);
 }
 
 #[test]
 fn spec152f_export_entitlement_export_not_blocked_by_release_proof_denial() {
-    let release_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::ReleaseProof, None);
+    let release_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::ReleaseProof, None);
     assert_eq!(release_decision.posture(), Posture::Deny);
 
-    let export_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::CustomerDataExport, None);
+    let export_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::CustomerDataExport, None);
     assert_eq!(export_decision.posture(), Posture::Allow);
 }
 
 #[test]
 fn spec152f_export_entitlement_export_not_blocked_by_premium_updates_denial() {
-    let updates_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::PremiumUpdates, None);
+    let updates_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::PremiumUpdates, None);
     assert_eq!(updates_decision.posture(), Posture::Deny);
 
-    let export_decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::CustomerDataExport, None);
+    let export_decision =
+        reduce_entitlement_state(State::VerifiedNoLicense, Family::CustomerDataExport, None);
     assert_eq!(export_decision.posture(), Posture::Allow);
 }
 

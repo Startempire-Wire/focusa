@@ -256,9 +256,9 @@ impl LifecycleEntitlementBinding {
         }
         match self.state {
             LifecycleEntitlementState::ActiveVerifiedLimited
-            | LifecycleEntitlementState::ActivePaid => self
-                .expires_at
-                .is_some_and(|expires_at| now < expires_at),
+            | LifecycleEntitlementState::ActivePaid => {
+                self.expires_at.is_some_and(|expires_at| now < expires_at)
+            }
             LifecycleEntitlementState::OfflineGrace => now < self.offline_valid_until,
             LifecycleEntitlementState::Unactivated
             | LifecycleEntitlementState::PendingIdentity

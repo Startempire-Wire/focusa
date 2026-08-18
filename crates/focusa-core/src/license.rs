@@ -27,12 +27,9 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 pub use crate::entitlement_execution_guard::{
-    evaluate_entitlement_execution,
+    EntitlementExecutionContext, EntitlementExecutionDecision, EntitlementExecutionFailure,
+    EntitlementExecutionPolicy, evaluate_entitlement_execution,
     evaluate_entitlement_execution_for_project,
-    EntitlementExecutionContext,
-    EntitlementExecutionDecision,
-    EntitlementExecutionFailure,
-    EntitlementExecutionPolicy,
 };
 
 const LICENSE_FILE: &str = "license.json";
@@ -199,7 +196,9 @@ pub enum LicenseError {
     RegistryUnreachable(String),
     #[error("evaluation mode — feature '{0}' not permitted")]
     EvaluationRestricted(String),
-    #[error("base Focusa product gate not satisfied (decision={0}); one usable signed product entitlement is required for value-producing core mutations")]
+    #[error(
+        "base Focusa product gate not satisfied (decision={0}); one usable signed product entitlement is required for value-producing core mutations"
+    )]
     BaseProductRequired(String),
 }
 
@@ -232,11 +231,9 @@ pub fn require_base_product() -> Result<focusa_license::BaseProductProjection, L
         None,
         focusa_license::RecoveryAllowance::None,
     );
-    if let Err(error) = evaluate_entitlement_execution(
-        &guard,
-        &policy,
-        EntitlementExecutionContext::default(),
-    ) {
+    if let Err(error) =
+        evaluate_entitlement_execution(&guard, &policy, EntitlementExecutionContext::default())
+    {
         return Err(LicenseError::BaseProductRequired(error.code));
     }
     let projection = focusa_license::base_product_projection(guard.entitlement.as_ref())
@@ -380,11 +377,7 @@ pub fn require_release_proof() -> Result<(), LicenseError> {
         Some("release_proof_runs"),
         focusa_license::RecoveryAllowance::None,
     );
-    match evaluate_entitlement_execution(
-        &guard,
-        &policy,
-        EntitlementExecutionContext::default(),
-    ) {
+    match evaluate_entitlement_execution(&guard, &policy, EntitlementExecutionContext::default()) {
         Ok(_decision) => Ok(()),
         Err(failure) => Err(LicenseError::FeatureRequiresLicense(failure.code)),
     }
@@ -400,12 +393,9 @@ pub fn require_release_proof() -> Result<(), LicenseError> {
 /// because basic export always works.
 pub fn require_export_packaged() -> Result<(), LicenseError> {
     let guard = focusa_license::resolve_license_guard();
-    let snapshot = guard
-        .entitlement
-        .as_ref()
-        .ok_or_else(|| LicenseError::FeatureRequiresLicense(
-            "focusa.export.packaged".to_string()
-        ))?;
+    let snapshot = guard.entitlement.as_ref().ok_or_else(|| {
+        LicenseError::FeatureRequiresLicense("focusa.export.packaged".to_string())
+    })?;
     match focusa_license::resolve_export_packaged(
         snapshot,
         "focusa.export.packaged",
@@ -799,15 +789,24 @@ mod tests {
         let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-001");
         snapshot.state = EntitlementState::Active;
         let guard = focusa_license::LicenseGuard::from_entitlement(snapshot);
-        let projection =
-            focusa_license::base_product_projection(guard.entitlement.as_ref()).expect("projection");
+        let projection = focusa_license::base_product_projection(guard.entitlement.as_ref())
+            .expect("projection");
         assert_eq!(projection.product, "focusa");
         assert_eq!(projection.decision, "entitled");
         assert!(projection.permits_base_mutations);
         // Legacy core identifiers resolve as base-product claims, not separate purchases.
-        assert_eq!(projection.compatibility.get("focusa.core.mission"), Some(&true));
-        assert_eq!(projection.compatibility.get("focusa.core.workpoint"), Some(&true));
-        assert_eq!(projection.compatibility.get("focusa.core.evidence"), Some(&true));
+        assert_eq!(
+            projection.compatibility.get("focusa.core.mission"),
+            Some(&true)
+        );
+        assert_eq!(
+            projection.compatibility.get("focusa.core.workpoint"),
+            Some(&true)
+        );
+        assert_eq!(
+            projection.compatibility.get("focusa.core.evidence"),
+            Some(&true)
+        );
     }
 
     #[test]
@@ -823,8 +822,8 @@ mod tests {
         let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-core-002");
         snapshot.state = EntitlementState::OfflineGrace;
         let guard = focusa_license::LicenseGuard::from_entitlement(snapshot);
-        let projection =
-            focusa_license::base_product_projection(guard.entitlement.as_ref()).expect("projection");
+        let projection = focusa_license::base_product_projection(guard.entitlement.as_ref())
+            .expect("projection");
         assert!(projection.permits_base_mutations);
     }
 }

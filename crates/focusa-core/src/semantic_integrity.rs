@@ -97,7 +97,10 @@ pub fn canonicalize_semantic_artifact(
     }
     if !is_absolute_iri(&artifact.namespace_iri)
         || !is_absolute_iri(&artifact.graph_iri)
-        || artifact.import_iris.iter().any(|value| !is_absolute_iri(value))
+        || artifact
+            .import_iris
+            .iter()
+            .any(|value| !is_absolute_iri(value))
     {
         return Err(SemanticCanonicalizationError::InvalidIri);
     }
@@ -313,8 +316,18 @@ pub fn validate_semantic_artifact(
         }
     }
     findings.sort_by(|left, right| {
-        (&left.severity, &left.shape_id, &left.predicate_iri, &left.message)
-            .cmp(&(&right.severity, &right.shape_id, &right.predicate_iri, &right.message))
+        (
+            &left.severity,
+            &left.shape_id,
+            &left.predicate_iri,
+            &left.message,
+        )
+            .cmp(&(
+                &right.severity,
+                &right.shape_id,
+                &right.predicate_iri,
+                &right.message,
+            ))
     });
     let quarantine_required = findings
         .iter()
@@ -374,12 +387,19 @@ pub fn validate_semantic_work_contract(
         return Err(SemanticWorkContractError::MissingAcceptance);
     }
     if contract.execution_pair.action_plan_ref.trim().is_empty()
-        || contract.execution_pair.verification_plan_ref.trim().is_empty()
+        || contract
+            .execution_pair
+            .verification_plan_ref
+            .trim()
+            .is_empty()
         || contract.execution_pair.action_plan_ref == contract.execution_pair.verification_plan_ref
     {
         return Err(SemanticWorkContractError::MissingActionVerificationPair);
     }
-    let allowed = contract.allowed_mutation_refs.iter().collect::<BTreeSet<_>>();
+    let allowed = contract
+        .allowed_mutation_refs
+        .iter()
+        .collect::<BTreeSet<_>>();
     if contract
         .prohibited_mutation_refs
         .iter()

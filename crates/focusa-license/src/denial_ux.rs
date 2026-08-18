@@ -108,8 +108,7 @@ pub const ACTION_LABELS: [(&str, &str); 7] = [
 /// Additional action labels used by specific registry entries.
 pub const ACTION_LABEL_MANAGE_CAPACITY: &str = "Manage capacity or retry after settlement";
 pub const ACTION_LABEL_REFRESH_DIAGNOSTICS: &str = "Refresh status or run diagnostics";
-pub const ACTION_LABEL_RETRY_DIAGNOSTICS: &str =
-    "Retry with the same request or run diagnostics";
+pub const ACTION_LABEL_RETRY_DIAGNOSTICS: &str = "Retry with the same request or run diagnostics";
 pub const ACTION_LABEL_RETRY_IDENTIFIER: &str = "Retry with the same request identifier";
 
 /// Stable relative link lookup. Unknown ids fail closed with `None` so a
@@ -638,7 +637,11 @@ mod tests {
             assert!(denial_ux_link(id).is_some(), "link {id} resolves");
         }
         assert_eq!(denial_ux_link("bogus"), None, "unknown link fails closed");
-        assert_eq!(denial_ux_action_label("bogus"), None, "unknown action fails closed");
+        assert_eq!(
+            denial_ux_action_label("bogus"),
+            None,
+            "unknown action fails closed"
+        );
         assert_eq!(
             DenialUxErrorCode::from_label("ENTITLEMENT_MAGIC"),
             None,
@@ -657,7 +660,9 @@ mod tests {
     fn embedded_catalog_is_loadable_and_complete() {
         let catalog = embedded_denial_ux_catalog().expect("embedded catalog loads");
         let grid = catalog["message_grid"].as_array().expect("grid array");
-        let registry = catalog["error_registry"].as_array().expect("registry array");
+        let registry = catalog["error_registry"]
+            .as_array()
+            .expect("registry array");
         assert_eq!(grid.len(), 63, "7 states x 9 families");
         assert_eq!(registry.len(), 10, "stable error registry size");
         assert_eq!(
@@ -671,7 +676,10 @@ mod tests {
             let family = cell["family"].as_str().expect("family");
             let code = cell["code"].as_str();
             let link = cell["link"].as_str().expect("link");
-            assert!(denial_ux_link(link).is_some(), "grid link resolves for {family}");
+            assert!(
+                denial_ux_link(link).is_some(),
+                "grid link resolves for {family}"
+            );
             if code.is_some() {
                 assert!(DenialUxErrorCode::from_label(code.unwrap()).is_some());
             }
@@ -684,9 +692,7 @@ mod tests {
         let grid = catalog["message_grid"].as_array().expect("grid array");
         for cell in grid {
             let state = state_from_label(cell["state"].as_str().expect("state"));
-            let family = family_from_label(
-                cell["family"].as_str().expect("family"),
-            );
+            let family = family_from_label(cell["family"].as_str().expect("family"));
             let (Some(state), Some(family)) = (state, family) else {
                 panic!("unknown state/family in artifact");
             };
@@ -702,7 +708,11 @@ mod tests {
                 cell["safe_next_action"].as_str().expect("action"),
                 "next-action parity"
             );
-            assert_eq!(message.link(), cell["link"].as_str().expect("link"), "link parity");
+            assert_eq!(
+                message.link(),
+                cell["link"].as_str().expect("link"),
+                "link parity"
+            );
             assert_eq!(
                 message.action_label(),
                 cell["action_label"].as_str().expect("label"),

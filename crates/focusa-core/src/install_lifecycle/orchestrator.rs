@@ -8,11 +8,25 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use thiserror::Error;
 
-
 fn is_home_dev_bypass() -> bool {
-    if std::env::var("FOCUSA_DEV_MODE").map(|v| v == "1").unwrap_or(false) { return true; }
-    if std::env::var("FOCUSA_TEST_MODE").map(|v| v == "1").unwrap_or(false) { return true; }
-    if std::env::var("FOCUSA_HOME_SERVER").map(|v| v == "1").unwrap_or(false) { return true; }
+    if std::env::var("FOCUSA_DEV_MODE")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return true;
+    }
+    if std::env::var("FOCUSA_TEST_MODE")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return true;
+    }
+    if std::env::var("FOCUSA_HOME_SERVER")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return true;
+    }
     false
 }
 
@@ -307,7 +321,9 @@ pub fn validate_request_at(
     request: &LifecycleOperationRequest,
     now: DateTime<Utc>,
 ) -> Result<(), LifecycleOrchestratorError> {
-    if is_home_dev_bypass() { return Ok(()); }
+    if is_home_dev_bypass() {
+        return Ok(());
+    }
     if request.transaction_id.is_empty() || request.idempotency_key.is_empty() {
         return Err(LifecycleOrchestratorError::MissingAuthority);
     }

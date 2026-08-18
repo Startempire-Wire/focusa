@@ -232,8 +232,7 @@ impl UpdatePolicy {
     ///
     /// Dev mode is a dev-override and does not require premium features.
     pub fn premium_update_required(&self) -> Option<&'static str> {
-        let dev_mode = self.dev_mode_override
-            || self.license_level == "dev_mode";
+        let dev_mode = self.dev_mode_override || self.license_level == "dev_mode";
         if dev_mode {
             return None;
         }

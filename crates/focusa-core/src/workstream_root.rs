@@ -12,7 +12,7 @@
 //! 3. Continuation resolves the workstream root first, the session second.
 //! 4. Remote workstreams hold no authority state on the remote host.
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 
@@ -95,7 +95,10 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
 
 /// Create or update a workstream root. Identity (workstream_id,
 /// continuity_id, canonical_root) is immutable; conflicts are refused.
-pub fn upsert_workstream(conn: &Connection, root: &WorkstreamRoot) -> Result<(bool, WorkstreamRoot)> {
+pub fn upsert_workstream(
+    conn: &Connection,
+    root: &WorkstreamRoot,
+) -> Result<(bool, WorkstreamRoot)> {
     ensure_schema(conn)?;
     if root.schema != WORKSTREAM_SCHEMA {
         return Err(anyhow!("workstream schema must be {WORKSTREAM_SCHEMA}"));
@@ -108,7 +111,9 @@ pub fn upsert_workstream(conn: &Connection, root: &WorkstreamRoot) -> Result<(bo
         )
         .optional()?
     {
-        if stored_continuity != root.continuity.continuity_id || stored_root != root.root_scope.canonical_root {
+        if stored_continuity != root.continuity.continuity_id
+            || stored_root != root.root_scope.canonical_root
+        {
             return Err(anyhow!(
                 "workstream identity is immutable: continuity/canonical_root differ from stored"
             ));
@@ -116,12 +121,11 @@ pub fn upsert_workstream(conn: &Connection, root: &WorkstreamRoot) -> Result<(bo
     }
     let now = chrono::Utc::now().to_rfc3339();
     let root_json = serde_json::to_string(root)?;
-    let existed: bool = conn
-        .query_row(
-            "SELECT EXISTS(SELECT 1 FROM workstream_roots WHERE workstream_id = ?1)",
-            [&root.workstream_id],
-            |row| row.get(0),
-        )?;
+    let existed: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM workstream_roots WHERE workstream_id = ?1)",
+        [&root.workstream_id],
+        |row| row.get(0),
+    )?;
     conn.execute(
         "INSERT INTO workstream_roots
            (workstream_id, continuity_id, canonical_root, state, root_json, created_at, updated_at)
@@ -159,9 +163,8 @@ pub fn load_workstream(conn: &Connection, workstream_id: &str) -> Result<Option<
 
 pub fn list_workstreams(conn: &Connection) -> Result<Vec<WorkstreamRoot>> {
     ensure_schema(conn)?;
-    let mut statement = conn.prepare(
-        "SELECT root_json FROM workstream_roots ORDER BY updated_at DESC",
-    )?;
+    let mut statement =
+        conn.prepare("SELECT root_json FROM workstream_roots ORDER BY updated_at DESC")?;
     let rows = statement
         .query_map([], |row| row.get::<_, String>(0))?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -307,7 +310,8 @@ mod tests {
     fn identity_is_immutable() {
         let conn = conn();
         upsert_workstream(&conn, &root("ws1", "ptm-main", "/root/ws1")).unwrap();
-        let error = upsert_workstream(&conn, &root("ws1", "other-continuity", "/root/ws1")).unwrap_err();
+        let error =
+            upsert_workstream(&conn, &root("ws1", "other-continuity", "/root/ws1")).unwrap_err();
         assert!(error.to_string().contains("immutable"));
     }
 
@@ -340,7 +344,10 @@ mod tests {
     #[test]
     fn resolution_key_orders_root_first() {
         let root = root("ws1", "ptm-main", "/home/planmarr/plan-the-marriage");
-        assert!(root.resolution_key().starts_with("ws1|ptm-main|/home/planmarr"));
+        assert!(
+            root.resolution_key()
+                .starts_with("ws1|ptm-main|/home/planmarr")
+        );
         assert!(root.is_remote());
     }
 }

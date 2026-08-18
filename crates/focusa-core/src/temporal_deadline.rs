@@ -280,7 +280,11 @@ mod tests {
             scope: crate::temporal::TemporalScope {
                 project_root: "/tmp/test".into(),
                 continuity_id: "test".into(),
-                host_id: None, operator_id: None, workpoint_id: None, item_id: None, task_id: None,
+                host_id: None,
+                operator_id: None,
+                workpoint_id: None,
+                item_id: None,
+                task_id: None,
             },
             kind: DeadlineContractKind::ReadinessTarget,
             deadline_at,

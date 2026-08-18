@@ -6,13 +6,11 @@
 
 use chrono::{Duration, Utc};
 use focusa_license::{
-    authority::{EntitlementSnapshot, EntitlementState},
-    premium_family_feature_ids, reduce_entitlement_state,
-    resolve_premium_family,
     BaseProductDecision, CapabilityFamily as Family, DecisionReason as Reason,
-    EntitlementPolicyPosture as Posture, PolicyEntitlementState as State,
-    PremiumFamilyDecision, PremiumFamilyDenial,
-    TEAM_REMOTE_PREMIUM_FEATURE_IDS,
+    EntitlementPolicyPosture as Posture, PolicyEntitlementState as State, PremiumFamilyDecision,
+    PremiumFamilyDenial, TEAM_REMOTE_PREMIUM_FEATURE_IDS,
+    authority::{EntitlementSnapshot, EntitlementState},
+    premium_family_feature_ids, reduce_entitlement_state, resolve_premium_family,
 };
 
 // ── Team/remote family map ─────────────────────────────────────────────────
@@ -83,7 +81,11 @@ fn spec152f_team_remote_entitlement_team_remote_requires_cached_feature_for_offl
 
 #[test]
 fn spec152f_team_remote_entitlement_team_remote_denied_for_expired_and_revoked() {
-    for state in [State::Expired, State::RefundedOrRevoked, State::MissingOrCorrupt] {
+    for state in [
+        State::Expired,
+        State::RefundedOrRevoked,
+        State::MissingOrCorrupt,
+    ] {
         let decision = reduce_entitlement_state(state, Family::TeamRemote, None);
         assert_eq!(
             decision.posture(),
@@ -428,11 +430,8 @@ fn spec152f_team_remote_entitlement_activation_pairing_is_base_not_premium() {
 fn spec152f_team_remote_entitlement_recovery_pairing_stays_available() {
     // Recovery operations (device/pair/revoke) are always available via
     // AccountRecovery family, even in blocked states.
-    let recovery_decision = reduce_entitlement_state(
-        State::RefundedOrRevoked,
-        Family::AccountRecovery,
-        None,
-    );
+    let recovery_decision =
+        reduce_entitlement_state(State::RefundedOrRevoked, Family::AccountRecovery, None);
     assert_eq!(recovery_decision.posture(), Posture::Allow);
     assert_eq!(recovery_decision.reason(), Reason::Allow);
 
@@ -512,9 +511,7 @@ fn spec152f_team_remote_entitlement_team_operator_seats_are_limited() {
     snapshot
         .features
         .insert("focusa.team.multi_operator".to_string(), true);
-    snapshot
-        .limits
-        .insert("team_operators".to_string(), 3);
+    snapshot.limits.insert("team_operators".to_string(), 3);
 
     let decision = resolve_premium_family(
         &snapshot,
@@ -526,9 +523,7 @@ fn spec152f_team_remote_entitlement_team_operator_seats_are_limited() {
 
     // Without the feature grant, resolution fails before limits are checked.
     let mut no_feature = active_snapshot();
-    no_feature
-        .limits
-        .insert("team_operators".to_string(), 3);
+    no_feature.limits.insert("team_operators".to_string(), 3);
     let decision = resolve_premium_family(
         &no_feature,
         Family::TeamRemote,
@@ -602,8 +597,7 @@ fn spec152f_team_remote_entitlement_team_feature_ids_are_qualified_focusa_identi
 #[test]
 fn spec152f_team_remote_entitlement_team_features_are_distinct() {
     assert_ne!(
-        TEAM_REMOTE_PREMIUM_FEATURE_IDS[0],
-        TEAM_REMOTE_PREMIUM_FEATURE_IDS[1],
+        TEAM_REMOTE_PREMIUM_FEATURE_IDS[0], TEAM_REMOTE_PREMIUM_FEATURE_IDS[1],
         "team_remote premium features must be distinct"
     );
 }
@@ -659,8 +653,10 @@ fn spec152f_team_remote_entitlement_all_premium_families_are_distinct() {
         AUTOMATION_PREMIUM_FEATURE_IDS.iter().copied().collect();
     let all_release: std::collections::HashSet<&str> =
         RELEASE_PROOF_PREMIUM_FEATURE_IDS.iter().copied().collect();
-    let all_updates: std::collections::HashSet<&str> =
-        PREMIUM_UPDATES_PREMIUM_FEATURE_IDS.iter().copied().collect();
+    let all_updates: std::collections::HashSet<&str> = PREMIUM_UPDATES_PREMIUM_FEATURE_IDS
+        .iter()
+        .copied()
+        .collect();
 
     assert!(all_team.is_disjoint(&all_automation));
     assert!(all_team.is_disjoint(&all_release));
@@ -709,7 +705,9 @@ fn spec152f_team_remote_entitlement_team_remote_requires_revalidation_at_dispatc
 fn spec152f_team_remote_entitlement_recovery_does_not_grant_team_remote() {
     // RecoveryOnly state must not grant team_remote premium features.
     let mut snapshot = EntitlementSnapshot::recovery_only("focusa", "node-team", "test-recovery");
-    snapshot.features.insert("focusa.team.multi_operator".to_string(), true);
+    snapshot
+        .features
+        .insert("focusa.team.multi_operator".to_string(), true);
     // Even with a stored feature claim, RecoveryOnly denies base product
     let decision = resolve_premium_family(
         &snapshot,
@@ -727,8 +725,7 @@ fn spec152f_team_remote_entitlement_recovery_does_not_grant_team_remote() {
 fn spec152f_team_remote_entitlement_refund_revokes_team_remote() {
     // A refund or revocation must remove team_remote capability.
     // RefundedOrRevoked state denies team_remote regardless of stored features.
-    let decision =
-        reduce_entitlement_state(State::RefundedOrRevoked, Family::TeamRemote, None);
+    let decision = reduce_entitlement_state(State::RefundedOrRevoked, Family::TeamRemote, None);
     assert_eq!(decision.posture(), Posture::Deny);
     assert_eq!(decision.reason(), Reason::Deny);
 }
@@ -760,8 +757,7 @@ fn spec152f_team_remote_entitlement_offline_grace_cannot_expand_team_grants() {
 fn spec152f_team_remote_entitlement_interactive_work_loop_is_base_not_team() {
     // Work loop operations (turn, workpoint, mission) are base_focusa,
     // not team_remote. They should be allowed (limited) for verified-no-license.
-    let decision =
-        reduce_entitlement_state(State::VerifiedNoLicense, Family::BaseFocusa, None);
+    let decision = reduce_entitlement_state(State::VerifiedNoLicense, Family::BaseFocusa, None);
     assert_eq!(decision.posture(), Posture::Allow);
     assert_eq!(decision.reason(), Reason::AllowVerifiedLimited);
 

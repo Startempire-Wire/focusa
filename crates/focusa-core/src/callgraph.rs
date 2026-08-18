@@ -264,7 +264,10 @@ pub fn validate_graph(graph: &FocusaCallGraphDefinition) -> ValidationReport {
     };
 
     if graph.schema != CALLGRAPH_SCHEMA {
-        error("schema", format!("expected {CALLGRAPH_SCHEMA}, got {}", graph.schema));
+        error(
+            "schema",
+            format!("expected {CALLGRAPH_SCHEMA}, got {}", graph.schema),
+        );
     }
     if graph.graph_id.trim().is_empty() {
         error("graph_id", "graph_id must be non-empty".to_string());
@@ -273,13 +276,22 @@ pub fn validate_graph(graph: &FocusaCallGraphDefinition) -> ValidationReport {
         error("frames", "at least one frame required".to_string());
     }
     if graph.entry_frame_ids.is_empty() {
-        error("entry_frame_ids", "at least one entry frame required".to_string());
+        error(
+            "entry_frame_ids",
+            "at least one entry frame required".to_string(),
+        );
     }
     if graph.scope.project_root.trim().is_empty() {
-        error("scope.project_root", "project_root must be non-empty".to_string());
+        error(
+            "scope.project_root",
+            "project_root must be non-empty".to_string(),
+        );
     }
     if graph.scope.continuity_id.trim().is_empty() {
-        error("scope.continuity_id", "continuity_id must be non-empty".to_string());
+        error(
+            "scope.continuity_id",
+            "continuity_id must be non-empty".to_string(),
+        );
     }
 
     let frame_ids: HashSet<&str> = graph.frames.iter().map(|f| f.frame_id.as_str()).collect();
@@ -292,7 +304,10 @@ pub fn validate_graph(graph: &FocusaCallGraphDefinition) -> ValidationReport {
     }
     for entry in &graph.entry_frame_ids {
         if !frame_ids.contains(entry.as_str()) {
-            error("entry_frame_ids", format!("entry frame {entry} does not exist"));
+            error(
+                "entry_frame_ids",
+                format!("entry frame {entry} does not exist"),
+            );
         }
     }
     for frame in &graph.frames {
@@ -362,16 +377,14 @@ fn has_unpolicied_cycle(graph: &FocusaCallGraphDefinition) -> bool {
                     // Cycle closes; allow when any edge in the cycle
                     // carries an explicit policy (or a graph default).
                     let any_policy = edge.cycle_policy.is_some()
-                        || edge_path
-                            .iter()
-                            .any(|id| {
-                                graph
-                                    .edges
-                                    .iter()
-                                    .find(|e| e.edge_id == *id)
-                                    .and_then(|e| e.cycle_policy.as_ref())
-                                    .is_some()
-                            });
+                        || edge_path.iter().any(|id| {
+                            graph
+                                .edges
+                                .iter()
+                                .find(|e| e.edge_id == *id)
+                                .and_then(|e| e.cycle_policy.as_ref())
+                                .is_some()
+                        });
                     if !any_policy && default_policy.is_none() {
                         return true;
                     }
@@ -494,23 +507,26 @@ pub fn eligibility_for_frame_with_context(
     }
     // Step 7: required capability availability.
     for capability in &frame.capability_refs {
-        if !context.available_capabilities.iter().any(|c| c == capability) {
+        if !context
+            .available_capabilities
+            .iter()
+            .any(|c| c == capability)
+        {
             return Disposition::WaitingCapability;
         }
     }
     // Step 8: adapter health — at least one healthy adapter covering the
     // frame's capabilities.
-    let health_ok = context.healthy_adapters.is_empty()
-        || context.healthy_adapters.iter().any(|_| true);
+    let health_ok =
+        context.healthy_adapters.is_empty() || context.healthy_adapters.iter().any(|_| true);
     if !health_ok {
         return Disposition::BlockedStale;
     }
     // Step 9: operator/authority requirements.
     if let Some(requirement) = &frame.authority_requirement {
-        let granted = context
-            .granted_authority
-            .iter()
-            .any(|a| a == &requirement.authority_kind || Some(a.as_str()) == requirement.reference.as_deref());
+        let granted = context.granted_authority.iter().any(|a| {
+            a == &requirement.authority_kind || Some(a.as_str()) == requirement.reference.as_deref()
+        });
         if !granted {
             return Disposition::WaitingAuthority;
         }
@@ -661,18 +677,12 @@ pub struct AdapterCapability {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RouteDecision {
-    Routed {
-        adapter_id: String,
-        model: String,
-    },
+    Routed { adapter_id: String, model: String },
     WaitingCapability,
     Rejected,
 }
 
-pub fn route_frame(
-    frame: &FocusaCallFrame,
-    adapters: &[AdapterCapability],
-) -> RouteDecision {
+pub fn route_frame(frame: &FocusaCallFrame, adapters: &[AdapterCapability]) -> RouteDecision {
     if frame.capability_refs.is_empty() {
         // No capability requirements: route to the first healthy adapter.
         if let Some(adapter) = adapters.iter().find(|adapter| adapter.healthy) {
@@ -715,7 +725,10 @@ pub struct FlowMeshBinding {
 
 /// §13.2 ownership: a binding is controller-owned; execution is observed
 /// through the run ledger, never through Flow Mesh state alone.
-pub fn validate_flowmesh_binding(binding: &FlowMeshBinding, frame: &FocusaCallFrame) -> Result<(), String> {
+pub fn validate_flowmesh_binding(
+    binding: &FlowMeshBinding,
+    frame: &FocusaCallFrame,
+) -> Result<(), String> {
     if frame.kind != FrameKind::FlowmeshTask {
         return Err(format!(
             "frame {} is not flowmesh_task (binding rejected)",
@@ -761,7 +774,10 @@ mod tests {
         }
     }
 
-    fn graph(frames: Vec<FocusaCallFrame>, edges: Vec<FocusaCallEdge>) -> FocusaCallGraphDefinition {
+    fn graph(
+        frames: Vec<FocusaCallFrame>,
+        edges: Vec<FocusaCallEdge>,
+    ) -> FocusaCallGraphDefinition {
         FocusaCallGraphDefinition {
             schema: CALLGRAPH_SCHEMA.to_string(),
             graph_id: "g1".to_string(),
@@ -860,7 +876,10 @@ mod tests {
                 authority_requirement: None,
             },
         ];
-        let g = graph(vec![frame("a", FrameKind::Agent), frame("b", FrameKind::Tool)], edges);
+        let g = graph(
+            vec![frame("a", FrameKind::Agent), frame("b", FrameKind::Tool)],
+            edges,
+        );
         assert!(!validate_graph(&g).valid);
     }
 
@@ -892,7 +911,10 @@ mod tests {
                 authority_requirement: None,
             },
         ];
-        let g = graph(vec![frame("a", FrameKind::Agent), frame("b", FrameKind::Tool)], edges);
+        let g = graph(
+            vec![frame("a", FrameKind::Agent), frame("b", FrameKind::Tool)],
+            edges,
+        );
         assert!(validate_graph(&g).valid);
     }
 
@@ -1058,12 +1080,7 @@ mod replay_tests {
         }
     }
 
-    fn dispatch(
-        id: &str,
-        frame: &str,
-        invocation: &str,
-        receipt: Option<&str>,
-    ) -> FrameDispatch {
+    fn dispatch(id: &str, frame: &str, invocation: &str, receipt: Option<&str>) -> FrameDispatch {
         FrameDispatch {
             dispatch_id: id.to_string(),
             run_id: "r1".to_string(),
@@ -1169,7 +1186,10 @@ mod routing_tests {
             healthy: false,
         }];
         let frame = frame_with_caps(&["shell"]);
-        assert_eq!(route_frame(&frame, &adapters), RouteDecision::WaitingCapability);
+        assert_eq!(
+            route_frame(&frame, &adapters),
+            RouteDecision::WaitingCapability
+        );
     }
 
     #[test]
@@ -1181,7 +1201,10 @@ mod routing_tests {
             healthy: true,
         }];
         let frame = frame_with_caps(&["browser"]);
-        assert_eq!(route_frame(&frame, &adapters), RouteDecision::WaitingCapability);
+        assert_eq!(
+            route_frame(&frame, &adapters),
+            RouteDecision::WaitingCapability
+        );
     }
 
     #[test]
@@ -1258,15 +1281,9 @@ pub struct UnwindStep {
     pub compensation_target: Option<String>,
 }
 
-pub fn plan_unwind(
-    graph: &FocusaCallGraphDefinition,
-    failed_frame_id: &str,
-) -> Vec<UnwindStep> {
+pub fn plan_unwind(graph: &FocusaCallGraphDefinition, failed_frame_id: &str) -> Vec<UnwindStep> {
     let mut steps = Vec::new();
-    let failed = graph
-        .frames
-        .iter()
-        .find(|f| f.frame_id == failed_frame_id);
+    let failed = graph.frames.iter().find(|f| f.frame_id == failed_frame_id);
     if let Some(frame) = failed {
         steps.push(UnwindStep {
             frame_id: frame.frame_id.clone(),

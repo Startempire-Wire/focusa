@@ -41,8 +41,7 @@ impl TemporalCompactionContext {
             deadline_protection_deferred,
             pending_temporal_event_refs: Vec::new(),
             estimated_remaining_before_deadline_ms: estimated_remaining_ms,
-            within_delivery_focus_window: min_time_to_deadline_ms
-                .is_some_and(|ms| ms < 600_000),
+            within_delivery_focus_window: min_time_to_deadline_ms.is_some_and(|ms| ms < 600_000),
             min_time_to_deadline_crossing_ms: min_time_to_deadline_ms,
         }
     }

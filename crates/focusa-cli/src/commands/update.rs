@@ -4053,7 +4053,10 @@ mod version_staleness_tests {
     #[test]
     fn behind_is_stale_ahead_and_current_are_not() {
         assert!(version_is_stale("0.9.151", "0.9.152"));
-        assert!(!version_is_stale("0.9.153", "0.9.152"), "ahead must not be stale");
+        assert!(
+            !version_is_stale("0.9.153", "0.9.152"),
+            "ahead must not be stale"
+        );
         assert!(!version_is_stale("0.9.152", "0.9.152"));
     }
 
@@ -4061,7 +4064,10 @@ mod version_staleness_tests {
     fn channel_suffixes_do_not_fabricate_staleness() {
         assert!(!version_is_stale("0.9.152", "0.9.152-dev"));
         assert!(!version_is_stale("0.9.152-dev", "0.9.152"));
-        assert!(!version_is_stale("v0.9.152", "0.9.152"), "v prefix is cosmetic");
+        assert!(
+            !version_is_stale("v0.9.152", "0.9.152"),
+            "v prefix is cosmetic"
+        );
     }
 
     #[test]

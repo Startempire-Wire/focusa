@@ -78,10 +78,9 @@ pub fn evaluate_completion_claim(claim: &CompletionClaim) -> CompletionVerdict {
     let overclaim_risks: Vec<String> = normalized_refs
         .iter()
         .filter(|r| {
-            !claim
-                .acceptance_atoms
-                .iter()
-                .any(|atom| !atom.trim().is_empty() && r.to_lowercase().contains(&atom.trim().to_lowercase()))
+            !claim.acceptance_atoms.iter().any(|atom| {
+                !atom.trim().is_empty() && r.to_lowercase().contains(&atom.trim().to_lowercase())
+            })
         })
         .map(|r| r.to_string())
         .collect();
@@ -172,17 +171,17 @@ mod tests {
             &[],
         ));
         assert!(verdict.allow);
-        assert!(verdict.overclaim_risks.contains(&"evidence/unrelated.md".to_string()));
+        assert!(
+            verdict
+                .overclaim_risks
+                .contains(&"evidence/unrelated.md".to_string())
+        );
         assert!(!verdict.reasons.is_empty());
     }
 
     #[test]
     fn free_text_never_covers() {
-        let verdict = evaluate_completion_claim(&claim(
-            &["plan-doc"],
-            &[],
-            &[],
-        ));
+        let verdict = evaluate_completion_claim(&claim(&["plan-doc"], &[], &[]));
         assert!(!verdict.allow);
     }
 

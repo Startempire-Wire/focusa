@@ -94,9 +94,17 @@ pub enum MarkerReadOutcome {
 pub enum MarkerWriteOutcome {
     Created,
     AlreadyValid,
-    Migrated { backup: Option<String>, added_fields: Vec<String> },
-    Written { backup: Option<String> },
-    BlockedPermission { directory_owner: String, current_user: String },
+    Migrated {
+        backup: Option<String>,
+        added_fields: Vec<String>,
+    },
+    Written {
+        backup: Option<String>,
+    },
+    BlockedPermission {
+        directory_owner: String,
+        current_user: String,
+    },
 }
 
 #[derive(Debug, Clone, Default)]
@@ -117,7 +125,7 @@ pub fn read_marker(root: &Path) -> MarkerReadOutcome {
         Err(error) => {
             return MarkerReadOutcome::Corrupted {
                 error: format!("read failed: {error}"),
-            }
+            };
         }
     };
     let parsed: serde_json::Value = match serde_json::from_str(&raw) {
@@ -125,7 +133,7 @@ pub fn read_marker(root: &Path) -> MarkerReadOutcome {
         Err(error) => {
             return MarkerReadOutcome::Corrupted {
                 error: format!("invalid JSON: {error}"),
-            }
+            };
         }
     };
     if parsed.get("schema").and_then(|v| v.as_str()) != Some(MARKER_SCHEMA) {
@@ -134,8 +142,14 @@ pub fn read_marker(root: &Path) -> MarkerReadOutcome {
         };
     }
     let identity_ok = parsed.get("project_id").and_then(|v| v.as_str()).is_some()
-        && parsed.get("canonical_name").and_then(|v| v.as_str()).is_some()
-        && parsed.get("project_root").and_then(|v| v.as_str()).is_some();
+        && parsed
+            .get("canonical_name")
+            .and_then(|v| v.as_str())
+            .is_some()
+        && parsed
+            .get("project_root")
+            .and_then(|v| v.as_str())
+            .is_some();
     if !identity_ok {
         return MarkerReadOutcome::Corrupted {
             error: "missing identity fields (project_id, canonical_name, project_root)".into(),
@@ -180,21 +194,28 @@ fn id_name(uid: u32) -> String {
 /// this stays dependency-free and never links libc struct layouts.
 fn ownership_mismatch(root: &Path) -> Option<(String, String)> {
     #[cfg(not(unix))]
-    { return None; }
+    {
+        return None;
+    }
     #[cfg(unix)]
     {
-    use std::os::unix::fs::MetadataExt;
-    let metadata = fs::metadata(root).ok()?;
-    let owner_uid = metadata.uid();
-    let current_uid = {
-        std::process::Command::new("id")
-            .arg("-u")
-            .output()
-            .ok()
-            .and_then(|output| String::from_utf8_lossy(&output.stdout).trim().parse::<u32>().ok())
-            .unwrap_or(owner_uid)
-    };
-    if owner_uid == current_uid {
+        use std::os::unix::fs::MetadataExt;
+        let metadata = fs::metadata(root).ok()?;
+        let owner_uid = metadata.uid();
+        let current_uid = {
+            std::process::Command::new("id")
+                .arg("-u")
+                .output()
+                .ok()
+                .and_then(|output| {
+                    String::from_utf8_lossy(&output.stdout)
+                        .trim()
+                        .parse::<u32>()
+                        .ok()
+                })
+                .unwrap_or(owner_uid)
+        };
+        if owner_uid == current_uid {
             return None;
         }
         return Some((id_name(owner_uid), id_name(current_uid)));
@@ -229,12 +250,14 @@ pub fn write_marker(
     let existing_identity = match &existing {
         MarkerReadOutcome::Valid | MarkerReadOutcome::LegacyMinimal { .. } => {
             let raw = fs::read_to_string(&path).unwrap_or_default();
-            serde_json::from_str::<serde_json::Value>(&raw).ok().and_then(|value| {
-                Some((
-                    value.get("project_id")?.as_str()?.to_string(),
-                    value.get("project_root")?.as_str()?.to_string(),
-                ))
-            })
+            serde_json::from_str::<serde_json::Value>(&raw)
+                .ok()
+                .and_then(|value| {
+                    Some((
+                        value.get("project_id")?.as_str()?.to_string(),
+                        value.get("project_root")?.as_str()?.to_string(),
+                    ))
+                })
         }
         _ => None,
     };
@@ -347,9 +370,7 @@ pub fn repair_marker(root: &Path) -> Result<MarkerWriteOutcome> {
             }
             fs::rename(&temp, root.join(MARKER_FILE))
                 .with_context(|| "atomically restore marker from backup")?;
-            Ok(MarkerWriteOutcome::Written {
-                backup: None,
-            })
+            Ok(MarkerWriteOutcome::Written { backup: None })
         }
     }
 }
@@ -389,13 +410,13 @@ mod tests {
     fn create_is_atomic_and_idempotent() {
         let root = fixture();
         fs::create_dir_all(&root).unwrap();
-        let outcome = write_marker(&root, &marker_for(&root), &MarkerWriteOptions::default())
-            .unwrap();
+        let outcome =
+            write_marker(&root, &marker_for(&root), &MarkerWriteOptions::default()).unwrap();
         assert_eq!(outcome, MarkerWriteOutcome::Created);
         assert_eq!(read_marker(&root), MarkerReadOutcome::Valid);
         // Idempotent second write.
-        let again = write_marker(&root, &marker_for(&root), &MarkerWriteOptions::default())
-            .unwrap();
+        let again =
+            write_marker(&root, &marker_for(&root), &MarkerWriteOptions::default()).unwrap();
         assert_eq!(again, MarkerWriteOutcome::AlreadyValid);
         let _ = fs::remove_dir_all(&root);
     }

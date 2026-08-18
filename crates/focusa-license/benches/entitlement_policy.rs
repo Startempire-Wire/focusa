@@ -20,14 +20,14 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use chrono::{DateTime, Utc};
+use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
 use focusa_license::limit_reservation::LimitReservationService;
 use focusa_license::{
-    embedded_entitlement_policy_registry, resolve_base_focusa_product,
-    resolve_premium_family, reduce_entitlement_state, CapabilityFamily,
-    CommercialTreatment, DecisionReason, OperationClass, PolicyActivation,
+    CapabilityFamily, CommercialTreatment, DecisionReason, OperationClass, PolicyActivation,
     PolicyEntitlementState, RecoveryAllowance, ResolvedEntitlementPolicy,
+    embedded_entitlement_policy_registry, reduce_entitlement_state, resolve_base_focusa_product,
+    resolve_premium_family,
 };
-use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
 
 const WARMUP: u32 = 2_000;
 const ITERATIONS: u64 = 300_000;
@@ -62,9 +62,7 @@ fn active_automation_snapshot() -> EntitlementSnapshot {
     snapshot
         .features
         .insert("focusa.agent.parallelism".to_string(), true);
-    snapshot
-        .limits
-        .insert("concurrent_agents".to_string(), 8);
+    snapshot.limits.insert("concurrent_agents".to_string(), 8);
     snapshot
 }
 
@@ -127,7 +125,10 @@ fn main() {
             "focusa.agent.parallelism",
             now,
         );
-        assert!(decision.is_feature(), "fixture must resolve to a feature grant");
+        assert!(
+            decision.is_feature(),
+            "fixture must resolve to a feature grant"
+        );
         let mut service = LimitReservationService::new();
         let grant = service
             .reserve(
@@ -146,10 +147,7 @@ fn main() {
     // 4. Denial: base-product denial and premium missing-feature denial.
     let denied_snapshot = active_snapshot_without_features();
     measure("denial_decision", || {
-        let base = resolve_base_focusa_product(
-            "focusa",
-            PolicyEntitlementState::RefundedOrRevoked,
-        );
+        let base = resolve_base_focusa_product("focusa", PolicyEntitlementState::RefundedOrRevoked);
         assert!(!base.permits_base_mutations(), "denied fixture");
         let premium = resolve_premium_family(
             &denied_snapshot,

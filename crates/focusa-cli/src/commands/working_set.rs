@@ -75,7 +75,9 @@ pub async fn run(cmd: WorkingSetCmd, json_mode: bool) -> anyhow::Result<()> {
             println!("Working Set ({slice_type}):");
             println!("  Index freshness: {index_status}");
             if members.is_empty() {
-                println!("  (no members yet — run `focusa working-set refresh --subject <ref>` or add ontology objects)");
+                println!(
+                    "  (no members yet — run `focusa working-set refresh --subject <ref>` or add ontology objects)"
+                );
             }
             for member in members {
                 let id = member.get("id").and_then(|v| v.as_str()).unwrap_or("?");

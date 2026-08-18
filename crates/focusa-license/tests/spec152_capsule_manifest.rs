@@ -9,8 +9,8 @@
 use std::{collections::HashSet, fs, path::PathBuf};
 
 use focusa_license::{
-    canonical_capsule_manifest_bytes, capsule_manifest_sha256, verify_capsule_manifest,
     CapsuleManifest, CapsuleVerificationDecision, CapsuleVerificationFacts,
+    canonical_capsule_manifest_bytes, capsule_manifest_sha256, verify_capsule_manifest,
 };
 
 fn vectors_path() -> PathBuf {
@@ -60,7 +60,10 @@ fn spec152_capsule_manifest_vectors_fail_closed_exactly() {
 
     // Every stored vector name is unique.
     let names: Vec<&str> = decisions.iter().map(|(name, _)| name.as_str()).collect();
-    assert_eq!(names.len(), HashSet::<&str>::from_iter(names.iter().copied()).len());
+    assert_eq!(
+        names.len(),
+        HashSet::<&str>::from_iter(names.iter().copied()).len()
+    );
 
     // All named positive checks verify; every negative check is rejected.
     let verified = decisions
@@ -71,7 +74,10 @@ fn spec152_capsule_manifest_vectors_fail_closed_exactly() {
         .iter()
         .filter(|(_, decision)| decision.is_rejected())
         .count();
-    assert_eq!(verified, vectors["valid_manifests"].as_array().unwrap().len());
+    assert_eq!(
+        verified,
+        vectors["valid_manifests"].as_array().unwrap().len()
+    );
     assert_eq!(
         rejected,
         vectors["invalid_manifests"].as_array().unwrap().len()
@@ -146,6 +152,9 @@ fn spec152_capsule_manifest_vectors_cover_all_stable_rejections() {
         "rejected_withdrawn",
         "rejected_missing_key_envelope",
     ] {
-        assert!(labels.contains(required), "missing rejection vector: {required}");
+        assert!(
+            labels.contains(required),
+            "missing rejection vector: {required}"
+        );
     }
 }

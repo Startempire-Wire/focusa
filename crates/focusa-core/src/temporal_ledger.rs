@@ -165,7 +165,11 @@ mod tests {
         TemporalScope {
             project_root: root,
             continuity_id: "test".into(),
-            host_id: None, operator_id: None, workpoint_id: None, item_id: None, task_id: None,
+            host_id: None,
+            operator_id: None,
+            workpoint_id: None,
+            item_id: None,
+            task_id: None,
         }
     }
 
@@ -175,9 +179,11 @@ mod tests {
             sequence: 0,
             event_kind: kind,
             scope: scope.clone(),
-            claim: None, clock_sample: None,
+            claim: None,
+            clock_sample: None,
             metadata: std::collections::BTreeMap::new(),
-            signature: None, predecessor_digest: None,
+            signature: None,
+            predecessor_digest: None,
             recorded_at: chrono::Utc::now(),
             idempotency_key: String::new(),
             digest: String::new(),
@@ -186,7 +192,10 @@ mod tests {
 
     #[test]
     fn ledger_rejects_root_path() {
-        let scope = TemporalScope { project_root: "/tmp".into(), ..test_scope() };
+        let scope = TemporalScope {
+            project_root: "/tmp".into(),
+            ..test_scope()
+        };
         assert!(TemporalLedger::for_project(scope).is_err());
     }
 
@@ -204,11 +213,13 @@ mod tests {
         let scope = test_scope();
         let project_root = scope.project_root.clone();
         let ledger = TemporalLedger::for_project(scope.clone()).unwrap();
-        let events: Vec<TemporalEvent> = (0..3).map(|i| {
-            let mut e = test_event(&scope, TemporalEventKind::ClaimCommitted);
-            e.event_id = format!("ev-{}", i);
-            e
-        }).collect();
+        let events: Vec<TemporalEvent> = (0..3)
+            .map(|i| {
+                let mut e = test_event(&scope, TemporalEventKind::ClaimCommitted);
+                e.event_id = format!("ev-{}", i);
+                e
+            })
+            .collect();
         let sealed = ledger.append_batch("key-1", events).unwrap();
         assert_eq!(sealed.len(), 3);
         assert!(sealed[0].sequence > 0);
@@ -265,7 +276,10 @@ mod tests {
         let project_root = scope.project_root.clone();
         let other_root = format!("/tmp/focusa-test-ledger-other-{}", uuid::Uuid::now_v7());
         fs::create_dir_all(&other_root).unwrap();
-        let other_scope = TemporalScope { project_root: other_root.clone(), ..scope.clone() };
+        let other_scope = TemporalScope {
+            project_root: other_root.clone(),
+            ..scope.clone()
+        };
         let ledger = TemporalLedger::for_project(scope.clone()).unwrap();
         let events = vec![test_event(&other_scope, TemporalEventKind::ClaimCommitted)];
         assert!(ledger.append_batch("key-4", events).is_err());

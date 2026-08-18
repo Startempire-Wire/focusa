@@ -543,7 +543,8 @@ pub fn reduce_with_meta(
     let emitted_event = event.clone();
 
     match event {
-        FocusaEvent::CallGraphFrameDispatched { .. } | FocusaEvent::CallGraphFrameSettled { .. } => {}
+        FocusaEvent::CallGraphFrameDispatched { .. }
+        | FocusaEvent::CallGraphFrameSettled { .. } => {}
         // ─── Context corpus ─────────────────────────────────────────────
         FocusaEvent::ContextSourceCommitted { source } => {
             if source.receipt.before_state_version != state.version
@@ -5277,7 +5278,10 @@ mod tests {
             .unwrap();
         assert_eq!(active.status, WorkpointStatus::Active);
         assert_eq!(active.confidence, WorkpointConfidence::Verified);
-        assert_eq!(state.trajectory.records[0].active_workpoint_id, Some(workpoint_id));
+        assert_eq!(
+            state.trajectory.records[0].active_workpoint_id,
+            Some(workpoint_id)
+        );
     }
 
     #[test]

@@ -27,16 +27,16 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::{Duration, Utc};
 use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
-use focusa_license::{
-    base_product_projection, reduce_entitlement_state, resolve_base_focusa_product,
-    resolve_export_packaged, resolve_premium_family, BaseProductDecision, CapabilityFamily,
-    DecisionReason, EntitlementPolicyPosture, LimitReservationService, PolicyEntitlementState,
-    PremiumFamilyDecision, PremiumFamilyDenial, ReservationError,
-};
 use focusa_license::uiai_child_token::{
-    resolve_uiai_capability, AuthorityChildTokenEnvelope, UiaiCapabilityDenial,
-    UiaiCapabilityDecision, UiaiChildTokenBroker, UiaiChildTokenError, UiaiChildTokenRequest,
-    UiaiOperationClass, UIAI_CHILD_TOKEN_MAX_TTL_MINUTES, UIAI_CHILD_TOKEN_SCHEMA,
+    AuthorityChildTokenEnvelope, UIAI_CHILD_TOKEN_MAX_TTL_MINUTES, UIAI_CHILD_TOKEN_SCHEMA,
+    UiaiCapabilityDecision, UiaiCapabilityDenial, UiaiChildTokenBroker, UiaiChildTokenError,
+    UiaiChildTokenRequest, UiaiOperationClass, resolve_uiai_capability,
+};
+use focusa_license::{
+    BaseProductDecision, CapabilityFamily, DecisionReason, EntitlementPolicyPosture,
+    LimitReservationService, PolicyEntitlementState, PremiumFamilyDecision, PremiumFamilyDenial,
+    ReservationError, base_product_projection, reduce_entitlement_state,
+    resolve_base_focusa_product, resolve_export_packaged, resolve_premium_family,
 };
 use uuid::Uuid;
 
@@ -149,11 +149,8 @@ fn spec152f_bypass_resistance_cached_offline_grace_base_is_bounded_by_signed_win
 
 #[test]
 fn spec152f_bypass_resistance_cached_offline_grace_expired_or_unbounded_fails_closed() {
-    let expired = offline_grace_snapshot(
-        &[AUTOMATION_FEATURE],
-        Some(now() - Duration::minutes(1)),
-        4,
-    );
+    let expired =
+        offline_grace_snapshot(&[AUTOMATION_FEATURE], Some(now() - Duration::minutes(1)), 4);
     let denial = resolve_premium_family(
         &expired,
         CapabilityFamily::Automation,
@@ -178,8 +175,11 @@ fn spec152f_bypass_resistance_cached_offline_grace_expired_or_unbounded_fails_cl
     assert_eq!(denial, PremiumFamilyDenial::MissingCachedGrantExpiry);
 
     // Export packaging reuses the same cached-window bounds.
-    let mut export_grace = offline_grace_snapshot(&[EXPORT_FEATURE], Some(now() - Duration::minutes(1)), 4);
-    export_grace.features.insert(EXPORT_FEATURE.to_string(), true);
+    let mut export_grace =
+        offline_grace_snapshot(&[EXPORT_FEATURE], Some(now() - Duration::minutes(1)), 4);
+    export_grace
+        .features
+        .insert(EXPORT_FEATURE.to_string(), true);
     let denial = resolve_export_packaged(&export_grace, EXPORT_FEATURE, now())
         .denial()
         .cloned()
@@ -432,7 +432,8 @@ fn spec152f_bypass_resistance_direct_core_handler_bypass_attempts_fail() {
 
     // A snapshot with no lease binding/sequence can never resolve a premium
     // feature, even if the caller fills in feature claims.
-    let mut unbinding = offline_grace_snapshot(&[AUTOMATION_FEATURE], Some(now() + Duration::minutes(5)), 4);
+    let mut unbinding =
+        offline_grace_snapshot(&[AUTOMATION_FEATURE], Some(now() + Duration::minutes(5)), 4);
     unbinding.lease_id = None;
     unbinding.sequence = None;
     unbinding.lease_digest = None;
@@ -467,7 +468,9 @@ fn spec152f_bypass_resistance_child_token_cannot_widen_or_outlive_grants() {
 
     // Requesting a feature the UIAI grant never signed is refused.
     let mut widening = child_token_request();
-    widening.requested_features.insert("uiai_persistence".to_string());
+    widening
+        .requested_features
+        .insert("uiai_persistence".to_string());
     assert_eq!(
         broker.validate_request(&widening, &parent, &grant, now),
         Err(UiaiChildTokenError::ScopeNotGranted)

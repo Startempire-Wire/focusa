@@ -12,25 +12,37 @@
 //! issuance and unverified promotion are structurally impossible here.
 
 use crate::activation_facade::{
-    ActivationError, ActivationErrorCode, ActivationRequestContext, FacadeOperation,
-    mask_email,
+    ActivationError, ActivationErrorCode, ActivationRequestContext, FacadeOperation, mask_email,
 };
 use crate::activation_reducer::{
-    ActivationOutputEnvelope, ActivationState, ActivationTransition,
-    ActivationTransitionError, PollRetryPolicy, RetryPosture, presenter_state,
-    reduce_activation,
+    ActivationOutputEnvelope, ActivationState, ActivationTransition, ActivationTransitionError,
+    PollRetryPolicy, RetryPosture, presenter_state, reduce_activation,
 };
 use crate::authority_client::SensitiveCredential;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 fn is_home_dev_bypass() -> bool {
-    if std::env::var("FOCUSA_DEV_MODE").map(|v| v == "1").unwrap_or(false) { return true; }
-    if std::env::var("FOCUSA_TEST_MODE").map(|v| v == "1").unwrap_or(false) { return true; }
-    if std::env::var("FOCUSA_HOME_SERVER").map(|v| v == "1").unwrap_or(false) { return true; }
+    if std::env::var("FOCUSA_DEV_MODE")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return true;
+    }
+    if std::env::var("FOCUSA_TEST_MODE")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return true;
+    }
+    if std::env::var("FOCUSA_HOME_SERVER")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return true;
+    }
     false
 }
-
 
 /// Server-owned journey selection. The Spec 172 overlay replaces local
 /// Evaluation: `LimitedAccess` is the verified-no-license bounded subset and
@@ -225,9 +237,7 @@ pub fn retry_policy_for_code(code: ActivationErrorCode) -> PollRetryPolicy {
         }
         ActivationErrorCode::EddLicenseUnusable
         | ActivationErrorCode::Refunded
-        | ActivationErrorCode::Revoked => {
-            PollRetryPolicy::new(RetryPosture::RecoveryOnly, None)
-        }
+        | ActivationErrorCode::Revoked => PollRetryPolicy::new(RetryPosture::RecoveryOnly, None),
         _ => PollRetryPolicy::none(),
     }
 }
@@ -261,7 +271,34 @@ impl<A: ActivationAuthority> ActivationSession<A> {
             .validate(FacadeOperation::ActivationStart)
             .map_err(ActivationClientError::Authority)?;
         if is_home_dev_bypass() {
-            return Ok(Self { authority, context, email: email.to_string(), masked_email: mask_email(email).unwrap_or_else(|| "dev@home.local".to_string()), public_product_code: public_product_code.to_string(), registration_id: "dev-bypass".to_string(), poll_credential: None, node_id: Some("dev-node".to_string()), lease_envelope: None, ledger: vec![ActivationLedgerEvent { at: chrono::Utc::now(), transition: ActivationTransition::EntitlementIssued, evidence_ref: "dev_mode_bypass".to_string() }] });
+            let masked = mask_email(email).unwrap_or_else(|| "dev@home.local".to_string());
+            return Ok(Self {
+                authority,
+                context: context.clone(),
+                registration: ActivationRegistration {
+                    schema: "focusa.activation_registration.v1".into(),
+                    registration_id: "dev-bypass".into(),
+                    facade_id: context.facade_id.clone(),
+                    presenter: context.presenter.clone(),
+                    install_channel: context.install_channel.clone(),
+                    state: ActivationState::Delivered,
+                    masked_email: Some(masked),
+                    poll_count: 0,
+                    max_polls: DEFAULT_MAX_POLLS,
+                },
+                poll_credential: None,
+                device_public_key: device_public_key.map(str::to_string),
+                safe_url: None,
+                one_time_key_envelope: None,
+                node_id: Some("dev-node".into()),
+                lease_envelope: None,
+                ledger: vec![ActivationLedgerEvent {
+                    sequence: 1,
+                    from: "attempt_created".into(),
+                    transition: "entitlement_issued".into(),
+                    to: "delivered".into(),
+                }],
+            });
         }
         if public_product_code.trim().is_empty() {
             return Err(ActivationClientError::Authority(ActivationError::new(
@@ -359,7 +396,11 @@ impl<A: ActivationAuthority> ActivationSession<A> {
             .map_err(ActivationClientError::Authority)?;
         let transitions = self
             .authority
-            .verify(&self.context, &self.registration.registration_id, one_time_verifier)
+            .verify(
+                &self.context,
+                &self.registration.registration_id,
+                one_time_verifier,
+            )
             .map_err(ActivationClientError::Authority)?;
         self.apply(transitions)?;
         self.envelope(None)
@@ -458,15 +499,12 @@ impl<A: ActivationAuthority> ActivationSession<A> {
         if self.registration.poll_count >= self.registration.max_polls {
             return Err(ActivationClientError::PollBudgetExhausted);
         }
-        let credential = self
-            .poll_credential
-            .as_ref()
-            .ok_or_else(|| {
-                ActivationClientError::Authority(ActivationError::new(
-                    ActivationErrorCode::PollCredentialRequired,
-                    self.context.request_id.clone(),
-                ))
-            })?;
+        let credential = self.poll_credential.as_ref().ok_or_else(|| {
+            ActivationClientError::Authority(ActivationError::new(
+                ActivationErrorCode::PollCredentialRequired,
+                self.context.request_id.clone(),
+            ))
+        })?;
         self.registration.poll_count += 1;
         let outcome = self
             .authority
@@ -513,12 +551,7 @@ impl<A: ActivationAuthority> ActivationSession<A> {
             .map_err(ActivationClientError::Authority)?;
         let transitions = self
             .authority
-            .refresh(
-                &self.context,
-                node_id,
-                refresh_credential,
-                current_sequence,
-            )
+            .refresh(&self.context, node_id, refresh_credential, current_sequence)
             .map_err(ActivationClientError::Authority)?;
         self.apply(transitions)?;
         self.envelope(None)
@@ -633,8 +666,9 @@ mod tests {
     }
 
     struct ScriptedAuthority {
-        script:
-            std::sync::Mutex<BTreeMap<&'static str, VecDeque<Result<AuthorityReply, ActivationErrorCode>>>>,
+        script: std::sync::Mutex<
+            BTreeMap<&'static str, VecDeque<Result<AuthorityReply, ActivationErrorCode>>>,
+        >,
     }
 
     impl ScriptedAuthority {
@@ -835,7 +869,9 @@ mod tests {
         );
         authority.push(
             "activation.select_offer",
-            Ok(AuthorityReply::Steps(vec![ActivationTransition::OfferSelected])),
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::OfferSelected,
+            ])),
         );
         authority.push(
             "activation.checkout",
@@ -881,7 +917,11 @@ mod tests {
         assert_eq!(envelope.state, "email_verification_pending");
         assert!(!envelope.terminal);
         assert_eq!(envelope.masked_email.as_deref(), Some("c***@example.com"));
-        assert!(!serde_json::to_string(&envelope).unwrap().contains("customer@example.com"));
+        assert!(
+            !serde_json::to_string(&envelope)
+                .unwrap()
+                .contains("customer@example.com")
+        );
 
         let envelope = session.verify("483921").expect("verify");
         assert_eq!(envelope.state, "selection_required");
@@ -1014,7 +1054,9 @@ mod tests {
         let authority = ScriptedAuthority::new();
         authority.push(
             "lease.refresh",
-            Ok(AuthorityReply::Steps(vec![ActivationTransition::RecoveryOnly])),
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::RecoveryOnly,
+            ])),
         );
         let mut session = ActivationSession::resume(
             authority,
@@ -1034,7 +1076,11 @@ mod tests {
         )
         .expect("resume");
         let envelope = session
-            .refresh("node-0001", &SensitiveCredential::new("refresh-secret".into()).unwrap(), 45)
+            .refresh(
+                "node-0001",
+                &SensitiveCredential::new("refresh-secret".into()).unwrap(),
+                45,
+            )
             .expect("refresh");
         assert_eq!(envelope.state, "recovery_only");
         assert!(envelope.terminal);
@@ -1046,7 +1092,9 @@ mod tests {
         let authority = scripted_paid_start();
         authority.push(
             "activation.verify",
-            Ok(AuthorityReply::Steps(vec![ActivationTransition::LeaseIssued])),
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::LeaseIssued,
+            ])),
         );
         let mut session = ActivationSession::begin(
             authority,

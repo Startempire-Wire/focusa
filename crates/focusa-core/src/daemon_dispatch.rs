@@ -4,9 +4,7 @@ use std::collections::BTreeMap;
 use thiserror::Error;
 
 use crate::license::{
-    evaluate_entitlement_execution,
-    EntitlementExecutionContext,
-    EntitlementExecutionPolicy,
+    EntitlementExecutionContext, EntitlementExecutionPolicy, evaluate_entitlement_execution,
 };
 
 const ENTITLEMENT_ROUTE_UNCLASSIFIED: &str = "ENTITLEMENT_ROUTE_UNCLASSIFIED";
@@ -94,16 +92,16 @@ pub enum DispatchError {
     },
 }
 
-fn entitlement_policy_for_daemon_mutation(operation: &str) -> Result<EntitlementExecutionPolicy, DispatchError> {
+fn entitlement_policy_for_daemon_mutation(
+    operation: &str,
+) -> Result<EntitlementExecutionPolicy, DispatchError> {
     let operation = operation.trim();
     let (family, required_feature, limit_bucket) = match operation {
-        "focusa.workpoint.checkpoint" | "focusa.workpoint.resume" | "focusa.trajectory.propose_workpoint" | "focusa.trajectory.checkpoint" | "focusa.trajectory.resume" => {
-            (
-                focusa_license::CapabilityFamily::BaseFocusa,
-                None,
-                None,
-            )
-        }
+        "focusa.workpoint.checkpoint"
+        | "focusa.workpoint.resume"
+        | "focusa.trajectory.propose_workpoint"
+        | "focusa.trajectory.checkpoint"
+        | "focusa.trajectory.resume" => (focusa_license::CapabilityFamily::BaseFocusa, None, None),
         "focusa.silent_session.writer_admission" | "focusa.silent_session.dispatch" => (
             focusa_license::CapabilityFamily::Automation,
             Some("focusa.agent.silent_sessions"),
@@ -112,7 +110,9 @@ fn entitlement_policy_for_daemon_mutation(operation: &str) -> Result<Entitlement
         _ => {
             return Err(DispatchError::EntitlementDenied {
                 code: ENTITLEMENT_ROUTE_UNCLASSIFIED.to_string(),
-                message: "daemon dispatch operation is not mapped to a canonical entitlement policy".into(),
+                message:
+                    "daemon dispatch operation is not mapped to a canonical entitlement policy"
+                        .into(),
                 required_feature: None,
                 limit_bucket: None,
             });
@@ -362,12 +362,12 @@ impl MutationDispatchLedger {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Utc;
     use crate::daemon_multiplex::{
         DaemonHealth, DaemonRegistration, DaemonRegistryEvent, reduce_daemon_registry,
     };
-    use std::collections::BTreeSet;
+    use chrono::Utc;
     use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
+    use std::collections::BTreeSet;
 
     fn route() -> ProjectRouteKey {
         ProjectRouteKey {

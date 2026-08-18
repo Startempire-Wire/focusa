@@ -22,7 +22,10 @@ pub fn validate_scoped_authority_event(event: &ScopedAuthorityEvent) -> Result<(
     event.scope.validate().map_err(|error| error.to_string())?;
     require(text(&event.event_id), "event_id is required")?;
     require(event.sequence > 0, "sequence must be positive")?;
-    require(refs(&event.evidence_refs), "event evidence_refs are required")?;
+    require(
+        refs(&event.evidence_refs),
+        "event evidence_refs are required",
+    )?;
     require(text(&event.receipt_ref), "event receipt_ref is required")?;
 
     match &event.event {
@@ -146,7 +149,10 @@ pub fn validate_scoped_authority_event(event: &ScopedAuthorityEvent) -> Result<(
             text(&value.migration_id)
                 && text(&value.source_record_ref)
                 && value.source_sha256.len() == 64
-                && value.source_sha256.chars().all(|character| character.is_ascii_hexdigit())
+                && value
+                    .source_sha256
+                    .chars()
+                    .all(|character| character.is_ascii_hexdigit())
                 && !value.mapped_primitive_refs.is_empty()
                 && refs(&value.lineage_refs)
                 && text(&value.rollback_ref)

@@ -11,9 +11,9 @@
 use std::{collections::HashSet, fs, path::PathBuf};
 
 use focusa_license::{
-    verify_dynamic_operation_manifest, verify_generated_ui_action, CanonicalManifestFacts,
-    DynamicOperationManifest, ManifestQuarantineLedger, ManifestTrustDecision,
-    REGISTERED_OPERATION_CLASSES, REGISTERED_PRODUCT_OWNERS, REGISTERED_SIDE_EFFECT_CLASSES,
+    CanonicalManifestFacts, DynamicOperationManifest, ManifestQuarantineLedger,
+    ManifestTrustDecision, REGISTERED_OPERATION_CLASSES, REGISTERED_PRODUCT_OWNERS,
+    REGISTERED_SIDE_EFFECT_CLASSES, verify_dynamic_operation_manifest, verify_generated_ui_action,
 };
 
 fn contract_path(name: &str) -> PathBuf {
@@ -103,10 +103,19 @@ fn spec172_dynamic_operation_manifest_registry_metadata_uses_registered_vocabula
     for operation in &operations {
         assert!(operation["operation_id"].as_str().is_some());
         let owner = operation["product_owner"].as_str().expect("product_owner");
-        let class = operation["operation_class"].as_str().expect("operation_class");
-        let family = operation["capability_family"].as_str().expect("capability_family");
-        let side_effect = operation["side_effect_class"].as_str().expect("side_effect_class");
-        assert!(!owner.is_empty() && !family.is_empty(), "no empty identity fields");
+        let class = operation["operation_class"]
+            .as_str()
+            .expect("operation_class");
+        let family = operation["capability_family"]
+            .as_str()
+            .expect("capability_family");
+        let side_effect = operation["side_effect_class"]
+            .as_str()
+            .expect("side_effect_class");
+        assert!(
+            !owner.is_empty() && !family.is_empty(),
+            "no empty identity fields"
+        );
         assert!(
             REGISTERED_PRODUCT_OWNERS.contains(&owner),
             "unregistered product owner {owner}"
@@ -123,7 +132,11 @@ fn spec172_dynamic_operation_manifest_registry_metadata_uses_registered_vocabula
         classes.insert(class);
         side_effects.insert(side_effect);
     }
-    assert_eq!(owners, HashSet::from(["focusa"]), "all canonical operations are Focusa");
+    assert_eq!(
+        owners,
+        HashSet::from(["focusa"]),
+        "all canonical operations are Focusa"
+    );
     assert_eq!(
         classes,
         HashSet::from(["read", "value_mutation", "recovery"]),
@@ -307,11 +320,17 @@ fn spec172_dynamic_operation_manifest_client_selected_policy_quarantined() {
     let operations = registry_operations();
     let operation = operation_with_class(&operations, "value_mutation");
     for field in [
-        "product", "price", "license_type", "family", "feature", "limit", "node",
+        "product",
+        "price",
+        "license_type",
+        "family",
+        "feature",
+        "limit",
+        "node",
         "commercial_right",
     ] {
-        let manifest = signed_manifest_from_registry(operation)
-            .with_declared_policy_fields(&[field]);
+        let manifest =
+            signed_manifest_from_registry(operation).with_declared_policy_fields(&[field]);
         assert_eq!(
             verify_dynamic_operation_manifest(&manifest, &facts_from_registry(operation)),
             ManifestTrustDecision::QuarantinedClientSelectedPolicy,
@@ -387,11 +406,7 @@ fn spec172_dynamic_operation_manifest_generated_ui_only_canonical_registered_act
         ManifestTrustDecision::QuarantinedGeneratedUiGrantExpansion
     );
     assert_eq!(
-        verify_generated_ui_action(
-            "focusa.paid.upgrade.button",
-            &canonical_actions,
-            true
-        ),
+        verify_generated_ui_action("focusa.paid.upgrade.button", &canonical_actions, true),
         ManifestTrustDecision::QuarantinedGeneratedUiGrantExpansion
     );
 }
@@ -406,7 +421,10 @@ fn spec172_dynamic_operation_manifest_quarantine_prevents_execution() {
     let mut manifest = signed_manifest_from_registry(operation);
     manifest.declared_policy_fields = vec!["license_type".to_string()];
     let decision = verify_dynamic_operation_manifest(&manifest, &facts_from_registry(operation));
-    assert_eq!(decision, ManifestTrustDecision::QuarantinedClientSelectedPolicy);
+    assert_eq!(
+        decision,
+        ManifestTrustDecision::QuarantinedClientSelectedPolicy
+    );
 
     let mut ledger = ManifestQuarantineLedger::default();
     let sequence = ledger.quarantine(operation_id, decision.label());
@@ -416,7 +434,9 @@ fn spec172_dynamic_operation_manifest_quarantine_prevents_execution() {
     // Even a canonical signed manifest for a quarantined operation must not
     // execute: the quarantine ledger check precedes execution.
     let canonical = signed_manifest_from_registry(operation);
-    assert!(verify_dynamic_operation_manifest(&canonical, &facts_from_registry(operation)).is_trusted());
+    assert!(
+        verify_dynamic_operation_manifest(&canonical, &facts_from_registry(operation)).is_trusted()
+    );
     assert!(ledger.is_quarantined(operation_id));
     let record = &ledger.records()[0];
     assert_eq!(record.operation_id, operation_id);

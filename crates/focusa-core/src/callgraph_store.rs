@@ -6,7 +6,7 @@
 //! ledger; this module owns schema, upsert, and query.
 
 use anyhow::Result;
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 use crate::callgraph::{Disposition, FocusaCallGraphDefinition};
@@ -125,7 +125,12 @@ pub fn upsert_definition(conn: &Connection, graph: &FocusaCallGraphDefinition) -
         "INSERT INTO callgraph_definitions (graph_id, revision, definition_json, created_at)
          VALUES (?1, ?2, ?3, ?4)
          ON CONFLICT(graph_id, revision) DO UPDATE SET definition_json = excluded.definition_json",
-        params![graph.graph_id, graph.revision as i64, json, graph.created_at],
+        params![
+            graph.graph_id,
+            graph.revision as i64,
+            json,
+            graph.created_at
+        ],
     )?;
     Ok(())
 }
@@ -243,7 +248,8 @@ pub fn list_dispatches(conn: &Connection, run_id: &str) -> Result<Vec<FrameDispa
             receipt_ref: row.get(8)?,
         })
     })?;
-    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
 }
 
 fn run_state_str(state: RunState) -> &'static str {
@@ -376,7 +382,8 @@ pub fn lapsed_leases(conn: &Connection, now: &str) -> Result<Vec<FrameLease>> {
             acquired_at: row.get(5)?,
         })
     })?;
-    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
 }
 
 /// Dispatches across all runs of a graph — export snapshots.
@@ -401,7 +408,8 @@ pub fn list_dispatches_for_graph(conn: &Connection, graph_id: &str) -> Result<Ve
             receipt_ref: row.get(8)?,
         })
     })?;
-    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
 }
 
 /// Mark a dispatch settled with its receipt + outcome; store evidence.

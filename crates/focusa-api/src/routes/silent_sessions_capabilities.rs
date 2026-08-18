@@ -617,12 +617,21 @@ mod tests {
             use std::os::unix::fs::PermissionsExt;
             std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o755)).unwrap();
         }
-        assert!(command_available_on(std::slice::from_ref(&dir), "fake-harness"));
+        assert!(command_available_on(
+            std::slice::from_ref(&dir),
+            "fake-harness"
+        ));
         // A non-executable sibling must NOT satisfy the probe.
         let plain = dir.join("plain-harness");
         std::fs::write(&plain, "#!/bin/sh\nexit 0").unwrap();
-        assert!(!command_available_on(std::slice::from_ref(&dir), "plain-harness"));
-        assert!(!command_available_on(std::slice::from_ref(&dir), "missing-harness"));
+        assert!(!command_available_on(
+            std::slice::from_ref(&dir),
+            "plain-harness"
+        ));
+        assert!(!command_available_on(
+            std::slice::from_ref(&dir),
+            "missing-harness"
+        ));
         assert!(!command_available_on(&[], "fake-harness"));
         let _ = std::fs::remove_dir_all(&dir);
     }

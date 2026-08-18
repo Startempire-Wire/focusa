@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use crate::workset_freshness::{canonical_stamp, FreshnessStamp};
+use crate::workset_freshness::{FreshnessStamp, canonical_stamp};
 use crate::workset_ledger::{WorksetDefinition, WorksetEvent};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -55,9 +55,7 @@ pub fn build_context_packet(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::workset_ledger::{
-        CompletionContract, RequirementDisposition, WorksetScope,
-    };
+    use crate::workset_ledger::{CompletionContract, RequirementDisposition, WorksetScope};
 
     fn definition() -> WorksetDefinition {
         WorksetDefinition {
@@ -153,7 +151,10 @@ mod tests {
         .unwrap();
         assert!(packet.settled);
         assert_eq!(
-            packet.requirement_dispositions.get("r1").and_then(|d| d.as_deref()),
+            packet
+                .requirement_dispositions
+                .get("r1")
+                .and_then(|d| d.as_deref()),
             Some("met")
         );
     }
