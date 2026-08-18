@@ -1,0 +1,7 @@
+Spec 152.03.01 Add LifecycleEntitlementBinding models — REAL verification 2026-08-18 foreground
+Commit: 94370b910a8fafa41f54a024af67864c7b4597aa
+Verification:
+cargo fmt --all -- --check PASS
+cargo clippy -p focusa-core --all-targets -- -D warnings PASS
+cargo test -p focusa-core --lib install_lifecycle PASS (34 passed)
+Required: lease state/id/sequence/payload digest/product+feature digests/node/license class/time/key/signature; recovery/evaluation/paid/development/blocked receipt classes round-trip with versioned schema — verified.
