@@ -234,8 +234,12 @@ pub fn evaluate_entitlement_execution(
         focusa_license::EntitlementPolicyPosture::Allow
         | focusa_license::EntitlementPolicyPosture::Read => Ok(base_decision),
         focusa_license::EntitlementPolicyPosture::Base => {
-            let snapshot = guard.entitlement.as_ref().ok_or_else(|| {
-                EntitlementExecutionFailure {
+            let snapshot =
+                guard
+                    .entitlement
+                    .as_ref()
+                    .ok_or_else(|| {
+                        EntitlementExecutionFailure {
                     code: ENTITLEMENT_BASE_REQUIRED.to_string(),
                     message:
                         "A usable signed Focusa base entitlement is required for this operation."
@@ -243,7 +247,7 @@ pub fn evaluate_entitlement_execution(
                     required_feature: base_decision.required_feature.clone(),
                     limit_bucket: base_decision.limit_bucket.clone(),
                 }
-            })?;
+                    })?;
 
             let projection =
                 focusa_license::base_product_projection(Some(snapshot)).map_err(|_| {

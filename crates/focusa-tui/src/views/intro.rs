@@ -140,6 +140,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::const_is_empty)]
     fn splash_version_line_is_non_empty() {
         assert!(!INTRO_VERSION_LINE.is_empty());
     }

@@ -122,7 +122,7 @@ mod tests {
         assert!(keys.contains(&"Tagline"));
         assert!(keys.contains(&"Version"));
         assert!(keys.contains(&"Telemetry"));
-        assert!(keys.contains(&"Credits") || true);
+        assert!(keys.contains(&"Credits"));
     }
 
     #[test]
@@ -137,6 +137,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::const_is_empty)]
     fn about_version_is_non_empty() {
         assert!(!ABOUT_VERSION.is_empty());
         assert!(!ABOUT_BUILD_INFO.is_empty());

@@ -373,10 +373,10 @@ mod tests {
                 "recovery_only",
             ]
         );
-        assert_eq!(TuiPresenterState::Activated.is_terminal(), true);
-        assert_eq!(TuiPresenterState::Denied.is_terminal(), true);
-        assert_eq!(TuiPresenterState::RecoveryOnly.is_terminal(), true);
-        assert_eq!(TuiPresenterState::PaymentPending.is_terminal(), false);
+        assert!(TuiPresenterState::Activated.is_terminal());
+        assert!(TuiPresenterState::Denied.is_terminal());
+        assert!(TuiPresenterState::RecoveryOnly.is_terminal());
+        assert!(!TuiPresenterState::PaymentPending.is_terminal());
     }
 
     #[test]
@@ -493,7 +493,7 @@ mod tests {
             }]
         });
         let view = project_activation_status(&payload).unwrap();
-        assert_eq!(view.terminal, true);
+        assert!(view.terminal);
         assert_eq!(view.resume_handle, None);
         assert_eq!(view.next_action, "recovery");
     }
