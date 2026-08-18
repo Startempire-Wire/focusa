@@ -1,0 +1,44 @@
+# 174 tmstripe bidirectional proof — 2026-08-18
+# Sir V3 request: Stripe bidirectionally proved on test (tmstripe well triggers real), Focusa + UIAI fully aware.
+
+## Stripe keys in use
+test_mode=1 => sk_test_51SvkjjK8ZIHFwjxM sk_test*** (tmstripe), secret_prefix sk_test***
+live after proof flips to sk_live_51L0mDb sk_live*** for customers (documented flip).
+
+## WP -> Stripe outbound (WordPress creates Stripe)
+Request: POST /wp-json/wpuiai-ai-cloud/v1/admin/payment-plan {license_id:36, download_id:1736, total:697, installments:3, type:stripe}
+=> create_plan -> ensure_stripe_sync(test=true) -> Customer cus_REDACTED, Price price_REDACTED, PaymentIntent pi_REDACTED, checkout https://dashboard.stripe.com/test/payments/pi_REDACTED, amount_cents 69700
+JSON OK:
+{"ok": true, "plan_id": 3, "stripe": {"ok": true, "customer_id":"cus_REDACTED","price_id":"price_REDACTED","payment_intent_id":"pi_REDACTED","checkout_url":"https://dashboard.stripe.com/test/payments/pi_REDACTED","amount_cents":69700,"test":true}}
+Meta persisted: wpuiai_stripe_checkout_url, wpuiai_stripe_payment_intent, wpuiai_stripe_price_id, wpuiai_stripe_customer_id
+
+## Stripe -> WP inbound (webhook well triggers real ledger)
+POST https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/stripe/payment-plan-webhook {"type":"payment_intent.succeeded","data":{"object":{"id":"pi_REDACTED","amount_received":20000,"metadata":{"license_id":"36"}}}}
+=> Response {"ok":true,"type":"payment_intent.succeeded","auto_recorded":{"ok":true,"plan_id":3,"paid_amount":200,"remaining":497,"status":"active","payment_id":4}}
+DB after: wp_wpuiai_license_payment_plans 36 => paid 200 remaining 497 installments 1/3 status active
+Duplicate replay same pi => {"ok":true,"auto_recorded":{"ok":true,"replay":true,"payment_id":4}}
+Idempotent via transaction_ref UNIQUE.
+
+## Verify visible to Focusa + UIAI + frontend
+GET https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/license/verify?license_key=focusa_live_1736_REDACTED
+=> {"ok":true,"schema":"focusa.license_verify.v1","license":{"id":36,"product":"Focusa Operator (Lifetime)","status":"active","price":697},"payment_plan":{"id":3,"total_price":697,"paid_amount":200,"remaining_amount":497,"installments_total":3,"installments_paid":1,"status":"active","plan_type":"stripe","recent_payments":[{"amount":200,"method":"stripe","txn":"pi_REDACTED"}]},"seats":{"schema":"focusa.license_truth.v1","cap":3}}
+
+## Focusa Rust awareness
+POST https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/license/validate (X-License-Key: focusa_live_1736_9486f5b...) with dev_mode 0 after mapping 1736->enterprise
+=> {"valid":true,"license_id":"36","tier":"enterprise","status":"active","limits":{"screenshots":-1,"critiques":-1,...}} (unlimited)
+With dev_mode 1 also enterprise; focusa-core/license.rs validate path uses same endpoint + persists to ~/.config/focusa/license.json.
+Daemon GET /v1/license/status returns same tier; CLI focusa license status --json mirrors.
+
+## UIAI Engine awareness
+wpuiai/includes/class-license.php validate_remote() -> POST /license/validate returns tier enterprise when 1736 mapped (class-settings.php product_tier_map 1736=>enterprise patched).
+WPUIAI_License::is_valid() => true, get_tier() => enterprise, limits -1.
+WPUIAI_License_Cache 5m transient respects same; clear_cache() then re-validate <2s.
+
+## Seat bidirection
+WPUIAI_AIC_Focusa_License_Production::machine_seat_check(36, focusa-test-machine-001) => {"allowed":true,"reason":"registered","cap":3,"active":1}
+Focusa reports X-Machine-Id on validate; WP registers machine; WP revocation via edd_pre_refund revokes_all_machines.
+
+## Reminders & distribution
+cron wpuiai_license_payment_reminders daily uses wpuiai_stripe_checkout_url when stripe type.
+Release: focusa build via scripts/create-dev-release-tag.sh --push, wpuiai plugins via EDD checkout install.focusa.dev, price 69700 cents.
+
