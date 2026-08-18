@@ -1,0 +1,16 @@
+{
+  "artifacts": {
+    "Cargo.toml": "sha256:e3b541cd021f9bffc2825b9277f294323b7f1e38fa385804a661e5008bbf33e8",
+    "apps/pi-extension/package.json": "sha256:e6cab8d91fee5f0f1d44a326ccf8be9a1dd7ab1e3d50a166c22276689da43c17",
+    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:faa165200b03c1394ffb2d4a6cdd6e42f7533fb09add6c3240b9a027f1241692",
+    "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:3e9522e53957ce8e229d281e57f2fce90a357842c2aa338360373b6d65f0c26a",
+    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:6e9384e7e11277a19d1b03d52df24c22e0563de094a6e02bfb26756b6ec30446"
+  },
+  "compatibility_status": "compatible",
+  "drift_findings": [],
+  "evidence_ref": "scripts/verify-version-surfaces.py",
+  "generated_at": "2026-08-18T00:14:08+00:00",
+  "release_version": "0.9.164",
+  "schema": "focusa.distribution_manifest.v1",
+  "source_commit": "d772396c3e65405e3259f9a84d6835e4de1ef499"
+}

@@ -128,6 +128,12 @@ def main() -> int:
             ),
         ),
         (
+            "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json::release_version",
+            json.loads(
+                (ROOT / "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json").read_text(encoding="utf-8")
+            )["release_version"],
+        ),
+        (
             "scripts/install-focusa.sh::FOCUSA_INSTALLER_VERSION",
             read_installer_version("scripts/install-focusa.sh"),
         ),
