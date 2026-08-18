@@ -1,1 +1,1 @@
-Spec replay focusa-vbcqu.10.7 — candidate 10177336b — accepted_replay — cargo test -p focusa-core PASS
+Spec replay focusa-vbcqu.10.7 — candidate 927c1faec — accepted_replay — cargo test -p focusa-core PASS
