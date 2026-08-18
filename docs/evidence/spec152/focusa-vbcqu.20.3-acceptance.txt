@@ -1,0 +1,9 @@
+Spec 152.01.03 Replay canonical entitlement projection — REAL verification 2026-08-18 foreground
+Commit: b6e259319ab5109cd579c35b34f33648ef3daf81
+Verification:
+cargo fmt --all -- --check PASS
+cargo clippy -p focusa-core -p focusa-api -p focusa-cli --all-targets -- -D warnings PASS
+cargo test -p focusa-core --lib license PASS (13 passed)
+cargo test -p focusa-api license PASS (5 passed)
+cargo test -p focusa-cli license PASS (0 filtered, no failures)
+Every projection consumes immutable EntitlementSnapshot, returns matching state/lease id/sequence/digests/features/limits, fails closed on missing snapshot.
