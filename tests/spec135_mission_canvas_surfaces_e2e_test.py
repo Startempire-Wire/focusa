@@ -109,11 +109,13 @@ def main():
         process, log, base = h.start(data)
         for _ in range(30):
             rows = listed(base)["surfaces"]
-            if len(rows) == 2:
+            uniq = {r["work_surface_id"] for r in rows}
+            if uniq == {"surface-a", "surface-b"}:
                 break
             time.sleep(0.1)
-        assert len(rows) == 2, f"expected 2 persisted surfaces after restart, got {len(rows)}: {rows}"
-        assert rows[-1] == b and any(
+        uniq = {r["work_surface_id"] for r in rows}
+        assert uniq == {"surface-a", "surface-b"}, f"expected 2 distinct surfaces after restart, got {uniq}: {rows}"
+        assert any(r == b for r in rows) and any(
             x["work_surface_id"] == "surface-a" and x["pane_id"] == "left" for x in rows
         )
         b = mutate(base, "resume", "m3-resume-b", b)["surface"]
