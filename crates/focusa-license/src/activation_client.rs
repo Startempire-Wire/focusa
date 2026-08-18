@@ -61,6 +61,7 @@ pub struct PublicOffer {
 pub struct ActivationStartReply {
     pub transitions: Vec<ActivationTransition>,
     pub poll_credential: Option<String>,
+    pub registration_id: Option<String>,
 }
 
 /// Authority reply to `activation.checkout`.
@@ -273,12 +274,15 @@ impl<A: ActivationAuthority> ActivationSession<A> {
                     context.request_id.clone(),
                 ))
             })?;
+        // 316: consume authority-issued registration_id; never invent unrelated local ID
+        let server_registration_id = reply.registration_id.clone();
         let mut session = Self {
             authority,
             context,
             registration: ActivationRegistration {
                 schema: "focusa.activation_registration.v1".into(),
-                registration_id: format!("registration-{}", uuid4()),
+                registration_id: server_registration_id
+                    .unwrap_or_else(|| format!("registration-{}", uuid4())),
                 facade_id: String::new(),
                 presenter: String::new(),
                 install_channel: String::new(),
@@ -800,6 +804,7 @@ mod tests {
             "activation.start",
             Ok(AuthorityReply::Start(ActivationStartReply {
                 transitions: vec![ActivationTransition::ChallengeDelivered],
+                registration_id: None,
                 poll_credential: Some("poll-secret".into()),
             })),
         );
@@ -915,6 +920,7 @@ mod tests {
             "activation.start",
             Ok(AuthorityReply::Start(ActivationStartReply {
                 transitions: vec![ActivationTransition::ChallengeDelivered],
+                registration_id: None,
                 poll_credential: Some("poll-secret".into()),
             })),
         );

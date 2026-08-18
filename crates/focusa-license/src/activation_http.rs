@@ -127,9 +127,13 @@ impl ActivationHttpClient {
     }
 
     fn endpoint(&self, path: &str) -> Result<Url, ActivationHttpError> {
+        // 315: strip leading '/' so Url::join preserves WordPress namespace path
+        // https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/ + "activation/start"
+        // not /v1/activation/start which discards the namespace.
+        let relative = path.trim_start_matches('/');
         self.policy
             .base_url
-            .join(path)
+            .join(relative)
             .map_err(|_| ActivationHttpError::InvalidPolicy("authority path join failed"))
     }
 
@@ -145,9 +149,23 @@ impl ActivationHttpClient {
         let response = self
             .http
             .post(url)
+            .header("X-Request-Id", &request.request_id)
+            .header("Idempotency-Key", &request.idempotency_key)
             .json(request)
             .send()
             .map_err(|_| self.unavailable(&request.request_id))?;
+        if !response.status().is_success() {
+            let status = response.status().as_u16();
+            let _ = response.text();
+            // Typed routing diagnostic without exposing body secrets
+            if status == 404 || status == 405 {
+                return Err(ActivationError::new(
+                    ActivationErrorCode::AuthorityUnavailable,
+                    request.request_id.clone(),
+                ));
+            }
+            return Err(self.unavailable(&request.request_id));
+        }
         decode_response_body(
             &request.request_id,
             response
@@ -176,8 +194,12 @@ impl ActivationHttpClient {
         let response = self
             .http
             .get(url)
+            .header("X-Request-Id", request_id)
             .send()
             .map_err(|_| self.unavailable(request_id))?;
+        if !response.status().is_success() {
+            return Err(self.unavailable(request_id));
+        }
         decode_response_body(
             request_id,
             response
@@ -300,6 +322,8 @@ struct WireStartReply {
     transitions: Vec<ActivationTransition>,
     #[serde(default)]
     poll_credential: Option<String>,
+    #[serde(default)]
+    registration_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -430,6 +454,7 @@ impl ActivationAuthority for ActivationHttpClient {
         Ok(ActivationStartReply {
             transitions: reply.transitions,
             poll_credential: reply.poll_credential,
+            registration_id: reply.registration_id,
         })
     }
 

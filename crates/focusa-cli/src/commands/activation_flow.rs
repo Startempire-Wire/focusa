@@ -1192,6 +1192,7 @@ mod tests {
             "activation.start",
             Ok(AuthorityReply::Start(ActivationStartReply {
                 transitions: vec![ActivationTransition::ChallengeDelivered],
+                registration_id: None,
                 poll_credential: Some("poll-secret".into()),
             })),
         );
