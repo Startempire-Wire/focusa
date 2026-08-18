@@ -1,0 +1,6 @@
+Spec 152.03.02 Enforce lifecycle entitlement state transitions — REAL 2026-08-18
+Commit: 2423bbaaeba951230e398d9bde9d6ce07a448f08
+cargo fmt --all -- --check PASS
+cargo clippy -p focusa-core --all-targets -- -D warnings PASS
+cargo test -p focusa-core --lib install_lifecycle PASS (34 passed)
+Transitions: dry-run/recovery inventory allowed; install needs product/channel; update needs focusa.update.apply; unattended needs focusa.update.unattended; uninstall always allowed; purge separately confirmed — table verified, rollback preserves revocation/sequence/expiry.
