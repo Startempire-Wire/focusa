@@ -1,7 +1,7 @@
 {
   "counts": {
-    "covered": 981,
-    "total": 981,
+    "covered": 1166,
+    "total": 1166,
     "unmatched": 0
   },
   "coverage": [
@@ -135,6 +135,18 @@
       "recovery_allowance": false,
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
+      "symbol_or_route": "Cancellation"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "crates/focusa-cli/src/main.rs",
+      "surface": "cli",
       "symbol_or_route": "Claim"
     },
     {
@@ -255,6 +267,18 @@
       "recovery_allowance": false,
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
+      "symbol_or_route": "Deadline"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "crates/focusa-cli/src/main.rs",
+      "surface": "cli",
       "symbol_or_route": "Deck"
     },
     {
@@ -316,6 +340,18 @@
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
       "symbol_or_route": "Env"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "crates/focusa-cli/src/main.rs",
+      "surface": "cli",
+      "symbol_or_route": "Estimate"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -483,6 +519,18 @@
       "recovery_allowance": false,
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
+      "symbol_or_route": "LostTime"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "crates/focusa-cli/src/main.rs",
+      "surface": "cli",
       "symbol_or_route": "Memory"
     },
     {
@@ -507,6 +555,18 @@
       "recovery_allowance": false,
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
+      "symbol_or_route": "NoProgress"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "crates/focusa-cli/src/main.rs",
+      "surface": "cli",
       "symbol_or_route": "Onboard"
     },
     {
@@ -520,6 +580,18 @@
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
       "symbol_or_route": "Ontology"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "crates/focusa-cli/src/main.rs",
+      "surface": "cli",
+      "symbol_or_route": "Opportunity"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -628,6 +700,18 @@
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
       "symbol_or_route": "Preload"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "crates/focusa-cli/src/main.rs",
+      "surface": "cli",
+      "symbol_or_route": "Progress"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -879,6 +963,18 @@
       "recovery_allowance": false,
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
+      "symbol_or_route": "Time"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "crates/focusa-cli/src/main.rs",
+      "surface": "cli",
       "symbol_or_route": "Tokens"
     },
     {
@@ -1035,6 +1131,18 @@
       "recovery_allowance": false,
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
+      "symbol_or_route": "WorkingSet"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "crates/focusa-cli/src/main.rs",
+      "surface": "cli",
       "symbol_or_route": "Workpoint"
     },
     {
@@ -1072,6 +1180,18 @@
       "source": "crates/focusa-cli/src/commands/export.rs",
       "surface": "export",
       "symbol_or_route": "crates/focusa-cli/src/commands/export.rs"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "unknown",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": true,
+      "source": "crates/focusa-core/src/callgraph_export.rs",
+      "surface": "export",
+      "symbol_or_route": "crates/focusa-core/src/callgraph_export.rs"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -2173,6 +2293,18 @@
       "pre_side_effect_test": "required",
       "product": "focusa",
       "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.calibration.report"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
       "source": "docs/focusa-api/routes/call_stack.md",
       "surface": "operation",
       "symbol_or_route": "focusa.call_stack.design"
@@ -2188,6 +2320,18 @@
       "source": "docs/focusa-api/routes/call_stack.md",
       "surface": "operation",
       "symbol_or_route": "focusa.call_stack.verify"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.cancellation.inspect"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -2310,6 +2454,78 @@
       "symbol_or_route": "focusa.context_cognition.packet"
     },
     {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.deadline.clear"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.deadline.conflicts"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.deadline.inspect"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.deadline.list"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.deadline.revise"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.deadline.set"
+    },
+    {
       "feature": "focusa.team.multi_operator",
       "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
@@ -2344,6 +2560,66 @@
       "source": "docs/focusa-api/routes/dxux.md",
       "surface": "operation",
       "symbol_or_route": "focusa.dxux.report"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.estimate.evaluate"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.estimate.history"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.estimate.inspect"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.estimate.request"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.estimate.validate"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -2430,6 +2706,126 @@
       "symbol_or_route": "focusa.interview.strategy.grill_with_docs.next_question"
     },
     {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.learning.apply"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.learning.candidate.decide"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.learning.conflicts"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.learning.consolidate"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.learning.expire"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.learning.retrieve"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.learning.revoke"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.learning.rollback"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.learning.supersede"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.learning.transfer.resolve"
+    },
+    {
       "feature": null,
       "gate_location": null,
       "limit_bucket": null,
@@ -2464,6 +2860,30 @@
       "source": "docs/focusa-api/routes/lineage.md",
       "surface": "operation",
       "symbol_or_route": "focusa.lineage.tree"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.lost_time.inspect"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.lost_time.list"
     },
     {
       "feature": "focusa.core.evidence",
@@ -2562,6 +2982,54 @@
       "symbol_or_route": "focusa.metacog.retrieve"
     },
     {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.metacognition.adjustment.evaluate"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.metacognition.adjustment.propose"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.metacognition.reflect"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.metacognition.signal.capture"
+    },
+    {
       "feature": "focusa.core.mission",
       "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
@@ -2635,6 +3103,18 @@
     },
     {
       "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.no_progress.inspect"
+    },
+    {
+      "feature": "focusa.core.workpoint",
       "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
       "mutation_class": "mutation",
@@ -2646,6 +3126,18 @@
       "symbol_or_route": "focusa.operation_registry.read"
     },
     {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.opportunity.inspect"
+    },
+    {
       "feature": "focusa.core.evidence",
       "gate_location": "focusa-api entitlement middleware",
       "limit_bucket": null,
@@ -2653,7 +3145,67 @@
       "pre_side_effect_test": "required",
       "product": "focusa",
       "recovery_allowance": false,
-      "source": "docs/focusa-api/routes/predictions.md",
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.outcome.claim"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.outcome.correct"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.outcome.dispute"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.outcome.resolve"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.prediction.commit"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
       "surface": "operation",
       "symbol_or_route": "focusa.prediction.evaluate"
     },
@@ -2665,9 +3217,45 @@
       "pre_side_effect_test": "required",
       "product": "focusa",
       "recovery_allowance": false,
-      "source": "docs/focusa-api/routes/predictions.md",
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
       "surface": "operation",
-      "symbol_or_route": "focusa.prediction.recent"
+      "symbol_or_route": "focusa.prediction.get"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.prediction.information_set.commit"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.prediction.list"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.prediction.question.create"
     },
     {
       "feature": "focusa.core.evidence",
@@ -2680,6 +3268,18 @@
       "source": "docs/focusa-api/routes/predictions.md",
       "surface": "operation",
       "symbol_or_route": "focusa.prediction.record"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.prediction.supersede"
     },
     {
       "feature": "focusa.core.evidence",
@@ -2704,6 +3304,30 @@
       "source": "docs/focusa-tools/tools/focusa_prediction_authority.md",
       "surface": "operation",
       "symbol_or_route": "focusa.prediction_authority.projection"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.progress.record"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.progress.status"
     },
     {
       "feature": "focusa.core.mission",
@@ -2908,6 +3532,18 @@
       "source": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
       "surface": "operation",
       "symbol_or_route": "focusa.role_profile.review"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "focusa-api entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.self_model.get"
     },
     {
       "feature": "focusa.core.mission",
@@ -3124,6 +3760,78 @@
       "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
       "surface": "operation",
       "symbol_or_route": "focusa.temporal.status"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.time.capabilities"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.time.doctor"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.time.now"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.time.samples.list"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.time.status"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/focusa-tools/tools/focusa_temporal_authority.md",
+      "surface": "operation",
+      "symbol_or_route": "focusa.time.trust.inspect"
     },
     {
       "feature": "focusa.core.evidence",
@@ -3510,6 +4218,42 @@
       "symbol_or_route": "focusa_awareness_packet"
     },
     {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_bg_run"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_bg_run_many"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_bg_status"
+    },
+    {
       "feature": "focusa.core.evidence",
       "gate_location": "Pi tool preflight",
       "limit_bucket": null,
@@ -3703,6 +4447,30 @@
     },
     {
       "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_callgraph_observe"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_callgraph_validate"
+    },
+    {
+      "feature": "focusa.core.workpoint",
       "gate_location": "Pi tool preflight",
       "limit_bucket": null,
       "mutation_class": "mutation",
@@ -3724,6 +4492,18 @@
       "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
       "surface": "pi_tool",
       "symbol_or_route": "focusa_canonical_instruction_amendment_propose"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_cockpit_projection"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -3820,6 +4600,18 @@
       "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
       "surface": "pi_tool",
       "symbol_or_route": "focusa_context_cognition_render"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_credentials_verify"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -3978,6 +4770,18 @@
       "symbol_or_route": "focusa_dxux_requirement"
     },
     {
+      "feature": "focusa.core.evidence",
+      "gate_location": "Pi tool preflight",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_epistemic_operation"
+    },
+    {
       "feature": "focusa.core.workpoint",
       "gate_location": "Pi tool preflight",
       "limit_bucket": null,
@@ -4000,6 +4804,18 @@
       "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
       "surface": "pi_tool",
       "symbol_or_route": "focusa_failure"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_fast_forward"
     },
     {
       "feature": "focusa.core.mission",
@@ -5022,6 +5838,18 @@
       "symbol_or_route": "focusa_workpoint_resume"
     },
     {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+      "surface": "pi_tool",
+      "symbol_or_route": "focusa_workset_projection"
+    },
+    {
       "feature": "focusa.release.proof",
       "gate_location": "route entitlement middleware",
       "limit_bucket": null,
@@ -5360,6 +6188,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/activation/status"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/adapters.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/adapters"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -6314,6 +7156,62 @@
       "symbol_or_route": "/v1/awareness/packet/{surface}"
     },
     {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/background_jobs.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/background-jobs"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/background_jobs.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/background-jobs/wait"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/background_jobs.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/background-jobs/{job_id}"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/background_jobs.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/background-jobs/{job_id}/complete"
+    },
+    {
       "feature": null,
       "gate_location": null,
       "limit_bucket": null,
@@ -6639,6 +7537,20 @@
       "feature": "focusa.core.evidence",
       "gate_location": "route entitlement middleware",
       "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/calibration/reports"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
       "mutation_class": "mutation",
       "pre_side_effect_test": "required",
       "product": "focusa",
@@ -6700,6 +7612,258 @@
       "product": "focusa",
       "recovery_allowance": false,
       "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraph-items/{graph_id}/{frame_id}"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraph-runs/{run_id}"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraph-runs/{run_id}/control"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraph-runs/{run_id}/events"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraph-runs/{run_id}/evidence/link"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraph-runs/{run_id}/flowmesh-bindings/execute"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraph-runs/{run_id}/flowmesh-bindings/preflight"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraph-runs/{run_id}/frontier"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraph-runs/{run_id}/paths"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraph-runs/{run_id}/settle"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraphs"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraphs/eligibility"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraphs/validate"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraphs/{graph_id}/export"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraphs/{graph_id}/runs"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/callgraph.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/callgraphs/{graph_id}/runs/preflight"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/cancellation/request"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/cancellation/{id}"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
         "crates/focusa-api/src/routes/clt.rs"
       ],
       "surface": "rest",
@@ -6732,6 +7896,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/clt/stats"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/cockpit.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/cockpit/projection"
     },
     {
       "feature": null,
@@ -6788,6 +7966,34 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/compaction/build"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/compaction_controller.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/compaction/controller-epoch"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/compaction_controller.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/compaction/controller-status"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -7040,6 +8246,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/compaction/verify"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/completion_claims.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/completion-claims/evaluate"
     },
     {
       "feature": "focusa.team.multi_operator",
@@ -7610,10 +8830,178 @@
       "product": "focusa",
       "recovery_allowance": false,
       "source": [
+        "crates/focusa-api/src/routes/credentials.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/credentials/grant-status"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/credentials.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/credentials/providers"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/credentials.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/credentials/verify-requirement"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
         "crates/focusa-api/src/routes/daemon_routing.rs"
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/daemon-routing/resolve"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/deadline/clear"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/deadline/conflicts"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/deadline/propagate"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/deadline/resolve-civil"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/deadline/revise"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/deadline/set"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/deadline/set-civil"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/deadline/{id}"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/deadlines"
     },
     {
       "feature": null,
@@ -7768,6 +9156,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/device/pair/status"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/direction.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/direction/operations"
     },
     {
       "feature": null,
@@ -7938,6 +9340,90 @@
       "symbol_or_route": "/v1/env"
     },
     {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/estimate/evaluate"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/estimate/history"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/estimate/request"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/estimate/validate"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/estimate/{id}"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/evaluations/predictions"
+    },
+    {
       "feature": null,
       "gate_location": null,
       "limit_bucket": null,
@@ -7950,6 +9436,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/events/health"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/events_retention.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/events/prune"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -8009,6 +9509,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/events/{event_id}"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/research_packet.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/evidence/research-packet"
     },
     {
       "feature": null,
@@ -8431,6 +9945,20 @@
       "symbol_or_route": "/v1/info"
     },
     {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/information-sets"
+    },
+    {
       "feature": "focusa.core.workpoint",
       "gate_location": "route entitlement middleware",
       "limit_bucket": null,
@@ -8585,6 +10113,146 @@
       "symbol_or_route": "/v1/intuition/submit"
     },
     {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/learning/candidates/{id}/decide"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/learning/conflicts"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/learning/consolidate"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/learning/retrieve"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/learning/transfers/resolve"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/learning/{id}/apply"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/learning/{id}/expire"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/learning/{id}/revoke"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/learning/{id}/rollback"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/learning/{id}/supersede"
+    },
+    {
       "feature": null,
       "gate_location": null,
       "limit_bucket": null,
@@ -8697,6 +10365,34 @@
       "symbol_or_route": "/v1/lineage/tree"
     },
     {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/lost-time/incidents"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/lost-time/incidents/{id}"
+    },
+    {
       "feature": "focusa.core.workpoint",
       "gate_location": "route entitlement middleware",
       "limit_bucket": null,
@@ -8781,6 +10477,20 @@
       "symbol_or_route": "/v1/metacognition/adjust"
     },
     {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/metacognition/adjustments"
+    },
+    {
       "feature": null,
       "gate_location": null,
       "limit_bucket": null,
@@ -8837,6 +10547,20 @@
       "symbol_or_route": "/v1/metacognition/evaluate"
     },
     {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/metacognition/evaluations"
+    },
+    {
       "feature": null,
       "gate_location": null,
       "limit_bucket": null,
@@ -8865,6 +10589,20 @@
       "symbol_or_route": "/v1/metacognition/reflect"
     },
     {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/metacognition/reflections"
+    },
+    {
       "feature": null,
       "gate_location": null,
       "limit_bucket": null,
@@ -8891,6 +10629,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/metacognition/retrieve"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/metacognition/signals"
     },
     {
       "feature": null,
@@ -9045,6 +10797,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/mission-canvas/surfaces/mutate"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/no-progress/incidents"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -9341,6 +11107,90 @@
       "symbol_or_route": "/v1/openapi.json"
     },
     {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/opportunities"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/opportunities/{subject}"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/outcomes/claim"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/outcomes/resolve"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/outcomes/{id}/correct"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/outcomes/{id}/dispute"
+    },
+    {
       "feature": "focusa.core.evidence",
       "gate_location": "route entitlement middleware",
       "limit_bucket": null,
@@ -9367,6 +11217,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/prediction-authority/projection"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/prediction-questions"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -9400,12 +11264,26 @@
       "feature": "focusa.core.evidence",
       "gate_location": "route entitlement middleware",
       "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/predictions/commit"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
       "mutation_class": "read",
       "pre_side_effect_test": "not_applicable",
       "product": "focusa",
       "recovery_allowance": false,
       "source": [
-        "crates/focusa-api/src/routes/predictions.rs"
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/predictions/recent"
@@ -9423,6 +11301,34 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/predictions/stats"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/predictions/{id}"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/predictions/{id}/supersede"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -9549,6 +11455,34 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/preload/write"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/progress/record"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/progress/status"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -10209,6 +12143,34 @@
       "symbol_or_route": "/v1/release/proof/status"
     },
     {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/remote_workspaces.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/remote-workspaces/bindings"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/remote_workspaces.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/remote-workspaces/bindings/revoke"
+    },
+    {
       "feature": "focusa.core.evidence",
       "gate_location": "route entitlement middleware",
       "limit_bucket": null,
@@ -10221,6 +12183,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/resource/mode"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/response/temporal-claims/validate"
     },
     {
       "feature": null,
@@ -10277,6 +12253,34 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/roles/profiles/review"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/runtime_constitution.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/runtime-constitution"
+    },
+    {
+      "feature": "focusa.core.evidence",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/prediction_authority_canonical.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/self-model"
     },
     {
       "feature": null,
@@ -10447,6 +12451,20 @@
       "symbol_or_route": "/v1/silent-sessions/capabilities"
     },
     {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/silent_sessions_wait.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/silent-sessions/completions"
+    },
+    {
       "feature": "focusa.agent.silent_sessions",
       "gate_location": "route entitlement middleware",
       "limit_bucket": null,
@@ -10459,6 +12477,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/silent-sessions/config/resolve"
+    },
+    {
+      "feature": "focusa.agent.silent_sessions",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/session_fanout.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/silent-sessions/fanout"
     },
     {
       "feature": "focusa.agent.silent_sessions",
@@ -10501,6 +12533,34 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/silent-sessions/profiles"
+    },
+    {
+      "feature": "focusa.agent.silent_sessions",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/silent_sessions_wait.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/silent-sessions/sweep-completions"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/silent_sessions_wait.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/silent-sessions/wait"
     },
     {
       "feature": null,
@@ -11197,6 +13257,20 @@
       "product": "focusa",
       "recovery_allowance": false,
       "source": [
+        "crates/focusa-api/src/routes/work_item_temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/task/closure/check"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
       "surface": "rest",
@@ -11539,6 +13613,48 @@
       "symbol_or_route": "/v1/temporal/forecast"
     },
     {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/temporal/guard/issue"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/temporal/guard/revoke"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/temporal/guard/validate"
+    },
+    {
       "feature": "focusa.core.mission",
       "gate_location": "route entitlement middleware",
       "limit_bucket": null,
@@ -11705,6 +13821,118 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/threads/{id}/transfer"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/time/awareness"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/time/capabilities"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/time/doctor"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/time/now"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/time/samples"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/time/status"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/time/stream"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/temporal_clients.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/time/trust"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -12659,6 +14887,34 @@
       "symbol_or_route": "/v1/work-rail/mutate"
     },
     {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/work_item_temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/work/timing/status"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/work_item_temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/work/velocity"
+    },
+    {
       "feature": "focusa.core.workpoint",
       "gate_location": "route entitlement middleware",
       "limit_bucket": null,
@@ -12751,6 +15007,104 @@
       "product": "focusa",
       "recovery_allowance": false,
       "source": [
+        "crates/focusa-api/src/routes/work_item_temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/workpoint/item/close-check"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/work_item_temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/workpoint/item/complete"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/work_item_temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/workpoint/item/create"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/work_item_temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/workpoint/item/pause"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/work_item_temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/workpoint/item/resume"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/work_item_temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/workpoint/item/start"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/work_item_temporal.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/workpoint/items"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
         "crates/focusa-api/src/routes/workpoint.rs"
       ],
       "surface": "rest",
@@ -12769,6 +15123,76 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/workpoint/rollover/target-materialize"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/worksets.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/worksets"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/worksets.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/worksets/{workset_id}/events"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/worksets.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/worksets/{workset_id}/freshness"
+    },
+    {
+      "feature": null,
+      "gate_location": null,
+      "limit_bucket": null,
+      "mutation_class": "read",
+      "pre_side_effect_test": "not_applicable",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/worksets.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/worksets/{workset_id}/projection"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/worksets.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/worksets/{workset_id}/transition"
     },
     {
       "feature": "focusa.core.evidence",
@@ -12797,6 +15221,20 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/workspace/artifacts/intake"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "route entitlement middleware",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": [
+        "crates/focusa-api/src/routes/remote_workspaces.rs"
+      ],
+      "surface": "rest",
+      "symbol_or_route": "/v1/workstreams/migrate"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -12833,6 +15271,18 @@
       "source": "crates/focusa-api/src/routes/update.rs",
       "surface": "update",
       "symbol_or_route": "crates/focusa-api/src/routes/update.rs"
+    },
+    {
+      "feature": "focusa.core.workpoint",
+      "gate_location": "inherit_canonical_operation",
+      "limit_bucket": null,
+      "mutation_class": "mutation",
+      "pre_side_effect_test": "required",
+      "product": "focusa",
+      "recovery_allowance": false,
+      "source": "crates/focusa-api/src/routes/update_authority.rs",
+      "surface": "update",
+      "symbol_or_route": "crates/focusa-api/src/routes/update_authority.rs"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -12924,9 +15374,9 @@
   },
   "schema": "focusa.entitlement_coverage.v1",
   "source_digests": {
-    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "d0ad2aa6cbd85cea96cea9f03165882dd57c310b8bd7f455a3efb2dc714169eb",
-    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "36b4b293a3eedd8d8e011160d578f1ce0864fa9835c1c36697c39afbb522221b",
-    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "2522c1d4d8fc6c25d591ef4cc086e4e9fd810b08ac15b1648fb0ad19fefd7764"
+    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "325103e2cad44e6278bd312bb19537f6edfd22eb0ec948d7e71715d16295c983",
+    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "96298159ece65d8f9d0c5f2d35ee3ab91c3858ec3af7cf5d90ed1e04884253b0",
+    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "61dd49eb0cbb814da39a807047b914b5636596a229e81696ae4d0e05f00583ef"
   },
   "unmatched_surfaces": []
 }
