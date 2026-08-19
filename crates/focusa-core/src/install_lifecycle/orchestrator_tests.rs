@@ -5,6 +5,9 @@ use crate::install_lifecycle::{
     PreservationDisposition, PreservationItem,
 };
 use std::collections::BTreeSet;
+use std::sync::{Mutex, OnceLock};
+
+static TEST_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
 
 fn preservation() -> PreservationDeclaration {
     let classes = [
@@ -134,6 +137,7 @@ fn journal_resumes_idempotently_and_detects_tampering() {
 
 #[test]
 fn update_requires_signed_artifact_and_purge_has_separate_confirmation() {
+    let _guard = TEST_MUTEX.get_or_init(|| Mutex::new(())).lock().unwrap();
     unsafe {
         std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
     }
@@ -155,6 +159,9 @@ fn update_requires_signed_artifact_and_purge_has_separate_confirmation() {
         resume_state(&purge, &[]),
         Err(LifecycleOrchestratorError::PurgeConfirmationRequired)
     );
+    unsafe {
+        std::env::remove_var("FOCUSA_ACTIVATION_BYPASS_DISABLE");
+    }
 }
 
 #[test]
@@ -196,6 +203,7 @@ fn final_acceptance_requires_coherent_versions_service_project_and_first_workpoi
 
 #[test]
 fn entitlement_transition_table_blocks_mutation_without_signed_grants() {
+    let _guard = TEST_MUTEX.get_or_init(|| Mutex::new(())).lock().unwrap();
     unsafe {
         std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
     }
@@ -243,6 +251,9 @@ fn entitlement_transition_table_blocks_mutation_without_signed_grants() {
     purge.entitlement = None;
     purge.purge_confirmed_separately = true;
     assert_eq!(validate_request_at(&purge, now), Ok(()));
+    unsafe {
+        std::env::remove_var("FOCUSA_ACTIVATION_BYPASS_DISABLE");
+    }
 }
 
 #[test]
