@@ -52,3 +52,21 @@ Agent language: say "tag pushed, CI queued" or "Release published as Latest" —
 - **Dev channel visibility:** Dev releases are invisible in sidebar (only Tags). Should we publish dev as `prerelease` so early adopters see them in Releases list?
 
 If you approve 1-3, I will: keep the AGENTS.md patch, make stamp script generate the manifest, and add the pre-push checks. No partials unless you say so.
+
+## External research (browser)
+
+Sources checked via Brave Search + direct fetch 2026-08-19:
+
+- Harness — "CI/CD Best Practices: Build Fast, Stable Pipelines" — commit early/often, keep builds green, build once, streamline tests, secure/clean envs, use pipeline for all prod deploys, release in stages, track metrics. https://www.harness.io/blog/ci-cd-best-practices
+- JetBrains TeamCity — "Best Practices for Successful CI/CD" — collective responsibility for green builds, quick-fixes on failure, no blame. https://www.jetbrains.com/teamcity/ci-cd-guide/ci-cd-best-practices/
+- Depot — "Fast Rust Builds with sccache and GitHub Actions" — sccache + GitHub cache cuts Rust builds 3-5×. https://depot.dev/blog/sccache-in-github-actions
+- GitHub — `actions/cache` — cache deps and build outputs. https://github.com/actions/cache
+- Gatling — "CI/CD best practices: top 15" — build once, test the binary you ship, short feedback loops, fast/reliable tests. https://gatling.io/blog/ci-cd-best-practices
+
+Takeaways applied to Focusa:
+
+- Build once: stamp 16 surfaces from one script, then reuse that artifact everywhere (already our rule — just make it actually one writer).
+- Short feedback: pre-push local checks (fmt/clippy/verify) in 15s, not after push.
+- Cache: `Swatinem/rust-cache` + `sccache` (depot pattern) is the biggest CI speedup for Rust+TS.
+- Keep builds green: collective fix, not force tags. Our `score + window` hiding green discipline — replace with plain score.
+
