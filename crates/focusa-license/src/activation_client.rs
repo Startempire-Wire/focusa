@@ -23,6 +23,12 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 fn is_home_dev_bypass() -> bool {
+    if std::env::var("FOCUSA_ACTIVATION_BYPASS_DISABLE")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return false;
+    }
     if std::env::var("FOCUSA_DEV_MODE")
         .map(|v| v == "1")
         .unwrap_or(false)
@@ -859,6 +865,9 @@ mod tests {
 
     #[test]
     fn paid_terminal_journey_settles_one_state_machine_and_redacts() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = scripted_paid_start();
         authority.push(
             "activation.verify",
@@ -966,6 +975,9 @@ mod tests {
 
     #[test]
     fn bounded_poll_never_exceeds_budget_and_terminal_session_stops() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = ScriptedAuthority::new();
         authority.push(
             "activation.start",
@@ -1024,6 +1036,9 @@ mod tests {
 
     #[test]
     fn cancel_settles_fail_closed_to_recovery_only_without_entitlement() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = scripted_paid_start();
         authority.push(
             "activation.verify",
@@ -1051,6 +1066,9 @@ mod tests {
 
     #[test]
     fn refund_settles_refresh_to_recovery_only() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = ScriptedAuthority::new();
         authority.push(
             "lease.refresh",
@@ -1089,6 +1107,9 @@ mod tests {
 
     #[test]
     fn illegal_transition_from_authority_fails_closed_without_state_change() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = scripted_paid_start();
         authority.push(
             "activation.verify",
@@ -1121,6 +1142,9 @@ mod tests {
 
     #[test]
     fn authority_error_returns_canonical_envelope_with_typed_code_and_retry() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = ScriptedAuthority::new();
         authority.push(
             "activation.start",
@@ -1164,6 +1188,9 @@ mod tests {
 
     #[test]
     fn unmaskable_email_fails_closed_before_any_authority_call() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = ScriptedAuthority::new();
         let session = ActivationSession::begin(
             authority,

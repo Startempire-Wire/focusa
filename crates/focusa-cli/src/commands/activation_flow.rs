@@ -1224,6 +1224,9 @@ mod tests {
 
     #[test]
     fn paid_terminal_flow_renders_frozen_presenter_states_and_redacts() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = scripted_verified();
         authority.push(
             "activation.select_offer",
@@ -1307,6 +1310,9 @@ mod tests {
 
     #[test]
     fn existing_key_flow_settles_activated_without_checkout() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = scripted_verified();
         authority.push(
             "activation.existing_license",
@@ -1344,6 +1350,9 @@ mod tests {
 
     #[test]
     fn limited_access_spec172_overlay_settles_activated_without_checkout() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = scripted_verified();
         authority.push(
             "activation.select_offer",
@@ -1390,6 +1399,9 @@ mod tests {
 
     #[test]
     fn verification_expiry_settles_recovery_only() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = scripted_paid_start();
         authority.push(
             "activation.verify",
@@ -1409,6 +1421,9 @@ mod tests {
 
     #[test]
     fn checkout_timeout_cancels_fail_closed_to_recovery_only() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = scripted_verified();
         authority.push(
             "activation.select_offer",
@@ -1449,6 +1464,9 @@ mod tests {
 
     #[test]
     fn poll_error_recovery_only_renders_typed_code_and_next_action() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = scripted_verified();
         authority.push(
             "activation.select_offer",
@@ -1655,6 +1673,9 @@ mod tests {
 
     #[test]
     fn agent_begin_returns_typed_human_action_envelope_and_handle_without_prompt() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
         let authority = scripted_paid_start();
         let outcome = run_agent_activation(
             authority,
