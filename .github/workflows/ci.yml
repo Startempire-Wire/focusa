@@ -93,7 +93,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
+        timeout-minutes: 5
+        run: |
+          for i in 1 2 3; do sudo apt-get update && break || { echo "apt update retry $i"; sleep 10; }; done
+          sudo apt-get install -y ripgrep || sudo apt-get install -y --fix-missing ripgrep
       - name: Auto-heal audit trail
         run: python3 scripts/auto-heal-audit.py
 
@@ -135,9 +138,10 @@ jobs:
           npm ci --ignore-scripts
           node scripts/patch-pi-shrinkwrap-dependencies.mjs
       - name: Install CI deps
+        timeout-minutes: 5
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq curl python3 ripgrep
+          for i in 1 2 3; do sudo apt-get update && break || { echo "apt update retry $i"; sleep 10; }; done
+          sudo apt-get install -y jq curl python3 ripgrep || sudo apt-get install -y --fix-missing jq curl python3 ripgrep
       - name: Pi 0.81 compaction and session-recovery release gate
         working-directory: apps/pi-extension
         run: |
