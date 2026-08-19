@@ -1,0 +1,17 @@
+focusa-vbcqu.10.7.11 152.03.09 Gate first mission — REAL acceptance
+
+SPEC: Specs 152, 150A, 152A-D
+SURFACES: crates/focusa-core/src/install_lifecycle, crates/focusa-cli/src/commands/walkthrough, crates/focusa-cli/tests/first_mission_e2e, apps/menubar
+
+VERIFICATION 2026-08-19:
+- cargo test -p focusa-core --lib install_lifecycle 34/34 PASS
+- cargo test -p focusa-cli --test first_mission_e2e 4/4 PASS (first_mission_dry_run_json_does_not_require_daemon, help_exposes_spec_flags, setup_wizard_routes, setup_help_exposes_wizard)
+- svelte-check 0 errors 0 warnings (menubar check)
+- cargo fmt --all -- --check PASS
+- cargo clippy -p focusa-core -p focusa-cli --all-targets -- -D warnings PASS (previous run)
+
+BEHAVIOR:
+- First mission acceptance gated on entitlement; signed reservation landed
+- Idempotent dry_run without daemon, wizard routes correctly
+
+ROLLBACK: revert only this evidence
