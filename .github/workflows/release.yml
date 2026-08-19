@@ -110,13 +110,29 @@ jobs:
             [ -n "$run" ] || { echo "::error::Missing successful ${workflow} candidate gate for ${candidate_sha}"; exit 1; }
             echo "candidate_gate_reused workflow=${workflow} receipt=${run}"
           }
+          require_success_with_wait() {
+            local workflow="$1"
+            # DETERMINISTIC WAIT — no agent polling. Waits up to 20m for candidate gate (CI already waited, Spec132 is the slow terminal matrix).
+            for attempt in $(seq 1 120); do
+              local run
+              run=$(gh run list --workflow "$workflow" --commit "$candidate_sha" --limit 10 --json status,conclusion,url,headSha \
+                | jq -c --arg sha "$candidate_sha" 'map(select(.headSha == $sha and .status == "completed" and .conclusion == "success")) | .[0] // empty')
+              if [ -n "$run" ]; then echo "candidate_gate_reused workflow=${workflow} receipt=${run}"; return 0; fi
+              # if a run exists but failed, fail fast
+              fail=$(gh run list --workflow "$workflow" --commit "$candidate_sha" --limit 5 --json status,conclusion,headSha | jq -c --arg sha "$candidate_sha" 'map(select(.headSha == $sha and .status == "completed" and .conclusion == "failure")) | .[0] // empty')
+              if [ -n "$fail" ]; then echo "::error::${workflow} failed for ${candidate_sha}: ${fail}"; exit 1; fi
+              if (( attempt % 12 == 0 )); then echo "candidate_gate_wait workflow=${workflow} attempt=${attempt} sha=${candidate_sha}"; fi
+              sleep 10
+            done
+            echo "::error::Timed out waiting for ${workflow} candidate gate ${candidate_sha}"; exit 1
+          }
           require_success "CI"
           previous=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1 || true)
           candidate_changed_paths="$(git diff --name-only "${previous:-HEAD^}"..HEAD)"
           if grep -Eq \
             '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)' \
             <<<"$candidate_changed_paths"; then
-            require_success "Spec 132 terminal matrix"
+            require_success_with_wait "Spec 132 terminal matrix"
           fi
       - name: OTA installability release contract gate
         run: python3 tests/spec143_ota_installability_release_gate_test.py
