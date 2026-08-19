@@ -1,0 +1,11 @@
+{
+  "schema": "focusa.spec152.protected_boundary_ledger.v1",
+  "release": "0.9.174-dev",
+  "selected_family": "premium-automation",
+  "public_contract": "docs/contracts/spec152e-activation-public-openapi.v1.json",
+  "private_owner": "crates/focusa-license/src/limit_reservation.rs",
+  "fallback": "recovery-only with export/uninstall, no silent premium",
+  "platforms": ["linux","macos","windows"],
+  "assurance": ["unit","integration","adversarial"],
+  "public_source_absence": "verified no premium impl in public shell; private key envelope node-bound"
+}
