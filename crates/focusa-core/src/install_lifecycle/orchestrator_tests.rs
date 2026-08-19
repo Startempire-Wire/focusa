@@ -134,6 +134,9 @@ fn journal_resumes_idempotently_and_detects_tampering() {
 
 #[test]
 fn update_requires_signed_artifact_and_purge_has_separate_confirmation() {
+    unsafe {
+        std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+    }
     let mut update = request(LifecycleOperation::Update);
     update.artifact_signature_verified = false;
     assert_eq!(
@@ -193,6 +196,9 @@ fn final_acceptance_requires_coherent_versions_service_project_and_first_workpoi
 
 #[test]
 fn entitlement_transition_table_blocks_mutation_without_signed_grants() {
+    unsafe {
+        std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+    }
     let now = authority_time("2026-08-07T00:00:00Z");
 
     let mut install = request(LifecycleOperation::Install);
