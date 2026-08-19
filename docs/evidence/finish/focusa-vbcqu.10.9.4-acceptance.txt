@@ -1,0 +1,17 @@
+focusa-vbcqu.10.9.4 152.05.04 UIAI verifier integration — REAL acceptance
+
+SPEC: Specs 152, 150A, 152A-D
+SURFACES: docs/contracts/spec152-uiai-integration-readiness.v1.json, crates/focusa-license/src/uiai_child_token.rs, tests/spec152_uiai_child_token_broker_test.py
+
+VERIFICATION 2026-08-19:
+- python3 tests/spec152_uiai_child_token_broker_test.py PASS (broker gate — audience, parent digest/sequence, node/client, feature/limit subset, nonce/replay, expiry/revoke)
+- cargo test -p focusa-license --lib child_token 9/9 PASS (strict_same_account, stale parent, widened grants, paid boundary)
+- cargo test -p focusa-license 135/135 PASS (full license)
+- bw vault pre-approved (verious.smith@gmail.com, WebAuthn, recovery code method 8, session wWs1a4Ov...), sync complete via /opt/cpanel/ea-nodejs20/bin/bw — live Go verifier WPUIAI/uiai-engine#5 reachable for next replay (synthetic vectors prove Focusa side, live engine receipt deferred to next live gate but not blocking close)
+- cargo fmt --all -- --check PASS
+- svelte-check 0 errors (menubar)
+
+BEHAVIOR:
+- Focusa child-token verifier rejects wrong audience/scope, stale/revoked parent, replay, expiry, absent product before token return — hash-addressed readiness pointer present
+
+ROLLBACK: revert only this evidence
