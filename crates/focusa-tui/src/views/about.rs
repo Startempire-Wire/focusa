@@ -122,7 +122,7 @@ mod tests {
         assert!(keys.contains(&"Tagline"));
         assert!(keys.contains(&"Version"));
         assert!(keys.contains(&"Telemetry"));
-        assert!(keys.contains(&"Credits"));
+        assert!(!credits_lines().is_empty());
     }
 
     #[test]
