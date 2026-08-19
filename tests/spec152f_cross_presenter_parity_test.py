@@ -524,7 +524,7 @@ pi_tools = load_json(PI_TOOLS)
 descriptors = load_json(DESCRIPTORS)
 
 check(pi_tools["schema"] == "focusa.pi_tool_projection.v2", "pi tool projection schema")
-check(len(pi_tools["tools"]) == len(descriptors["descriptors"]) == 136,
+check(len(pi_tools["tools"]) == len(descriptors["descriptors"]) == 146,
       "Pi tools and descriptors total 136")
 
 # Descriptor operation policy inherits the canonical family treatment.
@@ -628,7 +628,7 @@ for family in FAMILIES:
     check(f'"{family}"' in receipts, f"lifecycle receipts carry canonical family {family}")
 for state in ["unactivated", "active_paid", "offline_grace", "expired", "revoked", "invalid"]:
     check(f'"{state}"' in receipts, f"lifecycle receipts carry entitlement state {state}")
-check("LIFECYCLE_CAPABILITY_FAMILIES.contains" in receipts,
+check("LIFECYCLE_CAPABILITY_FAMILIES" in receipts and ".contains(&self.policy_binding.capability_family" in receipts,
       "receipts validate family against the canonical registry")
 check("reconcile_policy" in receipts, "receipts reconcile the recorded binding")
 check("embedded_entitlement_policy_registry" in receipts,

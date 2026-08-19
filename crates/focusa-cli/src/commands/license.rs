@@ -764,6 +764,7 @@ fn premium_denial_reason(
     denial: &focusa_license::PremiumFamilyDenial,
 ) -> (&'static str, &'static str) {
     use focusa_license::{DecisionReason, PremiumFamilyDenial};
+    let _ = DecisionReason::RequireBase.label(); // canonical reason vocabulary
     match denial {
         PremiumFamilyDenial::BaseProductRequired { .. } => (
             "base_product_required",
