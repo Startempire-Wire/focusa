@@ -448,3 +448,187 @@ mod migration_eval_tests {
         assert!(validate_transition(Some(&prev), &bad).is_err());
     }
 }
+
+#[cfg(test)]
+mod migration_rollback_tests {
+    use super::*;
+    use chrono::Utc;
+    use std::path::PathBuf;
+
+    #[test]
+    fn migration_rollback_authority_sequence_cannot_regress() {
+        let path = std::env::temp_dir().join(format!(
+            "focusa-migration-rollback-{}-{}.jsonl",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+        ));
+        let _ = std::fs::remove_file(&path);
+        let digest = "sha256:rollback-test";
+        let mid = migration_id_for_source_digest(digest);
+        let now = Utc::now();
+        // Discovered
+        append_license_migration_entry(
+            &path,
+            LicenseMigrationJournalEntry {
+                schema: LICENSE_MIGRATION_SCHEMA.into(),
+                migration_id: mid,
+                sequence: 0,
+                source_class: LegacyLicenseSourceClass::EvaluationRecord,
+                source_digest: digest.into(),
+                status: LicenseMigrationStatus::Discovered,
+                authority_lease_id: None,
+                authority_lease_sequence: None,
+                authority_lease_digest: None,
+                preserved_data_refs: vec![],
+                evidence_refs: vec![],
+                observed_at: now,
+                previous_entry_hash: String::new(),
+                entry_hash: String::new(),
+            },
+        )
+        .unwrap();
+        // AwaitingAuthority
+        append_license_migration_entry(
+            &path,
+            LicenseMigrationJournalEntry {
+                schema: LICENSE_MIGRATION_SCHEMA.into(),
+                migration_id: mid,
+                sequence: 0,
+                source_class: LegacyLicenseSourceClass::EvaluationRecord,
+                source_digest: digest.into(),
+                status: LicenseMigrationStatus::AwaitingAuthority,
+                authority_lease_id: None,
+                authority_lease_sequence: None,
+                authority_lease_digest: None,
+                preserved_data_refs: vec![],
+                evidence_refs: vec![],
+                observed_at: now,
+                previous_entry_hash: String::new(),
+                entry_hash: String::new(),
+            },
+        )
+        .unwrap();
+        // AuthorityIssued
+        append_license_migration_entry(
+            &path,
+            LicenseMigrationJournalEntry {
+                schema: LICENSE_MIGRATION_SCHEMA.into(),
+                migration_id: mid,
+                sequence: 0,
+                source_class: LegacyLicenseSourceClass::EvaluationRecord,
+                source_digest: digest.into(),
+                status: LicenseMigrationStatus::AuthorityIssued,
+                authority_lease_id: Some("lease-1".into()),
+                authority_lease_sequence: Some(5),
+                authority_lease_digest: Some("sha256:abc".into()),
+                preserved_data_refs: vec![],
+                evidence_refs: vec![],
+                observed_at: now,
+                previous_entry_hash: String::new(),
+                entry_hash: String::new(),
+            },
+        )
+        .unwrap();
+        // Committed
+        append_license_migration_entry(
+            &path,
+            LicenseMigrationJournalEntry {
+                schema: LICENSE_MIGRATION_SCHEMA.into(),
+                migration_id: mid,
+                sequence: 0,
+                source_class: LegacyLicenseSourceClass::EvaluationRecord,
+                source_digest: digest.into(),
+                status: LicenseMigrationStatus::Committed,
+                authority_lease_id: Some("lease-1".into()),
+                authority_lease_sequence: Some(5),
+                authority_lease_digest: Some("sha256:abc".into()),
+                preserved_data_refs: vec![],
+                evidence_refs: vec![],
+                observed_at: now,
+                previous_entry_hash: String::new(),
+                entry_hash: String::new(),
+            },
+        )
+        .unwrap();
+        // Rollback must preserve same lease, cannot regress to old sequence
+        let rollback_same = append_license_migration_entry(
+            &path,
+            LicenseMigrationJournalEntry {
+                schema: LICENSE_MIGRATION_SCHEMA.into(),
+                migration_id: mid,
+                sequence: 0,
+                source_class: LegacyLicenseSourceClass::EvaluationRecord,
+                source_digest: digest.into(),
+                status: LicenseMigrationStatus::SoftwareRolledBack,
+                authority_lease_id: Some("lease-1".into()),
+                authority_lease_sequence: Some(5),
+                authority_lease_digest: Some("sha256:abc".into()),
+                preserved_data_refs: vec![],
+                evidence_refs: vec![],
+                observed_at: now,
+                previous_entry_hash: String::new(),
+                entry_hash: String::new(),
+            },
+        )
+        .unwrap();
+        assert_eq!(rollback_same, MigrationAppendOutcome::Appended);
+        // Attempt to rollback with different lease should fail
+        let err = append_license_migration_entry(
+            &path,
+            LicenseMigrationJournalEntry {
+                schema: LICENSE_MIGRATION_SCHEMA.into(),
+                migration_id: migration_id_for_source_digest("sha256:other"),
+                sequence: 0,
+                source_class: LegacyLicenseSourceClass::EvaluationRecord,
+                source_digest: "sha256:other".into(),
+                status: LicenseMigrationStatus::SoftwareRolledBack,
+                authority_lease_id: Some("lease-2".into()),
+                authority_lease_sequence: Some(1),
+                authority_lease_digest: Some("sha256:xyz".into()),
+                preserved_data_refs: vec![],
+                evidence_refs: vec![],
+                observed_at: now,
+                previous_entry_hash: String::new(),
+                entry_hash: String::new(),
+            },
+        );
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn migration_rollback_idempotent_replay() {
+        let path = std::env::temp_dir().join(format!(
+            "focusa-migration-rollback-{}-{}.jsonl",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+        ));
+        let _ = std::fs::remove_file(&path);
+        let digest = "sha256:idem-rollback";
+        let mid = migration_id_for_source_digest(digest);
+        let now = Utc::now();
+        let entry = LicenseMigrationJournalEntry {
+            schema: LICENSE_MIGRATION_SCHEMA.into(),
+            migration_id: mid,
+            sequence: 0,
+            source_class: LegacyLicenseSourceClass::EvaluationRecord,
+            source_digest: digest.into(),
+            status: LicenseMigrationStatus::Discovered,
+            authority_lease_id: None,
+            authority_lease_sequence: None,
+            authority_lease_digest: None,
+            preserved_data_refs: vec![],
+            evidence_refs: vec![],
+            observed_at: now,
+            previous_entry_hash: String::new(),
+            entry_hash: String::new(),
+        };
+        assert_eq!(
+            append_license_migration_entry(&path, entry.clone()).unwrap(),
+            MigrationAppendOutcome::Appended
+        );
+        assert_eq!(
+            append_license_migration_entry(&path, entry.clone()).unwrap(),
+            MigrationAppendOutcome::IdempotentReplay
+        );
+    }
+}
