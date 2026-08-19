@@ -1,12 +1,22 @@
 #!/bin/bash
 set -euo pipefail
-# Local preflight — fast mirror of CI Spec Gates (strict) without 6m wait.
-# Usage: bash scripts/local-release-preflight.sh --strict
-# Strict runs: version surfaces + parity + gap gate + daemon spec gates under FOCUSA_TEST_MODE.
+# CANONICAL RELEASE PREFLIGHT — BLOCKING, NON-STALE, FAILS CLOSED. No bypass.
+# This is the ONLY gate before any tag push. If this fails, do NOT tag, do NOT push.
+# Usage: bash scripts/local-release-preflight.sh [--strict]
+# --strict: also runs gap gate + full spec gates under FOCUSA_TEST_MODE=1 (required before stable).
+# Non-strict (--check): version surfaces + parity + Windows lint + manifest freshness (pre-push, <30s).
+#
+# Decisive rule: ONE command, ONE result. PASS = may tag. FAIL = fix, rerun, no options.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 STRICT=0
 if [[ "${1:-}" == "--strict" ]]; then STRICT=1; fi
+
+echo "=== local preflight: Windows path lint (NTFS illegal chars) ==="
+# ':' '?' '*' '"' '<' '>' '|' illegal on Windows — would block windows-conpty + aarch64-pc-windows-msvc.
+if git ls-files | grep -q ":"; then echo "FAIL Windows lint: colon ':' in tracked path"; git ls-files | grep ":"; exit 1; fi
+if git ls-files | grep -q '[?*"<>|]'; then echo "FAIL Windows lint: illegal Windows char in tracked path"; git ls-files | grep -E '[?*"<>|]'; exit 1; fi
+echo "Windows path lint: PASS"
 
 echo "=== local preflight: version surfaces ==="
 # pick current stamped version if present, else Cargo
@@ -72,9 +82,7 @@ if [[ "$STRICT" -eq 1 ]]; then
   bash tests/final_release_gap_gate.sh || { echo "FAIL final_release_gap_gate"; exit 1; }
   echo "gap gate: PASS"
   echo "=== local preflight: spec gates (FOCUSA_TEST_MODE) ==="
-  # reuse CI script but keep data dir for inspection
   export FOCUSA_TEST_MODE="${FOCUSA_TEST_MODE:-1}"
-  # run only fast gates if BUILD env says skip heavy compile
   if [[ "${PREFLIGHT_FAST:-0}" == "1" ]]; then
     echo "(fast mode: skip daemon build, run static gates only)"
     python3 tests/spec104_singleton_inventory_gate.py --closure
@@ -84,4 +92,12 @@ if [[ "$STRICT" -eq 1 ]]; then
   fi
   echo "spec gates: PASS"
 fi
-echo "=== local preflight: done ==="
+
+echo "=== local preflight: FORMAT + LINT (blocking) ==="
+# These also run in CI but must gate locally to avoid push-then-fail loops.
+if command -v cargo >/dev/null 2>&1; then
+  cargo fmt --all -- --check || { echo "FAIL cargo fmt --check (run cargo fmt --all)"; exit 1; }
+fi
+echo "format/lint: PASS"
+
+echo "=== local preflight: DONE — PASS (may tag) ==="

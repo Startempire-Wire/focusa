@@ -143,6 +143,37 @@ def replace_readme_version(path: str, version: str) -> None:
         raise SystemExit(f"Expected one Current source version badge in {path}")
     file_path.write_text(next_text, encoding="utf-8")
 
+
+def regenerate_distribution_manifest(version: str) -> None:
+    """Regenerate distribution-manifest.json as part of single-source stamp.
+
+    This is the ONLY writer for distribution-manifest.json. It recomputes
+    sha256 for every artifact, sets source_commit to HEAD, and sets
+    generated_at to now. No hand edits allowed.
+    """
+    import datetime
+    import subprocess
+    manifest_path = ROOT / "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json"
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    data["release_version"] = version
+    # Recompute sha256 for each artifact listed in the manifest.
+    new_artifacts: dict[str, str] = {}
+    for rel in list(data.get("artifacts", {}).keys()):
+        artifact_path = ROOT / rel
+        if not artifact_path.exists():
+            raise SystemExit(f"Missing artifact for manifest: {rel}")
+        digest = "sha256:" + hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+        new_artifacts[rel] = digest
+    data["artifacts"] = new_artifacts
+    # source_commit = short HEAD at stamp time.
+    head = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=str(ROOT)).decode().strip()
+    data["source_commit"] = head
+    data["generated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+    # Ensure required keys exist.
+    data.setdefault("schema", "focusa.distribution_manifest.v1")
+    data.setdefault("compatibility_status", "compatible")
+    manifest_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
 def replace_lock_package_versions(
     path: str, package_names: set[str], version: str
 ) -> None:
@@ -211,10 +242,12 @@ def main() -> int:
 
     # README source-version badge (validate-docs-runtime-parity requires v< Cargo version).
     replace_readme_version("README.md", version)
+    # Distribution manifest — single-source: recompute sha256 + source_commit + generated_at.
+    regenerate_distribution_manifest(version)
     # Release stamp artifact (used by release invariant inputs).
     (ROOT / "docs/current/.release-version-stamp").write_text(version + "\n", encoding="utf-8")
 
-    print(f"Stamped Focusa version {version}")
+    print(f"Stamped Focusa version {version} (including distribution-manifest)")
     return 0
 
 
