@@ -50,9 +50,21 @@ if m.get("release_version") != cargo_v:
     print(f"FAIL release_version {m.get('release_version')} != Cargo {cargo_v}", file=sys.stderr)
     sys.exit(1)
 manifest_touched = "distribution-manifest.json" in subprocess.check_output(["git","diff","--name-only","HEAD~1","HEAD"]).decode() if head_parent != head_short else False
-if m.get("source_commit") not in (head_short, head_full, head_full[:7], head_parent):
-    if not (manifest_touched and m.get("source_commit") == head_parent):
-        print(f"FAIL stale source_commit {m.get('source_commit')} != HEAD {head_short} nor parent {head_parent} (touched={manifest_touched})", file=sys.stderr)
+# FAST (pre-push) allows manifest to be at any ancestor — only STRICT release requires HEAD/parent.
+# This removes agent from every non-release docs push (no need to bump manifest on ci/docs commits).
+fast_mode = subprocess.call(["git","rev-parse","--verify","HEAD~10"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)==0 and "PREFLIGHT_FAST" in __import__("os").environ
+source_commit = m.get("source_commit")
+if source_commit not in (head_short, head_full, head_full[:7], head_parent):
+    if manifest_touched and source_commit == head_parent:
+        pass
+    elif fast_mode:
+        # allow any ancestor in fast mode — check is-ancestor
+        is_anc = subprocess.call(["git","merge-base","--is-ancestor", source_commit, "HEAD"]) == 0
+        if not is_anc:
+            print(f"FAIL stale source_commit {source_commit} not ancestor of HEAD {head_short} (touched={manifest_touched})", file=sys.stderr)
+            sys.exit(1)
+    else:
+        print(f"FAIL stale source_commit {source_commit} != HEAD {head_short} nor parent {head_parent} (touched={manifest_touched})", file=sys.stderr)
         sys.exit(1)
 for rel, expected in m.get("artifacts",{}).items():
     p = root / rel
