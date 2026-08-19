@@ -96,9 +96,14 @@ jobs:
         timeout-minutes: 10
         run: |
           if command -v rg >/dev/null 2>&1; then echo "ripgrep already present"; exit 0; fi
-          sudo sed -i 's|http://azure.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
-          for i in 1 2 3; do sudo apt-get update -o Acquire::Retries=3 && break || { echo "apt update retry $i"; sleep 10; }; done
-          sudo apt-get install -y ripgrep || sudo apt-get install -y --fix-missing ripgrep || true
+          # Fix azure mirror hangs by clearing mirrorlist and using archive directly
+          sudo rm -f /etc/apt/apt-mirrors.txt 2>/dev/null || true
+          sudo sed -i 's|http://azure.archive.ubuntu.com|http://archive.ubuntu.com|g; s|https://azure.archive.ubuntu.com|https://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+          # Try apt with timeout, fallback to binary download to avoid mirror outage
+          (timeout 45 sudo apt-get update -o Acquire::Retries=3 && sudo apt-get install -y ripgrep) || true
+          if command -v rg >/dev/null 2>&1; then echo "ripgrep installed via apt"; exit 0; fi
+          echo "apt failed, installing ripgrep via static binary"
+          curl -fsSL https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep-14.1.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/rg.tar.gz && tar -xzf /tmp/rg.tar.gz -C /tmp && sudo mv /tmp/ripgrep-14.1.0-x86_64-unknown-linux-musl/rg /usr/local/bin/rg && rg --version
       - name: Auto-heal audit trail
         run: python3 scripts/auto-heal-audit.py
 
@@ -144,9 +149,18 @@ jobs:
         run: |
           need=0; command -v jq >/dev/null 2>&1 || need=1; command -v curl >/dev/null 2>&1 || need=1; command -v python3 >/dev/null 2>&1 || need=1; command -v rg >/dev/null 2>&1 || need=1
           if [ "$need" = 0 ]; then echo "CI deps already present"; exit 0; fi
-          sudo sed -i 's|http://azure.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
-          for i in 1 2 3; do sudo apt-get update -o Acquire::Retries=3 && break || { echo "apt update retry $i"; sleep 10; }; done
-          sudo apt-get install -y jq curl python3 ripgrep || sudo apt-get install -y --fix-missing jq curl python3 ripgrep || true
+          # jq/curl/python3 are preinstalled, only rg is typically missing
+          if ! command -v rg >/dev/null 2>&1; then
+            sudo rm -f /etc/apt/apt-mirrors.txt 2>/dev/null || true
+            sudo sed -i 's|http://azure.archive.ubuntu.com|http://archive.ubuntu.com|g; s|https://azure.archive.ubuntu.com|https://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+            (timeout 45 sudo apt-get update -o Acquire::Retries=3 && sudo apt-get install -y ripgrep) || true
+            if ! command -v rg >/dev/null 2>&1; then
+              echo "apt failed, installing ripgrep via static binary"
+              curl -fsSL https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep-14.1.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/rg.tar.gz && tar -xzf /tmp/rg.tar.gz -C /tmp && sudo mv /tmp/ripgrep-14.1.0-x86_64-unknown-linux-musl/rg /usr/local/bin/rg && rg --version
+            fi
+          fi
+          command -v jq >/dev/null 2>&1 || (timeout 45 sudo apt-get update && sudo apt-get install -y jq || true)
+          command -v curl >/dev/null 2>&1 || (timeout 45 sudo apt-get update && sudo apt-get install -y curl || true)
       - name: Pi 0.81 compaction and session-recovery release gate
         working-directory: apps/pi-extension
         run: |
