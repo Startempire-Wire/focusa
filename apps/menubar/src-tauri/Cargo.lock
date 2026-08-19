@@ -828,7 +828,7 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "focusa-menubar"
-version = "0.9.174-dev"
+version = "0.9.176-dev"
 dependencies = [
  "mdns-sd",
  "serde",

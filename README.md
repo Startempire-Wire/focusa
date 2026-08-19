@@ -18,7 +18,7 @@
   <img alt="Local first" src="https://img.shields.io/badge/local--first-proof%20layer-2b82ff">
 </p>
 
-Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.174-dev`.
+Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.176-dev`.
 
 When a coding session gets long, context compacts, the mission drifts, proof gets buried, or another agent takes over, Focusa preserves the work as a proof-backed **Workpoint** with linked **Evidence** and a **next safe action**. The next agent should not have to guess from transcript memory.
 
