@@ -754,6 +754,16 @@
       "target": "test-only serialization lock for license origin probe, no authority-bearing state",
       "acceptance_test": "tests/spec104_singleton_inventory_gate.py",
       "authority_bearing": false
+    },
+    {
+      "path": "crates/focusa-core/src/install_lifecycle/orchestrator_tests.rs",
+      "symbol": "TEST_MUTEX",
+      "classification": "infra_allowlist",
+      "status": "infra_allowed",
+      "annex_id": "INF-01",
+      "target": "test-only serialization lock for orchestrator tests, no authority-bearing state",
+      "acceptance_test": "tests/spec104_singleton_inventory_gate.py",
+      "authority_bearing": false
     }
   ]
 }
