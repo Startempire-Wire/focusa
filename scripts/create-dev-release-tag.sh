@@ -509,7 +509,7 @@ else
 fi
 python3 scripts/verify-version-surfaces.py "${TAG}"
 scripts/verify-doc-version-consistency
-node scripts/validate-docs-runtime-parity.mjs
+node scripts/validate-docs-runtime-parity.mjs # distribution parity drift blocks this release
 
 # DETERMINISTIC FINAL GATE — no agent discretion. If this fails, do not push.
 # This is the same gate as pre-push, but --strict adds gap + Spec Gates.

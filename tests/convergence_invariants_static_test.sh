@@ -11,7 +11,7 @@ pass(){ echo "✓ PASS: $*"; }
 [ -f "$ROOT_DIR/crates/focusa-core/src/project_marker.rs" ] || fail "canonical marker service missing (#243)"
 [ -f "$ROOT_DIR/crates/focusa-core/src/remote_workspace.rs" ] || fail "RemoteWorkspaceBinding core missing (#89)"
 [ -f "$ROOT_DIR/crates/focusa-core/src/workstream_root.rs" ] || fail "WorkstreamRoot core missing (#125)"
-[ -f "$ROOT_DIR/crates/focusa-core/src/compaction_policy.rs" ] || fail "compaction policy controller missing (#112)"
+[ -f "$ROOT_DIR/crates/focusa-core/src/compaction_policy.rs" ] || [ -f "$ROOT_DIR/crates/focusa-core/src/compaction_policy/mod.rs" ] || fail "compaction policy controller missing (#112)"
 [ -f "$ROOT_DIR/crates/focusa-core/src/silent_session_completion_events.rs" ] || fail "completion events ledger missing (#311)"
 [ -f "$ROOT_DIR/crates/focusa-core/src/runtime/event_retention.rs" ] || fail "event retention engine missing"
 [ -f "$ROOT_DIR/crates/focusa-cli/src/commands/pi_package.rs" ] || fail "Pi package transaction missing (#309)"
