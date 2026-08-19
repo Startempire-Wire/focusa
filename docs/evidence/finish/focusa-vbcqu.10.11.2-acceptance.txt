@@ -1,0 +1,10 @@
+focusa-vbcqu.10.11.2 152.08.02 Update installer first-run privacy and recovery guides — REAL
+Verification:
+- python3 tests/spec152_documentation_consistency_gate.py: PASS (active_files=17, documentation_digest=sha256:6e3add841a05aee63ce20283aeb76b587c26791f0c0b89110859c1e0969f5a68)
+- docs/current/FIRST_RUN_FLOW.md exists, INSTALLER_UPDATE_POLICY.md exists, COMMERCIAL_PACKAGING.md exists, link-checked 17 active files
+- No unauthenticated --eval, pairing-first, loopback entitlement, healthy adapter as license, or unverified email claim per gate
+- cargo fmt/clippy 0
+
+Surfaces: docs/current/FIRST_RUN_FLOW.md, INSTALLER_UPDATE_POLICY.md, COMMERCIAL_PACKAGING.md, install runbooks/skills/README — truthful path with no bypass.
+
+Evidence: commit <pending> on main

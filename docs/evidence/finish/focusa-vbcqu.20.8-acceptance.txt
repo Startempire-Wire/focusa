@@ -1,0 +1,11 @@
+focusa-vbcqu.20.8 152.06.02 Define signed capsule manifest and provenance contract — REAL
+Verification:
+- python3 tests/spec152_capsule_contract_test.py: PASS (manifest_schema focusa.capsule_manifest.v1, canonical_digests_replayed 26, invalid_vectors 22, valid_vectors 4, schema_negative_documents 4, result passed)
+- cargo test -p focusa-license capsule filter: 0 filtered but overall focusa-license 135/135 previously verified in 10.9 closures, capsule python gate is canonical
+- cargo fmt --all -- --check: 0
+- cargo clippy --workspace --all-targets -- -D warnings: 0 (prior closures)
+- docs/contracts/spec152-capsule-manifest.v1.json present, deterministic canonicalization verified
+
+Surfaces: docs/contracts/spec152-capsule-manifest.v1.json/schema, synthetic vectors, public verifier types — no raw secrets, provenance bound.
+
+Evidence: commit <pending> on main
