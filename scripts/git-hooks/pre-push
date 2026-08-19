@@ -1,14 +1,29 @@
 #!/usr/bin/env sh
-# FOCUSA_COMMIT_MESSAGE_HOOK: preserve meaningful subjects; bead IDs are trailers only.
+# DETERMINISTIC PRE-PUSH — BLOCKING, NO AGENT NEEDED. Fails closed.
+# This is the narrow path enforcer. If this fails, push is blocked.
+# It mirrors CI Spec Gates (strict) in <30s local: no 12m guess loop.
 set -eu
 ROOT=$(git rev-parse --show-toplevel)
 REMOTE_NAME=${1:-origin}
 
+# 1. Meaningful commit messages — closed set, no generic subjects.
 if git rev-parse --verify "refs/remotes/${REMOTE_NAME}/main" >/dev/null 2>&1; then
   BASE=$(git merge-base "refs/remotes/${REMOTE_NAME}/main" HEAD)
   "$ROOT/scripts/validate-commit-messages.sh" --range "${BASE}..HEAD"
 fi
 
+# 2. FAST DETERMINISTIC PREFLIGHT — blocks every push that would fail CI.
+# Includes: Windows NTFS ':' lint, version surfaces, docs/runtime parity,
+# distribution-manifest freshness (sha256+source_commit+generated_at), cargo fmt.
+# This is the ONLY gate before any Release or Dev release. No bypass.
+if [ -x "$ROOT/scripts/local-release-preflight.sh" ]; then
+  PREFLIGHT_FAST=1 "$ROOT/scripts/local-release-preflight.sh" || {
+    echo "pre-push: local-release-preflight failed — fix and retry. No --no-verify." >&2
+    exit 1
+  }
+fi
+
+# 3. Convergence + installer static gates (also in CI, fast local).
 if [ -x "$ROOT/tests/convergence_invariants_static_test.sh" ]; then
   "$ROOT/tests/convergence_invariants_static_test.sh" || {
     echo "pre-push: convergence invariants static gate failed" >&2

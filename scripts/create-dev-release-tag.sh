@@ -511,6 +511,16 @@ python3 scripts/verify-version-surfaces.py "${TAG}"
 scripts/verify-doc-version-consistency
 node scripts/validate-docs-runtime-parity.mjs
 
+# DETERMINISTIC FINAL GATE — no agent discretion. If this fails, do not push.
+# This is the same gate as pre-push, but --strict adds gap + Spec Gates.
+if [[ "$PUSH" -eq 1 ]]; then
+  echo "=== deterministic final gate: local-release-preflight --strict ==="
+  bash scripts/local-release-preflight.sh --strict || {
+    echo "deterministic gate FAILED — fix, do not push tag" >&2
+    exit 1
+  }
+fi
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
   git checkout -- Cargo.toml Cargo.lock README.md \
