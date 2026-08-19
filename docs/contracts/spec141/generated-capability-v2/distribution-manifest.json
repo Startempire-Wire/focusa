@@ -1,16 +1,16 @@
 {
   "artifacts": {
-    "Cargo.toml": "sha256:70bf04ca9086198a79124f3fcb76e67f5a7819cc3cd86da934849759e0e7bb15",
-    "apps/pi-extension/package.json": "sha256:36f98dbde5139b0dc46f01cb81fea7e0669b4f85ad794ac1e4462a80e09cef81",
-    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:7edf2b70c29eb45dcf3979f7338a6f9dc04a5b645c518c21d6c6a0e7c5743e46",
+    "Cargo.toml": "sha256:10e573dc5eaa37aaca5abc64eafa5109849715b25b8708f3259d5e3fa302d6e5",
+    "apps/pi-extension/package.json": "sha256:27901257d5dbed52f7f4fbc3abfa544bdec39f2c1ef58c78b63215d4691ce039",
+    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:6aa084f44995691633a621cad3eb40ba041469884cb2168b1d076f46487d8759",
     "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:3e9522e53957ce8e229d281e57f2fce90a357842c2aa338360373b6d65f0c26a",
     "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:6e9384e7e11277a19d1b03d52df24c22e0563de094a6e02bfb26756b6ec30446"
   },
   "compatibility_status": "compatible",
   "drift_findings": [],
   "evidence_ref": "scripts/verify-version-surfaces.py",
-  "generated_at": "2026-08-19T02:27:49.071167+00:00",
-  "release_version": "0.9.176-dev",
+  "generated_at": "2026-08-19T05:08:43.435040+00:00",
+  "release_version": "0.9.177",
   "schema": "focusa.distribution_manifest.v1",
-  "source_commit": "eb49a2e"
+  "source_commit": "17637d8"
 }
