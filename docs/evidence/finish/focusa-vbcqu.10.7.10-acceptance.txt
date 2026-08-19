@@ -1,0 +1,19 @@
+focusa-vbcqu.10.7.10 152.03.08 Project evaluation UX — REAL acceptance
+
+SPEC: Specs 152, 150A, 152A-D
+SURFACES: apps/menubar entitlement components, crates/focusa-cli, crates/focusa-tui activation_presenter, docs/evidence
+
+VERIFICATION 2026-08-19:
+- svelte-check 0 errors 0 warnings (menubar)
+- cargo test -p focusa-tui -- license 2/2 PASS (license_status_projection_maps_shared_posture, verified_no_license_projects_limited_posture)
+- cargo test -p focusa-license 135/135 PASS (EDD error semantics, limit reservation, child_token)
+- cargo test -p focusa-core --lib install_lifecycle 34/34 PASS (entitlement binding)
+- cargo fmt --all -- --check PASS
+- cargo clippy -p focusa-tui -p focusa-license --all-targets -- -D warnings PASS
+
+BEHAVIOR:
+- Evaluation posture shows masked identity, state, expiry/offline window, remaining limits, manage/purchase, recovery policy; marketing separate
+- Active/grace/expired/revoked/invalid/offline states have compatible semantics and safe recovery actions
+- No hard-coded caps, raw manage token, deceptive unlimited eval
+
+ROLLBACK: revert only this evidence
