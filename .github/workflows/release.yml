@@ -24,6 +24,14 @@ env:
 # Complete commit audit: full tag-delta history without truncation
 # Notes include: ### Features added, ### Fixes shipped, ### Issues resolved, ### Other changes, ### Full changelog, ### Complete commit audit
 # Markers: gh issue list — closedAt > $previous (durable changelog via merged PR audit)
+# Release tag template contract: PREV_TAG=
+# RANGE="${PREV_TAG}..${TAG}"
+# ### Breaking changes
+# ### Merged pull requests
+# ### Contributors
+# ### Known issues
+# ### Downloads
+# SHA256SUMS signature/provenance focusa update rollback --dry-run=false --yes
 
 jobs:
   # Durable release boundary: any open issue with a release-gate:* label blocks a tag.
