@@ -233,6 +233,12 @@ fn recovery_guidance_is_contract_bound() {
 }
 
 fn is_home_dev_bypass() -> bool {
+    if std::env::var("FOCUSA_ACTIVATION_BYPASS_DISABLE")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        return false;
+    }
     if std::env::var("FOCUSA_DEV_MODE")
         .map(|v| v == "1")
         .unwrap_or(false)
