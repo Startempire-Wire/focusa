@@ -98,15 +98,22 @@ Before any durable state change (commit, push, branch switch, merge, rebase, tag
 Why: shipping from a stale local head duplicates or reverts remote work, and creates
 phantom commits in the operator's log. The discipline is: **see the world before you change it.**
 
+## Release vocabulary (mandatory, plain language)
+
+- **Release** = full canonical stable. All surfaces, all operating systems, all artifacts. Shows as **Latest** on the repo sidebar and makes the green CI badge. This is the only thing that counts as "shipped."
+- **Dev release** = nightly/development channel. Same full surfaces and operating systems, but marked prerelease. Early adopters can opt in. It is still full — no missing OS, no missing surface.
+- **No partial releases.** Do not ship an OS or a surface by itself. If you think you need one, write a one-line reason and get explicit approval. Default is no.
+
 ## Canonical build/deploy rule (mandatory)
 
 **Build and deploy ONLY through the full live GitHub release pipeline.**
 
-- Canonical command: `scripts/create-dev-release-tag.sh --base 0.9 --push`
-- Required chain: `CI` → `Release` → `Deploy Live Daemon` → audit/self-heal/watchdog.
+- Canonical command: `scripts/create-dev-release-tag.sh --push` (for stable) or `scripts/create-dev-release-tag.sh --base 0.9 --push` (auto-picks next patch). For an exact stable: `scripts/create-dev-release-tag.sh --tag v0.9.177 --push`.
+- Required chain: `CI` → `Release` → `Deploy Live Daemon` → audit/self-heal/watchdog. The release is not done until `gh release view vX.Y.Z` exists and CI is green.
 - Do **not** build release artifacts locally with `cargo build --release`.
 - Do **not** deploy from `target/release` or call `install-daemon.sh --binary target/release/...`.
 - Do **not** run only a partial deploy workflow as a shortcut.
+- Do **not** hand-edit `distribution-manifest.json` or version files. Use the stamp script — it is the single source of truth.
 - If the pipeline fails, fix the pipeline/system and push; Auto Heal + Watchdog must recover future failures.
 
 See `docs/canonical-live-release-pipeline.md` before any build/deploy work.
