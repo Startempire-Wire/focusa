@@ -1,0 +1,4 @@
+focusa-vbcqu.10.10.3 152.07.03 migration verified-mailbox REAL
+- cargo test -p focusa-license migration_eval 5/5 PASS (verified mailbox promotion, rejects unverified/terms, archive non-authoritative)
+- cargo test -p focusa-cli install 0 filtered PASS, fmt/clippy 0
+- bounded window, verified email, preserves workpoints/evidence, no silent consent

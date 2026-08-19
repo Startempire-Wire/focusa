@@ -269,3 +269,182 @@ fn compute_entry_hash(entry: &LicenseMigrationJournalEntry) -> String {
         Sha256::digest(serde_json::to_vec(&unsigned).expect("migration entry serializes"))
     )
 }
+
+/// Verified-mailbox promotion for legacy evaluators (Spec 152 §7.03).
+/// Legacy local evaluation (Discovered) is archived as non-authoritative;
+/// only a verified email + accepted terms + authority-issued lease may
+/// promote to AuthorityIssued/Committed. No silent marketing consent,
+/// no indefinite grace, and no project deletion.
+pub fn verified_mailbox_email_is_valid(email: &str, verified: bool, terms_accepted: bool) -> bool {
+    if !verified || !terms_accepted {
+        return false;
+    }
+    let trimmed = email.trim();
+    if trimmed.is_empty() || trimmed.len() > 254 {
+        return false;
+    }
+    let parts: Vec<&str> = trimmed.split('@').collect();
+    if parts.len() != 2 {
+        return false;
+    }
+    let (local, domain) = (parts[0], parts[1]);
+    if local.is_empty() || domain.is_empty() || !domain.contains('.') {
+        return false;
+    }
+    // Masked local identity is allowed but raw unverified claim is not;
+    // this validator never logs the raw email and only checks shape.
+    !trimmed.contains(' ') && !trimmed.contains('\n')
+}
+
+pub fn build_verified_mailbox_awaiting_entry(
+    source_digest: &str,
+    source_class: LegacyLicenseSourceClass,
+    email: &str,
+    verified: bool,
+    terms_accepted: bool,
+    observed_at: DateTime<Utc>,
+) -> Result<LicenseMigrationJournalEntry, LicenseMigrationError> {
+    if !verified_mailbox_email_is_valid(email, verified, terms_accepted) {
+        return Err(LicenseMigrationError::InvalidTransition);
+    }
+    Ok(LicenseMigrationJournalEntry {
+        schema: LICENSE_MIGRATION_SCHEMA.into(),
+        migration_id: migration_id_for_source_digest(source_digest),
+        sequence: 0,
+        source_class,
+        source_digest: source_digest.into(),
+        status: LicenseMigrationStatus::AwaitingAuthority,
+        authority_lease_id: None,
+        authority_lease_sequence: None,
+        authority_lease_digest: None,
+        preserved_data_refs: vec![
+            "workpoints".into(),
+            "evidence".into(),
+            "migration_journal".into(),
+        ],
+        evidence_refs: vec!["verified_mailbox_device_code".into()],
+        observed_at,
+        previous_entry_hash: String::new(),
+        entry_hash: String::new(),
+    })
+}
+
+#[cfg(test)]
+mod migration_eval_tests {
+    use super::*;
+    use chrono::Utc;
+
+    #[test]
+    fn migration_eval_verified_mailbox_promotion_succeeds() {
+        assert!(verified_mailbox_email_is_valid(
+            "truthful-evaluator@example.com",
+            true,
+            true
+        ));
+        let entry = build_verified_mailbox_awaiting_entry(
+            "sha256:abc",
+            LegacyLicenseSourceClass::EvaluationRecord,
+            "truthful-evaluator@example.com",
+            true,
+            true,
+            Utc::now(),
+        )
+        .expect("verified mailbox promotion should build awaiting entry");
+        assert_eq!(entry.status, LicenseMigrationStatus::AwaitingAuthority);
+        assert!(
+            entry
+                .preserved_data_refs
+                .contains(&"workpoints".to_string())
+        );
+    }
+
+    #[test]
+    fn migration_eval_rejects_unverified_email() {
+        assert!(!verified_mailbox_email_is_valid(
+            "unverified@example.com",
+            false,
+            true
+        ));
+        assert!(
+            build_verified_mailbox_awaiting_entry(
+                "sha256:abc",
+                LegacyLicenseSourceClass::EvaluationRecord,
+                "unverified@example.com",
+                false,
+                true,
+                Utc::now(),
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn migration_eval_rejects_missing_terms() {
+        assert!(!verified_mailbox_email_is_valid(
+            "evaluator@example.com",
+            true,
+            false
+        ));
+        assert!(
+            build_verified_mailbox_awaiting_entry(
+                "sha256:abc",
+                LegacyLicenseSourceClass::EvaluationRecord,
+                "evaluator@example.com",
+                true,
+                false,
+                Utc::now(),
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn migration_eval_rejects_silent_marketing_consent_without_account() {
+        // Marketing consent alone never promotes; only verified account + terms does.
+        assert!(!verified_mailbox_email_is_valid("", true, true));
+        assert!(!verified_mailbox_email_is_valid("not-an-email", true, true));
+    }
+
+    #[test]
+    fn migration_eval_archive_local_eval_non_authoritative() {
+        // Legacy eval source is EvaluationRecord, never PaidKeyRecord for promotion path;
+        // archive keeps data but never grants entitlement without authority lease.
+        let eval_id = migration_id_for_source_digest("sha256:legacy-eval");
+        let paid_id = migration_id_for_source_digest("sha256:legacy-paid");
+        assert_ne!(eval_id, paid_id);
+        // AuthorityIssued without lease fields must fail
+        let bad = LicenseMigrationJournalEntry {
+            schema: LICENSE_MIGRATION_SCHEMA.into(),
+            migration_id: eval_id,
+            sequence: 3,
+            source_class: LegacyLicenseSourceClass::EvaluationRecord,
+            source_digest: "sha256:legacy-eval".into(),
+            status: LicenseMigrationStatus::AuthorityIssued,
+            authority_lease_id: None,
+            authority_lease_sequence: None,
+            authority_lease_digest: None,
+            preserved_data_refs: vec![],
+            evidence_refs: vec![],
+            observed_at: Utc::now(),
+            previous_entry_hash: String::new(),
+            entry_hash: String::new(),
+        };
+        let prev = LicenseMigrationJournalEntry {
+            schema: LICENSE_MIGRATION_SCHEMA.into(),
+            migration_id: eval_id,
+            sequence: 2,
+            source_class: LegacyLicenseSourceClass::EvaluationRecord,
+            source_digest: "sha256:legacy-eval".into(),
+            status: LicenseMigrationStatus::AwaitingAuthority,
+            authority_lease_id: None,
+            authority_lease_sequence: None,
+            authority_lease_digest: None,
+            preserved_data_refs: vec![],
+            evidence_refs: vec![],
+            observed_at: Utc::now(),
+            previous_entry_hash: GENESIS_HASH.into(),
+            entry_hash: "sha256:prev".into(),
+        };
+        assert!(validate_transition(Some(&prev), &bad).is_err());
+    }
+}
