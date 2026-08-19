@@ -79,9 +79,17 @@ For **Dev release**: same, but tag is `vX.Y.Z-dev` and Release shows `isPrerelea
 
 `cargo fmt --all -- --check` (rustfmt 1.91, `unsafe { set_var }` required), `cargo clippy --workspace --all-targets -- -D warnings` 0, `php -l`, `python -m py_compile`, `svelte-check`, `spec104 --closure` (`STATIC_RE` + `MUTABLE_MARKERS`, `INF-01` for `TEST_MUTEX`), `verify-version-surfaces`, `git ls-files | grep ":"`. All <30s, so they gate `pre-push`.
 
+### Release notes — script-owned, never agent (drastically detailed)
+
+`scripts/generate-release-notes.py --tag vX.Y.Z --output /tmp/release-notes.md` is the ONLY writer. `release.yml: Generate release notes` calls it; the agent never hand-writes body.
+
+What it emits (486 lines for `v0.9.177`): `TL;DR`, `Important software features & additions` (feat + area inference), `Breaking changes`, `Detailed changes by type` (feat/fix/perf/refactor/docs/build/ci/test/chore + `!`), `Changes by area` (table + file `+/−`), collapsible `File-level +/-` (top 80), `PRs merged`, `Issues resolved`, `Known issues`, `Contributors`, `Full commit audit` (every `SHA subject — author`), Upgrade/rollback/integrity, Downloads + Quick Start. Source is `git log RANGE --no-merges`, `git diff --numstat --shortstat`, `gh issue/pr` filtered by `closedAt>prev_published`, never stale strings.
+
+Preview locally: `python3 scripts/generate-release-notes.py --tag v0.9.177 --preview | head -n 80` or `--dry-run` before `create-dev-release-tag.sh --push`.
+
 ### Journal — kept continually for optimizations
 
-`journal_client plan → progress → learning-guards → candidate-ci → tag → release` is kept for every Release. `scripts/run-release-learning-guards.py` replays prior failure modes (modes 41 azure mirror, 42 spec104 drift, 43 colon path, 44 stale manifest, 45 commit-msg) before stamping. Catalog is `docs/current/RELEASE_FAILURE_MODE_CATALOG_2026-08-17.md` H.
+`journal_client plan → progress → learning-guards → candidate-ci → tag → release` is kept for every Release. `scripts/run-release-learning-guards.py` replays prior failure modes (modes 41 azure mirror, 42 spec104 drift, 43 colon path, 44 stale manifest, 45 commit-msg) before stamping. Catalog is `docs/current/RELEASE_FAILURE_MODE_CATALOG_2026-08-17.md` H+I.
 
 ### Dry-run without a full Release
 
