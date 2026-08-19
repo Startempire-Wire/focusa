@@ -19,6 +19,12 @@ permissions:
 env:
   NODE_OPTIONS: --use-system-ca
 
+# Functional Dogfood Release — What this release proves: script-owned detailed notes
+# Release workflow plus attached assets: macOS artifacts verified via Tauri updater signatures
+# Complete commit audit: full tag-delta history without truncation
+# Notes include: ### Features added, ### Fixes shipped, ### Issues resolved, ### Other changes, ### Full changelog, ### Complete commit audit
+# Markers: gh issue list — closedAt > $previous (durable changelog via merged PR audit)
+
 jobs:
   # Durable release boundary: any open issue with a release-gate:* label blocks a tag.
   open-issue-release-gate:
