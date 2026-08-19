@@ -93,10 +93,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install ripgrep
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
-          for i in 1 2 3; do sudo apt-get update && break || { echo "apt update retry $i"; sleep 10; }; done
-          sudo apt-get install -y ripgrep || sudo apt-get install -y --fix-missing ripgrep
+          if command -v rg >/dev/null 2>&1; then echo "ripgrep already present"; exit 0; fi
+          sudo sed -i 's|http://azure.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+          for i in 1 2 3; do sudo apt-get update -o Acquire::Retries=3 && break || { echo "apt update retry $i"; sleep 10; }; done
+          sudo apt-get install -y ripgrep || sudo apt-get install -y --fix-missing ripgrep || true
       - name: Auto-heal audit trail
         run: python3 scripts/auto-heal-audit.py
 
@@ -138,10 +140,13 @@ jobs:
           npm ci --ignore-scripts
           node scripts/patch-pi-shrinkwrap-dependencies.mjs
       - name: Install CI deps
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
-          for i in 1 2 3; do sudo apt-get update && break || { echo "apt update retry $i"; sleep 10; }; done
-          sudo apt-get install -y jq curl python3 ripgrep || sudo apt-get install -y --fix-missing jq curl python3 ripgrep
+          need=0; command -v jq >/dev/null 2>&1 || need=1; command -v curl >/dev/null 2>&1 || need=1; command -v python3 >/dev/null 2>&1 || need=1; command -v rg >/dev/null 2>&1 || need=1
+          if [ "$need" = 0 ]; then echo "CI deps already present"; exit 0; fi
+          sudo sed -i 's|http://azure.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+          for i in 1 2 3; do sudo apt-get update -o Acquire::Retries=3 && break || { echo "apt update retry $i"; sleep 10; }; done
+          sudo apt-get install -y jq curl python3 ripgrep || sudo apt-get install -y --fix-missing jq curl python3 ripgrep || true
       - name: Pi 0.81 compaction and session-recovery release gate
         working-directory: apps/pi-extension
         run: |
