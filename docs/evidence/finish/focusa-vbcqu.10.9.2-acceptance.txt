@@ -1,0 +1,20 @@
+focusa-vbcqu.10.9.2 152.05.02 UIAI token broker — REAL acceptance
+
+SPEC AUTHORITY: Specs 152, 152F chokepoint UIAI child-token broker, 150A, 152A-D
+SURFACES: crates/focusa-license/src/uiai_child_token.rs, crates/focusa-api broker routes/service, tests/spec152_uiai_child_token_broker_test.py, spec152f_uiai_policy
+
+VERIFICATION 2026-08-19:
+- python3 tests/spec152_uiai_child_token_broker_test.py PASS (broker gate)
+- cargo test -p focusa-license --lib child_token 9/9 PASS (strict_same_account, cached_reject_stale, same_account leases, spec172 limited_mode, paid_grant, focusa_only)
+- cargo test -p focusa-license 135/135 PASS (full)
+- cargo fmt --all -- --check PASS (1.91.0)
+- cargo clippy -p focusa-license -p focusa-api --all-targets -- -D warnings PASS
+
+BEHAVIOR VERIFIED:
+- Wrong audience/scope, stale/revoked parent, replay, expiry, absent product fail before token return
+- Same-account binding requires single verified identity
+- Cached tokens reject stale parents and widened grants
+- Paid boundary requires granted family and denies hosted rights
+
+ROLLBACK: revert only this evidence
+COMMIT: this commit
