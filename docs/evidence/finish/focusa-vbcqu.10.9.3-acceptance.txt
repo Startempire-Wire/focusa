@@ -1,0 +1,17 @@
+focusa-vbcqu.10.9.3 152.05.03 UIAI adapter posture — REAL acceptance
+
+SPEC: Specs 152, 150A, 152A-D
+SURFACES: crates/focusa-core/src/install_lifecycle/adapters.rs, receipts.rs, orchestrator.rs
+
+VERIFICATION 2026-08-19:
+- cargo test -p focusa-core --lib install_lifecycle 34/34 PASS (adapters: explicit selection, secret redacted, retryable resume, neutral handoff, required/optional capabilities; contract_tests: entitlement binding, typed transactions, uninstall/recovery, tamper detection; receipts: posture matches parent digest, no raw key, tamper evident)
+- cargo fmt --all -- --check PASS
+- cargo clippy -p focusa-core -p focusa-license --all-targets -- -D warnings PASS
+- python3 tests/spec152_uiai_child_token_broker_test.py PASS (parent gate)
+
+BEHAVIOR:
+- UIAI absent does not block Focusa; Active requires health + verified grant/token
+- Adapter posture matches parent authority digest, no token exposure
+- Health != entitlement (adapter_capability_or_health_cannot_imply_entitlement)
+
+ROLLBACK: revert only this evidence
