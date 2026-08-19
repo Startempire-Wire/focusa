@@ -191,6 +191,26 @@ class WPUIAI_AIC_Admin_License_Grant {
                 </form>
             </div>
 
+            <!-- DISTRIBUTION LIMITS (Operator 50 etc) -->
+            <?php $dist_stats_grant = $this->get_distribution_stats(); $dist_map_grant = [1736=>'Focusa Operator (1736) — limit 50 default',1735=>'Focusa Evaluation (1735)',452=>'Starter LTD (452)',453=>'Pro LTD (453)']; ?>
+            <div style="margin-top:18px;background:#fff;border:1px solid #ccd0d4;border-radius:8px;padding:14px;">
+                <h3 style="margin:0 0 10px;"><span class="dashicons dashicons-chart-bar"></span> Distribution Limits <small style="font-weight:normal;color:#666;">— set/reset caps; distributed counts live from DB; deletes reclaim slots</small></h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;">
+                <?php foreach($dist_map_grant as $did=>$lbl): $st=$dist_stats_grant[$did] ?? ['distributed'=>0,'limit'=>null,'remaining'=>null]; $lim_disp=$st['limit']===null?'Unlimited':number_format($st['limit']); $rem_disp=$st['remaining']===null?'—':number_format($st['remaining']).' left'; $pct=($st['limit']&&$st['limit']>0)?min(100,max(0,($st['distributed']/$st['limit'])*100)):0; $bar=($st['remaining']!==null&&$st['remaining']<=0)?'#d63638':'#2271b1'; ?>
+                    <div style="border:1px solid #dcdcde;border-radius:6px;padding:10px;background:#f9f9f9;">
+                        <div style="font-weight:600;"><?php echo esc_html($lbl); ?> <small style="color:#666;">#<?php echo (int)$did; ?></small></div>
+                        <div style="margin:6px 0;display:flex;gap:10px;flex-wrap:wrap;"><span><strong><?php echo number_format($st['distributed']); ?></strong> distributed</span><span>Limit: <strong><?php echo esc_html($lim_disp); ?></strong></span><span style="color:#555;"><?php echo esc_html($rem_disp); ?></span></div>
+                        <div style="background:#eee;height:6px;border-radius:3px;"><div style="height:6px;background:<?php echo esc_attr($bar); ?>;width:<?php echo (int)$pct; ?>%;border-radius:3px;"></div></div>
+                        <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap;">
+                            <input type="number" min="0" placeholder="Limit (blank=unlimited)" class="dist-limit-input-grant" data-download="<?php echo (int)$did; ?>" style="width:150px;" value="<?php echo $st['limit']===null?'':(int)$st['limit']; ?>">
+                            <button type="button" class="button button-small dist-set-limit-grant" data-download="<?php echo (int)$did; ?>">Set limit</button>
+                            <button type="button" class="button button-small dist-reset-limit-grant" data-download="<?php echo (int)$did; ?>">Reset</button>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                </div>
+                <p class="description" style="margin:8px 0 0;">Enforced on grant (E_DISTRIBUTION_LIMIT). Remove test licenses via Delete in Quick Actions to reclaim.</p>
+            </div>
             <!-- LICENSE TABLE -->
             <div style="margin-top:28px;">
                 <h3>Licenses — Product / Price / Dates / Remaining <span style="font-weight:normal;color:#666;">(<?php echo number_format($total); ?> total)</span></h3>
@@ -304,6 +324,7 @@ class WPUIAI_AIC_Admin_License_Grant {
                                         <button type="button" class="button button-small button-primary wpuiai-quick-activate" data-id="<?php echo (int)$lic['id']; ?>">Activate</button>
                                     <?php endif; ?>
                                     <button type="button" class="button button-small wpuiai-quick-copy" data-key="<?php echo esc_attr($lic['license_key']); ?>">Copy Key</button>
+                                    <button type="button" class="button button-small button-link-delete wpuiai-quick-delete" data-id="<?php echo (int)$lic['id']; ?>" style="color:#b32d2e;">Delete</button>
                                 </div>
                             </td>
                         </tr>
@@ -379,6 +400,25 @@ class WPUIAI_AIC_Admin_License_Grant {
             $(".wpuiai-quick-copy").on("click", function(){
                 var k=$(this).data("key"); navigator.clipboard.writeText(k); var $b=$(this); var t=$b.text(); $b.text("Copied!"); setTimeout(function(){ $b.text(t); },1500);
             });
+            // Delete — cascade removes activations, payment plans, machines
+            $(".wpuiai-quick-delete").on("click", function(){
+                var id=$(this).data("id"); if(!confirm("Delete license #"+id+"? This removes all activations, payment plans and seats — it cannot be undone.")) return;
+                var $btn=$(this); $btn.prop("disabled",true).text("Deleting...");
+                $.post(wpuiaiGrant.ajaxurl, {action:"wpuiai_aic_delete_license", license_id:id, nonce:wpuiaiGrant.licensesNonce}, function(resp){
+                    if(resp && resp.success) location.reload(); else { alert((resp&&resp.data&&resp.data.message)||"Failed to delete"); $btn.prop("disabled",false).text("Delete"); }
+                }).fail(function(){ alert("Request failed"); $btn.prop("disabled",false).text("Delete"); });
+            });
+            // Distribution limits on this Grant page (reuse same endpoint as Licenses page)
+            $(".dist-set-limit-grant").on("click", function(){
+                var dl=$(this).data("download"); var input=$('.dist-limit-input-grant[data-download="'+dl+'"]'); var limit=input.val();
+                if(limit!=='' && (isNaN(parseInt(limit,10))||parseInt(limit,10)<0)){ alert('Limit must be >=0 or blank'); return; }
+                var $b=$(this); $b.prop('disabled',true).text('Saving...');
+                $.post(wpuiaiGrant.ajaxurl, {action:"wpuiai_aic_set_distribution_limit", nonce:wpuiaiGrant.licensesNonce, download_id:dl, limit:limit}, function(resp){ if(resp&&resp.success) location.reload(); else { alert((resp&&resp.data&&resp.data.message)||"Failed"); $b.prop('disabled',false).text('Set limit'); }}).fail(function(){ alert("Request failed"); $b.prop('disabled',false).text('Set limit'); });
+            });
+            $(".dist-reset-limit-grant").on("click", function(){
+                var dl=$(this).data("download"); if(!confirm('Reset limit for #'+dl+' to default?')) return; var $b=$(this); $b.prop('disabled',true).text('...');
+                $.post(wpuiaiGrant.ajaxurl, {action:"wpuiai_aic_set_distribution_limit", nonce:wpuiaiGrant.licensesNonce, download_id:dl, limit:''}, function(resp){ if(resp&&resp.success) location.reload(); else { alert('Failed'); $b.prop('disabled',false).text('Reset'); }}).fail(function(){ alert("Request failed"); $b.prop('disabled',false).text('Reset'); });
+            });
         });
         </script>
         <?php
@@ -413,6 +453,42 @@ class WPUIAI_AIC_Admin_License_Grant {
         if ($lim === '' || $lim === null) $lim = get_post_meta($download_id, '_edd_activation_limit', true);
         if ($lim === '' || $lim === null) return null;
         $i = (int)$lim; return $i; // 0 = unlimited
+    }
+    // ── Distribution caps (total licenses issued per product, e.g. 50 Operator) ──
+    private function get_distribution_limits_raw(): array {
+        $raw = get_option('wpuiai_license_distribution_limits', []);
+        if (!is_array($raw)) $raw = [];
+        $defaults = [1736 => 50];
+        foreach ($defaults as $did=>$def) { if (!array_key_exists($did, $raw)) $raw[$did] = $def; }
+        return $raw;
+    }
+    public function get_distribution_limits(): array { return $this->get_distribution_limits_raw(); }
+    public function get_distribution_count(int $download_id): int {
+        global $wpdb; return (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}edd_licenses WHERE download_id=%d", $download_id));
+    }
+    public function get_distribution_stats(): array {
+        $raw_opt = get_option('wpuiai_license_distribution_limits', []);
+        if (!is_array($raw_opt)) $raw_opt=[];
+        $targets=[1736,1735,452,453]; $out=[];
+        foreach($targets as $did){
+            $cnt=$this->get_distribution_count($did);
+            $lim = array_key_exists($did,$raw_opt) ? $raw_opt[$did] : (($did===1736)?50:null);
+            if ($lim !== null) $lim = (int)$lim;
+            $rem = ($lim===null)?null:max(0,$lim-$cnt);
+            $out[$did]=['distributed'=>$cnt,'limit'=>$lim,'remaining'=>$rem];
+        }
+        return $out;
+    }
+    public function is_distribution_limit_reached(int $download_id): bool {
+        $stats=$this->get_distribution_stats();
+        if (!isset($stats[$download_id])) return false;
+        $s=$stats[$download_id];
+        if ($s['limit']===null) return false;
+        return $s['distributed'] >= $s['limit'];
+    }
+    public function get_distribution_limit(int $download_id): ?int {
+        $stats=$this->get_distribution_stats();
+        return $stats[$download_id]['limit'] ?? null;
     }
     private function get_licenses(int $offset, int $per_page, string $search='', string $status='', string $product=''): array {
         global $wpdb;
@@ -543,6 +619,16 @@ class WPUIAI_AIC_Admin_License_Grant {
             if (is_wp_error($uid)) return ['ok'=>false,'error'=>'user_create_failed: ' . $uid->get_error_message()];
             $user = get_user_by('id', $uid);
             wp_update_user(['ID'=>$uid, 'display_name'=>explode('@',$email)[0], 'role'=>'subscriber']);
+        }
+        // Distribution cap check — e.g. 50 Operator limit. Bare grant must respect the global distribution cap.
+        if ($this->is_distribution_limit_reached($download_id)) {
+            $stats = $this->get_distribution_stats()[$download_id];
+            return ['ok'=>false,'error'=>'E_DISTRIBUTION_LIMIT: limit '.($stats['limit']).' reached for download '.$download_id.' ('.$stats['distributed'].' distributed, 0 remaining). Delete test licenses or raise the limit via Licenses → Distribution Limits.'];
+        }
+        if ($is_bundle && $this->is_distribution_limit_reached($download_id)) {
+            // bundle would issue 2, need at least 2 slots; simple check already covers 1, but double-check remaining
+            $stats = $this->get_distribution_stats()[$download_id];
+            if (($stats['remaining'] ?? 999) < 2) return ['ok'=>false,'error'=>'E_DISTRIBUTION_LIMIT: bundle needs 2 slots but only '.($stats['remaining'] ?? 0).' remaining for '.$download_id];
         }
         if (!class_exists('WPUIAI_AIC_Focusa_License_Production')) return ['ok'=>false,'error'=>'license_production_missing'];
         $res = WPUIAI_AIC_Focusa_License_Production::issue_license($email, $download_id, 0, $tier);

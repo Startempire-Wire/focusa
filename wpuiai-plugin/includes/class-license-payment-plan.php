@@ -397,11 +397,15 @@ class WPUIAI_AIC_License_Payment_Plan {
         $sig = $req->get_header('stripe-signature') ?? $req->get_header('Stripe-Signature') ?? '';
         $cfg = self::stripe_settings();
         $wh_secret = get_option('wpuiai_stripe_webhook_secret','');
-        // If we have wh_secret, verify sig (light)
+        $wh_secret_test = get_option('wpuiai_stripe_webhook_secret_test','');
+        // If we have wh_secret, verify sig (light) — try live then test
         $event = null;
         $whCls = class_exists('\\EDD\\Vendor\\Stripe\\Webhook') ? '\\EDD\\Vendor\\Stripe\\Webhook' : '\\Stripe\\Webhook';
         if ($wh_secret && class_exists($whCls)) {
-            try { $event = $whCls::constructEvent($payload, $sig, $wh_secret); } catch(\Throwable $e) { /* fall through raw json */ }
+            try { $event = $whCls::constructEvent($payload, $sig, $wh_secret); } catch(\Throwable $e) { $event = null; }
+        }
+        if (!$event && $wh_secret_test && class_exists($whCls) && $wh_secret_test !== $wh_secret) {
+            try { $event = $whCls::constructEvent($payload, $sig, $wh_secret_test); } catch(\Throwable $e) { $event = null; }
         }
         if (!$event) $event = json_decode($payload, true);
         if (!$event) return new \WP_REST_Response(['ok'=>false,'error'=>'invalid_payload'],400);

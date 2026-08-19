@@ -1,0 +1,36 @@
+Bidirectional interconnect proof 2026-08-18 17:43 PT
+
+1. Grant → EDD → verify (WP-Admin Grant UI)
+   do_grant("reclaim-test-...@wpuiai.com",1736) → license_id 39 focusa_live_1736_f28865392441670d active download_id 1736 customer_id 28 issued 2026-08-18T17:42:30
+
+2. EDD ↔ Distribution cap
+   count 1736=9 → delete cascade 38 → 8 → re-grant 39 → 9 limit50 remaining41. delete_license_cascade tx OK.
+
+3. EDD ↔ Payment plans (InnoDB FOR UPDATE, idempotent txn)
+   plan id4 stripe 38 697 250/447 active; plan id1 manual 34 260/437 overdue; plan id3 stripe 36 200/497 active
+
+4. WP → Stripe outbound (live)
+   create_plan(38,1736,697,3,stripe) → customer cus_V69tUbAq3r5JF7 price price_1U5wduK8ZIHFwjxMUBngbf8a pi pi_3U5xZsEQNtCwXbDx19uPO3DN amount 69700 test:false
+   Distribution manifest stripe_customer_id persisted in edd_licensemeta wpuiai_stripe_*
+
+5. Stripe → WP inbound (webhook sig verified)
+   we_1U5xXwEQNtCwXbDxqeCc5lCw https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/stripe/payment-plan-webhook payment_intent.succeeded live secret whsec_VE0aKI...
+   we_1U5xXxK8ZIHFwjxM8kTZIVQF test secret whsec_lfLmfe...
+   WP option wpuiai_stripe_webhook_secret=whsec_REDACTED live, _test = whsec_REDACTED
+   Handler patched to try live then test (dual) via EDD\Vendor\Stripe\Webhook::constructEvent
+   Test POST t=... v1=27ea... → 200 auto_recorded plan_id1 paid260 remaining437 live 200->360->rollback
+   Dual test t= test-secret 12.34 + live 11.11 both 200 verified
+   E2E 38 webhook pi_3U5xZs... 250 verified remaining 447
+
+6. WP verify → Focusa / UIAI Engine (bidirectional)
+   GET /license/verify?license_key=focusa_live_1736_f288... → {ok:true schema:focusa.license_verify.v1 license id39 product Focusa Operator status active payment_plan 0/697 stripe seats license_truth}
+   POST /license/validate {license_key} (focusa-core validate_with_registry) → {valid:true license_id 38 tier enterprise status active} (was dev_mode enterprise license_id 0 when uiai_dev_mode=1, now fixed uiai_dev_mode=0)
+   X-Machine-Id seat check cap3 active via Focusa license production
+
+7. UIAI Engine: same POST validate path, tier enterprise limits -1, credits, usage. DevMode bypass removed.
+
+Cron: wpuiai_license_payment_reminders next 2026-08-20T00:03:40 daily + throttle wpuiai_last_payment_reminder 6d/2d.
+
+EDD Stripe: pk_live_51L0mDbEQN... sk_live_51L0m... test_mode 0 live. Webhook separation: payment-plan-webhook vs edd-listener.
+
+Files: class-license-payment-plan.php dual-secret patch + aic-responsive-global 1.0.31, class-admin-license-grant distribution 50, delete cascade.

@@ -3,7 +3,7 @@
  * Plugin Name: WPUIAI AI Cloud Admin
  * Plugin URI: https://wpuiai.com/ai-cloud-admin
  * Description: Management dashboard for WPUIAI AI Cloud service with EDD integration, PostHog analytics, and usage tracking.
- * Version: 1.0.29
+ * Version: 1.0.31
  * Author: Verious Smith
  * Author URI: https://philoveracity.com
  * License: GPL-2.0+
@@ -16,7 +16,7 @@
 defined('ABSPATH') || exit;
 
 // Plugin constants
-define('WPUIAI_AIC_VERSION', '1.0.29');
+define('WPUIAI_AIC_VERSION', '1.0.31');
 define('WPUIAI_AIC_PLUGIN_FILE', __FILE__);
 define('WPUIAI_AIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WPUIAI_AIC_PLUGIN_URL', plugin_dir_url(__FILE__));
