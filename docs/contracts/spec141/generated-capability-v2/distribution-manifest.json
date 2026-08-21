@@ -5,13 +5,14 @@
     "crates/focusa-core/src/hlt_extrapolation.rs": "sha256:03751b5e0c3f4e1b69e555fc69d4d6017a00773a82cc694c74116cad71f78747",
     "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:84dd64f61a7f1e726451fe70ee92d71509def82ba904e9cca1824a804c18947f",
     "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:3e9522e53957ce8e229d281e57f2fce90a357842c2aa338360373b6d65f0c26a",
-    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:6e9384e7e11277a19d1b03d52df24c22e0563de094a6e02bfb26756b6ec30446"
+    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:6e9384e7e11277a19d1b03d52df24c22e0563de094a6e02bfb26756b6ec30446",
+    "crates/focusa-core/src/lib.rs": "sha256:40603f1f4424b5deeb764ea4681104c01c050e73eef84612784a6640b99311ad"
   },
   "compatibility_status": "compatible",
   "drift_findings": [],
   "evidence_ref": "scripts/verify-version-surfaces.py",
-  "generated_at": "2026-08-21T14:02:01Z",
+  "generated_at": "2026-08-21T14:34:45Z",
   "release_version": "0.9.178-dev",
   "schema": "focusa.distribution_manifest.v1",
-  "source_commit": "2485d283a"
+  "source_commit": "cd29a9653"
 }

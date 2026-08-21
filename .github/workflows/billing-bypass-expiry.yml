@@ -1,0 +1,43 @@
+name: Billing bypass auto-expiry (Sep 1 revert)
+
+# Pluggable: disables Azure $0 bypass when GH 2000m resets, reverts to hosted.
+# Runs daily after 2026-09-01, one-shot, no secrets.
+on:
+  schedule:
+    - cron: '17 3 * * *'  # 03:17 UTC daily — cheap, runs on ubuntu-latest (but after reset it's free)
+  workflow_dispatch:
+
+jobs:
+  expire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check expiry
+        id: chk
+        run: |
+          EXP=$(jq -r .expires config/billing-bypass.json 2>/dev/null || echo "2026-09-01")
+          TODAY=$(date -u +%F)
+          echo "exp=$EXP today=$TODAY"
+          if [[ "$TODAY" < "$EXP" ]]; then echo "skip=true" >> $GITHUB_OUTPUT; exit 0; fi
+          if jq -e '.enabled == false' config/billing-bypass.json >/dev/null 2>&1; then echo "skip=true" >> $GITHUB_OUTPUT; exit 0; fi
+          echo "skip=false" >> $GITHUB_OUTPUT
+      - name: Auto-disable Azure bypass
+        if: steps.chk.outputs.skip == 'false'
+        run: |
+          set -e
+          echo "GH minutes reset — disabling Azure bypass"
+          jq '.enabled = false' config/billing-bypass.json > /tmp/b && mv /tmp/b config/billing-bypass.json
+          # keep azure-pipelines.yml but make it no-op: trigger: none already guards via guard job
+          # optional: revert self-hosted → ubuntu-latest (uncomment to auto-revert)
+          # python3 << 'PY'
+          # import pathlib
+          # p=pathlib.Path(".github/workflows/release.yml")
+          # t=p.read_text().replace("runs-on: self-hosted","runs-on: ubuntu-latest")
+          # p.write_text(t)
+          # print("reverted release.yml to hosted")
+          # PY
+          git config user.name "focusa-bot"
+          git config user.email "bot@focusa.dev"
+          git add config/billing-bypass.json
+          git commit -m "chore(billing): auto-expire Azure \$0 bypass — GH 2000m reset $(date -u +%F)" || true
+          git push || true
