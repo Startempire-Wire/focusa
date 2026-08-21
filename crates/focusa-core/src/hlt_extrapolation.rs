@@ -91,7 +91,10 @@ fn derive_mlg(input: &ExtrapolationInput) -> String {
     gaps.sort();
     // Priority: focusa health → cockpit → uiai-engine, then lexical
     // For determinism, lexical sort already; surface priority encoded by gap id prefix
-    let chosen = gaps.first().cloned().unwrap_or_else(|| "prove health runnable".to_string());
+    let chosen = gaps
+        .first()
+        .cloned()
+        .unwrap_or_else(|| "prove health runnable".to_string());
     let mut mlg = format!("Advance {}", chosen);
     if mlg.len() > 120 {
         mlg.truncate(120);
@@ -133,7 +136,11 @@ fn derive_waypoints(stg: &str, gaps: &[String]) -> Vec<Waypoint> {
         // Dedup lexical-stable within tier — already ordered
         // Use gap influence for proof_ref if available
         let gap_suffix = sorted_gaps.get(i).map(|g| g.as_str()).unwrap_or(*proof);
-        let vp = if i < sorted_gaps.len() { gap_suffix } else { *proof };
+        let vp = if i < sorted_gaps.len() {
+            gap_suffix
+        } else {
+            *proof
+        };
         waypoints.push(Waypoint {
             ordinal: (i + 1) as u8,
             surface: surface.to_string(),
@@ -210,7 +217,10 @@ mod tests {
         let input = sample_input(vec!["gap-a", "gap-b"]);
         let a = extrapolate(&input).unwrap();
         let b = extrapolate(&input).unwrap();
-        assert_eq!(serde_json::to_string(&a).unwrap(), serde_json::to_string(&b).unwrap());
+        assert_eq!(
+            serde_json::to_string(&a).unwrap(),
+            serde_json::to_string(&b).unwrap()
+        );
         assert_eq!(a.input_hash, b.input_hash);
         assert_eq!(a.hlt_hash, b.hlt_hash);
     }
