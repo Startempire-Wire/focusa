@@ -30,7 +30,7 @@ permissions:
 jobs:
   entitlement-gate:
     name: Desktop Spec 172 entitlement gate
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
