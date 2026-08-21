@@ -38,7 +38,7 @@ jobs:
   open-issue-release-gate:
     name: Open release-gate issue check
     if: ${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev') }}
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Require every release-gating issue closed
         env:
@@ -62,7 +62,7 @@ jobs:
   pull-request-release-gate:
     name: Pull request inclusion gate
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
         with:
@@ -99,7 +99,7 @@ jobs:
   # an independent publication gate below and still validates the stamped SHA.
   rust-check:
     name: Release Contract Check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     steps:
       - name: Release workflow validation
@@ -155,7 +155,7 @@ jobs:
 
   tag-ci-proof:
     name: Exact tag CI proof
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 20
     steps:
       - name: Wait for successful CI on stamped candidate SHA
@@ -192,7 +192,7 @@ jobs:
   final-release-gap-gate:
     name: Final release gap gate
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
@@ -216,7 +216,7 @@ jobs:
   version-policy:
     name: Release version policy
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
         with:
@@ -232,7 +232,7 @@ jobs:
     name: Create Release
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: [rust-check, final-release-gap-gate, open-issue-release-gate, pull-request-release-gate, version-policy]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
@@ -688,7 +688,7 @@ jobs:
     name: Package Pi Extension
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: create-release
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
       - name: Stamp and verify Pi extension release version
@@ -733,7 +733,7 @@ jobs:
     name: Publish SHA256SUMS
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: [tauri-build, rust-release, pi-extension-release, tag-ci-proof]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
@@ -854,7 +854,7 @@ jobs:
     name: Dispatch Deploy Live Daemon
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: checksums
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     steps:
       - name: Dispatch production deploy workflow

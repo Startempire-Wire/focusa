@@ -4,9 +4,7 @@ name: Release Pipeline Watchdog
 # one attempt per failed run, and typed claim/settlement evidence.
 
 on:
-  schedule:
-    - cron: "*/10 * * * *"
-  workflow_dispatch:
+  workflow_dispatch:  # schedule DISABLED 2026-08-21 - was */10 * * * * (144/day) billing burn
     inputs:
       scan_limit:
         description: Recent runs to inspect
@@ -28,7 +26,7 @@ concurrency:
 jobs:
   scan-and-heal:
     name: Scan failures through the self-heal governor
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
