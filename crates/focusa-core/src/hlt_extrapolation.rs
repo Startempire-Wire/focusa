@@ -54,13 +54,15 @@ fn hlt_hash(hlt: &str) -> String {
 
 fn input_hash(input: &ExtrapolationInput) -> String {
     // Canonical JSON of inputs for replay
+    let mut sorted_gaps = input.docs_gaps.clone();
+    sorted_gaps.sort();
     let canonical = serde_json::json!({
         "hlt": input.hlt.trim(),
         "project_id": input.project_id.trim(),
         "evidence_frame": input.evidence_frame,
         "surface_inventory": input.surface_inventory,
         "docs_gaps": {
-            "sorted": { let mut v = input.docs_gaps.clone(); v.sort(); v }
+            "sorted": sorted_gaps
         }
     });
     hash_hex(&canonical.to_string())
