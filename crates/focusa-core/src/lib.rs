@@ -57,6 +57,7 @@ mod agent_runtime_instruction_integrity_scenario_test;
 pub mod ascc;
 pub mod autonomy;
 pub mod awareness;
+pub mod hlt_extrapolation;
 pub mod background_job_store;
 pub mod background_jobs;
 pub mod bloatgaurd;
