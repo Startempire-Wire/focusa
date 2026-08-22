@@ -235,6 +235,7 @@ mod tests {
         ClaimStatus, ClosureClaim, ClosureKind, WorkItemProvider, WorkItemRef,
     };
     use chrono::Duration;
+    use std::path::{Path, PathBuf};
 
     fn claim_for(item_id: &str, status: ClaimStatus) -> ClosureClaim {
         ClosureClaim {

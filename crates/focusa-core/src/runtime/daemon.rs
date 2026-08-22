@@ -60,9 +60,10 @@ use crate::runtime::persistence_sqlite::SqlitePersistence as Persistence;
 use crate::semantic_migration::SemanticStoreState;
 use crate::types::*;
 use crate::work_item::{
-    BdAdapter, ClosureAuthorityContext, ClosureBlock, ClosureClaim, ClosureKind, EvidenceCitation,
-    EvidenceKind, Lifecycle, LifecycleStage, NoneAdapter, ProviderAdapter, WorkItem,
-    WorkItemProvider, WorkItemQuery, WorkItemRef, evaluate_readiness,
+    BdAdapter, ClaimStorage, ClosureAuditLog, ClosureAuthorityContext, ClosureBlock, ClosureClaim,
+    ClosureKind, EvidenceCitation, EvidenceKind, Lifecycle, LifecycleStage, NoneAdapter,
+    ProviderAdapter, ProviderSweeper, WorkItem, WorkItemProvider, WorkItemQuery, WorkItemRef,
+    evaluate_readiness,
 };
 use crate::workers::{executor, priority_queue};
 use chrono::{DateTime, Utc};
@@ -418,6 +419,10 @@ impl Daemon {
         let mut guardian_interval = tokio::time::interval(std::time::Duration::from_secs(300));
         guardian_interval.tick().await;
 
+        // Spec 176 §L4 provider closure sweeper (every 5 minutes).
+        let mut sweep_interval = tokio::time::interval(std::time::Duration::from_secs(300));
+        sweep_interval.tick().await;
+
         loop {
             tokio::select! {
                 action = self.command_rx.recv() => {
@@ -459,6 +464,10 @@ impl Daemon {
                 _ = guardian_interval.tick() => {
                     // Guardian health check — emit signals for degraded services (§9.11 JARVIS Domain 5).
                     self.check_guardian_health().await;
+                }
+                _ = sweep_interval.tick() => {
+                    // Spec 176 §L4 — no provider lie persists past one sweep interval.
+                    self.run_provider_closure_sweep().await;
                 }
             }
         }
@@ -5032,6 +5041,42 @@ Return:
     ///
     /// Runs every 5 minutes. Shells out to `guardian status --json`.
     /// Per UNIFIED_ORGANISM_SPEC §9.11 JARVIS Domain 5.
+    /// Spec 176 §L4 — hash-memoized sweep of the beads projection against
+    /// the claim ledger. Auto-reopens provider closes that have no
+    /// reconciled closure claim and appends audit incidents. Memoization
+    /// makes a clean tree O(hash-compare) per interval.
+    async fn run_provider_closure_sweep(&mut self) {
+        let (provider, root) = match self.work_item_provider_and_root() {
+            Ok(pair) => pair,
+            Err(_) => return, // no execution scope bound yet; nothing to sweep
+        };
+        if provider != WorkItemProvider::Bd {
+            return;
+        }
+        let issues_jsonl = root.join(".beads/issues.jsonl");
+        if !issues_jsonl.exists() {
+            return;
+        }
+        let storage = ClaimStorage::open_default();
+        let audit = ClosureAuditLog::open_default();
+        let result = tokio::task::spawn_blocking(move || {
+            let mut sweeper = ProviderSweeper::new("focusa-daemon-sweeper");
+            sweeper.sweep_beads_jsonl(&issues_jsonl, &storage, Some(&audit))
+        })
+        .await;
+        match result {
+            Ok(Ok(report)) if report.reopened_count > 0 => tracing::warn!(
+                "closure sweep auto-reopened {} provider item(s): {:?}",
+                report.reopened_count,
+                report.incidents
+            ),
+            Ok(Err(error)) => {
+                tracing::debug!("closure sweep skipped: {error}");
+            }
+            _ => {}
+        }
+    }
+
     async fn check_guardian_health(&mut self) {
         let output = match tokio::time::timeout(
             std::time::Duration::from_secs(10),
