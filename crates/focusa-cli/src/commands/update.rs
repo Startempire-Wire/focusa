@@ -1154,17 +1154,28 @@ fn is_root() -> bool {
 
 fn build_notifications_envelope(inventory: UpdateInventoryEnvelope) -> UpdateNotificationsEnvelope {
     let admin = read_update_admin_state().unwrap_or_default();
+    // 320: channel mismatch + inversion do not use stale_parts alone; policy channel is the source of truth.
+    let policy_channel = inventory.policy.channel.clone();
+    let effective_channel = if policy_channel.is_empty() {
+        inventory.channel.clone()
+    } else {
+        policy_channel.clone()
+    };
+    let channel_mismatch = !policy_channel.is_empty() && policy_channel != inventory.channel;
+    let inversion = inventory.parts.iter().any(|part| {
+        part.version
+            .as_deref()
+            .map(|installed| installed > inventory.latest.version.as_str())
+            .unwrap_or(false)
+    });
     let stale_parts = if admin.paused {
         Vec::new()
     } else {
         inventory.stale_parts
     };
-    let severity = if stale_parts.is_empty() {
-        "none"
-    } else {
-        "warning"
-    };
-    let body = if stale_parts.is_empty() {
+    let has_warning = !stale_parts.is_empty() || channel_mismatch || inversion;
+    let severity = if has_warning { "warning" } else { "none" };
+    let mut body = if stale_parts.is_empty() {
         "Focusa surfaces are current or unknown; no update warning is required.".to_string()
     } else {
         format!(
@@ -1172,6 +1183,20 @@ fn build_notifications_envelope(inventory: UpdateInventoryEnvelope) -> UpdateNot
             stale_parts.join(", ")
         )
     };
+    if channel_mismatch {
+        body = format!(
+            "{} Policy channel '{}' mismatches inventory channel '{}'; nightly is blocked until channels align.",
+            body, policy_channel, inventory.channel
+        );
+    }
+    if inversion {
+        body = format!(
+            "{} Installed newer than Latest {} on channel '{}' (version inversion: no downgrade offered).",
+            body,
+            inventory.latest.version.as_str(),
+            effective_channel
+        );
+    }
     UpdateNotificationsEnvelope {
         schema: "focusa.update_notifications.v1",
         status: "completed",
