@@ -11,13 +11,13 @@ use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;
 use focusa_core::silent_session_completion_events::{
-    ensure_schema, is_terminal_lifecycle, latest_completion, recent_completions,
-    record_completion_event, SilentSessionCompletionEvent,
+    SilentSessionCompletionEvent, ensure_schema, is_terminal_lifecycle, latest_completion,
+    recent_completions, record_completion_event,
 };
 
 #[derive(Deserialize)]
@@ -49,7 +49,10 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/silent-sessions/wait", get(wait))
         .route("/v1/silent-sessions/completions", get(completions))
-        .route("/v1/silent-sessions/sweep-completions", post(sweep_endpoint))
+        .route(
+            "/v1/silent-sessions/sweep-completions",
+            post(sweep_endpoint),
+        )
 }
 
 fn now_iso() -> String {
@@ -150,9 +153,7 @@ pub(crate) fn sweep_completions(
             .or_else(|| projection.get("run"))
             .and_then(|v| v.as_str())
             .map(str::to_string);
-        let generation = projection
-            .get("generation")
-            .and_then(|v| v.as_i64());
+        let generation = projection.get("generation").and_then(|v| v.as_i64());
         let summary = projection
             .get("summary")
             .and_then(|v| v.as_str())
@@ -192,10 +193,7 @@ pub(crate) fn sweep_completions(
     Ok(emitted)
 }
 
-async fn wait(
-    State(state): State<Arc<AppState>>,
-    Query(params): Query<WaitParams>,
-) -> Json<Value> {
+async fn wait(State(state): State<Arc<AppState>>, Query(params): Query<WaitParams>) -> Json<Value> {
     let timeout = params.timeout_ms.clamp(100, 600_000);
     let deadline = std::time::Instant::now() + std::time::Duration::from_millis(timeout);
     loop {
@@ -295,19 +293,30 @@ async fn completions(
     .await;
     match result {
         Ok(Ok(events)) => Json(json!({"status": "ok", "events": events})),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }
 
 async fn sweep_endpoint(State(state): State<Arc<AppState>>) -> Json<Value> {
     let db_path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let tx = state.events_tx.clone();
-    let result =
-        tokio::task::spawn_blocking(move || sweep_completions(&db_path, &tx)).await;
+    let result = tokio::task::spawn_blocking(move || sweep_completions(&db_path, &tx)).await;
     match result {
         Ok(Ok(emitted)) => Json(json!({"status": "ok", "emitted": emitted})),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }

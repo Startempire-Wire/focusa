@@ -6,7 +6,7 @@ use axum::extract::State;
 use axum::routing::post;
 use axum::{Json, Router};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;
@@ -40,7 +40,9 @@ async fn prune(
     let batch_size = request.batch_size.unwrap_or(5_000).clamp(100, 100_000);
     let epoch_junk = request.epoch_junk.unwrap_or(false);
     let export = request.export.unwrap_or(true);
-    let days = request.before_days.unwrap_or(focusa_core::runtime::event_retention::DEFAULT_RETENTION_DAYS);
+    let days = request
+        .before_days
+        .unwrap_or(focusa_core::runtime::event_retention::DEFAULT_RETENTION_DAYS);
 
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         if epoch_junk {
@@ -81,7 +83,13 @@ async fn prune(
 
     match result {
         Ok(Ok(value)) => Json(value),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }

@@ -1,11 +1,11 @@
 //! Runtime Constitution route (#256 slice 1): every harness fetches the
 //! canonical hash-bound behavioral law from here. No per-harness copies.
 
-use axum::extract::State;
-use axum::routing::get;
 use axum::Json;
 use axum::Router;
-use serde_json::{json, Value};
+use axum::extract::State;
+use axum::routing::get;
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;

@@ -2,16 +2,15 @@
 //! broadcast), status, list, and long-poll wait. Mirrors the silent-session
 //! completion pattern (#311): durable first, broadcast second.
 
-use axum::extract::{Query, State};
-use axum::routing::{get, post};
 use axum::Json;
 use axum::Router;
+use axum::extract::{Query, State};
+use axum::routing::{get, post};
 use focusa_core::background_jobs::{
-    BackgroundJobCompletionEvent, BackgroundJobRecord, BackgroundJobStatus,
-    BACKGROUND_JOB_SCHEMA,
+    BACKGROUND_JOB_SCHEMA, BackgroundJobCompletionEvent, BackgroundJobRecord, BackgroundJobStatus,
 };
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -24,10 +23,7 @@ pub fn router() -> Router<Arc<AppState>> {
             "/v1/background-jobs/{job_id}",
             get(get_job).post(update_job),
         )
-        .route(
-            "/v1/background-jobs/{job_id}/complete",
-            post(complete_job),
-        )
+        .route("/v1/background-jobs/{job_id}/complete", post(complete_job))
         .route("/v1/background-jobs/wait", get(wait_job))
 }
 
@@ -85,7 +81,9 @@ async fn create_job(
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         focusa_core::background_job_store::ensure_schema(&conn)?;
-        let job_id = body.job_id.unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
+        let job_id = body
+            .job_id
+            .unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
         let record = BackgroundJobRecord {
             schema: BACKGROUND_JOB_SCHEMA.to_string(),
             job_id: job_id.clone(),
@@ -107,8 +105,14 @@ async fn create_job(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }
 
@@ -122,9 +126,7 @@ async fn update_job(
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         focusa_core::background_job_store::ensure_schema(&conn)?;
-        let Some(mut record) =
-            focusa_core::background_job_store::load_job(&conn, &job_id)?
-        else {
+        let Some(mut record) = focusa_core::background_job_store::load_job(&conn, &job_id)? else {
             return Ok(json!({"status": "missing", "job_id": job_id}));
         };
         if let Some(status) = body.status {
@@ -136,8 +138,8 @@ async fn update_job(
         // envelope so surfaces see dispatch latency.
         let became_running = record.status == BackgroundJobStatus::Running;
         let started_event = if became_running {
-            serde_json::to_string(&
-                focusa_core::background_jobs::BackgroundJobStartedEvent::from_record(&record),
+            serde_json::to_string(
+                &focusa_core::background_jobs::BackgroundJobStartedEvent::from_record(&record),
             )
             .ok()
         } else {
@@ -160,8 +162,14 @@ async fn update_job(
                 "job": payload.get("job").cloned().unwrap_or(Value::Null),
             }))
         }
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }
 
@@ -175,9 +183,7 @@ async fn complete_job(
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         focusa_core::background_job_store::ensure_schema(&conn)?;
-        let Some(mut record) =
-            focusa_core::background_job_store::load_job(&conn, &job_id)?
-        else {
+        let Some(mut record) = focusa_core::background_job_store::load_job(&conn, &job_id)? else {
             return Ok(json!({"status": "missing", "job_id": job_id}));
         };
         // Idempotent settlement: a completed/failed/monitor-lost job can
@@ -212,7 +218,9 @@ async fn complete_job(
             let duration_ms = (*completed - *started).num_milliseconds();
             if duration_ms > 0 {
                 let _ = focusa_core::background_job_store::record_job_duration(
-                    &conn, &record.name, duration_ms,
+                    &conn,
+                    &record.name,
+                    duration_ms,
                 );
             }
         }
@@ -234,8 +242,14 @@ async fn complete_job(
             }
             Json(payload)
         }
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }
 
@@ -254,9 +268,7 @@ async fn get_job(
             .started_at
             .parse::<chrono::DateTime<chrono::Utc>>()
             .ok()
-            .map(|started| {
-                (chrono::Utc::now() - started).num_milliseconds().max(0)
-            });
+            .map(|started| (chrono::Utc::now() - started).num_milliseconds().max(0));
         let eta_ms = focusa_core::background_job_store::eta_ms_for(&conn, &record.name)?;
         Ok(json!({
             "status": "ok",
@@ -268,8 +280,14 @@ async fn get_job(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }
 
@@ -284,8 +302,14 @@ async fn list_jobs(State(state): State<Arc<AppState>>) -> Json<Value> {
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }
 
@@ -299,31 +323,32 @@ async fn wait_job(
     let deadline = std::time::Instant::now() + Duration::from_millis(query.timeout_ms);
     // One connection reused for the whole wait — no per-poll open cost.
     let job_id = query.job_id.clone();
-    let wait_future = tokio::task::spawn_blocking(move || -> anyhow::Result<Option<BackgroundJobRecord>> {
-        let conn = match rusqlite::Connection::open(&path) {
-            Ok(conn) => conn,
-            Err(error) => return Err(anyhow::anyhow!("connection open failed: {error}")),
-        };
-        focusa_core::background_job_store::ensure_schema(&conn)?;
-        let deadline = std::time::Instant::now() + Duration::from_millis(query.timeout_ms);
-        loop {
-            let record = focusa_core::background_job_store::load_job(&conn, &job_id)?;
-            if let Some(record) = record {
-                if matches!(
-                    record.status,
-                    BackgroundJobStatus::Completed
-                        | BackgroundJobStatus::Failed
-                        | BackgroundJobStatus::MonitorLost
-                ) {
-                    return Ok(Some(record));
+    let wait_future =
+        tokio::task::spawn_blocking(move || -> anyhow::Result<Option<BackgroundJobRecord>> {
+            let conn = match rusqlite::Connection::open(&path) {
+                Ok(conn) => conn,
+                Err(error) => return Err(anyhow::anyhow!("connection open failed: {error}")),
+            };
+            focusa_core::background_job_store::ensure_schema(&conn)?;
+            let deadline = std::time::Instant::now() + Duration::from_millis(query.timeout_ms);
+            loop {
+                let record = focusa_core::background_job_store::load_job(&conn, &job_id)?;
+                if let Some(record) = record {
+                    if matches!(
+                        record.status,
+                        BackgroundJobStatus::Completed
+                            | BackgroundJobStatus::Failed
+                            | BackgroundJobStatus::MonitorLost
+                    ) {
+                        return Ok(Some(record));
+                    }
                 }
+                if std::time::Instant::now() >= deadline {
+                    return Ok(None);
+                }
+                std::thread::sleep(Duration::from_millis(500));
             }
-            if std::time::Instant::now() >= deadline {
-                return Ok(None);
-            }
-            std::thread::sleep(Duration::from_millis(500));
-        }
-    });
+        });
     let record = wait_future.await;
     match record {
         Ok(Ok(Some(record))) => Json(json!({

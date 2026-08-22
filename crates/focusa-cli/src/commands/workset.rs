@@ -1,7 +1,7 @@
 //! `focusa workset` — Spec 149 flow ledger CLI (#271 slice 2).
 
 use clap::{Args, Subcommand};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Args, Debug)]
 pub struct WorksetArgs {
@@ -90,9 +90,7 @@ pub async fn run(cmd: WorksetCmd, json_mode: bool) -> anyhow::Result<()> {
                     "disposition": args.disposition,
                     "evidence_ref": args.evidence_ref,
                 }),
-                other => anyhow::bail!(
-                    "unknown event {other}; supported: admit, dispose"
-                ),
+                other => anyhow::bail!("unknown event {other}; supported: admit, dispose"),
             };
             let result: Value = api
                 .post(&format!("/v1/worksets/{}/events", args.workset_id), &event)
@@ -112,7 +110,10 @@ pub async fn run(cmd: WorksetCmd, json_mode: bool) -> anyhow::Result<()> {
 
 fn print_result(result: Value, json_mode: bool) {
     if json_mode {
-        println!("{}", serde_json::to_string_pretty(&result).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&result).unwrap_or_default()
+        );
     } else {
         println!("{}", serde_json::to_string(&result).unwrap_or_default());
     }

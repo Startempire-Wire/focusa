@@ -34,8 +34,8 @@ impl WorkstreamStateStore {
                 // via partition_paths) rehydrates on first access — a
                 // daemon restart resumes the exact workstream root.
                 let mut initial = FocusaState::default();
-                let data_dir = std::env::var("FOCUSA_DATA_DIR")
-                    .unwrap_or_else(|_| "data/.focusa".to_string());
+                let data_dir =
+                    std::env::var("FOCUSA_DATA_DIR").unwrap_or_else(|_| "data/.focusa".to_string());
                 let partitions = focusa_core::workstream_root::partition_paths(
                     std::path::Path::new(&data_dir),
                     &key,
@@ -69,7 +69,10 @@ pub async fn scoped_focusa_read(
 ) -> tokio::sync::OwnedRwLockReadGuard<FocusaState> {
     match (&scope.project_root, &scope.continuity_id) {
         (Some(root), Some(continuity)) => {
-            let partition = state.workstream_states.get_or_create(root, continuity).await;
+            let partition = state
+                .workstream_states
+                .get_or_create(root, continuity)
+                .await;
             partition.read_owned().await
         }
         _ => state.focusa.clone().read_owned().await,
@@ -91,7 +94,6 @@ pub async fn scoped_focusa_read_workstream(
     partition.read_owned().await
 }
 
-
 /// Slice-2 write side (docs/164 invariant 1): a scoped mutation must
 /// name its root AND land durably in the workstream partition. The
 /// global state remains the compatibility projection (unmigrated
@@ -105,16 +107,17 @@ pub async fn scoped_write_through(
     let key = workstream_scope_key(project_root, continuity_id);
     // 1) In-memory partition update.
     {
-        let partition = state.workstream_states.get_or_create(project_root, continuity_id).await;
+        let partition = state
+            .workstream_states
+            .get_or_create(project_root, continuity_id)
+            .await;
         *partition.write().await = new_state.clone();
     }
     // 2) Durable per-workstream persistence (partition_paths state.sqlite).
     let data_dir = state.config.data_dir.clone();
     let _ = tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
-        let partitions = focusa_core::workstream_root::partition_paths(
-            std::path::Path::new(&data_dir),
-            &key,
-        );
+        let partitions =
+            focusa_core::workstream_root::partition_paths(std::path::Path::new(&data_dir), &key);
         if let Some(parent) = std::path::Path::new(&partitions.state_ref).parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -135,7 +138,10 @@ mod tests {
         let a = store.get_or_create("/root/ws1", "cont-1").await;
         let b = store.get_or_create("/root/ws1", "cont-1").await;
         let c = store.get_or_create("/root/ws2", "cont-1").await;
-        assert!(Arc::ptr_eq(&a, &b), "same scope must resolve to the same state");
+        assert!(
+            Arc::ptr_eq(&a, &b),
+            "same scope must resolve to the same state"
+        );
         assert!(!Arc::ptr_eq(&a, &c), "different workstreams must partition");
         assert_eq!(store.len().await, 2);
     }

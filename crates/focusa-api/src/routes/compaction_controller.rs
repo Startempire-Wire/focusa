@@ -8,14 +8,14 @@ use axum::extract::State;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;
 use focusa_core::compaction_policy::{
-    append_epoch_history, compute_mask, evaluate_shadow, load_controller_state_sqlite,
-    next_transition, save_controller_state_sqlite, ControllerState, EpochLease, Policy,
-    RuntimeFacts, Transition,
+    ControllerState, EpochLease, Policy, RuntimeFacts, Transition, append_epoch_history,
+    compute_mask, evaluate_shadow, load_controller_state_sqlite, next_transition,
+    save_controller_state_sqlite,
 };
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -134,8 +134,14 @@ async fn apply_epoch(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }
 
@@ -148,8 +154,9 @@ fn state_path(state: &Arc<AppState>) -> std::path::PathBuf {
 async fn status(State(state): State<Arc<AppState>>) -> Json<Value> {
     let db = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let controller = match rusqlite::Connection::open(&db) {
-        Ok(conn) => focusa_core::compaction_policy::load_controller_state_sqlite(&conn)
-            .unwrap_or_default(),
+        Ok(conn) => {
+            focusa_core::compaction_policy::load_controller_state_sqlite(&conn).unwrap_or_default()
+        }
         Err(_) => focusa_core::compaction_policy::load_controller_state(&state_path(&state)),
     };
     Json(json!({

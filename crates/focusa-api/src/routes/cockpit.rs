@@ -36,10 +36,8 @@ fn workset_summaries(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> 
         let (workset_id, revision, definition_json) = row?;
         let definition: focusa_core::workset_ledger::WorksetDefinition =
             serde_json::from_str(&definition_json)?;
-        let events =
-            focusa_core::workset_store::list_events(conn, &workset_id).unwrap_or_default();
-        let projection =
-            focusa_core::workset_ledger::replay_projection(&definition, &events).ok();
+        let events = focusa_core::workset_store::list_events(conn, &workset_id).unwrap_or_default();
+        let projection = focusa_core::workset_ledger::replay_projection(&definition, &events).ok();
         let (status, met, open) = match &projection {
             Some(p) => {
                 let met: Vec<String> = p
@@ -90,7 +88,11 @@ fn callgraph_frontiers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>
     let mut out = Vec::new();
     for row in rows {
         let (run_id, graph_id, revision, state) = row?;
-        let Some(stored) = focusa_core::callgraph_store::load_definition(conn, &graph_id, revision.try_into().unwrap_or(u64::MAX))?
+        let Some(stored) = focusa_core::callgraph_store::load_definition(
+            conn,
+            &graph_id,
+            revision.try_into().unwrap_or(u64::MAX),
+        )?
         else {
             continue;
         };

@@ -8,7 +8,7 @@
 //! Exact verification: `cargo test --workspace entitlement_denial_atomicity`
 
 use crate::entitlement_execution_guard::{
-    evaluate_entitlement_execution, EntitlementExecutionContext, EntitlementExecutionPolicy,
+    EntitlementExecutionContext, EntitlementExecutionPolicy, evaluate_entitlement_execution,
 };
 use crate::runtime::persistence_sqlite::{EntitlementLimitReservationOutcome, SqlitePersistence};
 use chrono::Utc;
@@ -196,7 +196,10 @@ fn denial_expired_lease_produces_zero_side_effects() {
     let guard = LicenseGuard::from_entitlement(snapshot);
 
     // expired lease must be detected by the runtime guard
-    assert!(guard.is_expired(), "expired lease must be detected as expired");
+    assert!(
+        guard.is_expired(),
+        "expired lease must be detected as expired"
+    );
 
     // The guard's tier is Entitled (Active state), but the expiry check
     // must gate before the handler is invoked.
@@ -377,10 +380,7 @@ fn recovery_operation_always_allows_regardless_of_entitlement() {
     let result = simulate_protected_operation(&guard, &policy, &mut counter, &persistence);
 
     assert!(result.is_ok(), "recovery operations must always allow");
-    assert!(
-        counter.handler_called,
-        "recovery handler must execute"
-    );
+    assert!(counter.handler_called, "recovery handler must execute");
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -470,10 +470,7 @@ fn all_denial_classes_produce_deterministic_recovery_guidance() {
             policy,
             EntitlementExecutionContext::default(),
         );
-        assert!(
-            result.is_err(),
-            "{label}: expected denial, got Ok"
-        );
+        assert!(result.is_err(), "{label}: expected denial, got Ok");
         let failure = result.unwrap_err();
         assert_eq!(
             &failure.code, expected_code,
@@ -614,7 +611,10 @@ fn offline_grace_allows_cached_features_without_new_side_effects() {
 
     let result = simulate_protected_operation(&guard, &policy, &mut counter, &persistence);
 
-    assert!(result.is_ok(), "offline grace with cached feature must allow");
+    assert!(
+        result.is_ok(),
+        "offline grace with cached feature must allow"
+    );
     assert!(
         counter.handler_called,
         "cached feature handler must execute"

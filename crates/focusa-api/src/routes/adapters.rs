@@ -1,19 +1,18 @@
 //! Adapter registry routes (#254 slice 10): harnesses register capability
 //! sets; CallGraph dispatch routes against the ledger-backed registry.
 
-use axum::extract::State;
-use axum::routing::{get, post};
 use axum::Json;
 use axum::Router;
+use axum::extract::State;
+use axum::routing::{get, post};
 use focusa_core::adapter_registry::AdapterRecord;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/v1/adapters", post(register).get(list))
+    Router::new().route("/v1/adapters", post(register).get(list))
 }
 
 async fn register(

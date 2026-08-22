@@ -7,9 +7,9 @@
 
 use super::*;
 use crate::commands::pi_package::{
-    activate_pi_package, commit_pi_activation, is_focusa_retired_entry_name, now_unix,
-    package_identity_of, retire_focusa_packages, retired_root_for, rollback_pi_activation,
-    CANONICAL_ENTRY, FAULT_AFTER_PI_ACTIVATION, PACKAGE_IDENTITY,
+    CANONICAL_ENTRY, FAULT_AFTER_PI_ACTIVATION, PACKAGE_IDENTITY, activate_pi_package,
+    commit_pi_activation, is_focusa_retired_entry_name, now_unix, package_identity_of,
+    retire_focusa_packages, retired_root_for, rollback_pi_activation,
 };
 use crate::commands::update::phase_pi_package_apply;
 use std::ffi::OsString;
@@ -169,8 +169,8 @@ fn activate_commit_cycle_keeps_discovery_root_clean() {
     write_focusa_package(&staged, "0.9.152");
     std::fs::write(staged.join("new-marker.txt"), "new").unwrap();
 
-    let receipt = activate_pi_package(&staged, &extensions, "v0.9.152")
-        .expect("activation must succeed");
+    let receipt =
+        activate_pi_package(&staged, &extensions, "v0.9.152").expect("activation must succeed");
     let retired_root = retired_root_for(&extensions);
 
     // Canonical target replaced, backup outside discovery, no hidden backups.
@@ -190,17 +190,18 @@ fn activate_commit_cycle_keeps_discovery_root_clean() {
         .clone();
     assert!(backup.starts_with(&retired_root));
     assert!(backup.exists());
-    assert!(!backup.starts_with(&extensions), "backup must live outside discovery");
+    assert!(
+        !backup.starts_with(&extensions),
+        "backup must live outside discovery"
+    );
     let hidden_under_discovery = std::fs::read_dir(&extensions)
         .unwrap()
         .filter_map(|entry| entry.ok())
-        .any(|entry| {
-            entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with(".focusa-")
-        });
-    assert!(!hidden_under_discovery, "no backups may remain under discovery");
+        .any(|entry| entry.file_name().to_string_lossy().starts_with(".focusa-"));
+    assert!(
+        !hidden_under_discovery,
+        "no backups may remain under discovery"
+    );
     assert!(unrelated.exists(), "unrelated extensions stay untouched");
 
     commit_pi_activation(&receipt).expect("commit must succeed");
@@ -221,10 +222,12 @@ fn rollback_restores_exact_prior_package_after_activation() {
     std::fs::write(staged.join("new-marker.txt"), "new").unwrap();
 
     let receipt = activate_pi_package(&staged, &extensions, "v0.9.152").unwrap();
-    assert!(!extensions
-        .join(CANONICAL_ENTRY)
-        .join("prior-marker.txt")
-        .exists());
+    assert!(
+        !extensions
+            .join(CANONICAL_ENTRY)
+            .join("prior-marker.txt")
+            .exists()
+    );
 
     rollback_pi_activation(&receipt).expect("rollback must restore the prior package");
     assert_eq!(
@@ -276,17 +279,26 @@ fn retire_moves_only_verified_focusa_owned_entries_and_keeps_alias() {
 
     let retired_root = retired_root_for(&extensions);
     let retired = retire_focusa_packages(&extensions, &retired_root).unwrap();
-    assert_eq!(retired.len(), 2, "only the two verified Focusa-owned entries retire");
+    assert_eq!(
+        retired.len(),
+        2,
+        "only the two verified Focusa-owned entries retire"
+    );
 
     assert!(!extensions.join("focusa-runtime.legacy-0.9.143").exists());
     assert!(!extensions.join(".focusa-backup-019f0000").exists());
-    let moved = retired.iter().all(|path| path.starts_with(&retired_root) && path.exists());
+    let moved = retired
+        .iter()
+        .all(|path| path.starts_with(&retired_root) && path.exists());
     assert!(moved, "retired packages are preserved outside discovery");
     assert!(
         unrelated_dir.join("package.json").exists(),
         "unrelated packages are never moved"
     );
-    assert!(extensions.join("guardian.ts").exists(), "unrelated files stay");
+    assert!(
+        extensions.join("guardian.ts").exists(),
+        "unrelated files stay"
+    );
     #[cfg(unix)]
     {
         let alias = std::fs::canonicalize(extensions.join("focusa-runtime")).unwrap();
@@ -317,12 +329,7 @@ fn activation_failure_restores_prior_destination() {
     let hidden_under_discovery = std::fs::read_dir(&extensions)
         .unwrap()
         .filter_map(|entry| entry.ok())
-        .any(|entry| {
-            entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with(".focusa-")
-        });
+        .any(|entry| entry.file_name().to_string_lossy().starts_with(".focusa-"));
     assert!(!hidden_under_discovery);
     let _ = std::fs::remove_dir_all(fixture);
 }
@@ -367,17 +374,25 @@ async fn update_phase_fault_after_activation_rolls_back_prior_package() {
     .await
     .expect_err("the injected fault must fail the update after Pi activation");
     assert!(
-        error.to_string().contains("injected fault after Pi extension activation"),
+        error
+            .to_string()
+            .contains("injected fault after Pi extension activation"),
         "unexpected error: {error}"
     );
 
     // The transaction state must contain the typed receipt.
     let receipt_path = state.join("pi-extension-activation.json");
-    assert!(receipt_path.exists(), "receipt must be persisted before the fault");
+    assert!(
+        receipt_path.exists(),
+        "receipt must be persisted before the fault"
+    );
     let receipt: crate::commands::pi_package::PiActivationReceipt =
         serde_json::from_slice(&std::fs::read(&receipt_path).unwrap()).unwrap();
     assert_eq!(receipt.schema, "focusa.pi_activation_receipt.v1");
-    assert!(receipt.prior.is_some(), "the prior package must be recorded");
+    assert!(
+        receipt.prior.is_some(),
+        "the prior package must be recorded"
+    );
 
     // The apply failure path must restore the exact prior package.
     rollback_pi_activation(&receipt).expect("rollback must restore the prior package");
@@ -385,10 +400,7 @@ async fn update_phase_fault_after_activation_rolls_back_prior_package() {
         std::fs::read_to_string(extensions.join(CANONICAL_ENTRY).join("prior-marker.txt")).unwrap(),
         "prior"
     );
-    assert!(!extensions
-        .join(CANONICAL_ENTRY)
-        .join("index.ts")
-        .exists());
+    assert!(!extensions.join(CANONICAL_ENTRY).join("index.ts").exists());
     let _ = server.join();
     let _ = std::fs::remove_dir_all(fixture);
 }
@@ -403,7 +415,9 @@ fn receipt_round_trips_through_json() {
             backup: PathBuf::from("/tmp/retired-extensions/backups/focusa-backup-x"),
             sha256: "abc".to_string(),
         }),
-        retired: vec![PathBuf::from("/tmp/retired-extensions/focusa-runtime.legacy-0.9.143-x")],
+        retired: vec![PathBuf::from(
+            "/tmp/retired-extensions/focusa-runtime.legacy-0.9.143-x",
+        )],
         activated_at: now_unix(),
     };
     let encoded = serde_json::to_vec_pretty(&receipt).unwrap();

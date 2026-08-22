@@ -72,7 +72,13 @@ pub async fn providers(State(_state): State<Arc<AppState>>) -> Json<Value> {
 
 pub fn router() -> axum::Router<Arc<AppState>> {
     axum::Router::new()
-        .route("/v1/credentials/verify-requirement", axum::routing::post(verify))
-        .route("/v1/credentials/grant-status", axum::routing::post(grant_status))
+        .route(
+            "/v1/credentials/verify-requirement",
+            axum::routing::post(verify),
+        )
+        .route(
+            "/v1/credentials/grant-status",
+            axum::routing::post(grant_status),
+        )
         .route("/v1/credentials/providers", axum::routing::get(providers))
 }

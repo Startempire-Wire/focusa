@@ -119,8 +119,7 @@ impl ProviderSweeper {
                         .and_then(|v| v.as_str())
                         .unwrap_or_default()
                         .to_string();
-                    let is_closed =
-                        value.get("status").and_then(|v| v.as_str()) == Some("closed");
+                    let is_closed = value.get("status").and_then(|v| v.as_str()) == Some("closed");
                     if is_closed && !reconciled.contains(&id) {
                         let now = Utc::now().to_rfc3339();
                         incidents.push(SweepIncident {
@@ -182,9 +181,9 @@ impl ProviderSweeper {
     /// Provider item ids that hold a reconciled beads claim in the ledger.
     fn reconciled_beads_ids(&self, storage: &ClaimStorage) -> std::io::Result<HashSet<String>> {
         let mut ids = HashSet::new();
-        let claim_ids = storage.list().map_err(|e| {
-            std::io::Error::other(format!("claim ledger unreadable: {e}"))
-        })?;
+        let claim_ids = storage
+            .list()
+            .map_err(|e| std::io::Error::other(format!("claim ledger unreadable: {e}")))?;
         for claim_id in claim_ids {
             let claim = match storage.load(&claim_id) {
                 Ok(claim) => claim,

@@ -5,7 +5,7 @@
 //! revocation is a typed transition — nothing is ever deleted.
 
 use clap::{Args, Subcommand};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Args, Debug)]
 pub struct RemoteArgs {
@@ -119,7 +119,8 @@ pub async fn run(cmd: RemoteCmd, json_mode: bool) -> anyhow::Result<()> {
                 .as_deref()
                 .map(|status| format!("?status={status}"))
                 .unwrap_or_default();
-            api.get(&format!("/v1/remote-workspaces/bindings{query}")).await?
+            api.get(&format!("/v1/remote-workspaces/bindings{query}"))
+                .await?
         }
         RemoteCmd::Revoke(args) => {
             api.post(

@@ -5,7 +5,7 @@
 //! the SQLite ledger); this command surfaces the typed transaction.
 
 use clap::{Args, Subcommand};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Args, Debug)]
 pub struct WorkstreamArgs {

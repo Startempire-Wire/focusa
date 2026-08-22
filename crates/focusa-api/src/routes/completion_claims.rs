@@ -2,14 +2,12 @@
 //! evaluates completion claims through the SAME deterministic core —
 //! no per-surface verdict logic.
 
-use axum::extract::State;
-use axum::routing::post;
 use axum::Json;
 use axum::Router;
-use focusa_core::completion_authority::{
-    evaluate_completion_claim, CompletionClaim,
-};
-use serde_json::{json, Value};
+use axum::extract::State;
+use axum::routing::post;
+use focusa_core::completion_authority::{CompletionClaim, evaluate_completion_claim};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;

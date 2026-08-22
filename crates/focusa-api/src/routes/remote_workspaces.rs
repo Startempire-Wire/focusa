@@ -8,17 +8,28 @@ use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;
-use focusa_core::remote_workspace::{ensure_schema, list_bindings, upsert_binding, BindingStatus, RemoteWorkspaceBinding};
+use focusa_core::remote_workspace::{
+    BindingStatus, RemoteWorkspaceBinding, ensure_schema, list_bindings, upsert_binding,
+};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/v1/remote-workspaces/bindings", post(create_binding).get(list))
-        .route("/v1/remote-workspaces/bindings/revoke", post(revoke_binding))
-        .route("/v1/workstreams/migrate", post(migrate_projects_to_workstreams))
+        .route(
+            "/v1/remote-workspaces/bindings",
+            post(create_binding).get(list),
+        )
+        .route(
+            "/v1/remote-workspaces/bindings/revoke",
+            post(revoke_binding),
+        )
+        .route(
+            "/v1/workstreams/migrate",
+            post(migrate_projects_to_workstreams),
+        )
 }
 
 #[derive(Deserialize)]
@@ -47,15 +58,18 @@ async fn create_binding(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }
 
-async fn list(
-    State(state): State<Arc<AppState>>,
-    Query(params): Query<ListParams>,
-) -> Json<Value> {
+async fn list(State(state): State<Arc<AppState>>, Query(params): Query<ListParams>) -> Json<Value> {
     let path = db_path(&state);
     let status = params
         .status
@@ -70,8 +84,14 @@ async fn list(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }
 
@@ -93,7 +113,10 @@ async fn revoke_binding(
         let conn = rusqlite::Connection::open(path)?;
         ensure_schema(&conn)?;
         let mut bindings = list_bindings(&conn, None)?;
-        let binding = match bindings.iter_mut().find(|entry| entry.binding_id == binding_id) {
+        let binding = match bindings
+            .iter_mut()
+            .find(|entry| entry.binding_id == binding_id)
+        {
             Some(binding) => binding,
             None => return Ok(json!({"status": "not_found", "binding_id": binding_id})),
         };
@@ -109,8 +132,14 @@ async fn revoke_binding(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }
 
@@ -119,7 +148,6 @@ async fn revoke_binding(
 fn _assert_revocation_only() -> BindingStatus {
     BindingStatus::Revoked
 }
-
 
 /// Spec 164 slice 5 (#125): migrate existing project profiles into
 /// workstream roots (preview + apply). Profiles live under
@@ -152,7 +180,7 @@ async fn migrate_projects_to_workstreams(
     State(state): State<Arc<AppState>>,
     Json(body): Json<MigrateBody>,
 ) -> Json<Value> {
-    use focusa_core::workstream_root::{load_workstream, upsert_workstream, WorkstreamRoot};
+    use focusa_core::workstream_root::{WorkstreamRoot, load_workstream, upsert_workstream};
 
     let path = db_path(&state);
     let profiles: Vec<serde_json::Value> = match std::fs::read_dir(project_profiles_dir()) {
@@ -210,7 +238,10 @@ async fn migrate_projects_to_workstreams(
         let mut created = Vec::new();
         let mut already = Vec::new();
         for candidate in candidates {
-            let project_root = candidate["project_root"].as_str().unwrap_or_default().to_string();
+            let project_root = candidate["project_root"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string();
             let continuity_id = candidate["continuity_id"]
                 .as_str()
                 .unwrap_or_default()
@@ -256,7 +287,13 @@ async fn migrate_projects_to_workstreams(
 
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("join error: {error}"),
+        )),
     }
 }

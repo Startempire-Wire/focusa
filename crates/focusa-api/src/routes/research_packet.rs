@@ -4,12 +4,12 @@
 //! between UIAI Engine and Focusa evidence. Packets never mutate state
 //! directly; they land as evidence refs + the packet digest.
 
-use axum::extract::State;
-use axum::routing::post;
 use axum::Json;
 use axum::Router;
+use axum::extract::State;
+use axum::routing::post;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;
@@ -38,7 +38,11 @@ fn surface_evidence_refs(packet: &Value) -> Vec<String> {
     if let Some(source) = packet.get("source_url").and_then(Value::as_str) {
         refs.push(format!("uiai:source:{}", source));
     }
-    if let Some(digest) = packet.get("packet_digest").or_else(|| packet.get("digest")).and_then(Value::as_str) {
+    if let Some(digest) = packet
+        .get("packet_digest")
+        .or_else(|| packet.get("digest"))
+        .and_then(Value::as_str)
+    {
         refs.push(format!("uiai:digest:{}", digest));
     }
     refs
@@ -84,7 +88,13 @@ async fn ingest(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("{error}"),
+        )),
     }
 }

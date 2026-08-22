@@ -2,13 +2,13 @@
 //! silent sessions with deterministic division; every lane uses the
 //! EXISTING silent-session create/start machinery.
 
-use axum::extract::State;
-use axum::routing::post;
 use axum::Json;
 use axum::Router;
-use focusa_core::session_fanout::{compile_fanout, FanoutInput};
+use axum::extract::State;
+use axum::routing::post;
+use focusa_core::session_fanout::{FanoutInput, compile_fanout};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;
@@ -35,10 +35,7 @@ fn default_wall() -> u64 {
     1_800_000
 }
 
-async fn fanout(
-    State(state): State<Arc<AppState>>,
-    Json(body): Json<FanoutBody>,
-) -> Json<Value> {
+async fn fanout(State(state): State<Arc<AppState>>, Json(body): Json<FanoutBody>) -> Json<Value> {
     let plan = compile_fanout(&FanoutInput {
         work_items: body.work_items,
         multiplier: body.multiplier,

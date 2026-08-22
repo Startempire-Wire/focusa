@@ -34,13 +34,11 @@ pub async fn run(cmd: InfraCmd, json_mode: bool) -> anyhow::Result<()> {
         InfraCmd::Inventory(args) => (args, false),
         InfraCmd::Adopt(args) => (args, true),
     };
-    let root = args
-        .root
-        .unwrap_or_else(|| {
-            std::env::current_dir()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|_| ".".to_string())
-        });
+    let root = args.root.unwrap_or_else(|| {
+        std::env::current_dir()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| ".".to_string())
+    });
     let mut overrides = BTreeMap::new();
     for pair in &args.override_provider {
         let (concern, provider) = pair
@@ -49,15 +47,13 @@ pub async fn run(cmd: InfraCmd, json_mode: bool) -> anyhow::Result<()> {
         overrides.insert(concern.to_string(), provider.to_string());
     }
 
-    let inventory = focusa_core::infrastructure_inventory::scan_infrastructure(
-        std::path::Path::new(&root),
-    );
+    let inventory =
+        focusa_core::infrastructure_inventory::scan_infrastructure(std::path::Path::new(&root));
 
     if json_mode {
         let value = if adopt {
             serde_json::to_value(focusa_core::infrastructure_inventory::build_adoption_plan(
-                &inventory,
-                &overrides,
+                &inventory, &overrides,
             ))?
         } else {
             serde_json::to_value(&inventory)?
@@ -82,20 +78,15 @@ pub async fn run(cmd: InfraCmd, json_mode: bool) -> anyhow::Result<()> {
 
     if adopt {
         println!();
-        let plan = focusa_core::infrastructure_inventory::build_adoption_plan(
-            &inventory,
-            &overrides,
-        );
+        let plan =
+            focusa_core::infrastructure_inventory::build_adoption_plan(&inventory, &overrides);
         println!("adoption plan (PREVIEW ONLY):");
         for decision in &plan.decisions {
             println!(
                 "  {:<24} {:<28} {} ({})",
                 decision.concern,
                 decision.action,
-                decision
-                    .selected_provider
-                    .as_deref()
-                    .unwrap_or("none"),
+                decision.selected_provider.as_deref().unwrap_or("none"),
                 decision.selection_basis
             );
         }

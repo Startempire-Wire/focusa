@@ -2,12 +2,12 @@
 //! replay projection. No scheduling/execution (authority separation:
 //! CallGraph owns execution).
 
-use axum::extract::{Path, State};
-use axum::routing::{get, post};
 use axum::Json;
 use axum::Router;
-use focusa_core::workset_ledger::{replay_projection, WorksetDefinition, WorksetEvent};
-use serde_json::{json, Value};
+use axum::extract::{Path, State};
+use axum::routing::{get, post};
+use focusa_core::workset_ledger::{WorksetDefinition, WorksetEvent, replay_projection};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;
@@ -16,14 +16,8 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/worksets", post(create_definition).get(list))
         .route("/v1/worksets/{workset_id}/events", post(append_event))
-        .route(
-            "/v1/worksets/{workset_id}/projection",
-            get(get_projection),
-        )
-        .route(
-            "/v1/worksets/{workset_id}/freshness",
-            get(get_freshness),
-        )
+        .route("/v1/worksets/{workset_id}/projection", get(get_projection))
+        .route("/v1/worksets/{workset_id}/freshness", get(get_freshness))
         .route(
             "/v1/worksets/{workset_id}/transition",
             post(evaluate_transition_route),
@@ -49,8 +43,14 @@ async fn create_definition(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("{error}"),
+        )),
     }
 }
 
@@ -87,8 +87,14 @@ async fn list(State(state): State<Arc<AppState>>) -> Json<Value> {
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("{error}"),
+        )),
     }
 }
 
@@ -107,8 +113,14 @@ async fn append_event(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("{error}"),
+        )),
     }
 }
 
@@ -152,8 +164,14 @@ async fn evaluate_transition_route(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("{error}"),
+        )),
     }
 }
 
@@ -185,8 +203,14 @@ async fn get_freshness(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("{error}"),
+        )),
     }
 }
 
@@ -224,7 +248,13 @@ async fn get_projection(
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("{error}"),
+        )),
     }
 }

@@ -28,8 +28,8 @@ pub mod evidence;
 pub mod lifecycle;
 pub mod policy;
 pub mod scheduler;
-pub mod sweeper;
 pub mod storage;
+pub mod sweeper;
 pub mod temporal_policy;
 pub mod types;
 

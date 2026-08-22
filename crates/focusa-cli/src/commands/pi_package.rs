@@ -11,7 +11,7 @@
 //!   wider transaction settles, or roll back after any downstream failure;
 //! - never moves unrelated extensions.
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -98,13 +98,8 @@ fn rename_dir_or_cross_device(source: &Path, destination: &Path) -> Result<()> {
         Err(error) if error.kind() == std::io::ErrorKind::CrossesDevices => {
             move_dir_cross_device_safe(source, destination)
         }
-        Err(error) => Err(error).with_context(|| {
-            format!(
-                "rename {} -> {}",
-                source.display(),
-                destination.display()
-            )
-        }),
+        Err(error) => Err(error)
+            .with_context(|| format!("rename {} -> {}", source.display(), destination.display())),
     }
 }
 
@@ -113,11 +108,7 @@ fn move_dir_cross_device_safe(source: &Path, destination: &Path) -> Result<()> {
         Ok(()) => return Ok(()),
         Err(error) if error.kind() != std::io::ErrorKind::CrossesDevices => {
             return Err(error).with_context(|| {
-                format!(
-                    "rename {} -> {}",
-                    source.display(),
-                    destination.display()
-                )
+                format!("rename {} -> {}", source.display(), destination.display())
             });
         }
         Err(_) => {}
@@ -130,8 +121,8 @@ fn move_dir_cross_device_safe(source: &Path, destination: &Path) -> Result<()> {
 
 fn copy_dir_recursive(source: &Path, destination: &Path) -> Result<()> {
     fs::create_dir_all(destination)?;
-    for entry in fs::read_dir(source)
-        .with_context(|| format!("read directory {}", source.display()))?
+    for entry in
+        fs::read_dir(source).with_context(|| format!("read directory {}", source.display()))?
     {
         let entry = entry?;
         let target = destination.join(entry.file_name());
@@ -327,10 +318,7 @@ pub fn prepare_pi_package(
             crate::commands::install::redact_url(&detail)
         );
     }
-    Ok(PreparedPiPackage {
-        staged,
-        stage_root,
-    })
+    Ok(PreparedPiPackage { staged, stage_root })
 }
 
 /// Atomically activate the staged package as the one canonical `focusa` entry
@@ -358,12 +346,8 @@ pub fn activate_pi_package(
         fs::create_dir_all(&backups)?;
         let backup = backups.join(format!("focusa-backup-{}", uuid::Uuid::now_v7()));
         let sha256 = prior_package_sha256(&destination);
-        rename_dir_or_cross_device(&destination, &backup).with_context(|| {
-            format!(
-                "backup active Pi package to {}",
-                backup.display()
-            )
-        })?;
+        rename_dir_or_cross_device(&destination, &backup)
+            .with_context(|| format!("backup active Pi package to {}", backup.display()))?;
         prior = Some(PriorPiPackage { backup, sha256 });
     }
     if let Err(error) = rename_dir_or_cross_device(staged, &destination) {
@@ -411,16 +395,11 @@ pub fn rollback_pi_activation(receipt: &PiActivationReceipt) -> Result<()> {
     };
     match backup {
         Some(backup) => {
-            let failed = destination.with_extension(format!(
-                "focusa-failed-{}",
-                uuid::Uuid::now_v7()
-            ));
+            let failed =
+                destination.with_extension(format!("focusa-failed-{}", uuid::Uuid::now_v7()));
             if destination.exists() {
                 rename_dir_or_cross_device(destination, &failed).with_context(|| {
-                    format!(
-                        "set aside failed Pi package {}",
-                        destination.display()
-                    )
+                    format!("set aside failed Pi package {}", destination.display())
                 })?;
             }
             if let Err(error) = rename_dir_or_cross_device(backup, destination) {

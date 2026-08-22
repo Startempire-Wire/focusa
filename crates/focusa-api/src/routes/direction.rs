@@ -1,19 +1,18 @@
 //! Direction Workbench API — #291 slice 3: typed steering/adjudication/
 //! review operations with receipts, projected from the ledger.
 
-use axum::extract::State;
-use axum::routing::{get, post};
 use axum::Json;
 use axum::Router;
+use axum::extract::State;
+use axum::routing::{get, post};
 use focusa_core::direction_operations::DirectionOperation;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::server::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/v1/direction/operations", post(record).get(list))
+    Router::new().route("/v1/direction/operations", post(record).get(list))
 }
 
 async fn record(
@@ -37,7 +36,10 @@ async fn record(
             "add the required typed fields or evidence ref",
             &error.to_string(),
         )),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("{error}"),
+        )),
     }
 }
 
@@ -52,7 +54,13 @@ async fn list(State(state): State<Arc<AppState>>) -> Json<Value> {
     .await;
     match result {
         Ok(Ok(payload)) => Json(payload),
-        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
-        Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("{error}"))),
+        Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
+            "route",
+            &error.to_string(),
+        )),
+        Err(error) => Json(focusa_core::error_envelope::internal_error(
+            "join",
+            &format!("{error}"),
+        )),
     }
 }

@@ -6,7 +6,7 @@
 //! ledger-backed monitor.
 
 use clap::{Args, Subcommand};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Args, Debug)]
 pub struct BgArgs {
@@ -66,7 +66,10 @@ pub struct WaitArgs {
 
 fn print_bg(result: Value, json_mode: bool) {
     if json_mode {
-        println!("{}", serde_json::to_string_pretty(&result).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&result).unwrap_or_default()
+        );
     } else {
         println!("{}", serde_json::to_string(&result).unwrap_or_default());
     }
@@ -90,7 +93,12 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&result)?);
             } else {
-                for job in result.get("jobs").and_then(|j| j.as_array()).into_iter().flatten() {
+                for job in result
+                    .get("jobs")
+                    .and_then(|j| j.as_array())
+                    .into_iter()
+                    .flatten()
+                {
                     let id = job.get("job_id").and_then(|v| v.as_str()).unwrap_or("?");
                     let name = job.get("name").and_then(|v| v.as_str()).unwrap_or("?");
                     let status = job.get("status").and_then(|v| v.as_str()).unwrap_or("?");
@@ -100,7 +108,9 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
             Ok(())
         }
         BgCmd::Status(args) => {
-            let result: Value = api.get(&format!("/v1/background-jobs/{}", args.job)).await?;
+            let result: Value = api
+                .get(&format!("/v1/background-jobs/{}", args.job))
+                .await?;
             // Monitor-lost reaping: a running job whose pid is dead means the
             // monitor died without reporting. Mark it durably.
             if let Some(job) = result.get("job") {
@@ -114,8 +124,9 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                                     &json!({ "status": "monitor_lost" }),
                                 )
                                 .await?;
-                            let result: Value =
-                                api.get(&format!("/v1/background-jobs/{}", args.job)).await?;
+                            let result: Value = api
+                                .get(&format!("/v1/background-jobs/{}", args.job))
+                                .await?;
                             print_bg(result, json_mode);
                             return Ok(());
                         }
@@ -188,13 +199,7 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                 let exe = std::env::current_exe()?;
                 let mut monitor = std::process::Command::new(exe);
                 monitor
-                    .args([
-                        "bg",
-                        "run",
-                        "--name",
-                        &args.name,
-                        "--internal-monitor",
-                    ])
+                    .args(["bg", "run", "--name", &args.name, "--internal-monitor"])
                     .arg("--")
                     .args(&args.command)
                     .stdin(std::process::Stdio::null())
@@ -214,10 +219,7 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                 if json_mode {
                     println!("{}", serde_json::to_string_pretty(&dispatched)?);
                 } else {
-                    println!(
-                        "job {job_id} ({}) dispatched log {log_path}",
-                        args.name
-                    );
+                    println!("job {job_id} ({}) dispatched log {log_path}", args.name);
                 }
                 return Ok(());
             }
