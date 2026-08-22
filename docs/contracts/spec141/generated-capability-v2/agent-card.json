@@ -2,7 +2,7 @@
   "schema": "focusa.agent_card.v1",
   "name": "Focusa",
   "description": "Agent-first cognitive infrastructure with scoped Workpoints, Trajectory, evidence, recovery, browser interoperability, and cross-harness capability contracts.",
-  "version": "0.9.178-dev",
+  "version": "0.9.181",
   "interfaces": [
     "pi",
     "mcp",
@@ -399,5 +399,5 @@
     "workset"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:7faaf05a7cf17a25babf6a374b421682eafda0bec41a8b83421cd4e7314df9a3"
+  "card_digest": "sha256:775cf956cdcf472cfea81a7d93f74f66feeacd6f62745b2360051f6a5e1f3be4"
 }
