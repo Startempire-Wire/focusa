@@ -1,0 +1,91 @@
+# Nightly channel (Spec 177). Dev convenience lane: ONE job, Linux x86_64
+# only, rolling prerelease. Expected spend: <60 CI-min/month.
+# NOT a release (see docs/current/RELEASE_RULES_2026-08-19.md vocabulary).
+
+name: Nightly
+
+on:
+  schedule:
+    - cron: '30 14 * * *' # 06:30 PT daily — once per day, never on push/PR
+  workflow_dispatch:
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Skip when no code changes since previous nightly
+        id: changes
+        run: |
+          set -euo pipefail
+          prev=$(git tag --list 'v*-nightly*' --sort=-creatordate | head -1 || true)
+          if [ -n "$prev" ]; then
+            count=$(git rev-list --count "$prev"..HEAD -- \
+              ':!*.md' ':!docs/**' ':!**/*.md')
+            echo "prev=$prev"
+            echo "count=$count"
+            echo "skip=$([ "$count" -eq 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Toolchain
+        if: steps.changes.outputs.skip != 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Build focusa + focusa-daemon (Linux x86_64)
+        if: steps.changes.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          cargo build --release -p focusa-cli --target x86_64-unknown-linux-gnu
+          install -m 0755 \
+            target/x86_64-unknown-linux-gnu/release/focusa \
+            target/x86_64-unknown-linux-gnu/release/focusa-daemon .
+
+      - name: Package + publish rolling prerelease
+        if: steps.changes.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          stamp=$(cat docs/current/.release-version-stamp)
+          date=$(date -u +%Y%m%d)
+          tag="v${stamp}-nightly.${date}"
+
+          # Rolling channel: remove the previous nightly release + tags so
+          # assets never accumulate (Spec 177 AC3).
+          for old in $(gh release list --json tagName,isPrerelease \
+              --jq '.[] | select(.isPrerelease) | .tagName' | grep nightly); do
+            gh release delete "$old" --yes --cleanup-tag || true
+          done
+          git push origin :refs/tags/"$tag" 2>/dev/null || true
+
+          triple=x86_64-unknown-linux-gnu
+          for bin in focusa focusa-daemon; do
+            asset="${bin}-${tag}-${triple}"
+            cp "$bin" "$asset"
+            sha256sum "$asset" > "${asset}.sha256"
+          done
+          sha256sum "focusa-${tag}-${triple}" \
+            "focusa-daemon-${tag}-${triple}" > SHA256SUMS
+
+          gh release create "$tag" \
+            --prerelease \
+            --title "$tag (nightly — dev lane, not a release)" \
+            --notes "Automated nightly from ${GITHUB_SHA::8}. Linux x86_64 only. Not for stable users." \
+            "focusa-${tag}-${triple}" \
+            "focusa-${tag}-${triple}.sha256" \
+            "focusa-daemon-${tag}-${triple}" \
+            "focusa-daemon-${tag}-${triple}.sha256" \
+            SHA256SUMS
