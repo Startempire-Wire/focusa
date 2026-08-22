@@ -48,20 +48,23 @@ pub struct ActivationFlowConfig {
     pub facade_id: &'static str,
     pub presenter: &'static str,
     pub install_channel: &'static str,
+    pub origin: &'static str,
 }
 
 /// CLI (`focusa license activate-flow`) presenter identity.
 pub const CLI_FLOW: ActivationFlowConfig = ActivationFlowConfig {
-    facade_id: "focusa-cli",
+    facade_id: "wpuiai_public_v1",
     presenter: "cli",
     install_channel: "source_build",
+    origin: "https://wpuiai.com",
 };
 
 /// Rust installer presenter identity (`focusa install`).
 pub const INSTALLER_FLOW: ActivationFlowConfig = ActivationFlowConfig {
-    facade_id: "install.focusa.dev",
+    facade_id: "focusa_install_v1",
     presenter: "installer",
     install_channel: "official_installer",
+    origin: "https://install.focusa.dev",
 };
 
 /// Fail-closed interactive-flow errors. Authority errors carry the typed
@@ -528,6 +531,7 @@ fn new_context(config: ActivationFlowConfig) -> ActivationRequestContext {
         config.facade_id,
         config.presenter,
         config.install_channel,
+        config.origin,
         Some(idempotency_key),
     )
 }

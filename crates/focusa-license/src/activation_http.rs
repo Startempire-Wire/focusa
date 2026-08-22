@@ -225,6 +225,7 @@ pub struct WireActivationRequest<T> {
     pub facade_id: String,
     pub presenter: String,
     pub install_channel: String,
+    pub origin: String,
     #[serde(flatten)]
     pub payload: T,
 }
@@ -244,6 +245,7 @@ fn mutation_request<T: Serialize>(
         facade_id: context.facade_id.clone(),
         presenter: context.presenter.clone(),
         install_channel: context.install_channel.clone(),
+        origin: context.origin.clone(),
         payload,
     }
 }

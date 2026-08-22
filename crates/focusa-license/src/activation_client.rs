@@ -845,6 +845,7 @@ mod tests {
             "install.focusa.dev",
             "cli",
             "official_installer",
+            "https://install.focusa.dev",
             Some("idem-0001".into()),
         )
     }

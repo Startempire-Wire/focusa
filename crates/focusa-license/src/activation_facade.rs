@@ -570,6 +570,7 @@ pub struct ActivationRequestContext {
     pub facade_id: String,
     pub presenter: String,
     pub install_channel: String,
+    pub origin: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub idempotency_key: Option<String>,
 }
@@ -603,6 +604,7 @@ impl ActivationRequestContext {
         facade_id: impl Into<String>,
         presenter: impl Into<String>,
         install_channel: impl Into<String>,
+        origin: impl Into<String>,
         idempotency_key: Option<String>,
     ) -> Self {
         Self {
@@ -610,6 +612,7 @@ impl ActivationRequestContext {
             facade_id: facade_id.into(),
             presenter: presenter.into(),
             install_channel: install_channel.into(),
+            origin: origin.into(),
             idempotency_key,
         }
     }
@@ -622,6 +625,7 @@ impl ActivationRequestContext {
             || self.facade_id.trim().is_empty()
             || self.presenter.trim().is_empty()
             || self.install_channel.trim().is_empty()
+            || self.origin.trim().is_empty()
         {
             return Err(ActivationError::new(
                 ActivationErrorCode::RequestIdRequired,
@@ -757,6 +761,7 @@ mod tests {
             "install.focusa.dev",
             "cli",
             "official_installer",
+            "https://install.focusa.dev",
             None,
         );
         assert_eq!(
@@ -772,6 +777,7 @@ mod tests {
             "install.focusa.dev",
             "cli",
             "official_installer",
+            "https://install.focusa.dev",
             None,
         );
         assert!(read.validate(FacadeOperation::ActivationOffers).is_ok());
@@ -781,6 +787,7 @@ mod tests {
             "install.focusa.dev",
             "cli",
             "official_installer",
+            "https://install.focusa.dev",
             Some("idem-0001".into()),
         );
         assert_eq!(
