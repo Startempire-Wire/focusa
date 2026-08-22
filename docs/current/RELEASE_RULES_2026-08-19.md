@@ -6,6 +6,10 @@ No variants, no shortcuts, no `--no-verify`, no hand-editing `distribution-manif
 
 ### Vocabulary — strict, no drift (enforced in CI)
 
+- **Operator directive (2026-08-22):** When the operator says **"release"**,
+  it means **FULL stable Release** — never default to a dev release or a
+  tag-only push. The default is the full canonical stable Release unless
+  the operator explicitly says **"dev release"** or **"tag release"**.
 - **Release** = **stable canonical**. Every surface (daemon, TUI, CLI, Pi extension, menubar, updater, docs), every OS (`x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-pc-windows-msvc`, `aarch64-pc-windows-msvc`, `x86_64-apple-darwin`, `aarch64-apple-darwin`), every artifact. Must appear as **Latest** in GitHub sidebar (`isLatest=true`, `isPrerelease=false`), green badge, `gh release view vX.Y.Z` succeeds with 30+ assets + `SHA256SUMS`. Nothing else is "shipped".
 - **Dev release** = **`vX.Y.Z-dev` prerelease**. Also full surfaces + full OS, same 14-job Release matrix, marked `prerelease`. No reduced matrix.
 - **Tag ≠ Release.** `git push --tags` only enqueues CI. `Latest` flips only after `Release 14/14 green`. Say "tag pushed, CI queued" vs "Release published as Latest". Never "pushed full release" when only tag exists.
