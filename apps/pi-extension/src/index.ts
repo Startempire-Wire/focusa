@@ -37,6 +37,24 @@ import { registerTurns } from "./turns.js";
 import { registerPolishHooks } from "./polish.js";
 import { registerMissionCanvasWidget } from "./mission-canvas-widget.js";
 
+// 321: Windows TUI scheduled render can raise uncaught write UNKNOWN on process.stdout.write.
+// Contain it at host boundary so a Focusa session does not exit. Upstream pi-tui fix is canonical.
+if (process.platform === "win32") {
+  const writeUnknownGuard = (err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("write UNKNOWN") || msg.includes("EPIPE") || msg.includes("ERR_STREAM_WRITE_AFTER_END")) {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn(`[focusa-pi-bridge] suppressed host write exception on Windows: ${msg}`);
+      } catch {}
+      return;
+    }
+    // Not our containment case — rethrow to preserve semantics
+    throw err;
+  };
+  // Guard both uncaughtException and unhandledRejection that surfaces the write
+  process.on("uncaughtException", writeUnknownGuard as NodeJS.UncaughtExceptionListener);
+}
 export default function focusaPiBridge(pi: ExtensionAPI) {
   // Extension module load happens before daemon-backed project verification.
   // Bootstrap on a host scope; never fabricate project authority just to load Pi.
