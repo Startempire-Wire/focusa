@@ -5,6 +5,7 @@ pub mod agent_runtime;
 pub mod audit;
 pub mod autonomy;
 pub mod awareness;
+pub mod bg;
 pub mod binary;
 pub mod bloatgaurd;
 pub mod cache;

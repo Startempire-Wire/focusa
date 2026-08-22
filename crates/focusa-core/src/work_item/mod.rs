@@ -28,6 +28,7 @@ pub mod evidence;
 pub mod lifecycle;
 pub mod policy;
 pub mod scheduler;
+pub mod sweeper;
 pub mod storage;
 pub mod temporal_policy;
 pub mod types;
@@ -44,6 +45,7 @@ pub use lifecycle::{
 pub use policy::{ACTIVE_PROFILE_RELEASE_PROOF, ClosurePolicy, ClosureProfile, ProfileRule};
 pub use scheduler::{BlockedWorkItem, WorkItemReadiness, evaluate_readiness, select_next_ready};
 pub use storage::{ClaimStorage, ClaimStorageError, ClaimStorageResult};
+pub use sweeper::{ProviderSweepReport, ProviderSweeper, SweepIncident};
 pub use types::{
     ClaimStatus, ClosureAuthorityContext, ClosureBlock, ClosureClaim, ClosureClaimBuilder,
     ClosureError, ClosureKind, EvidenceCitation, EvidenceKind, LifecycleStage,

@@ -147,6 +147,13 @@ enum Commands {
     #[command(subcommand)]
     Silent(commands::silent::SilentCmd),
 
+    /// Durable background execution with completion notification (docs/165).
+    /// The ONLY sanctioned terminal-blocking-query surface (AGENTS.md TBQ rule).
+    Bg {
+        #[command(subcommand)]
+        cmd: commands::bg::BgCmd,
+    },
+
     /// Upgrade an existing Focusa install via the atomic installer path.
     Upgrade(commands::upgrade::UpgradeArgs),
 
@@ -666,6 +673,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Compaction(cmd) => commands::compaction::run(cmd, cli.json).await,
         Commands::DaemonRouting(cmd) => commands::daemon_routing::run(cmd, cli.json).await,
         Commands::Silent(cmd) => commands::silent::run(cmd, cli.json).await,
+        Commands::Bg { cmd } => commands::bg::run(cmd, cli.json).await,
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,
         Commands::Uninstall(args) => commands::uninstall::run(args).await,
         Commands::Codesign(args) => commands::codesign::run(args).await,
