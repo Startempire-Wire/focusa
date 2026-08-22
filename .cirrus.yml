@@ -1,4 +1,4 @@
-# .cirrus.yml — $0 pluggable bypass (Cirrus + self-hosted Linux)
+# .cirrus.yml — pluggable external build (Cirrus + self-hosted Linux)
 # No Azure eligibility wall — free Linux/Windows/macOS, 60 CPU-hr/mo private, public unlimited.
 # Pluggable: delete this file to unplug. Guarded by config/billing-bypass.json (expires 2026-09-01).
 # Linux: self-hosted host-focusa-deploy already builds (no minutes). Cirrus does macOS+Windows.
@@ -50,5 +50,5 @@ publish_task:
     - TAG=${CIRRUS_TAG:-$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.9.180-dev")}
     - echo "Publishing $TAG to $GH_REPO"
     - tar czf focusa-$TAG-macos.tar.gz target/release/focusa* 2>/dev/null || true
-    - npx --yes gh release view "$TAG" --repo "$GH_REPO" 2>/dev/null || gh release create "$TAG" --repo "$GH_REPO" --title "$TAG — \$0 Cirrus bypass" --notes "Full 6-arch via Cirrus \$0 (auto-expires 2026-09-01)" --prerelease
+    - npx --yes gh release view "$TAG" --repo "$GH_REPO" 2>/dev/null || gh release create "$TAG" --repo "$GH_REPO" --title "$TAG" --notes "" --prerelease
     - gh release upload "$TAG" focusa-*.tar.gz --repo "$GH_REPO" --clobber || true

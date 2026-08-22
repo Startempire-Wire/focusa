@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "expires": "2026-09-01",
-  "reason": "GH Free 2000/2000 min lock \u2014 watchdog was $623/mo burn (disabled). Azure is $0 pluggable bypass.",
+  "reason": "GH Free 2000/2000 min lock \u2014 watchdog was $623/mo burn (disabled). Azure is pluggable bypass.",
   "created": "2026-08-21",
   "auto_action": "On expires, workflow .github/workflows/billing-bypass-expiry.yml disables Azure trigger and reverts release.yml to hosted.",
   "unplug": "rm azure-pipelines.yml config/billing-bypass.json scripts/sync-azure-pipeline.py .github/workflows/billing-bypass-expiry.yml",

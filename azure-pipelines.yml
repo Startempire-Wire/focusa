@@ -1,4 +1,4 @@
-# azure-pipelines.yml — $0 billing bypass (pluggable, auto-expiring)
+# azure-pipelines.yml — external billing bypass (pluggable, auto-expiring)
 # CLEAN PLUG: mirrors .github/workflows/release.yml matrix but runs on Azure's free hosted pool.
 # Auto-expires 2026-09-01 (GH 2000m resets) → set trigger: none via bypass config.
 # Toggle: config/billing-bypass.json { "enabled": true, "expires": "2026-09-01" }
@@ -100,7 +100,7 @@ jobs:
       echo "Publishing $TAG to $GH_REPO"
       # collect artifacts (example — tar the release bins)
       tar czf focusa-$TAG-linux-x64.tar.gz target/release/focusa* 2>/dev/null || true
-      gh release view "$TAG" --repo "$GH_REPO" 2>/dev/null || gh release create "$TAG" --repo "$GH_REPO" --title "$TAG — \$0 Azure bypass" --notes "Full 6-arch canonical via Azure \$0 bypass (auto-expires 2026-09-01). GH minutes were 2000/2000." --prerelease
+      gh release view "$TAG" --repo "$GH_REPO" 2>/dev/null || gh release create "$TAG" --repo "$GH_REPO" --title "$TAG" --notes "" --prerelease
       gh release upload "$TAG" focusa-*.tar.gz --repo "$GH_REPO" --clobber || true
       echo "Done"
     env:
