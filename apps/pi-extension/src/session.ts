@@ -80,6 +80,104 @@ import { publishScopedStateChange, rehydrateScopedStateChanges } from "./scoped-
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+// docs/165 v2 §4 — background-job visual state (module-level; updated
+// exclusively from SSE events + one seed fetch on connect, never polled).
+const bgRunning = new Map<string, { name: string; startedAt: string }>();
+const bgRecent: Array<{ name: string; status: string; exitCode: number | null }> = [];
+
+function bgSeedFromLedger(): void {
+  const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+  fetch(`${base}/background-jobs?limit=20`)
+    .then((r) => r.json())
+    .then((data: any) => {
+      for (const job of Array.isArray(data?.jobs) ? data.jobs : []) {
+        if (job?.status === "running" && job?.job_id) {
+          bgRunning.set(String(job.job_id), {
+            name: String(job.name || job.job_id),
+            startedAt: String(job.started_at || ""),
+          });
+        }
+      }
+      renderBgSurfaces();
+    })
+    .catch(() => {
+      /* seed is best-effort; SSE events are authoritative */
+    });
+}
+
+function renderBgSurfaces(): void {
+  const ui = getAttachmentRuntime().uiCtx;
+  if (!ui?.setStatus) return;
+  const last = bgRecent[0];
+  if (bgRunning.size > 0) {
+    const names = [...bgRunning.values()].slice(0, 2).map((j) => j.name).join(", ");
+    ui.setStatus(
+      "focusa-bg",
+      `⚙ bg: ${bgRunning.size} running${names ? ` (${names})` : ""}${last ? ` · last ${last.name}` : ""}`
+    );
+  } else if (last) {
+    const mark = last.status === "completed" ? "✓" : "✗";
+    ui.setStatus("focusa-bg", `⚙ bg idle · last ${last.name} ${mark}`);
+  } else {
+    ui.setStatus("focusa-bg", undefined);
+  }
+  if (ui.setWidget) {
+    if (bgRunning.size === 0 && bgRecent.length === 0) {
+      ui.setWidget("focusa-bg", undefined);
+      return;
+    }
+    ui.setWidget("focusa-bg", (_tui: unknown, theme: any) => {
+      const lines: string[] = [];
+      for (const [id, job] of bgRunning) {
+        lines.push(theme.fg("accent", `⚙ ${job.name}`) + theme.fg("muted", `  ${id.slice(0, 8)} running`));
+      }
+      for (const job of bgRecent.slice(0, 3)) {
+        const mark = job.status === "completed" ? "✓" : "✗";
+        const color = job.status === "completed" ? "success" : "error";
+        lines.push(
+          theme.fg(color, `${mark} ${job.name}`) +
+            theme.fg("muted", `  exit ${job.exitCode ?? "?"} · ${job.status}`)
+        );
+      }
+      return { render: () => lines, invalidate: () => {} };
+    });
+  }
+}
+
+function handleBgStarted(jobId: string, name: string, startedAt: string): void {
+  bgRunning.set(jobId, { name, startedAt });
+  renderBgSurfaces();
+}
+
+function handleBgCompletion(evt: any): void {
+  const jobId = String(evt?.job_id || "");
+  const name = String(evt?.name || jobId || "job");
+  const status = String(evt?.status || "completed");
+  const exitCode = typeof evt?.exit_code === "number" ? evt.exit_code : null;
+  bgRunning.delete(jobId);
+  bgRecent.unshift({ name, status, exitCode });
+  if (bgRecent.length > 6) bgRecent.length = 6;
+  renderBgSurfaces();
+
+  // Agent front terminal: pushed completion + bounded tail (zero-poll).
+  const tail = String(evt?.output_tail || "").split("\n").filter(Boolean);
+  const tailLine = (tail[tail.length - 1] || "").slice(0, 160);
+  const ok = status === "completed" && (exitCode === null || exitCode === 0);
+  getAttachmentRuntime().uiCtx?.notify(
+    `[bg] ${name} ${status} exit ${exitCode ?? "?"}${tailLine ? ` · ${tailLine}` : ""}`,
+    ok ? "info" : "error"
+  );
+  getAttachmentRuntime().pi?.appendEntry("focusa-bg-completion", {
+    job_id: jobId,
+    name,
+    status,
+    exit_code: exitCode,
+    log_path: evt?.log_path,
+    output_tail: String(evt?.output_tail || "").slice(0, 4096),
+    completed_at: evt?.completed_at,
+  });
+}
 const healthLifecycle = new LifecycleGenerationGuard();
 
 export function nativeSessionPressureOperatorAction(
@@ -1002,10 +1100,26 @@ function connectSSE() {
         if (getAttachmentRuntime().focusaAvailable) connectSSE();
       }, getAttachmentRuntime().healthBackoffMs);
     });
+  if (!getAttachmentRuntime().bgSeeded) {
+    getAttachmentRuntime().bgSeeded = true;
+    bgSeedFromLedger();
+  }
 }
 
 // §30: Metacognitive awareness indicators + §37.10: Cross-surface events
 function handleSSEEvent(evt: any) {
+  // docs/165 v2 §3 — background jobs deliver to the front terminal;
+  // the agent never polls or tails logs.
+  const bgType = String(evt?.event_type || "");
+  if (bgType === "background_job_started") {
+    handleBgStarted(
+      String(evt?.job_id || ""),
+      String(evt?.name || evt?.job_id || "job"),
+      String(evt?.started_at || "")
+    );
+  } else if (bgType === "background_job_completion") {
+    handleBgCompletion(evt);
+  }
   const scopedRefreshEvents = new Set([
     "project_bound",
     "project_verified",

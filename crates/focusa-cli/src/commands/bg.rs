@@ -34,6 +34,14 @@ pub struct RunArgs {
     /// Working directory (defaults to the current directory).
     #[arg(long)]
     pub cwd: Option<String>,
+    /// Return immediately after dispatch; a detached self-monitor waits
+    /// and records completion (docs/165 v2 AC1).
+    #[arg(long)]
+    pub detach: bool,
+    /// Internal: the re-executed detached monitor sets this to skip the
+    /// detach branch and run the blocking wait/complete flow.
+    #[arg(long, hide = true)]
+    pub internal_monitor: bool,
     /// The command to run. Everything after `--` is the command.
     #[arg(last = true, required = true)]
     pub command: Vec<String>,
@@ -171,6 +179,48 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                 .and_then(|v| v.as_str())
                 .unwrap_or("/dev/null")
                 .to_string();
+
+            // docs/165 v2: --detach re-execs this binary as a detached
+            // process-group-0 monitor and returns immediately; the parent
+            // terminal never blocks and no shell wrapper is required.
+            if args.detach && !args.internal_monitor {
+                use std::os::unix::process::CommandExt;
+                let exe = std::env::current_exe()?;
+                let mut monitor = std::process::Command::new(exe);
+                monitor
+                    .args([
+                        "bg",
+                        "run",
+                        "--name",
+                        &args.name,
+                        "--internal-monitor",
+                    ])
+                    .arg("--")
+                    .args(&args.command)
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .process_group(0);
+                if let Some(dir) = args.cwd.as_deref() {
+                    monitor.current_dir(dir);
+                }
+                monitor.spawn()?;
+                let dispatched = json!({
+                    "status": "dispatched",
+                    "job_id": job_id,
+                    "name": args.name,
+                    "log_path": log_path,
+                });
+                if json_mode {
+                    println!("{}", serde_json::to_string_pretty(&dispatched)?);
+                } else {
+                    println!(
+                        "job {job_id} ({}) dispatched log {log_path}",
+                        args.name
+                    );
+                }
+                return Ok(());
+            }
 
             // Detach the child from the terminal signal group, then wait on
             // it — this CLI is the monitor.

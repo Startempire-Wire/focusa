@@ -11,6 +11,9 @@ use serde::{Deserialize, Serialize};
 
 pub const BACKGROUND_JOB_SCHEMA: &str = "focusa.background_job.v1";
 pub const BACKGROUND_JOB_COMPLETION_EVENT: &str = "background_job_completion";
+/// docs/165 v2: broadcast when a job transitions queued → running so
+/// surfaces see dispatch latency, not just completion.
+pub const BACKGROUND_JOB_STARTED_EVENT: &str = "background_job_started";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -77,6 +80,36 @@ pub struct BackgroundJobCompletionEvent {
     /// displays this on completion (never the whole log).
     #[serde(default)]
     pub output_tail: String,
+}
+
+/// docs/165 v2 §2 — started envelope (dispatch visibility).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BackgroundJobStartedEvent {
+    pub schema: String,
+    pub event_type: String,
+    pub job_id: String,
+    pub name: String,
+    pub command: String,
+    pub cwd: String,
+    pub pid: Option<u32>,
+    pub log_path: String,
+    pub started_at: String,
+}
+
+impl BackgroundJobStartedEvent {
+    pub fn from_record(record: &BackgroundJobRecord) -> Self {
+        Self {
+            schema: "focusa.stream_event.v1".to_string(),
+            event_type: BACKGROUND_JOB_STARTED_EVENT.to_string(),
+            job_id: record.job_id.clone(),
+            name: record.name.clone(),
+            command: record.command.clone(),
+            cwd: record.cwd.clone(),
+            pid: record.pid,
+            log_path: record.log_path.clone(),
+            started_at: record.started_at.clone(),
+        }
+    }
 }
 
 /// Read the bounded tail of a job log (last N bytes, line-aligned).

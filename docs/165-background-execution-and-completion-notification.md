@@ -84,3 +84,58 @@ work through typed tools, not shells.
   speed primitive.
 - AGENTS.md (root + repo) mandates this workflow: raw shells only
   during cold-start recovery; tail-polling is banned.
+
+## v2 upgrade — zero-poll delivery + visual TUI surfaces (2026-08-22)
+
+Gap found in the field: the extension `handleSSEEvent` never implemented
+the `background_job_completion` case (docs claimed it; code had no case),
+`bg run` always blocked as monitor (forcing `setsid nohup … &` wrappers),
+and the human had no persistent view of running jobs. v2 closes all three.
+
+### Design
+
+1. **Non-blocking dispatch — `bg run --detach`.**
+   Parent CLI creates the durable job row, then re-execs itself
+   (`current_exe`) as a detached process-group-0 monitor with
+   `--internal-monitor`, prints `job <id> dispatched log <path>`, and
+   exits immediately. The detached monitor performs the existing
+   update-running → wait → POST /complete flow. Terminal NEVER blocks;
+   no shell wrappers needed. Monitor-less drift is still covered by the
+   existing `bg status` pid-liveness reaping (`monitor_lost`).
+
+2. **Started broadcast — `background_job_started`.**
+   `update_job` (status→running) broadcasts a
+   `focusa.stream_event.v1` envelope `{event_type:
+   "background_job_started", job_id, name, command, cwd, pid}` on the
+   same `events_tx`. Surfaces see dispatch latency, not just completion.
+   Invariant 1 (durable before broadcast) is preserved: upsert_job
+   commits first, broadcast second.
+
+3. **Agent front-terminal delivery (zero-poll).**
+   Extension `handleSSEEvent` normalizes `evt.event_type ?? evt.type`
+   and adds both bg cases:
+   - `background_job_started` → footer status line updates.
+   - `background_job_completion` → `uiCtx.notify("[bg] <name> <status>
+     exit N · <first tail line>", ok ? "info" : "error")` + durable
+     `pi.appendEntry("focusa-bg-completion", envelope)`. The agent reads
+     completions from the pushed notification — polling/tailing banned.
+
+4. **Human-visible progress (TUI).**
+   - Footer status (`ctx.ui.setStatus("focusa-bg", …)`): `⚙ bg: N
+     running · last <name> ✓/✗`, cleared when idle and no recent jobs.
+   - Persistent widget (`ctx.ui.setWidget("focusa-bg", …)` above editor):
+     live list of running jobs + last 3 completions with exit codes,
+     themed via `theme.fg("success"/"error"/"muted")`.
+   - State seeded from `GET /v1/background-jobs?limit=…` when SSE
+     connects; updated incrementally from SSE events only. No polling.
+
+### Acceptance
+
+- AC1 `bg run --detach --name x -- true` returns <1s, job completes,
+  ledger row `completed`, `bg status --job` shows it.
+- AC2 SSE carries `background_job_started` then
+  `background_job_completion` for one job, in order.
+- AC3 extension typecheck green; completion notify text contains name +
+  exit code + bounded tail line.
+- AC4 widget renders ≥1 running job during a sleep job and clears to
+  recent-completions view after.

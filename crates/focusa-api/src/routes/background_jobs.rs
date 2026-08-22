@@ -118,6 +118,7 @@ async fn update_job(
     Json(body): Json<UpdateJobBody>,
 ) -> Json<Value> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let events_tx = state.events_tx.clone();
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         focusa_core::background_job_store::ensure_schema(&conn)?;
@@ -131,11 +132,34 @@ async fn update_job(
         }
         record.pid = body.pid.or(record.pid);
         focusa_core::background_job_store::upsert_job(&conn, &record)?;
-        Ok(json!({"status": "updated", "job": record}))
+        // docs/165 v2 §2 — durable first, then broadcast the started
+        // envelope so surfaces see dispatch latency.
+        let became_running = record.status == BackgroundJobStatus::Running;
+        let started_event = if became_running {
+            serde_json::to_string(&
+                focusa_core::background_jobs::BackgroundJobStartedEvent::from_record(&record),
+            )
+            .ok()
+        } else {
+            None
+        };
+        Ok(json!({
+            "status": "updated",
+            "job": record,
+            "started_event": started_event,
+        }))
     })
     .await;
     match result {
-        Ok(Ok(payload)) => Json(payload),
+        Ok(Ok(payload)) => {
+            if let Some(event) = payload.get("started_event").and_then(|v| v.as_str()) {
+                let _ = events_tx.send(event.to_string());
+            }
+            Json(json!({
+                "status": payload.get("status").cloned().unwrap_or(Value::Null),
+                "job": payload.get("job").cloned().unwrap_or(Value::Null),
+            }))
+        }
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error("route", &error.to_string())),
         Err(error) => Json(focusa_core::error_envelope::internal_error("join", &format!("join error: {error}"))),
     }
