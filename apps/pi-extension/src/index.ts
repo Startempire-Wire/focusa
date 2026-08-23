@@ -36,6 +36,7 @@ import { registerSession } from "./session.js";
 import { registerTurns } from "./turns.js";
 import { registerPolishHooks } from "./polish.js";
 import { registerMissionCanvasWidget } from "./mission-canvas-widget.js";
+import { registerModelPlanAdvisory } from "./model-plan-advisory.js";
 
 // 321: Windows TUI scheduled render can raise uncaught write UNKNOWN on process.stdout.write.
 // Contain it at host boundary so a Focusa session does not exit. Upstream pi-tui fix is canonical.
@@ -197,6 +198,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     registerSession(pi);
     registerTurns(pi);
     registerPolishHooks(pi);
+    registerModelPlanAdvisory(pi);
 
     // ── §33.6: Optional proxy provider registration ───────────────────────
     // Default off: normal Focusa/Pi bridge sessions use direct providers plus
@@ -222,7 +224,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     }
 
     // ── §37.4: Keyboard shortcuts ──────────────────────────────────────────
-    pi.registerShortcut("ctrl+shift+f", {
+    pi.registerShortcut("ctrl+alt+f", {
       description: "Show Focusa status",
       handler: async (ctx) => {
         const up = getFocusaAvailable() ? "✅" : "❌";
