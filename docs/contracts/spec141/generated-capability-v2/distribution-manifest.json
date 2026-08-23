@@ -12,7 +12,7 @@
   "drift_findings": [],
   "evidence_ref": "scripts/verify-version-surfaces.py",
   "generated_at": "2026-08-22T11:22:35.713136Z",
-  "release_version": "0.9.181",
+  "release_version": "0.9.182-dev",
   "schema": "focusa.distribution_manifest.v1",
   "source_commit": "c361aa28f"
 }
