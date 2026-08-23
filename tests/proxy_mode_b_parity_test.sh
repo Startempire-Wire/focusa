@@ -5,7 +5,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 CARGO_BIN="${CARGO_BIN:-cargo}"
-if ! command -v "$CARGO_BIN" >>/tmp/spec51-debug.log 2>&1; then
+if ! command -v "$CARGO_BIN" >/dev/null 2>&1; then
   echo "cargo binary not found: $CARGO_BIN" >&2
   exit 1
 fi
@@ -24,7 +24,7 @@ echo "=== SPEC 51: Mode B proxy parity runtime behavior test ==="
 
 if CARGO_HOME="$CARGO_HOME" RUSTUP_HOME="$RUSTUP_HOME" "$CARGO_BIN" test \
   -p focusa-core --target-dir "$TARGET_DIR" \
-  focus_relevant_request_gets_minimal_slice_not_full_focus_dump >>/tmp/spec51-debug.log 2>&1; then
+  focus_relevant_request_gets_minimal_slice_not_full_focus_dump; then
   log_pass "OpenAI proxy preserves minimal-slice behavior"
 else
   log_fail "OpenAI proxy minimal-slice behavior regression"
@@ -32,7 +32,7 @@ fi
 
 if CARGO_HOME="$CARGO_HOME" RUSTUP_HOME="$RUSTUP_HOME" "$CARGO_BIN" test \
   -p focusa-core --target-dir "$TARGET_DIR" \
-  anthropic_process_request_injects_minimal_slice >>/tmp/spec51-debug.log 2>&1; then
+  anthropic_process_request_injects_minimal_slice; then
   log_pass "Anthropic proxy preserves minimal-slice behavior"
 else
   log_fail "Anthropic proxy minimal-slice behavior regression"
