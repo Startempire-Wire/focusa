@@ -10,5 +10,17 @@
       "valid_until": null
     }
   ],
-  "schema": "focusa.trusted_release_keys.v1"
+  "schema": "focusa.trusted_release_keys.v1",
+  "sigstore_identities": [
+    {
+      "identity_template": "https://github.com/Startempire-Wire/focusa/.github/workflows/release.yml@refs/tags/{tag}",
+      "issuer": "https://token.actions.githubusercontent.com",
+      "provider": "github-actions"
+    },
+    {
+      "identity": "focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com",
+      "issuer": "https://accounts.google.com",
+      "provider": "appveyor"
+    }
+  ]
 }

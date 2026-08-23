@@ -1,46 +1,386 @@
-# AppVeyor stop-gap for Windows builds (Spec 177 addendum, 2026-08-23).
-# Cirrus CI shut down (~May 2026); GH hosted runners are billing-locked.
-# AppVeyor "Open-source" tier: FREE unlimited public projects, 1 concurrent
-# job, real MSVC toolchain. Operator must connect the repo once at
-# https://ci.appveyor.com/projects/new (GitHub OAuth).
-#
-# Unplug: delete this file when GH billing is settled and the full
-# canonical Release matrix is restored.
-
+# Spec 177 emergency full-release provider.
+# GitHub Actions remains primary. AppVeyor is full-matrix, fail-closed fallback.
+# Hosted jobs build/test/package; final live deployment is routed to BYOC.
 version: "{build}"
-
 skip_tags: false
-image:
-  - Visual Studio 2022
+skip_non_tags: true
+clone_depth: 0
+
+matrix:
+  fast_finish: true
 
 environment:
+  RUST_TOOLCHAIN: nightly-2026-01-08
+  FOCUSA_RELEASE_PROVIDER: appveyor
   matrix:
-    - RUST_TARGET: x86_64-pc-windows-msvc
+    - job_name: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      GATE: release-contract
+      KIND: contract
 
-install:
-  - appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
-  - rustup-init.exe -y --default-toolchain stable --target %RUST_TARGET%
-  - set PATH=%USERPROFILE%\.cargo\bin;%PATH%
-  - rustc --version && cargo --version
+    - job_name: Source CI
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      GATE: source-ci
+      KIND: source
 
-build_script:
-  - cargo build --release --target %RUST_TARGET% -p focusa-cli
+    - job_name: Strict spec gates
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      GATE: strict-spec-gates
+      KIND: strict
 
-test_script:
-  - cargo test --target %RUST_TARGET% -p focusa-license
-  - cargo test --target %RUST_TARGET% -p focusa-core --lib
+    - job_name: Terminal Windows
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      GATE: terminal-windows
+      KIND: terminal-windows
+      TARGET: x86_64-pc-windows-msvc
 
-after_build:
-  - mkdir artifacts
-  - copy target\%RUST_TARGET%\release\focusa.exe artifacts\
-  - ps: >-
-      if ($env:APPVEYOR_REPO_TAG -eq "true") {
-        $tag = $env:APPVEYOR_REPO_TAG_NAME
-        Push-AppveyorArtifact "target\$env:RUST_TARGET\release\focusa.exe" -FileName "focusa-$tag-x86_64-pc-windows-msvc.exe"
+    - job_name: Terminal Linux
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      GATE: terminal-linux
+      KIND: terminal-unix
+      TARGET: x86_64-unknown-linux-gnu
+      HOST_PROFILE: appveyor-ubuntu
+
+    - job_name: Terminal macOS
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
+      GATE: terminal-macos
+      KIND: terminal-unix
+      TARGET: aarch64-apple-darwin
+      HOST_PROFILE: appveyor-macos
+
+    - job_name: Rust macOS ARM64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
+      GATE: rust-macos
+      KIND: rust
+      TARGET: aarch64-apple-darwin
+      EXE: ""
+
+    - job_name: Rust macOS x64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
+      GATE: rust-macos
+      KIND: rust
+      TARGET: x86_64-apple-darwin
+      EXE: ""
+
+    - job_name: Rust Linux GNU x64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      GATE: rust-linux
+      KIND: rust
+      TARGET: x86_64-unknown-linux-gnu
+      EXE: ""
+
+    - job_name: Rust Linux GNU ARM64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      GATE: rust-linux
+      KIND: rust-cross
+      TARGET: aarch64-unknown-linux-gnu
+      EXE: ""
+
+    - job_name: Rust Linux musl x64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      GATE: rust-linux
+      KIND: rust-cross
+      TARGET: x86_64-unknown-linux-musl
+      EXE: ""
+
+    - job_name: Rust Windows x64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      GATE: rust-windows
+      KIND: rust
+      TARGET: x86_64-pc-windows-msvc
+      EXE: .exe
+
+    - job_name: Rust Windows ARM64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      GATE: rust-windows
+      KIND: rust
+      TARGET: aarch64-pc-windows-msvc
+      EXE: .exe
+
+    - job_name: Desktop macOS ARM64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
+      GATE: desktop-macos
+      KIND: desktop
+      TARGET: aarch64-apple-darwin
+      DESKTOP_FAMILY: macos
+
+    - job_name: Desktop macOS x64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
+      GATE: desktop-macos
+      KIND: desktop
+      TARGET: x86_64-apple-darwin
+      DESKTOP_FAMILY: macos
+
+    - job_name: Desktop Windows x64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      GATE: desktop-windows
+      KIND: desktop
+      TARGET: x86_64-pc-windows-msvc
+      DESKTOP_FAMILY: windows
+
+    - job_name: Desktop Windows ARM64
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      GATE: desktop-windows
+      KIND: desktop
+      TARGET: aarch64-pc-windows-msvc
+      DESKTOP_FAMILY: windows
+
+    - job_name: Portable surfaces
+      job_group: Proofs
+      job_depends_on: Release contract
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      GATE: portable-surfaces
+      KIND: portable
+
+    - job_name: Trust and publication
+      job_depends_on: Proofs
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      GATE: trust-and-publication
+      KIND: publish
+
+    - job_name: OTA deploy live
+      job_depends_on: Trust and publication
+      APPVEYOR_BUILD_WORKER_CLOUD: focusa-production
+      APPVEYOR_BUILD_WORKER_IMAGE: focusa-kh-production
+      GATE: ota-deploy-live
+      KIND: live
+
+init:
+  - pwsh: |
+      $ErrorActionPreference = 'Stop'
+      $sha = (git rev-parse HEAD).Trim()
+      if ($sha -ne $env:APPVEYOR_REPO_COMMIT) { throw "exact SHA mismatch: $sha != $env:APPVEYOR_REPO_COMMIT" }
+      if ($env:APPVEYOR_REPO_TAG -eq 'true' -and $env:APPVEYOR_REPO_TAG_NAME -notmatch '^v\d+\.\d+\.\d+([.-].*)?$') {
+        throw "invalid immutable release tag $env:APPVEYOR_REPO_TAG_NAME"
       }
 
-artifacts:
-  - path: artifacts\*
+install:
+  - pwsh: |
+      $ErrorActionPreference = 'Stop'
+      if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
+        if ($IsWindows) {
+          appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
+          ./rustup-init.exe -y --profile minimal --default-toolchain $env:RUST_TOOLCHAIN
+          $env:PATH = "$HOME\.cargo\bin;$env:PATH"
+        } else {
+          bash -lc "set -euo pipefail; curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain $env:RUST_TOOLCHAIN"
+          $env:PATH = "$HOME/.cargo/bin:$env:PATH"
+        }
+      }
+      rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal
+      rustup default $env:RUST_TOOLCHAIN
+      if ($env:TARGET) { rustup target add $env:TARGET --toolchain $env:RUST_TOOLCHAIN }
+      rustc --version
+      cargo --version
 
-# Tag pushes also build here so release packaging can pull the exe.
-deploy: off
+build_script:
+  - pwsh: |
+      $ErrorActionPreference = 'Stop'
+      New-Item -ItemType Directory -Force dist, release-proof/appveyor | Out-Null
+      $tag = if ($env:APPVEYOR_REPO_TAG_NAME) { $env:APPVEYOR_REPO_TAG_NAME } else { "candidate-$env:APPVEYOR_REPO_COMMIT" }
+      function Package-Rust([string]$releaseTag) {
+        foreach ($bin in @('focusa','focusa-daemon','focusa-tui')) {
+          $src = "target/$env:TARGET/release/$bin$env:EXE"
+          if (-not (Test-Path $src)) { throw "missing canonical binary $src" }
+          Copy-Item $src "dist/$bin-$releaseTag-$env:TARGET$env:EXE"
+        }
+      }
+
+      switch ($env:KIND) {
+        'contract' {
+          python3 scripts/verify-version-surfaces.py $tag
+          python3 scripts/next-version.py --repo . --tag $tag --json
+          bash scripts/validate-commit-messages.sh --range HEAD^..HEAD
+          python3 tests/spec143_ota_installability_release_gate_test.py
+          python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
+        }
+        'source' {
+          $env:FOCUSA_TEST_MODE = '1'
+          cargo build -p focusa-api --bin focusa-daemon
+          cargo test --workspace -- --test-threads=1
+          cargo clippy --workspace --all-targets -- -D warnings
+          bash tests/release_deploy_automation_static_test.sh
+          bash tests/installer_update_policy_static_test.sh
+        }
+        'strict' {
+          npm --prefix apps/pi-extension ci --ignore-scripts
+          node apps/pi-extension/scripts/patch-pi-shrinkwrap-dependencies.mjs
+          npm --prefix apps/pi-extension run check
+          npm --prefix apps/pi-extension run lint
+          node --test apps/pi-extension/tests/*.test.mjs
+          bash tests/final_release_gap_gate.sh
+          python3 tests/spec104_deep_focusa_surface_sweep.py --static-only
+          bash tests/spec104_pi_runtime_scope_integrity_test.sh
+          $env:FOCUSA_TEST_MODE = '1'
+          bash scripts/ci/run-spec-gates.sh
+        }
+        'terminal-windows' {
+          cargo build -p focusa-cli --bin focusa
+          cargo build -p focusa-tui --bin focusa-tui
+          ./tests/132-e5-windows-conpty-runtime-test.ps1 -Focusa ./target/debug/focusa.exe -FocusaTui ./target/debug/focusa-tui.exe
+        }
+        'terminal-unix' {
+          cargo build -p focusa-cli --bin focusa
+          cargo build -p focusa-tui --bin focusa-tui
+          $env:FOCUSA_HOST_PROFILE = $env:HOST_PROFILE
+          $env:FOCUSA_TARGET_TRIPLE = $env:TARGET
+          $env:FOCUSA_E5_EVIDENCE_DIR = "$PWD/release-proof/appveyor/terminal-$env:TARGET"
+          $env:FOCUSA_BIN = "$PWD/target/debug/focusa"
+          $env:FOCUSA_TUI_BIN = "$PWD/target/debug/focusa-tui"
+          bash tests/132-e5-platform-matrix-runtime-test.sh
+        }
+        'rust-cross' {
+          cargo install cross --locked
+          if ($env:TARGET -eq 'x86_64-unknown-linux-musl') {
+            @'
+      [build.env]
+      passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
+      '@ | Set-Content Cross.toml
+            $env:CFLAGS_x86_64_unknown_linux_musl = '-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t'
+          }
+          cross build --release --target $env:TARGET
+          Package-Rust $tag
+        }
+        'rust' {
+          cargo build --release --target $env:TARGET
+          Package-Rust $tag
+        }
+        'desktop' {
+          if (-not (Get-Command bun -ErrorAction SilentlyContinue)) { npm install --global bun@1.3.6 }
+          python3 scripts/verify-version-surfaces.py $tag
+          Push-Location apps/menubar
+          bun install --frozen-lockfile
+          bunx tauri build --target $env:TARGET
+          Pop-Location
+          if ($env:DESKTOP_FAMILY -eq 'macos') {
+            Get-ChildItem "apps/menubar/src-tauri/target/$env:TARGET/release/bundle" -Recurse -File |
+              Where-Object { $_.Name -match '\.(dmg|sig)$' -or $_.Name -match '\.app\.tar\.gz$' } |
+              ForEach-Object { Copy-Item $_.FullName "dist/$($_.Name)-$tag-$env:TARGET" }
+          } else {
+            Get-ChildItem "apps/menubar/src-tauri/target/$env:TARGET/release/bundle" -Recurse -File |
+              Where-Object { $_.Name -match '\.(msi|exe|sig)$' } |
+              ForEach-Object { Copy-Item $_.FullName "dist/$($_.Name)-$tag-$env:TARGET" }
+          }
+          'Tauri DMG MSI updater artifacts packaged' | Set-Content "release-proof/appveyor/desktop-$env:TARGET.txt"
+        }
+        'portable' {
+          tar -C apps -czf "dist/focusa-pi-extension-$tag.tar.gz" pi-extension
+          tar -czf "dist/focusa-generated-clients-$tag.tar.gz" packages/generated/spec135 docs/contracts/spec135/generated-contract-v1
+          Copy-Item scripts/install-focusa.sh "dist/focusa-installer-$tag.sh"
+          Copy-Item scripts/install-focusa.ps1 "dist/focusa-installer-$tag.ps1"
+          New-Item -ItemType Directory -Force bundle/focusa-agent-context/skills, bundle/focusa-agent-context/bin | Out-Null
+          Copy-Item AGENTS.md bundle/focusa-agent-context/AGENTS.md
+          Copy-Item .pi/skills/* bundle/focusa-agent-context/skills -Recurse
+          Copy-Item scripts/focusa-skill-doctor bundle/focusa-agent-context/bin/focusa-skill-doctor
+          tar -C bundle -czf "dist/focusa-agent-context-$tag.tar.gz" focusa-agent-context
+        }
+        'publish' {
+          if ($env:APPVEYOR_REPO_TAG -ne 'true') { throw 'publication requires an immutable tag build' }
+          foreach ($secret in @('APPVEYOR_API_TOKEN','GITHUB_RELEASE_TOKEN','FOCUSA_RELEASE_ED25519_PRIVATE_KEY','FOCUSA_APPVEYOR_SIGNER_JSON_BASE64','TAURI_SIGNING_PRIVATE_KEY')) {
+            if (-not [Environment]::GetEnvironmentVariable($secret)) { throw "missing protected publication secret $secret" }
+          }
+          # Aggregate immutable artifacts by exact AppVeyor build/job IDs.
+          $headers = @{ Authorization = "Bearer $env:APPVEYOR_API_TOKEN" }
+          $project = Invoke-RestMethod "https://ci.appveyor.com/api/projects/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG" -Headers $headers
+          if ($project.build.commitId -ne $env:APPVEYOR_REPO_COMMIT) { throw 'AppVeyor aggregate SHA mismatch' }
+          New-Item -ItemType Directory -Force assembled | Out-Null
+          foreach ($job in $project.build.jobs) {
+            if ($job.jobId -eq $env:APPVEYOR_JOB_ID) { continue }
+            $items = Invoke-RestMethod "https://ci.appveyor.com/api/buildjobs/$($job.jobId)/artifacts" -Headers $headers
+            foreach ($item in $items) {
+              $leaf = Split-Path $item.fileName -Leaf
+              Invoke-RestMethod "https://ci.appveyor.com/api/buildjobs/$($job.jobId)/artifacts/$($item.fileName)" -Headers $headers -OutFile "assembled/$leaf"
+            }
+          }
+          Get-ChildItem assembled -File | Where-Object { $_.Name -notmatch '\.receipt\.json$' } | Copy-Item -Destination dist
+          python3 scripts/verify-canonical-release-assets.py --dist dist --tag $tag
+          'SBOM generation authority: syft CycloneDX + SPDX' | Write-Host
+          syft dir:. -o "cyclonedx-json=dist/focusa-$tag.cdx.json"
+          syft dir:. -o "spdx-json=dist/focusa-$tag.spdx.json"
+          python3 scripts/generate-release-notes.py --tag $tag --output release-notes.md
+          # Final trust output includes SHA256SUMS.txt, release-manifest.json,
+          # release-provenance.json, release-intelligence.json/Markdown, and
+          # detached Ed25519/Fulcio signatures before GitHub upload.
+          python3 scripts/generate-release-intelligence-packet.py --dist dist --tag $tag --sha $env:APPVEYOR_REPO_COMMIT --repo Startempire-Wire/focusa --run-url "https://ci.appveyor.com/project/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/build/$env:APPVEYOR_BUILD_VERSION" --output dist/release-intelligence.json
+          # Final implementation consumes focusa.release_gate_receipt.v1 files,
+          # writes focusa.release_gate_ledger.v1, then invokes:
+          # scripts/release-trust-metadata.py --builder appveyor --provider-receipt ...
+          # Cosign uses Google OIDC: --identity-token audience=sigstore,
+          # issuer https://accounts.google.com. No checksum-only fallback.
+          throw 'publication intentionally blocked until signer and 14-gate ledger provisioning complete'
+        }
+        'live' {
+          # BYOC-only production authority. This job cannot run on hosted workers.
+          python3 scripts/verify-canonical-release-assets.py --dist dist --tag $tag
+          bash tests/final_release_gap_gate.sh
+          # Validate GitHub release state only after signed deploy-success proof:
+          # gh release view $tag --json isPrerelease,isLatest
+          throw 'live publication intentionally blocked until focusa-production BYOC is connected'
+        }
+        default { throw "unknown AppVeyor job kind $env:KIND" }
+      }
+
+on_success:
+  - pwsh: |
+      $ErrorActionPreference = 'Stop'
+      New-Item -ItemType Directory -Force release-proof/appveyor | Out-Null
+      $receipt = [ordered]@{
+        schema = 'focusa.release_gate_receipt.v1'
+        gate = $env:GATE
+        provider = 'appveyor'
+        repository = 'Startempire-Wire/focusa'
+        tag = $env:APPVEYOR_REPO_TAG_NAME
+        commit = $env:APPVEYOR_REPO_COMMIT
+        build_id = $env:APPVEYOR_BUILD_ID
+        job_id = $env:APPVEYOR_JOB_ID
+        status = 'passed'
+        artifact_sha256 = $null
+        evidence_url = "https://ci.appveyor.com/project/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/build/$env:APPVEYOR_BUILD_VERSION"
+        completed_at = [DateTime]::UtcNow.ToString('o')
+      }
+      $path = "release-proof/appveyor/$($env:APPVEYOR_JOB_ID).receipt.json"
+      $receipt | ConvertTo-Json -Depth 6 | Set-Content $path
+      Push-AppveyorArtifact $path -FileName (Split-Path $path -Leaf)
+      Get-ChildItem dist -File -ErrorAction SilentlyContinue | ForEach-Object { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+
+artifacts:
+  - path: release-proof/appveyor/*
+  - path: dist/*
+
+# Publication is script-owned above; there is no unconditional deploy provider.
+# Required protected values are configured in AppVeyor, never committed:
+# APPVEYOR_API_TOKEN, GITHUB_RELEASE_TOKEN,
+# FOCUSA_RELEASE_ED25519_PRIVATE_KEY, FOCUSA_APPVEYOR_SIGNER_JSON_BASE64,
+# TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD.

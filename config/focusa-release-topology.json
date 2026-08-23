@@ -3,6 +3,49 @@
   "project_id": "focusa",
   "profile": "multi_surface_cross_platform",
   "provider": "github_actions",
+  "provider_contract": {
+    "schema": "focusa.release_provider_contract.v1",
+    "primary": "github_actions",
+    "emergency": [
+      {
+        "provider": "appveyor",
+        "project": "verioussmith/focusa",
+        "repository": "Startempire-Wire/focusa",
+        "activation_requires": [
+          "operator_directive",
+          "provider_incident_ref",
+          "exact_tag_commit_match"
+        ],
+        "required_gate_receipts": [
+          "release-contract",
+          "source-ci",
+          "strict-spec-gates",
+          "terminal-windows",
+          "terminal-linux",
+          "terminal-macos",
+          "rust-macos",
+          "rust-linux",
+          "rust-windows",
+          "desktop-macos",
+          "desktop-windows",
+          "portable-surfaces",
+          "trust-and-publication",
+          "ota-deploy-live"
+        ],
+        "signing": {
+          "cosign_oidc_issuer": "https://accounts.google.com",
+          "cosign_audience": "sigstore",
+          "rekor_required": true,
+          "ed25519_required": true
+        },
+        "publication": {
+          "draft_until_all_gates_green": true,
+          "canonical_asset_verifier": "scripts/verify-canonical-release-assets.py",
+          "latest_requires_live_proof": true
+        }
+      }
+    ]
+  },
   "global_gates": [
     "project_identity_verified",
     "release_scope_locked",

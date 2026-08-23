@@ -47,6 +47,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+$AppVeyorSignerIdentity = "focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com"
 
 function Log([string]$Message) { Write-Host "[focusa-install] $Message" -ForegroundColor Cyan }
 function Warn([string]$Message) { Write-Warning "[focusa-install] $Message" }
@@ -166,13 +167,32 @@ try {
 
   $Cosign = Get-Command cosign -ErrorAction SilentlyContinue
   $CosignVerified = $false
+  $CosignErrors = @()
   if ($Cosign) {
     try {
       Invoke-WebRequest -UseBasicParsing -Uri (Get-ReleaseAssetUrl $Tag "SHA256SUMS.txt.cosign.sig") -OutFile $Signature
       Invoke-WebRequest -UseBasicParsing -Uri (Get-ReleaseAssetUrl $Tag "SHA256SUMS.txt.cosign.pem") -OutFile $Certificate
-      & $Cosign verify-blob --certificate $Certificate --signature $Signature $Checksums | Out-Null
+      $GitHubProof = @(& $Cosign verify-blob --certificate $Certificate --signature $Signature `
+        --certificate-identity "https://github.com/$GitHubRepo/.github/workflows/release.yml@refs/tags/$Tag" `
+        --certificate-oidc-issuer "https://token.actions.githubusercontent.com" $Checksums 2>&1)
       $CosignVerified = ($LASTEXITCODE -eq 0)
-    } catch { $CosignVerified = $false }
+      if (-not $CosignVerified) {
+        $CosignErrors += $GitHubProof
+        $AppVeyorProof = @(& $Cosign verify-blob --certificate $Certificate --signature $Signature `
+          --certificate-identity $AppVeyorSignerIdentity `
+          --certificate-oidc-issuer "https://accounts.google.com" $Checksums 2>&1)
+        $CosignVerified = ($LASTEXITCODE -eq 0)
+        if (-not $CosignVerified) { $CosignErrors += $AppVeyorProof }
+      }
+    } catch {
+      $CosignErrors += $_.Exception.Message
+      $CosignVerified = $false
+    }
+  } else {
+    $CosignErrors += "cosign executable is unavailable"
+  }
+  if (-not $CosignVerified) {
+    $CosignErrors | ForEach-Object { Write-Warning "Cosign verification: $_" }
   }
   if (-not $CosignVerified -and $Channel -eq "stable") {
     Die "stable install requires valid Cosign signature metadata; SHA256 alone is insufficient"

@@ -29,6 +29,8 @@ METADATA_NAMES = {
     "release-provenance.json.sig",
     "focusa-trusted-release-keys.json",
     "focusa-trusted-release-keys.json.sig",
+    "release-gate-ledger.json",
+    "release-gate-ledger.json.sig",
 }
 
 
@@ -119,6 +121,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo", required=True)
     parser.add_argument("--run-url", required=True)
     parser.add_argument("--workflow", default=".github/workflows/release.yml")
+    parser.add_argument(
+        "--builder", choices=("github-actions", "appveyor"), default="github-actions"
+    )
+    parser.add_argument("--provider-receipt", type=pathlib.Path)
     parser.add_argument("--candidate", action="store_true")
     parser.add_argument("--private-key", required=True, type=pathlib.Path)
     parser.add_argument("--trusted-keys", required=True, type=pathlib.Path)
@@ -132,6 +138,33 @@ def main() -> int:
     key_mode = stat.S_IMODE(args.private_key.stat().st_mode)
     if key_mode & 0o077:
         raise ValueError("private signing key permissions must be 0600 or stricter")
+
+    provider_receipt = None
+    if args.builder == "appveyor":
+        if args.provider_receipt is None or not args.provider_receipt.is_file():
+            raise ValueError("AppVeyor provenance requires --provider-receipt")
+        provider_receipt = json.loads(args.provider_receipt.read_text())
+        expected = {
+            "schema": "focusa.release_gate_ledger.v1",
+            "provider": "appveyor",
+            "repository": args.repo,
+            "tag": args.tag,
+            "commit": args.commit,
+        }
+        for field, value in expected.items():
+            if provider_receipt.get(field) != value:
+                raise ValueError(f"provider receipt {field} mismatch")
+        gates = provider_receipt.get("gates")
+        if not isinstance(gates, list) or len(gates) != 14:
+            raise ValueError("provider receipt requires exactly 14 gates")
+        statuses = [gate.get("status") for gate in gates if isinstance(gate, dict)]
+        if args.candidate:
+            if any(status not in {"passed", "pending"} for status in statuses):
+                raise ValueError("candidate provider receipt contains a failed gate")
+        elif provider_receipt.get("all_green") is not True or statuses != ["passed"] * 14:
+            raise ValueError("published provider receipt requires 14 passed gates")
+    elif args.provider_receipt is not None:
+        raise ValueError("--provider-receipt is only valid for AppVeyor")
 
     trusted_metadata = json.loads(args.trusted_keys.read_text())
     key = active_key(trusted_metadata)
@@ -207,17 +240,31 @@ def main() -> int:
             .isoformat()
             .replace("+00:00", "Z")
         )
+        provider_evidence = None
+        ledger_output = None
+        if provider_receipt is not None:
+            ledger_output = args.dist / "release-gate-ledger.json"
+            write_json(ledger_output, provider_receipt)
+            provider_evidence = {
+                "schema": provider_receipt["schema"],
+                "provider": provider_receipt["provider"],
+                "build_id": provider_receipt.get("build_id"),
+                "build_url": provider_receipt.get("build_url"),
+                "configuration_sha256": provider_receipt.get("configuration_sha256"),
+                "ledger_sha256": sha256(ledger_output),
+            }
         provenance = {
             "schema": "focusa.release_provenance.v1",
             "tag": args.tag,
             "commit": args.commit,
-            "builder": "github-actions",
+            "builder": args.builder,
             "workflow": args.workflow,
             "run_url": args.run_url,
             "artifact_digest": sha256(checksums),
             "subjects": subjects,
             "generated_at": published_at,
             "slsa_attestation": None,
+            "provider_evidence": provider_evidence,
         }
         provenance_path = args.dist / "release-provenance.json"
         write_json(provenance_path, provenance)
@@ -256,6 +303,7 @@ def main() -> int:
                 "run_url": provenance["run_url"],
                 "artifact_digest": provenance["artifact_digest"],
                 "slsa_attestation": provenance["slsa_attestation"],
+                "provider_evidence": provenance["provider_evidence"],
             },
             "compatibility": {
                 "min_installed_version": "0.9.94-dev",
@@ -275,12 +323,10 @@ def main() -> int:
         manifest_path = args.dist / "release-manifest.json"
         write_json(manifest_path, manifest)
 
-        for metadata_path in (
-            checksums,
-            provenance_path,
-            manifest_path,
-            trusted_output,
-        ):
+        metadata_paths = [checksums, provenance_path, manifest_path, trusted_output]
+        if ledger_output is not None:
+            metadata_paths.append(ledger_output)
+        for metadata_path in metadata_paths:
             sign_and_verify(metadata_path, loaded_private_key, public_key)
 
         result = {
@@ -288,7 +334,7 @@ def main() -> int:
             "tag": args.tag,
             "key_id": key["key_id"],
             "asset_count": len(assets),
-            "signed_file_count": len(assets) + 4,
+            "signed_file_count": len(assets) + len(metadata_paths),
             "manifest": str(manifest_path),
             "provenance": str(provenance_path),
             "checksums": str(checksums),

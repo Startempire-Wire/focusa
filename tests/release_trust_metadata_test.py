@@ -144,6 +144,49 @@ def main() -> int:
             "locked-release-candidate-artifacts.yml"
         )
 
+        ledger = root / "appveyor-ledger.json"
+        ledger.write_text(
+            json.dumps(
+                {
+                    "schema": "focusa.release_gate_ledger.v1",
+                    "provider": "appveyor",
+                    "repository": "Startempire-Wire/focusa",
+                    "tag": "v0.9.95-dev",
+                    "commit": "a" * 40,
+                    "build_id": "54588263",
+                    "build_url": "https://ci.appveyor.com/project/verioussmith/focusa/build/11",
+                    "configuration_sha256": "b" * 64,
+                    "all_green": True,
+                    "gates": [{"gate": index, "status": "passed"} for index in range(1, 15)],
+                }
+            )
+        )
+        appveyor = run(
+            *common_args,
+            "--builder",
+            "appveyor",
+            "--workflow",
+            ".appveyor.yml",
+            "--provider-receipt",
+            str(ledger),
+        )
+        assert json.loads(appveyor.stdout)["signed_file_count"] == 7
+        appveyor_provenance = json.loads(
+            (dist / "release-provenance.json").read_text()
+        )
+        assert appveyor_provenance["builder"] == "appveyor"
+        assert appveyor_provenance["provider_evidence"]["build_id"] == "54588263"
+        ledger_output = dist / "release-gate-ledger.json"
+        assert ledger_output.is_file()
+        public.verify(
+            ledger_output.with_name(ledger_output.name + ".sig").read_bytes(),
+            ledger_output.read_bytes(),
+        )
+
+        missing_receipt = run(*common_args, "--builder", "appveyor", check=False)
+        assert missing_receipt.returncode == 1
+        assert "requires --provider-receipt" in missing_receipt.stderr
+
         assets[0].write_bytes(b"tampered")
         try:
             public.verify(

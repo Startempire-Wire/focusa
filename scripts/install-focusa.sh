@@ -10,6 +10,7 @@ set -euo pipefail
 FOCUSA_INSTALLER_VERSION="0.9.183-dev"
 
 GITHUB_REPO="${FOCUSA_GITHUB_REPO:-Startempire-Wire/focusa}"
+APPVEYOR_SIGNER_IDENTITY="focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com"
 RELEASE_BASE_URL="${FOCUSA_RELEASE_BASE_URL:-}"
 RELEASE_TAG="${FOCUSA_RELEASE_TAG:-}"
 TARGET_INPUT="auto"
@@ -231,8 +232,27 @@ verify_cosign_manifest() {
   have cosign || return 1
   curl_resilient -fsSL "$(release_asset_url SHA256SUMS.txt.cosign.sig)" -o "$TMP/SHA256SUMS.txt.cosign.sig" || return 1
   curl_resilient -fsSL "$(release_asset_url SHA256SUMS.txt.cosign.pem)" -o "$TMP/SHA256SUMS.txt.cosign.pem" || return 1
-  cosign verify-blob --certificate "$TMP/SHA256SUMS.txt.cosign.pem" \
-    --signature "$TMP/SHA256SUMS.txt.cosign.sig" "$CHECKSUM_MANIFEST" >/dev/null
+  local github_error="$TMP/cosign-github.err"
+  local appveyor_error="$TMP/cosign-appveyor.err"
+  if cosign verify-blob --certificate "$TMP/SHA256SUMS.txt.cosign.pem" \
+    --signature "$TMP/SHA256SUMS.txt.cosign.sig" \
+    --certificate-identity "https://github.com/${GITHUB_REPO}/.github/workflows/release.yml@refs/tags/${RELEASE_TAG}" \
+    --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+    "$CHECKSUM_MANIFEST" > /dev/null 2>"$github_error"; then
+    rm -f "$github_error" "$appveyor_error"
+    return 0
+  fi
+  if cosign verify-blob --certificate "$TMP/SHA256SUMS.txt.cosign.pem" \
+    --signature "$TMP/SHA256SUMS.txt.cosign.sig" \
+    --certificate-identity "$APPVEYOR_SIGNER_IDENTITY" \
+    --certificate-oidc-issuer "https://accounts.google.com" \
+    "$CHECKSUM_MANIFEST" > /dev/null 2>"$appveyor_error"; then
+    rm -f "$github_error" "$appveyor_error"
+    return 0
+  fi
+  cat "$github_error" "$appveyor_error" >&2
+  rm -f "$github_error" "$appveyor_error"
+  return 1
 }
 if verify_cosign_manifest; then
   log "cosign verification succeeded"
