@@ -1,0 +1,13 @@
+# Spec 177 §7 — billing-lock probe: verifies whether self-hosted runners
+# execute while the account is billing-locked. Delete after evaluation.
+name: SelfHosted Probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: [self-hosted, ovh-build]
+    timeout-minutes: 5
+    steps:
+      - run: echo "self-hosted executed under lock $(date -u)" && uname -m
