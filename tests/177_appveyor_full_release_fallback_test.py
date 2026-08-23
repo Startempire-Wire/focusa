@@ -111,7 +111,10 @@ assert "matrix:\n  fast_finish: true" in APPVEYOR
 identities = {item["provider"]: item for item in TRUSTED_KEYS["sigstore_identities"]}
 assert identities["appveyor"]["issuer"] == "https://accounts.google.com"
 assert identities["appveyor"]["identity"].startswith(
-    "focusa-appveyor-release-signer@"
+    "aegis-drive-sync@"
+)
+assert identities["appveyor"].get("supersedes") == (
+    "focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com"
 )
 assert identities["github-actions"]["issuer"] == (
     "https://token.actions.githubusercontent.com"
@@ -127,6 +130,7 @@ for marker in [
     assert marker in TRUST_SCRIPT
 
 for installer in [INSTALL_SH, INSTALL_PS1]:
+    assert "aegis-drive-sync@tech-empire-258307.iam.gserviceaccount.com" in installer
     assert "focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com" in installer
     assert "https://accounts.google.com" in installer
     assert "https://token.actions.githubusercontent.com" in installer

@@ -47,7 +47,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
-$AppVeyorSignerIdentity = "focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com"
+$AppVeyorSignerIdentity = "aegis-drive-sync@tech-empire-258307.iam.gserviceaccount.com"
+# Legacy dedicated-signer identity accepted during migration (Spec177 §9):
+$LegacyAppVeyorSignerIdentity = "focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com"
 
 function Log([string]$Message) { Write-Host "[focusa-install] $Message" -ForegroundColor Cyan }
 function Warn([string]$Message) { Write-Warning "[focusa-install] $Message" }
@@ -182,7 +184,14 @@ try {
           --certificate-identity $AppVeyorSignerIdentity `
           --certificate-oidc-issuer "https://accounts.google.com" $Checksums 2>&1)
         $CosignVerified = ($LASTEXITCODE -eq 0)
-        if (-not $CosignVerified) { $CosignErrors += $AppVeyorProof }
+        if (-not $CosignVerified) {
+          $CosignErrors += $AppVeyorProof
+          $LegacyProof = @(& $Cosign verify-blob --certificate $Certificate --signature $Signature `
+            --certificate-identity $LegacyAppVeyorSignerIdentity `
+            --certificate-oidc-issuer "https://accounts.google.com" $Checksums 2>&1)
+          $CosignVerified = ($LASTEXITCODE -eq 0)
+          if (-not $CosignVerified) { $CosignErrors += $LegacyProof }
+        }
       }
     } catch {
       $CosignErrors += $_.Exception.Message

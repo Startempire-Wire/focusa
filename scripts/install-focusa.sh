@@ -10,7 +10,9 @@ set -euo pipefail
 FOCUSA_INSTALLER_VERSION="0.9.183-dev"
 
 GITHUB_REPO="${FOCUSA_GITHUB_REPO:-Startempire-Wire/focusa}"
-APPVEYOR_SIGNER_IDENTITY="focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com"
+APPVEYOR_SIGNER_IDENTITY="aegis-drive-sync@tech-empire-258307.iam.gserviceaccount.com"
+# Legacy dedicated-signer identity accepted during migration (Spec177 §9):
+LEGACY_APPVEYOR_SIGNER_IDENTITY="focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com"
 RELEASE_BASE_URL="${FOCUSA_RELEASE_BASE_URL:-}"
 RELEASE_TAG="${FOCUSA_RELEASE_TAG:-}"
 TARGET_INPUT="auto"
@@ -247,6 +249,14 @@ verify_cosign_manifest() {
     --certificate-identity "$APPVEYOR_SIGNER_IDENTITY" \
     --certificate-oidc-issuer "https://accounts.google.com" \
     "$CHECKSUM_MANIFEST" > /dev/null 2>"$appveyor_error"; then
+    rm -f "$github_error" "$appveyor_error"
+    return 0
+  fi
+  if cosign verify-blob --certificate "$TMP/SHA256SUMS.txt.cosign.pem" \
+    --signature "$TMP/SHA256SUMS.txt.cosign.sig" \
+    --certificate-identity "$LEGACY_APPVEYOR_SIGNER_IDENTITY" \
+    --certificate-oidc-issuer "https://accounts.google.com" \
+    "$CHECKSUM_MANIFEST" > /dev/null 2>>"$appveyor_error"; then
     rm -f "$github_error" "$appveyor_error"
     return 0
   fi

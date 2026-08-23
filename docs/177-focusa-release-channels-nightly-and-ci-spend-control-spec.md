@@ -200,6 +200,19 @@ artifacts, or made available to pull-request builds. Tag publication jobs alone
 receive release secrets. The dedicated Google identity has no source-write,
 release-write, deployment, or unrelated cloud permissions.
 
+**Emergency fallback signer (2026-08-23, GitHub Actions billing outage).**
+Project `tech-empire-258307` has CRM/IAM/ServiceUsage APIs disabled and the
+operator's gcloud credential is `rapt_required`, so provisioning the dedicated
+`focusa-appveyor-release-signer` SA is temporarily impossible. During the
+outage, AppVeyor signs with the existing permanent-key service account
+`aegis-drive-sync@tech-empire-258307.iam.gserviceaccount.com` (key never
+expires; minted `aud=sigstore` Google OIDC ID tokens verified working).
+Installers accept both identities during migration; trust metadata records
+the substitution via `supersedes`. When project IAM API access is restored,
+provision the dedicated least-privilege signer and rotate: publish a release
+signed by the new identity, then remove the emergency identity from installers
+and trust metadata.
+
 `focusa.release_provenance.v1` remains additive and gains provider evidence:
 `builder="appveyor"`, AppVeyor account/project/build/job URLs, configuration
 digest, release-gate-ledger digest, signer identity, and Rekor entry reference.

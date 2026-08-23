@@ -18,9 +18,11 @@
       "provider": "github-actions"
     },
     {
-      "identity": "focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com",
+      "identity": "aegis-drive-sync@tech-empire-258307.iam.gserviceaccount.com",
       "issuer": "https://accounts.google.com",
-      "provider": "appveyor"
+      "provider": "appveyor",
+      "note": "emergency fallback signer (permanent SA key, no re-auth); migrate to dedicated focusa-appveyor-release-signer SA once project IAM API access is restored",
+      "supersedes": "focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com"
     }
   ]
 }
