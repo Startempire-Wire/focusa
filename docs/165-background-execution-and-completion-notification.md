@@ -47,8 +47,9 @@ focusa bg status → ledger row + monitor-lost reaping (/proc pid check)
 2. The CLI monitor owns the lifecycle; a dead monitor is detected by
    `bg status` (pid liveness) and recorded as `monitor_lost` — never
    silently "running" forever.
-3. Job output streams to the job's log file (reported in every envelope);
-   the ledger stores the log path, not the log contents.
+3. Job output streams to the monitor-host log file. At settlement the monitor
+   sends a bounded tail (maximum 4096 bytes) to the daemon, which persists it
+   with the ledger row; the full log remains local and is never copied.
 4. Waiters and the agent surface read the SAME completion envelope —
    no per-consumer reconstruction.
 5. `focusa bg run` is the monitor process: dispatch it with
@@ -139,3 +140,27 @@ and the human had no persistent view of running jobs. v2 closes all three.
   exit code + bounded tail line.
 - AC4 widget renders ≥1 running job during a sleep job and clears to
   recent-completions view after.
+
+## v3 upgrade — cross-host durable output (2026-08-23)
+
+Field evidence showed that daemon-side `bounded_log_tail(log_path)` is empty
+when the CLI monitor and daemon run on different hosts. It also showed that
+`bg wait` returned a completion envelope while `bg status` returned only the
+ledger row. Both violated the same-envelope invariant.
+
+The monitor now reads and bounds its local log after the child exits and sends
+`output_tail` in `POST /v1/background-jobs/{id}/complete`. The daemon bounds it
+again, persists it in the additive `output_tail TEXT NOT NULL DEFAULT ''`
+column, and builds SSE, wait, and status completion envelopes from that durable
+value. Legacy monitors default to an empty request field and retain same-host
+log fallback. Legacy databases migrate in place without losing job rows.
+
+### v3 acceptance
+
+- AC5 remote monitor output appears in the daemon completion envelope without
+  daemon access to the monitor's filesystem.
+- AC6 completed/failed `bg status` and `bg wait` return the same bounded
+  completion envelope after reconnect.
+- AC7 old completion requests without `output_tail` still parse and settle.
+- AC8 migration adds `output_tail` to an existing ledger and preserves rows.
+- AC9 producer, consumer, legacy-shape, and live SSE delivery tests pass.

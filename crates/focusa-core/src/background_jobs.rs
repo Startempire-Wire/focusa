@@ -60,6 +60,10 @@ pub struct BackgroundJobRecord {
     pub log_path: String,
     pub started_at: String,
     pub completed_at: Option<String>,
+    /// Persisted bounded output supplied by the monitor that owns the log.
+    /// Legacy records and monitors default to empty.
+    #[serde(default)]
+    pub output_tail: String,
 }
 
 /// The completion envelope every consumer reads (SSE + wait + status).
@@ -112,6 +116,22 @@ impl BackgroundJobStartedEvent {
     }
 }
 
+/// Bound monitor-supplied output by UTF-8 bytes and align to a line boundary.
+pub fn bounded_output_tail(output: &str, max_bytes: usize) -> String {
+    if output.len() <= max_bytes {
+        return output.to_string();
+    }
+    let mut start = output.len().saturating_sub(max_bytes);
+    while start < output.len() && !output.is_char_boundary(start) {
+        start += 1;
+    }
+    let tail = &output[start..];
+    match tail.find('\n') {
+        Some(index) => tail[index + 1..].to_string(),
+        None => tail.to_string(),
+    }
+}
+
 /// Read the bounded tail of a job log (last N bytes, line-aligned).
 pub fn bounded_log_tail(log_path: &str, max_bytes: usize) -> String {
     let Ok(bytes) = std::fs::read(log_path) else {
@@ -147,7 +167,11 @@ impl BackgroundJobCompletionEvent {
                 .completed_at
                 .clone()
                 .unwrap_or_else(|| record.started_at.clone()),
-            output_tail: bounded_log_tail(&record.log_path, 4096),
+            output_tail: if record.output_tail.is_empty() {
+                bounded_log_tail(&record.log_path, 4096)
+            } else {
+                record.output_tail.clone()
+            },
         }
     }
 }
@@ -170,6 +194,7 @@ mod tests {
             log_path: "/tmp/j1.log".to_string(),
             started_at: "t0".to_string(),
             completed_at: Some("t1".to_string()),
+            output_tail: "gate passed\n".to_string(),
         };
         let envelope = BackgroundJobCompletionEvent::from_record(&record);
         assert_eq!(envelope.event_type, BACKGROUND_JOB_COMPLETION_EVENT);
@@ -177,6 +202,13 @@ mod tests {
         assert_eq!(envelope.status, BackgroundJobStatus::Completed);
         let value = serde_json::to_value(&envelope).unwrap();
         assert_eq!(value["event_type"], "background_job_completion");
+        assert_eq!(value["output_tail"], "gate passed\n");
+    }
+
+    #[test]
+    fn monitor_output_tail_is_utf8_safe_and_line_aligned() {
+        let output = format!("discard € line\n{}", "x".repeat(32));
+        assert_eq!(bounded_output_tail(&output, 32), "x".repeat(32));
     }
 
     #[test]
@@ -210,6 +242,7 @@ mod tests {
             log_path: "/tmp/j1.log".to_string(),
             started_at: "t0".to_string(),
             completed_at: None,
+            output_tail: String::new(),
         };
         assert_eq!(
             BackgroundJobCompletionEvent::from_record(&record).completed_at,
