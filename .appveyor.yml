@@ -1,0 +1,46 @@
+# AppVeyor stop-gap for Windows builds (Spec 177 addendum, 2026-08-23).
+# Cirrus CI shut down (~May 2026); GH hosted runners are billing-locked.
+# AppVeyor "Open-source" tier: FREE unlimited public projects, 1 concurrent
+# job, real MSVC toolchain. Operator must connect the repo once at
+# https://ci.appveyor.com/projects/new (GitHub OAuth).
+#
+# Unplug: delete this file when GH billing is settled and the full
+# canonical Release matrix is restored.
+
+version: "{build}"
+
+skip_tags: false
+image:
+  - Visual Studio 2022
+
+environment:
+  matrix:
+    - RUST_TARGET: x86_64-pc-windows-msvc
+
+install:
+  - appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
+  - rustup-init.exe -y --default-toolchain stable --target %RUST_TARGET%
+  - set PATH=%USERPROFILE%\.cargo\bin;%PATH%
+  - rustc --version && cargo --version
+
+build_script:
+  - cargo build --release --target %RUST_TARGET% -p focusa-cli
+
+test_script:
+  - cargo test --target %RUST_TARGET% -p focusa-license
+  - cargo test --target %RUST_TARGET% -p focusa-core --lib
+
+after_build:
+  - mkdir artifacts
+  - copy target\%RUST_TARGET%\release\focusa.exe artifacts\
+  - ps: >-
+      if ($env:APPVEYOR_REPO_TAG -eq "true") {
+        $tag = $env:APPVEYOR_REPO_TAG_NAME
+        Push-AppveyorArtifact "target\$env:RUST_TARGET\release\focusa.exe" -FileName "focusa-$tag-x86_64-pc-windows-msvc.exe"
+      }
+
+artifacts:
+  - path: artifacts\*
+
+# Tag pushes also build here so release packaging can pull the exe.
+deploy: off
