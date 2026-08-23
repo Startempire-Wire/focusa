@@ -191,7 +191,7 @@ type ProcessCompactionLease = {
 const PROCESS_LEASE_SYMBOL = Symbol.for("focusa.compaction.coordinator.v1");
 const PI_TOOL_BOUNDARY_COMPACTION_SYMBOL = Symbol.for("focusa.pi.tool-boundary-compaction.v1");
 const MODULE_IDENTITY_SYMBOL = Symbol.for("focusa.compaction.module-identity");
-const EXTENSION_BUILD = "focusa-pi-bridge@0.9.182-dev";
+const EXTENSION_BUILD = "focusa-pi-bridge@0.9.177";
 const REGISTRATION_SOURCE = import.meta.url;
 const REGISTERED_HANDLERS = [
   "session_before_compact",
@@ -511,8 +511,15 @@ export function registerAutoCompaction(
     ) {
       if (!processLease.duplicateDiagnosticEmitted) {
         processLease.duplicateDiagnosticEmitted = true;
-        console.warn(
-          `[focusa] duplicate extension suppressed; active compaction owner=${processLease.owner.registrationId} build=${processLease.owner.extensionBuild} source=${processLease.owner.registrationSource}. Remove the duplicate Focusa installation and reload Pi.`
+        // Same-URL re-registration happens on every in-process session
+        // replacement (ctx.newSession / /tree navigation): pi rebuilds all
+        // extension instances against the existing process lease. That is
+        // benign — the original coordinator stays authoritative and no
+        // handlers are double-registered. Only a *different* module URL
+        // reaches the takeover branch below, so this can never indicate a
+        // second installation on disk.
+        console.info(
+          `[focusa] compaction coordinator retained across session replacement (same install at ${processLease.owner.registrationSource}; nothing to remove).`
         );
       }
       return false;

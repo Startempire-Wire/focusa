@@ -10,7 +10,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "agent-stateful-cognitive-runtime"
-version = "0.9.177"
+version = "0.9.182-dev"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -628,7 +628,7 @@ checksum = "c3e64b0cc0439b12df2fa678eae89a1c56a529fd067a9115f7827f1fffd22b32"
 
 [[package]]
 name = "cognitive-state-projection"
-version = "0.9.177"
+version = "0.9.182-dev"
 dependencies = [
  "agent-stateful-cognitive-runtime",
  "hex",
@@ -2209,7 +2209,7 @@ checksum = "7a79a3332a6609480d7d0c9eab957bca6b455b91bb84e66d19f5ff66294b85b8"
 
 [[package]]
 name = "letta-adapter"
-version = "0.9.177"
+version = "0.9.182-dev"
 dependencies = [
  "agent-stateful-cognitive-runtime",
  "hex",
@@ -2978,7 +2978,7 @@ dependencies = [
 
 [[package]]
 name = "pi-client-tool-gateway"
-version = "0.9.177"
+version = "0.9.182-dev"
 dependencies = [
  "agent-stateful-cognitive-runtime",
  "chrono",
