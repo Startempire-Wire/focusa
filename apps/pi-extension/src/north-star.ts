@@ -164,7 +164,7 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
   // Progressive disclosure: name the FIRST thing that needs attention in
   // plain language, offer one next step, and count the rest instead of
   // dumping internal state names.
-  const surfaces: Array<[NorthStarSurfaceState, string, string, string]> = [
+  const surfaces: Array<[string, NorthStarSurfaceState, string, string]> = [
     ["project", snapshot.project, "this session isn't connected to a project yet", "tell me which project to work in and I'll connect it"],
     ["hlt", snapshot.hlt, "the project's big-picture goal isn't set", "ask me to set the project goal"],
     ["mlg", snapshot.mlg, "the goal hasn't been broken into a mid-level plan", "ask me to plan the next milestone"],
