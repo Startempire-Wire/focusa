@@ -108,7 +108,10 @@ assert.equal(
 const completed = harness(largeBranch);
 const duplicateWarnings = [];
 const originalWarn = console.warn;
-console.warn = (...args) => duplicateWarnings.push(args.map(String).join(" "));
+const originalInfo = console.info;
+const captureDiagnostic = (...args) => duplicateWarnings.push(args.map(String).join(" "));
+console.warn = captureDiagnostic;
+console.info = captureDiagnostic;
 const duplicate = harness(
   largeBranch,
   DEFAULT_PROACTIVE_COMPACTION_POLICY,
@@ -120,10 +123,11 @@ const third = harness(
   thirdModule.registerAutoCompaction,
 );
 console.warn = originalWarn;
+console.info = originalInfo;
 assert.equal(duplicate.handlers.size, 0, "duplicate extension must not register any handlers");
 assert.equal(third.handlers.size, 0, "every additional extension must register no handlers");
 assert.equal(duplicateWarnings.length, 1, "duplicates must emit one bounded diagnostic");
-assert.match(duplicateWarnings[0], /active compaction owner=.*Remove the duplicate Focusa installation/);
+assert.match(duplicateWarnings[0], /compaction coordinator retained across session replacement/);
 await Promise.all([
   completed.handlers.get("agent_settled")({ type: "agent_settled" }, completed.ctx),
   completed.handlers.get("agent_settled")({ type: "agent_settled" }, completed.ctx),
