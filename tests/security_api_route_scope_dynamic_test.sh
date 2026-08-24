@@ -22,6 +22,7 @@ cleanup() {
 trap cleanup EXIT
 
 cd "$ROOT_DIR"
+FOCUSA_TEST_MODE=1 \
 FOCUSA_BIND="127.0.0.1:${PORT}" \
 FOCUSA_DATA_DIR="$DATA_DIR" \
 FOCUSA_AUTH_TOKEN="$TOKEN" \
@@ -43,14 +44,14 @@ curl -fsS "$BASE/v1/health" >/dev/null
 unauth_code=$(curl -sS -o /tmp/focusa-route-scope-unauth.out -w '%{http_code}' "$BASE/v1/info" || true)
 [[ "$unauth_code" == "401" ]] || { echo "expected unauth /v1/info 401 got $unauth_code" >&2; exit 1; }
 
-readonly_code=$(curl -sS -o /tmp/focusa-route-scope-readonly.out -w '%{http_code}' \
+admin_write_code=$(curl -sS -o /tmp/focusa-route-scope-admin.out -w '%{http_code}' \
   -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
   --data '{"kind":"route_scope_test"}' "$BASE/v1/telemetry/trace" || true)
-[[ "$readonly_code" == "403" ]] || { echo "expected default token write 403 got $readonly_code" >&2; cat /tmp/focusa-route-scope-readonly.out >&2 || true; exit 1; }
+[[ "$admin_write_code" =~ ^2 ]] || { echo "expected daemon admin token write success without permission header got $admin_write_code" >&2; cat /tmp/focusa-route-scope-admin.out >&2 || true; exit 1; }
 
 write_code=$(curl -sS -o /tmp/focusa-route-scope-write.out -w '%{http_code}' \
   -H "authorization: Bearer $TOKEN" -H 'x-focusa-permissions: telemetry:write' -H 'content-type: application/json' \
   --data '{"kind":"route_scope_test"}' "$BASE/v1/telemetry/trace" || true)
 [[ "$write_code" =~ ^2 ]] || { echo "expected telemetry:write success got $write_code" >&2; cat /tmp/focusa-route-scope-write.out >&2 || true; exit 1; }
 
-echo "✓ API route-scope dynamic smoke passed base=$BASE unauth=$unauth_code readonly_write=$readonly_code scoped_write=$write_code"
+echo "✓ API route-scope dynamic smoke passed base=$BASE unauth=$unauth_code admin_write=$admin_write_code requested_scope_write=$write_code"

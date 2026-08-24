@@ -22,7 +22,7 @@ for needle in \
   fi
 done
 
-for marker in "admin:*" "read:*" "permission_context" "forbid"; do
+for marker in "requested_scopes" "permission_context" "Compatibility shim" "forbid"; do
   if ! grep -Fq "$marker" "$PERM"; then
     echo "permission helper missing marker: $marker" >&2
     exit 1
