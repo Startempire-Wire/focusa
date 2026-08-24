@@ -198,8 +198,10 @@ test("compaction exposes elapsed heartbeat and bounded no-retry resume outcomes"
 test("one process-wide first-owner coordinator suppresses duplicate registrations", () => {
   assert.match(source, /Symbol\.for\("focusa\.compaction\.coordinator\.v1"\)/);
   assert.match(source, /if \(processLease\.owner\)/);
-  assert.match(source, /duplicate extension suppressed/);
-  assert.match(source, /Remove the duplicate Focusa installation and reload Pi/);
+  assert.match(source, /compaction coordinator retained across session replacement/);
+  // Different-install duplicates are superseded in place: first lease is
+  // dropped and a fresh owner registers (Spec130A takeover semantics).
+  assert.match(source, /processLease\.owner = undefined;/);
   assert.match(source, /return false;[\s\S]{0,400}const maxTransientRetries/);
   assert.match(indexSource, /if \(!ownsCompactionCoordinator\) return/);
   assert.match(source, /nativeCompactionCallCount >= 1/);

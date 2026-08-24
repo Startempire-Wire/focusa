@@ -164,6 +164,10 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
   // Progressive disclosure: name the FIRST thing that needs attention in
   // plain language, offer one next step, and count the rest instead of
   // dumping internal state names.
+  // Machine-scannable state ladder (contract: north-star-gate) — one line,
+  // bounded by short(), kept alongside the operator prose below.
+  const ladder = `PROJECT ${short(snapshot.project)} → HLT ${short(snapshot.hlt)} · MLG ${short(snapshot.mlg)} → STG ${short(snapshot.stg)} · WP ${short(snapshot.workpoint)} → FRONTIER ${short(snapshot.frontier)}`;
+
   const surfaces: Array<[string, NorthStarSurfaceState, string, string]> = [
     ["project", snapshot.project, "this session isn't connected to a project yet", "tell me which project to work in and I'll connect it"],
     ["hlt", snapshot.hlt, "the project's big-picture goal isn't set", "ask me to set the project goal"],
@@ -183,7 +187,8 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
   if (problems.length === 0) {
     // status=stale with all surfaces present: gentle refresh nudge.
     return [
-      `🧭 Focusa · ${short(snapshot.project)} · needs a quick refresh`,
+      `🧭 NORTH STAR ${snapshot.status.toUpperCase()} · ${short(snapshot.project)} · needs a quick refresh`,
+      `WAYPOINT ${short(snapshot.waypoint)} → GAP ${short(snapshot.gap)}`,
       `${staleNames.length ? `Some details (${staleNames.join(", ")}) aged out` : "Details aged out"} — say the word and I'll re-check before we continue.`,
     ];
   }
@@ -191,11 +196,13 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
   const [_firstKey, firstState, firstWhat, firstAction] = problems[0];
   const staleNote = firstState === "stale" ? " needs a refresh — " : firstState === "mismatched" ? " doesn't match what I'm seeing — " : " — ";
   const lines = [
-    `🧭 Focusa · ${firstWhat}${staleNote}${firstAction}.`,
+    `🧭 NORTH STAR ${snapshot.status.toUpperCase()} · ${firstWhat}${staleNote}${firstAction}.`,
+    `WAYPOINT ${short(snapshot.waypoint)} → GAP ${short(snapshot.gap)}`,
   ];
   if (problems.length > 1) {
     lines.push(`${problems.length - 1} more item${problems.length > 2 ? "s" : ""} will unfold as we go — ask for the full picture anytime.`);
   }
+  lines.push(ladder);
   return lines;
 }
 
