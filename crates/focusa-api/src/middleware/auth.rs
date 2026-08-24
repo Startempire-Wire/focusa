@@ -55,6 +55,12 @@ const PRE_AUTH_PATHS: &[&str] = &[
 ];
 
 fn is_pre_auth(path: &str) -> bool {
+    if matches!(
+        path,
+        "/v1/device/pair/start" | "/v1/device/pair/status" | "/v1/device/pair/qr"
+    ) {
+        return true;
+    }
     PRE_AUTH_PATHS
         .iter()
         .any(|p| path.starts_with(p) || path == p.trim_end_matches('/'))
@@ -148,4 +154,27 @@ pub async fn auth_layer(req: Request, next: Next) -> Result<Response, StatusCode
     // Admin token configured and request did not present a valid admin
     // or device token: reject.
     Err(StatusCode::UNAUTHORIZED)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn device_pair_bootstrap_is_public_but_completion_and_admin_are_not() {
+        for path in [
+            "/v1/device/pair/start",
+            "/v1/device/pair/status",
+            "/v1/device/pair/qr",
+        ] {
+            assert!(is_pre_auth(path), "{path}");
+        }
+        for path in [
+            "/v1/device/pair/complete",
+            "/v1/device/pair/list",
+            "/v1/device/pair/revoke",
+        ] {
+            assert!(!is_pre_auth(path), "{path}");
+        }
+    }
 }

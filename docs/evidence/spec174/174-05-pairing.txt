@@ -3,4 +3,4 @@ PASS: full extension suite background exit=0
 scopes=read,write
 token_delivery=one-shot-persist-before-success
 states=pending,expired,consumed-repair,paired
-preauth_backend_test=pending
+preauth_backend_test=OVH_PASS
