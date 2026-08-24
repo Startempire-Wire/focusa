@@ -60,6 +60,9 @@ jobs:
           path: ${{ runner.temp }}/focusa-132-e5-proof
           if-no-files-found: warn
 
+  # TEMPORARY: retain the macOS row as the GitHub restoration target. During
+  # GitHub hosted-macOS billing lock, Codemagic is the authoritative menubar
+  # package proof; see docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
   unix-terminal:
     strategy:
       matrix:

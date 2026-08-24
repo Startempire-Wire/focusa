@@ -29,6 +29,7 @@ When a coding session gets long, context compacts, the mission drifts, proof get
 - **Governed work loop and recovery:** one writer, canonical checkpoints, proactive compaction, cache-safe context, and automatic rollover after bounded transport exhaustion.
 - **Mission Canvas and Work Rail:** scoped Work Surfaces, CRIST interviews, workspace artifacts, UIAI browser context, live refresh, connectors, software/domain projections, and adaptive generated UI.
 - **Customer lifecycle:** idempotent install/repair, trusted Linux/macOS/Windows release assets, OTA/update rollback, and uninstall with user data preserved unless purge is explicit.
+- **Release provider map:** temporary Linux/GitHub-self-hosted, Windows/AppVeyor, and macOS/Codemagic routing—and the one-change-set return to GitHub—is defined in [`docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md`](docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md).
 - **Agent-ready by construction:** every Focusa Pi tool has a runtime contract, generated machine schema, per-tool document, skill routing, and a progressively disclosed runbook.
 
 Trajectory ladder: **HLT** (High-Level Trajectory) → **MLG** (Mid-Level Goal) → **STG** (Short-Term Goal) → **Waypoints** (concrete progress markers). Workpoint remains immediate action authority. The operator has authority; agents actively offer HLT-aligned Waypoints, STGs, and MLGs without silently changing the root goal.

@@ -1,4 +1,6 @@
 # AppVeyor stop-gap for Windows builds (Spec 177 addendum, 2026-08-23).
+# Provider authority, release receipts, and all-at-once GitHub restoration:
+# docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
 # Cirrus CI shut down (~May 2026); GH hosted runners are billing-locked.
 # AppVeyor "Open-source" tier: FREE unlimited public projects, 1 concurrent
 # job, real MSVC toolchain. Operator must connect the repo once at

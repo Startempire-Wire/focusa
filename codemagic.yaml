@@ -1,4 +1,6 @@
 # Codemagic macOS build lane — Spec 177 CI parity stop-gap (2026-08-24).
+# Provider authority, release receipts, and all-at-once GitHub restoration:
+# docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
 # Restores the third OS of the canonical Release matrix: GitHub hosted
 # macos-latest is billing-locked, Cirrus is defunct, AppVeyor free tier is
 # Windows-only. Codemagic personal accounts include 500 free macOS M2

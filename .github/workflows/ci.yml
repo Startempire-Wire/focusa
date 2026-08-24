@@ -59,6 +59,9 @@ jobs:
           cargo test -p focusa-cli update
           cargo clippy -p focusa-cli --all-targets -- -D warnings
 
+  # TEMPORARY: GitHub hosted macOS is billing-locked. This job remains the
+  # restoration target; Codemagic supplies the required macOS proof meanwhile.
+  # See docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
   menubar:
     name: Menubar
     runs-on: macos-latest

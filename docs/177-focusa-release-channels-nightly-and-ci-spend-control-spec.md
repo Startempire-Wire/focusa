@@ -47,7 +47,9 @@ plain channel model. No convoluted processes.
 GitHub-hosted macOS is billing-locked and AppVeyor's free public-project
 plan is Windows-only. Until GitHub-hosted macOS capacity returns, the
 menubar macOS package proof runs on Codemagic cloud M2 through
-`codemagic.yaml` workflow `menubar-macos-package-proof`.
+`codemagic.yaml` workflow `menubar-macos-package-proof`. The complete
+provider map, receipt contract, and all-at-once GitHub restoration protocol
+are canonical in `docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md`.
 
 - Scope: `apps/menubar/**` plus `codemagic.yaml`; no ordinary push or PR
   builds consume Mac minutes.

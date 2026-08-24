@@ -192,3 +192,7 @@ Every requirement remains in the machine-readable closure graph.
 - docs/current/PRODUCTION_CONSISTENCY_POLICY.md (five proofs + 11-surface matrix)
 - docs/current/CHANGES_2026-08-16.md (everything + reasons)
 - scripts/audit-route-health.mjs (tool flywheel health sweep — release blocker when red)
+
+## 2026-08-24 release routing addition
+
+- docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md — active temporary Linux/GitHub-self-hosted, Windows/AppVeyor, macOS/Codemagic release path and one-change-set return to GitHub.

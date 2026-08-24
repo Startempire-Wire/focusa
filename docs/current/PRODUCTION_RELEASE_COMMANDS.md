@@ -66,17 +66,28 @@ curl -sS --max-time 5 http://127.0.0.1:8787/v1/ontology/tool-contracts | jq '.ve
 node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures
 ```
 
-## 6. GitHub release
+## 6. Canonical release and temporary provider receipts
 
 ```bash
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 git status --short
-git tag -a vX.Y.Z-dev -m "vX.Y.Z-dev: release description"
-git push origin main
-git push origin vX.Y.Z-dev
-gh run list --limit 6 --json databaseId,status,conclusion,workflowName,headBranch,displayTitle | jq -r '.[] | [.databaseId,.workflowName,.headBranch,.status,(.conclusion//""),.displayTitle] | @tsv'
-gh run view <release-run-id> --json status,conclusion,jobs | jq '{status,conclusion,jobs:[.jobs[]|{name,status,conclusion}]}'
-gh release view vX.Y.Z-dev --json name,tagName,isDraft,isPrerelease,url,assets | jq '{tagName,name,isDraft,isPrerelease,url,assets:[.assets[].name]}'
+bash scripts/create-dev-release-tag.sh --push
+
+gh run list --limit 12 --json databaseId,status,conclusion,workflowName,headBranch,displayTitle \
+  | jq -r '.[] | [.databaseId,.workflowName,.headBranch,.status,(.conclusion//""),.displayTitle] | @tsv'
+gh run view <release-run-id> --json status,conclusion,jobs \
+  | jq '{status,conclusion,jobs:[.jobs[]|{name,status,conclusion}]}'
+gh release view vX.Y.Z-dev --json name,tagName,isDraft,isPrerelease,url,assets \
+  | jq '{tagName,name,isDraft,isPrerelease,url,assets:[.assets[].name]}'
 ```
+
+Until GitHub-hosted macOS is restored, also require the successful
+Codemagic `menubar-macos-package-proof` build receipt for the exact release
+tag commit. AppVeyor Windows evidence remains required where the release
+surface includes its CLI artifact. Do not hand-tag, hand-trigger a partial
+provider, or call the release complete on a GitHub-only result; the complete
+provider checklist and all-at-once GitHub restoration procedure are in
+`docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md`.
 
 ## 7. Residual cleanup
 

@@ -299,6 +299,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # TEMPORARY: these GitHub macOS artifact rows are billing-locked. Keep them
+  # intact for the all-at-once GitHub restoration; Codemagic carries temporary
+  # macOS package proof. See docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
   # Build Tauri desktop app for macOS only (testing)
   tauri-build:
     name: Build Menubar (${{ matrix.platform }})

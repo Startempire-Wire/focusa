@@ -16,8 +16,10 @@ No variants, no shortcuts, no `--no-verify`, no hand-editing `distribution-manif
   billing-locked `macos-latest` job is not a release veto when the matching
   Codemagic `menubar-macos-package-proof` release-tag build is green. That
   Codemagic receipt is mandatory release evidence, not an optional check;
-  `codemagic.yaml` documents its exact package and codesign contract. Remove
-  this exception when GitHub-hosted macOS proves the same contract green.
+  `codemagic.yaml` documents its exact package and codesign contract. The
+  full temporary provider map and one-change-set GitHub restoration protocol
+  are in `docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md`.
+  Remove this exception when GitHub-hosted macOS proves the same contract green.
 - **Tag ≠ Release.** `git push --tags` only enqueues CI. `Latest` flips only after `Release 14/14 green`. Say "tag pushed, CI queued" vs "Release published as Latest". Never "pushed full release" when only tag exists.
 - **No partial releases.** No OS-only, surface-only, or docs-only ship without explicit operator written approval.
 
