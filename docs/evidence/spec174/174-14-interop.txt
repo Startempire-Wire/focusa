@@ -1,0 +1,9 @@
+PASS: Workforce interop static/consumer gate 7/7
+PASS: legacy pairing static gate complete
+PASS: pairing pre-auth Rust 1/1 OVH
+PASS: Silent Session Rust compatibility 27/27 OVH
+PASS: grounded capability registry generated/check
+old_menubar_pairing_source=unchanged_from_v0.9.183-dev
+old_lifecycle_source=unchanged_from_v0.9.183-dev
+old_daemon=unsupported explicit, never false success
+new_health_and_silent_envelope=additive fields
