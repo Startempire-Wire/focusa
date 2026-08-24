@@ -1,0 +1,4 @@
+PASS: Spec 174 contracts and 18-node weak-model task graph are frozen
+spec_lines=490
+taskgraph_lines=318
+bead_cycles=✓ No dependency cycles detected.

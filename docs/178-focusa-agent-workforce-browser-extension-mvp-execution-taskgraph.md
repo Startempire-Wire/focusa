@@ -174,7 +174,7 @@ Every child bead must contain these fields verbatim and completely:
 - **Steps:** numbered, mechanical sequence; no design decisions left open.
 - **Tests:** exact commands and expected terminal lines.
 - **Acceptance:** binary checklist.
-- **Evidence:** exact path/output to attach.
+- **Evidence:** exact additional allowed output path; attach the specified proof.
 - **Failure stop:** conditions requiring blocker rather than improvisation.
 - **Handoff:** fields next bead needs.
 
@@ -286,9 +286,11 @@ No Chrome Web Store claim.
 
 ### 174-17 — Final verdict
 
-Adversarial reviewer attempts to disprove every §14 invariant and §17 step.
+Adversarial reviewer attempts to disprove every §3 invariant and §6 step.
 Release remains blocked on any critical objection, missing evidence, unknown
-compatibility result, or unsupported claim.
+compatibility result, or unsupported claim. Machine verdict must contain:
+`closure_supported=true`, `evidence_sufficiency=sufficient`, and
+`critical_objections=[]`.
 
 ## 10. Rollback
 
@@ -312,5 +314,5 @@ The held release may resume only when:
 - production-consistency five proofs exist;
 - live Chrome E2E passes;
 - release definition ledger is complete;
-- adversarial closure verdict is `closure_supported=true` with sufficient
-  evidence and zero critical objections.
+- adversarial verdict is `closure_supported=true`,
+  `evidence_sufficiency=sufficient`, and `critical_objections=[]`.
