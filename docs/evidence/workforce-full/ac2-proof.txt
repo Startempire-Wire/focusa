@@ -1,0 +1,14 @@
+PASS: focusa.capability_authorization.v1 canonical can(principal, capability, context)
+PASS: 146 grounded catalog descriptors exhaustively evaluated by one gate
+PASS: client-asserted admin:* denied for bounded paired-device principal
+PASS: paired read/write legacy scopes migrate to bounded read:*/write:* grants
+PASS: historic paired-device admin/admin:* values do not activate admin authority
+PASS: Workstream and high-risk context fail closed on mismatch
+PASS: entitlement acceptance uses daemon-owned EntitlementGateAccepted proof
+PASS: exact canonical decision persists idempotently in capability_authorization_audits
+PASS: capability UI projection uses canonical can gate, not client scope reconstruction
+PASS: core authorization tests 6/6
+PASS: API route-scope dynamic smoke
+PASS: focused static authorization and permission-matrix gates
+GitHub defects: #336 client elevation; #337 stale permission matrix
+PASS: focusa-api full package tests 520/520
