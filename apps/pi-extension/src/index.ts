@@ -45,7 +45,6 @@ if (process.platform === "win32") {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("write UNKNOWN") || msg.includes("EPIPE") || msg.includes("ERR_STREAM_WRITE_AFTER_END")) {
       try {
-        // eslint-disable-next-line no-console
         console.warn(`[focusa-pi-bridge] suppressed host write exception on Windows: ${msg}`);
       } catch {}
       return;
