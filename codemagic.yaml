@@ -1,0 +1,75 @@
+# Codemagic macOS build lane — Spec 177 CI parity stop-gap (2026-08-24).
+# Restores the third OS of the canonical Release matrix: GitHub hosted
+# macos-latest is billing-locked, Cirrus is defunct, AppVeyor free tier is
+# Windows-only. Codemagic personal accounts include 500 free macOS M2
+# minutes/month — sufficient for tag-gated menubar package proofs.
+#
+# Trigger policy: release/dev tags ONLY. Push/PR builds stay on the free
+# self-hosted Linux + AppVeyor Windows lanes so the minute budget is never
+# burned on ordinary development.
+#
+# Unplug: delete this file when GH hosted macOS billing is settled and the
+# canonical Release matrix is restored there.
+
+workflows:
+  menubar-macos-package-proof:
+    name: Menubar macOS package proof
+    max_build_duration: 40
+    when:
+      changeset:
+        includes:
+          - "apps/menubar/**"
+          - "codemagic.yaml"
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - "v*"
+      cancel_previous_builds: true
+    environment:
+      node: v22.12.0
+      xcode: latest
+      groups:
+        - github_credentials
+      vars:
+        APP_DIR: apps/menubar
+    scripts:
+      - name: Show build context
+        script: |
+          echo "Tag: $CM_TAG"
+          echo "Commit: $CM_COMMIT"
+          sw_vers
+          node --version && npm --version
+      - name: Install dependencies
+        script: |
+          cd $CM_REPO_DIR/$APP_DIR
+          npm ci
+      - name: Typecheck + web build
+        script: |
+          cd $CM_REPO_DIR/$APP_DIR
+          npm run check
+          npm run build
+      - name: Tauri package proof (ad-hoc signed, non-release)
+        script: |
+          cd $CM_REPO_DIR/$APP_DIR
+          export APPLE_SIGNING_IDENTITY=-
+          npx tauri build --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
+      - name: Validate macOS bundle
+        script: |
+          set -euo pipefail
+          cd $CM_REPO_DIR
+          APP_PATH=$(find apps/menubar/src-tauri/target/release/bundle/macos -name "*.app" | head -1)
+          test -n "$APP_PATH"
+          echo "Found bundle: $APP_PATH"
+          test -f "$APP_PATH/Contents/Info.plist"
+          /usr/bin/plutil -lint "$APP_PATH/Contents/Info.plist"
+          codesign --verify --deep --strict "$APP_PATH" 2>/dev/null || true
+          codesign -d "$APP_PATH" 2>&1 | grep -q 'Signature=adhoc'
+          echo "✓ Menubar macOS bundle proven (ad-hoc signature)"
+    publishing:
+      email:
+        recipients:
+          - verious.smith@philoveracity.com
+        notify:
+          success: true
+          failure: true
