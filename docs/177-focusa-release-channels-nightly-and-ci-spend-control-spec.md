@@ -42,6 +42,26 @@ plain channel model. No convoluted processes.
 
 ## 3. CI spend control (existing workflows)
 
+### Temporary macOS build path — Codemagic
+
+GitHub-hosted macOS is billing-locked and AppVeyor's free public-project
+plan is Windows-only. Until GitHub-hosted macOS capacity returns, the
+menubar macOS package proof runs on Codemagic cloud M2 through
+`codemagic.yaml` workflow `menubar-macos-package-proof`.
+
+- Scope: `apps/menubar/**` plus `codemagic.yaml`; no ordinary push or PR
+  builds consume Mac minutes.
+- Trigger: canonical dev/stable release tags (`v*`) only; the release
+  controller starts the Codemagic workflow and retains its successful build
+  receipt with the release proof.
+- Proof: npm dependency install, typecheck, web build, Rust/Tauri `.app`
+  package, plist validation, deterministic ad-hoc codesign, and strict
+  codesign verification.
+- Budget: Codemagic personal account's 500 free macOS M2 minutes/month;
+  no paid hosted-Mac switch is authorized by this temporary path.
+- Exit: remove `codemagic.yaml` and this subsection only after the GitHub
+  hosted macOS lane is restored and proves the same package contract green.
+
 1. `ci.yml`: add `paths-ignore: ['**.md', 'docs/**']` to push+PR triggers;
    extend `cancel-in-progress` to push events (not just PRs).
 2. No new crons anywhere. Existing daily cron (`billing-bypass-expiry`)
@@ -70,3 +90,6 @@ the canonical GitHub pipeline, just a smaller matrix).
 - AC5: `install-focusa.sh --channel=nightly` installs that build on the
   dev machine; `focusa --version` reports the nightly tag.
 - AC6: ci.yml paths-ignore + push cancellation merged.
+- AC7: while GitHub hosted macOS is unavailable, a release-tag Codemagic
+  `menubar-macos-package-proof` build is green and retains its build receipt;
+  remove this temporary proof only after the GitHub macOS replacement is green.
