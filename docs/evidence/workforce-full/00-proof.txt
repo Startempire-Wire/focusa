@@ -1,0 +1,7 @@
+PASS: exact 41 implementation nodes
+PASS: durable blocks graph acyclic
+PASS: 41/41 detailed execution packets have contracts/tests/evidence/stop/handoff
+PASS: external reused bead IDs present
+PASS: Workset/CallGraph/Fanout source exists but router baseline is truthfully unregistered
+authority=.beads/issues.jsonl; rejected draft Specs 180/181 remain absent
+count_defect=GitHub#332
