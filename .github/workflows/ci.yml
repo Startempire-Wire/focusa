@@ -18,6 +18,12 @@ concurrency:
   group: ci-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Self-hosted runner shares a production host: cap cargo codegen parallelism
+# so CI cannot starve (or be killed alongside) operator builds (#328).
+env:
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+
 jobs:
   commit-messages:
     name: Meaningful commit messages

@@ -33,7 +33,10 @@ if [ ! -x "$DAEMON_BIN" ]; then
   CARGO_BIN="${CARGO_BIN:-cargo}"
   "$CARGO_BIN" build -p focusa-api --release --bin focusa-daemon
 fi
-"$DAEMON_BIN" >/tmp/focusa-daemon.log 2>&1 &
+# Per-user daemon log: a root/wirebot-owned /tmp/focusa-daemon.log once
+# blocked the github-runner user from starting the daemon (EACCES).
+DAEMON_LOG="${DAEMON_LOG:-/tmp/focusa-daemon.$(id -u).log}"
+"$DAEMON_BIN" >"$DAEMON_LOG" 2>&1 &
 DAEMON_PID=$!
 cleanup() {
   kill "$DAEMON_PID" >/dev/null 2>&1 || true
