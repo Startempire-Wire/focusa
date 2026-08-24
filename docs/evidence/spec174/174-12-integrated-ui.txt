@@ -1,0 +1,9 @@
+PASS: focused integrated view tests 4/4
+PASS: full Workforce extension suite 46/46
+PASS: deterministic MV3 build
+PASS: sidepanel/views syntax checks
+regions=daemon,orientation,creation,workforce,audit
+accessibility=native keyboard controls+labels+aria-live+text-and-tone
+canonicality=no optimistic lifecycle; controls require exact target
+panel_close=stream abort only, no daemon control
+UIAI=file scheme rejected; localhost rejected by private-address policy; unpacked-extension visual automation deferred to 174-13 consumer gate

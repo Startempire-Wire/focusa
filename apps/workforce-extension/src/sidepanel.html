@@ -1,36 +1,21 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="dark light">
-    <title>Focusa Workforce</title>
-    <link rel="stylesheet" href="styles.css">
-  </head>
-  <body>
-    <header>
-      <p class="eyebrow">FOCUSA</p>
-      <h1>Workforce</h1>
-      <p id="connection-status" class="status" role="status" aria-live="polite">Not connected</p>
-    </header>
-    <main>
-      <section aria-labelledby="orientation-heading">
-        <h2 id="orientation-heading">Orientation</h2>
-        <p>Pair a daemon, then explicitly share the current tab and objective.</p>
-      </section>
-      <section aria-labelledby="creation-heading">
-        <h2 id="creation-heading">Creation</h2>
-        <p>No session has been preflighted.</p>
-      </section>
-      <section aria-labelledby="workforce-heading">
-        <h2 id="workforce-heading">Workforce</h2>
-        <p>Roster unavailable until a daemon is paired.</p>
-      </section>
-      <section aria-labelledby="audit-heading">
-        <h2 id="audit-heading">Audit</h2>
-        <p>Durable event stream is not connected.</p>
-      </section>
-    </main>
-    <script type="module" src="sidepanel.mjs"></script>
-  </body>
-</html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light"><title>Focusa Workforce</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<header><p class="eyebrow">FOCUSA</p><h1>Workforce</h1><p id="connection-status" class="status" role="status" aria-live="polite">Not connected</p></header>
+<main>
+<section aria-labelledby="connection-heading"><h2 id="connection-heading">Daemon</h2>
+  <label for="connection-select">Connection</label><select id="connection-select"><option value="">Choose a paired daemon</option></select>
+  <details><summary>Pair another daemon</summary><form id="pair-form"><label for="daemon-url">Daemon URL</label><input id="daemon-url" name="base_url" type="url" required placeholder="https://focusa.example"><label for="daemon-label">Label</label><input id="daemon-label" name="label" required value="Focusa daemon"><button type="submit">Request pairing</button></form><div id="pair-result" class="notice" aria-live="polite"></div><button id="pair-check" type="button" hidden>Check approval</button></details>
+</section>
+<section aria-labelledby="orientation-heading"><h2 id="orientation-heading">1. Orientation</h2><p>Review exactly what the owner will share.</p>
+  <form id="orientation-form"><button id="capture-tab" type="button">Capture current tab</button><p id="observation-summary" class="notice">No tab captured.</p>
+  <label for="objective">Objective</label><textarea id="objective" required maxlength="4000"></textarea><label for="exclusions">Exclusions <span>(one per line)</span></label><textarea id="exclusions"></textarea>
+  <label for="project-root">Project root</label><input id="project-root" required><label for="continuity-id">Continuity ID</label><input id="continuity-id" required><label for="work-item-ref">Work item</label><input id="work-item-ref"><label for="role-profile-ref">Role profile</label><input id="role-profile-ref" required value="role:researcher">
+  <button type="submit">Review orientation</button></form><pre id="mission-preview" tabindex="0">Nothing reviewed.</pre>
+</section>
+<section aria-labelledby="creation-heading"><h2 id="creation-heading">2. Creation</h2><form id="creation-form"><label for="agent-name">Agent name</label><input id="agent-name" required value="Browser-created agent"><label for="provider">Provider</label><input id="provider" required><label for="model">Model</label><input id="model" required><label for="auth-profile">Auth profile</label><input id="auth-profile" required><button id="preflight" type="submit">Preflight safe draft</button></form><p id="preflight-result" class="notice" aria-live="polite">No session has been preflighted.</p><div class="actions"><button id="create-draft" type="button" disabled>Create draft</button><button id="start-session" type="button" disabled>Approve and start</button></div></section>
+<section aria-labelledby="workforce-heading"><div class="section-heading"><h2 id="workforce-heading">3. Workforce</h2><button id="refresh-roster" type="button" class="secondary">Refresh</button></div><p id="loop-summary" class="notice">Work Loop unavailable.</p><ul id="roster" class="cards"><li class="empty">Roster unavailable until a daemon is paired.</li></ul></section>
+<section aria-labelledby="audit-heading"><div class="section-heading"><h2 id="audit-heading">4. Audit</h2><span id="stream-status" class="badge" data-tone="warning">Idle</span></div><ul id="audit" class="audit"><li class="empty">Durable event stream is not connected.</li></ul></section>
+</main><script type="module" src="sidepanel.mjs"></script>
+</body></html>
