@@ -50,6 +50,10 @@ pub fn router() -> Router<Arc<AppState>> {
             post(super::silent_sessions_lifecycle::start),
         )
         .route(
+            "/v1/silent-sessions/{session_id}/approvals",
+            post(super::silent_sessions_approvals::create),
+        )
+        .route(
             "/v1/silent-sessions/{session_id}/pause",
             post(super::silent_sessions_control::pause),
         )

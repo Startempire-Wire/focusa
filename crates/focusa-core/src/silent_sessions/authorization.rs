@@ -168,6 +168,10 @@ pub struct DurableApprovalRecord {
     pub risk_class: String,
     pub expires_at: DateTime<Utc>,
     pub permitted_side_effects: Vec<String>,
+    #[serde(default)]
+    pub issuance_idempotency_key: String,
+    #[serde(default)]
+    pub issuance_request_hash: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -201,6 +205,32 @@ pub struct AuthorizationDecision {
 
 pub fn authorize_silent_session_action(
     request: &SilentSessionAuthorizationRequest,
+) -> AuthorizationDecision {
+    authorize_silent_session_action_internal(request, true)
+}
+
+/// Pre-authorize issuance of a durable approval without pretending that an
+/// approval is already persisted. All principal, scope, role, authority,
+/// writer, and cross-user checks remain identical to action authorization;
+/// only the final approval-record verification is deferred until the caller
+/// constructs and durably stores the exact digest-bound record.
+pub fn authorize_silent_session_approval_issuance(
+    request: &SilentSessionAuthorizationRequest,
+) -> AuthorizationDecision {
+    if !request.action.requires_approval() {
+        return AuthorizationDecision {
+            allowed: false,
+            projection: None,
+            reason: "approval issuance is valid only for approval-required actions".into(),
+            approval_id: None,
+        };
+    }
+    authorize_silent_session_action_internal(request, false)
+}
+
+fn authorize_silent_session_action_internal(
+    request: &SilentSessionAuthorizationRequest,
+    verify_approval_record: bool,
 ) -> AuthorizationDecision {
     let deny = |reason: &str| AuthorizationDecision {
         allowed: false,
@@ -251,7 +281,7 @@ pub fn authorize_silent_session_action(
             return deny("cross-user access requires admin scope");
         }
     }
-    let approval_id = if request.action.requires_approval() {
+    let approval_id = if request.action.requires_approval() && verify_approval_record {
         match verify_approval(request) {
             Ok(id) => Some(id),
             Err(reason) => return deny(reason),

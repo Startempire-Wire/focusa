@@ -10,7 +10,7 @@ use crate::runtime::persistence_sqlite::SqlitePersistence;
 
 use super::{SilentSession, SilentSessionConfigRevision, SilentSessionEvent, SilentSessionRun};
 
-pub const SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 4;
+pub const SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 5;
 
 const SCHEMA_SQL: &str = r#"
 CREATE TABLE IF NOT EXISTS silent_session_control_schema_meta (
@@ -175,8 +175,13 @@ CREATE TABLE IF NOT EXISTS silent_session_control_approvals (
   run_id TEXT,
   action_digest TEXT NOT NULL,
   expires_at TEXT NOT NULL,
-  approval_json TEXT NOT NULL
+  approval_json TEXT NOT NULL,
+  issuance_idempotency_key TEXT,
+  issuance_request_hash TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_silent_session_control_approvals_idempotency
+  ON silent_session_control_approvals(operator_actor,issuance_idempotency_key)
+  WHERE issuance_idempotency_key IS NOT NULL AND issuance_idempotency_key <> '';
 CREATE INDEX IF NOT EXISTS idx_silent_session_control_approvals_scope
   ON silent_session_control_approvals(project_root,continuity_id,expires_at);
 CREATE TABLE IF NOT EXISTS silent_session_control_audits (
@@ -229,6 +234,14 @@ ALTER TABLE silent_session_control_stream_indexes ADD COLUMN event_count INTEGER
 ALTER TABLE silent_session_control_stream_indexes ADD COLUMN uncompressed_bytes INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE silent_session_control_stream_indexes ADD COLUMN compressed_bytes INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE silent_session_control_stream_indexes ADD COLUMN redaction_applied INTEGER NOT NULL DEFAULT 1;
+"#;
+
+const MIGRATION_V5_SQL: &str = r#"
+ALTER TABLE silent_session_control_approvals ADD COLUMN issuance_idempotency_key TEXT;
+ALTER TABLE silent_session_control_approvals ADD COLUMN issuance_request_hash TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_silent_session_control_approvals_idempotency
+  ON silent_session_control_approvals(operator_actor,issuance_idempotency_key)
+  WHERE issuance_idempotency_key IS NOT NULL AND issuance_idempotency_key <> '';
 "#;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -302,6 +315,9 @@ pub fn migrate_silent_session_schema(
         transaction.execute_batch(SCHEMA_SQL)?;
         if previous_version == 1 {
             transaction.execute_batch(MIGRATION_V2_SQL)?;
+        }
+        if (1..5).contains(&previous_version) {
+            transaction.execute_batch(MIGRATION_V5_SQL)?;
         }
         transaction.execute("DELETE FROM silent_session_control_schema_meta", [])?;
         transaction.execute(

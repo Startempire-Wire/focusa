@@ -1,0 +1,9 @@
+PASS: approval producer static gate
+PASS: focusa-core approval tests OVH exit=0
+PASS: focusa-api approval route tests OVH exit=0
+PASS: silent-session schema v5 migration/backup OVH exit=0
+actions=start,input,steer,follow_up,keys,cancel
+payload_hash=shared-exact
+idempotency=operator_actor+issuance_key
+ttl_minutes=5
+wildcards=forbidden

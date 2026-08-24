@@ -114,6 +114,6 @@ assert "guard_exact_target" in API_RETENTION
 assert "hold_expires_at" in CORE_RETENTION and "parse_from_rfc3339" in CORE_RETENTION
 assert "purge_session" in CORE_RETENTION
 assert "silent_session_control_retention_operations" in DB_SCHEMA
-assert "SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 4" in DB_SCHEMA
+assert "SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 5" in DB_SCHEMA
 
 print("Spec133 full silent CLI and daemon parity static contract: PASS")

@@ -53,8 +53,8 @@ pub fn save_durable_approval(
         connection.execute(
             r#"INSERT INTO silent_session_control_approvals(
                approval_id,operator_actor,action,project_root,continuity_id,session_id,run_id,
-               action_digest,expires_at,approval_json
-               ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)"#,
+               action_digest,expires_at,approval_json,issuance_idempotency_key,issuance_request_hash
+               ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)"#,
             params![
                 approval.approval_id.to_string(),
                 approval.operator_actor,
@@ -66,6 +66,10 @@ pub fn save_durable_approval(
                 approval.action_digest,
                 approval.expires_at.to_rfc3339(),
                 serde_json::to_string(approval)?,
+                (!approval.issuance_idempotency_key.is_empty())
+                    .then_some(approval.issuance_idempotency_key.as_str()),
+                (!approval.issuance_request_hash.is_empty())
+                    .then_some(approval.issuance_request_hash.as_str()),
             ],
         )?;
         Ok(())
@@ -81,6 +85,24 @@ pub fn load_durable_approval(
         "SELECT approval_json FROM silent_session_control_approvals WHERE approval_id=?1",
         &approval_id.to_string(),
     )
+}
+
+pub fn load_durable_approval_by_idempotency(
+    persistence: &SqlitePersistence,
+    operator_actor: &str,
+    idempotency_key: &str,
+) -> anyhow::Result<Option<DurableApprovalRecord>> {
+    persistence.with_connection_mut(|connection| {
+        let json = connection
+            .query_row(
+                "SELECT approval_json FROM silent_session_control_approvals                  WHERE operator_actor=?1 AND issuance_idempotency_key=?2",
+                params![operator_actor, idempotency_key],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        json.map(|value| serde_json::from_str(&value).map_err(anyhow::Error::from))
+            .transpose()
+    })
 }
 
 pub fn append_redacted_control_audit(

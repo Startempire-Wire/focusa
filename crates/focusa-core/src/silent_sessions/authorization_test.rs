@@ -83,6 +83,8 @@ fn approve(request: &mut SilentSessionAuthorizationRequest) {
         risk_class: "write".into(),
         expires_at: request.now + Duration::minutes(5),
         permitted_side_effects: request.requested_side_effects.clone(),
+        issuance_idempotency_key: "approval:test".into(),
+        issuance_request_hash: "request:test".into(),
     });
 }
 
@@ -118,6 +120,27 @@ fn exact_route_scope_names_and_action_mapping_are_stable() {
         SilentSessionAction::RollbackConfig.required_scope(),
         SilentSessionRouteScope::Config
     );
+}
+
+#[test]
+fn approval_issuance_runs_full_policy_before_record_verification() {
+    for action in [
+        SilentSessionAction::Start,
+        SilentSessionAction::SendInput,
+        SilentSessionAction::Cancel,
+    ] {
+        let input = request(action);
+        assert!(!authorize_silent_session_action(&input).allowed);
+        assert!(authorize_silent_session_approval_issuance(&input).allowed);
+    }
+    let pause = request(SilentSessionAction::Pause);
+    let decision = authorize_silent_session_approval_issuance(&pause);
+    assert!(!decision.allowed);
+    assert!(decision.reason.contains("approval-required"));
+
+    let mut denied = request(SilentSessionAction::Start);
+    denied.authority.writer_ownership = false;
+    assert!(!authorize_silent_session_approval_issuance(&denied).allowed);
 }
 
 #[test]
@@ -190,6 +213,15 @@ fn principals_approvals_audits_and_runner_nonces_are_durable() {
     );
     assert_eq!(
         load_durable_approval(&persistence, approval.approval_id).unwrap(),
+        Some(approval.clone())
+    );
+    assert_eq!(
+        load_durable_approval_by_idempotency(
+            &persistence,
+            &approval.operator_actor,
+            &approval.issuance_idempotency_key,
+        )
+        .unwrap(),
         Some(approval)
     );
 

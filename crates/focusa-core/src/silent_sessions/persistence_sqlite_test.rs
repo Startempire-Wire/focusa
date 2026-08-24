@@ -109,7 +109,7 @@ fn event(
 fn migration_creates_required_schema_and_backup() {
     let (dir, _persistence) = persistence();
     assert!(
-        dir.join("focusa.sqlite.pre-silent-session-v4.backup")
+        dir.join("focusa.sqlite.pre-silent-session-v5.backup")
             .is_file()
     );
     let connection = Connection::open(dir.join("focusa.sqlite")).unwrap();
@@ -199,7 +199,7 @@ fn schema_v1_upgrades_to_v4_stream_record_and_authorization_tables() {
 
     let outcome = migrate_silent_session_schema(&persistence, MigrationMode::Apply).unwrap();
     assert_eq!(outcome.previous_version, 1);
-    assert_eq!(outcome.target_version, 4);
+    assert_eq!(outcome.target_version, 5);
     persistence
         .with_connection_mut(|connection| {
             for (table, column) in [

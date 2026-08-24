@@ -10,15 +10,12 @@ use crate::middleware::principal::ApiRequestPrincipal;
 
 use super::silent_sessions::{ApiResponse, failure};
 
-pub(super) fn authorize_mutation(
+pub(super) fn authorization_context(
     request_principal: &ApiRequestPrincipal,
     session: &SilentSession,
     run: &SilentSessionRun,
     config: &focusa_core::silent_sessions::SilentSessionConfigRevision,
-    action: SilentSessionAction,
-    requested_side_effects: Vec<String>,
-    approval: Option<DurableApprovalRecord>,
-) -> Result<(), Box<ApiResponse>> {
+) -> (AuthorizationTarget, VerifiedAuthorityFacts) {
     let principal = &request_principal.principal;
     let administrator = principal.role == SilentSessionRole::Administrator;
     let controller = !session.controller_principal_id.is_empty()
@@ -55,6 +52,20 @@ pub(super) fn authorize_mutation(
         writer_principal_id: controller.then(|| principal.principal_id.clone()),
         context_authority: ContextAuthorityVerdict::Allowed,
     };
+    (target, authority)
+}
+
+pub(super) fn authorize_mutation(
+    request_principal: &ApiRequestPrincipal,
+    session: &SilentSession,
+    run: &SilentSessionRun,
+    config: &focusa_core::silent_sessions::SilentSessionConfigRevision,
+    action: SilentSessionAction,
+    requested_side_effects: Vec<String>,
+    approval: Option<DurableApprovalRecord>,
+) -> Result<(), Box<ApiResponse>> {
+    let principal = &request_principal.principal;
+    let (target, authority) = authorization_context(request_principal, session, run, config);
     let decision = authorize_silent_session_action(&SilentSessionAuthorizationRequest {
         principal: principal.clone(),
         action,

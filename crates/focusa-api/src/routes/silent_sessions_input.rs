@@ -10,7 +10,6 @@ use focusa_core::silent_sessions::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
 
 use crate::{middleware::principal::ApiRequestPrincipal, server::AppState};
 
@@ -20,15 +19,15 @@ use super::{
         ensure_silent_session_temporal_guard, failure, persistence_failure,
         silent_session_temporal_context,
     },
+    silent_sessions_approval_payload::{
+        DeliveryKind, MAX_TEXT_BYTES, delivery_request_hash_for_approval,
+        validate_approval_payload, validate_text,
+    },
     silent_sessions_authorize::authorize_mutation,
     silent_sessions_contract::{
         ApiSideEffect, ExactSessionRunTarget, SilentSessionApiEnvelope, guard_exact_target,
     },
 };
-
-const MAX_TEXT_BYTES: usize = 65_536;
-const MAX_KEYS: usize = 32;
-const MAX_KEY_BYTES: usize = 64;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct DeliveryTarget {
@@ -66,15 +65,6 @@ pub(super) struct KeysBody {
     keys: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize)]
-#[serde(rename_all = "snake_case")]
-enum DeliveryKind {
-    Input,
-    Steer,
-    FollowUp,
-    Keys,
-}
-
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/silent-sessions/{session_id}/input", post(input))
@@ -84,44 +74,6 @@ pub fn router() -> Router<Arc<AppState>> {
             post(follow_up),
         )
         .route("/v1/silent-sessions/{session_id}/keys", post(keys))
-}
-
-impl DeliveryKind {
-    fn event_kind(self) -> &'static str {
-        match self {
-            Self::Input => "input.requested",
-            Self::Steer => "steering.requested",
-            Self::FollowUp => "follow_up.queued",
-            Self::Keys => "key.requested",
-        }
-    }
-
-    fn side_effects(self, request_hash: &str) -> Vec<String> {
-        let runner = format!("runner_{}_request:{request_hash}", self.as_str());
-        if matches!(self, Self::Steer) {
-            vec![format!("workpoint_steering_request:{request_hash}"), runner]
-        } else {
-            vec![runner]
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::Input => "input",
-            Self::Steer => "steer",
-            Self::FollowUp => "follow_up",
-            Self::Keys => "keys",
-        }
-    }
-
-    fn accepts(self, lifecycle: SilentSessionLifecycle) -> bool {
-        matches!(
-            lifecycle,
-            SilentSessionLifecycle::Running
-                | SilentSessionLifecycle::WaitingInput
-                | SilentSessionLifecycle::Blocked
-        ) || matches!(self, Self::FollowUp) && lifecycle == SilentSessionLifecycle::Paused
-    }
 }
 
 pub(super) async fn input(
@@ -190,16 +142,10 @@ pub(super) async fn keys(
     axum::extract::Path(session_id): axum::extract::Path<SilentSessionId>,
     Json(body): Json<KeysBody>,
 ) -> ApiResponse {
-    if body.keys.is_empty()
-        || body.keys.len() > MAX_KEYS
-        || body
-            .keys
-            .iter()
-            .any(|key| key.trim().is_empty() || key.len() > MAX_KEY_BYTES)
+    if let Err(response) =
+        validate_approval_payload(DeliveryKind::Keys, &json!({"keys": body.keys}))
     {
-        return validation_failure(
-            "keys must contain 1..32 non-empty names of at most 64 bytes each",
-        );
+        return *response;
     }
     deliver(
         state,
@@ -402,26 +348,14 @@ fn success(
     after((code, Json(envelope)), principal)
 }
 
-fn validate_text(value: &str, field: &str) -> Result<(), Box<ApiResponse>> {
-    if value.trim().is_empty() || value.len() > MAX_TEXT_BYTES {
-        Err(Box::new(validation_failure(&format!(
-            "{field} must contain 1..={MAX_TEXT_BYTES} bytes"
-        ))))
-    } else {
-        Ok(())
-    }
-}
-
 fn request_hash(target: &DeliveryTarget, kind: DeliveryKind, payload: &Value) -> String {
-    let bytes = serde_json::to_vec(&json!({
-        "run_id": target.run_id,
-        "generation": target.generation,
-        "approval_id": target.approval_id,
-        "delivery_kind": kind,
-        "content": payload,
-    }))
-    .expect("delivery request serializes");
-    hex::encode(Sha256::digest(bytes))
+    delivery_request_hash_for_approval(
+        target.run_id,
+        target.generation,
+        target.approval_id,
+        kind,
+        payload,
+    )
 }
 
 fn validation_failure(hint: &str) -> ApiResponse {
