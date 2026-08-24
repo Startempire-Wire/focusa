@@ -1,0 +1,6 @@
+PASS: Spec174 approval static contract
+PASS: Rust approval contract OVH exit=0
+schemas=focusa.silent_session_approval_request.v1,focusa.silent_session_approval_response.v1
+actions=start,input,steer,follow_up,keys,cancel
+unknown_fields=denied
+client_action_digest=forbidden

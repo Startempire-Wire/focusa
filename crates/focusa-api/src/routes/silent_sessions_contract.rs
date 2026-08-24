@@ -1,8 +1,10 @@
+use chrono::{DateTime, Utc};
 use focusa_core::silent_sessions::{
-    RunGeneration, SilentSessionId, SilentSessionRouteScope, SilentSessionRun, SilentSessionRunId,
-    StreamCursor,
+    ApprovalId, RunGeneration, SilentSessionAction, SilentSessionId, SilentSessionRouteScope,
+    SilentSessionRun, SilentSessionRunId, StreamCursor,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "UPPERCASE")]
@@ -34,7 +36,7 @@ macro_rules! route {
     };
 }
 
-pub const SILENT_SESSION_PHASE2_ROUTES: [SilentSessionRouteSpec; 35] = [
+pub const SILENT_SESSION_PHASE2_ROUTES: [SilentSessionRouteSpec; 36] = [
     route!(
         "preflight",
         Post,
@@ -58,6 +60,14 @@ pub const SILENT_SESSION_PHASE2_ROUTES: [SilentSessionRouteSpec; 35] = [
         Post,
         "/v1/silent-sessions/{session_id}/start",
         Create,
+        true,
+        true
+    ),
+    route!(
+        "approval_create",
+        Post,
+        "/v1/silent-sessions/{session_id}/approvals",
+        Control,
         true,
         true
     ),
@@ -289,6 +299,61 @@ pub const SILENT_SESSION_PHASE2_ROUTES: [SilentSessionRouteSpec; 35] = [
     ),
 ];
 
+pub const SILENT_SESSION_APPROVAL_REQUEST_SCHEMA_V1: &str =
+    "focusa.silent_session_approval_request.v1";
+pub const SILENT_SESSION_APPROVAL_RESPONSE_SCHEMA_V1: &str =
+    "focusa.silent_session_approval_response.v1";
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ApprovalRequestAction {
+    Start,
+    Input,
+    Steer,
+    FollowUp,
+    Keys,
+    Cancel,
+}
+
+impl ApprovalRequestAction {
+    pub fn silent_session_action(self) -> SilentSessionAction {
+        match self {
+            Self::Start => SilentSessionAction::Start,
+            Self::Input | Self::Steer | Self::FollowUp | Self::Keys => {
+                SilentSessionAction::SendInput
+            }
+            Self::Cancel => SilentSessionAction::Cancel,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ApprovalCreateRequest {
+    pub schema: String,
+    pub action: ApprovalRequestAction,
+    pub run_id: SilentSessionRunId,
+    pub generation: RunGeneration,
+    pub idempotency_key: String,
+    pub risk_acknowledged: bool,
+    #[serde(default)]
+    pub payload: Option<Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ApprovalCreateResponse {
+    pub schema: String,
+    pub status: String,
+    pub approval_id: ApprovalId,
+    pub action: ApprovalRequestAction,
+    pub session_id: SilentSessionId,
+    pub run_id: SilentSessionRunId,
+    pub generation: RunGeneration,
+    pub expires_at: DateTime<Utc>,
+    pub receipt_ref: String,
+    pub action_idempotency_key: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RetryDirective {
     pub retryable: bool,
@@ -445,12 +510,12 @@ mod tests {
 
     #[test]
     fn registry_covers_all_owned_routes_without_duplicates() {
-        assert_eq!(SILENT_SESSION_PHASE2_ROUTES.len(), 35);
+        assert_eq!(SILENT_SESSION_PHASE2_ROUTES.len(), 36);
         let unique = SILENT_SESSION_PHASE2_ROUTES
             .iter()
             .map(|route| (route.method, route.path))
             .collect::<std::collections::BTreeSet<_>>();
-        assert_eq!(unique.len(), 35);
+        assert_eq!(unique.len(), 36);
         assert!(SILENT_SESSION_PHASE2_ROUTES.iter().all(|route| {
             !route.mutates || matches!(route.method, SilentSessionApiMethod::Post)
         }));
@@ -478,6 +543,47 @@ mod tests {
         ] {
             assert!(value.get(field).is_some(), "missing {field}");
         }
+    }
+
+    #[test]
+    fn approval_contract_is_versioned_bounded_and_deny_unknown() {
+        let run = run();
+        let raw = serde_json::json!({
+            "schema": SILENT_SESSION_APPROVAL_REQUEST_SCHEMA_V1,
+            "action": "start",
+            "run_id": run.id,
+            "generation": run.generation,
+            "idempotency_key": "approval:test:1",
+            "risk_acknowledged": true,
+            "payload": null
+        });
+        let request: ApprovalCreateRequest = serde_json::from_value(raw).unwrap();
+        assert_eq!(
+            request.action.silent_session_action(),
+            SilentSessionAction::Start
+        );
+        for supported in ["input", "steer", "follow_up", "keys"] {
+            let mut value = serde_json::to_value(&request).unwrap();
+            value["action"] = serde_json::Value::String(supported.into());
+            value["payload"] = serde_json::json!({"content": "bound"});
+            let delivery: ApprovalCreateRequest = serde_json::from_value(value).unwrap();
+            assert_eq!(
+                delivery.action.silent_session_action(),
+                SilentSessionAction::SendInput
+            );
+        }
+        for unsupported in ["send_input", "interrupt", "adopt", "force_kill", "release"] {
+            let mut value = serde_json::to_value(&request).unwrap();
+            value["action"] = serde_json::Value::String(unsupported.into());
+            assert!(serde_json::from_value::<ApprovalCreateRequest>(value).is_err());
+        }
+        let mut injected = serde_json::to_value(&request).unwrap();
+        injected["action_digest"] = serde_json::Value::String("client-controlled".into());
+        assert!(serde_json::from_value::<ApprovalCreateRequest>(injected).is_err());
+        assert_eq!(
+            SILENT_SESSION_APPROVAL_RESPONSE_SCHEMA_V1,
+            "focusa.silent_session_approval_response.v1"
+        );
     }
 
     #[test]
