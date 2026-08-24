@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Focusa Workforce",
+  "short_name": "Focusa",
+  "description": "Observe, orient, create, and orchestrate your governed Focusa workforce.",
+  "version": "0.9.184",
+  "version_name": "0.9.184-dev",
+  "minimum_chrome_version": "114",
+  "action": {
+    "default_title": "Open Focusa Workforce"
+  },
+  "background": {
+    "service_worker": "background.mjs",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "activeTab"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

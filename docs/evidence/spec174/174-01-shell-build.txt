@@ -1,0 +1,6 @@
+PASS: Focusa Workforce MV3 shell tests 2/2
+PASS: deterministic unpacked build
+permissions=activeTab,sidePanel,storage
+optional_hosts=http://*/*,https://*/*
+content_scripts=absent
+build=apps/workforce-extension/dist
