@@ -42,23 +42,22 @@ workflows:
           node --version && npm --version
       - name: Install dependencies
         script: |
-          cd $CM_REPO_DIR/$APP_DIR
+          cd apps/menubar
           npm ci
       - name: Typecheck + web build
         script: |
-          cd $CM_REPO_DIR/$APP_DIR
+          cd apps/menubar
           npm run check
           npm run build
       - name: Tauri package proof (ad-hoc signed, non-release)
         script: |
-          cd $CM_REPO_DIR/$APP_DIR
+          cd apps/menubar
           export APPLE_SIGNING_IDENTITY=-
           npx tauri build --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
       - name: Validate macOS bundle
         script: |
           set -euo pipefail
-          cd $CM_REPO_DIR
-          APP_PATH=$(find apps/menubar/src-tauri/target/release/bundle/macos -name "*.app" | head -1)
+                    APP_PATH=$(find apps/menubar/src-tauri/target/release/bundle/macos -name "*.app" | head -1)
           test -n "$APP_PATH"
           echo "Found bundle: $APP_PATH"
           test -f "$APP_PATH/Contents/Info.plist"
