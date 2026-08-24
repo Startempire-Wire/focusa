@@ -1,0 +1,8 @@
+PASS: focused orchestration tests 6/6
+PASS: full Workforce extension suite 42/42
+pre_mutation=refresh exact status+persist each actual idempotency key
+approvals=start,steer,cancel exact target/payload/expiry
+pause_resume=exact target without approval
+post_mutation=canonical status refresh
+stale=one refresh for reconfirmation,no mutation retry
+optimistic_lifecycle=forbidden
