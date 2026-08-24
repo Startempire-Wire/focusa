@@ -20,7 +20,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -83,5 +84,6 @@ Likely next: `focusa_project_identity`, `focusa_tool_doctor`, `focusa_workpoint_
 - Pi: `focusa_daemon_routing_status`; MCP: `focusa.daemon.routing.status`; OpenAI: `focusa_daemon_routing_status`.
 - CLI: `focusa daemon-routing status`.
 - REST: `POST /v1/daemon-routing/resolve`.
+- Assignable: `true`; parity: `full`.
 - Specification: `docs/158-focusa-daemon-routing-surface-parity-spec.md`.
-- Descriptor digest: `sha256:55f1f8b07b0ddb0134e0fb3229686e7eedfd31e312bb4c20ba9d697965eca965`.
+- Descriptor digest: `sha256:d679410dfc530022b8f9513b92b7a5cfbf3d57832a83caf56d462a4eab975e84`.

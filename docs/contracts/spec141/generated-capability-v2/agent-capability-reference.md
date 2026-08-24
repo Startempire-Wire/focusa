@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0`
+Registry digest: `sha256:dae65b38c062b57390160c1db535e0b8dc8e362ed1f56ec50608c6369b73fb99`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -126,7 +126,7 @@ Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed
 
 ## focusa_bg_run
 
-Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Dispatch or inspect durable background jobs through Focusa's canonical execution surface. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.bg.run`
 - Family: `background_job`
@@ -137,7 +137,7 @@ Run a terminal-blocking command in the background as a first-class Focusa job. T
 
 ## focusa_bg_run_many
 
-Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Dispatch or inspect durable background jobs through Focusa's canonical execution surface. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.bg.run.many`
 - Family: `background_job`
@@ -148,7 +148,7 @@ Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs.
 
 ## focusa_bg_status
 
-Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Dispatch or inspect durable background jobs through Focusa's canonical execution surface. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.bg.status`
 - Family: `background_job`
@@ -335,7 +335,7 @@ Verify a Call Stack Design against bounded implementation surfaces and report dr
 
 ## focusa_callgraph_observe
 
-Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Validate or observe a daemon-owned CallGraph when its router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.callgraph.observe`
 - Family: `callgraph`
@@ -346,7 +346,7 @@ Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic re
 
 ## focusa_callgraph_validate
 
-Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Validate or observe a daemon-owned CallGraph when its router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.callgraph.validate`
 - Family: `callgraph`
@@ -379,7 +379,7 @@ Record an operator-originated canonical instruction amendment proposal without a
 
 ## focusa_cockpit_projection
 
-Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Read the bounded daemon-owned cockpit projection. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.cockpit.projection`
 - Family: `cockpit`
@@ -478,7 +478,7 @@ Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menub
 
 ## focusa_credentials_verify
 
-Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Verify a credential requirement against secret-free daemon grant metadata. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.credentials.verify`
 - Family: `credential`
@@ -665,7 +665,7 @@ Record a specific failure with diagnosis in Focus State. Must identify WHAT fail
 
 ## focusa_fast_forward
 
-Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Execute governed Silent Session fanout only when the daemon fanout router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.fast.forward`
 - Family: `session_fanout`
@@ -1611,7 +1611,7 @@ Fetch the active Focusa WorkpointResumePacket after compaction, resume, context 
 
 ## focusa_workset_projection
 
-Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read a deterministic Workset projection from the daemon ledger when the Workset router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.workset.projection`
 - Family: `workset`

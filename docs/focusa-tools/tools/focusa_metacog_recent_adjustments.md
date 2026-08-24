@@ -16,7 +16,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -73,5 +74,6 @@ Likely next: `focusa_metacog_evaluate_outcome`, `focusa_metacog_doctor`, `focusa
 - Pi: `focusa_metacog_recent_adjustments`; MCP: `focusa.metacog.recent.adjustments`; OpenAI: `focusa_metacog_recent_adjustments`.
 - CLI: `focusa metacognition recent-adjustments`.
 - REST: `GET /v1/metacognition/adjustments/recent`.
+- Assignable: `true`; parity: `full`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:568090067d42b9d6e3de1ae948887b6dbd05348d210acd418ba080033459177b`.
+- Descriptor digest: `sha256:ed847b1febf3589474267d737df3ab74e0e0f98f669da2445ddd8304121c827a`.

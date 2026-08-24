@@ -4692,6 +4692,8 @@ pi.registerTool({
     workset_id: Type.String({ description: "Workset id." }),
   }),
   async execute(_id: any, params: any) {
+    return toolResult(false, "unsupported", "Workset capability is unavailable because its daemon router is not registered.", { failure_class: "capability_unavailable", canonical: false, retryable: false });
+    return toolResult(false, "unsupported", "Workset capability is unavailable because its daemon router is not registered.", { failure_class: "capability_unavailable", canonical: false, retryable: false });
     const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
     const res = await fetch(`${base}/v1/worksets/${encodeURIComponent(params.workset_id)}/projection`);
     const body = await res.json();
@@ -4716,6 +4718,8 @@ pi.registerTool({
     graph: Type.Object({}, { additionalProperties: true }),
   }),
   async execute(_id: any, params: any) {
+    return toolResult(false, "unsupported", "CallGraph capability is unavailable because its daemon router is not registered.", { failure_class: "capability_unavailable", canonical: false, retryable: false });
+    return toolResult(false, "unsupported", "CallGraph capability is unavailable because its daemon router is not registered.", { failure_class: "capability_unavailable", canonical: false, retryable: false });
     const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
     const res = await fetch(`${base}/v1/callgraphs/validate`, {
       method: "POST",
@@ -4744,6 +4748,8 @@ pi.registerTool({
     run_id: Type.String({ description: "CallGraph run id." }),
   }),
   async execute(_id: any, params: any) {
+    return toolResult(false, "unsupported", "CallGraph capability is unavailable because its daemon router is not registered.", { failure_class: "capability_unavailable", canonical: false, retryable: false });
+    return toolResult(false, "unsupported", "CallGraph capability is unavailable because its daemon router is not registered.", { failure_class: "capability_unavailable", canonical: false, retryable: false });
     const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
     const [runRes, pathsRes] = await Promise.all([
       fetch(`${base}/v1/callgraph-runs/${encodeURIComponent(params.run_id)}`),
@@ -4780,6 +4786,7 @@ pi.registerTool({
     grants: Type.Array(Type.Unknown()),
   }),
   async execute(_id: any, params: any) {
+    return toolResult(false, "unsupported", "Credential verification capability is unavailable because its daemon router is not registered.", { failure_class: "capability_unavailable", canonical: false, retryable: false });
     const res = await focusaFetchDetailed("/credentials/verify-requirement", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -4808,6 +4815,7 @@ pi.registerTool({
     project_root: Type.Optional(Type.String({ description: "Project root scope (defaults to the session cwd)." })),
   }),
   async execute(_id: any, params: any) {
+    return toolResult(false, "unsupported", "Cockpit projection capability is unavailable because its daemon router is not registered.", { failure_class: "capability_unavailable", canonical: false, retryable: false });
     const runtime = getAttachmentRuntime();
     const projectRoot = params.project_root || runtime?.sessionCwd || process.cwd();
     const res = await focusaFetchDetailed("/cockpit/projection");
@@ -4880,6 +4888,8 @@ pi.registerTool({
     policy_max_turns_per_session: Type.Optional(Type.Number({ description: "Per-lane turn cap (default 12)." })),
   }),
   async execute(_id: any, params: any) {
+    return toolResult(false, "unsupported", "Silent Session fanout capability is unavailable because its daemon router is not registered.", { failure_class: "capability_unavailable", canonical: false, retryable: false });
+    return toolResult(false, "unsupported", "Silent Session fanout capability is unavailable because its daemon router is not registered.", { failure_class: "capability_unavailable", canonical: false, retryable: false });
     const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
     const body: any = {
       multiplier: Number(params.multiplier),

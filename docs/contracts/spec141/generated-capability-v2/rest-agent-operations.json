@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0",
+  "registry_digest": "sha256:dae65b38c062b57390160c1db535e0b8dc8e362ed1f56ec50608c6369b73fb99",
   "operations": [
     {
       "method": "POST",
@@ -3544,972 +3544,6 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_awareness_packet.md",
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
-      "policy_activation": "active",
-      "required_feature": null,
-      "limit_bucket": null,
-      "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
-      "policy_owner": "entitlement_policy_resolver"
-    },
-    {
-      "method": "/v1/background-jobs",
-      "path": "",
-      "capability_id": "focusa.bg.run",
-      "operation_id": "focusa_bg_run",
-      "canonical_operation_id": null,
-      "input_schema": {
-        "type": "object",
-        "required": [
-          "name",
-          "command"
-        ],
-        "properties": {
-          "name": {
-            "description": "Human job name (appears in the completion notification).",
-            "type": "string"
-          },
-          "command": {
-            "description": "The full command line to execute (after -- semantics).",
-            "type": "string"
-          },
-          "cwd": {
-            "description": "Working directory (defaults to the current session cwd).",
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "additionalProperties": false,
-              "type": "object",
-              "required": [
-                "type",
-                "text"
-              ],
-              "properties": {
-                "type": {
-                  "const": "text",
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {
-              "tool_result_v1": {
-                "additionalProperties": false,
-                "type": "object",
-                "required": [
-                  "schema",
-                  "ok",
-                  "status",
-                  "failure_class",
-                  "canonical",
-                  "degraded",
-                  "summary",
-                  "retry",
-                  "side_effects",
-                  "evidence_refs",
-                  "next_tools"
-                ],
-                "properties": {
-                  "schema": {
-                    "const": "focusa.tool_result.v1",
-                    "type": "string"
-                  },
-                  "ok": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "const": "accepted",
-                        "type": "string"
-                      },
-                      {
-                        "const": "completed",
-                        "type": "string"
-                      },
-                      {
-                        "const": "no_op",
-                        "type": "string"
-                      },
-                      {
-                        "const": "not_found",
-                        "type": "string"
-                      },
-                      {
-                        "const": "blocked",
-                        "type": "string"
-                      },
-                      {
-                        "const": "validation_rejected",
-                        "type": "string"
-                      },
-                      {
-                        "const": "degraded",
-                        "type": "string"
-                      },
-                      {
-                        "const": "offline",
-                        "type": "string"
-                      },
-                      {
-                        "const": "error",
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "failure_class": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "entitlement_decision": {},
-                  "canonical": {
-                    "type": "boolean"
-                  },
-                  "degraded": {
-                    "type": "boolean"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tool": {
-                    "type": "string"
-                  },
-                  "family": {
-                    "type": "string"
-                  },
-                  "endpoint": {
-                    "type": "string"
-                  },
-                  "workpoint_id": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "retry": {
-                    "additionalProperties": false,
-                    "type": "object",
-                    "required": [
-                      "safe",
-                      "posture"
-                    ],
-                    "properties": {
-                      "safe": {
-                        "type": "boolean"
-                      },
-                      "posture": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "side_effects": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidence_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "next_tools": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "recovery_hint": {
-                    "type": "string"
-                  },
-                  "misuse_hint": {
-                    "type": "string"
-                  },
-                  "reflex_suggestions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "ontology_candidate_delta_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "allowed_values": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "raw": {},
-                  "details": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "error_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "failure_class",
-          "retryable",
-          "posture",
-          "recovery"
-        ],
-        "properties": {
-          "failure_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "posture": {
-            "type": "string",
-            "enum": [
-              "safe_retry",
-              "retry_with_idempotency_key",
-              "check_side_effects_first",
-              "do_not_retry_unchanged",
-              "operator_required"
-            ]
-          },
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "recovery": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "authority": {
-        "kind": "advisory_only"
-      },
-      "permissions": [
-        {
-          "route": "/v1/background-jobs",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bg_run.md",
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
-      "policy_activation": "active",
-      "required_feature": null,
-      "limit_bucket": null,
-      "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
-      "policy_owner": "entitlement_policy_resolver"
-    },
-    {
-      "method": "/v1/background-jobs",
-      "path": "",
-      "capability_id": "focusa.bg.run.many",
-      "operation_id": "focusa_bg_run_many",
-      "canonical_operation_id": null,
-      "input_schema": {
-        "type": "object",
-        "required": [
-          "jobs"
-        ],
-        "properties": {
-          "jobs": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "name",
-                "command"
-              ],
-              "properties": {
-                "name": {
-                  "description": "Job name (appears in its completion notification).",
-                  "type": "string"
-                },
-                "command": {
-                  "description": "Full command line to execute.",
-                  "type": "string"
-                },
-                "cwd": {
-                  "description": "Working directory override.",
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "additionalProperties": false,
-              "type": "object",
-              "required": [
-                "type",
-                "text"
-              ],
-              "properties": {
-                "type": {
-                  "const": "text",
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {
-              "tool_result_v1": {
-                "additionalProperties": false,
-                "type": "object",
-                "required": [
-                  "schema",
-                  "ok",
-                  "status",
-                  "failure_class",
-                  "canonical",
-                  "degraded",
-                  "summary",
-                  "retry",
-                  "side_effects",
-                  "evidence_refs",
-                  "next_tools"
-                ],
-                "properties": {
-                  "schema": {
-                    "const": "focusa.tool_result.v1",
-                    "type": "string"
-                  },
-                  "ok": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "const": "accepted",
-                        "type": "string"
-                      },
-                      {
-                        "const": "completed",
-                        "type": "string"
-                      },
-                      {
-                        "const": "no_op",
-                        "type": "string"
-                      },
-                      {
-                        "const": "not_found",
-                        "type": "string"
-                      },
-                      {
-                        "const": "blocked",
-                        "type": "string"
-                      },
-                      {
-                        "const": "validation_rejected",
-                        "type": "string"
-                      },
-                      {
-                        "const": "degraded",
-                        "type": "string"
-                      },
-                      {
-                        "const": "offline",
-                        "type": "string"
-                      },
-                      {
-                        "const": "error",
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "failure_class": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "entitlement_decision": {},
-                  "canonical": {
-                    "type": "boolean"
-                  },
-                  "degraded": {
-                    "type": "boolean"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tool": {
-                    "type": "string"
-                  },
-                  "family": {
-                    "type": "string"
-                  },
-                  "endpoint": {
-                    "type": "string"
-                  },
-                  "workpoint_id": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "retry": {
-                    "additionalProperties": false,
-                    "type": "object",
-                    "required": [
-                      "safe",
-                      "posture"
-                    ],
-                    "properties": {
-                      "safe": {
-                        "type": "boolean"
-                      },
-                      "posture": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "side_effects": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidence_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "next_tools": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "recovery_hint": {
-                    "type": "string"
-                  },
-                  "misuse_hint": {
-                    "type": "string"
-                  },
-                  "reflex_suggestions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "ontology_candidate_delta_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "allowed_values": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "raw": {},
-                  "details": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "error_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "failure_class",
-          "retryable",
-          "posture",
-          "recovery"
-        ],
-        "properties": {
-          "failure_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "posture": {
-            "type": "string",
-            "enum": [
-              "safe_retry",
-              "retry_with_idempotency_key",
-              "check_side_effects_first",
-              "do_not_retry_unchanged",
-              "operator_required"
-            ]
-          },
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "recovery": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "authority": {
-        "kind": "advisory_only"
-      },
-      "permissions": [
-        {
-          "route": "/v1/background-jobs",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bg_run_many.md",
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
-      "policy_activation": "active",
-      "required_feature": null,
-      "limit_bucket": null,
-      "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
-      "policy_owner": "entitlement_policy_resolver"
-    },
-    {
-      "method": "/v1/background-jobs",
-      "path": "",
-      "capability_id": "focusa.bg.status",
-      "operation_id": "focusa_bg_status",
-      "canonical_operation_id": null,
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "job_id": {
-            "description": "Optional job id; omit to list recent jobs.",
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "additionalProperties": false,
-              "type": "object",
-              "required": [
-                "type",
-                "text"
-              ],
-              "properties": {
-                "type": {
-                  "const": "text",
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {
-              "tool_result_v1": {
-                "additionalProperties": false,
-                "type": "object",
-                "required": [
-                  "schema",
-                  "ok",
-                  "status",
-                  "failure_class",
-                  "canonical",
-                  "degraded",
-                  "summary",
-                  "retry",
-                  "side_effects",
-                  "evidence_refs",
-                  "next_tools"
-                ],
-                "properties": {
-                  "schema": {
-                    "const": "focusa.tool_result.v1",
-                    "type": "string"
-                  },
-                  "ok": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "const": "accepted",
-                        "type": "string"
-                      },
-                      {
-                        "const": "completed",
-                        "type": "string"
-                      },
-                      {
-                        "const": "no_op",
-                        "type": "string"
-                      },
-                      {
-                        "const": "not_found",
-                        "type": "string"
-                      },
-                      {
-                        "const": "blocked",
-                        "type": "string"
-                      },
-                      {
-                        "const": "validation_rejected",
-                        "type": "string"
-                      },
-                      {
-                        "const": "degraded",
-                        "type": "string"
-                      },
-                      {
-                        "const": "offline",
-                        "type": "string"
-                      },
-                      {
-                        "const": "error",
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "failure_class": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "entitlement_decision": {},
-                  "canonical": {
-                    "type": "boolean"
-                  },
-                  "degraded": {
-                    "type": "boolean"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tool": {
-                    "type": "string"
-                  },
-                  "family": {
-                    "type": "string"
-                  },
-                  "endpoint": {
-                    "type": "string"
-                  },
-                  "workpoint_id": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "retry": {
-                    "additionalProperties": false,
-                    "type": "object",
-                    "required": [
-                      "safe",
-                      "posture"
-                    ],
-                    "properties": {
-                      "safe": {
-                        "type": "boolean"
-                      },
-                      "posture": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "side_effects": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidence_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "next_tools": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "recovery_hint": {
-                    "type": "string"
-                  },
-                  "misuse_hint": {
-                    "type": "string"
-                  },
-                  "reflex_suggestions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "ontology_candidate_delta_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "allowed_values": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "raw": {},
-                  "details": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "error_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "failure_class",
-          "retryable",
-          "posture",
-          "recovery"
-        ],
-        "properties": {
-          "failure_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "posture": {
-            "type": "string",
-            "enum": [
-              "safe_retry",
-              "retry_with_idempotency_key",
-              "check_side_effects_first",
-              "do_not_retry_unchanged",
-              "operator_required"
-            ]
-          },
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "recovery": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "authority": {
-        "kind": "advisory_only"
-      },
-      "permissions": [
-        {
-          "route": "/v1/background-jobs",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_bg_status.md",
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -11113,633 +10147,6 @@
       "policy_owner": "entitlement_policy_resolver"
     },
     {
-      "method": "/v1/callgraph-runs/{run_id}/frontier",
-      "path": "",
-      "capability_id": "focusa.callgraph.observe",
-      "operation_id": "focusa_callgraph_observe",
-      "canonical_operation_id": null,
-      "input_schema": {
-        "type": "object",
-        "required": [
-          "run_id"
-        ],
-        "properties": {
-          "run_id": {
-            "description": "CallGraph run id.",
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "additionalProperties": false,
-              "type": "object",
-              "required": [
-                "type",
-                "text"
-              ],
-              "properties": {
-                "type": {
-                  "const": "text",
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {
-              "tool_result_v1": {
-                "additionalProperties": false,
-                "type": "object",
-                "required": [
-                  "schema",
-                  "ok",
-                  "status",
-                  "failure_class",
-                  "canonical",
-                  "degraded",
-                  "summary",
-                  "retry",
-                  "side_effects",
-                  "evidence_refs",
-                  "next_tools"
-                ],
-                "properties": {
-                  "schema": {
-                    "const": "focusa.tool_result.v1",
-                    "type": "string"
-                  },
-                  "ok": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "const": "accepted",
-                        "type": "string"
-                      },
-                      {
-                        "const": "completed",
-                        "type": "string"
-                      },
-                      {
-                        "const": "no_op",
-                        "type": "string"
-                      },
-                      {
-                        "const": "not_found",
-                        "type": "string"
-                      },
-                      {
-                        "const": "blocked",
-                        "type": "string"
-                      },
-                      {
-                        "const": "validation_rejected",
-                        "type": "string"
-                      },
-                      {
-                        "const": "degraded",
-                        "type": "string"
-                      },
-                      {
-                        "const": "offline",
-                        "type": "string"
-                      },
-                      {
-                        "const": "error",
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "failure_class": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "entitlement_decision": {},
-                  "canonical": {
-                    "type": "boolean"
-                  },
-                  "degraded": {
-                    "type": "boolean"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tool": {
-                    "type": "string"
-                  },
-                  "family": {
-                    "type": "string"
-                  },
-                  "endpoint": {
-                    "type": "string"
-                  },
-                  "workpoint_id": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "retry": {
-                    "additionalProperties": false,
-                    "type": "object",
-                    "required": [
-                      "safe",
-                      "posture"
-                    ],
-                    "properties": {
-                      "safe": {
-                        "type": "boolean"
-                      },
-                      "posture": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "side_effects": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidence_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "next_tools": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "recovery_hint": {
-                    "type": "string"
-                  },
-                  "misuse_hint": {
-                    "type": "string"
-                  },
-                  "reflex_suggestions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "ontology_candidate_delta_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "allowed_values": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "raw": {},
-                  "details": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "error_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "failure_class",
-          "retryable",
-          "posture",
-          "recovery"
-        ],
-        "properties": {
-          "failure_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "posture": {
-            "type": "string",
-            "enum": [
-              "safe_retry",
-              "retry_with_idempotency_key",
-              "check_side_effects_first",
-              "do_not_retry_unchanged",
-              "operator_required"
-            ]
-          },
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "recovery": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "authority": {
-        "kind": "advisory_only"
-      },
-      "permissions": [
-        {
-          "route": "/v1/callgraph-runs/{run_id}/frontier",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_callgraph_observe.md",
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
-      "policy_activation": "active",
-      "required_feature": null,
-      "limit_bucket": null,
-      "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
-      "policy_owner": "entitlement_policy_resolver"
-    },
-    {
-      "method": "/v1/callgraph-runs/{run_id}/frontier",
-      "path": "",
-      "capability_id": "focusa.callgraph.validate",
-      "operation_id": "focusa_callgraph_validate",
-      "canonical_operation_id": null,
-      "input_schema": {
-        "type": "object",
-        "required": [
-          "graph"
-        ],
-        "properties": {
-          "graph": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {}
-          }
-        },
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "additionalProperties": false,
-              "type": "object",
-              "required": [
-                "type",
-                "text"
-              ],
-              "properties": {
-                "type": {
-                  "const": "text",
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {
-              "tool_result_v1": {
-                "additionalProperties": false,
-                "type": "object",
-                "required": [
-                  "schema",
-                  "ok",
-                  "status",
-                  "failure_class",
-                  "canonical",
-                  "degraded",
-                  "summary",
-                  "retry",
-                  "side_effects",
-                  "evidence_refs",
-                  "next_tools"
-                ],
-                "properties": {
-                  "schema": {
-                    "const": "focusa.tool_result.v1",
-                    "type": "string"
-                  },
-                  "ok": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "const": "accepted",
-                        "type": "string"
-                      },
-                      {
-                        "const": "completed",
-                        "type": "string"
-                      },
-                      {
-                        "const": "no_op",
-                        "type": "string"
-                      },
-                      {
-                        "const": "not_found",
-                        "type": "string"
-                      },
-                      {
-                        "const": "blocked",
-                        "type": "string"
-                      },
-                      {
-                        "const": "validation_rejected",
-                        "type": "string"
-                      },
-                      {
-                        "const": "degraded",
-                        "type": "string"
-                      },
-                      {
-                        "const": "offline",
-                        "type": "string"
-                      },
-                      {
-                        "const": "error",
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "failure_class": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "entitlement_decision": {},
-                  "canonical": {
-                    "type": "boolean"
-                  },
-                  "degraded": {
-                    "type": "boolean"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tool": {
-                    "type": "string"
-                  },
-                  "family": {
-                    "type": "string"
-                  },
-                  "endpoint": {
-                    "type": "string"
-                  },
-                  "workpoint_id": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "retry": {
-                    "additionalProperties": false,
-                    "type": "object",
-                    "required": [
-                      "safe",
-                      "posture"
-                    ],
-                    "properties": {
-                      "safe": {
-                        "type": "boolean"
-                      },
-                      "posture": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "side_effects": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidence_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "next_tools": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "recovery_hint": {
-                    "type": "string"
-                  },
-                  "misuse_hint": {
-                    "type": "string"
-                  },
-                  "reflex_suggestions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "ontology_candidate_delta_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "allowed_values": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "raw": {},
-                  "details": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "error_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "failure_class",
-          "retryable",
-          "posture",
-          "recovery"
-        ],
-        "properties": {
-          "failure_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "posture": {
-            "type": "string",
-            "enum": [
-              "safe_retry",
-              "retry_with_idempotency_key",
-              "check_side_effects_first",
-              "do_not_retry_unchanged",
-              "operator_required"
-            ]
-          },
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "recovery": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "authority": {
-        "kind": "advisory_only"
-      },
-      "permissions": [
-        {
-          "route": "/v1/callgraph-runs/{run_id}/frontier",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_callgraph_validate.md",
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
-      "policy_activation": "active",
-      "required_feature": null,
-      "limit_bucket": null,
-      "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
-      "policy_owner": "entitlement_policy_resolver"
-    },
-    {
       "method": "POST",
       "path": "/v1/agent-runtime/amendments/activate",
       "capability_id": "focusa.canonical.instruction.amendment.activate",
@@ -12367,316 +10774,6 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
-      "policy_owner": "entitlement_policy_resolver"
-    },
-    {
-      "method": "/v1/cockpit/projection",
-      "path": "",
-      "capability_id": "focusa.cockpit.projection",
-      "operation_id": "focusa_cockpit_projection",
-      "canonical_operation_id": null,
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "project_root": {
-            "description": "Project root scope (defaults to the session cwd).",
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "additionalProperties": false,
-              "type": "object",
-              "required": [
-                "type",
-                "text"
-              ],
-              "properties": {
-                "type": {
-                  "const": "text",
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {
-              "tool_result_v1": {
-                "additionalProperties": false,
-                "type": "object",
-                "required": [
-                  "schema",
-                  "ok",
-                  "status",
-                  "failure_class",
-                  "canonical",
-                  "degraded",
-                  "summary",
-                  "retry",
-                  "side_effects",
-                  "evidence_refs",
-                  "next_tools"
-                ],
-                "properties": {
-                  "schema": {
-                    "const": "focusa.tool_result.v1",
-                    "type": "string"
-                  },
-                  "ok": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "const": "accepted",
-                        "type": "string"
-                      },
-                      {
-                        "const": "completed",
-                        "type": "string"
-                      },
-                      {
-                        "const": "no_op",
-                        "type": "string"
-                      },
-                      {
-                        "const": "not_found",
-                        "type": "string"
-                      },
-                      {
-                        "const": "blocked",
-                        "type": "string"
-                      },
-                      {
-                        "const": "validation_rejected",
-                        "type": "string"
-                      },
-                      {
-                        "const": "degraded",
-                        "type": "string"
-                      },
-                      {
-                        "const": "offline",
-                        "type": "string"
-                      },
-                      {
-                        "const": "error",
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "failure_class": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "entitlement_decision": {},
-                  "canonical": {
-                    "type": "boolean"
-                  },
-                  "degraded": {
-                    "type": "boolean"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tool": {
-                    "type": "string"
-                  },
-                  "family": {
-                    "type": "string"
-                  },
-                  "endpoint": {
-                    "type": "string"
-                  },
-                  "workpoint_id": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "retry": {
-                    "additionalProperties": false,
-                    "type": "object",
-                    "required": [
-                      "safe",
-                      "posture"
-                    ],
-                    "properties": {
-                      "safe": {
-                        "type": "boolean"
-                      },
-                      "posture": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "side_effects": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidence_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "next_tools": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "recovery_hint": {
-                    "type": "string"
-                  },
-                  "misuse_hint": {
-                    "type": "string"
-                  },
-                  "reflex_suggestions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "ontology_candidate_delta_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "allowed_values": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "raw": {},
-                  "details": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "error_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "failure_class",
-          "retryable",
-          "posture",
-          "recovery"
-        ],
-        "properties": {
-          "failure_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "posture": {
-            "type": "string",
-            "enum": [
-              "safe_retry",
-              "retry_with_idempotency_key",
-              "check_side_effects_first",
-              "do_not_retry_unchanged",
-              "operator_required"
-            ]
-          },
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "recovery": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "authority": {
-        "kind": "advisory_only"
-      },
-      "permissions": [
-        {
-          "route": "/v1/cockpit/projection",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_cockpit_projection.md",
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
-      "policy_activation": "active",
-      "required_feature": null,
-      "limit_bucket": null,
-      "recovery_allowance": "read_projection",
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver"
     },
@@ -15769,366 +13866,6 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_render.md",
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
-      "policy_activation": "active",
-      "required_feature": null,
-      "limit_bucket": null,
-      "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
-      "policy_owner": "entitlement_policy_resolver"
-    },
-    {
-      "method": "/v1/credentials/verify-requirement",
-      "path": "",
-      "capability_id": "focusa.credentials.verify",
-      "operation_id": "focusa_credentials_verify",
-      "canonical_operation_id": null,
-      "input_schema": {
-        "type": "object",
-        "required": [
-          "requirement",
-          "grants"
-        ],
-        "properties": {
-          "requirement": {
-            "type": "object",
-            "required": [
-              "schema",
-              "credential_role_ref",
-              "required_operation",
-              "required_exposure_mode",
-              "exact_consumer_ref",
-              "exact_target_refs",
-              "use_count_required",
-              "evidence_requirement_refs"
-            ],
-            "properties": {
-              "schema": {
-                "type": "string"
-              },
-              "credential_role_ref": {
-                "type": "string"
-              },
-              "required_operation": {
-                "type": "string"
-              },
-              "required_exposure_mode": {
-                "type": "string"
-              },
-              "exact_consumer_ref": {
-                "type": "string"
-              },
-              "exact_target_refs": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "use_count_required": {
-                "type": "number"
-              },
-              "evidence_requirement_refs": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            },
-            "additionalProperties": false
-          },
-          "grants": {
-            "type": "array",
-            "items": {}
-          }
-        },
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "additionalProperties": false,
-              "type": "object",
-              "required": [
-                "type",
-                "text"
-              ],
-              "properties": {
-                "type": {
-                  "const": "text",
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {
-              "tool_result_v1": {
-                "additionalProperties": false,
-                "type": "object",
-                "required": [
-                  "schema",
-                  "ok",
-                  "status",
-                  "failure_class",
-                  "canonical",
-                  "degraded",
-                  "summary",
-                  "retry",
-                  "side_effects",
-                  "evidence_refs",
-                  "next_tools"
-                ],
-                "properties": {
-                  "schema": {
-                    "const": "focusa.tool_result.v1",
-                    "type": "string"
-                  },
-                  "ok": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "const": "accepted",
-                        "type": "string"
-                      },
-                      {
-                        "const": "completed",
-                        "type": "string"
-                      },
-                      {
-                        "const": "no_op",
-                        "type": "string"
-                      },
-                      {
-                        "const": "not_found",
-                        "type": "string"
-                      },
-                      {
-                        "const": "blocked",
-                        "type": "string"
-                      },
-                      {
-                        "const": "validation_rejected",
-                        "type": "string"
-                      },
-                      {
-                        "const": "degraded",
-                        "type": "string"
-                      },
-                      {
-                        "const": "offline",
-                        "type": "string"
-                      },
-                      {
-                        "const": "error",
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "failure_class": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "entitlement_decision": {},
-                  "canonical": {
-                    "type": "boolean"
-                  },
-                  "degraded": {
-                    "type": "boolean"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tool": {
-                    "type": "string"
-                  },
-                  "family": {
-                    "type": "string"
-                  },
-                  "endpoint": {
-                    "type": "string"
-                  },
-                  "workpoint_id": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "retry": {
-                    "additionalProperties": false,
-                    "type": "object",
-                    "required": [
-                      "safe",
-                      "posture"
-                    ],
-                    "properties": {
-                      "safe": {
-                        "type": "boolean"
-                      },
-                      "posture": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "side_effects": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidence_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "next_tools": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "recovery_hint": {
-                    "type": "string"
-                  },
-                  "misuse_hint": {
-                    "type": "string"
-                  },
-                  "reflex_suggestions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "ontology_candidate_delta_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "allowed_values": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "raw": {},
-                  "details": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "error_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "failure_class",
-          "retryable",
-          "posture",
-          "recovery"
-        ],
-        "properties": {
-          "failure_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "posture": {
-            "type": "string",
-            "enum": [
-              "safe_retry",
-              "retry_with_idempotency_key",
-              "check_side_effects_first",
-              "do_not_retry_unchanged",
-              "operator_required"
-            ]
-          },
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "recovery": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "authority": {
-        "kind": "advisory_only"
-      },
-      "permissions": [
-        {
-          "route": "/v1/credentials/verify-requirement",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_credentials_verify.md",
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -37609,331 +35346,6 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
-      "policy_owner": "entitlement_policy_resolver"
-    },
-    {
-      "method": "/v1/silent-sessions/fanout",
-      "path": "",
-      "capability_id": "focusa.fast.forward",
-      "operation_id": "focusa_fast_forward",
-      "canonical_operation_id": null,
-      "input_schema": {
-        "type": "object",
-        "required": [
-          "multiplier",
-          "work_items"
-        ],
-        "properties": {
-          "multiplier": {
-            "description": "Speed multiplier: 2, 4, 6, 8...",
-            "type": "number"
-          },
-          "work_items": {
-            "type": "array",
-            "items": {
-              "description": "Work item refs to divide across lanes.",
-              "type": "string"
-            }
-          },
-          "policy_max_turns_per_session": {
-            "description": "Per-lane turn cap (default 12).",
-            "type": "number"
-          }
-        },
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "additionalProperties": false,
-              "type": "object",
-              "required": [
-                "type",
-                "text"
-              ],
-              "properties": {
-                "type": {
-                  "const": "text",
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {
-              "tool_result_v1": {
-                "additionalProperties": false,
-                "type": "object",
-                "required": [
-                  "schema",
-                  "ok",
-                  "status",
-                  "failure_class",
-                  "canonical",
-                  "degraded",
-                  "summary",
-                  "retry",
-                  "side_effects",
-                  "evidence_refs",
-                  "next_tools"
-                ],
-                "properties": {
-                  "schema": {
-                    "const": "focusa.tool_result.v1",
-                    "type": "string"
-                  },
-                  "ok": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "const": "accepted",
-                        "type": "string"
-                      },
-                      {
-                        "const": "completed",
-                        "type": "string"
-                      },
-                      {
-                        "const": "no_op",
-                        "type": "string"
-                      },
-                      {
-                        "const": "not_found",
-                        "type": "string"
-                      },
-                      {
-                        "const": "blocked",
-                        "type": "string"
-                      },
-                      {
-                        "const": "validation_rejected",
-                        "type": "string"
-                      },
-                      {
-                        "const": "degraded",
-                        "type": "string"
-                      },
-                      {
-                        "const": "offline",
-                        "type": "string"
-                      },
-                      {
-                        "const": "error",
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "failure_class": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "entitlement_decision": {},
-                  "canonical": {
-                    "type": "boolean"
-                  },
-                  "degraded": {
-                    "type": "boolean"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tool": {
-                    "type": "string"
-                  },
-                  "family": {
-                    "type": "string"
-                  },
-                  "endpoint": {
-                    "type": "string"
-                  },
-                  "workpoint_id": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "retry": {
-                    "additionalProperties": false,
-                    "type": "object",
-                    "required": [
-                      "safe",
-                      "posture"
-                    ],
-                    "properties": {
-                      "safe": {
-                        "type": "boolean"
-                      },
-                      "posture": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "side_effects": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidence_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "next_tools": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "recovery_hint": {
-                    "type": "string"
-                  },
-                  "misuse_hint": {
-                    "type": "string"
-                  },
-                  "reflex_suggestions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "ontology_candidate_delta_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "allowed_values": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "raw": {},
-                  "details": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "error_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "failure_class",
-          "retryable",
-          "posture",
-          "recovery"
-        ],
-        "properties": {
-          "failure_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "posture": {
-            "type": "string",
-            "enum": [
-              "safe_retry",
-              "retry_with_idempotency_key",
-              "check_side_effects_first",
-              "do_not_retry_unchanged",
-              "operator_required"
-            ]
-          },
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "recovery": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "authority": {
-        "kind": "advisory_only"
-      },
-      "permissions": [
-        {
-          "route": "/v1/silent-sessions/fanout",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_fast_forward.md",
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
-      "policy_activation": "active",
-      "required_feature": null,
-      "limit_bucket": null,
-      "recovery_allowance": "read_projection",
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver"
     },
@@ -62416,6 +59828,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -62493,6 +59909,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -62841,6 +60293,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -62934,6 +60393,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -63011,6 +60474,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -63359,6 +60858,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -63452,6 +60958,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -63529,6 +61039,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -63877,6 +61423,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -63970,6 +61523,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -64047,6 +61604,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -64395,6 +61988,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -64488,6 +62088,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -64565,6 +62169,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -64913,6 +62553,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -65006,6 +62653,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -65083,6 +62734,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -65431,6 +63118,578 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "operation_class": "value_mutation",
+      "capability_family": "automation",
+      "commercial_treatment": "optional_premium",
+      "policy_activation": "active",
+      "required_feature": "focusa.agent.silent_sessions",
+      "limit_bucket": "silent_session_runs",
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/silent-sessions/{session_id}/approvals",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "canonical_operation_id": null,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "approve",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "daemon:/v1/silent-sessions"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -65524,6 +63783,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -65601,6 +63864,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -65949,6 +64248,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -66042,6 +64348,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -66119,6 +64429,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -66467,6 +64813,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -66560,6 +64913,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -66637,6 +64994,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -66985,6 +65378,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -67078,6 +65478,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -67155,6 +65559,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -67503,6 +65943,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -67596,6 +66043,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -67673,6 +66124,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -68021,6 +66508,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -68114,6 +66608,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -68191,6 +66689,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -68539,6 +67073,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -68632,6 +67173,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -68709,6 +67254,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -69057,6 +67638,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -69150,6 +67738,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -69227,6 +67819,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -69575,6 +68203,13 @@
         },
         {
           "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -118602,319 +117237,6 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_resume.md",
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
-      "policy_activation": "active",
-      "required_feature": null,
-      "limit_bucket": null,
-      "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
-      "policy_owner": "entitlement_policy_resolver"
-    },
-    {
-      "method": "/v1/worksets",
-      "path": "",
-      "capability_id": "focusa.workset.projection",
-      "operation_id": "focusa_workset_projection",
-      "canonical_operation_id": null,
-      "input_schema": {
-        "type": "object",
-        "required": [
-          "workset_id"
-        ],
-        "properties": {
-          "workset_id": {
-            "description": "Workset id.",
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "additionalProperties": false,
-              "type": "object",
-              "required": [
-                "type",
-                "text"
-              ],
-              "properties": {
-                "type": {
-                  "const": "text",
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "properties": {
-              "tool_result_v1": {
-                "additionalProperties": false,
-                "type": "object",
-                "required": [
-                  "schema",
-                  "ok",
-                  "status",
-                  "failure_class",
-                  "canonical",
-                  "degraded",
-                  "summary",
-                  "retry",
-                  "side_effects",
-                  "evidence_refs",
-                  "next_tools"
-                ],
-                "properties": {
-                  "schema": {
-                    "const": "focusa.tool_result.v1",
-                    "type": "string"
-                  },
-                  "ok": {
-                    "type": "boolean"
-                  },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "const": "accepted",
-                        "type": "string"
-                      },
-                      {
-                        "const": "completed",
-                        "type": "string"
-                      },
-                      {
-                        "const": "no_op",
-                        "type": "string"
-                      },
-                      {
-                        "const": "not_found",
-                        "type": "string"
-                      },
-                      {
-                        "const": "blocked",
-                        "type": "string"
-                      },
-                      {
-                        "const": "validation_rejected",
-                        "type": "string"
-                      },
-                      {
-                        "const": "degraded",
-                        "type": "string"
-                      },
-                      {
-                        "const": "offline",
-                        "type": "string"
-                      },
-                      {
-                        "const": "error",
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "failure_class": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "entitlement_decision": {},
-                  "canonical": {
-                    "type": "boolean"
-                  },
-                  "degraded": {
-                    "type": "boolean"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tool": {
-                    "type": "string"
-                  },
-                  "family": {
-                    "type": "string"
-                  },
-                  "endpoint": {
-                    "type": "string"
-                  },
-                  "workpoint_id": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "retry": {
-                    "additionalProperties": false,
-                    "type": "object",
-                    "required": [
-                      "safe",
-                      "posture"
-                    ],
-                    "properties": {
-                      "safe": {
-                        "type": "boolean"
-                      },
-                      "posture": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "side_effects": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidence_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "next_tools": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "recovery_hint": {
-                    "type": "string"
-                  },
-                  "misuse_hint": {
-                    "type": "string"
-                  },
-                  "reflex_suggestions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "ontology_candidate_delta_refs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "allowed_values": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "raw": {},
-                  "details": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "error_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "failure_class",
-          "retryable",
-          "posture",
-          "recovery"
-        ],
-        "properties": {
-          "failure_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "posture": {
-            "type": "string",
-            "enum": [
-              "safe_retry",
-              "retry_with_idempotency_key",
-              "check_side_effects_first",
-              "do_not_retry_unchanged",
-              "operator_required"
-            ]
-          },
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "recovery": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "authority": {
-        "kind": "advisory_only"
-      },
-      "permissions": [
-        {
-          "route": "/v1/worksets",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
-      "docs_ref": "docs/focusa-tools/tools/focusa_workset_projection.md",
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",

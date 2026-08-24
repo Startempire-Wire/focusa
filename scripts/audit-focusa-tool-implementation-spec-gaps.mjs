@@ -9,8 +9,12 @@ const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const exists = (p) => fs.existsSync(path.join(root, p));
 
 const toolsSrc = read('apps/pi-extension/src/tools.ts');
+const agentRuntimeToolsSrc = read('apps/pi-extension/src/agent-runtime-tools.ts');
 const contractsSrc = read('apps/pi-extension/src/tool-contracts.ts');
 const registry = JSON.parse(read('docs/current/focusa-tool-contracts.json'));
+const capabilityRegistry = JSON.parse(read('docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json'));
+const descriptorByTool = new Map(capabilityRegistry.descriptors.map((descriptor) => [descriptor.tool_names.pi, descriptor]));
+const routeClassification = JSON.parse(read('docs/contracts/spec141/generated-capability-v2/route-classification.json'));
 const failures = [];
 const warnings = [];
 const uplifts = [];
@@ -19,7 +23,13 @@ function addFailure(message, detail) { failures.push({ message, detail }); }
 function addWarning(message, detail) { warnings.push({ message, detail }); }
 function addUplift(message, detail) { uplifts.push({ message, detail }); }
 
-const toolNames = [...toolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)].map((m) => m[1]);
+const dynamicPreloadMatch = toolsSrc.match(/const preloadReadTools:[^=]+ = (\[[\s\S]*?\n  \]);/);
+const dynamicPreloadNames = dynamicPreloadMatch ? parseJsonLikeTsLiteral(dynamicPreloadMatch[1]).map(([name]) => name) : [];
+const toolNames = [
+  ...[...toolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)].map((m) => m[1]),
+  ...[...agentRuntimeToolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)].map((m) => m[1]),
+  ...dynamicPreloadNames,
+];
 const uniqueToolNames = [...new Set(toolNames)];
 const contractNames = registry.contracts.map((contract) => contract.name);
 const contractSet = new Set(contractNames);
@@ -28,19 +38,10 @@ const toolSet = new Set(uniqueToolNames);
 for (const name of uniqueToolNames) if (!contractSet.has(name)) addFailure('registered tool missing contract', name);
 for (const name of contractNames) if (!toolSet.has(name)) addFailure('contract missing registered tool', name);
 
-const tsJsonMatch = contractsSrc.match(/export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract\[] = ([\s\S]*?)\n\];/);
-if (!tsJsonMatch) {
-  addFailure('could not parse TypeScript contract registry');
-} else {
-  const tsContracts = parseJsonLikeTsLiteral(`${tsJsonMatch[1]}\n]`);
-  if (JSON.stringify(tsContracts) !== JSON.stringify(registry.contracts)) {
-    addFailure('TypeScript contract registry differs from JSON projection');
-  }
-}
+const contractValidator = await import('node:child_process').then(({ spawnSync }) => spawnSync('node', ['scripts/validate-focusa-tool-contracts.mjs'], { cwd: root, encoding: 'utf8' }));
+if (contractValidator.status !== 0) addFailure('TypeScript contract registry differs from JSON projection', contractValidator.stderr || contractValidator.stdout);
 
-const routeInventory = new Set([...fs.readdirSync(path.join(root, 'crates/focusa-api/src/routes'))
-  .filter((file) => file.endsWith('.rs'))
-  .flatMap((file) => [...read(path.join('crates/focusa-api/src/routes', file)).matchAll(/\.route\(\s*"([^"]+)"/g)].map((m) => m[1]))]);
+const routeInventory = new Set(routeClassification.routes.map((route) => route.path));
 
 function routePath(route) {
   return String(route).replace(/^(GET|POST|PATCH|PUT|DELETE)\s+/, '').split('?')[0];
@@ -71,6 +72,15 @@ function cliSourceFor(rootCommand) {
     dxux: 'crates/focusa-cli/src/commands/dxux.rs',
     explain: 'crates/focusa-cli/src/commands/dxux.rs',
     awareness: 'crates/focusa-cli/src/commands/awareness.rs',
+    bg: 'crates/focusa-cli/src/commands/bg.rs',
+    silent: 'crates/focusa-cli/src/commands/silent.rs',
+    hlt: 'crates/focusa-cli/src/commands/hlt.rs',
+    'agent-runtime': 'crates/focusa-cli/src/commands/agent_runtime.rs',
+    preload: 'crates/focusa-cli/src/commands/preload.rs',
+    'daemon-routing': 'crates/focusa-cli/src/commands/daemon_routing.rs',
+    help: 'crates/focusa-cli/src/commands/help.rs',
+    ontology: 'crates/focusa-cli/src/commands/ontology.rs',
+    temporal: 'crates/focusa-cli/src/commands/temporal.rs',
   };
   return map[rootCommand];
 }
@@ -86,8 +96,9 @@ function checkCliCommand(toolName, command) {
     addWarning('non-focusa CLI command is not statically checked', { tool: toolName, command });
     return;
   }
-  const rootCmd = tokens[1];
-  const cliPath = cliSourceFor(rootCmd);
+  const rootCandidates = tokens[1].split('|');
+  const rootCmd = rootCandidates[0];
+  const cliPath = rootCandidates.length > 1 ? 'crates/focusa-cli/src/main.rs' : cliSourceFor(rootCmd);
   if (!cliPath || !exists(cliPath)) {
     addFailure('CLI command root has no implementation file', { tool: toolName, command, root: rootCmd });
     return;
@@ -98,9 +109,12 @@ function checkCliCommand(toolName, command) {
   }
   const src = read(cliPath);
   for (const token of tokens.slice(2)) {
-    const variant = pascal(token);
-    if (!src.includes(variant) && !src.includes(token)) {
-      addFailure('CLI subcommand token not found in implementation source', { tool: toolName, command, token, expected_variant: variant, file: cliPath });
+    const alternatives = token.split('|');
+    for (const alternative of alternatives) {
+      const variant = pascal(alternative);
+      if (!src.includes(variant) && !src.includes(alternative)) {
+        addFailure('CLI subcommand token not found in implementation source', { tool: toolName, command, token: alternative, expected_variant: variant, file: cliPath });
+      }
     }
   }
 }
@@ -111,33 +125,42 @@ if (!familyNextText.includes('focus_state: ["focusa_project_identity", "focusa_t
   addFailure('Focus State family next tools must route outward to project/trajectory/workpoint instead of note-tool loops');
 }
 
-const wrapperIndex = toolsSrc.indexOf('registerTool(withToolResultEnvelope(tool))');
+const wrapperIndex = toolsSrc.indexOf('pi.registerTool = ((tool: any) =>');
 if (wrapperIndex === -1) addFailure('tool_result_v1 wrapper installation missing');
 
 for (const contract of registry.contracts) {
   const name = contract.name;
-  const first = toolsSrc.indexOf(`name: "${name}"`);
-  if (first === -1) {
+  const descriptor = descriptorByTool.get(name);
+  const assignable = descriptor?.availability?.assignable === true;
+  if (!descriptor) addFailure('tool capability descriptor missing', name);
+  const first = Math.max(toolsSrc.indexOf(`name: "${name}"`), agentRuntimeToolsSrc.indexOf(`name: "${name}"`));
+  if (first === -1 && !agentRuntimeToolsSrc.includes(`name: "${name}"`) && !dynamicPreloadNames.includes(name)) {
     addFailure('tool implementation block missing', name);
   } else {
-    if (wrapperIndex !== -1 && first < wrapperIndex) addFailure('tool registered before tool_result_v1 wrapper install', name);
-    const next = toolsSrc.indexOf('name: "focusa_', first + 1);
-    const block = toolsSrc.slice(first, next === -1 ? toolsSrc.length : next);
-    if (!block.includes('description:')) addFailure('tool implementation missing description', name);
-    if (!block.includes('parameters:')) addFailure('tool implementation missing parameters schema', name);
-    if (!/async\s+execute|execute:\s*async/.test(block)) addFailure('tool implementation missing async execute', name);
+    const primaryIndex = toolsSrc.indexOf(`name: "${name}"`);
+    if (wrapperIndex !== -1 && primaryIndex !== -1 && primaryIndex < wrapperIndex) addFailure('tool registered before tool_result_v1 wrapper install', name);
+    const implementationSrc = toolsSrc.includes(`name: "${name}"`) ? toolsSrc : agentRuntimeToolsSrc;
+    const implementationFirst = implementationSrc.indexOf(`name: "${name}"`);
+    const next = implementationSrc.indexOf('name: "focusa_', implementationFirst + 1);
+    const block = implementationSrc.slice(implementationFirst, next === -1 ? implementationSrc.length : next);
+    if (!dynamicPreloadNames.includes(name)) {
+      if (!block.includes('description:')) addFailure('tool implementation missing description', name);
+      if (!block.includes('parameters:')) addFailure('tool implementation missing parameters schema', name);
+      if (!/async\s+execute|execute:\s*async/.test(block)) addFailure('tool implementation missing async execute', name);
+    }
   }
 
   if (!contract.doc_path || !exists(contract.doc_path)) addFailure('contract doc missing', { tool: name, doc_path: contract.doc_path });
   else {
     const doc = read(contract.doc_path);
-    for (const route of contract.api_routes || []) if (!doc.includes(route)) addFailure('tool doc missing declared API route', { tool: name, route });
+    for (const route of assignable ? (contract.api_routes || []) : []) if (!doc.includes(route)) addFailure('tool doc missing declared API route', { tool: name, route });
+    if (!assignable && !doc.includes('capability is unavailable because its daemon router is not registered')) addFailure('unavailable tool doc missing explicit reason', name);
     for (const command of contract.cli_commands || []) if (!doc.includes(command)) addFailure('tool doc missing declared CLI command', { tool: name, command });
-    if (!doc.includes('Result envelope: `tool_result_v1`')) addFailure('tool doc missing result envelope contract summary', name);
+    if (!doc.includes(`Result envelope: \`${descriptor?.result_envelope}\``)) addFailure('tool doc missing result envelope contract summary', name);
   }
 
-  for (const route of contract.api_routes || []) {
-    if (!routeInventory.has(routePath(route))) addFailure('declared API route absent from Rust route inventory', { tool: name, route });
+  for (const route of assignable ? (contract.api_routes || []) : []) {
+    if (!routeInventory.has(routePath(route))) addFailure('declared API route absent from reachable Rust route inventory', { tool: name, route });
   }
   for (const command of contract.cli_commands || []) checkCliCommand(name, command);
 

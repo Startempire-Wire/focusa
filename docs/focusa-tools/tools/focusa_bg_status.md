@@ -1,10 +1,10 @@
 # `focusa_bg_status`
 
-Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Dispatch or inspect durable background jobs through Focusa's canonical execution surface. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Dispatch or inspect durable background jobs through Focusa's canonical execution surface.
 - Capability family: `background_job`; namespace: `focusa.background_job`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -16,7 +16,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -69,7 +70,8 @@ Likely next: `focusa_bg_run`, `focusa_workpoint_resume`.
 - Skills: `skill:focusa`, `skill:focusa-silent-sessions`
 - Runbooks: `runbook:background_job`
 - Pi: `focusa_bg_status`; MCP: `focusa.bg.status`; OpenAI: `focusa_bg_status`.
-- CLI: none.
-- REST: `/v1/background-jobs `.
+- CLI: `focusa bg status`.
+- REST: Pi-local only.
+- Assignable: `true`; parity: `daemon_backed`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:84e636c178998523f36e461a92b4394a0d90775ff378854ba48aee3fe96d3ddf`.
+- Descriptor digest: `sha256:26c00a677c2d5ff906af54ffe5f85ac7a780ae0a09a2be0c264cb0ea56518811`.

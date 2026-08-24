@@ -16,7 +16,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -73,5 +74,6 @@ Likely next: `focusa_workpoint_resume`, `focusa_dxux_report`, `focusa_evidence_c
 - Pi: `focusa_dxux_digest`; MCP: `focusa.dxux.digest`; OpenAI: `focusa_dxux_digest`.
 - CLI: `focusa dxux digest`.
 - REST: `GET /v1/dxux/digest`.
+- Assignable: `true`; parity: `full`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:75aceb78db53e051d53070ad348a6ae723c100bc34441b4c994ae86265a65a89`.
+- Descriptor digest: `sha256:86be45d7dd7dcbd2b256749eb360523955644f71a0584715fcc04c2e1f572d8a`.

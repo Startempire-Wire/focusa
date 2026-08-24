@@ -1,10 +1,10 @@
 # `focusa_credentials_verify`
 
-Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Verify a credential requirement against secret-free daemon grant metadata. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Verify a credential requirement against secret-free daemon grant metadata.
 - Capability family: `credential`; namespace: `focusa.credential`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -17,7 +17,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -83,6 +84,8 @@ Likely next: `focusa_credentials_verify`, `focusa_tool_doctor`.
 - Runbooks: `runbook:credential`
 - Pi: `focusa_credentials_verify`; MCP: `focusa.credentials.verify`; OpenAI: `focusa_credentials_verify`.
 - CLI: none.
-- REST: `/v1/credentials/verify-requirement `.
+- REST: Pi-local only.
+- Assignable: `false`; parity: `unavailable_unregistered_route`.
+- This capability is unavailable because its daemon router is not registered. Declared unavailable routes: `POST /v1/credentials/verify-requirement`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:34d363b87644a57983a035075cf6d6aaa76f47cb9895c238fa64870e4c888e48`.
+- Descriptor digest: `sha256:0752eeb4738e6c07b580c9dfe904489c597d1f3ebed9e8b55303b9cc8ae5f50e`.

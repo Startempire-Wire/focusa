@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0",
+  "registry_digest": "sha256:dae65b38c062b57390160c1db535e0b8dc8e362ed1f56ec50608c6369b73fb99",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -248,6 +248,131 @@
           },
           "human_invocation": "focusa agent-runtime headless-verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg run",
+      "capability_id": "focusa.bg.run",
+      "summary": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "name",
+          "command"
+        ],
+        "properties": {
+          "name": {
+            "description": "Human job name (appears in the completion notification).",
+            "type": "string"
+          },
+          "command": {
+            "description": "The full command line to execute (after -- semantics).",
+            "type": "string"
+          },
+          "cwd": {
+            "description": "Working directory (defaults to the current session cwd).",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "durable_dispatch",
+        "durable_dispatch"
+      ],
+      "examples": [
+        {
+          "description": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
+          "arguments": {
+            "name": "focusa_workpoint_resume",
+            "command": "example"
+          },
+          "human_invocation": "focusa bg run",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg run",
+      "capability_id": "focusa.bg.run.many",
+      "summary": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "jobs"
+        ],
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "command"
+              ],
+              "properties": {
+                "name": {
+                  "description": "Job name (appears in its completion notification).",
+                  "type": "string"
+                },
+                "command": {
+                  "description": "Full command line to execute.",
+                  "type": "string"
+                },
+                "cwd": {
+                  "description": "Working directory override.",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "durable_dispatch",
+        "durable_dispatch"
+      ],
+      "examples": [
+        {
+          "description": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
+          "arguments": {
+            "jobs": []
+          },
+          "human_invocation": "focusa bg run",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run_many.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg status",
+      "capability_id": "focusa.bg.status",
+      "summary": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "description": "Optional job id; omit to list recent jobs.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_status",
+        "read_status"
+      ],
+      "examples": [
+        {
+          "description": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
+          "arguments": {},
+          "human_invocation": "focusa bg status",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md"
         }
       ],
       "deprecation": null
@@ -5257,39 +5382,6 @@
       "deprecation": null
     },
     {
-      "command": "focusa agent-runtime prompt diff",
-      "capability_id": "focusa.prompt.variant.diff",
-      "summary": "Operate the Spec 140 prompt variant diff surface with typed scope and evidence.",
-      "input_schema": {
-        "type": "object",
-        "required": [
-          "baseline",
-          "candidate"
-        ],
-        "properties": {
-          "baseline": {},
-          "candidate": {}
-        },
-        "additionalProperties": false
-      },
-      "side_effects": [
-        "read_or_preview_only",
-        "read_or_preview_only"
-      ],
-      "examples": [
-        {
-          "description": "Operate the Spec 140 prompt variant diff surface with typed scope and evidence.",
-          "arguments": {
-            "baseline": {},
-            "candidate": {}
-          },
-          "human_invocation": "focusa agent-runtime prompt diff",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prompt_variant_diff.md"
-        }
-      ],
-      "deprecation": null
-    },
-    {
       "command": "focusa agent-runtime prompt preview",
       "capability_id": "focusa.prompt.variant.preview",
       "summary": "Operate the Spec 140 prompt variant preview surface with typed scope and evidence.",
@@ -5767,6 +5859,10 @@
                 "type": "string"
               },
               {
+                "const": "approve",
+                "type": "string"
+              },
+              {
                 "const": "reopen",
                 "type": "string"
               },
@@ -5844,6 +5940,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",

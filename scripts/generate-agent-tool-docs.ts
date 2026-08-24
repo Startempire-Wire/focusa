@@ -84,7 +84,8 @@ for (const descriptor of registry.descriptors) {
     "",
     "## Output",
     "",
-    `Returns \`${descriptor.result_envelope}\` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.`,
+    `Result envelope: \`${descriptor.result_envelope}\`.`,
+    `Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.`,
     "",
     "## Example",
     "",
@@ -130,6 +131,8 @@ for (const descriptor of registry.descriptors) {
     `- Pi: \`${descriptor.tool_names.pi}\`; MCP: \`${descriptor.tool_names.mcp}\`; OpenAI: \`${descriptor.tool_names.openai}\`.`,
     `- CLI: ${descriptor.tool_names.cli.map((item: string) => `\`${item}\``).join(", ") || "none"}.`,
     `- REST: ${routes}.`,
+    `- Assignable: \`${descriptor.availability.assignable}\`; parity: \`${descriptor.availability.parity_status}\`.`,
+    ...(descriptor.availability.assignable ? [] : [`- This capability is unavailable because its daemon router is not registered. Declared unavailable routes: ${descriptor.availability.unavailable_route_refs.map((route: any) => `\`${route.method} ${route.path}\``).join(", ")}.`]),
     `- Specification: ${descriptor.spec_refs.map((item: string) => `\`${item}\``).join(", ") || "contract registry"}.`,
     `- Descriptor digest: \`${descriptor.descriptor_digest}\`.`,
   ];

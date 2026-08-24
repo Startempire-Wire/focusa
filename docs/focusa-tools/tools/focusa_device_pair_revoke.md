@@ -18,7 +18,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -75,5 +76,6 @@ Likely next: `focusa_device_pair_list`.
 - Pi: `focusa_device_pair_revoke`; MCP: `focusa.device.pair.revoke`; OpenAI: `focusa_device_pair_revoke`.
 - CLI: `focusa device pair-revoke`.
 - REST: `POST /v1/device/pair/revoke`.
+- Assignable: `true`; parity: `full`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:8ee3d104665a68ef9693d6bcae664271c07794d68662ede99f774a4e2d15e36f`.
+- Descriptor digest: `sha256:5906222695d1a21dcceaf8dd6158483407bb3c3ddf3063ae982deb7f1b6208d3`.

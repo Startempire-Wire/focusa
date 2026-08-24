@@ -18,7 +18,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -74,5 +75,6 @@ Likely next: `focusa_preload_write`, `focusa_preload_doctor`.
 - Pi: `focusa_preload_verify`; MCP: `focusa.preload.verify`; OpenAI: `focusa_preload_verify`.
 - CLI: `focusa preload verify`.
 - REST: `POST /v1/preload/verify`.
+- Assignable: `true`; parity: `full`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:fa1d8b94c6e92b4ddb50b350b3a9ac4153f1a5d45911bf6578a909ffeee26a33`.
+- Descriptor digest: `sha256:f9afe7dc0e1cdbfe98894b8622db339e23c6ac577ae4a9c70b98f6c73bc43bbe`.

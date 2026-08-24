@@ -20,7 +20,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -79,5 +80,6 @@ Likely next: `focusa_prediction_authority`, `focusa_metacog_retrieve`, `focusa_t
 - Pi: `focusa_epistemic_operation`; MCP: `focusa.epistemic.operation`; OpenAI: `focusa_epistemic_operation`.
 - CLI: `focusa predict operation --operation <operation-id>`.
 - REST: `POST /v1/prediction-questions`, `POST /v1/information-sets`, `POST /v1/predictions/commit`, `POST /v1/predictions/{id}/supersede`, `GET /v1/predictions/{id}`, `GET /v1/predictions/recent`, `POST /v1/outcomes/claim`, `POST /v1/outcomes/{id}/dispute`, `POST /v1/outcomes/resolve`, `POST /v1/outcomes/{id}/correct`, `POST /v1/evaluations/predictions`, `GET /v1/calibration/reports`, `POST /v1/metacognition/signals`, `POST /v1/metacognition/reflections`, `POST /v1/metacognition/adjustments`, `POST /v1/metacognition/evaluations`, `POST /v1/learning/candidates/{id}/decide`, `POST /v1/learning/{id}/apply`, `POST /v1/learning/transfers/resolve`, `GET /v1/learning/retrieve`, `GET /v1/learning/conflicts`, `POST /v1/learning/{id}/expire`, `POST /v1/learning/{id}/supersede`, `POST /v1/learning/{id}/revoke`, `POST /v1/learning/{id}/rollback`, `POST /v1/learning/consolidate`, `GET /v1/self-model`.
+- Assignable: `true`; parity: `full`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9c437df8999f4fe3b515a0fc9b60a9c9de2af66c23dc893ec1a3bf0a0ad4ddb4`.
+- Descriptor digest: `sha256:43b7a5020a061307c82cc301ab1739fa7d27390ff91a2753c2a6650e4f01bc5e`.

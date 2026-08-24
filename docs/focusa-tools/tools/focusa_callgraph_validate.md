@@ -1,10 +1,10 @@
 # `focusa_callgraph_validate`
 
-Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Validate or observe a daemon-owned CallGraph when its router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Validate or observe a daemon-owned CallGraph when its router is live.
 - Capability family: `callgraph`; namespace: `focusa.callgraph`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -16,7 +16,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -72,6 +73,8 @@ Likely next: `focusa_callgraph_observe`, `focusa_tool_describe`.
 - Runbooks: `runbook:callgraph`
 - Pi: `focusa_callgraph_validate`; MCP: `focusa.callgraph.validate`; OpenAI: `focusa_callgraph_validate`.
 - CLI: none.
-- REST: `/v1/callgraph-runs/{run_id}/frontier `.
+- REST: Pi-local only.
+- Assignable: `false`; parity: `unavailable_unregistered_route`.
+- This capability is unavailable because its daemon router is not registered. Declared unavailable routes: `POST /v1/callgraphs/validate`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3579475ac96ddab54e5ce8b02808ae5e6973fe34174b21bb761be73cf26dd5d5`.
+- Descriptor digest: `sha256:1eb1fed567949457fbcf47becdc970a8ac410607cfe9d3fbd4354f129849a2d2`.

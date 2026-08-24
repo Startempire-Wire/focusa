@@ -41,8 +41,8 @@
       "guided_orientation_optional": true
     }
   },
-  "registry_digest": "sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0",
-  "pi_tool_count": 146,
+  "registry_digest": "sha256:dae65b38c062b57390160c1db535e0b8dc8e362ed1f56ec50608c6369b73fb99",
+  "pi_tool_count": 140,
   "pi_tool_docs_count": 146,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
   "pi_tool_docs_path": "docs/focusa-tools/tools/",
@@ -399,5 +399,5 @@
     "workset"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:ef46cef52bcc6866016f64d925caa6b6a5837c549fd47e4bf3e28475465fbaf4"
+  "card_digest": "sha256:5b48c1696b1d5fb96faf823da5d47ebb9f921c571773a2066318117416bd778d"
 }

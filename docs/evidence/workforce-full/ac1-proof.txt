@@ -1,0 +1,10 @@
+PASS: 617 reachable routes; 47 unreachable declarations quarantined
+PASS: 146 descriptors; 140 assignable; 6 explicit unavailable dead-router tools
+PASS: zero dead paths in 244 REST operation projections
+PASS: Pi/MCP/OpenAI/CLI/REST projections grounded
+PASS: strict agent surface audit zero findings
+PASS: 146 generated docs agree with implementation audit
+PASS: Pi TypeScript; legacy pairing static; Workforce interop
+unavailable=workset_projection,callgraph_validate,callgraph_observe,credentials_verify,cockpit_projection,fast_forward
+bg=truthful CLI-backed assignable capability
+issues_closed=333,334,335

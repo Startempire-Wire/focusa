@@ -21,7 +21,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -80,5 +81,6 @@ Likely next: `focusa_project_verify`, `focusa_evidence_capture`, `focusa_workpoi
 - Pi: `focusa_ontology_scope_migration`; MCP: `focusa.ontology.scope.migration`; OpenAI: `focusa_ontology_scope_migration`.
 - CLI: `focusa ontology scope-migration-dry-run`, `focusa ontology scope-migration-status`, `focusa ontology scope-migration-apply`, `focusa ontology scope-migration-rollback`.
 - REST: `POST /v1/ontology/scope-migrations`.
+- Assignable: `true`; parity: `full`.
 - Specification: `docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md`.
-- Descriptor digest: `sha256:7b0e4368ff8b756c5998f9fa68a399313181b6de2938c26fa2a10f4ba1003381`.
+- Descriptor digest: `sha256:ea30a2b5cb8f9b745263feb328936093b6160d9a21dc8129bb43fa8f7bad62ce`.

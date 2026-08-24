@@ -10,12 +10,15 @@ Daemon-native Spec133 Silent Session client for status, observation, steering, c
 
 ## Parameters and strict input schema
 
-- `action` (optional; string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string): See the strict descriptor schema.
+- `action` (optional; string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string): See the strict descriptor schema.
 - `session_id` (optional; string): Exact durable Silent Session id.
 - `session_name` (optional; string): Legacy alias for exact session_id; no legacy name normalization.
 - `run_id` (optional; string): Exact current run id.
 - `generation` (optional; integer; min=1): Exact current run generation.
 - `approval_id` (optional; string): Durable daemon approval id for mutations.
+- `approval_action` (optional; string | string | string | string | string | string): Exact action to bind into a new durable approval.
+- `approval_payload` (optional; structured): Exact input/steer/follow_up/keys payload; omitted for start/cancel.
+- `risk_acknowledged` (optional; boolean): Explicit operator risk acknowledgement required for approval issuance.
 - `idempotency_key` (optional; string): Mutation replay key.
 - `text` (optional; string): Input or steering text.
 - `command` (optional; string): Legacy alias for text; never executed as a shell command.
@@ -29,7 +32,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -85,6 +89,7 @@ Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_r
 - Runbooks: `runbook:work_loop`
 - Pi: `focusa_silent_sessions`; MCP: `focusa.silent.sessions`; OpenAI: `focusa_silent_sessions`.
 - CLI: `focusa silent`.
-- REST: `GET /v1/silent-sessions`, `POST /v1/silent-sessions/preflight`, `GET /v1/silent-sessions/{session_id}`, `GET /v1/silent-sessions/{session_id}/output`, `POST /v1/silent-sessions/{session_id}/input`, `POST /v1/silent-sessions/{session_id}/start`, `POST /v1/silent-sessions/{session_id}/pause`, `POST /v1/silent-sessions/{session_id}/resume`, `POST /v1/silent-sessions/{session_id}/interrupt`, `POST /v1/silent-sessions/{session_id}/cancel`, `POST /v1/silent-sessions/{session_id}/restart`, `POST /v1/silent-sessions/{session_id}/config/preview`, `GET /v1/silent-sessions/{session_id}/receipts`, `GET /v1/silent-sessions/capabilities`.
+- REST: `GET /v1/silent-sessions`, `POST /v1/silent-sessions/preflight`, `GET /v1/silent-sessions/{session_id}`, `GET /v1/silent-sessions/{session_id}/output`, `POST /v1/silent-sessions/{session_id}/input`, `POST /v1/silent-sessions/{session_id}/start`, `POST /v1/silent-sessions/{session_id}/approvals`, `POST /v1/silent-sessions/{session_id}/pause`, `POST /v1/silent-sessions/{session_id}/resume`, `POST /v1/silent-sessions/{session_id}/interrupt`, `POST /v1/silent-sessions/{session_id}/cancel`, `POST /v1/silent-sessions/{session_id}/restart`, `POST /v1/silent-sessions/{session_id}/config/preview`, `GET /v1/silent-sessions/{session_id}/receipts`, `GET /v1/silent-sessions/capabilities`.
+- Assignable: `true`; parity: `full`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:dfebb97ecd003d3b389ecc60f3adb4f26c7ceb7d8c707b5bfe6c0232435b4485`.
+- Descriptor digest: `sha256:5e5d000710403c4ba03cc47e0f45c48b4da1d10b1301bb1680623aded21483b8`.

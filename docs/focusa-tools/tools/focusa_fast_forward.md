@@ -1,10 +1,10 @@
 # `focusa_fast_forward`
 
-Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Execute governed Silent Session fanout only when the daemon fanout router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Execute governed Silent Session fanout only when the daemon fanout router is live.
 - Capability family: `session_fanout`; namespace: `focusa.session_fanout`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -18,7 +18,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -75,6 +76,8 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - Runbooks: `runbook:session_fanout`
 - Pi: `focusa_fast_forward`; MCP: `focusa.fast.forward`; OpenAI: `focusa_fast_forward`.
 - CLI: none.
-- REST: `/v1/silent-sessions/fanout `.
+- REST: Pi-local only.
+- Assignable: `false`; parity: `unavailable_unregistered_route`.
+- This capability is unavailable because its daemon router is not registered. Declared unavailable routes: `POST /v1/silent-sessions/fanout`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:183f47716986075680888bcb95f0906c5548fe30e3cbecbd6d1853142912d83c`.
+- Descriptor digest: `sha256:9fa23cad505904b83811b1d99e805fce78c2f3494af57274579527a4acda98f6`.

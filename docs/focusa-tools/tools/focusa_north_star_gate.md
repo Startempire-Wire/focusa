@@ -16,7 +16,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -73,5 +74,6 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 - Pi: `focusa_north_star_gate`; MCP: `focusa.north.star.gate`; OpenAI: `focusa_north_star_gate`.
 - CLI: none.
 - REST: Pi-local only.
+- Assignable: `true`; parity: `pi_only`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:6c238e6fff84ac5b3d09764db31083bbdd014ea0aeace4b372c88bfa43d82843`.
+- Descriptor digest: `sha256:25d68ab3104a12f1e2ff496d5c7e4cd8e9166242f96ade227e4a914088ffa925`.

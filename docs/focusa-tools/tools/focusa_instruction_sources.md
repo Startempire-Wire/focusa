@@ -17,7 +17,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -77,5 +78,6 @@ Likely next: `focusa_instruction_conflicts`, `focusa_instruction_explain`, `focu
 - Pi: `focusa_instruction_sources`; MCP: `focusa.instruction.sources`; OpenAI: `focusa_instruction_sources`.
 - CLI: `focusa agent-runtime sources`.
 - REST: `GET /v1/agent-runtime/instructions/sources`.
+- Assignable: `true`; parity: `full`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:ce45019093177272b2bddf6ac6cde7e2193822544ff351b7d7bebe47dc76f5c9`.
+- Descriptor digest: `sha256:8d71ee9b8a20e15f239a7b781d8ab1341c967511dfa4db918c2a8556d9e76b87`.

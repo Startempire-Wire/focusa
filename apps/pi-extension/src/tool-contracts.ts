@@ -294,7 +294,7 @@ const AGENT_RUNTIME_TOOL_CONTRACTS: FocusaToolContract[] = [
     "Prompt Variant Diff",
     "prompt_variant.diff",
     "local",
-    "focusa agent-runtime prompt diff",
+    "",
     false,
   ],
   [
@@ -377,7 +377,7 @@ const AGENT_RUNTIME_TOOL_CONTRACTS: FocusaToolContract[] = [
   ontology_action: String(action),
   ontology_objects: ["ProjectAgentRuntimeConstitution", "InstructionClaim", "RuntimeArtifactProjection"],
   api_routes: (route === "local" ? [] : [String(route)]) as string[],
-  cli_commands: [String(command)],
+  cli_commands: command ? [String(command)] : [],
   core_surface: "Spec140 project-agent Runtime Constitution compiler and delivery",
   doc_path: `docs/focusa-tools/tools/${String(name)}.md`,
   spec_path:
@@ -1134,12 +1134,11 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_workset_projection",
     label: "Workset Projection",
-    purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    purpose: "Read a deterministic Workset projection from the daemon ledger when the Workset router is live.",
     family: "workset",
     ontology_action: "workset.projection",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/worksets"],
+    api_routes: ["GET /v1/worksets"],
     cli_commands: [],
     core_surface: "workset_ledger/replay_projection",
     doc_path: "docs/focusa-tools/tools/focusa_workset_projection.md",
@@ -1155,12 +1154,11 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_callgraph_validate",
     label: "CallGraph Validate",
-    purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    purpose: "Validate or observe a daemon-owned CallGraph when its router is live.",
     family: "callgraph",
     ontology_action: "callgraph.validate",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/callgraph-runs/{run_id}/frontier"],
+    api_routes: ["POST /v1/callgraphs/validate"],
     cli_commands: [],
     core_surface: "callgraph/definition validation",
     doc_path: "docs/focusa-tools/tools/focusa_callgraph_validate.md",
@@ -1176,12 +1174,11 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_callgraph_observe",
     label: "CallGraph Observe",
-    purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    purpose: "Validate or observe a daemon-owned CallGraph when its router is live.",
     family: "callgraph",
     ontology_action: "callgraph.observe",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/callgraph-runs/{run_id}/frontier"],
+    api_routes: ["GET /v1/callgraph-runs/{run_id}/frontier"],
     cli_commands: [],
     core_surface: "callgraph_store/run observation",
     doc_path: "docs/focusa-tools/tools/focusa_callgraph_observe.md",
@@ -1197,12 +1194,11 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_credentials_verify",
     label: "Credentials Verify",
-    purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    purpose: "Verify a credential requirement against secret-free daemon grant metadata.",
     family: "credential",
     ontology_action: "credential.verify",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/credentials/verify-requirement"],
+    api_routes: ["POST /v1/credentials/verify-requirement"],
     cli_commands: [],
     core_surface: "credential_authority/verify_requirement",
     doc_path: "docs/focusa-tools/tools/focusa_credentials_verify.md",
@@ -1218,12 +1214,11 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_cockpit_projection",
     label: "Cockpit Projection",
-    purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    purpose: "Read the bounded daemon-owned cockpit projection.",
     family: "cockpit",
     ontology_action: "cockpit.projection",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/cockpit/projection"],
+    api_routes: ["GET /v1/cockpit/projection"],
     cli_commands: [],
     core_surface: "cockpit route projection",
     doc_path: "docs/focusa-tools/tools/focusa_cockpit_projection.md",
@@ -1239,13 +1234,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_bg_run",
     label: "BG Run",
-    purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    purpose: "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
     family: "background_job",
     ontology_action: "background_job.run",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/background-jobs"],
-    cli_commands: [],
+    api_routes: [],
+    cli_commands: ["focusa bg run"],
     core_surface: "background_jobs route",
     doc_path: "docs/focusa-tools/tools/focusa_bg_run.md",
     result_envelope: "tool_result_v1",
@@ -1260,13 +1254,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_bg_run_many",
     label: "BG Run Many",
-    purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    purpose: "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
     family: "background_job",
     ontology_action: "background_job.run_many",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/background-jobs"],
-    cli_commands: [],
+    api_routes: [],
+    cli_commands: ["focusa bg run"],
     core_surface: "background_jobs route",
     doc_path: "docs/focusa-tools/tools/focusa_bg_run_many.md",
     result_envelope: "tool_result_v1",
@@ -1281,13 +1274,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_bg_status",
     label: "BG Status",
-    purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    purpose: "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
     family: "background_job",
     ontology_action: "background_job.status",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/background-jobs"],
-    cli_commands: [],
+    api_routes: [],
+    cli_commands: ["focusa bg status"],
     core_surface: "background_job_store",
     doc_path: "docs/focusa-tools/tools/focusa_bg_status.md",
     result_envelope: "tool_result_v1",
@@ -1302,12 +1294,11 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_fast_forward",
     label: "Fast Forward",
-    purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    purpose: "Execute governed Silent Session fanout only when the daemon fanout router is live.",
     family: "session_fanout",
     ontology_action: "session.fanout",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/silent-sessions/fanout"],
+    api_routes: ["POST /v1/silent-sessions/fanout"],
     cli_commands: [],
     core_surface: "session_fanout route",
     doc_path: "docs/focusa-tools/tools/focusa_fast_forward.md",

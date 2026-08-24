@@ -6,6 +6,8 @@
     "apps/pi-extension/src/tool-contracts.ts"
   ],
   "capability_count": 146,
+  "assignable_capability_count": 140,
+  "unavailable_capability_count": 6,
   "operator_alignment": {
     "schema": "focusa.operator_alignment.v1",
     "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
@@ -108,6 +110,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -117,7 +120,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -533,7 +537,7 @@
         "snippet": "Use before linking evidence or acting when target object/file/endpoint is ambiguous.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ba6de8f51caa8fd46935f4baf15284aa7b39da1e46a3e757c6dbd3bbb1b2cb1b"
+      "descriptor_digest": "sha256:b11a95ef10e33fe80591667f70be4674717d8a5b0621b48fbaeeff9740b988ed"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -617,6 +621,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -626,7 +631,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -1056,7 +1062,7 @@
         "snippet": "Commit verified agent artifacts with explicit operator confirmation and a durable Receipt reference.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4114b8389bc2de46a667d734a3a626b655c995bee0971cd6d9dc239581dd5813"
+      "descriptor_digest": "sha256:2931a5c4a5da8bea32785b126af276f32d755dd86137264c1e81269c3994358c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -1140,6 +1146,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -1149,7 +1156,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -1570,7 +1578,7 @@
         "snippet": "Preview a Spec 140 artifact delivery manifest; never writes files.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d360dcd5268e8c5632c8f46ceab25d00ea1bc8301ed4b7979772c185d8cba648"
+      "descriptor_digest": "sha256:d6a7d227daee036402326368f08b20aa2f39aa75bea54db71771207adca7ed44"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -1654,6 +1662,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -1663,7 +1672,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -2084,7 +2094,7 @@
         "snippet": "Verify content hashes and evidence for a Runtime Constitution delivery manifest.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9da505ab1325e8643997a210d9844b54355bb63dcfd0ed3b53819c51d70c1d62"
+      "descriptor_digest": "sha256:20aa9f4ac10e29202a21b3881412fbf2b7fa6aa1ae2471956a6196b7cb7ddbee"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -2168,6 +2178,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -2177,7 +2188,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -2595,7 +2607,7 @@
         "snippet": "Read a compact, versioned Focusa Agent Card for cross-harness discovery. Returns interfaces, auth methods, progressive-discovery entry points, capability families, registry digest guidance, and extended-card routes without loading full sche",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:519ecbce38132aa7b2bd80eed8ef2c02b50e030df3790be1238feccb7566d7e7"
+      "descriptor_digest": "sha256:deae180fdb9da4149b6b58216ea9cf68246f053e4fc329117ed2ebe43e1604f2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -2677,6 +2689,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -2688,7 +2701,8 @@
         "exemptions": [
           "pi_only",
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -3098,7 +3112,7 @@
         "snippet": "Use at session start or when tool routing drifts.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4ce9fda964996a969aac619064a9004bc385a220b9491b65da4563642c5fbb8a"
+      "descriptor_digest": "sha256:6fe33dd5a8fa2d0c0065be5d030bbf9b4fabc25199c8fbb805080856d725bedc"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -3182,6 +3196,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -3191,7 +3206,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -3603,7 +3619,7 @@
         "snippet": "Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:540ec8b189295711089fd2663b10df02dfccf1ddc7c377b02d48fa1e9b42a214"
+      "descriptor_digest": "sha256:b62049e4f47d6249d8f2579c1a0968bd00d0a3f70aa7f4933d13d786d881e54a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -3687,6 +3703,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -3696,7 +3713,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -4127,7 +4145,7 @@
         "snippet": "Read effective project instruction claims and unresolved conflicts under Spec 140.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:63b9e7aa3a1dd912d1655c9f83aaf204acac683cd8908a73424dba62b94257d4"
+      "descriptor_digest": "sha256:b32b335c27087c9ad30d6d7f54c4db430a39c33b18a03246a95cdc49e5b179aa"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -4211,6 +4229,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -4220,7 +4239,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -4644,7 +4664,7 @@
         "snippet": "Verify foundational runtime capability parity without Mission Canvas or generated UI availability.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:52255a772e312631b2aca1aca39966f7c9d22264de8c0c6293897efd517b5a4e"
+      "descriptor_digest": "sha256:c4dba4d571c946e44b142e817943db51139d4eadc27959fb93df36ba3151586b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -4744,6 +4764,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -4754,7 +4775,8 @@
         "parity_status": "domain",
         "exemptions": [
           "api_domain_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -5237,7 +5259,7 @@
         "snippet": "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools, including Spec 111 preload status surfaces.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0476403ad9ed3d730dc2ef8e58a077e623a23d8f15ce707d795488163283a364"
+      "descriptor_digest": "sha256:21f0da39dd639385a275df3ddc789674d26bbb165da5caa8689933761e9fa0a7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5265,24 +5287,21 @@
         "pi": "focusa_bg_run",
         "mcp": "focusa.bg.run",
         "openai": "focusa_bg_run",
-        "cli": [],
-        "rest": [
-          {
-            "method": "/v1/background-jobs",
-            "path": ""
-          }
-        ]
+        "cli": [
+          "focusa bg run"
+        ],
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa BG Run",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
+      "description": "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Dispatch or inspect durable background jobs through Focusa's canonical execution surface. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "background_job",
       "namespace": "focusa.background_job",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/background-jobs",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -5293,22 +5312,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/background-jobs",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -5319,17 +5323,17 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
-          "mcp",
-          "openai",
-          "rest"
+          "cli"
         ],
         "parity_status": "daemon_backed",
         "exemptions": [
           "daemon_backed_no_cli"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -5632,15 +5636,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/background-jobs",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5675,12 +5671,12 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
           "arguments": {
             "name": "focusa_workpoint_resume",
             "command": "example"
           },
-          "human_invocation": "focusa_bg_run { ... }",
+          "human_invocation": "focusa bg run",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run.md"
         }
       ],
@@ -5756,7 +5752,7 @@
         "snippet": "The canonical non-blocking dispatch for builds/tests/long scans.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:eba3886251790b86ae7ae5d6ef010a17a68f985d54838f3710102dcc910e7d13"
+      "descriptor_digest": "sha256:35d256cca91834458b2155e8b82289d1e67f1bd6e96816460a43bac46c5aa3f4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5784,24 +5780,21 @@
         "pi": "focusa_bg_run_many",
         "mcp": "focusa.bg.run.many",
         "openai": "focusa_bg_run_many",
-        "cli": [],
-        "rest": [
-          {
-            "method": "/v1/background-jobs",
-            "path": ""
-          }
-        ]
+        "cli": [
+          "focusa bg run"
+        ],
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa BG Run Many (parallel orchestration)",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
+      "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Dispatch or inspect durable background jobs through Focusa's canonical execution surface. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "background_job",
       "namespace": "focusa.background_job",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/background-jobs",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -5812,22 +5805,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/background-jobs",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -5838,17 +5816,17 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
-          "mcp",
-          "openai",
-          "rest"
+          "cli"
         ],
         "parity_status": "daemon_backed",
         "exemptions": [
           "daemon_backed_no_cli"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -6163,15 +6141,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/background-jobs",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -6206,11 +6176,11 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
           "arguments": {
             "jobs": []
           },
-          "human_invocation": "focusa_bg_run_many { ... }",
+          "human_invocation": "focusa bg run",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run_many.md"
         }
       ],
@@ -6286,7 +6256,7 @@
         "snippet": "Use to parallelize independent long-running commands.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c98365944e03db22475a74229e965d2e6f1cf97670ffe2adeb7159235477c75c"
+      "descriptor_digest": "sha256:5dc7c618cde9be335f3bc2f04e8b113361f085aa74cc92d412d611de64fbd20c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -6314,24 +6284,21 @@
         "pi": "focusa_bg_status",
         "mcp": "focusa.bg.status",
         "openai": "focusa_bg_status",
-        "cli": [],
-        "rest": [
-          {
-            "method": "/v1/background-jobs",
-            "path": ""
-          }
-        ]
+        "cli": [
+          "focusa bg status"
+        ],
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa BG Status",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
+      "description": "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Dispatch or inspect durable background jobs through Focusa's canonical execution surface. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "background_job",
       "namespace": "focusa.background_job",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/background-jobs",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -6342,22 +6309,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/background-jobs",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -6368,17 +6320,17 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
-          "mcp",
-          "openai",
-          "rest"
+          "cli"
         ],
         "parity_status": "daemon_backed",
         "exemptions": [
           "daemon_backed_no_cli"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -6669,15 +6621,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/background-jobs",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6712,9 +6656,9 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Dispatch or inspect durable background jobs through Focusa's canonical execution surface.",
           "arguments": {},
-          "human_invocation": "focusa_bg_status { ... }",
+          "human_invocation": "focusa bg status",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md"
         }
       ],
@@ -6788,7 +6732,7 @@
         "snippet": "Use for a one-shot ledger snapshot; never poll with it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:84e636c178998523f36e461a92b4394a0d90775ff378854ba48aee3fe96d3ddf"
+      "descriptor_digest": "sha256:26c00a677c2d5ff906af54ffe5f85ac7a780ae0a09a2be0c264cb0ea56518811"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -6872,6 +6816,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -6881,7 +6826,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -7305,7 +7251,7 @@
         "snippet": "Use when a gap maps to one budget domain such as output-firewall, docs-diet, or dead-code-safety.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7289e9acb63e9abf2458dbda15ef84fa0557d43d2a8534a63d89938a62cc1615"
+      "descriptor_digest": "sha256:47fa8d36c05c2a57eb53f2d95d2452c95c2144cd25827ce3cd5119efb35ef50f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -7389,6 +7335,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -7398,7 +7345,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -7822,7 +7770,7 @@
         "snippet": "Use to inspect a gate mode such as A/advisory, B/warning, or C/fail-candidate before enforcing it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4c1650a83f28f84749ef97efe012823d4e877c47f2974a159edcf7434d4a774a"
+      "descriptor_digest": "sha256:4f894e1b19b097f1d57e9e2db0c8aa1354ff64240197a1865b44b9aed5809b96"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -7906,6 +7854,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -7915,7 +7864,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -8328,7 +8278,7 @@
         "snippet": "Use before enabling warning/fail-candidate Bloatgaurd gates; this tool is read-only.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:70584a284fe2867af3a4225f525508fe792717edbc46fb1e7c1e4e6070a78ad0"
+      "descriptor_digest": "sha256:cda03645fa8e246424fcecb354f8f39a3daaa12b65002592a707a4678e5e56d0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -8412,6 +8362,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -8421,7 +8372,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -8844,7 +8796,7 @@
         "snippet": "Use to inspect a profile such as daily_driver or tightwad.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ca8df7d228530b67c84caa978d8812d35129136d76b78d9b91d67828bcae1aba"
+      "descriptor_digest": "sha256:dcf220d63ae33da7363c179e7db4d29abfccc198d1e710f2c5dee801f29c3cec"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -8928,6 +8880,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -8937,7 +8890,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -9349,7 +9303,7 @@
         "snippet": "Use to inspect Daily Driver, Beast Mode, Speedy, Neat Freak, and Tightwad profile settings.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a25fd77d64c709261e493eebdcce2c591a5a5d0ca7e747388622d74e1c00eee0"
+      "descriptor_digest": "sha256:25605e52fc9c91871f9472ba4025a1b520ea992c3e29be6b08b988530ac01241"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -9433,6 +9387,7 @@
       "source_owner": "bloatgaurd",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -9442,7 +9397,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -9855,7 +9811,7 @@
         "snippet": "Use before cleanup or context-budget work to inspect Bloatgaurd budget domains and full-payload/deletion gates.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6ec2f94b63332debfe040a59f49cf88dba93d7f3ef1e696d140a077670757635"
+      "descriptor_digest": "sha256:36dfa9065e3a2a46b970c08b141376e7cb408c26eae6ded709702fd9ebce9ff6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -9939,6 +9895,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -9948,7 +9905,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -10359,7 +10317,7 @@
         "snippet": "Use to verify rollout hardening acceptance/proof for Bloatgaurd MVP.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:579b9378ae2d281d259ea13ab2d14f7dc349136cc113f21fe7e7055f0ea08be5"
+      "descriptor_digest": "sha256:2a2fd7d7ebfc237bca4c659e67e9c5153f1e124d9ae1bcaade5769a6cf45143e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -10443,6 +10401,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -10452,7 +10411,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -10875,7 +10835,7 @@
         "snippet": "Use to inspect a routine such as patrol, gatekeeper, or scout.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e971e0fa824c4a35443771df991505c984dd2e148243099cc1953decb9f9a8c2"
+      "descriptor_digest": "sha256:e1dcba9df789c03df00f7d998f67c00444d17bc085eedcc98718305bf84beff1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -10959,6 +10919,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -10968,7 +10929,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -11380,7 +11342,7 @@
         "snippet": "Use to inspect Patrol through Scout automation policy.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:792c9fdc68dd7df3ba87a3549c65488de971f70023e10b66cb6993630019eb04"
+      "descriptor_digest": "sha256:4ae2974d3adc388863743dfec1a9fb4be9b1c1074cec087007c5448c4db53139"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -11464,6 +11426,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -11473,7 +11436,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -11896,7 +11860,7 @@
         "snippet": "Use when a gap maps to tokenbloat-control or tool-call-history-elision.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:01478b4fd9440ac16c87c265f60b63827b680f68af68b2d9e4146797e892ae2b"
+      "descriptor_digest": "sha256:d97decf3e519528ed2ef976e04d8bbe90a7e7e4188d6ddb5e74cd09e9409425a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -11980,6 +11944,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -11989,7 +11954,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -12401,7 +12367,7 @@
         "snippet": "Use to inspect prompt/runtime tokenbloat controls before reducing context or eliding tool history.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:152ed3aff463dbb77c5c9476d8bf28888bbb93e8f43f19a6591fbeec9eb6841f"
+      "descriptor_digest": "sha256:a18c1c4930b39672987fcb86177a65e69dbe4bc6209a4b9a75723ee697d227cd"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -12485,6 +12451,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -12494,7 +12461,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -12989,7 +12957,7 @@
         "snippet": "Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability de",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b04bed5b575e5da17e7c82be6c2e843f9dab901cba44e1128a5ea92fede6bbea"
+      "descriptor_digest": "sha256:4bb3446a7b4f3bc7914daad47ef981fe9062c3bd0d25abb4b2c1a5495c4b54d2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -13111,6 +13079,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -13122,7 +13091,8 @@
         "parity_status": "pi_only",
         "exemptions": [
           "pi_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -13601,7 +13571,7 @@
         "snippet": "Use after UIAI browser diagnostics/error envelopes to standardize evidence + learning intake before manual interpretation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b364af20cf7f85aaf78720935e457cf86e8532e4fa1c72b8883476cbb5c446ab"
+      "descriptor_digest": "sha256:7e1200617bf62a1b887a1c9154d2b242cfdda2b655bf5d4a7c42f9dcc3464b55"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -13685,6 +13655,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -13694,7 +13665,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -14133,7 +14105,7 @@
         "snippet": "Build the governed UIAI/WebMCP sequence for one browser operation before action. Returns health, read/source, diagnostics, snapshot refs, mutation confirmation, bound execution, evidence intake, Workpoint linkage, and session cleanup steps.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:cf4418b2bd9038a3624033764926e38fff19903175c5312db13fa9441a9065da"
+      "descriptor_digest": "sha256:4991db3698bb3ec7a472eae44f0523d3625c3cb56d4f5a51c8ceb6d1241cc36b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -14217,6 +14189,7 @@
       "source_owner": "call_stack",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -14228,7 +14201,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -14713,7 +14687,7 @@
         "snippet": "Use when designing a new feature or refactor that will be implemented by an AI agent. The design is a typed artifact, not free-form prose.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:02f063f99aff210c43326e5deb2534f0701d997d1931d1058ca0399320b30628"
+      "descriptor_digest": "sha256:493a8107ec51ce66b06d7c388c5df658a751f60943c77393dcd5f8d5fb23520d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -14835,6 +14809,7 @@
       "source_owner": "call_stack",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -14846,7 +14821,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -15294,7 +15270,7 @@
         "snippet": "Use after focusa_call_stack_design or before implementation review to detect design-vs-code drift without mutating Focus State.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:8993cbe08c89536ac2feca5cdb6c057ecd44706efd07be3a725cc29d830f29b5"
+      "descriptor_digest": "sha256:f26d2b514931fc0f9dda580973529b0b7ec8afa3c5ad04bedb6258ffe083351e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -15323,23 +15299,18 @@
         "mcp": "focusa.callgraph.observe",
         "openai": "focusa_callgraph_observe",
         "cli": [],
-        "rest": [
-          {
-            "method": "/v1/callgraph-runs/{run_id}/frontier",
-            "path": ""
-          }
-        ]
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa CallGraph Observe",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Validate or observe a daemon-owned CallGraph when its router is live.",
+      "description": "Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Validate or observe a daemon-owned CallGraph when its router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "callgraph",
       "namespace": "focusa.callgraph",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/callgraph-runs/{run_id}/frontier",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -15350,22 +15321,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/callgraph-runs/{run_id}/frontier",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -15376,16 +15332,18 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": false,
         "requires_daemon": true,
-        "supported_harnesses": [
-          "pi",
-          "mcp",
-          "openai",
-          "rest"
-        ],
-        "parity_status": "daemon_backed",
+        "supported_harnesses": [],
+        "parity_status": "unavailable_unregistered_route",
         "exemptions": [
           "daemon_backed_no_cli"
+        ],
+        "unavailable_route_refs": [
+          {
+            "method": "GET",
+            "path": "/v1/callgraph-runs/{run_id}/frontier"
+          }
         ]
       },
       "input_schema": {
@@ -15680,15 +15638,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/callgraph-runs/{run_id}/frontier",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -15723,7 +15673,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Validate or observe a daemon-owned CallGraph when its router is live.",
           "arguments": {
             "run_id": "example"
           },
@@ -15801,7 +15751,7 @@
         "snippet": "Use to inspect run progress and settlement state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:532febcbb0a88c75d7fe4b831066fea5f04809840310b905c94a0df9a3807d31"
+      "descriptor_digest": "sha256:9d7f66130c5fdff0315b1aba769bb349e4e55afbff8cd8bff468d7557b78f12c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -15830,23 +15780,18 @@
         "mcp": "focusa.callgraph.validate",
         "openai": "focusa_callgraph_validate",
         "cli": [],
-        "rest": [
-          {
-            "method": "/v1/callgraph-runs/{run_id}/frontier",
-            "path": ""
-          }
-        ]
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa CallGraph Validate",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Validate or observe a daemon-owned CallGraph when its router is live.",
+      "description": "Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Validate or observe a daemon-owned CallGraph when its router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "callgraph",
       "namespace": "focusa.callgraph",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/callgraph-runs/{run_id}/frontier",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -15857,22 +15802,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/callgraph-runs/{run_id}/frontier",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -15883,16 +15813,18 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": false,
         "requires_daemon": true,
-        "supported_harnesses": [
-          "pi",
-          "mcp",
-          "openai",
-          "rest"
-        ],
-        "parity_status": "daemon_backed",
+        "supported_harnesses": [],
+        "parity_status": "unavailable_unregistered_route",
         "exemptions": [
           "daemon_backed_no_cli"
+        ],
+        "unavailable_route_refs": [
+          {
+            "method": "POST",
+            "path": "/v1/callgraphs/validate"
+          }
         ]
       },
       "input_schema": {
@@ -16188,15 +16120,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/callgraph-runs/{run_id}/frontier",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16231,7 +16155,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Validate or observe a daemon-owned CallGraph when its router is live.",
           "arguments": {
             "graph": {}
           },
@@ -16309,7 +16233,7 @@
         "snippet": "Use before creating or dispatching any CallGraph.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3579475ac96ddab54e5ce8b02808ae5e6973fe34174b21bb761be73cf26dd5d5"
+      "descriptor_digest": "sha256:1eb1fed567949457fbcf47becdc970a8ac410607cfe9d3fbd4354f129849a2d2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -16393,6 +16317,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -16402,7 +16327,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -16833,7 +16759,7 @@
         "snippet": "Activate a separately operator-approved amendment only after its official documentation sweep is complete.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:fd4c4f0bedf0ec2e340e82b865586dc98ea5f6c9e454f763a09cea3501ebb03a"
+      "descriptor_digest": "sha256:b05950b54ab3fd2541b8903fa86265d1376eede9a451b858fec18d1b788d1011"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -16917,6 +16843,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -16926,7 +16853,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -17351,7 +17279,7 @@
         "snippet": "Record an operator-originated canonical instruction amendment proposal without activating it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:99ddfad22c0d8885c977540ebea513cdde61f626b85e62933679df04edfb3d92"
+      "descriptor_digest": "sha256:a9ca54ee037d02221139023694e26dbad56c947360d3c81f617f833f1f805639"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17380,23 +17308,18 @@
         "mcp": "focusa.cockpit.projection",
         "openai": "focusa_cockpit_projection",
         "cli": [],
-        "rest": [
-          {
-            "method": "/v1/cockpit/projection",
-            "path": ""
-          }
-        ]
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa Cockpit Projection",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Read the bounded daemon-owned cockpit projection.",
+      "description": "Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Read the bounded daemon-owned cockpit projection. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "cockpit",
       "namespace": "focusa.cockpit",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/cockpit/projection",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -17407,22 +17330,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/cockpit/projection",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -17433,16 +17341,18 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": false,
         "requires_daemon": true,
-        "supported_harnesses": [
-          "pi",
-          "mcp",
-          "openai",
-          "rest"
-        ],
-        "parity_status": "daemon_backed",
+        "supported_harnesses": [],
+        "parity_status": "unavailable_unregistered_route",
         "exemptions": [
           "daemon_backed_no_cli"
+        ],
+        "unavailable_route_refs": [
+          {
+            "method": "GET",
+            "path": "/v1/cockpit/projection"
+          }
         ]
       },
       "input_schema": {
@@ -17734,15 +17644,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/cockpit/projection",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -17777,7 +17679,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Read the bounded daemon-owned cockpit projection.",
           "arguments": {},
           "human_invocation": "focusa_cockpit_projection { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_cockpit_projection.md"
@@ -17853,7 +17755,7 @@
         "snippet": "One read = worksets + callgraph frontier + steers + bg board.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4e37245b027360e92c155738f725a535d8159c86c62bd732902d1f835081554c"
+      "descriptor_digest": "sha256:e9b298548af2309fd00616fd083875b10e9716ba448ff21aaf118b05d0033b94"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17937,6 +17839,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -17946,7 +17849,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -18381,7 +18285,7 @@
           "Example INVALID: 'Need to fix the scratchpad path' (self-imposed task)"
         ]
       },
-      "descriptor_digest": "sha256:d324196543f565aa92d3f049cb18e59903d4db14049b8f9b1d657eef0e1c69e4"
+      "descriptor_digest": "sha256:7d608231e425ade4633da48eff74151c9efd8faabc08dbeaee5abdfd6eef4024"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -18465,6 +18369,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -18474,7 +18379,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -18908,7 +18814,7 @@
         "snippet": "Use when an operator or agent needs a structured, bounded view of the current project context before making decisions. The packet is advisory and never overrides Workpoint or Trajectory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:225fa8ff0b87165fe8f91868e808af7ca397fbb1cee160edb1abe86e507f5222"
+      "descriptor_digest": "sha256:e23a13087abfb98c11c9c8ecfcc756b3ae10623bd9b8df7188622fe779b68c7c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -18992,6 +18898,7 @@
       "source_owner": "context_cognition",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -19001,7 +18908,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -19478,7 +19386,7 @@
         "snippet": "Use when the agent or operator has a candidate list (files, docs, diffs, evidence) and needs a token-budgeted selection that maximizes relevance to a target (workpoint next_slice, mission, or query).",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f7fa42e38678f715103a1d1a93143c3b93aa5c0cf9b89e6d3538a39b4cf62825"
+      "descriptor_digest": "sha256:8abc409baea4fa55021dad5b90247a38858decf416486dca6334fa61ed58bb86"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -19581,6 +19489,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -19590,7 +19499,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -20091,7 +20001,7 @@
         "snippet": "Use when measuring whether the curator's selection matches an operator's expected selection. Captures the result as a focusa_metacog_capture lesson and a focusa_predict_record prediction.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d1f0f0fba3e29fd87b94f6c3ccf26debaab6d1b2d7846bcd2092060a1e563ee3"
+      "descriptor_digest": "sha256:c2deee19787410cdc138ff89eeb8d89b00bbe098633a99734fdb2f6390ff5172"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -20175,6 +20085,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -20184,7 +20095,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -20654,7 +20566,7 @@
         "snippet": "Use after focusa_context_cognition_curate_eval when the operator has a candidate prompt/module artifact and wants the curator's promotion/rollback decision.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:864a1dc5d18e21fc3d8a222f11dfe5df33f0125a4f1d5f4ea68865dc49d6a38c"
+      "descriptor_digest": "sha256:4ac5a9d0d0bc42a0e2b9d0fa8a073a4095f2160b92e5ce19c59632b9df64acce"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -20738,6 +20650,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -20747,7 +20660,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -21166,7 +21080,7 @@
         "snippet": "Use when checking which Cognition Optimizer artifact is currently promoted for a project, or when reviewing the artifact history for rollback decisions.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:cc67e104940fcb5b6cc37b2624128fd8c9e923ea52a397dd04acb18d58e23af9"
+      "descriptor_digest": "sha256:1f6c9b58ae85eb498039f58e7dafe424bfb2fee73de38e0d6af4cb1053c20ec6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -21250,6 +21164,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -21259,7 +21174,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -21683,7 +21599,7 @@
         "snippet": "Use when an operator wants a one-shot proof bundle for the context cognition packet: curl health, project identity, trajectory, workpoint; focusa CLI; node audit scripts.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:bad3b6cf30cb7826f429a7eb729b0d7af81558b66569f9b6a9fa0d0410209bf3"
+      "descriptor_digest": "sha256:974ca79fb871fbbf8e2ac2fc9572f78f36655ad2a57ccddaceccda58721b596e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -21767,6 +21683,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -21776,7 +21693,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -22195,7 +22113,7 @@
         "snippet": "Use when an operator or agent needs a human-readable view of the context cognition packet without parsing JSON.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e7d670c5685496e7f9e28a8fdcde25235ca6664e2539bd2f1e444971a7d44e8d"
+      "descriptor_digest": "sha256:49123d850563b4573dfc8fb712a322eaed7730ad7c0ede3eecfc2333312657e2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22224,23 +22142,18 @@
         "mcp": "focusa.credentials.verify",
         "openai": "focusa_credentials_verify",
         "cli": [],
-        "rest": [
-          {
-            "method": "/v1/credentials/verify-requirement",
-            "path": ""
-          }
-        ]
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa Credentials Verify",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Verify a credential requirement against secret-free daemon grant metadata.",
+      "description": "Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Verify a credential requirement against secret-free daemon grant metadata. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "credential",
       "namespace": "focusa.credential",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/credentials/verify-requirement",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -22251,22 +22164,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/credentials/verify-requirement",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -22277,16 +22175,18 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": false,
         "requires_daemon": true,
-        "supported_harnesses": [
-          "pi",
-          "mcp",
-          "openai",
-          "rest"
-        ],
-        "parity_status": "daemon_backed",
+        "supported_harnesses": [],
+        "parity_status": "unavailable_unregistered_route",
         "exemptions": [
           "daemon_backed_no_cli"
+        ],
+        "unavailable_route_refs": [
+          {
+            "method": "POST",
+            "path": "/v1/credentials/verify-requirement"
+          }
         ]
       },
       "input_schema": {
@@ -22628,15 +22528,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/credentials/verify-requirement",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -22671,7 +22563,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Verify a credential requirement against secret-free daemon grant metadata.",
           "arguments": {
             "requirement": {
               "schema": "example",
@@ -22759,7 +22651,7 @@
         "snippet": "Grant verdicts only — no secrets in or out.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:34d363b87644a57983a035075cf6d6aaa76f47cb9895c238fa64870e4c888e48"
+      "descriptor_digest": "sha256:0752eeb4738e6c07b580c9dfe904489c597d1f3ebed9e8b55303b9cc8ae5f50e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22843,6 +22735,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -22852,7 +22745,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -23274,7 +23168,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:234c11e3da4b9105e427d3f7754848cc36447e7f6bfbc94b87c15d60abcb2e5e"
+      "descriptor_digest": "sha256:524ff3497610dfa350cef2e15228c3e0f5a0c2cb75a350493a899b054f149ce1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -23358,6 +23252,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -23367,7 +23262,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -23810,7 +23706,7 @@
         "snippet": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:55f1f8b07b0ddb0134e0fb3229686e7eedfd31e312bb4c20ba9d697965eca965"
+      "descriptor_digest": "sha256:d679410dfc530022b8f9513b92b7a5cfbf3d57832a83caf56d462a4eab975e84"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -23894,6 +23790,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -23903,7 +23800,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -24337,7 +24235,7 @@
           "Example INVALID: 'Fix all pi-extension spec gaps in priority order...' (task list, not decision)"
         ]
       },
-      "descriptor_digest": "sha256:dc97f8c07c7d4a07348373db1b87418d06611fd2e959c81372b8b44ae2174667"
+      "descriptor_digest": "sha256:ac6478705b6a6350b8bfe93e20f4933af900fa4d78dba823b483e1d0934b7107"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -24421,6 +24319,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -24430,7 +24329,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -24862,7 +24762,7 @@
         "snippet": "Use on the VPS side to complete a pending pairing initiated by focusa_device_pair_start. Returns the long-lived token that the Mac app will use for subsequent calls.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:aea9abebe1097b1f5eb82751da559ff8f5dd9b34728f7ca636939bf4f25d6983"
+      "descriptor_digest": "sha256:e19ee640c48a7081c0629904a633267b489b4f52ff1f8cd857ba9a77c495114e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -24946,6 +24846,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -24955,7 +24856,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -25372,7 +25274,7 @@
         "snippet": "Use to see which devices are currently paired with this Focusa daemon, and which have been revoked.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:46f2888c34c1bdf694a88ffceaa7895a41fcfda267825c8ac9f539a234e00239"
+      "descriptor_digest": "sha256:3a0c87738e7851fdc60c4f74943a1b076204434be1ef2fecb9ea999d59e22fa6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -25456,6 +25358,7 @@
       "source_owner": "device",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -25465,7 +25368,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -25897,7 +25801,7 @@
         "snippet": "Use when the operator wants the Mac to display a QR for phone-based pairing. Requires FOCUSA_PAIRING_URL set on the VPS to a public URL, otherwise pair_url falls back to daemon_base_url (local-only).",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3aeeeeb595f31ae06070bdee2beb08ca69d7cea07c49b03289cba661d2f2b410"
+      "descriptor_digest": "sha256:4ac9f1edee25c7992c5e7b1be9e43a89ced05962ace794996a51d83df60e3bf2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -25981,6 +25885,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -25990,7 +25895,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -26415,7 +26321,7 @@
         "snippet": "Use to remove a paired device (lost laptop, rotation, security incident). The device will need to re-pair.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:8ee3d104665a68ef9693d6bcae664271c07794d68662ede99f774a4e2d15e36f"
+      "descriptor_digest": "sha256:5906222695d1a21dcceaf8dd6158483407bb3c3ddf3063ae982deb7f1b6208d3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -26500,6 +26406,7 @@
       "source_owner": "device",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -26509,7 +26416,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -26946,7 +26854,7 @@
         "snippet": "Use when the operator wants to connect the Focusa Mac menubar app to a remote Focusa daemon. Generates a pairing code; the operator runs the corresponding focusa device pair-complete on the VPS to mint a token.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b2509e04b65fec316572be96d3992e948e6ad18032fedac5ebfa9f10cf45d9fe"
+      "descriptor_digest": "sha256:0e846f181a4c90c48edea35b7125f5ab5b9b3dcc270be5623760435dcb6e7fe4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -27030,6 +26938,7 @@
       "source_owner": "device",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -27039,7 +26948,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -27455,7 +27365,7 @@
         "snippet": "Use to poll whether a focusa_device_pair_start code has been completed by the VPS, or to look up the long-lived token for a known device_id.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3240ccc27b7dc76f4067d5a86b9be692f45aec657dc32f5cb6d4b56a6b68cd11"
+      "descriptor_digest": "sha256:03dd0d86f0e9138fb7b55853e3a8a7c48904693c74d8066c274ed1638f6ede8e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -27539,6 +27449,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -27548,7 +27459,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -27959,7 +27871,7 @@
         "snippet": "Use before compaction/resume handoff to get status, authority, why, exact next action, evidence refs, and rehydrate refs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:75aceb78db53e051d53070ad348a6ae723c100bc34441b4c994ae86265a65a89"
+      "descriptor_digest": "sha256:86be45d7dd7dcbd2b256749eb360523955644f71a0584715fcc04c2e1f572d8a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -28043,6 +27955,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -28052,7 +27965,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -28474,7 +28388,7 @@
         "snippet": "Use after CI, scope, daemon, or stale-state failures to get recovery commands.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6a422cd64309a59995609df1916793ff757edda4136fce775095b60eb67dd672"
+      "descriptor_digest": "sha256:37da33fcdd9301984721adfc5e2dbe1f6f7853092e9b224790339fbfa0301d5b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -28558,6 +28472,7 @@
       "source_owner": "dxux",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -28567,7 +28482,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -28978,7 +28894,7 @@
         "snippet": "Use to verify Spec105 reliability, continuation, recovery, evidence, and drift UX surfaces.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1af11ec34c2ca2bf3ff2d65d514f3c938366e50ed729e725341f7e33e2b2f155"
+      "descriptor_digest": "sha256:66a6ff1b7af8c280c8448dc18bd455de50e4443bec20a9d541077a5cb402e5e3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -29062,6 +28978,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -29071,7 +28988,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -29493,7 +29411,7 @@
         "snippet": "Use to inspect a requirement such as DXUX-004 or DXUX-012.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:13809abfbc9471e45b56752b89df559e5ea4ef01b66a8c17aa3696a225bb3841"
+      "descriptor_digest": "sha256:e186cd10b247883c6dae3c33f63b3d2143f00379935e60db585892407835b517"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -30045,6 +29963,7 @@
       "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -30054,7 +29973,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -30782,7 +30702,7 @@
         "snippet": "Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9c437df8999f4fe3b515a0fc9b60a9c9de2af66c23dc893ec1a3bf0a0ad4ddb4"
+      "descriptor_digest": "sha256:43b7a5020a061307c82cc301ab1739fa7d27390ff91a2753c2a6650e4f01bc5e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -30866,6 +30786,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -30875,7 +30796,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -31331,7 +31253,7 @@
         "snippet": "Use after tests, stress runs, or proof collection to keep handles instead of transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e9924f32c929f27710bc64cc38fb49b15979b0c379d1aa4dd56124c78912676e"
+      "descriptor_digest": "sha256:c62a94da0071f5f00e6fae1bce0670ee5e8d00acbbefb1ad9c6f345b642fd05a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31415,6 +31337,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -31424,7 +31347,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -31856,7 +31780,7 @@
           "recovery = what was done to fix or work around (optional)."
         ]
       },
-      "descriptor_digest": "sha256:bd9edf92379d6b752cf45e7f33af350ddb21bed0fc07fafca66d131ca8f253ba"
+      "descriptor_digest": "sha256:e009026d187e829417b731bd90d4740f90a43e776beabd9fa30879398788e993"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31885,23 +31809,18 @@
         "mcp": "focusa.fast.forward",
         "openai": "focusa_fast_forward",
         "cli": [],
-        "rest": [
-          {
-            "method": "/v1/silent-sessions/fanout",
-            "path": ""
-          }
-        ]
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa Fast Forward",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Execute governed Silent Session fanout only when the daemon fanout router is live.",
+      "description": "Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Execute governed Silent Session fanout only when the daemon fanout router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "session_fanout",
       "namespace": "focusa.session_fanout",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/silent-sessions/fanout",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -31912,22 +31831,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/silent-sessions/fanout",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -31938,16 +31842,18 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": false,
         "requires_daemon": true,
-        "supported_harnesses": [
-          "pi",
-          "mcp",
-          "openai",
-          "rest"
-        ],
-        "parity_status": "daemon_backed",
+        "supported_harnesses": [],
+        "parity_status": "unavailable_unregistered_route",
         "exemptions": [
           "daemon_backed_no_cli"
+        ],
+        "unavailable_route_refs": [
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/fanout"
+          }
         ]
       },
       "input_schema": {
@@ -32254,15 +32160,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/silent-sessions/fanout",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -32297,7 +32195,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Execute governed Silent Session fanout only when the daemon fanout router is live.",
           "arguments": {
             "multiplier": 0,
             "work_items": []
@@ -32378,7 +32276,7 @@
         "snippet": "Use to parallelize a set of work items across session lanes.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:183f47716986075680888bcb95f0906c5548fe30e3cbecbd6d1853142912d83c"
+      "descriptor_digest": "sha256:9fa23cad505904b83811b1d99e805fce78c2f3494af57274579527a4acda98f6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -32464,6 +32362,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -32475,7 +32374,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -32913,7 +32813,7 @@
         "snippet": "Use when reconstructing trajectory wording, checking previous-valid fallback, or verifying exact HLT history across sessions.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:19ec12f728fd64769c4801c1273925e3a47504ca30695ebd8409359f3658e0d3"
+      "descriptor_digest": "sha256:34ec8cb3b92ba133ec6fd9fd3a629757d4aa96a9baae08f2c809e8ddbb5a20dc"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -32997,6 +32897,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -33006,7 +32907,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -33436,7 +33338,7 @@
         "snippet": "Read deterministic instruction conflicts; unresolved equal-authority claims remain blocked.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:cd7ce3bd2cbd23d3095e3e767b34f0e09dab4cb633396300d42b0fbd1ceacff2"
+      "descriptor_digest": "sha256:5fc7e7b05877d46b55d1d66c568bed4c77e0a0be51e960cf4bdabf7a2a272816"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -33520,6 +33422,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -33529,7 +33432,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -33959,7 +33863,7 @@
         "snippet": "Explain one instruction claim from the current bounded source inventory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3e6fd572be14b350890f571446dea5b32d856ac3ae7f3d4d7413f040960fef1b"
+      "descriptor_digest": "sha256:b8e1047e5c7eed23a73313624df2562a4429d0f4e852cd486b1d1df1d1c5b68c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -34043,6 +33947,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -34052,7 +33957,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -34477,7 +34383,7 @@
         "snippet": "Evaluate the foundational headless InstructionIntegrityGuard and durably record its fail-closed decision.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f5c9e12cd1bc505d10faea71f83178c0c9306b568bc03b8b3e964100231d0f4c"
+      "descriptor_digest": "sha256:1f56be12b1b636364f78fbdfb96fda5e0a3f0c4623cad3c6783a9cfeb2c6fb58"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -34561,6 +34467,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -34570,7 +34477,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -34983,7 +34891,7 @@
         "snippet": "Read foundational guard availability, amendment authority, and outage posture.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7f8d3f2518fb351dd3db34b4b8393ca817880a8dea7695546f7893067b20efed"
+      "descriptor_digest": "sha256:9b32c9b7f464180a089ae98c553998dbd025b6fcd3424a7b8afe1ecc85ca6b21"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -35067,6 +34975,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -35076,7 +34985,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -35510,7 +35420,7 @@
         "snippet": "Preview path/profile/target-specific instruction behavior without committing changes.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a5a5b841ed536f9e3c79ebb10064dcca8889f7a80c1f29605e7ddff4226dc0c0"
+      "descriptor_digest": "sha256:10768cd51385198e1aa4ce49d262f73cd02e6d02b0251272ea0d64e3e26c057c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -35594,6 +35504,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -35603,7 +35514,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -36033,7 +35945,7 @@
         "snippet": "Discover bounded, registered project instruction sources with trust and authority metadata.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ce45019093177272b2bddf6ac6cde7e2193822544ff351b7d7bebe47dc76f5c9"
+      "descriptor_digest": "sha256:8d71ee9b8a20e15f239a7b781d8ab1341c967511dfa4db918c2a8556d9e76b87"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -36117,6 +36029,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -36126,7 +36039,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -36548,7 +36462,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:8d345ceabd4f74a0892df738e0fe389272f650f3840061e17ed554ab3c631ef7"
+      "descriptor_digest": "sha256:4c8c27f8b4c41d0c789a38403191b319f7cca07283cdd8a956dd6fe19540eecb"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -36632,6 +36546,7 @@
       "source_owner": "lineage",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -36641,7 +36556,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -37061,7 +36977,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e5c931d48d0b9f56905ac3e743d1af346b86d0552aa0b579c0095b45afcd539d"
+      "descriptor_digest": "sha256:540b8b021b23f9c40827faf8ee0400ab42eedaaa6639f20bd0c8bb7f080db543"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -37145,6 +37061,7 @@
       "source_owner": "lineage",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -37154,7 +37071,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -37578,7 +37496,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:95228461e6b0b6f1f402f8ad25dcbfaa086dc287272b677d74a227f7b2b89cb2"
+      "descriptor_digest": "sha256:8259ca8bcb2bd2c729b15fbdcf9764c22097c60bddeb4b05230a456605c3348e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -37662,6 +37580,7 @@
       "source_owner": "metacognition",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -37671,7 +37590,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -38126,7 +38046,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c0ed8ccce0810df2acc78317908307a153059fc27ed1fdc4420ef1b5365da05e"
+      "descriptor_digest": "sha256:71f36d12ae1bed0ee3a537ce33b2de02ec3f12d0c57ef460e948317849cdf1d5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -38228,6 +38148,7 @@
       "source_owner": "metacognition",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -38237,7 +38158,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -38680,7 +38602,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:11e7e658ab5a41b21483219934c9458eb97a066286b9fff717c85705aab2c085"
+      "descriptor_digest": "sha256:8c43693a7a27b915c5c9d74333604cb36210a3c28080e41329775dac0ec08287"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -38782,6 +38704,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -38791,7 +38714,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -39234,7 +39158,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:53326c5bcaac06f5022e084bf48404bb22fc40da27e5706cf3a4d9495af4a3ec"
+      "descriptor_digest": "sha256:505437d6ac14f1f15721f7a5d2ab200b098cb4e49a48fc8602823367e1cd3224"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -39390,6 +39314,7 @@
       "source_owner": "metacognition",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -39399,7 +39324,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -39924,7 +39850,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c8abe94c4dad63eb612cbc22229b56b6676775c211f371cadfc887dfce0959af"
+      "descriptor_digest": "sha256:067f41ab8be47872c9a1a4411f644b39cc339ba7e1f336ab665327edbac23e01"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -40008,6 +39934,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -40017,7 +39944,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -40452,7 +40380,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9f9cd3740a2f66df45b7da95d91fd5b9ad3dc7a4f26a055d191e7a0f2eb141c3"
+      "descriptor_digest": "sha256:68779d32f7d510f94c3b9c3274830b4354a7809d105b11cf974a06b109537a82"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -40536,6 +40464,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -40545,7 +40474,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -40962,7 +40892,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:568090067d42b9d6e3de1ae948887b6dbd05348d210acd418ba080033459177b"
+      "descriptor_digest": "sha256:ed847b1febf3589474267d737df3ab74e0e0f98f669da2445ddd8304121c827a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -41046,6 +40976,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -41055,7 +40986,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -41472,7 +41404,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9090ae3a91e41dbd5597642d242ce072135f05be3bd19d7e64c368a82c1db0df"
+      "descriptor_digest": "sha256:e907a4d854976586d4ee39aa1b8631f6bf3e71dfd27f9cf0d6027250fd299746"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -41556,6 +41488,7 @@
       "source_owner": "metacognition",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -41565,7 +41498,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -42000,7 +41934,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:496d0e98724c56bd641b248e704b6cd7fe88f34d44d37ecb74761ea4c42fff91"
+      "descriptor_digest": "sha256:190dcdb7f35c026b34dee55ba3dc8036adf8ad4d59f7e2a1408a44ec43afef0c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -42084,6 +42018,7 @@
       "source_owner": "metacognition",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -42093,7 +42028,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -42531,7 +42467,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a95b8db508c67aab9fad5e88018dce94e966603d6b7d2b8a3ff6d7f112d03bf2"
+      "descriptor_digest": "sha256:0edf5567e0bc403201255c39ca62bcd5297853d4521527b27123ac237ed99158"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -42615,6 +42551,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -42624,7 +42561,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -43046,7 +42984,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:961caee184a2796bf0f5973c09b42a8daa1264fd83a3b9ce35ed4eaaa44790e0"
+      "descriptor_digest": "sha256:c814acc187a1e61ebd0ea7d55ec1fbafd75b4aca13e355a51dba53423994b53a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -43108,6 +43046,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi"
@@ -43115,7 +43054,8 @@
         "parity_status": "pi_only",
         "exemptions": [
           "pi_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -43526,7 +43466,7 @@
         "snippet": "Use before meaningful work and after session/compaction/model/project/provider/writer transitions; stale authority remains advisory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6c238e6fff84ac5b3d09764db31083bbdd014ea0aeace4b372c88bfa43d82843"
+      "descriptor_digest": "sha256:25d68ab3104a12f1e2ff496d5c7e4cd8e9166242f96ade227e4a914088ffa925"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -43610,6 +43550,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -43619,7 +43560,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -44041,7 +43983,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:55b98de64f83c35257bd5cdd9207782e384c473e472fa9094b9bea0d4716c0a9"
+      "descriptor_digest": "sha256:3da741012b3de11910e145c33cf135b13067370bd0f36ef0ba8505b578076456"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -44128,6 +44070,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -44137,7 +44080,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -44655,7 +44599,7 @@
         "snippet": "Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7b0e4368ff8b756c5998f9fa68a399313181b6de2938c26fa2a10f4ba1003381"
+      "descriptor_digest": "sha256:ea30a2b5cb8f9b745263feb328936093b6160d9a21dc8129bb43fa8f7bad62ce"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -44739,6 +44683,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -44748,7 +44693,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -45170,7 +45116,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c4f66d93d08f7f639f81fa56b74dae28feda1059193c7a30f6792b9ff2a92e52"
+      "descriptor_digest": "sha256:bf9c1f3e13a2e96d3191c9dcd7395c8c9c2ffe5e27c6825d5a697ce39bdf4515"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -45254,6 +45200,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -45263,7 +45210,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -45709,7 +45657,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:bd5578fd13fe726b6825216275cf1097f3237226c1372cce0e28b19c1386cb33"
+      "descriptor_digest": "sha256:70f6e0011ad204f58b482d8e19a606d7f745e4d0619c016b7497377f70b1c4b5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -45793,6 +45741,7 @@
       "source_owner": "prediction_authority",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -45802,7 +45751,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -46227,7 +46177,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a494b1daf846fe5b54045c5835122d2eabfc636c6d15e48074863258a6765eee"
+      "descriptor_digest": "sha256:5b678e91abb23eaf96d3cff14e104e275cdd88e2dad1468b96ef8a3d6e1bfc3f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -46311,6 +46261,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -46320,7 +46271,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -46786,7 +46738,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0808f703cef6ba55401a8bbffaabdd95df5d601cfc8b33de6d32f6fe5d356fa9"
+      "descriptor_digest": "sha256:0a83e0d0fe689e70e2bfc3b9c0bead801d070170b861d4d08bfbe96971dee72f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -46870,6 +46822,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -46879,7 +46832,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -47300,7 +47254,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a710e31e72a8413f252e7112c674a57f967cb0028c63e6a169cd395867fe6ccc"
+      "descriptor_digest": "sha256:3c634feef8134a1bb8d0ee6359a78fccbe051ecc82de397badb314e80ccd632c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -47421,6 +47375,7 @@
       "source_owner": "temporal",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -47430,7 +47385,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -47886,7 +47842,7 @@
         "snippet": "Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3038d61f7efa8257c5f38f1e94bbef3763d162fa746969f86ee7be4b204f10db"
+      "descriptor_digest": "sha256:400d3149f75e8e32ecb57b6aa66221b4039324791e4a0c81994ee6b6532b0425"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -47970,6 +47926,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -47979,7 +47936,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -48418,7 +48376,7 @@
         "snippet": "Build Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0168d2b1c57a106e27af44bf5966673150b1a20a5f7505baeab84f08c5790caa"
+      "descriptor_digest": "sha256:c6b69a2c0f73233095b9f36e7caa907ef1d2cb198529d6248b4d00f03c78f59d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -48502,6 +48460,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -48511,7 +48470,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -48950,7 +48910,7 @@
         "snippet": "Doctor Preload Scope through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:bc5c56b9a8bbf3c1de2d4cd1402dbf3fa8e42e98c3fbcebb88ec33ca3241c4c6"
+      "descriptor_digest": "sha256:2ad37fd709be03e5b59c31e714dfcac509dd610e3b83c29d61733013fdf8f4c5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -49034,6 +48994,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -49043,7 +49004,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -49450,7 +49412,7 @@
         "snippet": "List bounded Spec 111 agent bootstrap profiles.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6da68e50a4fae72bf5650e42894150bf65045d4312c939c7b16baf8f381b3f9f"
+      "descriptor_digest": "sha256:b8241c816a403722cf59b07f0ff2fc44a1fa7d944f494df148e914ec3b079059"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -49534,6 +49496,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -49543,7 +49506,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -49985,7 +49949,7 @@
         "snippet": "Commit an idempotent Spec 111 bootstrap delivery receipt.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f54ecfc93b27e005e16ed59068bafa51a1c680a58e3529e5fe5e6dd0750586e4"
+      "descriptor_digest": "sha256:855f93af9758b25f8a35c8351112c16e5ae0e26d0284b73b20a18392327ad941"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -50069,6 +50033,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -50078,7 +50043,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -50507,7 +50473,7 @@
         "snippet": "Preview a Spec 111 bootstrap delivery receipt without committing it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c7a40c3c7dca00711ca07e5985c06c6f11635511df233e43ad87bc30385e9240"
+      "descriptor_digest": "sha256:8717df21dd0a0caaffeb49b8845a95adb2fb7292f6df267f862557546a809224"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -50591,6 +50557,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -50600,7 +50567,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -51039,7 +51007,7 @@
         "snippet": "Render Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:59dc040c2e87bac21a8b7ba3dcbc8125574ee393bdbb533e410b435c289a67ba"
+      "descriptor_digest": "sha256:0a082fb745cbb51328de3d86cc6d92d7926f0eb610f39c899976545ae8c8eebe"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -51123,6 +51091,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -51132,7 +51101,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -51571,7 +51541,7 @@
         "snippet": "Verify Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:fa1d8b94c6e92b4ddb50b350b3a9ac4153f1a5d45911bf6578a909ffeee26a33"
+      "descriptor_digest": "sha256:f9afe7dc0e1cdbfe98894b8622db339e23c6ac577ae4a9c70b98f6c73bc43bbe"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -51655,6 +51625,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -51664,7 +51635,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -52116,7 +52088,7 @@
         "snippet": "Write a Spec 111 preload packet to an allowlisted target with an idempotency key.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:65394673f3c18b24cc1d994364bf2f02862211e9a0d4bcc96ee6e0a50fd464c5"
+      "descriptor_digest": "sha256:f3903dfa2be8804afe7e33d0f689afbe7ef527716e2247efb6cb59a1300ee728"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -52254,6 +52226,7 @@
       "source_owner": "project",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -52263,7 +52236,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -52787,7 +52761,7 @@
         "snippet": "Use for new/existing project onboarding; preview first, require confirm=true for apply/rollback, and never infer a remote, stack, deployment, domain, or secret.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a35ccf2e393d5ebd0fbb3292e03a9bb75b94a861dd9541366182b1b136872452"
+      "descriptor_digest": "sha256:aca8872c4b012fecbec8cd2a4bf3c7fdf0bbf8d2947c3acb86811c16c35ea6b3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -52871,6 +52845,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -52882,7 +52857,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -53341,7 +53317,7 @@
         "snippet": "Use at bootstrap/re-bootstrap, project reviews, and next-step evaluation before refreshing trajectory hierarchy.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:39996708124631ae8666678db737a26d835d7177130d54a960c7160044b3f760"
+      "descriptor_digest": "sha256:36681a516b0a4b3be4e294a9bb1a5b7f4a8098127624eafcc63038307d9111bb"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -53425,6 +53401,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -53434,7 +53411,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -53891,7 +53869,7 @@
         "snippet": "Use after a project-card-guided action is verified, so future bootstrap/sequence planning learns from the result.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5120fc2b9c24f233996481c1743228b4e55a1e3ebd89845a324aabbaea0b3e02"
+      "descriptor_digest": "sha256:1cc6ab8115b0359b05c1e27f4c0293ede9161c268a9b71715f51f2100639e79e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -54029,6 +54007,7 @@
       "source_owner": "project",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -54038,7 +54017,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -54561,7 +54541,7 @@
         "snippet": "Use after project verification when onboarding/readiness is incomplete; HLT Impasse asks at most one concise intent question, and commit requires confirm=true.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1296287658b1ac0d4657d7569ada92c9b9f20111517a451f1aeb9dcce5dcfb57"
+      "descriptor_digest": "sha256:f83f94588f7bc04b8ed1c40bb31bb0ef7fa19c81294f60a051f043e10c4e32b4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -54645,6 +54625,7 @@
       "source_owner": "project",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -54656,7 +54637,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -55110,7 +55092,7 @@
         "snippet": "Use before trusting cross-project Workpoints, Trajectory packets, or project-sensitive context.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9b9e418aa491bfdaf48b241d9c5dcaf05b301a5342d2753583c42fff6fd1baf8"
+      "descriptor_digest": "sha256:c8c1e478d596b86d6ec20ffad70e2d352576afcbeabad75c1e9fad7e67c7a08e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -55194,6 +55176,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -55205,7 +55188,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -55676,7 +55660,7 @@
         "snippet": "Use when project folder or session identity is ambiguous before accepting a Workpoint/Trajectory packet as canonical.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:dc04f2f9187cfd61c5c08ad830f1203778e99c369e6516181a31ab81df6fdd95"
+      "descriptor_digest": "sha256:a49edf3299d0e0f17ea201f95972b7966a7ca08c255fbf3e22a1a8d66cb1953b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -55704,9 +55688,7 @@
         "pi": "focusa_prompt_variant_diff",
         "mcp": "focusa.prompt.variant.diff",
         "openai": "focusa_prompt_variant_diff",
-        "cli": [
-          "focusa agent-runtime prompt diff"
-        ],
+        "cli": [],
         "rest": []
       },
       "version": "2.0.0",
@@ -55740,15 +55722,16 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
-          "pi",
-          "cli"
+          "pi"
         ],
         "parity_status": "pi_only",
         "exemptions": [
           "pi_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -56081,7 +56064,7 @@
             "baseline": {},
             "candidate": {}
           },
-          "human_invocation": "focusa agent-runtime prompt diff",
+          "human_invocation": "focusa_prompt_variant_diff { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prompt_variant_diff.md"
         }
       ],
@@ -56162,7 +56145,7 @@
         "snippet": "Compare two caller-supplied prompt variant projections without mutating Focusa state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d7e74b63ab478954af036d8f8cf2281a0851390c31c91a4e2e679f6fbd89d8df"
+      "descriptor_digest": "sha256:b8901c2a6adc27f6d3999ea8f14b47ba7caad4f0b631816f1038c6af6a3f0944"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -56246,6 +56229,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -56255,7 +56239,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -56676,7 +56661,7 @@
         "snippet": "Compile and preview a target prompt variant without activation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5d3966fda1782d5b0d6855a1508ab4fe94a25b9aee074fbb33a91d48893ca4b4"
+      "descriptor_digest": "sha256:764ec869d40bccbaedaa1095abf1663c4d35ffca0ad369c08ccd630ec10d2d1f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -56760,6 +56745,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -56769,7 +56755,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -57191,7 +57178,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:556de9c7cef3c162e0ecff5c893a4d699e641a0b6c487e15c76ba64995b33355"
+      "descriptor_digest": "sha256:f8b0690f446329bda9aca920dfd7750ec01139ba8aef3a1fc174bf466f4ee208"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -57273,6 +57260,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -57283,7 +57271,8 @@
         "parity_status": "domain",
         "exemptions": [
           "api_domain_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -57714,7 +57703,7 @@
         "snippet": "List bounded Spec97 Reflex Primitive summaries by family/query; read-only routing metadata, never mutation authority.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d6fe251e1a6f38694be66655f6c7c568ede7033a057a879324f2ef8ee17ea845"
+      "descriptor_digest": "sha256:21b364681e9f53c8f745fba9415fb6d450f28c8619535f222b938964c2d6c6f1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -57816,6 +57805,7 @@
       "source_owner": "resource",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -57827,7 +57817,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -58316,7 +58307,7 @@
         "snippet": "Use when resources are low, daemon hot paths risk timeouts, or operator says Activate/Deactivate LowMem mode.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9a3897779fa6ab2813d87af3543fca63b1e9f893977fc513dd71fc0a86daf493"
+      "descriptor_digest": "sha256:809c14a7ad7b7725eed5f540e3660ca084e7a44ac37522d7c18f68e666e9fc41"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -58400,6 +58391,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -58409,7 +58401,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -58835,7 +58828,7 @@
         "snippet": "Preview a compiled Runtime Constitution without activation or artifact delivery.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:32f6e82ae4375408ae593f2f012182cf107b94f513d18c56fdf0a580de0c7316"
+      "descriptor_digest": "sha256:d6c110fcb2116f0150e9a0037d96374b0e0bb0b2a6e163abdc2c7b30c04a16e7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -58897,6 +58890,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": false,
         "supported_harnesses": [
           "pi"
@@ -58904,7 +58898,8 @@
         "parity_status": "local_only",
         "exemptions": [
           "local_scratchpad_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -59328,7 +59323,7 @@
           "Run: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt"
         ]
       },
-      "descriptor_digest": "sha256:31464475d03adde8c06a916762027359e52d4a23956e7e9089a8688797fe1e34"
+      "descriptor_digest": "sha256:a25af3328f9d583793214e11d51a3aa1cfb8251708f1d8cdcace1a1443d7bab7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -59484,6 +59479,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -59493,7 +59489,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -60182,7 +60179,7 @@
         "snippet": "Use when operator wants to save, continue, or roll over a long Focusa/Pi session with explicit source/target scope.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ccdc3e7ba8a69b9c252e1379f84d020afec9fde70750f9944ee509cd8dc6d3e6"
+      "descriptor_digest": "sha256:61ff46acb5eb657ca2c3c05511cbe5ed1354872bf0355e6972723f81d3a14b13"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -60237,6 +60234,10 @@
           {
             "method": "POST",
             "path": "/v1/silent-sessions/{session_id}/start"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/{session_id}/approvals"
           },
           {
             "method": "POST",
@@ -60380,6 +60381,20 @@
         {
           "operation_id": null,
           "method": "POST",
+          "path": "/v1/silent-sessions/{session_id}/approvals",
+          "operation_class": "value_mutation",
+          "capability_family": "automation",
+          "commercial_treatment": "optional_premium",
+          "policy_activation": "active",
+          "required_feature": "focusa.agent.silent_sessions",
+          "limit_bucket": "silent_session_runs",
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        },
+        {
+          "operation_id": null,
+          "method": "POST",
           "path": "/v1/silent-sessions/{session_id}/pause",
           "operation_class": "value_mutation",
           "capability_family": "automation",
@@ -60500,6 +60515,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -60509,7 +60525,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -60522,6 +60539,10 @@
               },
               {
                 "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "approve",
                 "type": "string"
               },
               {
@@ -60602,6 +60623,42 @@
           "approval_id": {
             "description": "Durable daemon approval id for mutations.",
             "type": "string"
+          },
+          "approval_action": {
+            "description": "Exact action to bind into a new durable approval.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "input",
+                "type": "string"
+              },
+              {
+                "const": "steer",
+                "type": "string"
+              },
+              {
+                "const": "follow_up",
+                "type": "string"
+              },
+              {
+                "const": "keys",
+                "type": "string"
+              },
+              {
+                "const": "cancel",
+                "type": "string"
+              }
+            ]
+          },
+          "approval_payload": {
+            "description": "Exact input/steer/follow_up/keys payload; omitted for start/cancel."
+          },
+          "risk_acknowledged": {
+            "description": "Explicit operator risk acknowledgement required for approval issuance.",
+            "type": "boolean"
           },
           "idempotency_key": {
             "description": "Mutation replay key.",
@@ -60961,6 +61018,13 @@
           }
         },
         {
+          "route": "POST /v1/silent-sessions/{session_id}/approvals",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
           "route": "POST /v1/silent-sessions/{session_id}/pause",
           "scope": {
             "kind": "read",
@@ -61137,7 +61201,7 @@
         "snippet": "Use as a thin daemon API client. Supply exact session_id/run_id/generation and durable approval/idempotency fields for mutations; the daemon remains canonical authority.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:dfebb97ecd003d3b389ecc60f3adb4f26c7ceb7d8c707b5bfe6c0232435b4485"
+      "descriptor_digest": "sha256:5e5d000710403c4ba03cc47e0f45c48b4da1d10b1301bb1680623aded21483b8"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -61219,6 +61283,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -61229,7 +61294,8 @@
         "parity_status": "pi_only",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -61654,7 +61720,7 @@
         "snippet": "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ea38e320aa3fe4d3c7f31cd7359034dec7340dbf9bc9b34396c7e080ec138e89"
+      "descriptor_digest": "sha256:606f7bab982c01c770bdac760340516137eaf892ecb5f0cab0db78c2d524d07e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -61716,6 +61782,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi"
@@ -61724,7 +61791,8 @@
         "exemptions": [
           "pi_only",
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -62126,7 +62194,7 @@
         "snippet": "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6d8fd0ab7b72505801c308502250425bb6498c50f32b5507a4821360fd0b18ca"
+      "descriptor_digest": "sha256:d852a906ee6c266a7e4d5270f646d2ca09ddd84e6b968decb3daf5e0ea2e1c6c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -62188,6 +62256,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi"
@@ -62196,7 +62265,8 @@
         "exemptions": [
           "pi_only",
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -62603,7 +62673,7 @@
         "snippet": "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:bca060ddbdf5136bf3f8bdf110b9e3562f15fca8eefcd406eb9d5bee03de7167"
+      "descriptor_digest": "sha256:66f157959c88c8b33eabac6546da1e3e186bcfb4287e2c08e84a7cc9af86e543"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -63354,6 +63424,7 @@
       "source_owner": "temporal",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -63363,7 +63434,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -64405,7 +64477,7 @@
         "snippet": "Use status first; external commitments require explicit confirmation/evidence, forecasts remain non-canonical ranges, and scope mismatch fails closed.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:588673c8be3e6c217fea9f3557d51ed742131ff06d30330beb9b9f5aaa7bf8ee"
+      "descriptor_digest": "sha256:be25f3d5a3aed1a2b0bc324378066819db2dbbb47b823b9759fee848add8f805"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -64489,6 +64561,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -64498,7 +64571,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -64930,7 +65004,7 @@
         "snippet": "Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:cc663f9373a7ab5c492295bc30f86a9ba924619f042531640cc82ea37ffa92a2"
+      "descriptor_digest": "sha256:af5c766df4c742da2b76313aa6baed111241164a4786f7b2af4718d3ff70166a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -65014,6 +65088,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -65023,7 +65098,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -65449,7 +65525,7 @@
         "snippet": "Cold-load one complete runtime Focusa tool definition after search. Returns strict input/output schemas, operational guidance, authority, side effects, failures, recovery, dependencies, skills, docs, and protocol bindings without loading un",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0154ba6503b6fe0df36a31fe7adb73f97c9217138ab44419dd14a7496464680e"
+      "descriptor_digest": "sha256:806144533fc746f44ab00664c442358ea7a0002d8ff9ebe5e5cd0dba11eb198d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -65567,6 +65643,7 @@
       "source_owner": "health",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -65577,7 +65654,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -66008,7 +66086,7 @@
         "snippet": "Use first when Focusa tools seem blocked, degraded, stale, or confusing.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c98099e6d891580b9d5d4c7e1edb496522738bd9d9f5c3e5199a3cfa737f4790"
+      "descriptor_digest": "sha256:6ab919bff660f285347280a3d1069a6e03b7b019fa15c43f643338d35950c669"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -66092,6 +66170,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -66101,7 +66180,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -66536,7 +66616,7 @@
         "snippet": "Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:59d259a751069c0cc1ab084b6e6b73c9e7081a780f5c7f1166f8c91c55992420"
+      "descriptor_digest": "sha256:57dacda5e0b8db99eff94c6f5ea688b5bf63de4f986756f0556720693c1600ab"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -66620,6 +66700,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -66629,7 +66710,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -67061,7 +67143,7 @@
         "snippet": "Search the bounded Focusa capability catalog before loading full schemas. Returns ranked metadata, scope, side-effect, skill, documentation, and discovery refs so agents can select the narrowest tool under token budget.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:391a021a3851287ea89fba24bb869bec082aedddabd63c027df396843e11010f"
+      "descriptor_digest": "sha256:226be815f768aac36b63165a13b56724c6b449469f9b0094ea894e7d26135379"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -67145,6 +67227,7 @@
       "source_owner": "trajectory",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -67156,7 +67239,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -67593,7 +67677,7 @@
         "snippet": "Use after trajectory view/define_goal or after verification evidence changes current state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2b38a8f28611bed9845f8d49461accef5d83de727e1c76abacbdf1d99813165d"
+      "descriptor_digest": "sha256:4c6e23481ad066824d2290a533ae36e51f5d28847a2c4bc4779800a07744f404"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -67677,6 +67761,7 @@
       "source_owner": "trajectory",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -67688,7 +67773,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -68124,7 +68210,7 @@
         "snippet": "Use before compaction/model switch alongside focusa_workpoint_checkpoint; this does not replace Workpoint.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:fc33231593c53ae6d1308d02eee25045aae7070403f9844adfe19f734a477b84"
+      "descriptor_digest": "sha256:533f73f685a8c0fe837fdbe17030932aceecf65a470f087410938260991fb055"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -68208,6 +68294,7 @@
       "source_owner": "trajectory",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -68219,7 +68306,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -68736,7 +68824,7 @@
         "snippet": "Use when the project trajectory is unclear or operator provides/changes the project goal.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2d41e9556a317136f143599bfd3b1df2ccb889018d775f0ad05516007d3a3d4a"
+      "descriptor_digest": "sha256:42cd5771c3c31a4833bbc3f337b377e30f9ccc9d1e09f1b8dd6cdd18682ffde9"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -68820,6 +68908,7 @@
       "source_owner": "trajectory",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -68831,7 +68920,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -69271,7 +69361,7 @@
         "snippet": "Use after trajectory assess says propose_workpoint; pass candidate to focusa_workpoint_checkpoint only if accepted.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2e8eaebdd12b5046bd89d485599e1f29d637bb3fc0c55fe16e5bcfc8eee916d0"
+      "descriptor_digest": "sha256:a8fa45d5b57fdc53e1f66be1284a4ea107c12753b53e452c89eb504652f87549"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -69355,6 +69445,7 @@
       "source_owner": "trajectory",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -69366,7 +69457,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -69805,7 +69897,7 @@
         "snippet": "Use after compaction/resume before choosing action; inject with Workpoint resume.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:226e711a6be840a9f014a9ca88bd2e7fda5ff296a029f336d19d15ef61577daa"
+      "descriptor_digest": "sha256:dd4326cc0f08daec388505eec6924853e68498ae2f600b7c1745becb0a219997"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -69889,6 +69981,7 @@
       "source_owner": "trajectory",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -69900,7 +69993,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -70348,7 +70442,7 @@
         "snippet": "Use first on project start/resume or when goal/state/next action is unclear; Trajectory is advisory and per-project.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2b055c5084a7ada25f1b8eeea4c4cc85b5a24c5f2827a80821e8cdd94ca2b43d"
+      "descriptor_digest": "sha256:d9e0df9e158afc85430a3cc8f2ff6caca5a0ad435e1bb24a9917a9261d885a32"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -70448,6 +70542,7 @@
       "source_owner": "traverse",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -70458,7 +70553,8 @@
         "parity_status": "domain",
         "exemptions": [
           "api_domain_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -71019,7 +71115,7 @@
         "snippet": "Use bounded traversal/search with explicit limits; opt into large payloads only when needed.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:cd7132926507e5eaed7dc20843d4a9f713a2d318c281995fb453422fc3b88c61"
+      "descriptor_digest": "sha256:63ab33e2aeff726059b8c6170ab8a78d470a463af8f40d6cf6035f209f210dc4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -71103,6 +71199,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -71112,7 +71209,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -71545,7 +71643,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:81343be53d43ecb6f3b04a64158b5963eb3190a24207576b80d41b096862f808"
+      "descriptor_digest": "sha256:fd552b5856cfe7e6c7a56a8ca1821c07a4fdd73ec345716930f223b235916914"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -71629,6 +71727,7 @@
       "source_owner": "lineage",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -71638,7 +71737,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -72056,7 +72156,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0fe63f9797320722156a74f938b16ffcd88d06855bdee5860d3cc1c2a656fd1e"
+      "descriptor_digest": "sha256:3ca2ce44d434d9be3ff394d3557608c8299079149c8e6493669fba070f44888c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -72140,6 +72240,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -72149,7 +72250,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -72573,7 +72675,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:80ff02b7a9e6526f623ec84971c3a3fbcc29272138ed0b07c8b238b9e8112436"
+      "descriptor_digest": "sha256:aca24a5cb19966aac09eed7f382259432830383d03f525d2763aa057fd46bc23"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -72657,6 +72759,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -72666,7 +72769,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -73084,7 +73188,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e089a60fa0b98c90f98582b3b3e0642c32519a5348fb73c0b4e037f2c3772e31"
+      "descriptor_digest": "sha256:d2d03dba737d8f9a4f519e3b816869e4185bc35aa284395d19a85a34ff7d9fdf"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -73168,6 +73272,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -73177,7 +73282,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -73618,7 +73724,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:879d0a73e565d00338d11476d99d7c1e54562dabcb1992cc891888ff7df34bb9"
+      "descriptor_digest": "sha256:5d55ea3651bc6a9267c2eccedd404450d5efa02cb67416bfa45de57c0e97eb31"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -73738,6 +73844,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -73747,7 +73854,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -74184,7 +74292,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2f58330b84ba6f703ad17952d5178f78e6fd604aca4649ee7e2185559f3255cc"
+      "descriptor_digest": "sha256:5db0d40c50923815f013127bbdd3adaaa5baccbcfc8e659ce031c15bdbd32871"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -74268,6 +74376,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -74277,7 +74386,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -74700,7 +74810,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d47faceb1dc2222cd114577370aabf4f7f7bab0b0f54c9228bc24a5cdafda34d"
+      "descriptor_digest": "sha256:880d2d03121024d3003d98a3b977f8ac2e4a59e86541bfa69376e7053abd2aa9"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -74822,6 +74932,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -74831,7 +74942,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -75261,7 +75373,7 @@
         "snippet": "Use at startup/resume for exact Focusa scope, recovery, and brevity rules.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:34c056d9471934367db0f98642760ce045054b148ed281511dcf7152fe7b03af"
+      "descriptor_digest": "sha256:fe73f1bb55118760da4661856ec0f5317f8407d456bf927379f83139eed7628d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -75343,6 +75455,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -75353,7 +75466,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -75770,7 +75884,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:54f7c71bf8f3ad9cc0c89b3c975a79ab366863ab43c7ad0e3d1335ef3d889eef"
+      "descriptor_digest": "sha256:0da47f7448ee051d5cc1ba9c06aee23db2d3b0648bd91bc0a980e18575759696"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -75852,6 +75966,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -75862,7 +75977,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -76312,7 +76428,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:da1eec042a1ba9b28642dd886558bc723296b679e54e51eeab56ea2e31f4c882"
+      "descriptor_digest": "sha256:7b652095addbee6dac0c67afceb07ee08abc7028fd3b61f00d27135c180765ab"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -76448,6 +76564,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -76458,7 +76575,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -76969,7 +77087,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5edec67c3939e8c4fb57cc43db48afa4707642a6894fdead274571e449b81a17"
+      "descriptor_digest": "sha256:1d6731f5ad056deb351fea3f1258efc9c624aca0deda59218874036dc6382fc0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -77051,6 +77169,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -77061,7 +77180,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -77478,7 +77598,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:069679c8ce62c061570615167060cba520faa7490ee07d25bad93b0365a8e9c9"
+      "descriptor_digest": "sha256:b03e39892876187123bd1751839a95392b3bb58cdaa859873fdc4f182c639928"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -77560,6 +77680,7 @@
       "source_owner": "work_loop",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -77570,7 +77691,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -77980,7 +78102,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1df7cf9131df9a59b350deebc91d7533f6922515b14b54815323736d155f4f36"
+      "descriptor_digest": "sha256:17e4876e3280693215612219dffbddb28bd76baee41dbf9bc6a067dbce4ca117"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -78062,6 +78184,7 @@
       "source_owner": "work_loop",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -78072,7 +78195,8 @@
         "parity_status": "domain",
         "exemptions": [
           "domain_cli_only"
-        ]
+        ],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -78482,7 +78606,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7da59e44275c6160e4ccf1dba89e7a2608764eaf322062330a01b264c25e31f4"
+      "descriptor_digest": "sha256:bd450bf8271af2c5225b698bd6495fa85c43e9cbea6e1a2e540d36e3ddcb9e50"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -78566,6 +78690,7 @@
       "source_owner": "workpoint",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -78575,7 +78700,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -79073,7 +79199,7 @@
           "If canonical=false, treat as degraded fallback and reconcile when Focusa is healthy."
         ]
       },
-      "descriptor_digest": "sha256:4b8c050444f1e1655e59d4b0170c54eeec3ddece5dab8879586013d66e0f0c02"
+      "descriptor_digest": "sha256:2c473942d14377ad6e1f6832dc72617e0a7cd992f1d6552e5d90d172dc3ed5ed"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -79157,6 +79283,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -79166,7 +79293,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -79620,7 +79748,7 @@
         "snippet": "Link proof/evidence to active Workpoint instead of keeping it only in transcript.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:36fceda6a12cf1e550d4c698a660f1f5a9c66d0d51874b414e842dcb59acd542"
+      "descriptor_digest": "sha256:0f26d441629ffddf0b76dbc097309dc17ef0577726430da07bc260d29ae4b586"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -79704,6 +79832,7 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": true,
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
@@ -79713,7 +79842,8 @@
           "cli"
         ],
         "parity_status": "full",
-        "exemptions": []
+        "exemptions": [],
+        "unavailable_route_refs": []
       },
       "input_schema": {
         "type": "object",
@@ -80153,7 +80283,7 @@
           "If canonical=false, state degraded status and avoid treating it as canonical truth."
         ]
       },
-      "descriptor_digest": "sha256:80b8810fb75d2f10e62a98afc184d94eb0f5f3b8c44e314f243be1f9dbc4220f"
+      "descriptor_digest": "sha256:bca8db00f3d93a22a265bc80c4129004021a1f2bf9c4ded9e5f55876e1f48e1c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -80182,23 +80312,18 @@
         "mcp": "focusa.workset.projection",
         "openai": "focusa_workset_projection",
         "cli": [],
-        "rest": [
-          {
-            "method": "/v1/worksets",
-            "path": ""
-          }
-        ]
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa Workset Projection",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Read a deterministic Workset projection from the daemon ledger when the Workset router is live.",
+      "description": "Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read a deterministic Workset projection from the daemon ledger when the Workset router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "workset",
       "namespace": "focusa.workset",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/worksets",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -80209,22 +80334,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/worksets",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -80235,16 +80345,18 @@
       "source_owner": "agent_capability_contracts",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
+        "assignable": false,
         "requires_daemon": true,
-        "supported_harnesses": [
-          "pi",
-          "mcp",
-          "openai",
-          "rest"
-        ],
-        "parity_status": "daemon_backed",
+        "supported_harnesses": [],
+        "parity_status": "unavailable_unregistered_route",
         "exemptions": [
           "daemon_backed_no_cli"
+        ],
+        "unavailable_route_refs": [
+          {
+            "method": "GET",
+            "path": "/v1/worksets"
+          }
         ]
       },
       "input_schema": {
@@ -80539,15 +80651,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/worksets",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -80582,7 +80686,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Read a deterministic Workset projection from the daemon ledger when the Workset router is live.",
           "arguments": {
             "workset_id": "example"
           },
@@ -80660,8 +80764,8 @@
         "snippet": "Use to inspect workset membership + completion contract state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d5350211c874cf4ebd08b6b589633dbe53e70b29b5bab857db7aec93e996aa4c"
+      "descriptor_digest": "sha256:346dd736998536ca58ad18244e5db946b96500d0a0a6362368be3b6bdb691048"
     }
   ],
-  "registry_digest": "sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0"
+  "registry_digest": "sha256:dae65b38c062b57390160c1db535e0b8dc8e362ed1f56ec50608c6369b73fb99"
 }

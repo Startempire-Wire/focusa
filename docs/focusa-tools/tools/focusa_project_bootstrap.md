@@ -33,7 +33,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -92,5 +93,6 @@ Likely next: `focusa_project_genesis`, `focusa_project_verify`, `focusa_workpoin
 - Pi: `focusa_project_bootstrap`; MCP: `focusa.project.bootstrap`; OpenAI: `focusa_project_bootstrap`.
 - CLI: `focusa project bootstrap preview|apply|status|repair`.
 - REST: `POST /v1/project/bootstrap/preview`, `POST /v1/project/bootstrap/apply`, `GET /v1/project/bootstrap/status`, `POST /v1/project/bootstrap/repair`.
+- Assignable: `true`; parity: `full`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:a35ccf2e393d5ebd0fbb3292e03a9bb75b94a861dd9541366182b1b136872452`.
+- Descriptor digest: `sha256:aca8872c4b012fecbec8cd2a4bf3c7fdf0bbf8d2947c3acb86811c16c35ea6b3`.

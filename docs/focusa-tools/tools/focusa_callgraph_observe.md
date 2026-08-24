@@ -1,10 +1,10 @@
 # `focusa_callgraph_observe`
 
-Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Validate or observe a daemon-owned CallGraph when its router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Validate or observe a daemon-owned CallGraph when its router is live.
 - Capability family: `callgraph`; namespace: `focusa.callgraph`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -16,7 +16,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -72,6 +73,8 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`.
 - Runbooks: `runbook:callgraph`
 - Pi: `focusa_callgraph_observe`; MCP: `focusa.callgraph.observe`; OpenAI: `focusa_callgraph_observe`.
 - CLI: none.
-- REST: `/v1/callgraph-runs/{run_id}/frontier `.
+- REST: Pi-local only.
+- Assignable: `false`; parity: `unavailable_unregistered_route`.
+- This capability is unavailable because its daemon router is not registered. Declared unavailable routes: `GET /v1/callgraph-runs/{run_id}/frontier`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:532febcbb0a88c75d7fe4b831066fea5f04809840310b905c94a0df9a3807d31`.
+- Descriptor digest: `sha256:9d7f66130c5fdff0315b1aba769bb349e4e55afbff8cd8bff468d7557b78f12c`.

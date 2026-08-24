@@ -16,7 +16,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -75,5 +76,6 @@ Likely next: `focusa_bloatgaurd_tokenbloat_report`, `focusa_traverse`, `focusa_e
 - Pi: `focusa_bloatgaurd_tokenbloat_domain`; MCP: `focusa.bloatgaurd.tokenbloat.domain`; OpenAI: `focusa_bloatgaurd_tokenbloat_domain`.
 - CLI: `focusa bloatgaurd token-domain <name>`.
 - REST: `GET /v1/bloatgaurd/tokenbloat/domain/{name}`.
+- Assignable: `true`; parity: `full`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:01478b4fd9440ac16c87c265f60b63827b680f68af68b2d9e4146797e892ae2b`.
+- Descriptor digest: `sha256:d97decf3e519528ed2ef976e04d8bbe90a7e7e4188d6ddb5e74cd09e9409425a`.

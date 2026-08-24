@@ -23,6 +23,14 @@ const OPERATION_BY_ROUTE = new Map(
     operation,
   ]),
 );
+const ROUTE_CLASSIFICATION = JSON.parse(readFileSync(join(ROOT, "docs/contracts/spec141/generated-capability-v2/route-classification.json"), "utf8"));
+const LIVE_ROUTE_PATHS = new Set(ROUTE_CLASSIFICATION.routes.map((route: any) => route.path));
+function parseDeclaredRoute(route: string) {
+  const match = route.match(/^([A-Z]+)\s+(\/.*)$/);
+  if (!match) throw new Error(`tool contract route must include an HTTP method: ${route}`);
+  return { method: match[1], path: match[2] };
+}
+function routePath(path: string) { return path.split("?")[0]; }
 const CHECK = process.argv.includes("--check");
 const WRITE = process.argv.includes("--write") || !CHECK;
 const WORKSPACE_VERSION = (() => {
@@ -264,10 +272,10 @@ const descriptors = [...tools.values()].sort((a, b) => a.name.localeCompare(b.na
   strictObjects(inputSchema);
   strictObjects(outputSchema);
   const ann = annotations(contract);
-  const routes = contract.api_routes.map((route) => {
-    const [method, ...rest] = route.split(" ");
-    return { method, path: rest.join(" ") };
-  });
+  const declaredRoutes = contract.api_routes.map(parseDeclaredRoute);
+  const routes = declaredRoutes.filter((route) => LIVE_ROUTE_PATHS.has(routePath(route.path)));
+  const unavailableRoutes = declaredRoutes.filter((route) => !LIVE_ROUTE_PATHS.has(routePath(route.path)));
+  const assignable = declaredRoutes.length === 0 || routes.length > 0;
   const operation_policies = routes.map((route) => policyProjection(contract, route));
   const operation_policy = operation_policies[0] || {
     operation_id: null,
@@ -304,10 +312,12 @@ const descriptors = [...tools.values()].sort((a, b) => a.name.localeCompare(b.na
     source_owner: operation_policy.source_owner,
     policy_owner: operation_policy.policy_owner,
     availability: {
+      assignable,
       requires_daemon: !contract.exemptions.includes("local_scratchpad_only") && !contract.exemptions.includes("pi_session_only"),
-      supported_harnesses: ["pi", ...(contract.api_routes.length ? ["mcp", "openai", "rest"] : []), ...(contract.cli_commands.length ? ["cli"] : [])],
-      parity_status: contract.parity_status,
+      supported_harnesses: assignable ? ["pi", ...(routes.length ? ["mcp", "openai", "rest"] : []), ...(contract.cli_commands.length ? ["cli"] : [])] : [],
+      parity_status: assignable ? contract.parity_status : "unavailable_unregistered_route",
       exemptions: contract.exemptions,
+      unavailable_route_refs: unavailableRoutes,
     },
     input_schema: inputSchema,
     output_schema: outputSchema,
@@ -315,7 +325,7 @@ const descriptors = [...tools.values()].sort((a, b) => a.name.localeCompare(b.na
     result_envelope: "focusa.tool_result.v1",
     scope: contract.scope_requirement,
     authority: contract.authority_requirement,
-    permissions: contract.api_routes.map((route) => ({ route, scope: contract.scope_requirement })),
+    permissions: routes.map((route) => ({ route: `${route.method} ${route.path}`, scope: contract.scope_requirement })),
     annotations: ann,
     side_effects: affordance.side_effects === "none" ? [] : [affordance.side_effects, contract.side_effect_profile],
     confirmation: { required: ann.destructiveHint, preview_supported: /preview|preflight|inspect|status|doctor/.test(tool.name) },
@@ -350,6 +360,8 @@ const registryBase = {
   version: "2.0.0",
   source_authority: ["apps/pi-extension/src/tools.ts", "apps/pi-extension/src/tool-contracts.ts"],
   capability_count: descriptors.length,
+  assignable_capability_count: descriptors.filter((descriptor) => descriptor.availability.assignable).length,
+  unavailable_capability_count: descriptors.filter((descriptor) => !descriptor.availability.assignable).length,
   operator_alignment: OPERATOR_ALIGNMENT_CONTRACT,
   descriptors,
 };
@@ -381,7 +393,7 @@ const openai = {
 const piProjection = {
   schema: "focusa.pi_tool_projection.v2",
   registry_digest: registry.registry_digest,
-  tools: descriptors.map((d) => ({ name: d.tool_names.pi, label: d.title, description: d.description, parameters: d.input_schema, outputSchema: d.output_schema, next_tools: d.likely_next_capabilities })),
+  tools: descriptors.filter((d) => d.availability.assignable).map((d) => ({ name: d.tool_names.pi, label: d.title, description: d.description, parameters: d.input_schema, outputSchema: d.output_schema, next_tools: d.likely_next_capabilities })),
 };
 
 const cli = {
@@ -450,7 +462,7 @@ const agentCardBase = {
   authentication: ["bearer", "device_pairing", "local_trusted"],
   operator_alignment: OPERATOR_ALIGNMENT_CONTRACT,
   registry_digest: registry.registry_digest,
-  pi_tool_count: descriptors.length,
+  pi_tool_count: descriptors.filter((descriptor) => descriptor.availability.assignable).length,
   pi_tool_docs_count: piToolDocCount,
   pi_tool_registry_path: "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
   pi_tool_docs_path: "docs/focusa-tools/tools/",
@@ -501,4 +513,4 @@ writeGenerated("rest-agent-operations.json", rest);
 writeGenerated("agent-card.json", agentCard);
 writeGenerated("agent-capability-reference.md", markdown);
 
-console.log(JSON.stringify({ status: "passed", mode: CHECK ? "check" : "write", capabilities: descriptors.length, registry_digest: registry.registry_digest, outputs: 8 }, null, 2));
+console.log(JSON.stringify({ status: "passed", mode: CHECK ? "check" : "write", capabilities: descriptors.length, assignable: descriptors.filter((descriptor) => descriptor.availability.assignable).length, registry_digest: registry.registry_digest, outputs: 8 }, null, 2));

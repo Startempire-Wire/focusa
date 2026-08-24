@@ -1,10 +1,10 @@
 # `focusa_cockpit_projection`
 
-Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Read the bounded daemon-owned cockpit projection. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Read the bounded daemon-owned cockpit projection.
 - Capability family: `cockpit`; namespace: `focusa.cockpit`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -16,7 +16,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -70,6 +71,8 @@ Likely next: `focusa_workset_projection`, `focusa_bg_status`.
 - Runbooks: `runbook:cockpit`
 - Pi: `focusa_cockpit_projection`; MCP: `focusa.cockpit.projection`; OpenAI: `focusa_cockpit_projection`.
 - CLI: none.
-- REST: `/v1/cockpit/projection `.
+- REST: Pi-local only.
+- Assignable: `false`; parity: `unavailable_unregistered_route`.
+- This capability is unavailable because its daemon router is not registered. Declared unavailable routes: `GET /v1/cockpit/projection`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:4e37245b027360e92c155738f725a535d8159c86c62bd732902d1f835081554c`.
+- Descriptor digest: `sha256:e9b298548af2309fd00616fd083875b10e9716ba448ff21aaf118b05d0033b94`.

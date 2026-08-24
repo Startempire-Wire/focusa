@@ -1,10 +1,10 @@
 # `focusa_workset_projection`
 
-Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read a deterministic Workset projection from the daemon ledger when the Workset router is live. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Read a deterministic Workset projection from the daemon ledger when the Workset router is live.
 - Capability family: `workset`; namespace: `focusa.workset`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -16,7 +16,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -72,6 +73,8 @@ Likely next: `focusa_workpoint_resume`, `focusa_callgraph_validate`.
 - Runbooks: `runbook:workset`
 - Pi: `focusa_workset_projection`; MCP: `focusa.workset.projection`; OpenAI: `focusa_workset_projection`.
 - CLI: none.
-- REST: `/v1/worksets `.
+- REST: Pi-local only.
+- Assignable: `false`; parity: `unavailable_unregistered_route`.
+- This capability is unavailable because its daemon router is not registered. Declared unavailable routes: `GET /v1/worksets`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:d5350211c874cf4ebd08b6b589633dbe53e70b29b5bab857db7aec93e996aa4c`.
+- Descriptor digest: `sha256:346dd736998536ca58ad18244e5db946b96500d0a0a6362368be3b6bdb691048`.

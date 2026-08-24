@@ -1,10 +1,10 @@
 # `focusa_bg_run_many`
 
-Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Dispatch or inspect durable background jobs through Focusa's canonical execution surface. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Dispatch or inspect durable background jobs through Focusa's canonical execution surface.
 - Capability family: `background_job`; namespace: `focusa.background_job`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -16,7 +16,8 @@ Unknown object properties are rejected. Canonical schema: `agent-capability-desc
 
 ## Output
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Result envelope: `focusa.tool_result.v1`.
+Returns the typed envelope with status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools.
 
 ## Example
 
@@ -71,7 +72,8 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - Skills: `skill:focusa`, `skill:focusa-silent-sessions`
 - Runbooks: `runbook:background_job`
 - Pi: `focusa_bg_run_many`; MCP: `focusa.bg.run.many`; OpenAI: `focusa_bg_run_many`.
-- CLI: none.
-- REST: `/v1/background-jobs `.
+- CLI: `focusa bg run`.
+- REST: Pi-local only.
+- Assignable: `true`; parity: `daemon_backed`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:c98365944e03db22475a74229e965d2e6f1cf97670ffe2adeb7159235477c75c`.
+- Descriptor digest: `sha256:5dc7c618cde9be335f3bc2f04e8b113361f085aa74cc92d412d611de64fbd20c`.
