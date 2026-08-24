@@ -14,5 +14,5 @@
   "generated_at": "2026-08-24T04:24:34.415132Z",
   "release_version": "0.9.184-dev",
   "schema": "focusa.distribution_manifest.v1",
-  "source_commit": "ad0fd2604"
+  "source_commit": "14e69336d"
 }
