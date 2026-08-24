@@ -1,0 +1,6 @@
+PASS: durable approval producer registered
+PASS: payload-bound approval core/API/migration tests OVH
+PASS: Pi extension typecheck OVH
+PASS: approval producer static consumer gate
+Pi_tool_action=approve
+generated_registry_drift_blocker=focusa-q54m3.3.1

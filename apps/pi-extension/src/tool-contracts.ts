@@ -1728,6 +1728,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
       "GET /v1/silent-sessions/{session_id}/output",
       "POST /v1/silent-sessions/{session_id}/input",
       "POST /v1/silent-sessions/{session_id}/start",
+      "POST /v1/silent-sessions/{session_id}/approvals",
       "POST /v1/silent-sessions/{session_id}/pause",
       "POST /v1/silent-sessions/{session_id}/resume",
       "POST /v1/silent-sessions/{session_id}/interrupt",

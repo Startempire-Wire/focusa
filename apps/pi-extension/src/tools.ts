@@ -4513,6 +4513,7 @@ pi.registerTool({
         Type.Union([
           Type.Literal("list"),
           Type.Literal("start"),
+          Type.Literal("approve"),
           Type.Literal("reopen"),
           Type.Literal("tail"),
           Type.Literal("send"),
@@ -4536,6 +4537,22 @@ pi.registerTool({
       run_id: Type.Optional(Type.String({ description: "Exact current run id." })),
       generation: Type.Optional(Type.Integer({ minimum: 1, description: "Exact current run generation." })),
       approval_id: Type.Optional(Type.String({ description: "Durable daemon approval id for mutations." })),
+      approval_action: Type.Optional(
+        Type.Union([
+          Type.Literal("start"),
+          Type.Literal("input"),
+          Type.Literal("steer"),
+          Type.Literal("follow_up"),
+          Type.Literal("keys"),
+          Type.Literal("cancel"),
+        ], { description: "Exact action to bind into a new durable approval." })
+      ),
+      approval_payload: Type.Optional(
+        Type.Any({ description: "Exact input/steer/follow_up/keys payload; omitted for start/cancel." })
+      ),
+      risk_acknowledged: Type.Optional(
+        Type.Boolean({ description: "Explicit operator risk acknowledgement required for approval issuance." })
+      ),
       idempotency_key: Type.Optional(Type.String({ description: "Mutation replay key." })),
       text: Type.Optional(Type.String({ description: "Input or steering text." })),
       command: Type.Optional(
@@ -4599,6 +4616,25 @@ pi.registerTool({
         const query = new URLSearchParams({ run_id: String(p.run_id), generation: String(p.generation) });
         result = await focusaFetchDetailed(`/silent-sessions/${requireSession()}/receipts?${query}`, {
           method: "GET",
+        });
+      } else if (action === "approve") {
+        if (!p.run_id || !p.generation || !p.idempotency_key || !p.approval_action) {
+          throw new Error("run_id, generation, idempotency_key and approval_action are required");
+        }
+        if (p.risk_acknowledged !== true) {
+          throw new Error("risk_acknowledged=true is required");
+        }
+        result = await focusaFetchDetailed(`/silent-sessions/${requireSession()}/approvals`, {
+          method: "POST",
+          body: JSON.stringify({
+            schema: "focusa.silent_session_approval_request.v1",
+            action: p.approval_action,
+            run_id: p.run_id,
+            generation: p.generation,
+            idempotency_key: p.idempotency_key,
+            risk_acknowledged: true,
+            payload: p.approval_payload ?? null,
+          }),
         });
       } else if (action === "send") {
         result = await focusaFetchDetailed(`/silent-sessions/${requireSession()}/input`, {

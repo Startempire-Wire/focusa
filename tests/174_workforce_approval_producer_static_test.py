@@ -24,4 +24,9 @@ assert 'delivery_request_hash_for_approval' in input_src
 assert 'action_digest' not in contract.split('pub struct ApprovalCreateRequest',1)[1].split('}',1)[0]
 for path in [R/'crates/focusa-api/src/routes/silent_sessions_approvals.rs',R/'crates/focusa-api/src/routes/silent_sessions_input.rs']:
  assert len(path.read_text().splitlines()) < 500, path
+tools=(R/'apps/pi-extension/src/tools.ts').read_text()
+tool_contracts=(R/'apps/pi-extension/src/tool-contracts.ts').read_text()
+assert 'action === "approve"' in tools
+assert 'focusa.silent_session_approval_request.v1' in tools
+assert 'POST /v1/silent-sessions/{session_id}/approvals' in tool_contracts
 print('PASS: payload-bound durable approval producer is registered and fail-closed')
