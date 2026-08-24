@@ -1,0 +1,8 @@
+PASS: focused observation consumer tests 8/8
+PASS: full Workforce extension suite 30/30
+contracts=focusa.health.v1,focusa.work_loop_status.v3,focusa.silent_session_api_envelope.v1,focusa.stream_event.v1
+headers=Bearer+x-focusa-permissions:read:*
+rows=200 max
+unknown_state=unknown
+raw_payload_and_token=never_projected
+failures=unauthenticated,forbidden,unsupported,degraded distinct
