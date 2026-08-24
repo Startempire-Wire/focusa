@@ -1,0 +1,4 @@
+PASS: focusa-api health_projection_is_versioned_and_backward_compatible OVH
+schema=focusa.health.v1
+legacy_fields=ok,status,version,uptime_ms,persistence
+github_issue=329

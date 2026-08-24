@@ -4,19 +4,34 @@ use crate::routes::bounded::resource_mode_status;
 use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::get};
+use serde::Serialize;
 use serde_json::{Value, json};
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
-async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    Json(json!({
+const HEALTH_SCHEMA: &str = "focusa.health.v1";
+
+fn health_payload<T: Serialize>(version: &str, uptime_ms: u64, persistence: Option<T>) -> Value {
+    json!({
+        "schema": HEALTH_SCHEMA,
         "ok": true,
         "status": "ok",
-        "version": env!("CARGO_PKG_VERSION"),
-        "uptime_ms": state.started_at.elapsed().as_millis() as u64,
-        "persistence": state.persistence_actor.as_ref().map(|actor| actor.metrics()),
-    }))
+        "version": version,
+        "uptime_ms": uptime_ms,
+        "persistence": persistence,
+    })
+}
+
+async fn health(State(state): State<Arc<AppState>>) -> Json<Value> {
+    Json(health_payload(
+        env!("CARGO_PKG_VERSION"),
+        state.started_at.elapsed().as_millis() as u64,
+        state
+            .persistence_actor
+            .as_ref()
+            .map(|actor| actor.metrics()),
+    ))
 }
 
 async fn about(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
@@ -397,6 +412,17 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn health_projection_is_versioned_and_backward_compatible() {
+        let payload = health_payload("1.2.3", 42, Option::<Value>::None);
+        assert_eq!(payload["schema"], HEALTH_SCHEMA);
+        assert_eq!(payload["ok"], true);
+        assert_eq!(payload["status"], "ok");
+        assert_eq!(payload["version"], "1.2.3");
+        assert_eq!(payload["uptime_ms"], 42);
+        assert!(payload.get("persistence").is_some());
+    }
 
     #[test]
     fn doctor_contract_count_matches_bundled_registry() {
