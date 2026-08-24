@@ -1,0 +1,5 @@
+PASS: active-tab observation and orientation tests 4/4
+PASS: full Workforce extension tests 6/6
+capture=title,url,origin,captured_at only
+forbidden_schemes=chrome,file,data,javascript
+mission_limit_bytes=8192 reject-no-truncate
