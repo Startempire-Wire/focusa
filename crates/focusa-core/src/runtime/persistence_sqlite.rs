@@ -391,6 +391,20 @@ impl SqlitePersistence {
               value TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS capability_authorization_audits (
+              decision_id TEXT PRIMARY KEY,
+              request_id TEXT NOT NULL,
+              principal_id TEXT NOT NULL,
+              capability TEXT NOT NULL,
+              allowed INTEGER NOT NULL,
+              reason_code TEXT NOT NULL,
+              decision_json TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_capability_authorization_request
+              ON capability_authorization_audits(request_id);
+
             CREATE TABLE IF NOT EXISTS events (
               event_id TEXT PRIMARY KEY,
               ts TEXT NOT NULL,
@@ -1515,6 +1529,67 @@ impl SqlitePersistence {
             )
             .optional()?;
         sequence.map(u64::try_from).transpose().map_err(Into::into)
+    }
+
+    /// Persist the exact canonical capability decision. Repeated identical
+    /// decisions are idempotent; a digest collision with different content
+    /// fails closed.
+    pub fn append_capability_authorization_audit(
+        &self,
+        decision: &crate::capability_authorization::CapabilityAuthorizationDecision,
+    ) -> anyhow::Result<()> {
+        let decision_json = serde_json::to_string(decision)?;
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        conn.execute(
+            r#"INSERT OR IGNORE INTO capability_authorization_audits(
+                decision_id, request_id, principal_id, capability, allowed,
+                reason_code, decision_json, created_at
+               ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"#,
+            rusqlite::params![
+                decision.decision_id,
+                decision.request_id,
+                decision.principal_id,
+                decision.capability,
+                i64::from(decision.allowed),
+                decision.reason_code,
+                decision_json,
+                chrono::Utc::now().to_rfc3339(),
+            ],
+        )?;
+        let stored: String = conn.query_row(
+            "SELECT decision_json FROM capability_authorization_audits WHERE decision_id=?1",
+            [&decision.decision_id],
+            |row| row.get(0),
+        )?;
+        anyhow::ensure!(
+            stored == decision_json,
+            "capability authorization audit mismatch"
+        );
+        Ok(())
+    }
+
+    pub fn load_capability_authorization_audit(
+        &self,
+        decision_id: &str,
+    ) -> anyhow::Result<Option<crate::capability_authorization::CapabilityAuthorizationDecision>>
+    {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let value: Option<String> = conn
+            .query_row(
+                "SELECT decision_json FROM capability_authorization_audits WHERE decision_id=?1",
+                [decision_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        value
+            .map(|json| serde_json::from_str(&json).map_err(Into::into))
+            .transpose()
     }
 
     /// Latest durable sequence, or zero when the event ledger is empty.

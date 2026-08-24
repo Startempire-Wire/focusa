@@ -8,8 +8,9 @@ DOC="$ROOT_DIR/docs/current/API_ROUTE_PERMISSION_MATRIX.md"
 
 for marker in \
   "route_scope_layer" \
-  "permission_context" \
-  "FOCUSA_AUTH_TOKEN" \
+  "request_principal" \
+  "append_capability_authorization_audit" \
+  "can(&principal, &capability, &context)" \
   "state:write" \
   "workpoint:write" \
   "trajectory:write" \

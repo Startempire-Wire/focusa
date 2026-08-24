@@ -698,6 +698,7 @@ mod tests {
                 authenticated: true,
             },
             source: crate::middleware::principal::ApiPrincipalSource::AdminToken,
+            capability_grants: ["admin:*".into(), "risk:high".into()].into_iter().collect(),
         }
     }
 

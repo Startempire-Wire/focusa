@@ -66,6 +66,7 @@ pub mod callgraph;
 pub mod callgraph_envelope;
 pub mod callgraph_export;
 pub mod callgraph_store;
+pub mod capability_authorization;
 pub mod capability_truth;
 pub mod claim_gate;
 pub mod clt;

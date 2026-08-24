@@ -661,7 +661,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .layer(axum_mw::from_fn(
             middleware::rate_limit::mutation_rate_limit_layer,
         ))
-        .layer(axum_mw::from_fn(middleware::route_scope::route_scope_layer))
+        .layer(axum_mw::from_fn_with_state(
+            state.clone(),
+            middleware::route_scope::route_scope_layer,
+        ))
         .layer(axum_mw::from_fn_with_state(
             state.clone(),
             middleware::entitlement::entitlement_gate_layer,

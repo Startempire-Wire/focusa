@@ -394,6 +394,7 @@ mod tests {
                 authenticated: true,
             },
             source: ApiPrincipalSource::PairedDevice,
+            capability_grants: ["read:*".into(), "write:*".into()].into_iter().collect(),
         }
     }
 

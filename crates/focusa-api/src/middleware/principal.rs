@@ -1,8 +1,9 @@
 use std::collections::BTreeSet;
 
 use axum::http::HeaderMap;
-use focusa_core::silent_sessions::{
-    AuthenticatedPrincipal, SilentSessionRole, SilentSessionRouteScope,
+use focusa_core::{
+    capability_authorization::CapabilityPrincipal,
+    silent_sessions::{AuthenticatedPrincipal, SilentSessionRole, SilentSessionRouteScope},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,6 +17,24 @@ pub enum ApiPrincipalSource {
 pub struct ApiRequestPrincipal {
     pub principal: AuthenticatedPrincipal,
     pub source: ApiPrincipalSource,
+    /// Daemon-resolved capability grants. Request headers never populate this set.
+    pub capability_grants: BTreeSet<String>,
+}
+impl ApiRequestPrincipal {
+    pub fn canonical_capability_principal(&self) -> CapabilityPrincipal {
+        let source = match self.source {
+            ApiPrincipalSource::LocalLoopback => "local_loopback",
+            ApiPrincipalSource::AdminToken => "admin_token",
+            ApiPrincipalSource::PairedDevice => "paired_device",
+        };
+        CapabilityPrincipal {
+            principal_id: self.principal.principal_id.clone(),
+            source: source.into(),
+            authenticated: self.principal.authenticated,
+            grants: self.capability_grants.clone(),
+            workstream_keys: BTreeSet::new(),
+        }
+    }
 }
 
 pub async fn request_principal(headers: &HeaderMap) -> Option<ApiRequestPrincipal> {
@@ -38,6 +57,7 @@ pub async fn request_principal(headers: &HeaderMap) -> Option<ApiRequestPrincipa
                 all_scopes(),
             ),
             source: ApiPrincipalSource::LocalLoopback,
+            capability_grants: ["admin:*".into(), "risk:high".into()].into_iter().collect(),
         });
     }
     if admin_token
@@ -53,9 +73,11 @@ pub async fn request_principal(headers: &HeaderMap) -> Option<ApiRequestPrincipa
                 all_scopes(),
             ),
             source: ApiPrincipalSource::AdminToken,
+            capability_grants: ["admin:*".into(), "risk:high".into()].into_iter().collect(),
         });
     }
     if let Some(device) = paired_device(bearer).await {
+        let capability_grants = capability_grants_for_device(&device.scopes);
         return Some(ApiRequestPrincipal {
             principal: principal(
                 format!("principal:device:{}", device.device_id),
@@ -65,6 +87,7 @@ pub async fn request_principal(headers: &HeaderMap) -> Option<ApiRequestPrincipa
                 expand_device_scopes(&device.scopes),
             ),
             source: ApiPrincipalSource::PairedDevice,
+            capability_grants,
         });
     }
     None
@@ -120,6 +143,28 @@ fn all_scopes() -> BTreeSet<SilentSessionRouteScope> {
     ]
     .into_iter()
     .collect()
+}
+
+pub fn capability_grants_for_device(scopes: &[String]) -> BTreeSet<String> {
+    let mut grants = BTreeSet::new();
+    for scope in scopes {
+        match scope.as_str() {
+            "read" | "read:*" => {
+                grants.insert("read:*".into());
+            }
+            "write" | "write:*" => {
+                grants.insert("write:*".into());
+            }
+            // Historic device records carrying admin remain deliberately bounded:
+            // only daemon admin tokens/local loopback may activate admin:*.
+            "admin" | "admin:*" => {}
+            exact if exact.contains(':') => {
+                grants.insert(exact.into());
+            }
+            _ => {}
+        }
+    }
+    grants
 }
 
 fn expand_device_scopes(scopes: &[String]) -> BTreeSet<SilentSessionRouteScope> {
@@ -189,6 +234,18 @@ mod tests {
             [SilentSessionRouteScope::Stream].into_iter().collect()
         );
         assert_eq!(expand_device_scopes(&["admin".into()]), all_scopes());
+    }
+
+    #[test]
+    fn capability_grants_are_server_derived_and_legacy_admin_is_bounded() {
+        assert_eq!(
+            capability_grants_for_device(&["read".into(), "write".into(), "admin:*".into()]),
+            ["read:*".into(), "write:*".into()].into_iter().collect()
+        );
+        assert_eq!(
+            capability_grants_for_device(&["silent_sessions:stream".into()]),
+            ["silent_sessions:stream".into()].into_iter().collect()
+        );
     }
 
     #[test]

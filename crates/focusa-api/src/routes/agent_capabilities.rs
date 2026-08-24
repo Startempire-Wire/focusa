@@ -8,7 +8,7 @@
 //! `GET /v1/agent/adapter-capabilities` publishes the separate Spec130 measured
 //! native-adapter capability registry.
 
-use crate::routes::permissions::{PermissionContext, permission_context};
+use crate::middleware::principal::request_principal;
 use crate::server::AppState;
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -17,7 +17,13 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
-use focusa_core::tool_result::{FailureClass, TOOL_RESULT_SCHEMA, ToolResultV1, ToolStatus};
+use focusa_core::{
+    capability_authorization::{
+        CapabilityContext, CapabilityEffect, CapabilityPrincipal, CapabilityRisk,
+        GroundedCapability, can,
+    },
+    tool_result::{FailureClass, TOOL_RESULT_SCHEMA, ToolResultV1, ToolStatus},
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::{Arc, LazyLock};
@@ -2828,9 +2834,46 @@ async fn ui_action_bindings_handler(
     Ok(Json(ui_action_bindings_document(&scope)))
 }
 
+fn projection_scope_allowed(principal: &CapabilityPrincipal, scope: &str) -> bool {
+    let effect = if scope.ends_with(":admin") {
+        CapabilityEffect::Admin
+    } else if scope.ends_with(":control") {
+        CapabilityEffect::Control
+    } else if scope.ends_with(":write") || scope.ends_with(":create") || scope.ends_with(":config")
+    {
+        CapabilityEffect::Write
+    } else {
+        CapabilityEffect::Read
+    };
+    can(
+        principal,
+        &GroundedCapability {
+            name: format!("projection:{scope}"),
+            required_scope: scope.into(),
+            effect,
+            assignable: true,
+        },
+        &CapabilityContext {
+            request_id: "capability_projection".into(),
+            workstream_key: None,
+            workset_id: None,
+            work_item_id: None,
+            frame_id: None,
+            risk: if effect == CapabilityEffect::Admin {
+                CapabilityRisk::High
+            } else {
+                CapabilityRisk::Low
+            },
+            entitlement_satisfied: true,
+            requested_scopes: Default::default(),
+        },
+    )
+    .allowed
+}
+
 fn ui_capability_snapshot_document(
     scope: &UiProjectionQuery,
-    permissions: &PermissionContext,
+    principal: &CapabilityPrincipal,
 ) -> Value {
     let operations = build_operations();
     let capability_ids: std::collections::BTreeSet<_> = operations
@@ -2844,12 +2887,12 @@ fn ui_capability_snapshot_document(
     let granted_scopes: Vec<_> = permission_scopes
         .iter()
         .copied()
-        .filter(|scope| permissions.allows(scope))
+        .filter(|scope| projection_scope_allowed(principal, scope))
         .collect();
     let missing_scopes: Vec<_> = permission_scopes
         .iter()
         .copied()
-        .filter(|scope| !permissions.allows(scope))
+        .filter(|scope| !projection_scope_allowed(principal, scope))
         .collect();
     let capabilities: Vec<Value> = capability_ids
         .into_iter()
@@ -2861,7 +2904,7 @@ fn ui_capability_snapshot_document(
                 .collect();
             let missing: Vec<_> = required
                 .into_iter()
-                .filter(|required_scope| !permissions.allows(required_scope))
+                .filter(|required_scope| !projection_scope_allowed(principal, required_scope))
                 .collect();
             let available = missing.is_empty();
             json!({
@@ -2888,7 +2931,7 @@ fn ui_capability_snapshot_document(
         "permissions": {
             "granted_scopes": granted_scopes,
             "missing_scopes": missing_scopes,
-            "effective_token_scopes": permissions.list(),
+            "effective_token_scopes": principal.grants,
         },
         "providers": [],
         "connectors": [],
@@ -2898,15 +2941,23 @@ fn ui_capability_snapshot_document(
 }
 
 async fn ui_capability_snapshot_handler(
-    State(state): State<Arc<AppState>>,
     Query(scope): Query<UiProjectionQuery>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if let Some(error) = projection_scope_error(&scope) {
         return Err(projection_scope_rejection(error));
     }
-    let permissions = permission_context(&headers, state.config.auth_token.is_some());
-    Ok(Json(ui_capability_snapshot_document(&scope, &permissions)))
+    let principal = request_principal(&headers).await.ok_or_else(|| {
+        projection_scope_rejection(ToolResultV1::failure(
+            ToolStatus::Blocked,
+            FailureClass::PermissionDenied,
+            "Authenticated principal unavailable",
+        ))
+    })?;
+    Ok(Json(ui_capability_snapshot_document(
+        &scope,
+        &principal.canonical_capability_principal(),
+    )))
 }
 
 const REQUIRED_PROTOCOL_VERSIONS: [(&str, &str); 8] = [
@@ -2983,7 +3034,6 @@ async fn compatibility_lock_handler() -> Json<Value> {
 }
 
 async fn protocol_handshake_handler(
-    State(state): State<Arc<AppState>>,
     Query(scope): Query<UiProjectionQuery>,
     headers: HeaderMap,
     Json(request): Json<ProtocolHandshakeRequest>,
@@ -2991,8 +3041,15 @@ async fn protocol_handshake_handler(
     if let Some(error) = projection_scope_error(&scope) {
         return Err(projection_scope_rejection(error));
     }
-    let permissions = permission_context(&headers, state.config.auth_token.is_some());
-    if !permissions.allows("project:read") {
+    let resolved_principal = request_principal(&headers).await.ok_or_else(|| {
+        projection_scope_rejection(ToolResultV1::failure(
+            ToolStatus::Blocked,
+            FailureClass::PermissionDenied,
+            "Authenticated principal unavailable",
+        ))
+    })?;
+    let capability_principal = resolved_principal.canonical_capability_principal();
+    if !projection_scope_allowed(&capability_principal, "project:read") {
         let mut result = ToolResultV1::failure(
             ToolStatus::Blocked,
             FailureClass::PermissionDenied,
@@ -3039,7 +3096,7 @@ async fn protocol_handshake_handler(
         ));
     }
 
-    let capability_snapshot = ui_capability_snapshot_document(&scope, &permissions);
+    let capability_snapshot = ui_capability_snapshot_document(&scope, &capability_principal);
     Ok(Json(json!({
         "schema": "focusa.protocol_handshake.response.v1",
         "status": "accepted",
@@ -4895,8 +4952,14 @@ mod tests {
             ));
         }
 
-        let permissions = permission_context(&HeaderMap::new(), false);
-        let snapshot = ui_capability_snapshot_document(&scope, &permissions);
+        let admin = CapabilityPrincipal {
+            principal_id: "principal:admin".into(),
+            source: "admin_token".into(),
+            authenticated: true,
+            grants: ["admin:*".into(), "risk:high".into()].into_iter().collect(),
+            workstream_keys: Default::default(),
+        };
+        let snapshot = ui_capability_snapshot_document(&scope, &admin);
         assert_eq!(snapshot["schema"], "focusa.ui_capability_snapshot.v1");
         assert_eq!(snapshot["project_root"], "/tmp/project");
         assert!(
@@ -4905,7 +4968,13 @@ mod tests {
                 .is_some_and(|items| !items.is_empty())
         );
 
-        let restricted = permission_context(&HeaderMap::new(), true);
+        let restricted = CapabilityPrincipal {
+            principal_id: "principal:restricted".into(),
+            source: "paired_device".into(),
+            authenticated: true,
+            grants: Default::default(),
+            workstream_keys: Default::default(),
+        };
         let restricted_snapshot = ui_capability_snapshot_document(&scope, &restricted);
         assert!(
             restricted_snapshot["permissions"]["missing_scopes"]

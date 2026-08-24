@@ -266,9 +266,14 @@ fn is_home_dev_bypass() -> bool {
     false
 }
 
+/// Proof inserted only after the daemon-owned entitlement layer accepts or
+/// explicitly applies its bounded home/bootstrap policy.
+#[derive(Debug, Clone, Copy)]
+pub struct EntitlementGateAccepted;
+
 pub async fn entitlement_gate_layer(
     State(state): State<Arc<AppState>>,
-    request: Request,
+    mut request: Request,
     next: Next,
 ) -> Response {
     let method = request.method().clone();
@@ -283,6 +288,7 @@ pub async fn entitlement_gate_layer(
         state_has_canonical_workpoint(&state).await,
     );
     if is_home_dev_bypass() {
+        request.extensions_mut().insert(EntitlementGateAccepted);
         return next.run(request).await;
     }
     let requires_entitlement = route_requires_entitlement(&method, path) && !bootstrap_exempt;
@@ -315,6 +321,7 @@ pub async fn entitlement_gate_layer(
         None
     };
 
+    request.extensions_mut().insert(EntitlementGateAccepted);
     let response = next.run(request).await;
     if let Some(reservation_id) = reservation {
         let _ = state

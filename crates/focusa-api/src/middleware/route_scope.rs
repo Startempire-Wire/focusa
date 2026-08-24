@@ -23,17 +23,20 @@
 //! typed scope flows through headers/query params and is captured into
 //! the workpoint packet envelope.
 
-use crate::routes::permissions::permission_context;
-use axum::extract::Request;
+use std::sync::Arc;
+
+use crate::{
+    middleware::{entitlement::EntitlementGateAccepted, principal::request_principal},
+    routes::permissions::requested_scopes,
+    server::AppState,
+};
+use axum::extract::{Request, State};
 use axum::http::{Method, StatusCode};
 use axum::middleware::Next;
 use axum::response::Response;
-
-fn token_enabled() -> bool {
-    std::env::var("FOCUSA_AUTH_TOKEN")
-        .map(|token| !token.trim().is_empty())
-        .unwrap_or(false)
-}
+use focusa_core::capability_authorization::{
+    CapabilityContext, CapabilityEffect, CapabilityRisk, GroundedCapability, can,
+};
 
 /// V2 P2 #12: enumerate the pre-auth pairing routes so route_scope_layer
 /// can explicitly bypass them, rather than relying on layer-ordering
@@ -241,19 +244,80 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
     }
 }
 
-pub async fn route_scope_layer(req: Request, next: Next) -> Result<Response, StatusCode> {
-    if !token_enabled() {
-        return Ok(next.run(req).await);
-    }
+pub async fn route_scope_layer(
+    State(state): State<Arc<AppState>>,
+    req: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
     let required = route_scope(req.method(), req.uri().path());
-    if required == "public:health" {
+    if required.starts_with("public:") {
         return Ok(next.run(req).await);
     }
-    let permissions = permission_context(req.headers(), true);
-    if permissions.allows(required) {
-        Ok(next.run(req).await)
+
+    let resolved = request_principal(req.headers())
+        .await
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+    let effect = capability_effect(req.method(), required);
+    let risk = capability_risk(effect, required);
+    let context = CapabilityContext {
+        request_id: header(req.headers(), "x-request-id")
+            .unwrap_or_else(|| format!("request:{}", uuid::Uuid::now_v7())),
+        workstream_key: header(req.headers(), "x-focusa-workstream-key"),
+        workset_id: header(req.headers(), "x-focusa-workset-id"),
+        work_item_id: header(req.headers(), "x-focusa-work-item-id"),
+        frame_id: header(req.headers(), "x-focusa-frame-id"),
+        risk,
+        // The entitlement layer is outside this layer. Reaching this point means
+        // its exact route policy accepted or classified the request.
+        entitlement_satisfied: req.extensions().get::<EntitlementGateAccepted>().is_some(),
+        requested_scopes: requested_scopes(req.headers()),
+    };
+    let capability = GroundedCapability {
+        name: format!("http:{}:{}", req.method(), req.uri().path()),
+        required_scope: required.into(),
+        effect,
+        assignable: true,
+    };
+    let principal = resolved.canonical_capability_principal();
+    let decision = can(&principal, &capability, &context);
+    state
+        .persistence
+        .append_capability_authorization_audit(&decision)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if !decision.allowed {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    Ok(next.run(req).await)
+}
+
+fn header(headers: &axum::http::HeaderMap, name: &str) -> Option<String> {
+    headers
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn capability_effect(method: &Method, required: &str) -> CapabilityEffect {
+    if required.ends_with(":admin") || required == "admin:service" || required == "sync:admin" {
+        CapabilityEffect::Admin
+    } else if required.ends_with(":control") || required == "proxy:invoke" {
+        CapabilityEffect::Control
+    } else if method == Method::GET || required.ends_with(":read") || required == "read:*" {
+        CapabilityEffect::Read
     } else {
-        Err(StatusCode::FORBIDDEN)
+        CapabilityEffect::Write
+    }
+}
+
+fn capability_risk(effect: CapabilityEffect, required: &str) -> CapabilityRisk {
+    if effect == CapabilityEffect::Admin || required.ends_with(":forensics") {
+        CapabilityRisk::High
+    } else if matches!(effect, CapabilityEffect::Write | CapabilityEffect::Control) {
+        CapabilityRisk::Medium
+    } else {
+        CapabilityRisk::Low
     }
 }
 
