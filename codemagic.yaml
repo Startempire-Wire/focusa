@@ -51,6 +51,9 @@ workflows:
           npm run build
       - name: Tauri package proof (ad-hoc signed, non-release)
         script: |
+          command -v cargo >/dev/null 2>&1 || curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+          export PATH="$HOME/.cargo/bin:$PATH"
+          rustc --version && cargo --version
           cd apps/menubar
           export APPLE_SIGNING_IDENTITY=-
           npx tauri build --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
