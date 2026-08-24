@@ -60,16 +60,58 @@ async fn profiles(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Api
         &headers,
         "profiles",
         json!({
-            "profiles": [{
-                "profile_id": "local_pi_isolated",
-                "description": "Local Pi RPC session in an isolated worktree",
-                "persistent_defaults": {
-                    "harness": {"kind": "pi"},
-                    "workspace": {"mode": "isolated_worktree"},
-                    "governance": {"destructive_actions_allowed": false}
+            "profiles": [
+                {
+                    "profile_id": "local_pi_isolated",
+                    "role_id": "operator",
+                    "description": "Legacy alias for the bounded operator profile.",
+                    "capability_refs": ["focusa_work_loop_status"],
+                    "approval": {"status": "operator_approval_required", "grants_permissions": false},
+                    "persistent_defaults": {"harness": {"kind": "pi"}, "workspace": {"mode": "isolated_worktree"}, "governance": {"destructive_actions_allowed": false}}
+                },
+                {
+                    "profile_id": "workforce_planner",
+                    "role_id": "planner",
+                    "description": "Plans bounded work and maintains scoped continuity.",
+                    "capability_refs": ["focusa_trajectory_assess", "focusa_trajectory_propose_workpoint", "focusa_workpoint_checkpoint"],
+                    "approval": {"status": "operator_approval_required", "grants_permissions": false},
+                    "persistent_defaults": {"harness": {"kind": "pi"}, "workspace": {"mode": "isolated_worktree"}, "governance": {"destructive_actions_allowed": false}}
+                },
+                {
+                    "profile_id": "workforce_researcher",
+                    "role_id": "researcher",
+                    "description": "Collects bounded evidence and records source-linked findings.",
+                    "capability_refs": ["focusa_context_cognition", "focusa_context_cognition_curate", "focusa_evidence_capture"],
+                    "approval": {"status": "operator_approval_required", "grants_permissions": false},
+                    "persistent_defaults": {"harness": {"kind": "pi"}, "workspace": {"mode": "isolated_worktree"}, "governance": {"destructive_actions_allowed": false}}
+                },
+                {
+                    "profile_id": "workforce_builder",
+                    "role_id": "builder",
+                    "description": "Executes approved implementation work through bounded sessions.",
+                    "capability_refs": ["focusa_silent_sessions", "focusa_call_stack_design", "focusa_work_loop_status"],
+                    "approval": {"status": "operator_approval_required", "grants_permissions": false},
+                    "persistent_defaults": {"harness": {"kind": "pi"}, "workspace": {"mode": "isolated_worktree"}, "governance": {"destructive_actions_allowed": false}}
+                },
+                {
+                    "profile_id": "workforce_reviewer",
+                    "role_id": "reviewer",
+                    "description": "Checks evidence, contracts, and implementation drift.",
+                    "capability_refs": ["focusa_call_stack_verify", "focusa_metacog_doctor", "focusa_workpoint_resume"],
+                    "approval": {"status": "operator_approval_required", "grants_permissions": false},
+                    "persistent_defaults": {"harness": {"kind": "pi"}, "workspace": {"mode": "isolated_worktree"}, "governance": {"destructive_actions_allowed": false}}
+                },
+                {
+                    "profile_id": "workforce_operator",
+                    "role_id": "operator",
+                    "description": "Coordinates approved workers and observes durable completion state.",
+                    "capability_refs": ["focusa_bg_status", "focusa_work_loop_control", "focusa_work_loop_select_next"],
+                    "approval": {"status": "operator_approval_required", "grants_permissions": false},
+                    "persistent_defaults": {"harness": {"kind": "pi"}, "workspace": {"mode": "isolated_worktree"}, "governance": {"destructive_actions_allowed": false}}
                 }
-            }],
-            "catalog_source": "builtin_release_defaults"
+            ],
+            "catalog_source": "generated_assignable_capability_registry",
+            "catalog_revision": "workforce-role-profiles-v1"
         }),
     )
     .await
@@ -81,15 +123,16 @@ async fn presets(State(state): State<Arc<AppState>>, headers: HeaderMap) -> ApiR
         &headers,
         "presets",
         json!({
-            "presets": [{
-                "preset_id": "conservative",
-                "description": "Single bounded worker with destructive actions disabled",
-                "invocation_patch": {
-                    "governance": {"destructive_actions_allowed": false},
-                    "concurrency": {"max_workers": 1}
-                }
-            }],
-            "catalog_source": "builtin_release_defaults"
+            "presets": [
+                {"preset_id": "conservative", "role_id": "operator", "description": "Legacy bounded single-worker alias", "capability_refs": ["focusa_work_loop_status"], "approval_required": true, "invocation_patch": {"governance": {"destructive_actions_allowed": false}, "concurrency": {"max_workers": 1}}},
+                {"preset_id": "planner", "role_id": "planner", "description": "Bounded planning worker", "capability_refs": ["focusa_trajectory_assess", "focusa_trajectory_propose_workpoint"], "approval_required": true, "invocation_patch": {"governance": {"destructive_actions_allowed": false}, "concurrency": {"max_workers": 1}}},
+                {"preset_id": "researcher", "role_id": "researcher", "description": "Source-linked evidence worker", "capability_refs": ["focusa_context_cognition", "focusa_evidence_capture"], "approval_required": true, "invocation_patch": {"governance": {"destructive_actions_allowed": false}, "concurrency": {"max_workers": 1}}},
+                {"preset_id": "builder", "role_id": "builder", "description": "Approved implementation worker", "capability_refs": ["focusa_silent_sessions", "focusa_call_stack_design"], "approval_required": true, "invocation_patch": {"governance": {"destructive_actions_allowed": false}, "concurrency": {"max_workers": 1}}},
+                {"preset_id": "reviewer", "role_id": "reviewer", "description": "Evidence and drift review worker", "capability_refs": ["focusa_call_stack_verify", "focusa_metacog_doctor"], "approval_required": true, "invocation_patch": {"governance": {"destructive_actions_allowed": false}, "concurrency": {"max_workers": 1}}},
+                {"preset_id": "operator", "role_id": "operator", "description": "Durable coordination observer", "capability_refs": ["focusa_bg_status", "focusa_work_loop_status"], "approval_required": true, "invocation_patch": {"governance": {"destructive_actions_allowed": false}, "concurrency": {"max_workers": 1}}}
+            ],
+            "catalog_source": "generated_assignable_capability_registry",
+            "catalog_revision": "workforce-role-presets-v1"
         }),
     )
     .await

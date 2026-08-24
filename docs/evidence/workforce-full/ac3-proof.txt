@@ -1,0 +1,8 @@
+PASS: five role profiles: planner, researcher, builder, reviewer, operator
+PASS: five approval-bound presets with assignable capability refs
+PASS: generated capability registry contains every referenced capability
+PASS: grants_permissions=false on every default role
+PASS: legacy local_pi_isolated and conservative aliases preserved
+PASS: Spec133 full silent CLI and daemon parity static contract
+PASS: workforce_full_ac3_role_catalog_test.py
+KNOWN BASELINE FAILURE: tests/173_focusa_issue132_async_orchestration_repair_test.py expects /v1/work-loop/enable in route generator; unrelated to AC3 catalog change
