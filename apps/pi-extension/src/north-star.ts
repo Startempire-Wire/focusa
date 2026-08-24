@@ -188,7 +188,7 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
     ];
   }
 
-  const [firstKey, firstState, firstWhat, firstAction] = problems[0];
+  const [_firstKey, firstState, firstWhat, firstAction] = problems[0];
   const staleNote = firstState === "stale" ? " needs a refresh — " : firstState === "mismatched" ? " doesn't match what I'm seeing — " : " — ";
   const lines = [
     `🧭 Focusa · ${firstWhat}${staleNote}${firstAction}.`,
