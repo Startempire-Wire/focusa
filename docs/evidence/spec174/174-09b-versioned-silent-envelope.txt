@@ -1,0 +1,4 @@
+PASS: focusa-api api_envelopes_are_versioned_without_removing_legacy_fields OVH
+schema=focusa.silent_session_api_envelope.v1
+constructors=canonical,failure
+github_issue=330

@@ -368,8 +368,11 @@ pub struct ApiSideEffect {
     pub target_ref: Option<String>,
 }
 
+pub const SILENT_SESSION_API_ENVELOPE_SCHEMA: &str = "focusa.silent_session_api_envelope.v1";
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SilentSessionApiEnvelope<T> {
+    pub schema: String,
     pub ok: bool,
     pub status: String,
     pub canonical: bool,
@@ -390,6 +393,7 @@ pub struct SilentSessionApiEnvelope<T> {
 impl<T> SilentSessionApiEnvelope<T> {
     pub fn canonical(status: impl Into<String>, data: T) -> Self {
         Self {
+            schema: SILENT_SESSION_API_ENVELOPE_SCHEMA.into(),
             ok: true,
             status: status.into(),
             canonical: true,
@@ -418,6 +422,7 @@ impl<T> SilentSessionApiEnvelope<T> {
         retry: RetryDirective,
     ) -> Self {
         Self {
+            schema: SILENT_SESSION_API_ENVELOPE_SCHEMA.into(),
             ok: false,
             status: status.into(),
             canonical: true,
@@ -505,6 +510,32 @@ mod tests {
             protocol_versions: ProtocolVersions::default(),
             started_at: Utc::now(),
             ended_at: None,
+        }
+    }
+
+    #[test]
+    fn api_envelopes_are_versioned_without_removing_legacy_fields() {
+        let success = SilentSessionApiEnvelope::canonical("listed", serde_json::json!([]));
+        let failure = SilentSessionApiEnvelope::<serde_json::Value>::failure(
+            "forbidden",
+            "authorization_denied",
+            RetryDirective {
+                retryable: false,
+                after_ms: None,
+                idempotency_key_required: false,
+            },
+        );
+        for envelope in [
+            serde_json::to_value(success).unwrap(),
+            serde_json::to_value(failure).unwrap(),
+        ] {
+            assert_eq!(envelope["schema"], SILENT_SESSION_API_ENVELOPE_SCHEMA);
+            for legacy in ["ok", "status", "canonical", "degraded", "retry", "data"] {
+                assert!(
+                    envelope.get(legacy).is_some(),
+                    "missing legacy field {legacy}"
+                );
+            }
         }
     }
 
