@@ -65,11 +65,12 @@ for name in focusa_device_pair_start focusa_device_pair_complete focusa_device_p
 done
 pass "per-tool docs (5) present"
 
-# 10. README tool table rows
-rg -qn 'focusa_device_pair_start' "$ROOT_DIR/README.md" \
-  && rg -qn 'focusa_device_pair_revoke' "$ROOT_DIR/README.md" \
-  || fail "README tool table missing device_pair_* rows"
-pass "README tool table includes device_pair_* rows"
+# 10. Canonical generated tool references (README no longer owns a tool table)
+rg -qn '^# `focusa_device_pair_start`' "$ROOT_DIR/docs/focusa-tools/tools/focusa_device_pair_start.md" \
+  && rg -qn 'agent-capability-descriptors.json#focusa_device_pair_start' "$ROOT_DIR/docs/focusa-tools/tools/focusa_device_pair_start.md" \
+  && rg -qn '^# `focusa_device_pair_revoke`' "$ROOT_DIR/docs/focusa-tools/tools/focusa_device_pair_revoke.md" \
+  || fail "canonical device_pair tool references are incomplete"
+pass "canonical generated device_pair tool references present"
 
 # 11. Live contract artifacts
 CONTRACTS_JSON="$ROOT_DIR/docs/current/focusa-tool-contracts.json"
