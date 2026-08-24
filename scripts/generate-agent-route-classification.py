@@ -20,7 +20,43 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
 
-    source_files = sorted((ROOT / "crates/focusa-api/src").rglob("*.rs"))
+    api_root = ROOT / "crates/focusa-api/src"
+    all_source_files = sorted(api_root.rglob("*.rs"))
+    server_source = api_root / "server.rs"
+    server_body = server_source.read_text(errors="replace")
+    reachable_modules = set(re.findall(
+        r"routes::([a-zA-Z0-9_]+)::(?:router|routes)\(\)", server_body
+    ))
+    queue = list(reachable_modules)
+    reachable_sources = {server_source}
+    while queue:
+        module = queue.pop()
+        source = api_root / "routes" / f"{module}.rs"
+        if not source.exists() or source in reachable_sources:
+            continue
+        reachable_sources.add(source)
+        body = source.read_text(errors="replace")
+        for nested in re.findall(
+            r"(?:super|crate::routes)::([a-zA-Z0-9_]+)::(?:router|routes)\(\)", body
+        ):
+            if nested not in reachable_modules:
+                reachable_modules.add(nested)
+                queue.append(nested)
+    source_files = sorted(reachable_sources)
+    unreachable_sources = [source for source in all_source_files if source not in reachable_sources]
+    unreachable_declarations: dict[str, set[str]] = {}
+    for source in unreachable_sources:
+        body = source.read_text(errors="replace")
+        relative_source = str(source.relative_to(ROOT))
+        constants = dict(re.findall(
+            r'^\s*(?:pub(?:\([^)]*\))?\s+)?const\s+([A-Z][A-Z0-9_]*)\s*:\s*&str\s*=\s*"([^"]+)"\s*;',
+            body, re.M,
+        ))
+        for path in re.findall(r'\.route\(\s*"([^"]+)"', body, re.S):
+            unreachable_declarations.setdefault(path, set()).add(relative_source)
+        for name in re.findall(r'^\s*\.route\(\s*([A-Z][A-Z0-9_]*)\s*,', body, re.M):
+            if name in constants:
+                unreachable_declarations.setdefault(constants[name], set()).add(relative_source)
     paths: dict[str, set[str]] = {}
     methods: dict[str, set[str]] = {}
     for source in source_files:
@@ -155,6 +191,10 @@ def main() -> int:
             "deprecated",
         ],
         "routes": classifications,
+        "unreachable_declared_routes": [
+            {"path": path, "sources": sorted(sources)}
+            for path, sources in sorted(unreachable_declarations.items())
+        ],
     }
     body = json.dumps(report, indent=2) + "\n"
     api_lines = [
@@ -162,7 +202,8 @@ def main() -> int:
         "",
         "Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.",
         "",
-        f"- Classified paths: `{len(classifications)}`",
+        f"- Classified reachable paths: `{len(classifications)}`",
+        f"- Unreachable declared paths: `{len(unreachable_declarations)}`",
         f"- Agent eligible: `{counts.get('agent_eligible', 0)}`",
         f"- Operator only: `{counts.get('operator_only', 0)}`",
         f"- Public health/pairing: `{counts.get('public_health', 0) + counts.get('public_pairing', 0)}`",
@@ -214,6 +255,7 @@ def main() -> int:
                 "status": "passed",
                 "mode": "check" if args.check else "write",
                 "routes": len(classifications),
+                "unreachable_declared_routes": len(unreachable_declarations),
                 "counts": counts,
             }
         )
