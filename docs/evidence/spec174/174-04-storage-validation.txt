@@ -1,0 +1,7 @@
+PASS: connection storage and validation 4/4
+PASS: complete extension tests 10/10
+storage=chrome.storage.local only
+remote_transport=https-only
+loopback_http=localhost,127.0.0.1,[::1]
+permission=exact optional origin
+token_diagnostics=redacted
