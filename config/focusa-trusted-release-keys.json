@@ -7,6 +7,16 @@
       "revoked_at": null,
       "signing_algorithm": "ed25519",
       "valid_from": "2026-07-15T00:00:00Z",
+      "valid_until": "2026-08-24T00:00:00Z"
+    },
+    {
+      "key_id": "focusa-release-2026-08-24-4ed9c92b",
+      "note": "rotation 2026-08-24: prior key unrecoverable (ephemeral CI secret); supersedes focusa-release-2026-07-15-82418ad7e4d2",
+      "public_key_base64": "aUIw/R9BEtl/74uE/KhLJOzUQhm87VbOzQMEgciHTZI=",
+      "public_key_fingerprint": "4ed9c92b5ea322ef6070173c011332b100f3a80eda062089735f76c9631143c6",
+      "revoked_at": null,
+      "signing_algorithm": "ed25519",
+      "valid_from": "2026-08-24T00:00:00Z",
       "valid_until": null
     }
   ],
@@ -20,8 +30,8 @@
     {
       "identity": "aegis-drive-sync@tech-empire-258307.iam.gserviceaccount.com",
       "issuer": "https://accounts.google.com",
-      "provider": "appveyor",
       "note": "emergency fallback signer (permanent SA key, no re-auth); migrate to dedicated focusa-appveyor-release-signer SA once project IAM API access is restored",
+      "provider": "appveyor",
       "supersedes": "focusa-appveyor-release-signer@tech-empire-258307.iam.gserviceaccount.com"
     }
   ]
