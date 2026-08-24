@@ -12,6 +12,15 @@ ROUTES = ROOT / "docs/contracts/spec141/generated-capability-v2/route-classifica
 OPERATIONS = ROOT / "docs/contracts/spec135/generated-contract-v1/operation-registry.json"
 FEATURES = ROOT / "docs/contracts/spec152-feature-registry.v1.yaml"
 OUTPUT = ROOT / "crates/focusa-api/src/middleware/entitlement_routes.rs"
+REQUIRED_WORK_LOOP_ROUTES = (
+    "/v1/work-loop/enable",
+    "/v1/work-loop/checkpoint",
+    "/v1/work-loop/context",
+    "/v1/work-loop/select-next",
+    "/v1/work-loop/pause",
+    "/v1/work-loop/resume",
+    "/v1/work-loop/stop",
+)
 # Explicit overrides only where segment-based family resolution gives a different feature.
 # Routes whose segment already maps to the correct feature are resolved by inheritance.
 EXPLICIT_ROUTE_FEATURES = {
@@ -41,6 +50,10 @@ coverage = importlib.util.module_from_spec(spec); assert spec.loader; spec.loade
 
 def requirements():
     routes = json.loads(ROUTES.read_text())["routes"]
+    route_paths = {route["path"] for route in routes}
+    missing_work_loop = sorted(set(REQUIRED_WORK_LOOP_ROUTES) - route_paths)
+    if missing_work_loop:
+        raise ValueError(f"required Work Loop routes missing from route classification: {missing_work_loop}")
     operations = {item["operation_id"]: item for item in json.loads(OPERATIONS.read_text())["operations"]}
     feature_registry = yaml.safe_load(FEATURES.read_text())["features"]
     buckets = {item["key"]: item["limit_bucket"] for item in feature_registry}
