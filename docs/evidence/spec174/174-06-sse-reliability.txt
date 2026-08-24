@@ -1,0 +1,7 @@
+PASS: focused SSE parser/reconnect tests 8/8
+parser=arbitrary UTF-8 chunks, CRLF, comments, strict v1 envelope
+cursor=commit only after awaited renderer acknowledgement
+dedupe=monotonic durable sequence
+reconnect=1,2,4,8,15s bounded
+auth=401/403 terminal
+consumer_failure=terminal,no_cursor_commit
