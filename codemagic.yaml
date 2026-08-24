@@ -24,7 +24,7 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - "v*"
+        - pattern: "v*"
       cancel_previous_builds: true
     environment:
       node: v22.12.0
