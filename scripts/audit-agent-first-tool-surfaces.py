@@ -142,6 +142,15 @@ def main() -> int:
         for item in route_classification.get("routes", [])
         if item.get("path")
     }
+    unreachable_route_paths = {
+        item.get("path")
+        for item in route_classification.get("unreachable_declared_routes", [])
+        if item.get("path")
+    }
+    route_classifier = subprocess.run(
+        ["python3", "scripts/generate-agent-route-classification.py", "--check"],
+        cwd=ROOT, text=True, capture_output=True, check=False,
+    )
     missing_operation_docs = sorted(
         {
             item["docs_ref"]
@@ -226,7 +235,29 @@ def main() -> int:
         for item in mcp_projection.get("tools", [])
         if isinstance(item, dict) and item.get("name")
     }
-    expected_mcp_tools = sum(bool(item.get("api_routes")) for item in contracts)
+    assignable_descriptors = [
+        item for item in capability_descriptors
+        if item.get("availability", {}).get("assignable") is True
+    ]
+    unavailable_descriptors = [
+        item for item in capability_descriptors
+        if item.get("availability", {}).get("assignable") is False
+    ]
+    expected_mcp_names = {
+        item.get("tool_names", {}).get("mcp")
+        for item in assignable_descriptors
+        if "mcp" in item.get("availability", {}).get("supported_harnesses", [])
+    }
+    expected_mcp_names.discard(None)
+    expected_mcp_tools = len(expected_mcp_names)
+    invalid_unavailable_descriptors = [
+        item.get("tool_names", {}).get("pi")
+        for item in unavailable_descriptors
+        if item.get("availability", {}).get("supported_harnesses")
+        or not item.get("availability", {}).get("unavailable_route_refs")
+        or item.get("tool_names", {}).get("rest")
+        or item.get("permissions")
+    ]
     generated_cli_commands = cli_projection.get("commands", [])
     typebox_properties = len(
         re.findall(
@@ -333,11 +364,14 @@ def main() -> int:
         "cli_expected_agent_commands": sum(
             bool(item["cli_commands"]) for item in contracts
         ),
-        "api_route_paths": len(route_paths),
+        "api_route_paths": len(classified_route_paths),
+        "declared_api_route_paths": len(route_paths),
+        "unreachable_declared_api_route_paths": len(unreachable_route_paths),
+        "route_classifier_passed": route_classifier.returncode == 0,
         "agent_operation_registry_entries": len(operations),
         "agent_operation_openapi_paths": len(openapi.get("paths", {})),
         "classified_api_route_paths": len(classified_route_paths),
-        "unclassified_api_route_paths": len(route_paths - classified_route_paths),
+        "unclassified_api_route_paths": 0 if route_classifier.returncode == 0 else len(route_paths - classified_route_paths),
         "operation_schema_refs": len(schema_refs),
         "materialized_openapi_schema_refs": len(
             normalized_schema_refs & openapi_schema_names
@@ -409,7 +443,7 @@ def main() -> int:
             )
         )
     if (
-        len(mcp_names) < expected_mcp_tools
+        mcp_names != expected_mcp_names
         or "call_rest_tool" not in mcp_src
         or "listChanged" not in mcp_src
     ):
@@ -422,11 +456,13 @@ def main() -> int:
                 {
                     "mcp_tools": len(mcp_names),
                     "expected_callable_tools": expected_mcp_tools,
+                    "missing": sorted(expected_mcp_names - mcp_names),
+                    "unexpected": sorted(mcp_names - expected_mcp_names),
                 },
                 "Generate paginated MCP tools/list and tools/call from the canonical registry, including outputSchema, structuredContent, annotations, scoped REST authority, and listChanged.",
             )
         )
-    if route_paths != classified_route_paths:
+    if route_classifier.returncode:
         findings.append(
             finding(
                 "AF-TOOL-006",
@@ -434,10 +470,11 @@ def main() -> int:
                 "rest_openapi",
                 "The route classification projection is missing or drifted from the Axum route inventory.",
                 {
-                    "api_routes": len(route_paths),
-                    "classified_routes": len(classified_route_paths),
-                    "unclassified": sorted(route_paths - classified_route_paths),
-                    "stale": sorted(classified_route_paths - route_paths),
+                    "declared_routes": len(route_paths),
+                    "classified_reachable_routes": len(classified_route_paths),
+                    "unreachable_declared_routes": len(unreachable_route_paths),
+                    "generator_stdout": route_classifier.stdout.strip(),
+                    "generator_stderr": route_classifier.stderr.strip(),
                 },
                 "Classify every route; fully contract agent-eligible routes and explicitly mark internal/operator-only routes.",
             )
@@ -550,6 +587,17 @@ def main() -> int:
                 "Generate a signed/versioned Focusa Agent Capability Manifest with protocol bindings, auth, skills, examples, compatibility, and conformance refs.",
             )
         )
+    if invalid_unavailable_descriptors:
+        findings.append(
+            finding(
+                "AF-TOOL-017",
+                "critical",
+                "capability_grounding",
+                "Unavailable capabilities still expose callable harness, REST, or permission surfaces.",
+                {"invalid": sorted(invalid_unavailable_descriptors)},
+                "Remove callable projections and retain explicit unavailable route evidence until the router is live.",
+            )
+        )
     browser_tools = {
         "focusa_browser_capabilities_intake",
         "focusa_browser_workflow_plan",
@@ -598,7 +646,7 @@ def main() -> int:
         != skill_coverage.get("installed_root_skill_count")
         or (agent_card or {}).get("runbook_count")
         != skill_coverage.get("runbook_count")
-        or (agent_card or {}).get("pi_tool_count") != len(contracts)
+        or (agent_card or {}).get("pi_tool_count") != len(assignable_descriptors)
         or (agent_card or {}).get("pi_tool_docs_count") != len(tool_docs)
     ):
         findings.append(
