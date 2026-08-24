@@ -1,0 +1,8 @@
+PASS: focused safe-create tests 6/6
+PASS: full Workforce extension suite 36/36
+config=focusa.silent_session_config.v1 fixed-safe-template
+preflight=redacted_hash+config_digest before create
+idempotency=persisted+verified before network
+reconciliation=one same-key retry after ambiguous failure
+conflict=changed payload/config visible before mutation
+draft=exact session/run/hash
