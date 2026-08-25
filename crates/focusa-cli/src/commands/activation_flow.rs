@@ -21,7 +21,9 @@ use focusa_license::activation_client::{
 use focusa_license::activation_facade::{
     ActivationError, ActivationErrorCode, ActivationRequestContext,
 };
-use focusa_license::activation_http::{ActivationHttpClient, LeaseDeliveryEnvelope};
+use focusa_license::activation_http::{
+    ActivationHttpClient, ActivationHttpPolicy, LeaseDeliveryEnvelope,
+};
 use focusa_license::activation_reducer::{
     ActivationOutputEnvelope, ActivationState, RetryPosture, presenter_state,
 };
@@ -452,6 +454,63 @@ pub fn run_activation_flow<A: ActivationAuthority>(
 /// credential is re-supplied from the protected store; the snapshot never
 /// contains it. Terminal registrations refuse every step in the shared
 /// client before any presenter action.
+/// One bounded authority reconciliation for `license status` (#342 field
+/// evidence): when the local signed lease is absent but a resumable
+/// registration snapshot + poll credential exist, poll the authority once and
+/// persist any delivered terminal envelopes. This is how activation completed
+/// manually on the authority website becomes visible locally.
+/// Fail-closed: any transport/state error returns Ok(false) and the status
+/// projection stays unactivated — never a fabricated licensed state.
+pub fn reconcile_status_with_authority(config_dir: &Path) -> Result<bool, ActivationFlowError> {
+    use focusa_license::activation_client::ActivationSession;
+
+    let directory = config_dir.join("activation");
+    let mut candidates: Vec<String> = std::fs::read_dir(&directory)
+        .map(|entries| {
+            entries
+                .filter_map(|entry| entry.ok())
+                .filter_map(|entry| {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    name.strip_suffix(".json").map(String::from)
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    candidates.sort();
+    let Some(registration_id) = candidates.pop() else {
+        return Ok(false);
+    };
+    let registration = match load_registration_snapshot(config_dir, &registration_id) {
+        Ok(registration) => registration,
+        Err(_) => return Ok(false),
+    };
+    let credential = match load_poll_credential(&KeyringCredentialStore, &registration_id) {
+        Ok(credential) => credential,
+        Err(_) => return Ok(false),
+    };
+    let base_url = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
+        .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string());
+    let policy = ActivationHttpPolicy {
+        base_url: reqwest::Url::parse(&base_url)
+            .map_err(|error| ActivationFlowError::Delivery(error.to_string()))?,
+        timeout: std::time::Duration::from_secs(30),
+        max_response_bytes: 1024 * 1024,
+    };
+    let http = ActivationHttpClient::new(policy)
+        .map_err(|error| ActivationFlowError::Delivery(error.to_string()))?;
+    let context = new_context(CLI_FLOW);
+    let mut session = ActivationSession::resume(http, context, registration, credential)
+        .map_err(ActivationFlowError::Client)?;
+    if session.state().is_terminal() {
+        return Ok(true);
+    }
+    if session.poll().is_err() {
+        return Ok(false);
+    }
+    ActivationFlowSessionPersist::new(config_dir).persist_inner(&session)?;
+    Ok(session.state().is_terminal())
+}
+
 pub fn resume_activation_flow<A: ActivationAuthority>(
     authority: A,
     config: ActivationFlowConfig,

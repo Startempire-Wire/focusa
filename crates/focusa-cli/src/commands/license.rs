@@ -1206,6 +1206,28 @@ async fn run_preflight(json_output: bool, args: PreflightArgs) -> anyhow::Result
 }
 
 async fn run_status(json_output: bool) -> anyhow::Result<()> {
+    // #342 field evidence: a customer who completed activation manually on the
+    // authority website must see licensed state here. Before projecting, give
+    // any persisted registration one bounded chance to reconcile with the
+    // authority. Fail-closed: errors leave the local projection untouched.
+    {
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        if let Some(home) = home {
+            let config_dir = home.join(".config/focusa");
+            let guard_probe = focusa_license::resolve_license_guard();
+            let activated = guard_probe
+                .entitlement
+                .as_ref()
+                .map(|entitlement| {
+                    entitlement.state != focusa_license::authority::EntitlementState::Unactivated
+                })
+                .unwrap_or(false);
+            if !activated {
+                let _ =
+                    crate::commands::activation_flow::reconcile_status_with_authority(&config_dir);
+            }
+        }
+    }
     let guard = focusa_license::resolve_license_guard();
     let authority = focusa_license::entitlement_projection(guard.entitlement.as_ref())?;
     let entitlement_decision =

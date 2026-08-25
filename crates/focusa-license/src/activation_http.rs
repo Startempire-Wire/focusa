@@ -154,7 +154,6 @@ impl ActivationHttpClient {
             .map_err(|_| self.unavailable(&request.request_id))?;
         if !response.status().is_success() {
             let status = response.status().as_u16();
-            let _ = response.text();
             // Typed routing diagnostic without exposing body secrets
             if status == 404 || status == 405 {
                 return Err(ActivationError::new(
@@ -162,7 +161,12 @@ impl ActivationHttpClient {
                     request.request_id.clone(),
                 ));
             }
-            return Err(self.unavailable(&request.request_id));
+            // Spec 152E §20 (#344): surface the authority's typed error code
+            // from the reply body instead of collapsing every non-2xx into
+            // AUTHORITY_UNAVAILABLE. Fail closed when the body is not a
+            // decodable typed envelope.
+            let body = response.text().unwrap_or_default();
+            return decode_response_body(&request.request_id, body, self.policy.max_response_bytes);
         }
         decode_response_body(
             &request.request_id,
@@ -196,7 +200,10 @@ impl ActivationHttpClient {
             .send()
             .map_err(|_| self.unavailable(request_id))?;
         if !response.status().is_success() {
-            return Err(self.unavailable(request_id));
+            // Spec 152E §20 (#344): typed authority errors surface verbatim;
+            // non-JSON or oversized bodies still fail closed.
+            let body = response.text().unwrap_or_default();
+            return decode_response_body(request_id, body, self.policy.max_response_bytes);
         }
         decode_response_body(
             request_id,
@@ -803,6 +810,57 @@ mod tests {
             Err(ActivationHttpError::InvalidPolicy(
                 "authority max response must be within 1 KiB..=4 MiB"
             ))
+        );
+    }
+
+    #[test]
+    fn non_2xx_authority_errors_surface_typed_code_not_unavailable() {
+        // #344 regression: a 409 carrying a typed Spec 152E error body must
+        // surface that code; AUTHORITY_UNAVAILABLE is reserved for transport
+        // and undecodable replies.
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut buffer = [0u8; 4096];
+            let _ = stream.read(&mut buffer);
+            stream.write_all(
+                b"HTTP/1.1 409 Conflict\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n",
+            ).unwrap();
+            stream
+                .write_all(br#"{"error":{"code":"EDD_ORDER_PENDING","next_action":"poll_after_retry_after"}}"#)
+                .unwrap();
+        });
+        let base_url = Url::parse(&format!("https://127.0.0.1:{port}/authority/")).unwrap();
+        // http:// is rejected by validate(); build the client directly.
+        let policy = ActivationHttpPolicy {
+            base_url,
+            timeout: Duration::from_secs(5),
+            max_response_bytes: 1024 * 1024,
+        };
+        let validated = policy.clone();
+        let _ = validated.validate(); // would reject http — bypass via struct construction below
+        let mut client = ActivationHttpClient::new(ActivationHttpPolicy {
+            base_url: Url::parse("https://wpuiai.com/authority/").unwrap(),
+            ..policy.clone()
+        })
+        .unwrap();
+        client.policy.base_url =
+            Url::parse(&format!("http://127.0.0.1:{port}/authority/")).unwrap();
+        let error = client
+            .get(
+                facade_operation_path::OFFERS,
+                "request-3429",
+                Some("registration-0001"),
+            )
+            .unwrap_err();
+        server.join().unwrap();
+        assert_ne!(
+            error.code,
+            ActivationErrorCode::AuthorityUnavailable,
+            "typed authority error was swallowed into AUTHORITY_UNAVAILABLE (#344)"
         );
     }
 
