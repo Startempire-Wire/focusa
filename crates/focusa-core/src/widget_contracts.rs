@@ -72,7 +72,8 @@ pub struct WidgetDescriptor {
     pub title: String,
     pub description: String,
     pub family: String,
-    pub primitive_refs: Vec<String>,
+    /// Canonical Spec135 operation IDs that provide this widget's data.
+    pub operation_refs: Vec<String>,
     pub query: WidgetQueryContract,
     pub allowed_surfaces: Vec<WidgetSurface>,
     pub default_size: WidgetSize,
@@ -95,10 +96,19 @@ impl WidgetDescriptor {
         if self.title.trim().is_empty() || self.description.trim().is_empty() {
             return Err(format!("{} requires title and description", self.widget_id));
         }
-        if self.primitive_refs.is_empty() {
-            return Err(format!("{} has no primitive refs", self.widget_id));
+        if self.operation_refs.is_empty()
+            || self
+                .operation_refs
+                .iter()
+                .any(|operation| !GROUNDED_OPERATION_IDS.contains(&operation.as_str()))
+        {
+            return Err(format!(
+                "{} has an ungrounded operation ref",
+                self.widget_id
+            ));
         }
         if self.query.operation_id.trim().is_empty()
+            || !GROUNDED_OPERATION_IDS.contains(&self.query.operation_id.as_str())
             || self.query.request_schema_ref != WIDGET_QUERY_SCHEMA
             || self.query.response_schema_ref != WIDGET_PROJECTION_SCHEMA
         {
@@ -157,6 +167,17 @@ pub struct WidgetProjectionEnvelope<T> {
     pub evidence_refs: Vec<String>,
 }
 
+/// Operation IDs verified against docs/contracts/spec135/generated-contract-v1/operation-registry.json.
+/// Keep this list synchronized through a generated/static grounding gate before adding API routes.
+const GROUNDED_OPERATION_IDS: &[&str] = &[
+    "focusa.events.stream",
+    "focusa.trajectory.view",
+    "focusa.work_loop.status",
+    "focusa.work_rail.list",
+    "focusa.workpoint.resume",
+    "focusa.workspace.artifact.list",
+];
+
 pub fn widget_catalog() -> Vec<WidgetDescriptor> {
     vec![
         descriptor(
@@ -164,8 +185,8 @@ pub fn widget_catalog() -> Vec<WidgetDescriptor> {
             "Focus",
             "Current mission, objective, next action, and blockers.",
             "focus",
-            vec!["focusa_trajectory_view", "focusa_workpoint_resume"],
-            "focusa.widget.focus.active.read",
+            vec!["focusa.trajectory.view", "focusa.workpoint.resume"],
+            "focusa.trajectory.view",
             vec![
                 WidgetSurface::Startpage,
                 WidgetSurface::Sidepanel,
@@ -175,12 +196,12 @@ pub fn widget_catalog() -> Vec<WidgetDescriptor> {
             WidgetPrivacyClass::WorkstreamScoped,
         ),
         descriptor(
-            "focusa.workforce.roster",
+            "focusa.workforce.status",
             "Workforce",
-            "Bounded agent lifecycle and health overview.",
+            "Bounded Work Loop and work-rail health overview.",
             "workforce",
-            vec!["focusa_silent_sessions", "focusa_work_loop_status"],
-            "focusa.widget.workforce.roster.read",
+            vec!["focusa.work_loop.status", "focusa.work_rail.list"],
+            "focusa.work_loop.status",
             vec![
                 WidgetSurface::Startpage,
                 WidgetSurface::Sidepanel,
@@ -190,12 +211,12 @@ pub fn widget_catalog() -> Vec<WidgetDescriptor> {
             WidgetPrivacyClass::ProjectScoped,
         ),
         descriptor(
-            "focusa.execution.workset",
-            "Workset",
-            "Requirement disposition and deterministic settlement summary.",
+            "focusa.execution.work_rail",
+            "Work rail",
+            "Bounded work items and execution frontier.",
             "execution",
-            vec!["focusa_workset_projection"],
-            "focusa.widget.execution.workset.read",
+            vec!["focusa.work_rail.list"],
+            "focusa.work_rail.list",
             vec![
                 WidgetSurface::Startpage,
                 WidgetSurface::Sidepanel,
@@ -203,31 +224,35 @@ pub fn widget_catalog() -> Vec<WidgetDescriptor> {
             ],
             WidgetSize::Wide,
             WidgetPrivacyClass::ProjectScoped,
-        ),
-        descriptor(
-            "focusa.execution.callgraph",
-            "Execution",
-            "CallGraph run frontier, paths, joins, and settlement state.",
-            "execution",
-            vec!["focusa_callgraph_observe"],
-            "focusa.widget.execution.callgraph.read",
-            vec![WidgetSurface::Sidepanel, WidgetSurface::Wall],
-            WidgetSize::Large,
-            WidgetPrivacyClass::WorkstreamScoped,
         ),
         descriptor(
             "focusa.governance.activity",
             "Activity",
             "Recent bounded receipts, approvals, and completion signals.",
             "governance",
-            vec!["focusa_silent_sessions", "focusa_evidence_capture"],
-            "focusa.widget.governance.activity.read",
+            vec!["focusa.events.stream"],
+            "focusa.events.stream",
             vec![
                 WidgetSurface::Startpage,
                 WidgetSurface::Sidepanel,
                 WidgetSurface::Wall,
             ],
             WidgetSize::Compact,
+            WidgetPrivacyClass::ProjectScoped,
+        ),
+        descriptor(
+            "focusa.workspace.artifacts",
+            "Artifacts",
+            "Bounded workspace artifacts relevant to the active scope.",
+            "workspace",
+            vec!["focusa.workspace.artifact.list"],
+            "focusa.workspace.artifact.list",
+            vec![
+                WidgetSurface::Startpage,
+                WidgetSurface::Sidepanel,
+                WidgetSurface::Wall,
+            ],
+            WidgetSize::Wide,
             WidgetPrivacyClass::ProjectScoped,
         ),
     ]
@@ -265,7 +290,7 @@ fn descriptor(
         title: title.to_owned(),
         description: description.to_owned(),
         family: family.to_owned(),
-        primitive_refs: primitive_refs.into_iter().map(str::to_owned).collect(),
+        operation_refs: primitive_refs.into_iter().map(str::to_owned).collect(),
         query: WidgetQueryContract {
             operation_id: operation_id.to_owned(),
             request_schema_ref: WIDGET_QUERY_SCHEMA.to_owned(),
