@@ -20,6 +20,14 @@ test('start page persists widget visibility locally and routes actions to the co
   assert.match(js,/chrome\.tabs\.create/);
 });
 
+test('start page consumes the canonical Work Loop projection and preserves degraded states',()=>{
+  assert.match(js,/fetchWorkLoop/);
+  assert.match(js,/listConnections/);
+  assert.match(js,/ProjectionRequestError/);
+  assert.match(js,/Runtime unavailable/);
+  assert.match(js,/projection\.status/);
+});
+
 test('start page has responsive widget grid and accessible motion/theme handling',()=>{
   assert.match(css,/grid-template-columns/);
   assert.match(css,/@media\(max-width:850px\)/);
