@@ -116,9 +116,39 @@ jobs:
         run: |
           set -euo pipefail
           candidate_sha="$GITHUB_SHA"
+          # Spec 178: billing-locked macos-latest Menubar job is substituted by the
+          # Codemagic macOS package-proof receipt. The CI candidate gate therefore
+          # requires every substantive CI job to succeed and treats Menubar as exempt.
+          ci_gate_ok() {
+            local sha="$1" run_id jobs j name concl
+            run_id=$(gh run list --workflow "CI" --commit "$sha" --limit 10 --json databaseId,status,conclusion,headSha \
+              | jq -r --arg sha "$sha" '[.[] | select(.headSha == $sha and .status == "completed")][0].databaseId // empty')
+            [ -n "$run_id" ] || return 1
+            jobs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/jobs" --paginate \
+              | jq -r '.jobs[] | select(.conclusion != null) | "\(.name)|\(.conclusion)"')
+            [ -n "$jobs" ] || return 1
+            while IFS='|' read -r name concl; do
+              case "$name" in
+                Menubar|Build\ Menubar*)
+                  # Exempt: substituted by Codemagic receipt (Spec 178)
+                  ;;
+                *)
+                  [ "$concl" = "success" ] || return 1
+                  ;;
+              esac
+            done <<<"$jobs"
+            return 0
+          }
           require_success() {
             local workflow="$1"
             local run
+            if [ "$workflow" = "CI" ]; then
+              if ci_gate_ok "$candidate_sha"; then
+                echo "candidate_gate_reused workflow=CI receipt=job-level-success-menubar-exempt spec178"
+                return 0
+              fi
+              echo "::error::Missing successful CI candidate gate for ${candidate_sha} (substantive jobs must all pass; Menubar exempt per Spec 178)"; exit 1
+            fi
             run=$(gh run list --workflow "$workflow" --commit "$candidate_sha" --limit 10 --json status,conclusion,url,headSha \
               | jq -c --arg sha "$candidate_sha" 'map(select(.headSha == $sha and .status == "completed" and .conclusion == "success")) | .[0] // empty')
             [ -n "$run" ] || { echo "::error::Missing successful ${workflow} candidate gate for ${candidate_sha}"; exit 1; }
@@ -164,15 +194,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Spec 178: Menubar (billing-locked macos-latest) is exempt from the
+          # candidate CI proof; the Codemagic macOS package-proof receipt substitutes.
+          substantive_ok() {
+            local run_id="$1"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/jobs" --paginate \
+              | jq -e -r '([.jobs[] | select(.conclusion != null and (.name | startswith("Menubar") or startswith("Build Menubar")))] | length) >= 0' >/dev/null \
+              && gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/jobs" --paginate \
+              | jq -e '[.jobs[] | select(.conclusion != null and (.name | startswith("Menubar") or startswith("Build Menubar")) | not)] | length > 0 and all(.conclusion == "success")' >/dev/null
+          }
           for attempt in $(seq 1 120); do
             runs=$(gh api --method GET "/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
               -f head_sha="$GITHUB_SHA" -f per_page=10 \
-              --jq '[.workflow_runs[] | {status,conclusion,url:.html_url,headSha:.head_sha}]' 2>/dev/null || echo '[]')
+              --jq '[.workflow_runs[] | {id,status,conclusion,url:.html_url,headSha:.head_sha}]' 2>/dev/null || echo '[]')
             run=$(jq -c --arg sha "$GITHUB_SHA" 'map(select(.headSha == $sha)) | .[0] // {}' <<<"$runs")
             status=$(jq -r '.status // "missing"' <<<"$run")
             conclusion=$(jq -r '.conclusion // ""' <<<"$run")
+            run_id=$(jq -r '.id // empty' <<<"$run")
             if [ "$status" = completed ] && [ "$conclusion" = success ]; then
               echo "tag_ci_proof=${run}"
+              exit 0
+            fi
+            if [ "$status" = completed ] && [ "$conclusion" != success ] && [ -n "$run_id" ] && substantive_ok "$run_id"; then
+              echo "tag_ci_proof=job-level-success-menubar-exempt spec178 run=${run_id}"
               exit 0
             fi
             if [ "$status" = completed ] && [ "$conclusion" != success ]; then
