@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Focusa Organization Wall</title><link rel="stylesheet" href="wall.css"></head>
+<body>
+<header><div class="brand"><span class="mark">F</span><div><span class="eyebrow">FOCUSA WORKFORCE</span><h1>Organization wall</h1></div></div><div class="wall-meta"><span id="source">No daemon connected</span><span id="freshness" class="state degraded">OFFLINE</span><time id="clock"></time></div></header>
+<main>
+<section class="hero"><div><p class="eyebrow">SHARED OPERATIONS VIEW</p><h2>See what matters. Stay aligned.</h2><p id="wall-summary">Connect an approved Focusa daemon to populate this read-only wall.</p></div><div class="wall-badge">READ ONLY</div></section>
+<div class="wall-grid">
+<section class="card focus-card"><div class="card-head"><div><p class="eyebrow">WORK LOOP</p><h2>Current execution</h2></div><span id="loop-state" class="state degraded">UNAVAILABLE</span></div><div id="task" class="big-value">No active task</div><div class="metric-row"><div><span>Project status</span><strong id="project-status">Unknown</strong></div><div><span>Daemon source</span><strong id="daemon-label">—</strong></div></div></section>
+<section class="card"><div class="card-head"><div><p class="eyebrow">SIGNALS</p><h2>Needs attention</h2></div><span id="signal-count" class="count">0</span></div><div id="signals" class="signals"><p class="empty">No important signals.</p></div></section>
+<section class="card"><div class="card-head"><div><p class="eyebrow">TRUST</p><h2>Freshness</h2></div></div><div class="trust-list"><div><span>Projection</span><strong id="projection-time">Waiting</strong></div><div><span>Event stream</span><strong id="stream-state">Offline</strong></div><div><span>Controls</span><strong>Disabled on wall</strong></div></div></section>
+</div>
+</main><footer><span>Focusa · governed organization display</span><span>Private projections only · no mutation authority</span></footer>
+<script type="module" src="wall.mjs"></script>
+</body>
+</html>

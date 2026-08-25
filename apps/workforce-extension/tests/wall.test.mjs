@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+const root=path.resolve(new URL('..',import.meta.url).pathname,'src');
+const html=fs.readFileSync(path.join(root,'wall.html'),'utf8');
+const js=fs.readFileSync(path.join(root,'wall.mjs'),'utf8');
+const css=fs.readFileSync(path.join(root,'wall.css'),'utf8');
+test('wall is read-only and source/freshness explicit',()=>{for(const id of ['source','freshness','loop-state','task','signals','stream-state'])assert.match(html,new RegExp(`id="${id}"`));assert.match(html,/READ ONLY/);assert.match(html,/no mutation authority/);});
+test('wall consumes canonical projections and reconnect stream',()=>{assert.match(js,/fetchWorkLoop/);assert.match(js,/runReliableEventStream/);assert.match(js,/notificationFromEvent/);assert.match(js,/initialCursor:cursor/);});
+test('wall scales for large screens and narrow displays',()=>{assert.match(css,/clamp\(/);assert.match(css,/max-width:1000px/);assert.match(css,/max-width:650px/);});
