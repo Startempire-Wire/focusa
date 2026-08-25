@@ -48,6 +48,9 @@ jobs:
 
   rust:
     name: Rust
+    concurrency:
+      group: focusa-cargo
+      cancel-in-progress: false
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
@@ -148,6 +151,9 @@ jobs:
 
   spec-gates:
     name: Spec Gates (strict)
+    concurrency:
+      group: focusa-cargo
+      cancel-in-progress: false
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
