@@ -39,9 +39,28 @@ const checks = [
 const failures = [];
 
 function methodRouteInventory() {
+  // Mirror scripts/generate-agent-route-classification.py reachability: only
+  // modules wired into the running daemon are part of the served contract.
+  // Uncompiled orphan files must not fabricate documentation requirements.
   const routesDir = path.join(root, 'crates/focusa-api/src/routes');
+  const serverSource = fs.readFileSync(path.join(root, 'crates/focusa-api/src/server.rs'), 'utf8');
+  const reachable = new Set(['server']);
+  const queue = [...serverSource.matchAll(/routes::([a-zA-Z0-9_]+)::(?:router|routes)\(/g)].map((match) => match[1]);
+  while (queue.length) {
+    const moduleName = queue.pop();
+    if (reachable.has(moduleName)) continue;
+    reachable.add(moduleName);
+    const filePath = path.join(routesDir, `${moduleName}.rs`);
+    if (!fs.existsSync(filePath)) continue;
+    const body = fs.readFileSync(filePath, 'utf8');
+    for (const match of body.matchAll(/(?:super|crate::routes)::([a-zA-Z0-9_]+)::(?:router|routes)\(/g)) {
+      queue.push(match[1]);
+    }
+  }
   const entries = [];
   for (const file of fs.readdirSync(routesDir).filter((name) => name.endsWith('.rs')).sort()) {
+    const moduleName = file.replace(/\.rs$/, '');
+    if (!reachable.has(moduleName)) continue;
     const text = fs.readFileSync(path.join(routesDir, file), 'utf8');
     for (const match of text.matchAll(/\.route\(\s*"([^"]+)"\s*,\s*(get|post|patch|delete|put)\(/g)) {
       const route = match[1];

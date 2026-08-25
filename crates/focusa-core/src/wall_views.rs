@@ -120,7 +120,7 @@ impl WallView {
             return Err("wall view timestamps and source revision are required".into());
         }
         self.layout.validate()?;
-        if matches!(self.status, WallViewStatus::Active) && self.expires_at <= now {
+        if matches!(self.status, WallViewStatus::Active) && self.expires_at.as_str() <= now {
             return Err("active wall view is expired".into());
         }
         if matches!(self.status, WallViewStatus::Revoked) && self.revoked_at.is_none() {
