@@ -28,6 +28,14 @@ test('start page consumes the canonical Work Loop projection and preserves degra
   assert.match(js,/projection\.status/);
 });
 
+test('start page refreshes from governed SSE events and stops on page hide',()=>{
+  assert.match(js,/runReliableEventStream/);
+  assert.match(js,/initialCursor:streamCursor/);
+  assert.match(js,/commitCursor:async\(cursor\)=>/);
+  assert.match(js,/window\.addEventListener\('pagehide'/);
+  assert.match(js,/streamAbort\?\.abort/);
+});
+
 test('start page has responsive widget grid and accessible motion/theme handling',()=>{
   assert.match(css,/grid-template-columns/);
   assert.match(css,/@media\(max-width:850px\)/);
