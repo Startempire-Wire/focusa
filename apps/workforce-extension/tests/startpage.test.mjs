@@ -10,7 +10,7 @@ const css=fs.readFileSync(path.join(root,'startpage.css'),'utf8');
 
 test('start page exposes high-level work view and widgetized controls',()=>{
   for(const id of ['dashboard','customize','widget-drawer','widget-toggles','open-panel','orient-now','new-work','pause-work','activity-list']) assert.match(html,new RegExp(`id="${id}"`),id);
-  for(const widget of ['focus','workforce','controls','activity','brief']) assert.match(html,new RegExp(`data-widget="${widget}"`),widget);
+  for(const widget of ['focus','workforce','controls','activity','notifications','brief']) assert.match(html,new RegExp(`data-widget="${widget}"`),widget);
   assert.match(html,/chrome_url_overrides|Start page/);
 });
 
@@ -34,6 +34,13 @@ test('start page refreshes from governed SSE events and stops on page hide',()=>
   assert.match(js,/commitCursor:async\(cursor\)=>/);
   assert.match(js,/window\.addEventListener\('pagehide'/);
   assert.match(js,/streamAbort\?\.abort/);
+});
+
+test('start page and sidepanel share persisted notification projections',()=>{
+  assert.match(js,/notificationFromEvent/);
+  assert.match(js,/saveNotification/);
+  assert.match(js,/markNotificationsRead/);
+  assert.match(js,/start-notifications/);
 });
 
 test('start page has responsive widget grid and accessible motion/theme handling',()=>{

@@ -7,14 +7,17 @@ import { runReliableEventStream } from './lib/reconnect.mjs';
 import { buildSafeSessionConfig, createPreflightedSession, preflightSafeSession } from './lib/session-create.mjs';
 import { orchestrateAction } from './lib/orchestration.mjs';
 import { renderAudit, renderRoster, setStatus } from './lib/views.mjs';
+import { listNotifications, markNotificationsRead, notificationFromEvent, saveNotification, unreadNotificationCount } from './lib/notifications.mjs';
 
 const $ = (selector) => { const node = document.querySelector(selector); if (!node) throw new Error(`required panel element missing: ${selector}`); return node; };
 const elements = { connection: $('#connection-status'), select: $('#connection-select'), pairForm: $('#pair-form'), pairResult: $('#pair-result'), pairCheck: $('#pair-check'),
   capture: $('#capture-tab'), orientationForm: $('#orientation-form'), observation: $('#observation-summary'), mission: $('#mission-preview'), creationForm: $('#creation-form'),
   preflightResult: $('#preflight-result'), create: $('#create-draft'), start: $('#start-session'), refresh: $('#refresh-roster'), loop: $('#loop-summary'),
-  roster: $('#roster'), stream: $('#stream-status'), audit: $('#audit') };
+  roster: $('#roster'), stream: $('#stream-status'), audit: $('#audit'), notifications: $('#notifications'), notificationCount: $('#notification-count'), markNotificationsRead: $('#mark-notifications-read') };
 let connection = null, pairing = null, observation = null, packet = null, preflight = null, draft = null, streamAbort = null;
 const exactTargets = new Map(), auditEvents = [];
+let notifications = [];
+function renderNotifications(){ elements.notifications.replaceChildren(); if(!notifications.length){ elements.notifications.append(Object.assign(document.createElement('li'),{className:'empty',textContent:'No notifications yet.'})); } else for(const item of notifications.slice(0,25)){ const li=document.createElement('li'); li.className=item.read?'':'unread'; const dot=document.createElement('span'); dot.className=`notification-dot ${item.severity}`; const body=document.createElement('div'); body.className='notification-body'; const title=document.createElement('strong'); title.className='notification-title'; title.textContent=item.title; const message=document.createElement('small'); message.textContent=`${item.body} · ${item.source} · ${item.timestamp}`; body.append(title,message); li.append(dot,body); elements.notifications.append(li); } elements.notificationCount.textContent=`${unreadNotificationCount(notifications)} unread`; }
 const INTENT_KEY = 'focusa.workforce.intents.v1';
 const intentStore = { async load(key) { return (await chrome.storage.local.get(INTENT_KEY))[INTENT_KEY]?.[key] ?? null; },
   async persist(record) { const current = (await chrome.storage.local.get(INTENT_KEY))[INTENT_KEY] ?? {}; await chrome.storage.local.set({ [INTENT_KEY]: { ...current, [record.idempotency_key]: record } }); } };
@@ -45,7 +48,7 @@ function startStream() {
   streamAbort?.abort(); streamAbort = new AbortController();
   runReliableEventStream({ ...requestOptions(), initialCursor: connection.last_cursor, signal: streamAbort.signal,
     onState: (state) => setStatus(elements.stream, state.phase, state.delay_ms ? `${state.delay_ms / 1000}s` : ''),
-    onEvent: async (event) => { auditEvents.push(event); if (auditEvents.length > 200) auditEvents.shift(); renderAudit(elements.audit, projectAudit(auditEvents)); },
+    onEvent: async (event) => { auditEvents.push(event); if (auditEvents.length > 200) auditEvents.shift(); renderAudit(elements.audit, projectAudit(auditEvents)); const notification=notificationFromEvent(event); if(notification){ notifications=await saveNotification(notification); renderNotifications(); } },
     commitCursor: async (cursor) => { connection = await saveConnection({ ...connection, last_cursor: cursor, last_connected_at: new Date().toISOString() }); },
   }).catch((error) => { if (error?.name !== 'AbortError') setStatus(elements.stream, error?.status === 401 ? 'unauthorized' : error?.status === 403 ? 'scope_denied' : 'degraded', safeError(error)); });
 }
@@ -82,5 +85,7 @@ elements.start.addEventListener('click', async () => { if (!draft) return; const
   elements.preflightResult.textContent = `Canonical lifecycle: ${result.canonical.session.lifecycle}`; await refreshObservation();
 } catch (error) { elements.preflightResult.textContent = safeError(error); } });
 elements.refresh.addEventListener('click', refreshObservation);
+elements.markNotificationsRead.addEventListener('click', async () => { notifications=await markNotificationsRead(); renderNotifications(); });
 window.addEventListener('pagehide', () => streamAbort?.abort());
+Promise.resolve(listNotifications()).then((items) => { notifications=items; renderNotifications(); }).catch(() => renderNotifications());
 loadConnectionOptions().catch((error) => setStatus(elements.connection,'degraded',safeError(error)));

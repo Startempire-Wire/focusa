@@ -1,8 +1,9 @@
 import { fetchWorkLoop, ProjectionRequestError } from './lib/api-client.mjs';
 import { listConnections } from './lib/storage.mjs';
 import { runReliableEventStream } from './lib/reconnect.mjs';
+import { listNotifications, markNotificationsRead, notificationFromEvent, saveNotification, unreadNotificationCount } from './lib/notifications.mjs';
 
-const WIDGETS=[['focus','Today’s focus'],['workforce','Agents'],['controls','Quick controls'],['activity','Activity'],['brief','Workspace brief']];
+const WIDGETS=[['focus','Today’s focus'],['workforce','Agents'],['controls','Quick controls'],['activity','Activity'],['notifications','Notifications'],['brief','Workspace brief']];
 const defaults=Object.fromEntries(WIDGETS.map(([id])=>[id,true]));
 const storage=globalThis.chrome?.storage?.local;
 const read=async()=>storage?.get('focusa_startpage_widgets')||{};
@@ -16,6 +17,8 @@ let streamAbort=null;
 let streamCursor=null;
 function setRuntimeState(label, tone='ready'){const node=document.querySelector('#runtime-label');if(node)node.textContent=label;const health=document.querySelector('.health');if(health)health.dataset.tone=tone;}
 function setWidgetText(selector,text){const node=document.querySelector(selector);if(node)node.textContent=text;}
+let notifications=[];
+function renderStartNotifications(){const node=document.querySelector('#start-notifications');if(!node)return;node.replaceChildren();if(!notifications.length){node.append(Object.assign(document.createElement('p'),{className:'muted',textContent:'No important signals yet.'}));}else for(const item of notifications.slice(0,5)){const row=document.createElement('div');row.className=`start-notification ${item.read?'':'unread'}`;const dot=document.createElement('span');dot.className=`notification-dot ${item.severity}`;const copy=document.createElement('div');copy.className='start-notification-copy';const title=document.createElement('strong');title.textContent=item.title;const body=document.createElement('small');body.textContent=`${item.body} · ${item.timestamp}`;copy.append(title,body);row.append(dot,copy);node.append(row);}setWidgetText('#start-notification-count',`${unreadNotificationCount(notifications)} unread`);}
 function renderLiveWorkLoop(projection){
   const state=projection.status ?? 'unknown';
   const enabled=projection.enabled === true;
@@ -54,7 +57,7 @@ async function startLiveUpdates(){
       token:connection.token,
       initialCursor:streamCursor,
       signal:streamAbort.signal,
-      onEvent:async()=>{await refreshLiveWorkLoop();},
+      onEvent:async(event)=>{await refreshLiveWorkLoop();const notification=notificationFromEvent(event);if(notification){notifications=await saveNotification(notification);renderStartNotifications();}},
       commitCursor:async(cursor)=>{streamCursor=cursor;},
       onState:(state)=>{
         if(state.phase==='reconnecting')setRuntimeState(`Events reconnecting · ${state.delay_ms}ms`,'degraded');
@@ -66,5 +69,7 @@ async function startLiveUpdates(){
     if(!streamAbort.signal.aborted)setRuntimeState(error?.name==='StreamAuthError'?'Events unauthorized':'Events unavailable','degraded');
   }
 }
+document.querySelector('#mark-start-notifications-read')?.addEventListener('click',async()=>{notifications=await markNotificationsRead();renderStartNotifications();});
+notifications=await listNotifications().catch(()=>[]);renderStartNotifications();
 const state={...defaults,...(await read()).focusa_startpage_widgets};renderWidgets(state);bind();clock();setInterval(clock,30000);startLiveUpdates();
 window.addEventListener('pagehide',()=>streamAbort?.abort());
