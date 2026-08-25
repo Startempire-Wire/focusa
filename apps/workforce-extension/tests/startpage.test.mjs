@@ -43,6 +43,13 @@ test('start page and sidepanel share persisted notification projections',()=>{
   assert.match(js,/start-notifications/);
 });
 
+test('start page keeps daemon source explicit and selection persistent',()=>{
+  assert.match(html,/id="daemon-select"/);
+  assert.match(js,/loadSelectedConnection/);
+  assert.match(js,/focusa_startpage_connection\.v1/);
+  assert.match(js,/liveConnection\?\.label/);
+});
+
 test('start page has responsive widget grid and accessible motion/theme handling',()=>{
   assert.match(css,/grid-template-columns/);
   assert.match(css,/@media\(max-width:850px\)/);

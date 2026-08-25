@@ -15,6 +15,8 @@ function bind(){document.querySelector('#customize').addEventListener('click',()
 let refreshPromise=null;
 let streamAbort=null;
 let streamCursor=null;
+let selectedConnectionId=null;
+let liveConnection=null;
 function setRuntimeState(label, tone='ready'){const node=document.querySelector('#runtime-label');if(node)node.textContent=label;const health=document.querySelector('.health');if(health)health.dataset.tone=tone;}
 function setWidgetText(selector,text){const node=document.querySelector(selector);if(node)node.textContent=text;}
 let notifications=[];
@@ -28,13 +30,20 @@ function renderLiveWorkLoop(projection){
   setWidgetText('#agent-count',enabled ? '1' : '0');
   setWidgetText('#agent-list',enabled ? `Work Loop · ${projection.status || 'active'}` : 'No active Work Loop.');
 }
+async function loadSelectedConnection(){
+  const connections=await listConnections();
+  const select=document.querySelector('#daemon-select');
+  if(select){select.replaceChildren(...connections.map((item)=>new Option(item.label,item.connection_id)));if(!connections.length)select.append(new Option('No daemon connected',''));selectedConnectionId=selectedConnectionId&&connections.some((item)=>item.connection_id===selectedConnectionId)?selectedConnectionId:(connections[0]?.connection_id||'');select.value=selectedConnectionId;}
+  return connections.find((item)=>item.connection_id===selectedConnectionId)||null;
+}
 async function loadLiveWorkLoop(){
   try{
-    const connections=await listConnections();
-    const connection=connections[0];
+    const connection=await loadSelectedConnection();
+    liveConnection=connection;
     if(!connection){setRuntimeState('Connect a daemon','degraded');return null;}
     const projection=await fetchWorkLoop({baseUrl:connection.base_url,token:connection.token});
     renderLiveWorkLoop(projection);
+    setRuntimeState(`Work Loop live · ${connection.label}`,'ready');
     return connection;
   }catch(error){
     const label=error instanceof ProjectionRequestError ? `Runtime ${error.kind}` : 'Runtime unavailable';
@@ -60,9 +69,10 @@ async function startLiveUpdates(){
       onEvent:async(event)=>{await refreshLiveWorkLoop();const notification=notificationFromEvent(event);if(notification){notifications=await saveNotification(notification);renderStartNotifications();}},
       commitCursor:async(cursor)=>{streamCursor=cursor;},
       onState:(state)=>{
-        if(state.phase==='reconnecting')setRuntimeState(`Events reconnecting · ${state.delay_ms}ms`,'degraded');
-        else if(state.phase==='unauthorized')setRuntimeState('Events unauthorized','degraded');
-        else if(state.phase==='live')setRuntimeState('Work Loop live','ready');
+        const source=liveConnection?.label||'daemon';
+        if(state.phase==='reconnecting')setRuntimeState(`Events reconnecting · ${source}`,'degraded');
+        else if(state.phase==='unauthorized')setRuntimeState(`Events unauthorized · ${source}`,'degraded');
+        else if(state.phase==='live')setRuntimeState(`Work Loop live · ${source}`,'ready');
       },
     });
   }catch(error){
@@ -70,6 +80,8 @@ async function startLiveUpdates(){
   }
 }
 document.querySelector('#mark-start-notifications-read')?.addEventListener('click',async()=>{notifications=await markNotificationsRead();renderStartNotifications();});
+document.querySelector('#daemon-select')?.addEventListener('change',async(event)=>{selectedConnectionId=event.target.value;await storage?.set({'focusa_startpage_connection.v1':selectedConnectionId});streamAbort?.abort();await startLiveUpdates();});
 notifications=await listNotifications().catch(()=>[]);renderStartNotifications();
+const savedSelection=await storage?.get('focusa_startpage_connection.v1');selectedConnectionId=savedSelection?.['focusa_startpage_connection.v1']||null;
 const state={...defaults,...(await read()).focusa_startpage_widgets};renderWidgets(state);bind();clock();setInterval(clock,30000);startLiveUpdates();
 window.addEventListener('pagehide',()=>streamAbort?.abort());
