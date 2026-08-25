@@ -627,6 +627,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::provider_execution::router())
         .merge(routes::task_plans::router())
         .merge(routes::work_rail::router())
+        .merge(routes::browser_fleet::router())
         .merge(routes::mission_canvas_surfaces::router())
         .merge(routes::workspace_artifacts::router())
         .merge(routes::device_pairing::router())

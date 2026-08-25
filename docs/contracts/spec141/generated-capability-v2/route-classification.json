@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 617,
+  "route_count": 618,
   "classification_counts": {
     "agent_eligible": 164,
     "internal": 6,
-    "operator_only": 441,
+    "operator_only": 442,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -1213,6 +1213,18 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/browser-fleet/status",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/browser_fleet.rs"
       ],
       "methods": [
         "GET"

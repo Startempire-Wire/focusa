@@ -12,6 +12,7 @@ pub mod autonomy;
 pub mod awareness;
 pub mod bloatgaurd;
 pub mod bloatgaurd_optical;
+pub mod browser_fleet;
 pub mod bounded;
 pub mod browser_interop;
 pub mod call_stack;
