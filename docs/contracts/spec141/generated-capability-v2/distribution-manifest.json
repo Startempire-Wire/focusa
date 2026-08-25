@@ -6,13 +6,13 @@
     "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:119e501105edbb8b09c27c78f9f875e4d497f827374a7e316f4938540cf4d7fd",
     "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:e357dba72b96f0c2d8b1b929a1d6cfebe1980abf581125266d4f48a930f72720",
     "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:53c6e6bc53ae2978d73cd679fc3b140b1c234ab218b2341a9eb43713b63c9201",
-    "crates/focusa-core/src/lib.rs": "sha256:d2212b4eed9336069c25d647050ad72806e2930860a0dac1c979d5f571740c60"
+    "crates/focusa-core/src/lib.rs": "sha256:ce026b24df343304e14bb6bf47b6de1e65a87a31108dc6cb8c79380fc4f9098f"
   },
   "compatibility_status": "compatible",
   "drift_findings": [],
   "evidence_ref": "scripts/verify-version-surfaces.py",
-  "generated_at": "2026-08-25T07:56:49.540847Z",
+  "generated_at": "2026-08-25T07:58:17.622720Z",
   "release_version": "0.9.184-dev",
   "schema": "focusa.distribution_manifest.v1",
-  "source_commit": "6e401c684"
+  "source_commit": "0060fa38b"
 }
