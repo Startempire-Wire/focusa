@@ -119,11 +119,28 @@ pub fn load_or_create_node_identity(
             fs::read(&path).map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
         let identity: NodeIdentity = serde_json::from_slice(&bytes)
             .map_err(|_| CredentialStoreError::NodeIdentityInvalid)?;
+        // Tolerate legacy identities that stored the node id with a `node-`
+        // prefix (#342 field evidence): normalize instead of failing the whole
+        // activation flow for pre-existing installs.
+        let normalized_node_id = identity
+            .node_id
+            .strip_prefix("node-")
+            .unwrap_or(&identity.node_id)
+            .to_string();
         if identity.schema != "focusa.node_identity.v1"
             || identity.product != product
-            || Uuid::parse_str(&identity.node_id).is_err()
+            || Uuid::parse_str(&normalized_node_id).is_err()
         {
             return Err(CredentialStoreError::NodeIdentityInvalid);
+        }
+        if normalized_node_id != identity.node_id {
+            let mut fixed = identity;
+            fixed.node_id = normalized_node_id;
+            let bytes = serde_json::to_vec_pretty(&fixed)
+                .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
+            fs::write(&path, bytes)
+                .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
+            return Ok(fixed);
         }
         return Ok(identity);
     }
