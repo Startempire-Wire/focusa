@@ -56,8 +56,9 @@
     </section>
 
     <section class="panel audit-panel" aria-labelledby="audit-heading">
-      <div class="section-heading"><div><p class="kicker">RECEIPTS</p><h2 id="audit-heading">Audit</h2><span class="heading-subtitle">Activity</span></div><span id="audit-count" class="badge">0 events</span></div>
-      <p class="notice">Recent daemon events, approvals, and completion signals.</p>
+      <div class="section-heading"><div><p class="kicker">RECEIPTS</p><h2 id="audit-heading">Audit</h2><span class="heading-subtitle">Everything Focusa reports in this scope</span></div><div class="notification-actions"><span id="audit-count" class="badge">0 events</span><button id="clear-audit" class="text-button" type="button">Clear local</button></div></div>
+      <div class="audit-toolbar"><label for="audit-filter">Filter events<input id="audit-filter" type="search" placeholder="Search event types, cursors, sources" autocomplete="off"></label></div>
+      <p id="audit-state" class="notice">Durable local audit projection · raw daemon payloads excluded.</p>
       <ul id="audit" class="audit"><li class="empty">No activity received.</li></ul>
     </section>
   </main>
