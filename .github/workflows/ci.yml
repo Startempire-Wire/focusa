@@ -23,6 +23,11 @@ concurrency:
 env:
   CARGO_BUILD_JOBS: '2'
   CARGO_INCREMENTAL: '0'
+  # Container physpages ceiling (~14GB shared with production) kills rustc
+  # during thin-LTO codegen (#328 root cause). Validation builds skip LTO;
+  # release artifacts come from the separate release pipeline.
+  CARGO_PROFILE_RELEASE_LTO: 'off'
+  CARGO_PROFILE_RELEASE_CODEGEN_UNITS: '16'
 
 jobs:
   commit-messages:
