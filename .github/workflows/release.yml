@@ -199,7 +199,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install release gate dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
+        run: |
+          # Self-hosted AlmaLinux runner already ships rg; hosted Ubuntu needs apt.
+          command -v rg >/dev/null 2>&1 || { sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep; }
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
