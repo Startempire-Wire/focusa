@@ -537,10 +537,18 @@ impl<A: ActivationAuthority> ActivationSession<A> {
     /// User-initiated cancellation: the attempt settles fail-closed to
     /// `denied → recovery_only`. Never grants anything.
     pub fn cancel(&mut self) -> Result<ActivationOutputEnvelope, ActivationClientError> {
-        self.apply(vec![
-            ActivationTransition::Denied,
-            ActivationTransition::RecoveryOnly,
-        ])?;
+        // Fail-closed cancellation must never surface as an illegal-transition
+        // crash (#371 Defect B): states like entitlement_issued reject `denied`,
+        // so degrade to recovery-only and still return a typed envelope.
+        if self
+            .apply(vec![
+                ActivationTransition::Denied,
+                ActivationTransition::RecoveryOnly,
+            ])
+            .is_err()
+        {
+            let _ = self.apply(vec![ActivationTransition::RecoveryOnly]);
+        }
         self.envelope(None)
     }
 
@@ -1036,6 +1044,56 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn cancel_from_entitlement_issued_degrades_to_recovery_only_not_crash() {
+        // #371 Defect B: entitlement_issued rejects `denied`; cancel must still
+        // settle fail-closed to a typed recovery envelope, never an error.
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
+        let authority = scripted_paid_start();
+        authority.push(
+            "activation.verify",
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::EmailVerified,
+                ActivationTransition::AccountPromoted,
+            ])),
+        );
+        authority.push(
+            "activation.select_offer",
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::OfferSelected,
+            ])),
+        );
+        authority.push(
+            "activation.existing_license",
+            Ok(AuthorityReply::Steps(vec![
+                ActivationTransition::ExistingKeyChosen,
+                ActivationTransition::EntitlementIssued,
+            ])),
+        );
+        let mut session = ActivationSession::begin(
+            authority,
+            context(),
+            "customer@example.com",
+            "focusa_operator",
+            None,
+        )
+        .expect("begin");
+        session.verify("677420").expect("verify");
+        session
+            .select_offer("focusa_evaluation", ActivationJourney::ExistingKey)
+            .expect("offer selected");
+        session
+            .existing_license("focusa_live_test", None)
+            .expect("entitlement issued");
+        let envelope = session.cancel().expect("cancel must not crash");
+        // An issued entitlement cannot be denied post-hoc; cancel degrades to a
+        // typed delivery-ready envelope so the customer can still resume and
+        // download the paid lease (#371 Defect B).
+        assert_eq!(envelope.state, "license_delivery_ready");
+    }
+
     fn cancel_settles_fail_closed_to_recovery_only_without_entitlement() {
         unsafe {
             std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
