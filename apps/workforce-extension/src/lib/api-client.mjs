@@ -12,6 +12,7 @@ export class ProjectionRequestError extends Error {
 }
 
 const endpointContracts = Object.freeze({
+  browser_fleet: Object.freeze({ path: "/v1/browser-fleet/status", schema: null }),
   health: Object.freeze({ path: '/v1/health', schema: 'focusa.health.v1' }),
   work_loop: Object.freeze({ path: '/v1/work-loop/status?summary_only=true', schema: 'focusa.work_loop_status.v3' }),
   roster: Object.freeze({ path: '/v1/silent-sessions', schema: 'focusa.silent_session_api_envelope.v1' }),
@@ -42,7 +43,7 @@ export async function fetchProjection(kind, { baseUrl, token, fetchImpl = global
   }
   let body;
   try { body = JSON.parse(text); } catch { throw new ProjectionRequestError('invalid_envelope', `${kind} projection is not JSON`, response.status); }
-  if (!body || body.schema !== contract.schema) {
+    if (!body || (contract.schema && body.schema !== contract.schema)) {
     throw new ProjectionRequestError('unsupported', `${kind} projection schema is unsupported`, response.status);
   }
   if (body.degraded === true) throw new ProjectionRequestError('degraded', `${kind} projection is degraded`, response.status);
@@ -51,4 +52,4 @@ export async function fetchProjection(kind, { baseUrl, token, fetchImpl = global
 
 export const fetchHealth = (options) => fetchProjection('health', options);
 export const fetchWorkLoop = (options) => fetchProjection('work_loop', options);
-export const fetchRoster = (options) => fetchProjection('roster', options);
+export const fetchRoster = (options) => fetchProjection('roster', options)

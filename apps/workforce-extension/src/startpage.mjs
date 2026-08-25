@@ -1,6 +1,7 @@
 import { fetchWorkLoop, ProjectionRequestError } from './lib/api-client.mjs';
 import { listConnections } from './lib/storage.mjs';
 import { runReliableEventStream } from './lib/reconnect.mjs';
+import { fetchBrowserFleet } from ./lib/api-client.mjs;
 import { listNotifications, markNotificationsRead, notificationFromEvent, saveNotification, unreadNotificationCount } from './lib/notifications.mjs';
 
 const WIDGETS=[['focus','Today’s focus'],['workforce','Agents'],['controls','Quick controls'],['activity','Activity'],['notifications','Notifications'],['brief','Workspace brief']];
@@ -86,3 +87,26 @@ notifications=await listNotifications().catch(()=>[]);renderStartNotifications()
 const savedSelection=await storage?.get('focusa_startpage_connection.v1');selectedConnectionId=savedSelection?.['focusa_startpage_connection.v1']||null;
 const state={...defaults,...(await read()).focusa_startpage_widgets};renderWidgets(state);bind();clock();setInterval(clock,30000);startLiveUpdates();
 window.addEventListener('pagehide',()=>streamAbort?.abort());
+
+function renderFleet(fleet){
+  const body=document.querySelector(#fleet-body); if(!body) return;
+  const pools=Array.isArray(fleet?.pools)?fleet.pools:[];
+  document.querySelector(#fleet-pools).textContent=String(pools.length);
+  body.replaceChildren();
+  if(!pools.length){ body.append(Object.assign(document.createElement(p),{className:muted,textContent:No pools reported.})); return; }
+  for(const p of pools){
+    const row=document.createElement(div); row.className=fleet-row;
+    const label=document.createElement(strong);
+    label.textContent=`pool ${p.max_pages???}p · ${p.browser_state???}`;
+    const meta=document.createElement(small); meta.className=muted;
+    meta.textContent=`active ${p.active_pages??0} · fails ${p.fail_count??0}`;
+    row.append(label,meta); body.append(row);
+  }
+}
+async function loadFleet(){
+  try{ const c=await loadSelectedConnection(); if(!c) return;
+    renderFleet(await fetchBrowserFleet({baseUrl:c.base_url,token:c.token}));
+  }catch(e){ const b=document.querySelector(#fleet-body); if(b) b.replaceChildren(Object.assign(document.createElement(p),{className:muted,textContent:Fleet unavailable: +(e?.kind||error)})); }
+}
+document.querySelector(#fleet-refresh)?.addEventListener(click,loadFleet);
+loadFleet();
