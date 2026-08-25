@@ -1,6 +1,6 @@
 # 181 — Focusa × UIAI Web Runtime Integration Spec (mirror of UIAI-ENGINE-010)
 
-**Status:** Proposed — slices gate on engine claim availability
+**Status:** F1 code-complete (engine W2 live; bridge route + client widget landed) — awaiting daemon release ≥ bridge-route build to go live. F2–F4 pending per gating below.
 **Engine counterpart:** `WPUIAI/uiai-engine/docs/010-uiai-engine-web-runtime-leap-spec.md` (claim IDs C-010-*)
 **Owner surfaces:** workforce extension (startpage/wall/sidepanel), focusa-api bridge routes, silent sessions
 
