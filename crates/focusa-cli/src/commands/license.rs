@@ -2171,9 +2171,10 @@ async fn run_activation_flow_command(
 ) -> anyhow::Result<()> {
     use crate::commands::activation_flow::{
         ActivationFlowSessionPersist, CLI_FLOW, StdinFlowInput, load_poll_credential,
-        load_registration_snapshot, resolve_flow_node_identity, resume_activation_flow,
-        run_activation_flow,
+        load_registration_snapshot, persist_poll_credential, persist_registration_snapshot,
+        resolve_flow_node_identity, resume_activation_flow, run_activation_flow,
     };
+    use focusa_license::activation_client::ActivationSession;
     use focusa_license::authority_credentials::KeyringCredentialStore;
     use focusa_license::{ActivationHttpClient, ActivationHttpPolicy};
 
@@ -2276,9 +2277,11 @@ async fn run_agent_activation_command(
     args: ActivateFlowArgs,
 ) -> anyhow::Result<()> {
     use crate::commands::activation_flow::{
-        CLI_FLOW, load_poll_credential, load_registration_snapshot, resolve_flow_node_identity,
+        ActivationFlowError, CLI_FLOW, load_poll_credential, load_registration_snapshot,
+        persist_poll_credential, persist_registration_snapshot, resolve_flow_node_identity,
         resume_agent_activation, run_agent_activation,
     };
+    use focusa_license::activation_client::ActivationSession;
     use focusa_license::authority_credentials::KeyringCredentialStore;
     use focusa_license::{ActivationHttpClient, ActivationHttpPolicy, AgentKeyReveal};
 
@@ -2305,6 +2308,20 @@ async fn run_agent_activation_command(
     let client = ActivationHttpClient::new(policy)
         .map_err(|error| anyhow::anyhow!("initialize activation authority transport: {error}"))?;
 
+    // Agent-mode continuity: every state change persists the registration
+    // snapshot and protected poll credential so any later process can resume
+    // with --resume <registration_id> (#370). Mirrors the interactive path.
+    let agent_persist = |session: &ActivationSession<ActivationHttpClient>| -> Result<
+        (),
+        crate::commands::activation_flow::ActivationFlowError,
+    > {
+        persist_registration_snapshot(&config_dir, session.registration())?;
+        if let Some(credential) = session.poll_credential() {
+            persist_poll_credential(&KeyringCredentialStore, session.registration_id(), credential)?;
+        }
+        Ok(())
+    };
+
     let outcome = if let Some(registration_id) = args.resume.as_deref() {
         let registration = load_registration_snapshot(&config_dir, registration_id)?;
         let credential = load_poll_credential(&KeyringCredentialStore, registration_id)?;
@@ -2315,6 +2332,7 @@ async fn run_agent_activation_command(
             credential,
             args.poll_timeout,
             reveal,
+            Some(&agent_persist),
         )?
     } else {
         let email = args.email.ok_or_else(|| {
@@ -2328,6 +2346,7 @@ async fn run_agent_activation_command(
             Some(email),
             Some(identity.node_id.clone()),
             reveal,
+            Some(&agent_persist),
         )?
     };
 

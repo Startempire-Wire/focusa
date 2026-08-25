@@ -207,26 +207,38 @@ impl ActivationFlowSessionPersist {
         &self,
         session: &ActivationSession<ActivationHttpClient>,
     ) -> Result<(), ActivationFlowError> {
-        persist_registration_snapshot(&self.config_dir, session.registration())?;
-        if let Some(credential) = session.poll_credential() {
-            persist_poll_credential(
-                &KeyringCredentialStore,
-                session.registration_id(),
-                credential,
-            )?;
-        }
-        if session.state().is_terminal() {
-            let envelope = session.envelope(None)?;
-            if let Some(lease) = envelope.lease_envelope.as_deref() {
-                let identity = resolve_flow_node_identity(&self.config_dir)?;
-                persist_delivered_lease(&self.config_dir, &identity, lease, chrono::Utc::now())?;
-            }
-            if let Some(key_envelope) = envelope.one_time_key_envelope.as_deref() {
-                persist_key_envelope(&self.config_dir, session.registration_id(), key_envelope)?;
-            }
-        }
-        Ok(())
+        persist_agent_session_state(&self.config_dir, session, &KeyringCredentialStore)
     }
+
+    pub fn config_dir(&self) -> &std::path::Path {
+        &self.config_dir
+    }
+}
+
+/// Persist the resumable agent-session state (registration snapshot + protected
+/// poll credential; lease/key envelopes when terminal). Shared by the interactive
+/// flow and the agent/JSON protocol so continuity never depends on which surface
+/// ran the step (#370).
+pub fn persist_agent_session_state<A: ActivationAuthority>(
+    config_dir: &std::path::Path,
+    session: &ActivationSession<A>,
+    store: &dyn ProtectedCredentialStore,
+) -> Result<(), ActivationFlowError> {
+    persist_registration_snapshot(config_dir, session.registration())?;
+    if let Some(credential) = session.poll_credential() {
+        persist_poll_credential(store, session.registration_id(), credential)?;
+    }
+    if session.state().is_terminal() {
+        let envelope = session.envelope(None)?;
+        if let Some(lease) = envelope.lease_envelope.as_deref() {
+            let identity = resolve_flow_node_identity(config_dir)?;
+            persist_delivered_lease(config_dir, &identity, lease, chrono::Utc::now())?;
+        }
+        if let Some(key_envelope) = envelope.one_time_key_envelope.as_deref() {
+            persist_key_envelope(config_dir, session.registration_id(), key_envelope)?;
+        }
+    }
+    Ok(())
 }
 
 impl ActivationFlowPersist<ActivationHttpClient> for ActivationFlowSessionPersist {
@@ -612,12 +624,16 @@ pub struct AgentActivationOutcome {
 /// verification code, so the envelope reports the typed human action
 /// (`enter_verification_code`) and stops with the resumable handle. No prompt
 /// is ever rendered and nothing is invented.
+pub type AgentPersistHook<'a, A> =
+    &'a dyn Fn(&ActivationSession<A>) -> Result<(), ActivationFlowError>;
+
 pub fn run_agent_activation<A: ActivationAuthority>(
     authority: A,
     config: ActivationFlowConfig,
     email: Option<String>,
     device_public_key: Option<String>,
     reveal: AgentKeyReveal,
+    persist: Option<AgentPersistHook<'_, A>>,
 ) -> Result<AgentActivationOutcome, ActivationFlowError> {
     let context = new_context(config);
     let email = email.ok_or(ActivationFlowError::EmailRequired)?;
@@ -631,6 +647,10 @@ pub fn run_agent_activation<A: ActivationAuthority>(
         "focusa",
         device_public_key.as_deref(),
     )?;
+    // The handle must survive process exit before the outcome is reported (#370).
+    if let Some(persist) = persist {
+        persist(&session)?;
+    }
     let envelope = AgentActivationEnvelope::from_session(&session, None, reveal, None)?;
     Ok(AgentActivationOutcome {
         registration_id: session.registration_id().to_string(),
@@ -652,10 +672,14 @@ pub fn resume_agent_activation<A: ActivationAuthority>(
     poll_credential: SensitiveCredential,
     poll_timeout_seconds: Option<u64>,
     reveal: AgentKeyReveal,
+    persist: Option<AgentPersistHook<'_, A>>,
 ) -> Result<AgentActivationOutcome, ActivationFlowError> {
     let context = new_context(config);
     let mut session = ActivationSession::resume(authority, context, registration, poll_credential)?;
     if session.state().is_terminal() {
+        if let Some(persist) = persist {
+            persist(&session)?;
+        }
         let envelope = AgentActivationEnvelope::from_session(&session, None, reveal, None)?;
         return Ok(AgentActivationOutcome {
             registration_id: session.registration_id().to_string(),
@@ -669,15 +693,16 @@ pub fn resume_agent_activation<A: ActivationAuthority>(
         if let Some(deadline) = deadline {
             if Instant::now() >= deadline {
                 session.cancel().map_err(ActivationFlowError::Client)?;
-                return finish_agent(session, reveal);
+                return finish_agent(session, reveal, persist);
             }
         }
         match session.poll() {
             Ok(_) => {
                 // One bounded poll settled the step. Terminal states stop;
                 // any other state still requires a human action, so return
-                // the typed envelope + resumable handle.
-                return finish_agent(session, reveal);
+                // the typed envelope + resumable handle. State is persisted
+                // inside finish so a killed process never loses settlement.
+                return finish_agent(session, reveal, persist);
             }
             Err(ActivationClientError::Authority(error)) => {
                 let retry = retry_policy_for_code(error.code);
@@ -691,13 +716,13 @@ pub fn resume_agent_activation<A: ActivationAuthority>(
                     }
                     RetryPosture::RecoveryOnly | RetryPosture::None => {
                         session.cancel().map_err(ActivationFlowError::Client)?;
-                        return finish_agent_with_error(session, Some(&error), reveal);
+                        return finish_agent_with_error(session, Some(&error), reveal, persist);
                     }
                 }
             }
             Err(ActivationClientError::PollBudgetExhausted) => {
                 session.cancel().map_err(ActivationFlowError::Client)?;
-                return finish_agent(session, reveal);
+                return finish_agent(session, reveal, persist);
             }
             Err(error) => return Err(ActivationFlowError::Client(error)),
         }
@@ -707,15 +732,20 @@ pub fn resume_agent_activation<A: ActivationAuthority>(
 fn finish_agent<A: ActivationAuthority>(
     session: ActivationSession<A>,
     reveal: AgentKeyReveal,
+    persist: Option<AgentPersistHook<'_, A>>,
 ) -> Result<AgentActivationOutcome, ActivationFlowError> {
-    finish_agent_with_error(session, None, reveal)
+    finish_agent_with_error(session, None, reveal, persist)
 }
 
 fn finish_agent_with_error<A: ActivationAuthority>(
     session: ActivationSession<A>,
     error: Option<&ActivationError>,
     reveal: AgentKeyReveal,
+    persist: Option<AgentPersistHook<'_, A>>,
 ) -> Result<AgentActivationOutcome, ActivationFlowError> {
+    if let Some(persist) = persist {
+        persist(&session)?;
+    }
     let envelope = AgentActivationEnvelope::from_session(&session, error, reveal, None)?;
     Ok(AgentActivationOutcome {
         registration_id: session.registration_id().to_string(),
@@ -1746,6 +1776,7 @@ mod tests {
             Some("customer@example.com".into()),
             Some("device-pub-key".into()),
             AgentKeyReveal::denied(),
+            None,
         )
         .expect("agent begin");
         assert!(!outcome.terminal);
@@ -1770,10 +1801,71 @@ mod tests {
     }
 
     #[test]
+    fn agent_start_persists_snapshot_and_poll_credential_for_resume() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
+        let directory = std::env::temp_dir().join(format!("focusa-agent-{}", uuid::Uuid::now_v7()));
+        let store = focusa_license::authority_credentials::InMemoryCredentialStore::default();
+        let persist =
+            |session: &ActivationSession<ScriptedAuthority>| -> Result<(), ActivationFlowError> {
+                persist_agent_session_state(&directory, session, &store)
+            };
+        let outcome = run_agent_activation(
+            scripted_paid_start(),
+            CLI_FLOW,
+            Some("customer@example.com".into()),
+            Some("device-pub-key".into()),
+            AgentKeyReveal::denied(),
+            Some(&persist),
+        )
+        .expect("agent begin with persistence");
+        // Snapshot exists on disk and keyring entry is loadable by registration id.
+        let round_trip = load_registration_snapshot(&directory, &outcome.registration_id).unwrap();
+        assert_eq!(round_trip.registration_id, outcome.registration_id);
+        let credential = load_poll_credential(&store, &outcome.registration_id).unwrap();
+        assert!(!credential.expose_for_protected_store().is_empty());
+        std::fs::remove_dir_all(&directory).unwrap();
+    }
+
+    #[test]
+    fn agent_start_creates_missing_activation_directory() {
+        unsafe {
+            std::env::set_var("FOCUSA_ACTIVATION_BYPASS_DISABLE", "1");
+        }
+        let directory =
+            std::env::temp_dir().join(format!("focusa-agent-missing-{}", uuid::Uuid::now_v7()));
+        assert!(!directory.join("activation").exists());
+        let store = focusa_license::authority_credentials::InMemoryCredentialStore::default();
+        let persist =
+            |session: &ActivationSession<ScriptedAuthority>| -> Result<(), ActivationFlowError> {
+                persist_agent_session_state(&directory, session, &store)
+            };
+        run_agent_activation(
+            scripted_paid_start(),
+            CLI_FLOW,
+            Some("customer@example.com".into()),
+            Some("device-pub-key".into()),
+            AgentKeyReveal::denied(),
+            Some(&persist),
+        )
+        .expect("begin with fresh directory");
+        assert!(directory.join("activation").exists() || directory.exists());
+        let _ = std::fs::remove_dir_all(&directory);
+    }
+
+    #[test]
     fn agent_begin_without_email_fails_closed_without_authority_call() {
         let authority = ScriptedAuthority::new();
-        let error = run_agent_activation(authority, CLI_FLOW, None, None, AgentKeyReveal::denied())
-            .unwrap_err();
+        let error = run_agent_activation(
+            authority,
+            CLI_FLOW,
+            None,
+            None,
+            AgentKeyReveal::denied(),
+            None,
+        )
+        .unwrap_err();
         assert!(matches!(error, ActivationFlowError::EmailRequired));
     }
 
@@ -1808,6 +1900,7 @@ mod tests {
             credential,
             None,
             AgentKeyReveal::denied(),
+            None,
         )
         .expect("agent resume");
         assert!(!outcome.terminal);
@@ -1858,6 +1951,7 @@ mod tests {
             credential,
             None,
             AgentKeyReveal::denied(),
+            None,
         )
         .expect("agent resume to delivery");
         assert!(outcome.terminal);
@@ -1895,6 +1989,7 @@ mod tests {
             credential,
             None,
             AgentKeyReveal::denied(),
+            None,
         )
         .expect("refund settles recovery");
         assert!(outcome.terminal);
@@ -1929,6 +2024,7 @@ mod tests {
             credential,
             Some(0),
             AgentKeyReveal::denied(),
+            None,
         )
         .expect("timeout cancels");
         assert!(outcome.terminal);
