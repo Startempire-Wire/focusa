@@ -69,6 +69,7 @@ pub mod callgraph_store;
 pub mod capability_authorization;
 pub mod capability_truth;
 pub mod widget_contracts;
+pub mod wall_views;
 pub mod claim_gate;
 pub mod clt;
 pub mod compaction_policy;
