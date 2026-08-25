@@ -23,6 +23,9 @@ if (manifest.background?.service_worker !== 'background.mjs') {
 if (manifest.side_panel?.default_path !== 'sidepanel.html') {
   throw new Error('side panel entry must be sidepanel.html');
 }
+if (manifest.chrome_url_overrides?.newtab !== 'startpage.html') {
+  throw new Error('new tab entry must be startpage.html');
+}
 
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });

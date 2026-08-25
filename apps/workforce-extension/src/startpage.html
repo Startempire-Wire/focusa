@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light">
+  <title>Focusa Workforce · Start</title><link rel="stylesheet" href="startpage.css">
+</head>
+<body>
+  <header class="topbar"><div class="brand"><span class="mark">F</span><div><span class="eyebrow">FOCUSA WORKFORCE</span><strong>Start page</strong></div></div><div class="top-actions"><span id="clock" class="muted"></span><button id="customize" class="ghost" type="button">Customize</button><button id="open-panel" type="button">Open command panel</button></div></header>
+  <main>
+    <section class="welcome"><div><p class="eyebrow">GOOD TO SEE YOU</p><h1>Make the next move count.</h1><p class="lead">A calm, high-level view of your work, your agents, and the controls that matter now.</p></div><div class="health"><span class="pulse"></span><span id="runtime-label">Runtime ready</span></div></section>
+    <section id="widget-drawer" class="drawer" hidden><div><strong>Choose your view</strong><span class="muted">Turn areas on or off. Your layout stays local to this browser.</span></div><div id="widget-toggles" class="toggles"></div></section>
+    <div id="dashboard" class="dashboard">
+      <section class="widget hero-widget" data-widget="focus"><div class="widget-head"><div><p class="eyebrow">HIGH-LEVEL VIEW</p><h2>Today’s focus</h2></div><span class="badge">Uncommitted</span></div><p id="focus-copy" class="focus-copy">Connect your daemon and orient the current tab to see the active mission here.</p><div class="quick-actions"><button id="orient-now" type="button">Orient current tab</button><button id="new-work" class="secondary" type="button">Start a new work item</button></div></section>
+      <section class="widget" data-widget="workforce"><div class="widget-head"><div><p class="eyebrow">LIVE WORKFORCE</p><h2>Agents at a glance</h2></div><span id="agent-count" class="metric">0</span></div><div id="agent-list" class="agent-list"><p class="muted">No active agents yet.</p></div><button id="manage-agents" class="link-button" type="button">Manage workforce →</button></section>
+      <section class="widget" data-widget="controls"><div class="widget-head"><div><p class="eyebrow">QUICK CONTROLS</p><h2>Keep work governed</h2></div><span class="badge safe">Safe defaults</span></div><div class="control-grid"><button id="pause-work" class="control-card" type="button"><span class="control-icon">Ⅱ</span><strong>Pause work</strong><small>Hold active workers</small></button><button id="review-activity" class="control-card" type="button"><span class="control-icon">≡</span><strong>Review activity</strong><small>Open recent receipts</small></button><button id="pair-daemon" class="control-card" type="button"><span class="control-icon">⌁</span><strong>Connect daemon</strong><small>Pair another runtime</small></button></div></section>
+      <section class="widget" data-widget="activity"><div class="widget-head"><div><p class="eyebrow">RECENT ACTIVITY</p><h2>What changed</h2></div><span class="muted">Local view</span></div><ul id="activity-list" class="activity-list"><li><span class="activity-dot"></span><div><strong>Start page ready</strong><small>Widgets are customizable and off by default only when you hide them.</small></div></li></ul></section>
+      <section class="widget" data-widget="brief"><div class="widget-head"><div><p class="eyebrow">WORKSPACE BRIEF</p><h2>Before you begin</h2></div></div><div class="brief-list"><div><span>01</span><p><strong>Orient the page</strong><small>Capture what you are looking at.</small></p></div><div><span>02</span><p><strong>Set the boundary</strong><small>Define the outcome and approvals.</small></p></div><div><span>03</span><p><strong>Start deliberately</strong><small>Run only the worker you intend.</small></p></div></div></section>
+    </div>
+  </main>
+  <footer><span>Focusa Workforce</span><span>Private by default · daemon remains canonical</span></footer>
+  <script type="module" src="startpage.mjs"></script>
+</body>
+</html>

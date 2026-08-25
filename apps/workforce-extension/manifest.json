@@ -9,6 +9,9 @@
   "action": {
     "default_title": "Open Focusa Workforce"
   },
+  "chrome_url_overrides": {
+    "newtab": "startpage.html"
+  },
   "background": {
     "service_worker": "background.mjs",
     "type": "module"
