@@ -1,0 +1,5 @@
+F1 client slice — 2026-08-25T17:51:55Z
+- api-client: browser_fleet contract (/v1/browser-fleet/status, schema:null passthrough)
+- startpage: data-widget=fleet renders pools/state/fails via fetchBrowserFleet
+- tests: fleet-widget.test.mjs 2/2 · suite 65/65 · MV3 build PASS
+- engine side live: /api/health/browser + SSE /api/focusa-events (budget.paused/resumed captured)
