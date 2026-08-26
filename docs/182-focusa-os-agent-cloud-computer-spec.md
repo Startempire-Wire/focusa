@@ -1,6 +1,6 @@
 # 182 — Veragensia · Focusa Agent OS & Agent Cloud Computer Spec
 
-**Status:** DRAFT (vision locked 2026-08-26). No code yet. Phases 0–1 are the first implementable slices.
+**Status:** DRAFT (vision + naming locked 2026-08-26). **Live proving ground operational:** `https://os.focusa.dev` — persistent, login-free webtop + Chromium + Workforce extension, self-healing keeper, realtime iterate via `uiai-lab-push` (build-in-public demo / agent playground). Phases 0–1 remain the first formal slices; the live demo is the Phase-0 surface.
 **Owner:** Focusa product direction; extends 174 (extension MVP), 180 (widgets/wall), 181 (browser runtime).
 **Companions:** `WPUIAI/uiai-engine/docs/010-uiai-engine-web-runtime-leap-spec.md` (C-010-*); Omarchy (basecamp/omarchy, MIT).
 **Naming:** the product is **Veragensia** — *ver-* (truth, the Focusa signature root) + *agens* (the actor) + *-ia* (realm/land, as in *agentia*): "the realm of the true agent." It still ends in *-a*, rhyming with the focusa / perpetua / veribella family. It is the Focusa Agent OS: the whole stack of webtop + system-wide Focusa layer + custom GUI + UIAI Engine + browser + extension. A provisioned, streamable instance, bundled into the client setup offer, is an **Agent Cloud Computer**. (*Veragens* = official short form — the CLI/package name and the casual pair-with-Focusa, e.g. "Focusa Veragens"; *Veragensa* = considered variant; *Focusa Agent OS* = descriptor.) A pure coinage → clean trademark/domain.
