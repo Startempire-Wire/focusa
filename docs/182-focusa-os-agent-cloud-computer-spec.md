@@ -111,11 +111,12 @@ The deliverable bundled into client setup:
 - **webtop** (LinuxServer/Selkies) for streaming the desktop to any browser (human view), no-login ephemeral share like `gui.focusa.dev`.
 - **Focusa OS** (Omarchy + overlay) as the desktop environment.
 - **UIAI Engine** as the agent browser.
-- **Focusa daemon** as the authority; the extension remains as one optional surface.
+- **Chromium + Focusa Workforce extension** preinstalled and loaded by default on every install — the extension is a native, first-class surface of the OS (not an optional add-on).
+- **Focusa daemon** as the authority, owning runtime/persistence/authorization across all surfaces.
 
 Result: a human opens a URL and shares a desktop with governed agents; both act in one workspace.
 
-**Accept:** a provisioned Agent Cloud Computer streams to a URL; a human and an agent both see and act on the same desktop state; teardown on idle.
+**Accept:** a provisioned Agent Cloud Computer streams to a URL with Chromium + the extension already loaded; a human and an agent both see and act on the same desktop state; teardown on idle.
 
 ---
 
@@ -134,7 +135,7 @@ Result: a human opens a URL and shares a desktop with governed agents; both act 
 - **Phase 0 — Prove the concept (days):** Focusa theme + preinstalled extension + daemon, on the *current* Ubuntu webtop, visible at a share URL. Validates streaming + branding cheaply.
   **Accept:** branded desktop streams; extension loads by default.
 - **Phase 1 — Omarchy base + overlay (week):** `focusa-os-layer` (theme + daemon systemd service + preinstall) applied to an Omarchy image; runs in webtop.
-  **Accept:** Omarchy+overlay boots in webtop; daemon service healthy; share URL shows Focusa OS.
+  **Accept:** Omarchy+overlay boots in webtop with Chromium + extension preinstalled; daemon service healthy; share URL shows Focusa OS.
 - **Phase 2 — System layer (weeks):** OS IPC bus, waybar Focusa modules, approvals/notify integration, credentials broker as secret service.
   **Accept:** waybar shows live daemon state; an agent action triggers an OS approval prompt.
 - **Phase 3 — Custom GUI (weeks):** QML Focusa shell (start/wall/command as native surfaces); agent-view embed (Engine artifact-ref).
