@@ -1044,7 +1044,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn cancel_from_entitlement_issued_degrades_to_recovery_only_not_crash() {
         // #371 Defect B: entitlement_issued rejects `denied`; cancel must still
         // settle fail-closed to a typed recovery envelope, never an error.

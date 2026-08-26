@@ -663,9 +663,8 @@ pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
         LicenseCmd::CheckFeature(a) => run_check_feature(json_output, a).await,
         LicenseCmd::Preflight(a) => run_preflight(json_output, a).await,
         LicenseCmd::ActivateFlow(a) => {
-            if a.license_key.is_some() && !a.agent {
-                run_redeem_fast_path(json_output, &a.license_key.unwrap(), a.registry.as_deref())
-                    .await
+            if let (Some(key), false) = (a.license_key.as_ref(), a.agent) {
+                run_redeem_fast_path(json_output, key, a.registry.as_deref()).await
             } else if a.agent {
                 run_agent_activation_command(json_output, a).await
             } else {

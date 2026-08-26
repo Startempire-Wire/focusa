@@ -680,8 +680,8 @@ mod tests {
                 denial_ux_link(link).is_some(),
                 "grid link resolves for {family}"
             );
-            if code.is_some() {
-                assert!(DenialUxErrorCode::from_label(code.unwrap()).is_some());
+            if let Some(label) = code {
+                assert!(DenialUxErrorCode::from_label(label).is_some());
             }
         }
     }
