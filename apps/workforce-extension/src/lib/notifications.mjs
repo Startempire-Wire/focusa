@@ -16,7 +16,24 @@ export function notificationFromEvent(event){
   return Object.freeze({id:text(event.event_id),cursor:text(event.cursor),timestamp:text(event.timestamp),event_type:kind,title:kind.replaceAll('_',' '),body:summary,severity:severity(event),source:text(scope.organization_id||scope.continuity_id,'Focusa daemon'),read:false});
 }
 export async function listNotifications(chromeApi=globalThis.chrome){const raw=(await area(chromeApi).get(STORAGE_KEY))?.[STORAGE_KEY]??[];if(!Array.isArray(raw))throw new Error('stored notification collection is invalid');return raw.slice(0,MAX_NOTIFICATIONS);}
-export async function saveNotification(notification,chromeApi=globalThis.chrome){if(!notification?.id)throw new TypeError('notification id is required');const current=await listNotifications(chromeApi);const next=[notification,...current.filter(item=>item.id!==notification.id)].slice(0,MAX_NOTIFICATIONS);await area(chromeApi).set({[STORAGE_KEY]:next});return next;}
+const PREFS_KEY='focusa.workforce.notifprefs.v1';
+const DEFAULT_PREFS=Object.freeze({info:true,success:true,warning:true,danger:true});
+export async function loadNotifPrefs(chromeApi=globalThis.chrome){
+  const raw=(await area(chromeApi).get(PREFS_KEY))?.[PREFS_KEY];
+  return Object.freeze({...DEFAULT_PREFS,...(raw&&typeof raw==='object'?raw:{})});
+}
+export async function saveNotifPrefs(prefs,chromeApi=globalThis.chrome){
+  const merged={...DEFAULT_PREFS,...(prefs||{})};
+  await area(chromeApi).set({[PREFS_KEY]:merged});
+  return Object.freeze(merged);
+}
+function shouldStore(notification,prefs){
+  if(!notification)return false;
+  return prefs[notification.severity]!==false;
+}
+export async function saveNotification(notification,chromeApi=globalThis.chrome){
+  const prefs=await loadNotifPrefs(chromeApi);
+  if(!shouldStore(notification,prefs))return listNotifications(chromeApi);if(!notification?.id)throw new TypeError('notification id is required');const current=await listNotifications(chromeApi);const next=[notification,...current.filter(item=>item.id!==notification.id)].slice(0,MAX_NOTIFICATIONS);await area(chromeApi).set({[STORAGE_KEY]:next});return next;}
 export async function markNotificationsRead(chromeApi=globalThis.chrome){const current=await listNotifications(chromeApi);const next=current.map(item=>({...item,read:true}));await area(chromeApi).set({[STORAGE_KEY]:next});return next;}
 export function unreadNotificationCount(items){return (items??[]).filter(item=>item.read!==true).length;}
 export const notificationStorageKey=STORAGE_KEY;

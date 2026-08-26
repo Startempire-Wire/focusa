@@ -37,6 +37,26 @@
       <form id="creation-form" class="stack-form">
         <label for="agent-name">Agent name<input id="agent-name" name="agent_name" required placeholder="e.g. Research scout"></label>
         <div class="field-grid"><label for="provider">Provider<input id="provider" name="provider" value="openai"></label><label for="model">Model<input id="model" name="model" placeholder="Verified default"></label></div>
+        <label for="role-profile-ref">Role profile
+          <select id="role-profile-ref" name="role_profile_ref">
+            <option value="">None (operator default)</option>
+            <option value="preset:planner">Planner</option>
+            <option value="preset:researcher">Researcher</option>
+            <option value="preset:builder">Builder</option>
+            <option value="preset:reviewer">Reviewer</option>
+            <option value="preset:operator">Operator</option>
+          </select>
+        </label>
+        <label for="role-profile-ref">Role profile
+          <select id="role-profile-ref" name="role_profile_ref">
+            <option value="">None (operator default)</option>
+            <option value="preset:planner">Planner</option>
+            <option value="preset:researcher">Researcher</option>
+            <option value="preset:builder">Builder</option>
+            <option value="preset:reviewer">Reviewer</option>
+            <option value="preset:operator">Operator</option>
+          </select>
+        </label>
         <label for="auth-profile">Auth profile<input id="auth-profile" name="auth_profile_ref" placeholder="Optional approved profile"></label>
         <div class="actions"><button id="preflight" class="secondary" type="button">Run preflight</button><button id="create-draft" type="submit">Create draft</button></div>
         <p id="preflight-result" class="notice" role="status"></p>

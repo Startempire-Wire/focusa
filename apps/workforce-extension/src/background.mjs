@@ -13,3 +13,10 @@ chrome.runtime.onStartup.addListener(() => {
     console.error('Focusa Workforce could not restore side-panel behavior', error);
   });
 });
+
+// Keyboard command surfaces: wall opens as a tab; panel opens via action key.
+chrome.commands?.onCommand.addListener((command) => {
+  if (command === 'open-wall') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('wall.html') });
+  }
+});

@@ -30,5 +30,19 @@
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+F"
+      },
+      "description": "Open Focusa Workforce panel"
+    },
+    "open-wall": {
+      "suggested_key": {
+        "default": "Alt+Shift+W"
+      },
+      "description": "Open Focusa organization wall"
+    }
   }
 }
