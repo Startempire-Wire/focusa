@@ -300,3 +300,132 @@ focusa working-set refresh --subject <ref>  Propose refreshing membership for a 
 Requires a resolved project workstream (project root + continuity id — same
 boundary as `focusa work-loop`). Output is advisory (`canonical: false`);
 membership changes land as typed proposals via the ontology action route.
+
+
+## license — activation and entitlement operations
+
+Generated from `focusa license --help` and subcommand help on this build. Paid fast-path: `focusa license activate-flow --license-key <KEY>` redeems an already-paid key in ONE request (no email verification, no menu, no polling) for ANY product in the authority registry; retry is idempotent.
+
+### `license (top)`
+
+```text
+License activation and entitlement operations (Spec92 §5.2)
+
+Usage: focusa license [OPTIONS] <COMMAND>
+
+Commands:
+  activate-flow  Interactive authority activation (Spec 152E §14.1): one shared flow renders email → verify → offer → checkout/poll → key/lease, existing key, Evaluation (Spec 172 limited-access overlay), resume, cancel, timeout, and recovery. Never accepts card data and never self-issues
+  activate       Activate a Focusa license key. Saves the local license state file
+  status         Show current license status (mode, status, features, offline-valid-until)
+  deactivate     Deactivate the current license. The local file is removed
+  doctor         Run a self-check of the local license file and remote registry reachability
+  check-feature  Check whether a specific feature is enabled by the current license
+  preflight      Fast preflight against the canonical entitlement decision (Spec 152F §6 chokepoint 4): renders base/premium/recovery reason and next action from the authority snapshot only, and exits nonzero when the target gate would deny. Never self-issues a grant
+  devmode-full   End-to-end license provisioning harness. Generates a fresh test key, validates it against the registry (dev_mode is acceptable for operator testing but downgrades commercial_use to false), writes license.json / license_authority.json / license_receipt.json, round-trips the files through the daemon parser, and reports the result. Use this to verify the full provisioning pipeline before the first real transaction
+  refresh        Re-validate the current license against the registry and update the local file. Picks up revoke / refund / expire changes that happened on the registry side since the last validation
+  watch          Watch the local license file and the registry. When the registry returns a new state, the local file is updated and a notification is printed. Use this as a long-running sidecar after a purchase so refunds and revokes propagate within the poll interval
+
+Options:
+      --json                       Output in JSON format
+      --config <CONFIG>            Config file path
+      --verbose                    Verbose output
+      --quiet                      Quiet mode — suppress non-essential output
+      --lifecycle-action <ACTION>  Inspect, preview, confirm, apply, or recover a lifecycle transaction [possible values: inspect, preview, confirm, apply, resume, repair, rerun, rollback, uninstall, purge]
+      --confirm                    Confirm the mutation selected by --lifecycle-action
+      --confirm-purge-data         Separately confirm user-data deletion for a lifecycle purge
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+
+### `license activate-flow`
+
+```text
+Interactive authority activation (Spec 152E §14.1): one shared flow renders email → verify → offer → checkout/poll → key/lease, existing key, Evaluation (Spec 172 limited-access overlay), resume, cancel, timeout, and recovery. Never accepts card data and never self-issues
+
+Usage: focusa license activate-flow [OPTIONS]
+
+Options:
+      --json                       Output in JSON format
+      --registry <URL>             Override the registry URL (default: https://wpuiai.com)
+      --config <CONFIG>            Config file path
+      --resume <REGISTRATION_ID>   Resume a persisted activation registration (bounded poll continuation). The poll credential is re-supplied from the protected store; the snapshot never contains it
+      --email <EMAIL>              Explicit email for a new activation (prompted interactively otherwise). The email only creates a pending attempt; verification is always required before any promotion
+      --verbose                    Verbose output
+      --poll-timeout <SECONDS>     Bounded poll wall-clock timeout in seconds (default: the registration poll budget governs; timeout settles fail-closed via cancel → recovery_only)
+      --quiet                      Quiet mode — suppress non-essential output
+      --agent                      Agent/JSON protocol (Spec 152E §14.2): non-interactive, never prompts, never invents an email, verification code, consent, payment confirmation, or license. Returns typed human-action envelopes with a resumable registration handle; requires --email for a new attempt or --resume for a bounded poll continuation
+      --lifecycle-action <ACTION>  Inspect, preview, confirm, apply, or recover a lifecycle transaction [possible values: inspect, preview, confirm, apply, resume, repair, rerun, rollback, uninstall, purge]
+      --confirm                    Confirm the mutation selected by --lifecycle-action
+      --reveal-key                 Customer-controlled key reveal opt-in (agent mode): full key output is masked by default; revealing the one-time key requires BOTH this flag and --confirm-reveal
+      --confirm-purge-data         Separately confirm user-data deletion for a lifecycle purge
+      --license-key <KEY>          Paid fast-path (all products through the license authority): redeem an already-paid license key in ONE request — no email verification, no offer menu, no polling. The server verifies the key, promotes the account, binds this device (verbatim node identity), and returns a root-signed lease that is persisted locally. Works for every product in the authority registry (Focusa, UIAI Engine, bundles)
+      --confirm-reveal             Explicit confirmation for the customer-controlled key reveal (agent mode). Without it the key stays masked
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+
+### `license activate`
+
+```text
+Activate a Focusa license key. Saves the local license state file
+
+Usage: focusa license activate [OPTIONS] <KEY>
+
+Arguments:
+  <KEY>  The license key (focusa_live_xxxxx or uiai_live_xxxxx)
+
+Options:
+      --json                       Output in JSON format
+      --persist-key                Persist the raw key in the local file (off-spec; default is prefix only)
+      --config <CONFIG>            Config file path
+      --registry <URL>             Override the registry URL (default: https://install.focusa.dev)
+      --verbose                    Verbose output
+      --quiet                      Quiet mode — suppress non-essential output
+      --lifecycle-action <ACTION>  Inspect, preview, confirm, apply, or recover a lifecycle transaction [possible values: inspect, preview, confirm, apply, resume, repair, rerun, rollback, uninstall, purge]
+      --confirm                    Confirm the mutation selected by --lifecycle-action
+      --confirm-purge-data         Separately confirm user-data deletion for a lifecycle purge
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+
+### `license status`
+
+```text
+Show current license status (mode, status, features, offline-valid-until)
+
+Usage: focusa license status [OPTIONS]
+
+Options:
+      --json                       Output in JSON format
+      --config <CONFIG>            Config file path
+      --verbose                    Verbose output
+      --quiet                      Quiet mode — suppress non-essential output
+      --lifecycle-action <ACTION>  Inspect, preview, confirm, apply, or recover a lifecycle transaction [possible values: inspect, preview, confirm, apply, resume, repair, rerun, rollback, uninstall, purge]
+      --confirm                    Confirm the mutation selected by --lifecycle-action
+      --confirm-purge-data         Separately confirm user-data deletion for a lifecycle purge
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+
+### `license refresh`
+
+```text
+Re-validate the current license against the registry and update the local file. Picks up revoke / refund / expire changes that happened on the registry side since the last validation
+
+Usage: focusa license refresh [OPTIONS]
+
+Options:
+      --json                       Output in JSON format
+      --registry <URL>             Override the registry URL (default: https://wpuiai.com)
+      --config <CONFIG>            Config file path
+      --raw-key <KEY>              Persist the raw key from --raw-key in the local file (off-spec)
+      --require-real               Set FOCUSA_REQUIRE_REAL_LICENSE=1 for this run (refuse dev_mode)
+      --verbose                    Verbose output
+      --quiet                      Quiet mode — suppress non-essential output
+      --lifecycle-action <ACTION>  Inspect, preview, confirm, apply, or recover a lifecycle transaction [possible values: inspect, preview, confirm, apply, resume, repair, rerun, rollback, uninstall, purge]
+      --confirm                    Confirm the mutation selected by --lifecycle-action
+      --confirm-purge-data         Separately confirm user-data deletion for a lifecycle purge
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+
