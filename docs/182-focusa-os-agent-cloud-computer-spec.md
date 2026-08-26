@@ -5,6 +5,26 @@
 **Companions:** `WPUIAI/uiai-engine/docs/010-uiai-engine-web-runtime-leap-spec.md` (C-010-*); Omarchy (basecamp/omarchy, MIT).
 **Naming:** the product is **Veragensia** — *ver-* (truth, the Focusa signature root) + *agens* (the actor) + *-ia* (realm/land, as in *agentia*): "the realm of the true agent." It still ends in *-a*, rhyming with the focusa / perpetua / veribella family. It is the Focusa Agent OS: the whole stack of webtop + system-wide Focusa layer + custom GUI + UIAI Engine + browser + extension. A provisioned, streamable instance, bundled into the client setup offer, is an **Agent Cloud Computer**. (*Veragens* = official short form — the CLI/package name and the casual pair-with-Focusa, e.g. "Focusa Veragens"; *Veragensa* = considered variant; *Focusa Agent OS* = descriptor.) A pure coinage → clean trademark/domain.
 
+## Companion — Focusa Cloud control plane (private spec 115)
+
+Veragensia is the **node/OS half** of a two-part architecture; the other half is the **Focusa Cloud
+control plane** (private spec 115). Division of labor, per 115's master rule *"Cloud coordinates.
+Node decides. Receipts prove. Private state stays local."*:
+
+- **Cloud coordinates (115):** accounts, licensing, node registry, device pairing, governed relay, tool-gateway policy, proof/benchmark hosting.
+- **Node decides (182):** the Veragensia OS runs governed agents locally; owns work state, evidence, execution.
+
+Integration points (detailed in private addendum **115a**):
+- An **Agent Cloud Computer** registers as a Focusa **node** (heartbeat, version, tier).
+- Production access matures from the demo tunnel into 115's **governed relay + device pairing** (scoped capabilities, node-side authority/redaction, no raw ports).
+- Premium OS surfaces defer to 115's **license/entitlement authority** (spec 112/118).
+- Agent tooling on the OS runs through 115's **Tool Gateway / Code Capsule** locally.
+- Agent work publishes redacted **proof receipts** (115) from the node.
+
+182 defines the node/OS surface; 115 (private) defines the coordinating control plane. Neither is a
+cloud agent runtime; together they form the full product. Private addendum **115a** maps the two
+module-by-module (pricing→provisioning, relay→access, license→gating).
+
 ---
 
 ## 1. Vision
