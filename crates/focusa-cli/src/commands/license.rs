@@ -71,6 +71,10 @@ pub enum LicenseCmd {
 
 #[derive(Args, Debug)]
 pub struct ActivateFlowArgs {
+    /// Override the registry URL (default: https://wpuiai.com).
+    #[arg(long, value_name = "URL")]
+    pub registry: Option<String>,
+
     /// Resume a persisted activation registration (bounded poll
     /// continuation). The poll credential is re-supplied from the protected
     /// store; the snapshot never contains it.
@@ -102,6 +106,15 @@ pub struct ActivateFlowArgs {
     /// flag and --confirm-reveal.
     #[arg(long)]
     pub reveal_key: bool,
+
+    /// Paid fast-path (all products through the license authority): redeem
+    /// an already-paid license key in ONE request — no email verification,
+    /// no offer menu, no polling. The server verifies the key, promotes the
+    /// account, binds this device (verbatim node identity), and returns a
+    /// root-signed lease that is persisted locally. Works for every product
+    /// in the authority registry (Focusa, UIAI Engine, bundles).
+    #[arg(long, value_name = "KEY", conflicts_with_all = ["email", "resume"])]
+    pub license_key: Option<String>,
 
     /// Explicit confirmation for the customer-controlled key reveal
     /// (agent mode). Without it the key stays masked.
@@ -552,6 +565,97 @@ fn print_license_gate_matrix(matrix: &[Value], missing_gates: &[Value], recovery
     println!("Recovery hint: {recovery_hint}");
 }
 
+/// Paid fast-path (Spec 180 §2.2): one request -> verified key -> signed bundle lease persisted.
+async fn run_redeem_fast_path(
+    json_output: bool,
+    license_key: &str,
+    registry_override: Option<&str>,
+) -> anyhow::Result<()> {
+    use focusa_license::authority::{LeaseVerificationContext, SignedEnvelope};
+    use focusa_license::authority_store::{
+        AUTHORITY_STATE_FILE, PersistedAuthorityState, embedded_production_trust_roots,
+    };
+    let registry = registry_override
+        .map(str::to_string)
+        .unwrap_or_else(|| DEFAULT_REGISTRY.to_string());
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
+    let config_dir = std::path::PathBuf::from(home).join(".config/focusa");
+    let identity = crate::commands::activation_flow::resolve_flow_node_identity(&config_dir)?;
+    let url = format!(
+        "{}/wp-json/wpuiai-ai-cloud/v1/activation/redeem",
+        registry.trim_end_matches('/')
+    );
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?;
+    let resp = client
+        .post(&url)
+        .json(&serde_json::json!({
+            "license_key": license_key.trim(),
+            "device_public_key": identity.node_id,
+        }))
+        .send()
+        .await
+        .context("reach license authority for redemption")?;
+    let status = resp.status();
+    let body: serde_json::Value = resp.json().await.context("decode redemption reply")?;
+    if !status.is_success() || body.get("lease_envelope").is_none() {
+        let code = body
+            .pointer("/error/code")
+            .and_then(|v| v.as_str())
+            .unwrap_or("AUTHORITY_UNAVAILABLE")
+            .to_string();
+        let out = json!({
+            "ok": false,
+            "code": code,
+            "error": code.to_lowercase(),
+            "recovery_hint": "Verify the key with support; paid keys redeem in one request. Retry is idempotent.",
+        });
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&out)?);
+        } else {
+            eprintln!("Redemption failed: {code}");
+        }
+        std::process::exit(2);
+    }
+    let envelope_str = body["lease_envelope"].as_str().unwrap_or("{}").to_string();
+    let envelope: serde_json::Value =
+        serde_json::from_str(&envelope_str).context("decode lease delivery envelope")?;
+    let key_set_raw = envelope["key_set"].to_string();
+    let lease_raw = envelope["lease"].to_string();
+    let key_set: SignedEnvelope =
+        serde_json::from_str(&key_set_raw).context("decode key-set envelope")?;
+    let lease: SignedEnvelope =
+        serde_json::from_str(&lease_raw).context("decode lease envelope")?;
+    let roots = embedded_production_trust_roots().context("load production authority roots")?;
+    let context = LeaseVerificationContext {
+        expected_product: "focusa".into(),
+        expected_node_id: identity.node_id.clone(),
+        now: chrono::Utc::now(),
+        minimum_sequence: None,
+        expected_previous_digest: None,
+    };
+    let (state, _snapshot) =
+        PersistedAuthorityState::from_verified_envelopes(key_set, lease, &roots, &context)
+            .context("verify issued authority lease")?;
+    state
+        .write_atomic(&config_dir.join(AUTHORITY_STATE_FILE))
+        .context("persist authority-lease.json")?;
+    let out = json!({
+        "ok": true,
+        "status": "activated",
+        "node_id": identity.node_id,
+        "state_file": config_dir.join(AUTHORITY_STATE_FILE).display().to_string(),
+    });
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    } else {
+        println!("✅ Activated — full operator bundle is live on this device.");
+        println!("   {}", config_dir.join(AUTHORITY_STATE_FILE).display());
+    }
+    Ok(())
+}
+
 pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
     match args.command {
         LicenseCmd::Status => run_status(json_output).await,
@@ -559,7 +663,10 @@ pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
         LicenseCmd::CheckFeature(a) => run_check_feature(json_output, a).await,
         LicenseCmd::Preflight(a) => run_preflight(json_output, a).await,
         LicenseCmd::ActivateFlow(a) => {
-            if a.agent {
+            if a.license_key.is_some() && !a.agent {
+                run_redeem_fast_path(json_output, &a.license_key.unwrap(), a.registry.as_deref())
+                    .await
+            } else if a.agent {
                 run_agent_activation_command(json_output, a).await
             } else {
                 run_activation_flow_command(json_output, a).await
