@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,4 +31,25 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await writeFile(resolve(dist, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 await cp(resolve(root, 'src'), dist, { recursive: true });
-console.log(`PASS: built Focusa Workforce MV3 unpacked extension at ${dist}`);
+
+// ── White-label: brand substitution from FOCUSA_BRAND (default Focusa Workforce). ──
+const brand = process.env.FOCUSA_BRAND || 'Focusa Workforce';
+const brandU = brand.toUpperCase();
+const chip = brand.trim().charAt(0).toUpperCase();
+const repls = [
+  [/Focusa Workforce Chrome/g, `${brand} Chrome`],
+  [/Focusa Workforce/g, brand],
+  [/FOCUSA WORKFORCE/g, brandU],
+  [/aria-hidden="true">F<\/div>/g, `aria-hidden="true">${chip}</div>`],
+  [/<span class="mark">F<\/span>/g, `<span class="mark">${chip}</span>`],
+];
+let touched = 0;
+for (const ent of await readdir(dist, { recursive: true })) {
+  if (!ent.endsWith('.html') && !ent.endsWith('.mjs')) continue;
+  const p = resolve(dist, ent);
+  const txt = await readFile(p, 'utf8');
+  let out = txt;
+  for (const [re, to] of repls) out = out.replace(re, to);
+  if (out !== txt) { await writeFile(p, out); touched++; }
+}
+console.log(`PASS: built ${brand} MV3 unpacked extension at ${dist} (${touched} files re-branded)`);
