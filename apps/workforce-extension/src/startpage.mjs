@@ -146,12 +146,42 @@ async function renderNotifPrefToggles(){
 }
 
 bind();
+
+
+// F2 client: ingest engine events through the daemon bridge (spec 181).
+async function startFleetEventStream(){
+  const connection=await loadSelectedConnection();
+  if(!connection)return;
+  fleetAbort?.abort();
+  fleetAbort=new AbortController();
+  try{
+    await runReliableEventStream({
+      baseUrl:connection.base_url,
+      token:connection.token,
+      path:'/v1/browser-fleet/stream',
+      initialCursor:fleetCursor,
+      signal:fleetAbort.signal,
+      onEvent:async(event)=>{
+        const notification=notificationFromEvent(event);
+        if(notification){notifications=await saveNotification(notification);renderStartNotifications();}
+        if((event.invalidate||[]).includes('browser_fleet'))loadFleet();
+      },
+      commitCursor:async(v)=>{fleetCursor=v;},
+      onState:(st)=>{ if(st.phase==='unauthorized')setWidgetText('#fleet-body','Fleet stream unauthorized.'); },
+    });
+  }catch(e){
+    setWidgetText('#fleet-body',`Fleet stream unavailable: ${e?.name||'error'}`);
+  }
+}
+let fleetAbort=null;
+let fleetCursor=null;
+
 document.querySelector('#onboard-open-panel')?.addEventListener('click',openPanel);
 document.querySelector('#mark-start-notifications-read')?.addEventListener('click',async()=>{notifications=await markNotificationsRead();renderStartNotifications();});
-document.querySelector('#daemon-select')?.addEventListener('change',async(event)=>{selectedConnectionId=event.target.value;await storage?.set({'focusa_startpage_connection.v1':selectedConnectionId});streamAbort?.abort();await startLiveUpdates();});
-document.querySelector('#fleet-refresh')?.addEventListener('click',loadFleet);
+document.querySelector('#daemon-select')?.addEventListener('change',async(event)=>{selectedConnectionId=event.target.value;await storage?.set({'focusa_startpage_connection.v1':selectedConnectionId});streamAbort?.abort();await startLiveUpdates();startFleetEventStream();});
+document.querySelector('#fleet-refresh')?.addEventListener('click',async()=>{await loadSelectedConnection();loadFleet();startFleetEventStream();});
 
 notifications=await listNotifications().catch(()=>[]);renderStartNotifications();
 const savedSelection=await storage?.get('focusa_startpage_connection.v1');selectedConnectionId=savedSelection?.['focusa_startpage_connection.v1']||null;
-const state={...defaults,...(await read()).focusa_startpage_widgets};renderWidgets(state);renderNotifPrefToggles();bind();clock();setInterval(clock,30000);startLiveUpdates();
+const state={...defaults,...(await read()).focusa_startpage_widgets};renderWidgets(state);renderNotifPrefToggles();bind();clock();setInterval(clock,30000);startLiveUpdates();startFleetEventStream();
 window.addEventListener('pagehide',()=>streamAbort?.abort());

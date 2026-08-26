@@ -22,8 +22,8 @@ export function reconnectDelay(attempt) {
   return DELAYS_MS[Math.min(Math.max(0, attempt), DELAYS_MS.length - 1)];
 }
 
-function streamUrl(baseUrl, cursor) {
-  const url = new URL('/v1/events/stream', baseUrl);
+function streamUrl(baseUrl, cursor, path = '/v1/events/stream') {
+  const url = new URL(path, baseUrl);
   if (cursor) url.searchParams.set('cursor', cursor);
   return url.href;
 }
@@ -31,6 +31,7 @@ function streamUrl(baseUrl, cursor) {
 export async function runReliableEventStream({
   baseUrl,
   token,
+  path = '/v1/events/stream',
   initialCursor = null,
   fetchImpl = globalThis.fetch,
   onEvent,
@@ -50,7 +51,7 @@ export async function runReliableEventStream({
     onState(Object.freeze({ phase: cursor ? 'replaying' : 'live', cursor, attempt }));
     let acknowledgedOnConnection = false;
     try {
-      const response = await fetchImpl(streamUrl(baseUrl, cursor), {
+      const response = await fetchImpl(streamUrl(baseUrl, cursor, path), {
         method: 'GET',
         headers: { accept: 'text/event-stream', authorization: `Bearer ${token}` },
         signal,

@@ -2,10 +2,10 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified reachable paths: `618`
+- Classified reachable paths: `619`
 - Unreachable declared paths: `47`
 - Agent eligible: `164`
-- Operator only: `442`
+- Operator only: `443`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -812,6 +812,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/browser-fleet/status`
 
 - Methods: `GET /v1/browser-fleet/status`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/browser_fleet.rs`
+- Agent operations: none
+
+### `/v1/browser-fleet/stream`
+
+- Methods: `GET /v1/browser-fleet/stream`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/browser_fleet.rs`

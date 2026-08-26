@@ -20,6 +20,10 @@ Silent sessions spawn **browser tasks**: intent-verb call chains wrapped as work
 Web-state checkpoints referenced inside Workpoint packets (compaction-safe); device pairing binds persona ids; walls display acting persona read-only.
 **Accept:** resume-after-compaction restores browsing context hash; unbound persona denied.
 
+## Status (2026-08-25)
+- **F1:** code-complete — engine W2 claims live (verbs/budgets/warm/artifact-ref verified on OVH workers); bridge route + client widget landed; **goes live on next daemon release** (focusa#341).
+- **F2:** engine emitter LIVE (focusa.stream_event.v1 via /api/focusa-events, deployed); daemon passthrough `/v1/browser-fleet/stream` + client ingestion landed in extension.
+
 ## Sequencing
 F1/F2 after engine W3 stream emitter lands · F3 after W2 verbs (✅ available now) · F4 after engine W4.
 
