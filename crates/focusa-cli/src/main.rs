@@ -568,6 +568,9 @@ fn main() -> anyhow::Result<()> {
 #[tokio::main]
 async fn async_main() -> anyhow::Result<()> {
     let raw_args: Vec<String> = std::env::args().collect();
+    // Machine-readable errors must name the INVOKED command, not the recovery
+    // suggestion (#367). Capture the verbatim subcommand line before clap moves it.
+    let invoked: String = raw_args[1..].join(" ");
     // Handle -v (lowercase) as version before clap parsing.
     // Clap 4 auto-assigns -V for version but not -v.
     if raw_args.iter().any(|arg| arg == "-v") {
@@ -1228,7 +1231,7 @@ async fn async_main() -> anyhow::Result<()> {
                     "what_failed": what_failed,
                     "likely_why": likely_why,
                     "safe_recovery": safe_recovery,
-                    "command": safe_recovery,
+                    "command": invoked,
                     "fallback": "focusa doctor",
                     "docs": ["docs/current/ERROR_EMPTY_STATES.md", "docs/current/TROUBLESHOOTING_CURRENT.md"],
                     "evidence_refs": [],
