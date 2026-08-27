@@ -119,6 +119,10 @@ pub struct AgentActivationEnvelope {
     /// Masked email (e.g. `c***@example.com`); never the raw address.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub masked_email: Option<String>,
+    /// Authority-confirmed verification-code delivery disposition (`queued`,
+    /// `sent`, or `failed`); never a code or secret.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verification_delivery_status: Option<String>,
     /// Authority-owned branded checkout/verification link; never rebuilt or
     /// rewritten by the client.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -166,6 +170,7 @@ impl AgentActivationEnvelope {
             human_action_required: human_action_required(&canonical.state),
             human_action: human_action.map(str::to_string),
             masked_email: canonical.masked_email.clone(),
+            verification_delivery_status: canonical.verification_delivery_status.clone(),
             safe_url: canonical.safe_url.clone(),
             key_present,
             key_visible: authorized_reveal,
@@ -206,6 +211,7 @@ impl AgentActivationEnvelope {
             human_action_required: human_action_required(&state),
             human_action: human_action.map(str::to_string),
             masked_email: registration.masked_email.clone(),
+            verification_delivery_status: None,
             safe_url: None,
             key_present: false,
             key_visible: false,
@@ -316,7 +322,7 @@ mod tests {
             ActivationState::EmailChallengeSent,
             Some(&masked),
             None,
-            None,
+            Some("queued".into()),
             Some("base64:one-time-key-envelope".into()),
             None,
             None,
@@ -341,6 +347,10 @@ mod tests {
             build_from_canonical(&canonical, Some(&registration), AgentKeyReveal::denied());
         assert_eq!(envelope.schema, AGENT_ENVELOPE_SCHEMA);
         assert_eq!(envelope.state, "email_verification_pending");
+        assert_eq!(
+            envelope.verification_delivery_status.as_deref(),
+            Some("queued")
+        );
         assert!(envelope.human_action_required);
         assert_eq!(
             envelope.human_action.as_deref(),
@@ -472,6 +482,7 @@ mod tests {
             human_action_required: human_action_required(&canonical.state),
             human_action: human_action.map(str::to_string),
             masked_email: canonical.masked_email.clone(),
+            verification_delivery_status: canonical.verification_delivery_status.clone(),
             safe_url: canonical.safe_url.clone(),
             key_present,
             key_visible: authorized_reveal,

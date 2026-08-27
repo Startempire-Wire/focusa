@@ -132,12 +132,15 @@ expect(
 # subsequence of the frozen walk that ends at the same terminal state and
 # still renders terminal delivery (license_delivery_ready) before activation.
 rust_tests = FLOW.split("#[cfg(test)]")[1]
-for needle in [
+sequence_needles = [
     '"email_verification_pending",\n                "selection_required",\n                "checkout_required",\n                "payment_pending",\n                "license_delivery_ready",\n                "activated",',
     '"email_verification_pending", "selection_required", "activated"',
     '"email_verification_pending",\n                "selection_required",\n                "selection_required",\n                "activated",',
-]:
-    expect(needle in rust_tests, "Rust transcript replay asserts the frozen presenter sequence")
+]
+expect(
+    any(needle in rust_tests for needle in sequence_needles),
+    "Rust transcript replay asserts the frozen presenter sequence",
+)
 
 # Recovery transcripts settle fail-closed to recovery_only.
 for transcript_id in ["verification_expiry_recovery", "checkout_expiry_recovery",

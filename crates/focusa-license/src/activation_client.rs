@@ -293,7 +293,7 @@ impl<A: ActivationAuthority> ActivationSession<A> {
             .validate(FacadeOperation::ActivationStart)
             .map_err(ActivationClientError::Authority)?;
         if is_home_dev_bypass() {
-            let masked = mask_email(email).unwrap_or_else(|| "dev@home.local".to_string());
+            let masked = mask_email(email).unwrap_or_else(|| "d***@example.com".to_string());
             return Ok(Self {
                 authority,
                 context: context.clone(),

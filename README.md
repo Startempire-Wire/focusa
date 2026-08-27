@@ -277,6 +277,6 @@ The cross-phase smoke suite checks project dashboard commands, first-mission dry
 
 ## License
 
-Focusa is source-available under the Business Source License 1.1. See [`LICENSE.md`](LICENSE.md).
+Focusa is source-available under the Business Source License 1.1. Commercial, team/company, hosted-service, client-delivery use requires a separate license. See [`LICENSE.md`](LICENSE.md).
 # trigger Mon Aug 17 03:12:29 PDT 2026
 # trigger Mon Aug 17 03:45:29 PDT 2026

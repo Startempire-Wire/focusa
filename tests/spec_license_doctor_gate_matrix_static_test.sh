@@ -19,7 +19,7 @@ for needle in \
   'registry_validate_or_eval_mode' \
   'delegates_to_focusa_install_license_gate' \
   'official_release_bundle' \
-  'commercial_export' \
+  'focusa.export.packaged' \
   'packaged_installer' \
   'qr_pwa_handoff'; do
   rg -n -F "$needle" "$LICENSE" >/dev/null || fail "license doctor missing gate matrix marker: $needle"
@@ -30,7 +30,7 @@ for source in \
   'crates/focusa-cli/src/commands/install.rs:phase_license' \
   'crates/focusa-cli/src/commands/upgrade.rs' \
   'crates/focusa-cli/src/commands/release.rs:require_feature' \
-  'crates/focusa-cli/src/commands/export.rs:require_feature' \
+  'crates/focusa-core/src/license.rs:require_export_packaged' \
   'crates/focusa-cli/src/commands/binary.rs:require_feature' \
   'crates/focusa-cli/src/commands/device_pairing.rs:require_feature'; do
   rg -n -F "$source" "$LICENSE" >/dev/null || fail "license doctor missing evidence source: $source"
