@@ -80,6 +80,23 @@ expect("LicenseCmd::ActivateFlow(a)" in LICENSE, "CLI dispatch wires activate-fl
 expect("run_activation_flow_command" in LICENSE, "CLI command drives the shared flow")
 expect("E_AUTHORITY_COMMAND_RETIRED" in LICENSE, "retired plaintext commands still fail closed")
 
+# #376: local trust-root readiness must be proven before the permanent key is
+# submitted; a failure must be typed and explicitly marked not_sent.
+redeem_source = LICENSE[LICENSE.index("async fn run_redeem_fast_path"):]
+expect(
+    redeem_source.index("let roots = match") < redeem_source.index(".post(&url)"),
+    "redeem preflights trust roots before network submission",
+)
+for needle in [
+    '"code": "TRUST_ROOTS_UNAVAILABLE"',
+    '"authority_request_sent": false',
+    '"state": "not_sent"',
+    '"status": "verified_and_persisted"',
+    '"status": "partial_delivery"',
+    '"state": "authority_committed"',
+]:
+    expect(needle in redeem_source, f"redeem exposes {needle}")
+
 # ── Presenter rendering: all ten frozen presenter states rendered once ────
 
 for label in sorted(presenter_states):

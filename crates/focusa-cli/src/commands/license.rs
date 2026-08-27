@@ -581,6 +581,16 @@ fn print_license_gate_matrix(matrix: &[Value], missing_gates: &[Value], recovery
 }
 
 /// Paid fast-path (Spec 180 §2.2): one request -> verified key -> signed bundle lease persisted.
+/// Stable, secret-free receipt reference for one delivered signed lease.
+/// Hashing the signed envelope lets a consumer distinguish a committed result
+/// without exposing the license key, lease payload, or authority credentials.
+fn redemption_receipt_reference(lease_envelope: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut digest = Sha256::new();
+    digest.update(lease_envelope.as_bytes());
+    format!("sha256:{:x}", digest.finalize())
+}
+
 async fn run_redeem_fast_path(
     json_output: bool,
     license_key: &str,
@@ -596,6 +606,31 @@ async fn run_redeem_fast_path(
     let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
     let config_dir = std::path::PathBuf::from(home).join(".config/focusa");
     let identity = crate::commands::activation_flow::resolve_flow_node_identity(&config_dir)?;
+    // Fail closed before contacting the authority: a build without embedded
+    // production roots must not redeem a key and then lose the signed lease
+    // locally (upstream #376).
+    let roots = match embedded_production_trust_roots() {
+        Ok(roots) => roots,
+        Err(error) => {
+            let out = json!({
+                "ok": false,
+                "status": "blocked",
+                "stage": "trust_root_preflight",
+                "code": "TRUST_ROOTS_UNAVAILABLE",
+                "authority_request_sent": false,
+                "receipt": {"state": "not_sent", "reference": null},
+                "recovery_hint": "Use the canonical Focusa release installer or a build with the production public verification root embedded.",
+                "detail": error.to_string(),
+            });
+            if json_output {
+                println!("{}", serde_json::to_string_pretty(&out)?);
+            } else {
+                eprintln!("Activation blocked before submission: TRUST_ROOTS_UNAVAILABLE");
+                eprintln!("Recovery: use the canonical Focusa release installer.");
+            }
+            std::process::exit(2);
+        }
+    };
     let url = format!(
         "{}/wp-json/wpuiai-ai-cloud/v1/activation/redeem",
         registry.trim_end_matches('/')
@@ -642,7 +677,7 @@ async fn run_redeem_fast_path(
         serde_json::from_str(&key_set_raw).context("decode key-set envelope")?;
     let lease: SignedEnvelope =
         serde_json::from_str(&lease_raw).context("decode lease envelope")?;
-    let roots = embedded_production_trust_roots().context("load production authority roots")?;
+    let receipt_reference = redemption_receipt_reference(&lease_raw);
     let context = LeaseVerificationContext {
         expected_product: "focusa".into(),
         expected_node_id: identity.node_id.clone(),
@@ -653,13 +688,39 @@ async fn run_redeem_fast_path(
     let (state, _snapshot) =
         PersistedAuthorityState::from_verified_envelopes(key_set, lease, &roots, &context)
             .context("verify issued authority lease")?;
-    state
-        .write_atomic(&config_dir.join(AUTHORITY_STATE_FILE))
-        .context("persist authority-lease.json")?;
+    if let Err(error) = state.write_atomic(&config_dir.join(AUTHORITY_STATE_FILE)) {
+        let out = json!({
+            "ok": false,
+            "status": "partial_delivery",
+            "stage": "local_persist",
+            "code": "AUTHORITY_COMMITTED_LOCAL_PERSIST_FAILED",
+            "authority_request_sent": true,
+            "receipt": {
+                "state": "authority_committed",
+                "reference": receipt_reference,
+            },
+            "recovery_hint": "Retry the same key on this device; redemption is idempotent and the authority has already committed the lease.",
+            "detail": error.to_string(),
+        });
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&out)?);
+        } else {
+            eprintln!(
+                "Activation partially completed: authority committed the lease but local persistence failed."
+            );
+            eprintln!("Recovery: retry the same key; redemption is idempotent.");
+        }
+        std::process::exit(2);
+    }
     let out = json!({
         "ok": true,
-        "status": "activated",
+        "status": "verified_and_persisted",
         "node_id": identity.node_id,
+        "authority_request_sent": true,
+        "receipt": {
+            "state": "verified_and_persisted",
+            "reference": receipt_reference,
+        },
         "state_file": config_dir.join(AUTHORITY_STATE_FILE).display().to_string(),
     });
     if json_output {
