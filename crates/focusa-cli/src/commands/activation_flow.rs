@@ -541,11 +541,9 @@ pub fn reconcile_status_with_authority(config_dir: &Path) -> Result<bool, Activa
         };
         // A terminal snapshot without a persisted signed lease is historical
         // evidence, not a local entitlement. Its credential is intentionally
-        // retired, so it is an on-disk stale cache entry: remove it before
-        // continuing to a viable resumable session. This branch only runs
-        // after the signed authority-state guard reported unactivated.
+        // retired, so preserve it as recovery evidence and continue looking
+        // for a viable resumable session. Status remains observational.
         if registration.state.is_terminal() {
-            let _ = std::fs::remove_file(directory.join(format!("{registration_id}.json")));
             continue;
         }
         let credential = match load_poll_credential(&KeyringCredentialStore, &registration_id) {
