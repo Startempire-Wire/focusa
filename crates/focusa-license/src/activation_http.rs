@@ -119,6 +119,10 @@ impl ActivationHttpClient {
         let http = BlockingClient::builder()
             .timeout(policy.timeout)
             .connect_timeout(policy.timeout)
+            // #345: never follow redirects from the authority. Activation
+            // requests carry secrets (email, codes, keys, credentials); a
+            // redirect must not move that body to another origin.
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .map_err(|_| ActivationHttpError::InvalidPolicy("reqwest client build failed"))?;
         Ok(Self { policy, http })
@@ -154,6 +158,14 @@ impl ActivationHttpClient {
             .map_err(|_| self.unavailable(&request.request_id))?;
         if !response.status().is_success() {
             let status = response.status().as_u16();
+            // #345: with redirects disabled a 3xx is a redirected authority
+            // response (never forwarded); reject without touching the body.
+            if (300..400).contains(&status) {
+                return Err(ActivationError::new(
+                    ActivationErrorCode::AuthorityUnavailable,
+                    request.request_id.clone(),
+                ));
+            }
             // Typed routing diagnostic without exposing body secrets
             if status == 404 || status == 405 {
                 return Err(ActivationError::new(
