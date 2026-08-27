@@ -18,6 +18,18 @@ pub const LEASE_SCHEMA: &str = "focusa.authority_lease.v1";
 pub const KEY_SET_SCHEMA: &str = "focusa.authority_key_set.v1";
 pub const ENVELOPE_SCHEMA: &str = "focusa.signed_envelope.v1";
 
+
+fn node_ids_equivalent(received: &str, expected: &str) -> bool {
+    fn normalize(value: &str) -> Option<&str> {
+        let normalized = value.strip_prefix("node-").unwrap_or(value);
+        uuid::Uuid::parse_str(normalized).ok().map(|_| normalized)
+    }
+    match (normalize(received), normalize(expected)) {
+        (Some(received), Some(expected)) => received == expected,
+        _ => received == expected,
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthorityKeyStatus {
@@ -287,7 +299,10 @@ impl AuthorityLeaseVerifier {
                 actual: payload.product,
             });
         }
-        if payload.node_id != context.expected_node_id {
+        // `node-<uuid>` is a legacy serialization of the same UUID. Accept
+        // equivalence only when both values reduce to a valid UUID; all other
+        // node bindings remain exact and fail closed.
+        if !node_ids_equivalent(&payload.node_id, &context.expected_node_id) {
             return Err(AuthorityVerificationError::WrongNode {
                 expected: context.expected_node_id.clone(),
                 actual: payload.node_id,
@@ -429,5 +444,26 @@ fn error_code(error: &AuthorityVerificationError) -> &'static str {
         AuthorityVerificationError::RevokedLease => "revoked_lease",
         AuthorityVerificationError::ExpiredKeySet => "expired_key_set",
         AuthorityVerificationError::EmptyKeySet => "empty_key_set",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::node_ids_equivalent;
+
+    #[test]
+    fn node_ids_equivalent_accepts_legacy_prefix() {
+        let id = "01a040ac-a798-7ae3-ac22-d310a87a3aa8";
+        assert!(node_ids_equivalent(id, &format!("node-{id}")));
+        assert!(node_ids_equivalent(&format!("node-{id}"), id));
+        assert!(node_ids_equivalent(id, id));
+    }
+
+    #[test]
+    fn node_ids_equivalent_rejects_mismatch() {
+        let a = "01a040ac-a798-7ae3-ac22-d310a87a3aa8";
+        let b = "02a040ac-a798-7ae3-ac22-d310a87a3aa8";
+        assert!(!node_ids_equivalent(a, b));
+        assert!(!node_ids_equivalent(&format!("node-{a}"), &format!("node-{b}")));
     }
 }
