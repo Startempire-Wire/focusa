@@ -502,30 +502,29 @@ pub fn run_activation_flow<A: ActivationAuthority>(
 pub fn reconcile_status_with_authority(config_dir: &Path) -> Result<bool, ActivationFlowError> {
     use focusa_license::activation_client::ActivationSession;
 
+    const MAX_RECONCILIATION_CANDIDATES: usize = 16;
     let directory = config_dir.join("activation");
-    let mut candidates: Vec<String> = std::fs::read_dir(&directory)
+    // Registration ids are UUIDs: their lexical order says nothing about which
+    // session is newest or recoverable. Order only by local snapshot freshness,
+    // then bound the work so status can never become an unbounded network scan.
+    let mut candidates: Vec<(std::time::SystemTime, String)> = std::fs::read_dir(&directory)
         .map(|entries| {
             entries
                 .filter_map(|entry| entry.ok())
                 .filter_map(|entry| {
                     let name = entry.file_name().to_string_lossy().to_string();
-                    name.strip_suffix(".json").map(String::from)
+                    let registration_id = name.strip_suffix(".json")?.to_string();
+                    let modified = entry
+                        .metadata()
+                        .and_then(|metadata| metadata.modified())
+                        .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                    Some((modified, registration_id))
                 })
                 .collect()
         })
         .unwrap_or_default();
-    candidates.sort();
-    let Some(registration_id) = candidates.pop() else {
-        return Ok(false);
-    };
-    let registration = match load_registration_snapshot(config_dir, &registration_id) {
-        Ok(registration) => registration,
-        Err(_) => return Ok(false),
-    };
-    let credential = match load_poll_credential(&KeyringCredentialStore, &registration_id) {
-        Ok(credential) => credential,
-        Err(_) => return Ok(false),
-    };
+    candidates.sort_by(|left, right| right.0.cmp(&left.0));
+
     let base_url = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
         .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string());
     let policy = ActivationHttpPolicy {
@@ -534,19 +533,41 @@ pub fn reconcile_status_with_authority(config_dir: &Path) -> Result<bool, Activa
         timeout: std::time::Duration::from_secs(30),
         max_response_bytes: 1024 * 1024,
     };
-    let http = ActivationHttpClient::new(policy)
-        .map_err(|error| ActivationFlowError::Delivery(error.to_string()))?;
-    let context = new_context(CLI_FLOW);
-    let mut session = ActivationSession::resume(http, context, registration, credential)
-        .map_err(ActivationFlowError::Client)?;
-    if session.state().is_terminal() {
-        return Ok(true);
+
+    for (_, registration_id) in candidates.into_iter().take(MAX_RECONCILIATION_CANDIDATES) {
+        let registration = match load_registration_snapshot(config_dir, &registration_id) {
+            Ok(registration) => registration,
+            Err(_) => continue,
+        };
+        // A terminal snapshot without a persisted signed lease is historical
+        // evidence, not a local entitlement. Its credential is intentionally
+        // retired, so it is an on-disk stale cache entry: remove it before
+        // continuing to a viable resumable session. This branch only runs
+        // after the signed authority-state guard reported unactivated.
+        if registration.state.is_terminal() {
+            let _ = std::fs::remove_file(directory.join(format!("{registration_id}.json")));
+            continue;
+        }
+        let credential = match load_poll_credential(&KeyringCredentialStore, &registration_id) {
+            Ok(credential) => credential,
+            Err(_) => continue,
+        };
+        let http = ActivationHttpClient::new(policy.clone())
+            .map_err(|error| ActivationFlowError::Delivery(error.to_string()))?;
+        let context = new_context(CLI_FLOW);
+        let mut session = match ActivationSession::resume(http, context, registration, credential) {
+            Ok(session) => session,
+            Err(_) => continue,
+        };
+        if session.poll().is_err() {
+            continue;
+        }
+        ActivationFlowSessionPersist::new(config_dir).persist_inner(&session)?;
+        if session.state().is_terminal() {
+            return Ok(true);
+        }
     }
-    if session.poll().is_err() {
-        return Ok(false);
-    }
-    ActivationFlowSessionPersist::new(config_dir).persist_inner(&session)?;
-    Ok(session.state().is_terminal())
+    Ok(false)
 }
 
 pub fn resume_activation_flow<A: ActivationAuthority>(
