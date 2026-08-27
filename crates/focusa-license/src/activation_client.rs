@@ -23,31 +23,42 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 fn is_home_dev_bypass() -> bool {
-    if std::env::var("FOCUSA_ACTIVATION_BYPASS_DISABLE")
-        .map(|v| v == "1")
-        .unwrap_or(false)
+    // #343: dev/test/home bypass is compile-time-only. In release (production)
+    // artifacts these env vars are unreachable — the bypass can never be
+    // enabled by an operator or attacker setting an env var on a shipped
+    // binary. Only debug/test builds honor them.
+    #[cfg(not(debug_assertions))]
     {
         return false;
     }
-    if std::env::var("FOCUSA_DEV_MODE")
-        .map(|v| v == "1")
-        .unwrap_or(false)
+    #[cfg(debug_assertions)]
     {
-        return true;
+        if std::env::var("FOCUSA_ACTIVATION_BYPASS_DISABLE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return false;
+        }
+        if std::env::var("FOCUSA_DEV_MODE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return true;
+        }
+        if std::env::var("FOCUSA_TEST_MODE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return true;
+        }
+        if std::env::var("FOCUSA_HOME_SERVER")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return true;
+        }
+        false
     }
-    if std::env::var("FOCUSA_TEST_MODE")
-        .map(|v| v == "1")
-        .unwrap_or(false)
-    {
-        return true;
-    }
-    if std::env::var("FOCUSA_HOME_SERVER")
-        .map(|v| v == "1")
-        .unwrap_or(false)
-    {
-        return true;
-    }
-    false
 }
 
 /// Server-owned journey selection. The Spec 172 overlay replaces local

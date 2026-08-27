@@ -233,37 +233,47 @@ fn recovery_guidance_is_contract_bound() {
 }
 
 fn is_home_dev_bypass() -> bool {
-    if std::env::var("FOCUSA_ACTIVATION_BYPASS_DISABLE")
-        .map(|v| v == "1")
-        .unwrap_or(false)
+    // #343: compile-time-only bypass. Release/production daemons never honor
+    // these env vars or hostname heuristics, so an operator or attacker cannot
+    // bypass route entitlement on a shipped binary. Debug/test builds only.
+    #[cfg(not(debug_assertions))]
     {
         return false;
     }
-    if std::env::var("FOCUSA_DEV_MODE")
-        .map(|v| v == "1")
-        .unwrap_or(false)
+    #[cfg(debug_assertions)]
     {
-        return true;
-    }
-    if std::env::var("FOCUSA_TEST_MODE")
-        .map(|v| v == "1")
-        .unwrap_or(false)
-    {
-        return true;
-    }
-    if std::env::var("FOCUSA_HOME_SERVER")
-        .map(|v| v == "1")
-        .unwrap_or(false)
-    {
-        return true;
-    }
-    // home hostnames — kh, ovh-w1/w2, local dev
-    if let Ok(h) = std::env::var("HOSTNAME") {
-        if h.contains("kh") || h.contains("ovh") || h == "localhost" {
+        if std::env::var("FOCUSA_ACTIVATION_BYPASS_DISABLE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return false;
+        }
+        if std::env::var("FOCUSA_DEV_MODE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
             return true;
         }
+        if std::env::var("FOCUSA_TEST_MODE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return true;
+        }
+        if std::env::var("FOCUSA_HOME_SERVER")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return true;
+        }
+        // home hostnames — kh, ovh-w1/w2, local dev
+        if let Ok(h) = std::env::var("HOSTNAME") {
+            if h.contains("kh") || h.contains("ovh") || h == "localhost" {
+                return true;
+            }
+        }
+        false
     }
-    false
 }
 
 pub async fn entitlement_gate_layer(

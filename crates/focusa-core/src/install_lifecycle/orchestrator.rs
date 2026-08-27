@@ -9,31 +9,41 @@ use std::collections::BTreeSet;
 use thiserror::Error;
 
 fn is_home_dev_bypass() -> bool {
-    if std::env::var("FOCUSA_ACTIVATION_BYPASS_DISABLE")
-        .map(|v| v == "1")
-        .unwrap_or(false)
+    // #343: compile-time-only bypass. Release/production artifacts never honor
+    // these env vars, so an operator or attacker cannot bypass lifecycle or
+    // entitlement validation on a shipped binary.
+    #[cfg(not(debug_assertions))]
     {
         return false;
     }
-    if std::env::var("FOCUSA_DEV_MODE")
-        .map(|v| v == "1")
-        .unwrap_or(false)
+    #[cfg(debug_assertions)]
     {
-        return true;
+        if std::env::var("FOCUSA_ACTIVATION_BYPASS_DISABLE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return false;
+        }
+        if std::env::var("FOCUSA_DEV_MODE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return true;
+        }
+        if std::env::var("FOCUSA_TEST_MODE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return true;
+        }
+        if std::env::var("FOCUSA_HOME_SERVER")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            return true;
+        }
+        false
     }
-    if std::env::var("FOCUSA_TEST_MODE")
-        .map(|v| v == "1")
-        .unwrap_or(false)
-    {
-        return true;
-    }
-    if std::env::var("FOCUSA_HOME_SERVER")
-        .map(|v| v == "1")
-        .unwrap_or(false)
-    {
-        return true;
-    }
-    false
 }
 
 const GENESIS_HASH: &str =
