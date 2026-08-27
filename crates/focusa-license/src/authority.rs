@@ -18,7 +18,6 @@ pub const LEASE_SCHEMA: &str = "focusa.authority_lease.v1";
 pub const KEY_SET_SCHEMA: &str = "focusa.authority_key_set.v1";
 pub const ENVELOPE_SCHEMA: &str = "focusa.signed_envelope.v1";
 
-
 fn node_ids_equivalent(received: &str, expected: &str) -> bool {
     fn normalize(value: &str) -> Option<&str> {
         let normalized = value.strip_prefix("node-").unwrap_or(value);
@@ -464,6 +463,9 @@ mod tests {
         let a = "01a040ac-a798-7ae3-ac22-d310a87a3aa8";
         let b = "02a040ac-a798-7ae3-ac22-d310a87a3aa8";
         assert!(!node_ids_equivalent(a, b));
-        assert!(!node_ids_equivalent(&format!("node-{a}"), &format!("node-{b}")));
+        assert!(!node_ids_equivalent(
+            &format!("node-{a}"),
+            &format!("node-{b}")
+        ));
     }
 }
