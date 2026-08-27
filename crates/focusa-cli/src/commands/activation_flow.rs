@@ -898,9 +898,9 @@ fn render_human(envelope: &ActivationOutputEnvelope) {
                     "Verification code delivery failed. Use `focusa license resend` to retry."
                 ),
                 // Honest default: only claim sent when the authority reported it.
-                Some(other) => println!(
-                    "Verification code delivery: {other}. Enter the code when it arrives."
-                ),
+                Some(other) => {
+                    println!("Verification code delivery: {other}. Enter the code when it arrives.")
+                }
                 None => println!("Enter the verification code when it arrives."),
             }
         }
