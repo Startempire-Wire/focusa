@@ -338,6 +338,7 @@ mod tests {
             install_channel: "source_build".into(),
             state: ActivationState::EmailChallengeSent,
             masked_email: Some(masked.clone()),
+            verification_delivery_status: Some("queued".into()),
             poll_count: 1,
             max_polls: 40,
         };
@@ -393,6 +394,7 @@ mod tests {
             install_channel: "source_build".into(),
             state: ActivationState::TerminalDeliveryReady,
             masked_email: Some(masked.clone()),
+            verification_delivery_status: None,
             poll_count: 2,
             max_polls: 40,
         };
@@ -424,6 +426,7 @@ mod tests {
             install_channel: "source_build".into(),
             state: ActivationState::RecoveryOnly,
             masked_email: Some("c***@example.com".into()),
+            verification_delivery_status: None,
             poll_count: 0,
             max_polls: 40,
         };
@@ -443,6 +446,7 @@ mod tests {
             install_channel: "source_build".into(),
             state: ActivationState::CheckoutPending,
             masked_email: Some("c***@example.com".into()),
+            verification_delivery_status: None,
             poll_count: 3,
             max_polls: 40,
         };
