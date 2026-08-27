@@ -671,12 +671,14 @@ pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
                 run_activation_flow_command(json_output, a).await
             }
         }
-        LicenseCmd::Activate(_)
-        | LicenseCmd::Deactivate
+        LicenseCmd::Activate(a) => {
+            run_redeem_fast_path(json_output, a.key.trim(), a.registry.as_deref()).await
+        }
+        LicenseCmd::Deactivate
         | LicenseCmd::DevmodeFull(_)
         | LicenseCmd::Refresh(_)
         | LicenseCmd::Watch(_) => anyhow::bail!(
-            "E_AUTHORITY_COMMAND_RETIRED: plaintext activation, deactivation, dev-mode issuance, registry refresh, and watch cannot grant or mutate production entitlement; use signed authority device authorization"
+            "E_AUTHORITY_COMMAND_RETIRED: deactivation, dev-mode issuance, registry refresh, and watch cannot grant or mutate production entitlement; use signed authority device authorization"
         ),
     }
 }
