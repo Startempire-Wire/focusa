@@ -218,15 +218,21 @@ impl ActivationFlowSessionPersist {
 /// Persist the resumable agent-session state (registration snapshot + protected
 /// poll credential; lease/key envelopes when terminal). Shared by the interactive
 /// flow and the agent/JSON protocol so continuity never depends on which surface
-/// ran the step (#370).
+/// ran the step (#370). On terminal settlement the now-unresumable
+/// registration-scoped poll credential and its snapshot are retired so expired
+/// credentials do not accumulate in the protected store (#347).
 pub fn persist_agent_session_state<A: ActivationAuthority>(
     config_dir: &std::path::Path,
     session: &ActivationSession<A>,
     store: &dyn ProtectedCredentialStore,
 ) -> Result<(), ActivationFlowError> {
-    persist_registration_snapshot(config_dir, session.registration())?;
-    if let Some(credential) = session.poll_credential() {
-        persist_poll_credential(store, session.registration_id(), credential)?;
+    if session.state().is_terminal() {
+        retire_registration_credentials(config_dir, session.registration_id(), store)?;
+    } else {
+        persist_registration_snapshot(config_dir, session.registration())?;
+        if let Some(credential) = session.poll_credential() {
+            persist_poll_credential(store, session.registration_id(), credential)?;
+        }
     }
     if session.state().is_terminal() {
         let envelope = session.envelope(None)?;
@@ -237,6 +243,26 @@ pub fn persist_agent_session_state<A: ActivationAuthority>(
         if let Some(key_envelope) = envelope.one_time_key_envelope.as_deref() {
             persist_key_envelope(config_dir, session.registration_id(), key_envelope)?;
         }
+    }
+    Ok(())
+}
+
+/// Retire a terminal registration's resumable artifacts: delete the
+/// registration-scoped poll credential from the protected store and remove
+/// the nonterminal registration snapshot so they cannot accumulate after the
+/// journey settled (activated / denied / cancelled / recovery-only) (#347).
+fn retire_registration_credentials(
+    config_dir: &std::path::Path,
+    registration_id: &str,
+    store: &dyn ProtectedCredentialStore,
+) -> Result<(), ActivationFlowError> {
+    let handle = CredentialHandle::for_registration(registration_id)
+        .map_err(|error| ActivationFlowError::Delivery(format!("{error}")))?;
+    let _ = store.delete(&handle);
+    let snapshot_dir = config_dir.join("activation");
+    let snapshot = snapshot_dir.join(format!("{registration_id}.json"));
+    if snapshot.exists() {
+        let _ = std::fs::remove_file(&snapshot);
     }
     Ok(())
 }
@@ -1096,16 +1122,44 @@ pub fn persist_key_envelope(
     Ok(path)
 }
 
+/// Atomic, private (0o600) write with fsync + rename. Unlike a bare
+/// fs::write + set_permissions, the file is created with the private mode
+/// (no umask/partial-write window) and atomically renamed into place so a
+/// crash never leaves a partially-written or world-readable artifact
+/// (#347). Mirrors the authority store's write_atomic().
 fn write_private(path: &Path, bytes: &[u8]) -> Result<(), ActivationFlowError> {
-    std::fs::write(path, bytes)
+    use std::fs::OpenOptions;
+    use std::io::Write;
+    let parent = path.parent().ok_or_else(|| {
+        ActivationFlowError::Delivery("activation artifact path has no parent".into())
+    })?;
+    std::fs::create_dir_all(parent)
         .map_err(|error| ActivationFlowError::Delivery(error.to_string()))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
+    let mut temporary = path.as_os_str().to_owned();
+    temporary.push(format!(".tmp-{}", uuid::Uuid::now_v7()));
+    let temporary: std::path::PathBuf = temporary.into();
+    let result = (|| {
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        let mut file = options
+            .open(&temporary)
             .map_err(|error| ActivationFlowError::Delivery(error.to_string()))?;
+        file.write_all(bytes)
+            .and_then(|_| file.sync_all())
+            .map_err(|error| ActivationFlowError::Delivery(error.to_string()))?;
+        std::fs::rename(&temporary, path)
+            .map_err(|error| ActivationFlowError::Delivery(error.to_string()))?;
+        Ok(())
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temporary);
     }
-    Ok(())
+    result
 }
 
 /// Resolve (or create) the node-bound identity used as the device public-key
@@ -1311,6 +1365,7 @@ mod tests {
                 transitions: vec![ActivationTransition::ChallengeDelivered],
                 registration_id: None,
                 poll_credential: Some("poll-secret".into()),
+                verification_delivery_status: Some("queued".into()),
             })),
         );
         authority.push("activation.offers", Ok(AuthorityReply::Offers(Vec::new())));
