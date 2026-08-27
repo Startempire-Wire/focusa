@@ -31,6 +31,11 @@ export FOCUSA_TEST_MODE="${FOCUSA_TEST_MODE:-1}"
 DAEMON_BIN="${DAEMON_BIN:-./target/release/focusa-daemon}"
 if [ ! -x "$DAEMON_BIN" ]; then
   CARGO_BIN="${CARGO_BIN:-cargo}"
+  export CARGO_PROFILE_RELEASE_LTO="${CARGO_PROFILE_RELEASE_LTO:-off}"
+  # The release daemon build with thin-LTO can exhaust CI/small-host
+  # resources.  CI workflows supply CARGO_PROFILE_RELEASE_LTO=off so the
+  # spec-gates daemon builds without cross-crate optimization; the
+  # release pipeline uses musl + cross for the shipped artifact.
   "$CARGO_BIN" build -p focusa-api --release --bin focusa-daemon
 fi
 # Per-user daemon log: a root/wirebot-owned /tmp/focusa-daemon.log once
