@@ -889,7 +889,21 @@ fn emit_error(
 fn render_human(envelope: &ActivationOutputEnvelope) {
     match envelope.state.as_str() {
         "email_required" => println!("Focusa requires activation."),
-        "email_verification_pending" => println!("Verification code sent."),
+        "email_verification_pending" => {
+            match envelope.verification_delivery_status.as_deref() {
+                Some("queued") => println!(
+                    "Verification code queued (mail delivery pending). Enter the code when it arrives."
+                ),
+                Some("failed") => println!(
+                    "Verification code delivery failed. Use `focusa license resend` to retry."
+                ),
+                // Honest default: only claim sent when the authority reported it.
+                Some(other) => println!(
+                    "Verification code delivery: {other}. Enter the code when it arrives."
+                ),
+                None => println!("Enter the verification code when it arrives."),
+            }
+        }
         "email_verified" => println!("Email verified."),
         "selection_required" => println!("Select an option:"),
         "checkout_required" => println!("Starting checkout..."),

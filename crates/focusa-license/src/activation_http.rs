@@ -332,6 +332,8 @@ struct WireStartReply {
     poll_credential: Option<String>,
     #[serde(default)]
     registration_id: Option<String>,
+    #[serde(default)]
+    verification_delivery_status: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -469,6 +471,7 @@ impl ActivationAuthority for ActivationHttpClient {
             transitions: reply.transitions,
             poll_credential: reply.poll_credential,
             registration_id: reply.registration_id,
+            verification_delivery_status: reply.verification_delivery_status,
         })
     }
 

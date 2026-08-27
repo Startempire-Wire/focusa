@@ -88,6 +88,10 @@ pub struct ActivationStartReply {
     pub transitions: Vec<ActivationTransition>,
     pub poll_credential: Option<String>,
     pub registration_id: Option<String>,
+    /// Honest authority delivery disposition from activation.start (e.g.
+    /// `queued`` when the challenge is queued but not yet deliverable). The
+    /// CLI renders this instead of claiming the code was sent.
+    pub verification_delivery_status: Option<String>,
 }
 
 /// Authority reply to `activation.checkout`.
@@ -257,6 +261,7 @@ pub struct ActivationSession<A> {
     poll_credential: Option<SensitiveCredential>,
     device_public_key: Option<String>,
     safe_url: Option<String>,
+    verification_delivery_status: Option<String>,
     one_time_key_envelope: Option<String>,
     node_id: Option<String>,
     lease_envelope: Option<String>,
@@ -295,6 +300,7 @@ impl<A: ActivationAuthority> ActivationSession<A> {
                 poll_credential: None,
                 device_public_key: device_public_key.map(str::to_string),
                 safe_url: None,
+                verification_delivery_status: None,
                 one_time_key_envelope: None,
                 node_id: Some("dev-node".into()),
                 lease_envelope: None,
@@ -330,6 +336,7 @@ impl<A: ActivationAuthority> ActivationSession<A> {
             })?;
         // 316: consume authority-issued registration_id; never invent unrelated local ID
         let server_registration_id = reply.registration_id.clone();
+        let delivery_status = reply.verification_delivery_status.clone();
         let mut session = Self {
             authority,
             context,
@@ -348,6 +355,7 @@ impl<A: ActivationAuthority> ActivationSession<A> {
             poll_credential,
             device_public_key: device_public_key.map(str::to_string),
             safe_url: None,
+            verification_delivery_status: delivery_status,
             one_time_key_envelope: None,
             node_id: None,
             lease_envelope: None,
@@ -383,6 +391,7 @@ impl<A: ActivationAuthority> ActivationSession<A> {
             poll_credential: Some(poll_credential),
             device_public_key: None,
             safe_url: None,
+            verification_delivery_status: None,
             one_time_key_envelope: None,
             node_id: None,
             lease_envelope: None,
@@ -587,7 +596,7 @@ impl<A: ActivationAuthority> ActivationSession<A> {
             self.registration.state,
             self.registration.masked_email.as_deref(),
             self.safe_url.clone(),
-            None,
+            self.verification_delivery_status.clone(),
             self.one_time_key_envelope.clone(),
             self.node_id.clone(),
             self.lease_envelope.clone(),
@@ -866,6 +875,7 @@ mod tests {
                 transitions: vec![ActivationTransition::ChallengeDelivered],
                 registration_id: None,
                 poll_credential: Some("poll-secret".into()),
+                verification_delivery_status: Some("queued".into()),
             })),
         );
         authority.push("activation.offers", Ok(AuthorityReply::Offers(Vec::new())));
@@ -994,6 +1004,7 @@ mod tests {
                 transitions: vec![ActivationTransition::ChallengeDelivered],
                 registration_id: None,
                 poll_credential: Some("poll-secret".into()),
+                verification_delivery_status: Some("queued".into()),
             })),
         );
         authority.push(

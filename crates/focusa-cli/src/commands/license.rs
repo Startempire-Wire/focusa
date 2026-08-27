@@ -37,6 +37,10 @@ pub enum LicenseCmd {
     ActivateFlow(ActivateFlowArgs),
     /// Activate a Focusa license key. Saves the local license state file.
     Activate(ActivateArgs),
+    /// Re-send the email verification code for a pending activation
+    /// registration (recovery for delayed/lost delivery). Reports the
+    /// authority's honest delivery disposition.
+    Resend(ResendArgs),
     /// Show current license status (mode, status, features, offline-valid-until).
     Status,
     /// Deactivate the current license. The local file is removed.
@@ -175,6 +179,17 @@ pub struct ActivateArgs {
     pub persist_key: bool,
 
     /// Override the registry URL (default: https://install.focusa.dev).
+    #[arg(long, value_name = "URL")]
+    pub registry: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct ResendArgs {
+    /// Persisted activation registration id to re-send the challenge for.
+    #[arg(long, value_name = "REGISTRATION_ID")]
+    pub registration_id: String,
+
+    /// Override the registry URL (default: https://wpuiai.com).
     #[arg(long, value_name = "URL")]
     pub registry: Option<String>,
 }
@@ -674,6 +689,7 @@ pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
         LicenseCmd::Activate(a) => {
             run_redeem_fast_path(json_output, a.key.trim(), a.registry.as_deref()).await
         }
+        LicenseCmd::Resend(a) => run_resend(json_output, a).await,
         LicenseCmd::Deactivate
         | LicenseCmd::DevmodeFull(_)
         | LicenseCmd::Refresh(_)
@@ -681,6 +697,61 @@ pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
             "E_AUTHORITY_COMMAND_RETIRED: deactivation, dev-mode issuance, registry refresh, and watch cannot grant or mutate production entitlement; use signed authority device authorization"
         ),
     }
+}
+
+/// Re-send the verification code for a pending registration. Direct HTTP to
+/// the authority's /activation/resend; reports honest delivery status.
+/// #365 recovery: never claims the code was sent unless the authority says so.
+async fn run_resend(json_output: bool, args: ResendArgs) -> anyhow::Result<()> {
+    let registry = args
+        .registry
+        .clone()
+        .unwrap_or_else(|| DEFAULT_REGISTRY.to_string());
+    let url = format!(
+        "{}/wp-json/wpuiai-ai-cloud/v1/activation/resend",
+        registry.trim_end_matches('/')
+    );
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?;
+    let resp = client
+        .post(&url)
+        .json(&serde_json::json!({ "registration_id": args.registration_id.trim() }))
+        .send()
+        .await
+        .context("reach license authority to resend verification code")?;
+    let status = resp.status();
+    let body: serde_json::Value = resp.json().await.context("decode resend reply")?;
+    if !status.is_success() {
+        let code = body
+            .pointer("/error/code")
+            .and_then(|v| v.as_str())
+            .unwrap_or("AUTHORITY_UNAVAILABLE")
+            .to_string();
+        let out = json!({ "ok": false, "code": code });
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&out)?);
+        } else {
+            eprintln!("Resend failed: {code}");
+        }
+        std::process::exit(2);
+    }
+    let delivery = body
+        .get("verification_delivery_status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("queued")
+        .to_string();
+    let out = serde_json::json!({ "ok": true, "verification_delivery_status": delivery });
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    } else {
+        match delivery.as_str() {
+            "queued" => println!("Verification code queued; delivery pending."),
+            "sent" => println!("Verification code re-sent."),
+            other => println!("Verification code delivery: {other}."),
+        }
+    }
+    Ok(())
 }
 
 async fn run_activate(json_output: bool, args: ActivateArgs) -> anyhow::Result<()> {
