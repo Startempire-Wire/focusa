@@ -271,7 +271,7 @@ mod tests {
             "product_grants": ["focusa"],
             "presenter": {
                 "presenter_state": "activated",
-                "allowed_actions": ["manage_nodes", "refresh_lease", "manage_account", "resume"]
+                "allowed_actions": ["resume"]
             }
         });
         let posture = project_spec172_posture(&focusa).expect("projects");
@@ -289,7 +289,7 @@ mod tests {
             "product_grants": ["focusa", "uiai_engine"],
             "presenter": {
                 "presenter_state": "activated",
-                "allowed_actions": ["manage_nodes", "refresh_lease", "manage_account", "resume"]
+                "allowed_actions": ["resume"]
             }
         });
         let posture = project_spec172_posture(&bundle).expect("projects");

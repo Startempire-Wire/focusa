@@ -95,16 +95,9 @@ impl TuiPresenterState {
             Self::CheckoutRequired => &["open_checkout"],
             Self::PaymentPending => &["poll", "open_checkout"],
             Self::LicenseDeliveryReady => &["deliver_license", "activate"],
-            Self::Activated => &["manage_nodes", "refresh_lease", "manage_account", "resume"],
+            Self::Activated => &["resume"],
             Self::Denied => &["activate_or_manage_entitlement", "recovery"],
-            Self::RecoveryOnly => &[
-                "recovery",
-                "repair",
-                "export",
-                "uninstall",
-                "manage_nodes",
-                "manage_account",
-            ],
+            Self::RecoveryOnly => &["recovery", "repair", "export", "uninstall"],
         }
     }
 
@@ -463,7 +456,7 @@ mod tests {
         let posture = project_license_status(&active).unwrap();
         assert_eq!(posture.presenter_state, "activated");
         assert_eq!(posture.next_action, "activated");
-        assert!(posture.actions.contains(&"manage_nodes".to_string()));
+        assert!(posture.actions.contains(&"resume".to_string()));
         let recovery = json!({"status": "recovery_only"});
         assert_eq!(
             project_license_status(&recovery).unwrap().presenter_state,

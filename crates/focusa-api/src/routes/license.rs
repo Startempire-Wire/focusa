@@ -192,16 +192,9 @@ fn allowed_actions_for_presenter_state(state: &str) -> &'static [&'static str] {
         "checkout_required" => &["open_checkout"],
         "payment_pending" => &["poll", "open_checkout"],
         "license_delivery_ready" => &["deliver_license", "activate"],
-        "activated" => &["manage_nodes", "refresh_lease", "manage_account", "resume"],
+        "activated" => &["resume"],
         "denied" => &["activate_or_manage_entitlement", "recovery"],
-        "recovery_only" => &[
-            "recovery",
-            "repair",
-            "export",
-            "uninstall",
-            "manage_nodes",
-            "manage_account",
-        ],
+        "recovery_only" => &["recovery", "repair", "export", "uninstall"],
         _ => &["activate_or_manage_entitlement", "recovery"],
     }
 }
@@ -339,7 +332,7 @@ mod tests {
             "activate_or_manage_entitlement"
         );
         assert_eq!(presenter_next_action_label("recovery_only"), "recovery");
-        assert!(allowed_actions_for_presenter_state("activated").contains(&"manage_nodes"));
+        assert!(allowed_actions_for_presenter_state("activated").contains(&"resume"));
         assert!(allowed_actions_for_presenter_state("recovery_only").contains(&"repair"));
         // Fail-closed default for unknown labels.
         assert_eq!(

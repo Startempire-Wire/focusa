@@ -87,18 +87,11 @@ export function allowedActionsFor(state: PresenterState): string[] {
     case 'license_delivery_ready':
       return ['deliver_license', 'activate'];
     case 'activated':
-      return ['manage_nodes', 'refresh_lease', 'manage_account', 'resume'];
+      return ['resume'];
     case 'denied':
       return ['activate_or_manage_entitlement', 'recovery'];
     case 'recovery_only':
-      return [
-        'recovery',
-        'repair',
-        'export',
-        'uninstall',
-        'manage_nodes',
-        'manage_account',
-      ];
+      return ['recovery', 'repair', 'export', 'uninstall'];
   }
 }
 
@@ -249,14 +242,7 @@ export function denialRecovery(view: MenubarActivationView): {
     recovery_only: view.state === 'recovery_only',
     recovery_actions:
       view.state === 'denied' || view.state === 'recovery_only'
-        ? [
-            'recovery',
-            'repair',
-            'export',
-            'uninstall',
-            'manage_nodes',
-            'manage_account',
-          ]
+        ? ['recovery', 'repair', 'export', 'uninstall']
         : [],
   };
 }

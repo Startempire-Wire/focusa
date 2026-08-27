@@ -122,18 +122,15 @@ expect(
   'payment_pending exposes poll + open_checkout',
 );
 expect(
-  allowedActionsFor('activated').includes('manage_nodes') &&
-    allowedActionsFor('activated').includes('refresh_lease') &&
-    allowedActionsFor('activated').includes('resume'),
-  'activated exposes node management, lease refresh, and resume',
+  allowedActionsFor('activated').includes('resume') &&
+    allowedActionsFor('activated').length === 1,
+  'activated exposes only executable resume action',
 );
 for (const action of [
   'recovery',
   'repair',
   'export',
   'uninstall',
-  'manage_nodes',
-  'manage_account',
 ]) {
   expect(
     allowedActionsFor('recovery_only').includes(action),
@@ -322,7 +319,7 @@ expect(
   'entitlement posture carries shared next action',
 );
 expect(
-  posture.allowed_actions.includes('manage_nodes'),
+  posture.allowed_actions.includes('resume'),
   'entitlement posture carries shared allowed actions',
 );
 
