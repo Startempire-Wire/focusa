@@ -38,6 +38,8 @@ workflows:
         - focusa_release_signing
       vars:
         APP_DIR: apps/menubar
+        FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc
+        VITE_FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc
     scripts:
       - name: Show build context
         script: |

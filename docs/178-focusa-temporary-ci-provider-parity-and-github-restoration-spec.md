@@ -42,8 +42,10 @@ from those signatures only after every required provider receipt is present.
 6. Retain successful provider build IDs/receipts beside the release proof. A
 GitHub hosted-macOS failure is expected during this temporary route and is not
 a substitute for, or a failure of, the Codemagic proof.
-7. Treat an absent, failed, wrong-commit, unsigned, or unnotarized provider
-proof as a release blocker for the menubar surface.
+7. Treat an absent, failed, wrong-commit, unsigned, or undisclosed-mode
+provider proof as a release blocker. `beta_ad_hoc` is permitted only with the
+canonical pre-license consent markers; `production_notarized` requires Apple
+authority and notarization evidence.
 8. Publish only after all required proof surfaces for that release are green.
 
 ## 4. Spending and trigger boundary

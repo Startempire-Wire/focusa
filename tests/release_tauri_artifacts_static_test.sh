@@ -42,6 +42,8 @@ pass "external menubar contract encodes .app.zip + dmg + setup.exe + msi for bot
 # Codemagic builds the macOS menubar; AppVeyor builds the Windows menubar.
 grep -Fq 'menubar-macos-package-proof' "$CODEMAGIC" || fail "Codemagic missing menubar-macos-package-proof workflow"
 grep -Fq 'createUpdaterArtifacts":true' "$CODEMAGIC" || fail "Codemagic must create signed Tauri updater artifacts"
+grep -Fq 'FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc' "$CODEMAGIC" || fail "Codemagic macOS mode must be explicitly disclosed"
+grep -Fq 'VITE_FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc' "$CODEMAGIC" || fail "Codemagic UI must receive the disclosed pre-license mode"
 grep -Fq 'arch="x64"' "$CODEMAGIC" || fail "Codemagic missing macOS x64 updater architecture mapping"
 grep -Fq 'arch="aarch64"' "$CODEMAGIC" || fail "Codemagic missing macOS ARM64 updater architecture mapping"
 grep -Fq 'Focusa_${arch}.app.tar.gz.sig' "$CODEMAGIC" || fail "Codemagic missing signed macOS updater filename template"
