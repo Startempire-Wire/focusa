@@ -109,6 +109,29 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+      - name: Wait for candidate-SHA CI completion (pipelined atomic tag push)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The tag is pushed atomically with the version-bump commit, so CI may
+          # still be running when the release workflow starts. Same gate, just
+          # patient: wait (bounded) for the candidate-SHA CI to complete; the
+          # receipt check below still enforces success with Menubar exempt.
+          for attempt in $(seq 1 120); do
+            status=$(gh run list --workflow "CI" --commit "$GITHUB_SHA" --limit 5 \
+              --json status,headSha \
+              | jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha)][0].status // "missing"')
+            case "$status" in
+              completed) echo "candidate CI completed after ${attempt} polls"; exit 0 ;;
+              missing) echo "candidate CI not found yet (attempt ${attempt})" ;;
+              *) echo "candidate CI ${status} (attempt ${attempt})" ;;
+            esac
+            sleep 15
+          done
+          echo "::error::timed out waiting for candidate-SHA CI"
+          exit 1
       - name: Require exact candidate-SHA preflight receipts
         env:
           GH_TOKEN: ${{ github.token }}
@@ -645,12 +668,14 @@ jobs:
           - target: x86_64-apple-darwin
             os: macos-latest
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
+            # Quality-identical runner swap: same canonical commands (cargo,
+            # thin-LTO via Cargo.toml, cross containers), warm continuous cache.
+            os: [self-hosted, Linux, X64, ovh-build-2]
           - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
+            os: [self-hosted, Linux, X64, ovh-build-2]
             cross: true
           - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
+            os: [self-hosted, Linux, X64, ovh-build-2]
             musl: true
           - target: x86_64-pc-windows-msvc
             os: windows-latest

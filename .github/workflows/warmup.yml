@@ -1,0 +1,57 @@
+# Continuous release-profile warm builder (quality-neutral speed win).
+#
+# On every push to main, rebuild the EXACT canonical release profile for the
+# three Linux targets (thin-LTO, cross containers, pinned toolchain, trust
+# root env) on the dedicated OVH warm-builder runner. At tag time the release
+# legs run in the same workspace/target-dir: cargo fingerprints guarantee the
+# shipped binaries are compiled from the exact tag sources with the exact
+# canonical profile — a stale cache can only cost time, never alter output.
+name: Release Warm Builder
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch: {}
+
+concurrency:
+  group: release-warmup
+  cancel-in-progress: true
+
+jobs:
+  warm:
+    name: Warm Linux release caches (gnu+musl+arm64)
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
+    timeout-minutes: 75
+    env:
+      FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2026-01-08
+          targets: x86_64-unknown-linux-gnu x86_64-unknown-linux-musl aarch64-unknown-linux-gnu
+      - name: Install cross for containerized targets
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - name: Warm gnu release build
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+      - name: Warm musl release build (canonical cross path)
+        run: |
+          cat > Cross.toml <<'EOF'
+          [build.env]
+          passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
+          EOF
+          export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
+          cross build --release --target x86_64-unknown-linux-musl
+          rm -f Cross.toml
+      - name: Warm arm64 release build (canonical cross path)
+        run: cross build --release --target aarch64-unknown-linux-gnu
+      - name: Smoke release binaries (musl runs on host, gnu daemon boots)
+        run: |
+          ./target/x86_64-unknown-linux-musl/release/focusa --version
+          ./target/x86_64-unknown-linux-gnu/release/focusa --version
+          ./target/x86_64-unknown-linux-gnu/release/focusa-tui --version

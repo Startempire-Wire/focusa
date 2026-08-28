@@ -18,10 +18,11 @@ concurrency:
   group: ci-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Self-hosted runner shares a production host: cap cargo codegen parallelism
-# so CI cannot starve (or be killed alongside) operator builds (#328).
+# Runner constraint: heavy cargo jobs are pinned to the OVH builder (8 cores,
+# 22GB, dedicated) — the old CARGO_BUILD_JOBS=2 cap existed because the runner
+# shared the production host (#328); it is raised to match the OVH box.
 env:
-  CARGO_BUILD_JOBS: '2'
+  CARGO_BUILD_JOBS: '8'
   CARGO_INCREMENTAL: '0'
   # Container physpages ceiling (~14GB shared with production) kills rustc
   # during thin-LTO codegen (#328 root cause). Validation builds skip LTO;
