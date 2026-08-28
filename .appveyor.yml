@@ -17,9 +17,6 @@
 version: "{build}"
 
 skip_tags: false
-# Open-source tier has one concurrent worker. New branch commits supersede older
-# branch proofs immediately instead of serially compiling obsolete SHAs.
-rolling_builds: true
 
 # Target-specific, Cargo.lock-keyed caches are bounded by architecture and never
 # contain release credentials. They avoid full 25–40 minute cold recompilation.
