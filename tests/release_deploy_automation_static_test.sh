@@ -72,6 +72,11 @@ assert_grep 'Cleanup release artifact temp dir' .github/workflows/deploy-live-da
 assert_grep 'Self-healing smoke check' .github/workflows/deploy-live-daemon.yml 'post-deploy smoke check missing'
 assert_grep 'concurrency:' .github/workflows/deploy-live-daemon.yml 'deploy concurrency guard missing'
 
+# Per-run strict-spec daemon and cleanup propagation guards (#387).
+assert_grep 'export DAEMON_BIN="${DAEMON_BIN:-$CARGO_TARGET_DIR/release/focusa-daemon}"' scripts/ci/run-spec-gates.sh 'strict spec child gates must inherit the isolated daemon path'
+cleanup_block="$(awk '/^cleanup\(\) \{/{capture=1} capture{print} capture && /^}/{exit}' scripts/ci/run-spec-gates.sh)"
+grep -Fq 'cleanup_ephemeral_builds' <<<"$cleanup_block" || { echo '✗ strict spec combined EXIT cleanup missing'; exit 1; }
+
 # install-daemon.sh assertions
 assert_grep 'flock -n 9' scripts/install-daemon.sh 'deploy lock missing'
 assert_grep 'backup saved to' scripts/install-daemon.sh 'backup path log missing'

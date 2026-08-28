@@ -39,7 +39,7 @@ export FOCUSA_DATA_DIR="${FOCUSA_DATA_DIR:-$(mktemp -d /tmp/focusa-spec-gates.XX
 # crates/focusa-api/src/middleware/entitlement.rs:369.
 export FOCUSA_TEST_MODE="${FOCUSA_TEST_MODE:-1}"
 
-DAEMON_BIN="${DAEMON_BIN:-$CARGO_TARGET_DIR/release/focusa-daemon}"
+export DAEMON_BIN="${DAEMON_BIN:-$CARGO_TARGET_DIR/release/focusa-daemon}"
 if [ ! -x "$DAEMON_BIN" ]; then
   CARGO_BIN="${CARGO_BIN:-cargo}"
   export CARGO_PROFILE_RELEASE_LTO="${CARGO_PROFILE_RELEASE_LTO:-off}"
@@ -57,6 +57,7 @@ DAEMON_PID=$!
 cleanup() {
   kill "$DAEMON_PID" >/dev/null 2>&1 || true
   rm -rf "$FOCUSA_DATA_DIR" >/dev/null 2>&1 || true
+  cleanup_ephemeral_builds
 }
 trap cleanup EXIT
 
