@@ -99,6 +99,18 @@ grep -q 'continue-on-error: true' <<<"$menubar_block" \
   || fail "billing-locked CI Menubar job must remain informational under Spec 178"
 pass "billing-locked GitHub macOS CI is non-authoritative without hiding the restoration target"
 
+rust_ci_block="$(awk '/^  rust:/{job=1} /^  menubar:/{job=0} job{print}' "$CI")"
+spec_ci_block="$(awk '/^  spec-gates:/{job=1} job{print}' "$CI")"
+grep -Fq 'group: focusa-cargo-rust-${{ github.ref }}' <<<"$rust_ci_block" \
+  || fail "Rust CI requires its own ref-scoped concurrency group"
+grep -Fq 'group: focusa-cargo-spec-${{ github.ref }}' <<<"$spec_ci_block" \
+  || fail "Spec CI requires its own ref-scoped concurrency group"
+[[ "$(grep -c 'cancel-in-progress: true' <<<"$rust_ci_block")" -eq 1 ]] \
+  || fail "Rust CI must cancel only its superseded same-ref instance"
+[[ "$(grep -c 'cancel-in-progress: true' <<<"$spec_ci_block")" -eq 1 ]] \
+  || fail "Spec CI must cancel only its superseded same-ref instance"
+pass "Rust and Spec CI cannot cancel each other and superseded work is bounded"
+
 # External Windows compilation must not cross an unguarded POSIX process API.
 BG="crates/focusa-cli/src/commands/bg.rs"
 grep -q '#\[cfg(unix)\]' "$BG" \

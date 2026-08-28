@@ -52,8 +52,8 @@ jobs:
   rust:
     name: Rust
     concurrency:
-      group: focusa-cargo
-      cancel-in-progress: false
+      group: focusa-cargo-rust-${{ github.ref }}
+      cancel-in-progress: true
     # TEMPORARY-OVH-LANE (until GitHub-hosted minutes restore ~2026-09-01):
     # heavy cargo build/test runs on the OVH builder runner.
     runs-on: [self-hosted, Linux, X64, ovh-build]
@@ -160,8 +160,8 @@ jobs:
   spec-gates:
     name: Spec Gates (strict)
     concurrency:
-      group: focusa-cargo
-      cancel-in-progress: false
+      group: focusa-cargo-spec-${{ github.ref }}
+      cancel-in-progress: true
     # TEMPORARY-OVH-LANE (until GitHub-hosted minutes restore ~2026-09-01):
     # release daemon build/probe runs on the OVH builder runner.
     runs-on: [self-hosted, Linux, X64, ovh-build]
