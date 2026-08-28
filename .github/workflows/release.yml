@@ -700,14 +700,14 @@ jobs:
             # Quality-identical runner swap: same canonical commands (cargo,
             # thin-LTO via Cargo.toml, cross containers), warm continuous cache.
             os: [self-hosted, Linux, X64, ovh-build-2]
-            target_dir: /target/release-x86_64-unknown-linux-gnu
+            target_dir: /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-gnu
           - target: aarch64-unknown-linux-gnu
             os: [self-hosted, Linux, X64, ovh-build-2]
-            target_dir: /target/release-aarch64-unknown-linux-gnu
+            target_dir: /home/wirebot/.cache/focusa-release-target/aarch64-unknown-linux-gnu
             cross: true
           - target: x86_64-unknown-linux-musl
             os: [self-hosted, Linux, X64, ovh-build-2]
-            target_dir: /target/release-x86_64-unknown-linux-musl
+            target_dir: /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-musl
             musl: true
 
     runs-on: ${{ matrix.os }}

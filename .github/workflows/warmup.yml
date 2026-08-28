@@ -39,11 +39,11 @@ jobs:
           tool: cross
       - name: Warm gnu release build
         env:
-          CARGO_TARGET_DIR: /target/release-x86_64-unknown-linux-gnu
+          CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-gnu
         run: cargo build --release --target x86_64-unknown-linux-gnu
       - name: Warm musl release build (canonical cross path)
         env:
-          CARGO_TARGET_DIR: /target/release-x86_64-unknown-linux-musl
+          CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-musl
         run: |
           cat > Cross.toml <<'EOF'
           [build.env]
@@ -54,10 +54,10 @@ jobs:
           rm -f Cross.toml
       - name: Warm arm64 release build (canonical cross path)
         env:
-          CARGO_TARGET_DIR: /target/release-aarch64-unknown-linux-gnu
+          CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-release-target/aarch64-unknown-linux-gnu
         run: cross build --release --target aarch64-unknown-linux-gnu
       - name: Smoke release binaries (musl runs on host, gnu daemon boots)
         run: |
-          /target/release-x86_64-unknown-linux-musl/x86_64-unknown-linux-musl/release/focusa --version
-          /target/release-x86_64-unknown-linux-gnu/x86_64-unknown-linux-gnu/release/focusa --version
-          /target/release-x86_64-unknown-linux-gnu/x86_64-unknown-linux-gnu/release/focusa-tui --version
+          /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-musl/x86_64-unknown-linux-musl/release/focusa --version
+          /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-gnu/x86_64-unknown-linux-gnu/release/focusa --version
+          /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-gnu/x86_64-unknown-linux-gnu/release/focusa-tui --version
