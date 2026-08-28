@@ -137,6 +137,10 @@ awk '/^  final-release-gap-gate:/{job=1} /^  version-policy:/{job=0} job{print}'
   echo '✗ Final release gap gate must sanitize incompatible ambient Node options (GH#350)' >&2
   exit 1
 }
+for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-unknown-linux-musl; do
+  assert_grep "/target/release-${target}" .github/workflows/warmup.yml "warmup target cache is not ABI-partitioned: ${target}"
+  assert_grep "target_dir: /target/release-${target}" .github/workflows/release.yml "release target cache does not reuse the ABI partition: ${target}"
+done
 assert_grep 'Release workflow validation' .github/workflows/release.yml 'release workflow needs unconditional validation step to avoid No jobs were run'
 assert_grep "- 'v*'" .github/workflows/release.yml 'release workflow must trigger for immutable stable and preview tags'
 assert_grep 'scripts/verify-release-tag-trigger.py' scripts/create-dev-release-tag.sh 'release helper must verify trigger compatibility before immutable tagging'
