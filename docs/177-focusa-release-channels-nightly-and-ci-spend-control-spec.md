@@ -66,8 +66,8 @@ are canonical in `docs/178-focusa-temporary-ci-provider-parity-and-github-restor
 
 1. `ci.yml`: add `paths-ignore: ['**.md', 'docs/**']` to push+PR triggers;
    extend `cancel-in-progress` to push events (not just PRs).
-2. No new crons anywhere. Existing daily cron (`billing-bypass-expiry`)
-   stays — it is documented cheap.
+2. No new crons anywhere. The `billing-bypass-expiry` Azure cron was removed
+   with the Azure bypass (not approved for use).
 3. Disabled burners stay disabled (`audit-recorder`, watchdog schedule).
 4. Any new workflow MUST declare its expected monthly minutes in a header
    comment. Reviewer gate: more than ~60 min/month needs operator approval.

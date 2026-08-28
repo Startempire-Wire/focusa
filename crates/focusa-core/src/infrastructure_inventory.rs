@@ -150,12 +150,7 @@ pub fn scan_infrastructure(root: &Path) -> ProjectInfrastructureInventory {
     );
     probe(
         "ci",
-        &[
-            ".github/workflows",
-            ".gitlab-ci.yml",
-            "Jenkinsfile",
-            "azure-pipelines.yml",
-        ],
+        &[".github/workflows", ".gitlab-ci.yml", "Jenkinsfile"],
         vec![],
     );
     probe(
