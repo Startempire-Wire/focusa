@@ -24,11 +24,6 @@ workflows:
   menubar-macos-package-proof:
     name: Menubar macOS package proof
     max_build_duration: 60
-    when:
-      changeset:
-        includes:
-          - "apps/menubar/**"
-          - "codemagic.yaml"
     triggering:
       events:
         - tag
@@ -40,6 +35,7 @@ workflows:
       xcode: latest
       groups:
         - github_credentials
+        - focusa_release_signing
       vars:
         APP_DIR: apps/menubar
     scripts:
@@ -69,14 +65,23 @@ workflows:
           cd apps/menubar
           mkdir -p ../../dist/menubar
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            : "${TAURI_SIGNING_PRIVATE_KEY:?missing Tauri updater signing key}"
+            : "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:?missing Tauri updater signing password}"
             npx tauri build --target "$target" --bundles app,dmg \
-              --config '{"bundle":{"createUpdaterArtifacts":false}}'
+              --config '{"bundle":{"createUpdaterArtifacts":true}}'
             app="$(find src-tauri/target/${target}/release/bundle/macos -name '*.app' -print -quit)"
             test -n "$app"
             ditto -c -k --keepParent "$app" "../../dist/menubar/Focusa-${CM_TAG}-${target}.app.zip"
             for dmg in src-tauri/target/${target}/release/bundle/dmg/*.dmg; do
               cp "$dmg" "../../dist/menubar/"
             done
+            updater="$(find src-tauri/target/${target}/release/bundle/macos -name '*.app.tar.gz' -print -quit)"
+            test -n "$updater"
+            test -s "${updater}.sig"
+            arch="x64"
+            [ "$target" = "aarch64-apple-darwin" ] && arch="aarch64"
+            cp "$updater" "../../dist/menubar/Focusa_${arch}.app.tar.gz"
+            cp "${updater}.sig" "../../dist/menubar/Focusa_${arch}.app.tar.gz.sig"
           done
           ls -la ../../dist/menubar
       - name: Validate macOS bundles (ad-hoc signature)
@@ -93,17 +98,20 @@ workflows:
             grep -q 'Signature=adhoc' /tmp/codesign_proof.txt
           done
           echo "✓ Menubar macOS bundles proven (ad-hoc signature)"
-      - name: Upload menubar bundles to GitHub Release
+      - name: Upload menubar bundles to canonical GitHub Release
         script: |
-          export GH_TOKEN="${GITHUB_TOKEN:-$GH_TOKEN}"
-          if [ -n "$GH_TOKEN" ] && command -v gh >/dev/null 2>&1; then
-            for attempt in 1 2 3 4 5; do
-              gh release upload "$CM_TAG" dist/menubar/* --clobber && break
-              sleep 30
-            done
-          else
-            echo "gh or GH_TOKEN unavailable; bundles remain in artifacts"
-          fi
+          set -euo pipefail
+          export GH_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+          : "${GH_TOKEN:?missing GitHub release upload credential}"
+          command -v gh >/dev/null 2>&1
+          # The provider may build before the canonical gated draft exists.
+          # Wait boundedly; never create or bypass the canonical release.
+          for attempt in $(seq 1 80); do
+            gh release view "$CM_TAG" >/dev/null 2>&1 && break
+            sleep 30
+          done
+          gh release view "$CM_TAG" >/dev/null 2>&1
+          gh release upload "$CM_TAG" dist/menubar/* --clobber
     artifacts:
       - dist/menubar/*
     publishing:
@@ -117,13 +125,6 @@ workflows:
   macos-rust-binaries:
     name: macOS Rust binaries (cli + daemon + tui, arm64 + x86_64)
     max_build_duration: 60
-    when:
-      changeset:
-        includes:
-          - "crates/**"
-          - "Cargo.toml"
-          - "Cargo.lock"
-          - "codemagic.yaml"
     triggering:
       events:
         - tag
@@ -156,17 +157,18 @@ workflows:
             done
           done
           ls -la dist/
-      - name: Upload binaries to GitHub Release
+      - name: Upload binaries to canonical GitHub Release
         script: |
-          export GH_TOKEN="${GITHUB_TOKEN:-$GH_TOKEN}"
-          if [ -n "$GH_TOKEN" ] && command -v gh >/dev/null 2>&1; then
-            for attempt in 1 2 3 4 5; do
-              gh release upload "$CM_TAG" dist/* --clobber && break
-              sleep 30
-            done
-          else
-            echo "gh or GH_TOKEN unavailable; binaries remain in artifacts"
-          fi
+          set -euo pipefail
+          export GH_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+          : "${GH_TOKEN:?missing GitHub release upload credential}"
+          command -v gh >/dev/null 2>&1
+          for attempt in $(seq 1 80); do
+            gh release view "$CM_TAG" >/dev/null 2>&1 && break
+            sleep 30
+          done
+          gh release view "$CM_TAG" >/dev/null 2>&1
+          gh release upload "$CM_TAG" dist/* --clobber
     artifacts:
       - dist/*
     publishing:

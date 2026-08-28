@@ -129,6 +129,14 @@ assert_grep 'apps/pi-extension/package.json apps/pi-extension/package-lock.json'
   || fail 'Pi extension version surfaces must appear in both commit and dry-run rollback sets'
 assert_grep 'timeout-minutes: 50' .github/workflows/release.yml 'External Menubar receipt gate timeout must be bounded (waits for Codemagic/AppVeyor)'
 assert_grep 'timeout-minutes: 30' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
+awk '/^  rust-check:/{job=1} /^  tag-ci-proof:/{job=0} job{print}' .github/workflows/release.yml | grep -q 'timeout-minutes: 25' || {
+  echo '✗ Release Contract Check timeout must cover its bounded 20-minute candidate-CI polling window' >&2
+  exit 1
+}
+awk '/^  final-release-gap-gate:/{job=1} /^  version-policy:/{job=0} job{print}' .github/workflows/release.yml | grep -q 'unset NODE_OPTIONS' || {
+  echo '✗ Final release gap gate must sanitize incompatible ambient Node options (GH#350)' >&2
+  exit 1
+}
 assert_grep 'Release workflow validation' .github/workflows/release.yml 'release workflow needs unconditional validation step to avoid No jobs were run'
 assert_grep "- 'v*'" .github/workflows/release.yml 'release workflow must trigger for immutable stable and preview tags'
 assert_grep 'scripts/verify-release-tag-trigger.py' scripts/create-dev-release-tag.sh 'release helper must verify trigger compatibility before immutable tagging'

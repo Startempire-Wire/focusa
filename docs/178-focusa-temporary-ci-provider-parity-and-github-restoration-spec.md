@@ -29,23 +29,30 @@ the canonical release scripts remain the authority.
 1. Run the normal canonical preflight and create the requested dev or stable
 tag through the existing release scripts. Never hand-build, hand-copy, or
 hand-publish an artifact.
-2. Require the Linux/self-hosted GitHub evidence and AppVeyor Windows evidence
-that apply to the requested release surface.
-3. Start Codemagic workflow `menubar-macos-package-proof` against the exact
-tag commit using the Codemagic API credential supplied through the approved
-credential authority. The repository contains no token or secret path.
-4. Retain the successful Codemagic build ID/receipt beside the release proof.
-A GitHub hosted-macOS failure is expected during this temporary route and is
-not a substitute for, or a failure of, the Codemagic proof.
-5. Treat an absent, failed, wrong-commit, or unsigned Codemagic proof as a
-release blocker for the menubar surface.
-6. Publish only after all required proof surfaces for that release are green.
+2. The matching `v*` tag automatically triggers both Codemagic release
+workflows and AppVeyor; release tags are never filtered by changed paths.
+3. Require Linux/self-hosted GitHub evidence plus AppVeyor Windows and
+Codemagic macOS evidence for the exact tagged commit.
+4. External providers wait boundedly for the canonical GitHub workflow to
+create its gated draft Release. They never create a Release, skip missing
+credentials, or swallow asset-upload failures.
+5. Menubar receipts include both install bundles and Tauri updater signatures
+for macOS and Windows. The canonical checksums job generates `latest.json`
+from those signatures only after every required provider receipt is present.
+6. Retain successful provider build IDs/receipts beside the release proof. A
+GitHub hosted-macOS failure is expected during this temporary route and is not
+a substitute for, or a failure of, the Codemagic proof.
+7. Treat an absent, failed, wrong-commit, unsigned, or unnotarized provider
+proof as a release blocker for the menubar surface.
+8. Publish only after all required proof surfaces for that release are green.
 
 ## 4. Spending and trigger boundary
 
 - Codemagic uses the personal-account 500 free macOS M2 minutes/month budget.
-- The workflow is release-tag (`v*`) scoped; ordinary push and PR work must
-remain on the free self-hosted Linux and AppVeyor Windows lanes.
+- Both Codemagic workflows are release-tag (`v*`) scoped; ordinary push and PR
+work remains on the free self-hosted Linux and AppVeyor Windows lanes.
+- Secure upload/signing variables live only in provider secret groups; the
+repository stores names and fail-closed checks, never secret values.
 - No agent may enable paid hosted macOS capacity, create a paid plan, or widen
 Codemagic triggers without direct operator authorization.
 

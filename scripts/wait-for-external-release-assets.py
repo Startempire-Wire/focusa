@@ -48,6 +48,10 @@ def menubar_exact(tag: str) -> list[str]:
     return [
         f"Focusa-{tag}-aarch64-apple-darwin.app.zip",
         f"Focusa-{tag}-x86_64-apple-darwin.app.zip",
+        "Focusa_aarch64.app.tar.gz",
+        "Focusa_aarch64.app.tar.gz.sig",
+        "Focusa_x64.app.tar.gz",
+        "Focusa_x64.app.tar.gz.sig",
     ]
 
 
@@ -56,9 +60,13 @@ def menubar_patterns() -> list[str]:
         "Focusa_*aarch64*.dmg",
         "Focusa_*x64*.dmg",
         "Focusa_*x64*setup.exe",
+        "Focusa_*x64*setup.exe.sig",
         "Focusa_*arm64*setup.exe",
+        "Focusa_*arm64*setup.exe.sig",
         "Focusa_*x64*.msi",
+        "Focusa_*x64*.msi.sig",
         "Focusa_*arm64*.msi",
+        "Focusa_*arm64*.msi.sig",
     ]
 
 

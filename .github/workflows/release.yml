@@ -100,7 +100,8 @@ jobs:
   rust-check:
     name: Release Contract Check
     runs-on: self-hosted
-    timeout-minutes: 10
+    # Candidate CI may take up to 20 minutes; retain bounded setup overhead.
+    timeout-minutes: 25
     steps:
       - name: Release workflow validation
         run: |
@@ -208,9 +209,8 @@ jobs:
 
   tag-ci-proof:
     name: Exact tag CI proof
-    needs: final-release-gap-gate
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Wait for successful CI on stamped candidate SHA
         env:
@@ -278,7 +278,11 @@ jobs:
         working-directory: apps/pi-extension
         run: npm ci --ignore-scripts
       - name: Prove OTA, authority/worktree, compaction, and cache closure
-        run: tests/final_release_gap_gate.sh
+        run: |
+          # Self-hosted hosts may inject options unsupported by setup-node's
+          # eventual routed/cPanel Node binary (GH#350).
+          unset NODE_OPTIONS
+          tests/final_release_gap_gate.sh
 
   # Version policy gate: the tag bump must match the release strategy
   # (docs/release-strategy.md) — tag shape, monotonicity, and breaking-change
@@ -884,6 +888,72 @@ jobs:
           python3 scripts/verify-canonical-release-assets.py \
             --dist dist \
             --tag "${{ github.ref_name }}"
+
+      - name: Generate signed Tauri updater metadata from provider receipts
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime
+          import fnmatch
+          import json
+          import os
+          from pathlib import Path
+
+          dist = Path("dist")
+          tag = os.environ["RELEASE_TAG"]
+          repo = os.environ["RELEASE_REPOSITORY"]
+          version = tag.removeprefix("v")
+          names = {path.name: path for path in dist.iterdir() if path.is_file()}
+
+          def exact(name: str) -> tuple[str, str]:
+              path = names.get(name)
+              signature = names.get(name + ".sig")
+              if path is None or signature is None:
+                  raise SystemExit(f"missing Tauri updater receipt: {name}")
+              url = f"https://github.com/{repo}/releases/download/{tag}/{name}"
+              return url, signature.read_text(encoding="utf-8").strip()
+
+          def pattern(glob: str) -> tuple[str, str]:
+              matches = sorted(name for name in names if fnmatch.fnmatchcase(name, glob))
+              if len(matches) != 1:
+                  raise SystemExit(f"expected one Tauri updater asset for {glob}, got {matches}")
+              return exact(matches[0])
+
+          mac_x64 = exact("Focusa_x64.app.tar.gz")
+          mac_arm64 = exact("Focusa_aarch64.app.tar.gz")
+          win_x64_msi = pattern("Focusa_*x64*.msi")
+          win_x64_nsis = pattern("Focusa_*x64*setup.exe")
+          win_arm64_msi = pattern("Focusa_*arm64*.msi")
+          win_arm64_nsis = pattern("Focusa_*arm64*setup.exe")
+          platform_assets = {
+              "darwin-x86_64": mac_x64,
+              "darwin-x86_64-app": mac_x64,
+              "darwin-aarch64": mac_arm64,
+              "darwin-aarch64-app": mac_arm64,
+              "windows-x86_64": win_x64_msi,
+              "windows-x86_64-msi": win_x64_msi,
+              "windows-x86_64-nsis": win_x64_nsis,
+              "windows-aarch64": win_arm64_msi,
+              "windows-aarch64-msi": win_arm64_msi,
+              "windows-aarch64-nsis": win_arm64_nsis,
+          }
+          payload = {
+              "version": version,
+              "notes": f"Focusa {tag}",
+              "pub_date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "platforms": {
+                  platform: {"url": url, "signature": signature}
+                  for platform, (url, signature) in platform_assets.items()
+              },
+          }
+          (dist / "latest.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
+          python3 -m json.tool dist/latest.json >/dev/null
 
       - name: Generate typed release intelligence packet and page
         env:

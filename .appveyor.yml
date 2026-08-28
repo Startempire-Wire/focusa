@@ -8,7 +8,7 @@
 #
 # Full Windows surface coverage:
 #   - Rust binaries (focusa-daemon, focusa, focusa-tui) for x86_64 + aarch64 MSVC
-#   - Menubar Tauri NSIS + MSI bundle (x86_64; tag only)
+#   - Menubar Tauri NSIS + MSI bundles (x86_64 + aarch64; tag only)
 #   - tag-gated upload of all artifacts back to the GitHub Release
 #
 # Unplug: delete this file when GH billing is settled and the full
@@ -36,16 +36,18 @@ install:
   - rustc --version && cargo --version
 
 build_script:
-  # ARM64 cross-build needs the MSVC ARM64 cross-toolchain env (host x64 -> arm64).
-  - cmd: |
-      if "%RUST_TARGET%"=="aarch64-pc-windows-msvc" (
-        if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" %MSVC_ARCH%
-        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" (
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" %MSVC_ARCH%
-        )
+  # Keep vcvarsall and Cargo in one process: AppVeyor command-list entries do
+  # not preserve a prior batch block's environment (GH#382).
+  - ps: |
+      $vcvarsCandidates = @(
+        "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
+        "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
       )
-      cargo build --release --target %RUST_TARGET%
+      $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if (-not $vcvars) { throw "vcvarsall.bat not found" }
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo build --release --target $env:RUST_TARGET"
+      & cmd.exe /d /s /c $command
+      if ($LASTEXITCODE -ne 0) { throw "Rust build failed with exit code $LASTEXITCODE" }
 
 after_build:
   - mkdir artifacts
@@ -55,52 +57,69 @@ after_build:
   - rename target\%RUST_TARGET%\release\focusa.exe focusa-%APPVEYOR_REPO_TAG_NAME%-%RUST_TARGET%.exe
   - rename target\%RUST_TARGET%\release\focusa-tui.exe focusa-tui-%APPVEYOR_REPO_TAG_NAME%-%RUST_TARGET%.exe
   - move target\%RUST_TARGET%\release\*.exe artifacts\
-  # Menubar Tauri NSIS + MSI (x86_64 + tag only).
+  # Menubar Tauri NSIS + MSI for both Windows targets (tag only).
   - ps: |
-      if ($env:RUST_TARGET -eq "x86_64-pc-windows-msvc" -and $env:APPVEYOR_REPO_TAG -eq "true") {
+      if ($env:APPVEYOR_REPO_TAG -eq "true") {
+        if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw "missing Tauri updater signing key" }
+        if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { throw "missing Tauri updater signing password" }
         npm install -g bun
         Set-Location apps/menubar
         bun install
         bun run build
-        npx tauri build --bundles nsis,msi
-        Get-ChildItem -Recurse -Filter "*.exe" src-tauri/target/release/bundle/nsis | ForEach-Object {
-          Copy-Item $_.FullName ..\..\artifacts\
-        }
-        Get-ChildItem -Recurse -Filter "*.msi" src-tauri/target/release/bundle/msi | ForEach-Object {
+        $vcvarsCandidates = @(
+          "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
+          "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
+        )
+        $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+        if (-not $vcvars) { throw "vcvarsall.bat not found" }
+        $command = "call `"$vcvars`" $env:MSVC_ARCH && npx tauri build --target $env:RUST_TARGET --bundles nsis,msi"
+        & cmd.exe /d /s /c $command
+        if ($LASTEXITCODE -ne 0) { throw "Tauri build failed with exit code $LASTEXITCODE" }
+        $bundle = "src-tauri/target/$env:RUST_TARGET/release/bundle"
+        Get-ChildItem -Recurse -File $bundle | Where-Object { $_.Extension -in ".exe", ".msi", ".sig" } | ForEach-Object {
           Copy-Item $_.FullName ..\..\artifacts\
         }
         Set-Location ..\..
       }
 
 test_script:
-  - cargo test --target %RUST_TARGET% -p focusa-license
-  - cargo test --target %RUST_TARGET% -p focusa-core --lib
+  - ps: |
+      $vcvarsCandidates = @(
+        "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
+        "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
+      )
+      $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if (-not $vcvars) { throw "vcvarsall.bat not found" }
+      $mode = if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") { "--no-run" } else { "" }
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo test $mode --target $env:RUST_TARGET -p focusa-license && cargo test $mode --target $env:RUST_TARGET -p focusa-core --lib"
+      & cmd.exe /d /s /c $command
+      if ($LASTEXITCODE -ne 0) { throw "Rust tests failed with exit code $LASTEXITCODE" }
 
-# Tag pushes: upload every artifact back to the GitHub Release (idempotent,
-# create-if-missing so a slow create-release draft never drops assets).
+# Tag pushes upload every artifact only after the canonical GitHub workflow
+# creates its gated draft Release. Provider adapters never create Releases.
 on_success:
   - ps: |
-      if ($env:APPVEYOR_REPO_TAG -eq "true" -and $env:GH_TOKEN) {
+      if ($env:APPVEYOR_REPO_TAG -eq "true") {
+        if (-not $env:GH_TOKEN) { throw "missing GitHub release upload credential" }
         $tag = $env:APPVEYOR_REPO_TAG_NAME
         $repo = "Startempire-Wire/focusa"
         $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; "User-Agent" = "appveyor"; "Accept" = "application/vnd.github+json" }
-        # Ensure the release exists (idempotent).
-        try {
-          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/tags/$tag" -Headers $headers
-        } catch {
-          $body = @{ tag_name = $tag; name = "Focusa $tag"; draft = $true; prerelease = $false } | ConvertTo-Json
-          $release = Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/$repo/releases" -Headers $headers -Body $body
+        $release = $null
+        for ($attempt = 1; $attempt -le 80; $attempt++) {
+          try {
+            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/tags/$tag" -Headers $headers
+            break
+          } catch {
+            Start-Sleep -Seconds 30
+          }
         }
+        if (-not $release) { throw "canonical GitHub Release did not appear within 40 minutes" }
         Get-ChildItem artifacts | ForEach-Object {
           $name = $_.Name
-          try {
-            Invoke-RestMethod -Method Post -Uri "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$name" `
-              -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
-              -InFile $_.FullName | Out-Null
-            Write-Host "uploaded $name"
-          } catch {
-            Write-Host "upload failed for $name : $_"
-          }
+          Invoke-RestMethod -Method Post -Uri "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$name" `
+            -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
+            -InFile $_.FullName | Out-Null
+          Write-Host "uploaded $name"
         }
       }
 

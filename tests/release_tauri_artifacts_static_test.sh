@@ -28,15 +28,26 @@ for token in \
   'Focusa_*aarch64*.dmg' \
   'Focusa_*x64*.dmg' \
   'Focusa_*x64*setup.exe' \
+  'Focusa_*x64*setup.exe.sig' \
   'Focusa_*arm64*setup.exe' \
+  'Focusa_*arm64*setup.exe.sig' \
   'Focusa_*x64*.msi' \
-  'Focusa_*arm64*.msi'; do
+  'Focusa_*x64*.msi.sig' \
+  'Focusa_*arm64*.msi' \
+  'Focusa_*arm64*.msi.sig'; do
   grep -Fq "$token" "$WAIT" || fail "menubar contract missing token: $token"
 done
 pass "external menubar contract encodes .app.zip + dmg + setup.exe + msi for both archs"
 
 # Codemagic builds the macOS menubar; AppVeyor builds the Windows menubar.
 grep -Fq 'menubar-macos-package-proof' "$CODEMAGIC" || fail "Codemagic missing menubar-macos-package-proof workflow"
+grep -Fq 'createUpdaterArtifacts":true' "$CODEMAGIC" || fail "Codemagic must create signed Tauri updater artifacts"
+grep -Fq 'arch="x64"' "$CODEMAGIC" || fail "Codemagic missing macOS x64 updater architecture mapping"
+grep -Fq 'arch="aarch64"' "$CODEMAGIC" || fail "Codemagic missing macOS ARM64 updater architecture mapping"
+grep -Fq 'Focusa_${arch}.app.tar.gz.sig' "$CODEMAGIC" || fail "Codemagic missing signed macOS updater filename template"
 grep -Fq 'nsis' "$APPVEYOR" || fail "AppVeyor missing NSIS menubar bundle"
+grep -Fq 'npx tauri build --target $env:RUST_TARGET' "$APPVEYOR" || fail "AppVeyor must build menubar for both Windows targets"
+grep -Fq '".sig"' "$APPVEYOR" || fail "AppVeyor must retain Windows updater signature receipts"
+grep -Fq 'Generate signed Tauri updater metadata from provider receipts' "$WORKFLOW" || fail "release workflow must generate latest.json from provider signatures"
 
-pass "release.yml gates menubar desktop bundles via external providers"
+pass "release.yml gates signed menubar updater bundles via external providers"

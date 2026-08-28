@@ -16,6 +16,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WF="$ROOT_DIR/.github/workflows/release.yml"
 WAIT="$ROOT_DIR/scripts/wait-for-external-release-assets.py"
+CODEMAGIC="$ROOT_DIR/codemagic.yaml"
+APPVEYOR="$ROOT_DIR/.appveyor.yml"
 
 fail() { echo "✗ FAIL: $*" >&2; exit 1; }
 pass() { echo "✓ PASS: $*"; }
@@ -65,5 +67,26 @@ grep -q 'External Menubar Receipt Gate' "$WF" \
 grep -q 'wait-for-external-release-assets.py' "$WF" \
   || fail "release.yml missing external receipt wait script invocation"
 pass "external macOS/Windows receipt gates wired into release DAG"
+
+# Release tags must trigger both Codemagic workflows regardless of the final
+# stamped commit's changed paths. External adapters wait for, but never create,
+# the canonical gated GitHub Release and fail closed on upload authority/errors.
+if grep -q 'changeset:' "$CODEMAGIC"; then
+  fail "Codemagic release tag workflows must not be path-filtered"
+fi
+[ "$(grep -c 'gh release view "\$CM_TAG"' "$CODEMAGIC")" -ge 2 ] \
+  || fail "Codemagic adapters must wait for the canonical GitHub Release"
+if grep -q 'bundles remain in artifacts\|binaries remain in artifacts' "$CODEMAGIC"; then
+  fail "Codemagic must fail closed when GitHub upload authority is unavailable"
+fi
+grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
+  || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
+if grep -q 'Method Post.*repos/\$repo/releases"' "$APPVEYOR"; then
+  fail "AppVeyor must never create the canonical GitHub Release"
+fi
+if grep -q 'upload failed for' "$APPVEYOR"; then
+  fail "AppVeyor must not swallow artifact upload failures"
+fi
+pass "external release adapters are unconditional on tags and fail closed"
 
 echo "✓ All release matrix static checks passed"
