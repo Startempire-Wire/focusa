@@ -372,289 +372,32 @@ jobs:
   # intact for the all-at-once GitHub restoration; Codemagic carries temporary
   # macOS package proof. See docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
   # Build Tauri desktop app for macOS only (testing)
+  # Spec 178: macOS/Windows menubar packaging is carried by Codemagic
+  # (menubar-macos-package-proof) and AppVeyor (Tauri NSIS/MSI), which upload
+  # their bundles straight back to this release. This job keeps the canonical
+  # job id (tauri-build) as the durable external-receipt gate: it fails closed
+  # until every menubar surface (app.zip + dmg + setup.exe + msi) is attached.
   tauri-build:
-    name: Build Menubar (${{ matrix.platform }})
+    name: External Menubar Receipt Gate
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: create-release
-    strategy:
-      fail-fast: true
-      matrix:
-        include:
-          - platform: macos-latest
-            args: '--target aarch64-apple-darwin'
-            rust_target: aarch64-apple-darwin
-          - platform: macos-latest
-            args: '--target x86_64-apple-darwin'
-            rust_target: x86_64-apple-darwin
-          - platform: windows-latest
-            args: '--target x86_64-pc-windows-msvc'
-            rust_target: x86_64-pc-windows-msvc
-          - platform: windows-latest
-            args: '--target aarch64-pc-windows-msvc'
-            rust_target: aarch64-pc-windows-msvc
-            windows_arm64: true
-
-    runs-on: ${{ matrix.platform }}
-    # Desktop artifacts are mandatory on macOS and Windows. beta_ad_hoc works
-    # before Apple revenue; production_notarized is selected explicitly.
-    timeout-minutes: 12
+    runs-on: self-hosted
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v6
-
-      - uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          fetch-depth: 0
 
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
-          toolchain: nightly-2026-08-28
-          targets: ${{ matrix.rust_target }}
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Activate MSVC ARM64 cross-build environment
-        if: ${{ matrix.windows_arm64 == true }}
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: amd64_arm64
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.6
-
-      - name: Stamp menubar version from release tag
-        run: python scripts/stamp-menubar-version.py "${{ github.ref_name }}"
-
-      - name: Verify stamped version surfaces
-        run: python scripts/verify-version-surfaces.py "${{ github.ref_name }}"
-
-      - name: Auto-heal audit trail
-        run: python scripts/auto-heal-audit.py
-
-      - name: Validate audit schema
-        run: python scripts/audit-schema.py validate release-proof/audit/audit.jsonl
-
-      - name: Regenerate CHANGELOG
-        run: python scripts/changelog-gen.py --tag "${{ github.ref_name }}"
-
-      - name: Install frontend deps
-        working-directory: apps/menubar
-        run: bun install
-
-      - name: Generate macOS icons
-        if: ${{ contains(matrix.platform, 'macos') }}
-        working-directory: apps/menubar/src-tauri
-        run: |
-          # Generate .icns from PNG source using iconutil (macOS only)
-          mkdir -p /tmp/focusa.iconset
-          sips -z 16 16     icons/icon.png --out /tmp/focusa.iconset/icon_16x16.png
-          sips -z 32 32     icons/icon.png --out /tmp/focusa.iconset/icon_16x16@2x.png
-          sips -z 32 32     icons/icon.png --out /tmp/focusa.iconset/icon_32x32.png
-          sips -z 64 64     icons/icon.png --out /tmp/focusa.iconset/icon_32x32@2x.png
-          sips -z 128 128   icons/icon.png --out /tmp/focusa.iconset/icon_128x128.png
-          sips -z 256 256   icons/icon.png --out /tmp/focusa.iconset/icon_128x128@2x.png
-          sips -z 256 256   icons/icon.png --out /tmp/focusa.iconset/icon_256x256.png
-          sips -z 512 512   icons/icon.png --out /tmp/focusa.iconset/icon_256x256@2x.png
-          sips -z 512 512   icons/icon.png --out /tmp/focusa.iconset/icon_512x512.png
-          iconutil -c icns /tmp/focusa.iconset -o icons/icon.icns
-          ls -la icons/
-
-      # Durable pre-sales rule: paid Apple membership gates production only.
-      # beta_ad_hoc remains Tauri-signed and usable with explicit user consent.
-      - name: Select macOS beta or production signing mode
-        if: ${{ contains(matrix.platform, 'macos') }}
+      - name: Wait for external menubar artifacts (Codemagic + AppVeyor)
         env:
-          FOCUSA_MACOS_RELEASE_MODE: ${{ vars.FOCUSA_MACOS_RELEASE_MODE || 'beta_ad_hoc' }}
-          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          case "${FOCUSA_MACOS_RELEASE_MODE}" in
-            beta_ad_hoc)
-              echo "::warning::Building explicit pre-license, unnotarized beta. Tauri updater signatures remain mandatory."
-              echo "FOCUSA_MACOS_RELEASE_MODE=beta_ad_hoc" >> "$GITHUB_ENV"
-              echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
-              exit 0
-              ;;
-            production_notarized)
-              echo "FOCUSA_MACOS_RELEASE_MODE=production_notarized" >> "$GITHUB_ENV"
-              ;;
-            *)
-              echo "::error::Unsupported FOCUSA_MACOS_RELEASE_MODE=${FOCUSA_MACOS_RELEASE_MODE}"
-              exit 1
-              ;;
-          esac
-          for required in APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_API_KEY_ID APPLE_API_ISSUER_ID APPLE_API_KEY_P8 APPLE_TEAM_ID; do
-            if [ -z "${!required:-}" ]; then
-              echo "::error::Apple signing/notarization secret ${required} is required for release artifacts."
-              exit 1
-            fi
-          done
-          KEYCHAIN_PATH="${RUNNER_TEMP}/focusa-signing.keychain-db"
-          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
-          CERT_PATH="${RUNNER_TEMP}/developer-id.p12"
-          APPLE_CERTIFICATE_BASE64="$APPLE_CERTIFICATE_BASE64" CERT_PATH="$CERT_PATH" python3 - <<'PY'
-          import base64, os
-          with open(os.environ["CERT_PATH"], "wb") as handle:
-              handle.write(base64.b64decode(os.environ["APPLE_CERTIFICATE_BASE64"]))
-          PY
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
-          security list-keychains -d user -s "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -F "$APPLE_SIGNING_IDENTITY"
-          echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY" >> "$GITHUB_ENV"
-          if [ -n "${APPLE_API_KEY_ID:-}" ] && [ -n "${APPLE_API_KEY_P8:-}" ]; then
-            printf '%s' "$APPLE_API_KEY_P8" > "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"
-            chmod 0600 "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"
-          fi
+          python3 scripts/wait-for-external-release-assets.py \
+            --tag "${{ github.ref_name }}" \
+            --kind menubar \
+            --timeout-minutes 48
 
-      - name: Require Tauri updater signing authority
-        shell: bash
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          test -n "${TAURI_SIGNING_PRIVATE_KEY:-}" || { echo "::error::TAURI_SIGNING_PRIVATE_KEY is required"; exit 1; }
-          test -n "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" || { echo "::error::TAURI_SIGNING_PRIVATE_KEY_PASSWORD is required"; exit 1; }
-
-      - uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          VITE_FOCUSA_MACOS_RELEASE_MODE: ${{ vars.FOCUSA_MACOS_RELEASE_MODE || 'beta_ad_hoc' }}
-        with:
-          projectPath: apps/menubar
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Focusa ${{ github.ref_name }}'
-          releaseBody: 'Canonical Focusa release for macOS, Windows, and Linux. OTA authenticity is enforced by the pinned updater key.'
-          releaseDraft: false
-          prerelease: false
-          tauriScript: bunx tauri
-          uploadUpdaterJson: true
-          args: ${{ matrix.args }}
-
-      - name: Verify beta integrity or notarize production (.app + .dmg)
-        if: ${{ contains(matrix.platform, 'macos') }}
-        env:
-          TARGET: ${{ matrix.rust_target }}
-          # Durable two-mode boundary: beta needs no paid Apple membership;
-          # production remains fail-closed on Developer ID + notarization.
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_IDENTITY_NAME: ${{ secrets.APPLE_IDENTITY_NAME }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
-        working-directory: apps/menubar
-        run: |
-          set -euo pipefail
-          for app in src-tauri/target/${TARGET}/release/bundle/macos/*.app; do
-            codesign --verify --deep --strict --verbose=2 "${app}"
-            case "${FOCUSA_MACOS_RELEASE_MODE}" in
-              beta_ad_hoc)
-                # Tauri creates the updater archive before this step. Verify the
-                # archived app is already ad-hoc signed; mutating it here would
-                # invalidate the mandatory Tauri updater signature.
-                codesign -d --verbose=4 "${app}" 2>&1 | grep -q 'Signature=adhoc'
-                updater_archive="$(find "src-tauri/target/${TARGET}/release/bundle/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit)"
-                [ -n "${updater_archive}" ]
-                archive_dir="$(mktemp -d)"
-                tar -xzf "${updater_archive}" -C "${archive_dir}"
-                archived_app="$(find "${archive_dir}" -maxdepth 3 -type d -name '*.app' -print -quit)"
-                [ -n "${archived_app}" ]
-                codesign --verify --deep --strict --verbose=2 "${archived_app}"
-                codesign -d --verbose=4 "${archived_app}" 2>&1 | grep -q 'Signature=adhoc'
-                rm -rf "${archive_dir}"
-                echo "Verified explicit pre-license beta: ad-hoc bundle integrity + Tauri updater signature."
-                ;;
-              production_notarized)
-                ditto -c -k --keepParent "${app}" "${app}.zip"
-                xcrun notarytool submit "${app}.zip" \
-                  --key "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8" \
-                  --key-id "${APPLE_API_KEY_ID}" \
-                  --issuer "${APPLE_API_ISSUER_ID}" \
-                  --team-id "${APPLE_TEAM_ID}" \
-                  --wait
-                xcrun stapler staple "${app}"
-                xcrun stapler validate "${app}"
-                for dmg in src-tauri/target/${TARGET}/release/bundle/dmg/*.dmg; do
-                  xcrun notarytool submit "${dmg}" \
-                    --key "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8" \
-                    --key-id "${APPLE_API_KEY_ID}" \
-                    --issuer "${APPLE_API_ISSUER_ID}" \
-                    --team-id "${APPLE_TEAM_ID}" \
-                    --wait
-                  xcrun stapler staple "${dmg}"
-                  xcrun stapler validate "${dmg}"
-                done
-                echo "Verified Developer ID signing and Apple notarization."
-                ;;
-            esac
-          done
-
-      - name: Package verified macOS app bundles
-        if: ${{ contains(matrix.platform, 'macos') }}
-        env:
-          TARGET: ${{ matrix.rust_target }}
-          TAG: ${{ github.ref_name }}
-        working-directory: apps/menubar
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          mkdir -p ../../dist/menubar
-          packaged=0
-          for app in src-tauri/target/${TARGET}/release/bundle/macos/*.app; do
-            base="$(basename "${app}" .app)"
-            out="../../dist/menubar/${base}-${TAG}-${TARGET}.app.zip"
-            ditto -c -k --keepParent "${app}" "${out}"
-            packaged=$((packaged + 1))
-          done
-          for dmg in src-tauri/target/${TARGET}/release/bundle/dmg/*.dmg; do
-            base="$(basename "${dmg}" .dmg)"
-            cp "${dmg}" "../../dist/menubar/${base}-${TAG}-${TARGET}.dmg"
-            packaged=$((packaged + 1))
-          done
-          if [ "${packaged}" -eq 0 ]; then
-            echo "No Tauri .app or .dmg bundles found for ${TARGET}" >&2
-            find src-tauri/target/${TARGET}/release/bundle -maxdepth 3 -type f -print || true
-            exit 1
-          fi
-          ls -la ../../dist/menubar
-
-      - name: Upload verified menubar artifacts to workflow
-        if: ${{ contains(matrix.platform, 'macos') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: focusa-menubar-${{ github.ref_name }}-${{ matrix.rust_target }}
-          path: dist/menubar/*
-          if-no-files-found: error
-
-      - name: Upload verified menubar artifacts to release
-        if: ${{ contains(matrix.platform, 'macos') }}
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/menubar/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload pre-license beta consent bootstrap
-        if: ${{ matrix.rust_target == 'aarch64-apple-darwin' }}
-        uses: softprops/action-gh-release@v2
-        with:
-          files: scripts/install-focusa-menubar-beta.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Publish Rust binaries for tester platforms.
   rust-release:
     name: Rust Binaries (${{ matrix.target }})
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -663,10 +406,9 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - target: aarch64-apple-darwin
-            os: macos-latest
-          - target: x86_64-apple-darwin
-            os: macos-latest
+          # Spec 178: macOS and Windows Rust binaries are built by Codemagic
+          # (macos-rust-binaries) and AppVeyor respectively, then uploaded
+          # straight back to this release. Linux stays on OVH self-hosted.
           - target: x86_64-unknown-linux-gnu
             # Quality-identical runner swap: same canonical commands (cargo,
             # thin-LTO via Cargo.toml, cross containers), warm continuous cache.
@@ -677,13 +419,6 @@ jobs:
           - target: x86_64-unknown-linux-musl
             os: [self-hosted, Linux, X64, ovh-build-2]
             musl: true
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            exe: .exe
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            exe: .exe
-            windows_arm64: true
 
     runs-on: ${{ matrix.os }}
     env:
@@ -758,6 +493,30 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Spec 178: macOS (Codemagic) and Windows (AppVeyor) Rust binaries are
+  # built off GitHub and uploaded back to this release. This gate fails closed
+  # until all 12 external binaries (6 macOS + 6 Windows) are attached.
+  external-rust-binaries:
+    name: External Rust Binary Receipt Gate
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    needs: create-release
+    runs-on: self-hosted
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Wait for external Rust binaries (Codemagic + AppVeyor)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 scripts/wait-for-external-release-assets.py \
+            --tag "${{ github.ref_name }}" \
+            --kind rust-binaries \
+            --timeout-minutes 48
+
   pi-extension-release:
     name: Package Pi Extension
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -806,7 +565,7 @@ jobs:
   checksums:
     name: Publish SHA256SUMS
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: [tauri-build, rust-release, pi-extension-release, tag-ci-proof]
+    needs: [tauri-build, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]
     runs-on: self-hosted
     timeout-minutes: 5
     steps:

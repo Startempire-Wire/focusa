@@ -218,7 +218,7 @@ require(
         "Require exact candidate-SHA preflight receipts",
         "Exact tag CI proof",
         "tag-ci-proof",
-        "needs: [tauri-build, rust-release, pi-extension-release, tag-ci-proof]",
+        "needs: [tauri-build, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]",
         "shared-key: release-target-${{ matrix.target }}",
         "actions/workflows/ci.yml/runs",
         "2>/dev/null || echo '[]'",

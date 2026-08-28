@@ -6,9 +6,9 @@
 # job, real MSVC toolchain. Operator must connect the repo once at
 # https://ci.appveyor.com/projects/new (GitHub OAuth).
 #
-# Full Windows surface coverage (not just CLI):
+# Full Windows surface coverage:
 #   - Rust binaries (focusa-daemon, focusa, focusa-tui) for x86_64 + aarch64 MSVC
-#   - Menubar Tauri NSIS bundle (x86_64, tag only)
+#   - Menubar Tauri NSIS + MSI bundle (x86_64; tag only)
 #   - tag-gated upload of all artifacts back to the GitHub Release
 #
 # Unplug: delete this file when GH billing is settled and the full
@@ -49,19 +49,26 @@ build_script:
 
 after_build:
   - mkdir artifacts
-  - copy target\%RUST_TARGET%\release\focusa-daemon.exe artifacts\
-  - copy target\%RUST_TARGET%\release\focusa.exe artifacts\
-  - copy target\%RUST_TARGET%\release\focusa-tui.exe artifacts\
-  # Menubar Tauri NSIS (x86_64 + tag only) — full desktop surface on Windows.
+  # Canonical asset names required by verify-canonical-release-assets.py:
+  #   {surface}-{tag}-{target}.exe
+  - rename target\%RUST_TARGET%\release\focusa-daemon.exe focusa-daemon-%APPVEYOR_REPO_TAG_NAME%-%RUST_TARGET%.exe
+  - rename target\%RUST_TARGET%\release\focusa.exe focusa-%APPVEYOR_REPO_TAG_NAME%-%RUST_TARGET%.exe
+  - rename target\%RUST_TARGET%\release\focusa-tui.exe focusa-tui-%APPVEYOR_REPO_TAG_NAME%-%RUST_TARGET%.exe
+  - move target\%RUST_TARGET%\release\*.exe artifacts\
+  # Menubar Tauri NSIS + MSI (x86_64 + tag only).
   - ps: |
       if ($env:RUST_TARGET -eq "x86_64-pc-windows-msvc" -and $env:APPVEYOR_REPO_TAG -eq "true") {
         npm install -g bun
         Set-Location apps/menubar
         bun install
         bun run build
-        npx tauri build --bundles nsis
-        $exe = Get-ChildItem -Recurse -Filter "*.exe" src-tauri/target/release/bundle/nsis | Select-Object -First 1
-        if ($exe) { Copy-Item $exe.FullName ..\..\artifacts\focusa-menubar-$env:APPVEYOR_REPO_TAG_NAME-x86_64-pc-windows-msvc-setup.exe }
+        npx tauri build --bundles nsis,msi
+        Get-ChildItem -Recurse -Filter "*.exe" src-tauri/target/release/bundle/nsis | ForEach-Object {
+          Copy-Item $_.FullName ..\..\artifacts\
+        }
+        Get-ChildItem -Recurse -Filter "*.msi" src-tauri/target/release/bundle/msi | ForEach-Object {
+          Copy-Item $_.FullName ..\..\artifacts\
+        }
         Set-Location ..\..
       }
 
@@ -69,27 +76,30 @@ test_script:
   - cargo test --target %RUST_TARGET% -p focusa-license
   - cargo test --target %RUST_TARGET% -p focusa-core --lib
 
-# Tag pushes: upload every artifact back to the GitHub Release (idempotent).
+# Tag pushes: upload every artifact back to the GitHub Release (idempotent,
+# create-if-missing so a slow create-release draft never drops assets).
 on_success:
   - ps: |
-      if ($env:APPVEYOR_REPO_TAG -eq "true") {
-        Get-ChildItem artifacts | ForEach-Object {
-          Push-AppveyorArtifact $_.FullName -FileName $_.Name
+      if ($env:APPVEYOR_REPO_TAG -eq "true" -and $env:GH_TOKEN) {
+        $tag = $env:APPVEYOR_REPO_TAG_NAME
+        $repo = "Startempire-Wire/focusa"
+        $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; "User-Agent" = "appveyor"; "Accept" = "application/vnd.github+json" }
+        # Ensure the release exists (idempotent).
+        try {
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/tags/$tag" -Headers $headers
+        } catch {
+          $body = @{ tag_name = $tag; name = "Focusa $tag"; draft = $true; prerelease = $false } | ConvertTo-Json
+          $release = Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/$repo/releases" -Headers $headers -Body $body
         }
-        if ($env:GH_TOKEN) {
-          $tag = $env:APPVEYOR_REPO_TAG_NAME
-          $repo = "Startempire-Wire/focusa"
-          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/tags/$tag" -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; "User-Agent" = "appveyor" }
-          Get-ChildItem artifacts | ForEach-Object {
-            $name = $_.Name
-            try {
-              Invoke-RestMethod -Method Post -Uri "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$name" `
-                -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
-                -InFile $_.FullName | Out-Null
-              Write-Host "uploaded $name"
-            } catch {
-              Write-Host "upload failed for $name : $_"
-            }
+        Get-ChildItem artifacts | ForEach-Object {
+          $name = $_.Name
+          try {
+            Invoke-RestMethod -Method Post -Uri "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$name" `
+              -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
+              -InFile $_.FullName | Out-Null
+            Write-Host "uploaded $name"
+          } catch {
+            Write-Host "upload failed for $name : $_"
           }
         }
       }

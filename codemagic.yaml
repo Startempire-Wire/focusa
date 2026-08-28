@@ -7,10 +7,11 @@
 # minutes/month.
 #
 # Two tag-gated workflows:
-#   1. menubar-macos-package-proof — Tauri .app bundle (ad-hoc signed)
+#   1. menubar-macos-package-proof — Tauri .app + .dmg for both macOS archs,
+#                                    packaged to the canonical asset names
 #   2. macos-rust-binaries        — CLI + daemon + TUI for both macOS archs,
-#                                   trust-root embedded, uploaded to the
-#                                   GitHub Release (full macOS surface parity).
+#                                    trust-root embedded, uploaded to the
+#                                    GitHub Release (full macOS surface parity).
 #
 # Trigger policy: release/dev tags ONLY. Push/PR builds stay on the free
 # self-hosted Linux + AppVeyor Windows lanes so the minute budget is never
@@ -22,7 +23,7 @@
 workflows:
   menubar-macos-package-proof:
     name: Menubar macOS package proof
-    max_build_duration: 40
+    max_build_duration: 60
     when:
       changeset:
         includes:
@@ -48,8 +49,12 @@ workflows:
           echo "Commit: $CM_COMMIT"
           sw_vers
           node --version && npm --version
-      - name: Install dependencies
+      - name: Install dependencies + Rust + both macOS targets
         script: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+          export PATH="$HOME/.cargo/bin:$PATH"
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          rustc --version && cargo --version
           cd apps/menubar
           npm ci
       - name: Typecheck + web build
@@ -57,27 +62,50 @@ workflows:
           cd apps/menubar
           npm run check
           npm run build
-      - name: Tauri package proof (ad-hoc signed, non-release)
+      - name: Tauri package both macOS archs (.app + .dmg)
         script: |
-          command -v cargo >/dev/null 2>&1 || curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
           export PATH="$HOME/.cargo/bin:$PATH"
-          rustc --version && cargo --version
-          cd apps/menubar
           export APPLE_SIGNING_IDENTITY=-
-          npx tauri build --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
-      - name: Validate macOS bundle
+          cd apps/menubar
+          mkdir -p ../../dist/menubar
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            npx tauri build --target "$target" --bundles app,dmg \
+              --config '{"bundle":{"createUpdaterArtifacts":false}}'
+            app="$(find src-tauri/target/${target}/release/bundle/macos -name '*.app' -print -quit)"
+            test -n "$app"
+            ditto -c -k --keepParent "$app" "../../dist/menubar/Focusa-${CM_TAG}-${target}.app.zip"
+            for dmg in src-tauri/target/${target}/release/bundle/dmg/*.dmg; do
+              cp "$dmg" "../../dist/menubar/"
+            done
+          done
+          ls -la ../../dist/menubar
+      - name: Validate macOS bundles (ad-hoc signature)
         script: |
           set -euo pipefail
-                    APP_PATH=$(find apps/menubar/src-tauri/target/release/bundle/macos -name "*.app" | head -1)
-          test -n "$APP_PATH"
-          echo "Found bundle: $APP_PATH"
-          test -f "$APP_PATH/Contents/Info.plist"
-          /usr/bin/plutil -lint "$APP_PATH/Contents/Info.plist"
-          codesign --force --deep --sign - "$APP_PATH"
-          codesign --verify --deep --strict "$APP_PATH"
-          codesign -dv "$APP_PATH" 2>&1 | tee /tmp/codesign_proof.txt
-          grep -q 'Signature=adhoc' /tmp/codesign_proof.txt
-          echo "✓ Menubar macOS bundle proven (ad-hoc signature)"
+          cd apps/menubar
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            app="$(find src-tauri/target/${target}/release/bundle/macos -name '*.app' -print -quit)"
+            test -n "$app"
+            test -f "$app/Contents/Info.plist"
+            /usr/bin/plutil -lint "$app/Contents/Info.plist"
+            codesign --verify --deep --strict "$app"
+            codesign -dv "$app" 2>&1 | tee /tmp/codesign_proof.txt
+            grep -q 'Signature=adhoc' /tmp/codesign_proof.txt
+          done
+          echo "✓ Menubar macOS bundles proven (ad-hoc signature)"
+      - name: Upload menubar bundles to GitHub Release
+        script: |
+          export GH_TOKEN="${GITHUB_TOKEN:-$GH_TOKEN}"
+          if [ -n "$GH_TOKEN" ] && command -v gh >/dev/null 2>&1; then
+            for attempt in 1 2 3 4 5; do
+              gh release upload "$CM_TAG" dist/menubar/* --clobber && break
+              sleep 30
+            done
+          else
+            echo "gh or GH_TOKEN unavailable; bundles remain in artifacts"
+          fi
+    artifacts:
+      - dist/menubar/*
     publishing:
       email:
         recipients:
@@ -132,7 +160,10 @@ workflows:
         script: |
           export GH_TOKEN="${GITHUB_TOKEN:-$GH_TOKEN}"
           if [ -n "$GH_TOKEN" ] && command -v gh >/dev/null 2>&1; then
-            gh release upload "$CM_TAG" dist/* --clobber || echo "upload skipped (release not ready yet)"
+            for attempt in 1 2 3 4 5; do
+              gh release upload "$CM_TAG" dist/* --clobber && break
+              sleep 30
+            done
           else
             echo "gh or GH_TOKEN unavailable; binaries remain in artifacts"
           fi
