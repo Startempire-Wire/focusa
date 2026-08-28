@@ -208,6 +208,7 @@ jobs:
 
   tag-ci-proof:
     name: Exact tag CI proof
+    needs: final-release-gap-gate
     runs-on: self-hosted
     timeout-minutes: 20
     steps:
