@@ -80,6 +80,10 @@ fi
 if grep -q 'bundles remain in artifacts\|binaries remain in artifacts' "$CODEMAGIC"; then
   fail "Codemagic must fail closed when GitHub upload authority is unavailable"
 fi
+grep -q '^rolling_builds: true' "$APPVEYOR" \
+  || fail "AppVeyor must cancel superseded branch builds on its single-worker tier"
+grep -Fq "target\\%RUST_TARGET% -> Cargo.lock" "$APPVEYOR" \
+  || fail "AppVeyor must keep target-specific Cargo.lock-keyed caches"
 grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
   || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
 if grep -q 'Method Post.*repos/\$repo/releases"' "$APPVEYOR"; then
