@@ -569,8 +569,44 @@ fn main() -> anyhow::Result<()> {
 async fn async_main() -> anyhow::Result<()> {
     let raw_args: Vec<String> = std::env::args().collect();
     // Machine-readable errors must name the INVOKED command, not the recovery
-    // suggestion (#367). Capture the verbatim subcommand line before clap moves it.
-    let invoked: String = raw_args[1..].join(" ");
+    // suggestion (#367). Capture the subcommand line before clap moves it — but
+    // argv is not a secret store: values of user-content flags (operator message
+    // text, interactive keys, license keys, credentials) must never be echoed
+    // into JSON error output, so their values are redacted in place.
+    const REDACTED_VALUE_FLAGS: &[&str] = &[
+        "--text",
+        "--key",
+        "--license-key",
+        "--password",
+        "--token",
+        "--secret",
+        "--message",
+        "--body",
+        "--input",
+        "--note",
+    ];
+    let mut invoked_args: Vec<String> = Vec::new();
+    let mut redact_next = false;
+    for arg in raw_args.iter().skip(1) {
+        if redact_next {
+            invoked_args.push("[REDACTED]".to_string());
+            redact_next = false;
+            continue;
+        }
+        let flag = arg.split('=').next().unwrap_or(arg);
+        if REDACTED_VALUE_FLAGS.contains(&flag) {
+            if arg.contains('=') {
+                let (name, _) = arg.split_once('=').unwrap_or((arg.as_str(), ""));
+                invoked_args.push(format!("{name}=[REDACTED]"));
+            } else {
+                invoked_args.push(arg.clone());
+                redact_next = true;
+            }
+            continue;
+        }
+        invoked_args.push(arg.clone());
+    }
+    let invoked: String = invoked_args.join(" ");
     // Handle -v (lowercase) as version before clap parsing.
     // Clap 4 auto-assigns -V for version but not -v.
     if raw_args.iter().any(|arg| arg == "-v") {

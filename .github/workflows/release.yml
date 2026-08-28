@@ -351,7 +351,11 @@ jobs:
   # Build Tauri desktop app for macOS only (testing)
   tauri-build:
     name: Build Menubar (${{ matrix.platform }})
-    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    # TEMPORARY-OVH-LANE (until GitHub-hosted minutes restore ~2026-09-01):
+    # macOS/Windows hosted legs are billing-blocked; menubar desktop assets
+    # are deferred to the Sep 1 restore. MUST restore this job and its slot
+    # in the checksums needs list together with the rust-release matrix.
+    if: false
     needs: create-release
     strategy:
       fail-fast: true
@@ -639,26 +643,31 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        # TEMPORARY-OVH-LANE (until GitHub-hosted minutes restore ~2026-09-01):
+        # Linux native targets (gnu + musl) build on the OVH builder runner.
+        # macOS/Windows legs are commented out and MUST be restored with the
+        # original matrix + the tauri-build/checksums needs when GH returns.
         include:
-          - target: aarch64-apple-darwin
-            os: macos-latest
-          - target: x86_64-apple-darwin
-            os: macos-latest
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            cross: true
+            os: [self-hosted, Linux, X64, ovh-build]
           - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
-            musl: true
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            exe: .exe
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            exe: .exe
-            windows_arm64: true
+            os: [self-hosted, Linux, X64, ovh-build]
+            native_musl: true
+          # TEMPORARY-OVH-LANE restore block (Sep 1):
+          # - target: aarch64-apple-darwin
+          #   os: macos-latest
+          # - target: x86_64-apple-darwin
+          #   os: macos-latest
+          # - target: aarch64-unknown-linux-gnu
+          #   os: ubuntu-latest
+          #   cross: true
+          # - target: x86_64-pc-windows-msvc
+          #   os: windows-latest
+          #   exe: .exe
+          # - target: aarch64-pc-windows-msvc
+          #   os: windows-latest
+          #   exe: .exe
+          #   windows_arm64: true
 
     runs-on: ${{ matrix.os }}
     env:
@@ -690,7 +699,12 @@ jobs:
         if: ${{ !contains(matrix.target, 'windows-msvc') }}
         shell: bash
         run: |
-          if [ "${{ matrix.musl || false }}" = "true" ]; then
+          if [ "${{ matrix.native_musl || false }}" = "true" ]; then
+            # TEMPORARY-OVH-LANE: native musl build on OVH (musl-gcc + repo
+            # .cargo/config.toml provide the linker and sqlite-vec CFLAGS shim;
+            # no cross/docker needed).
+            cargo build --release --target ${{ matrix.target }}
+          elif [ "${{ matrix.musl || false }}" = "true" ]; then
             # sqlite-vec 0.1.7 uses BSD u_int* names that musl intentionally omits.
             # Pass exact stdint aliases into cross without changing non-musl builds.
             cat > Cross.toml <<'EOF'
@@ -781,7 +795,9 @@ jobs:
   checksums:
     name: Publish SHA256SUMS
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: [tauri-build, rust-release, pi-extension-release, tag-ci-proof]
+    # TEMPORARY-OVH-LANE: tauri-build temporarily removed from needs; restore
+    # it together with the rust-release matrix and tauri-build if-gate on Sep 1.
+    needs: [rust-release, pi-extension-release, tag-ci-proof]
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
@@ -812,6 +828,10 @@ jobs:
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
 
       - name: Require every canonical surface on every supported system
+        env:
+          # TEMPORARY-OVH-LANE: narrow canonical-surface check to the Linux
+          # surfaces actually producible while GH-hosted legs are disabled.
+          FOCUSA_TEMP_OVH_LANE: '1'
         run: |
           set -euo pipefail
           python3 scripts/verify-canonical-release-assets.py \

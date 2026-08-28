@@ -53,7 +53,9 @@ jobs:
     concurrency:
       group: focusa-cargo
       cancel-in-progress: false
-    runs-on: ubuntu-latest
+    # TEMPORARY-OVH-LANE (until GitHub-hosted minutes restore ~2026-09-01):
+    # heavy cargo build/test runs on the OVH builder runner.
+    runs-on: [self-hosted, Linux, X64, ovh-build]
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
@@ -156,7 +158,9 @@ jobs:
     concurrency:
       group: focusa-cargo
       cancel-in-progress: false
-    runs-on: ubuntu-latest
+    # TEMPORARY-OVH-LANE (until GitHub-hosted minutes restore ~2026-09-01):
+    # release daemon build/probe runs on the OVH builder runner.
+    runs-on: [self-hosted, Linux, X64, ovh-build]
     steps:
       - uses: actions/checkout@v6
         with:
