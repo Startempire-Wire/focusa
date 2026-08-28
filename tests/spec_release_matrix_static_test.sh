@@ -15,6 +15,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WF="$ROOT_DIR/.github/workflows/release.yml"
+CI="$ROOT_DIR/.github/workflows/ci.yml"
 WAIT="$ROOT_DIR/scripts/wait-for-external-release-assets.py"
 CODEMAGIC="$ROOT_DIR/codemagic.yaml"
 APPVEYOR="$ROOT_DIR/.appveyor.yml"
@@ -88,5 +89,24 @@ if grep -q 'upload failed for' "$APPVEYOR"; then
   fail "AppVeyor must not swallow artifact upload failures"
 fi
 pass "external release adapters are unconditional on tags and fail closed"
+
+# Spec 178 keeps the billing-locked macOS job visible but non-authoritative;
+# Codemagic remains fail-closed at release receipt gates.
+menubar_block="$(awk '/^  menubar:/{job=1} /^  rust:/{job=0} job{print}' "$CI")"
+grep -q 'continue-on-error: true' <<<"$menubar_block" \
+  || fail "billing-locked CI Menubar job must remain informational under Spec 178"
+pass "billing-locked GitHub macOS CI is non-authoritative without hiding the restoration target"
+
+# External Windows compilation must not cross an unguarded POSIX process API.
+BG="crates/focusa-cli/src/commands/bg.rs"
+grep -q '#\[cfg(unix)\]' "$BG" \
+  || fail "bg detached monitor is missing Unix process-group boundary"
+grep -q '#\[cfg(windows)\]' "$BG" \
+  || fail "bg detached monitor is missing Windows process boundary"
+grep -q 'CREATE_NEW_PROCESS_GROUP' "$BG" \
+  || fail "bg detached monitor is missing Windows new-process-group authority"
+grep -q 'CREATE_NO_WINDOW' "$BG" \
+  || fail "bg detached monitor is missing Windows no-window behavior"
+pass "bg detached monitor is platform-correct for Windows release builds"
 
 echo "✓ All release matrix static checks passed"

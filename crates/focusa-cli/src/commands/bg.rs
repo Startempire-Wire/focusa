@@ -195,7 +195,6 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
             // process-group-0 monitor and returns immediately; the parent
             // terminal never blocks and no shell wrapper is required.
             if args.detach && !args.internal_monitor {
-                use std::os::unix::process::CommandExt;
                 let exe = std::env::current_exe()?;
                 let mut monitor = std::process::Command::new(exe);
                 monitor
@@ -204,8 +203,8 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                     .args(&args.command)
                     .stdin(std::process::Stdio::null())
                     .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .process_group(0);
+                    .stderr(std::process::Stdio::null());
+                configure_detached_monitor(&mut monitor);
                 if let Some(dir) = args.cwd.as_deref() {
                     monitor.current_dir(dir);
                 }
@@ -265,6 +264,24 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
         }
     }
 }
+
+#[cfg(unix)]
+fn configure_detached_monitor(command: &mut std::process::Command) {
+    use std::os::unix::process::CommandExt;
+    command.process_group(0);
+}
+
+#[cfg(windows)]
+fn configure_detached_monitor(command: &mut std::process::Command) {
+    use std::os::windows::process::CommandExt;
+    const DETACHED_PROCESS: u32 = 0x0000_0008;
+    const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    command.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
+}
+
+#[cfg(not(any(unix, windows)))]
+fn configure_detached_monitor(_command: &mut std::process::Command) {}
 
 #[cfg(unix)]
 fn build_child(command: &[String], log_path: &str) -> anyhow::Result<std::process::Child> {

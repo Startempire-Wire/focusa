@@ -83,6 +83,9 @@ jobs:
   # See docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
   menubar:
     name: Menubar
+    # Spec 178: visible restoration target, but non-authoritative while GitHub
+    # hosted macOS is billing-locked. Codemagic release receipts fail closed.
+    continue-on-error: true
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
