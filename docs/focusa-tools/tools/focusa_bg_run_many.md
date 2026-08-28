@@ -1,10 +1,10 @@
 # `focusa_bg_run_many`
 
-Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.
 - Capability family: `background_job`; namespace: `focusa.background_job`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -22,7 +22,12 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 ```json
 {
-  "jobs": []
+  "jobs": [
+    {
+      "name": "focusa_workpoint_resume",
+      "command": "example"
+    }
+  ]
 }
 ```
 
@@ -71,7 +76,7 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - Skills: `skill:focusa`, `skill:focusa-silent-sessions`
 - Runbooks: `runbook:background_job`
 - Pi: `focusa_bg_run_many`; MCP: `focusa.bg.run.many`; OpenAI: `focusa_bg_run_many`.
-- CLI: none.
+- CLI: `focusa bg run --detach`.
 - REST: `/v1/background-jobs `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:c98365944e03db22475a74229e965d2e6f1cf97670ffe2adeb7159235477c75c`.
+- Descriptor digest: `sha256:94eb9d688eda728faa0ec6d3610f2310f32a11e0f429ee5da4327d005d240533`.

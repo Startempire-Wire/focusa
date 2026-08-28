@@ -111,3 +111,92 @@ fn spec124_cross_phase_cli_smoke_script_passes() {
     );
     assert!(stdout.contains("Spec124 CLI cross-phase smoke complete"));
 }
+
+#[test]
+fn detached_background_job_reuses_one_durable_row() {
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("repo root");
+    let (_daemon, base_url) = start_isolated_daemon(repo_root);
+    let name = format!("detach-e2e-{}", std::process::id());
+    let dispatched = Command::new(FOCUSA_BIN)
+        .args([
+            "bg",
+            "--json",
+            "run",
+            "--detach",
+            "--name",
+            &name,
+            "--cwd",
+            "/tmp",
+            "--",
+            FOCUSA_BIN,
+            "--version",
+        ])
+        .env("FOCUSA_API_URL", &base_url)
+        .output()
+        .expect("dispatch detached background job");
+    assert!(
+        dispatched.status.success(),
+        "dispatch failed status={}\nSTDOUT:\n{}\nSTDERR:\n{}",
+        dispatched.status,
+        String::from_utf8_lossy(&dispatched.stdout),
+        String::from_utf8_lossy(&dispatched.stderr)
+    );
+    let receipt: serde_json::Value =
+        serde_json::from_slice(&dispatched.stdout).expect("versioned dispatch receipt");
+    assert_eq!(
+        receipt["schema"],
+        focusa_core::background_jobs::BACKGROUND_JOB_DISPATCH_SCHEMA
+    );
+    let job_id = receipt["job_id"]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .expect("durable job id");
+
+    let waited = Command::new(FOCUSA_BIN)
+        .args([
+            "bg",
+            "--json",
+            "wait",
+            "--job",
+            job_id,
+            "--timeout-ms",
+            "10000",
+        ])
+        .env("FOCUSA_API_URL", &base_url)
+        .output()
+        .expect("wait for detached background job");
+    assert!(
+        waited.status.success(),
+        "wait failed: {}",
+        String::from_utf8_lossy(&waited.stderr)
+    );
+    let wait_result: serde_json::Value =
+        serde_json::from_slice(&waited.stdout).expect("wait result");
+    assert_eq!(wait_result["status"], "done");
+    assert_eq!(wait_result["job"]["job_id"], job_id);
+    assert_eq!(wait_result["job"]["status"], "completed");
+
+    let listed = Command::new(FOCUSA_BIN)
+        .args(["bg", "--json", "list"])
+        .env("FOCUSA_API_URL", &base_url)
+        .output()
+        .expect("list background jobs");
+    assert!(listed.status.success());
+    let list_result: serde_json::Value =
+        serde_json::from_slice(&listed.stdout).expect("background job list");
+    let matching = list_result["jobs"]
+        .as_array()
+        .expect("jobs array")
+        .iter()
+        .filter(|job| job["name"] == name)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        matching.len(),
+        1,
+        "detached monitor created a duplicate row"
+    );
+    assert_eq!(matching[0]["job_id"], job_id);
+}

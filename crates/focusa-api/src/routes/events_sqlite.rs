@@ -332,7 +332,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/events/{event_id}", get(get_event))
 }
 
-fn focusa_db_path(data_dir: &str) -> PathBuf {
+pub(crate) fn focusa_db_path(data_dir: &str) -> PathBuf {
     if let Some(rest) = data_dir.strip_prefix("~/")
         && let Ok(home) = std::env::var("HOME")
     {

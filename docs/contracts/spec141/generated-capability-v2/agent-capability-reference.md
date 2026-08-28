@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0`
+Registry digest: `sha256:2f0cab52fdcea96f74251b6080a326f7934ae030d8b46364bede3b22f01c4b59`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -126,7 +126,7 @@ Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed
 
 ## focusa_bg_run
 
-Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.bg.run`
 - Family: `background_job`
@@ -137,7 +137,7 @@ Run a terminal-blocking command in the background as a first-class Focusa job. T
 
 ## focusa_bg_run_many
 
-Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.bg.run.many`
 - Family: `background_job`
@@ -148,7 +148,7 @@ Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs.
 
 ## focusa_bg_status
 
-Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.bg.status`
 - Family: `background_job`

@@ -33,6 +33,30 @@ export function toolResult(
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { createHash } from "crypto";
+import {
+  BackgroundJobToolError,
+  dispatchBackgroundJob,
+  readBackgroundJobs,
+} from "./background-job-tools.js";
+
+function backgroundJobErrorDetails(error: unknown) {
+  if (error instanceof BackgroundJobToolError) {
+    return {
+      failure_class: error.failureClass,
+      message: error.message,
+      ...(error.exitCode !== undefined ? { exit_code: error.exitCode } : {}),
+    };
+  }
+  return {
+    failure_class: "background_job_tool_failed",
+    message: "Unexpected background-job tool failure",
+  };
+}
+
+function backgroundJobFailureResult(action: string, error: unknown) {
+  const details = backgroundJobErrorDetails(error);
+  return toolResult(false, "blocked", `${action} failed: ${details.message}`, details);
+}
 
 function safeErrorText(value: unknown): string {
   // canonical safeErrorText(result.body?.error) and safeErrorText(result.body?.reason) usage
@@ -4804,31 +4828,32 @@ pi.registerTool({
     "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up.",
   promptSnippet: "The canonical non-blocking dispatch for builds/tests/long scans.",
   parameters: Type.Object({
-    name: Type.String({ description: "Human job name (appears in the completion notification)." }),
-    command: Type.String({ description: "The full command line to execute (after -- semantics)." }),
-    cwd: Type.Optional(Type.String({ description: "Working directory (defaults to the current session cwd)." })),
+    name: Type.String({ minLength: 1, description: "Human job name (appears in the completion notification)." }),
+    command: Type.String({ minLength: 1, description: "The full command line to execute (after -- semantics)." }),
+    cwd: Type.Optional(Type.String({ minLength: 1, description: "Working directory (defaults to the current session cwd)." })),
   }),
   async execute(_id: any, params: any) {
-    const { spawn } = require("child_process");
     const runtime = getAttachmentRuntime();
     const cwd = params.cwd || runtime?.sessionCwd || process.cwd();
-    const pid = spawn(
-      "/usr/local/bin/focusa",
-      ["bg", "run", "--name", String(params.name), "--cwd", cwd, "--", ...String(params.command).split(" ")],
-      { detached: true, stdio: "ignore" }
-    );
-    pid.unref?.();
-    return toolResult(
-      true,
-      "dispatched",
-      `Background job "${params.name}" dispatched. The completion notification (with output tail) arrives on the agent front terminal via SSE; inspect with focusa_bg_status when needed.`,
-      {
-        job_name: params.name,
-        command: params.command,
+    try {
+      const receipt = await dispatchBackgroundJob({
+        name: String(params.name),
+        command: String(params.command),
         cwd,
-        delivery: "background_job_completion SSE notification (front terminal)",
-      }
-    );
+      });
+      return toolResult(
+        true,
+        "dispatched",
+        `Background job "${receipt.name}" dispatched as ${receipt.job_id}. Completion arrives through the agent SSE stream.`,
+        {
+          receipt,
+          cwd,
+          delivery: "background_job_completion SSE notification (front terminal)",
+        }
+      );
+    } catch (error) {
+      return backgroundJobFailureResult("Background job dispatch", error);
+    }
   },
 });
 
@@ -4878,52 +4903,83 @@ pi.registerTool({
   parameters: Type.Object({
     jobs: Type.Array(
       Type.Object({
-        name: Type.String({ description: "Job name (appears in its completion notification)." }),
-        command: Type.String({ description: "Full command line to execute." }),
-        cwd: Type.Optional(Type.String({ description: "Working directory override." })),
-      })
+        name: Type.String({ minLength: 1, description: "Job name (appears in its completion notification)." }),
+        command: Type.String({ minLength: 1, description: "Full command line to execute." }),
+        cwd: Type.Optional(Type.String({ minLength: 1, description: "Working directory override." })),
+      }),
+      { minItems: 1 }
     ),
   }),
   async execute(_id: any, params: any) {
-    const { spawn } = require("child_process");
     const runtime = getAttachmentRuntime();
-    const dispatched: any[] = [];
-    for (const job of params.jobs || []) {
-      const cwd = job.cwd || runtime?.sessionCwd || process.cwd();
-      const pid = spawn(
-        "/usr/local/bin/focusa",
-        ["bg", "run", "--name", String(job.name), "--cwd", cwd, "--", ...String(job.command).split(" ")],
-        { detached: true, stdio: "ignore" }
+    const jobs = Array.isArray(params.jobs) ? params.jobs : [];
+    if (jobs.length === 0) {
+      return toolResult(false, "blocked", "Background job dispatch requires at least one job.", {
+        failure_class: "validation_rejected",
+      });
+    }
+    const outcomes = await Promise.allSettled(
+      jobs.map((job: any) => {
+        const cwd = job.cwd || runtime?.sessionCwd || process.cwd();
+        return dispatchBackgroundJob({
+          name: String(job.name),
+          command: String(job.command),
+          cwd,
+        }).then((receipt) => ({ receipt, cwd }));
+      })
+    );
+    const dispatched = outcomes.flatMap((outcome) =>
+      outcome.status === "fulfilled" ? [outcome.value] : []
+    );
+    const failures = outcomes.flatMap((outcome, index) =>
+      outcome.status === "rejected"
+        ? [{ name: String(jobs[index]?.name || `job-${index + 1}`), ...backgroundJobErrorDetails(outcome.reason) }]
+        : []
+    );
+    if (failures.length > 0) {
+      return toolResult(
+        false,
+        dispatched.length > 0 ? "partial_dispatch" : "blocked",
+        `${dispatched.length}/${jobs.length} background jobs dispatched; ${failures.length} failed before a durable receipt.`,
+        { dispatched, failures }
       );
-      pid.unref?.();
-      dispatched.push({ name: job.name, command: job.command, cwd, delivery: "background_job_completion SSE per job" });
     }
     return toolResult(
       true,
       "dispatched",
-      `${dispatched.length} background jobs dispatched in parallel; each delivers its own completion notification to the front terminal.`,
+      `${dispatched.length} background jobs dispatched with durable receipts; each delivers its own completion notification.`,
       { dispatched }
     );
   },
 });
 
 pi.registerTool({
-name: "focusa_bg_status",
+  name: "focusa_bg_status",
   label: "Focusa BG Status",
   description:
     "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop.",
   promptSnippet: "Use for a one-shot ledger snapshot; never poll with it.",
   parameters: Type.Object({
-    job_id: Type.Optional(Type.String({ description: "Optional job id; omit to list recent jobs." })),
+    job_id: Type.Optional(Type.String({ minLength: 1, description: "Optional job id; omit to list recent jobs." })),
   }),
   async execute(_id: any, params: any) {
     const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
-    const path = params.job_id
-      ? `/v1/background-jobs/${encodeURIComponent(params.job_id)}`
-      : "/v1/background-jobs";
-    const res = await fetch(`${base}${path}`);
-    const body = await res.json();
-    return toolResult(true, "ok", "Background job ledger snapshot (instant query).", body);
+    try {
+      const body = await readBackgroundJobs(base, params.job_id);
+      if (params.job_id) {
+        const job = body.job as Record<string, unknown>;
+        return toolResult(
+          true,
+          "ok",
+          `Background job ${params.job_id}: ${String(job.status || "unknown")}.`,
+          body
+        );
+      }
+      const jobs = body.jobs as unknown[];
+      return toolResult(true, "ok", `${jobs.length} background jobs in the durable ledger.`, body);
+    } catch (error) {
+      return backgroundJobFailureResult("Background job status", error);
+    }
   },
 });
 

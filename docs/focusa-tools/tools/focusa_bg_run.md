@@ -1,10 +1,10 @@
 # `focusa_bg_run`
 
-Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.
 - Capability family: `background_job`; namespace: `focusa.background_job`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -74,7 +74,7 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - Skills: `skill:focusa`, `skill:focusa-silent-sessions`
 - Runbooks: `runbook:background_job`
 - Pi: `focusa_bg_run`; MCP: `focusa.bg.run`; OpenAI: `focusa_bg_run`.
-- CLI: none.
+- CLI: `focusa bg run --detach`.
 - REST: `/v1/background-jobs `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:eba3886251790b86ae7ae5d6ef010a17a68f985d54838f3710102dcc910e7d13`.
+- Descriptor digest: `sha256:e325c11f824d89a3bd2d291d6bfa07986d0b1f4bf20c17f7b566864e20db763c`.

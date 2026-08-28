@@ -1,10 +1,10 @@
 # `focusa_bg_status`
 
-Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.
 - Capability family: `background_job`; namespace: `focusa.background_job`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -69,7 +69,7 @@ Likely next: `focusa_bg_run`, `focusa_workpoint_resume`.
 - Skills: `skill:focusa`, `skill:focusa-silent-sessions`
 - Runbooks: `runbook:background_job`
 - Pi: `focusa_bg_status`; MCP: `focusa.bg.status`; OpenAI: `focusa_bg_status`.
-- CLI: none.
+- CLI: `focusa bg status --job`, `focusa bg list`.
 - REST: `/v1/background-jobs `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:84e636c178998523f36e461a92b4394a0d90775ff378854ba48aee3fe96d3ddf`.
+- Descriptor digest: `sha256:cd7b79dcb364712958c9d6b6e00c8a2269082fb40d3ced8da97e0c1e2eeeae31`.
