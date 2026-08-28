@@ -104,19 +104,11 @@ fn common_command_paths(command: &str) -> &'static [&'static str] {
 
 fn command_exists_in_dir(dir: &Path, command: &str) -> bool {
     let candidate = dir.join(command);
-    if candidate.is_file() {
-        return true;
-    }
-    #[cfg(windows)]
-    {
-        ["exe", "cmd", "bat", "ps1"]
-            .iter()
-            .any(|ext| dir.join(format!("{command}.{ext}")).is_file())
-    }
-    #[cfg(not(windows))]
-    {
-        false
-    }
+    candidate.is_file()
+        || (cfg!(windows)
+            && ["exe", "cmd", "bat", "ps1"]
+                .iter()
+                .any(|ext| dir.join(format!("{command}.{ext}")).is_file()))
 }
 
 fn portability_tool(name: &str, required_for: &str, note: &str) -> Value {

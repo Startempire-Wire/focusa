@@ -523,7 +523,7 @@ pub fn reconcile_status_with_authority(config_dir: &Path) -> Result<bool, Activa
                 .collect()
         })
         .unwrap_or_default();
-    candidates.sort_by(|left, right| right.0.cmp(&left.0));
+    candidates.sort_by_key(|left| std::cmp::Reverse(left.0));
 
     let base_url = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
         .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string());
