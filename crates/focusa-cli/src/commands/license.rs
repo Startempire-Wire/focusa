@@ -101,7 +101,8 @@ pub struct ActivateFlowArgs {
     /// prompts, never invents an email, verification code, consent, payment
     /// confirmation, or license. Returns typed human-action envelopes with a
     /// resumable registration handle; requires --email for a new attempt or
-    /// --resume for a bounded poll continuation.
+    /// --resume for a bounded poll continuation, unless --license-key is
+    /// supplied for an already-paid license fast-path.
     #[arg(long)]
     pub agent: bool,
 
@@ -2561,6 +2562,13 @@ async fn run_agent_activation_command(
         }
         Ok(())
     };
+
+    // Already-paid agent installs use the one-request authority path. Do not
+    // route this through new-registration mode, which would demand email/OTP
+    // and payment again.
+    if let Some(key) = args.license_key.as_deref() {
+        return run_redeem_fast_path(json_output, key, args.registry.as_deref()).await;
+    }
 
     let outcome = if let Some(registration_id) = args.resume.as_deref() {
         let registration = load_registration_snapshot(&config_dir, registration_id)?;

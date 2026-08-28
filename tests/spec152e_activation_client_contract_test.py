@@ -32,6 +32,7 @@ FACADE = (CRATE / "src/activation_facade.rs").read_text(encoding="utf-8")
 CLIENT = (CRATE / "src/activation_client.rs").read_text(encoding="utf-8")
 LIB = (CRATE / "src/lib.rs").read_text(encoding="utf-8")
 INTEGRATION = (CRATE / "tests/spec152e_activation_contract.rs").read_text(encoding="utf-8")
+CLI_LICENSE = (ROOT / "crates/focusa-cli/src/commands/license.rs").read_text(encoding="utf-8")
 
 POSITIVE = 0
 NEGATIVE = 0
@@ -208,6 +209,8 @@ public_envelope = PUBLIC["components"]["schemas"]["ActivationEnvelope"]["propert
 expect(set(public_envelope) == envelope_required | envelope_optional,
        "public OpenAPI envelope matches the frozen required+optional fields")
 expect("full_license_key" not in public_envelope, "public envelope never carries a full license key")
+expect("if let Some(key) = args.license_key.as_deref()" in CLI_LICENSE, "agent activation dispatches existing paid keys through fast path")
+expect("return run_redeem_fast_path(json_output, key, args.registry.as_deref()).await" in CLI_LICENSE, "agent fast path reuses canonical redeem implementation")
 for forbidden in envelope_forbidden:
     expect(forbidden not in public_envelope, f"forbidden field {forbidden} absent from the public envelope")
 expect(public_envelope["masked_email"]["pattern"] == r"^[^@]*\*[^@]*@[^@]+$",
