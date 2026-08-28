@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2026-01-08
+          toolchain: nightly-2026-08-28
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - name: Process-health check + unit/integration tests
@@ -172,7 +172,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2026-01-08
+          toolchain: nightly-2026-08-28
           components: clippy
       - name: Install Pi extension runtime dependencies
         working-directory: apps/pi-extension

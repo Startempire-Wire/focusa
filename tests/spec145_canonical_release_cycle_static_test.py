@@ -251,7 +251,7 @@ require(
         "spec132-${{ github.event.pull_request.number || github.ref }}",
         "Swatinem/rust-cache@v2",
         "shared-key: release-target-${{ matrix.target }}",
-        "toolchain: nightly-2026-01-08",
+        "toolchain: nightly-2026-08-28",
     ],
     "Spec132 ownership",
 )

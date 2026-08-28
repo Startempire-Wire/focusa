@@ -1659,7 +1659,14 @@ Return ONLY valid JSON:
                             signal_id: Uuid::now_v7(),
                             signal_type: SignalKind::InactivityTick,
                             severity: "0.3".to_string(),
-                            summary: format!("No activity for {}s", inactive_for.num_seconds()),
+                            // Stable summary: fingerprint-based candidate matching
+                            // dedupes on the normalized summary. Embedding the
+                            // ever-growing duration here made every decay tick
+                            // spawn a NEW candidate (label churn) and re-surface
+                            // it forever — a 148% CPU hot loop in production.
+                            // Keep the label stable; duration is a property, not
+                            // identity.
+                            summary: "Frame inactive".to_string(),
                             related_frame_id: active_id,
                         },
                     })
@@ -1685,14 +1692,18 @@ Return ONLY valid JSON:
             .collect();
 
         // Emit signals for long-running frames.
-        for (frame_id, title, minutes) in long_running {
+        for (frame_id, title, _minutes) in long_running {
             let _ = self
                 .process_action(Action::EmitEvent {
                     event: FocusaEvent::IntuitionSignalObserved {
                         signal_id: Uuid::now_v7(),
                         signal_type: SignalKind::LongRunningFrame,
                         severity: "0.4".to_string(),
-                        summary: format!("Frame '{}' running for {}m", title, minutes),
+                        // Stable summary (see InactivityTick fix above): drop the
+                        // growing minute count from the matchable label so the
+                        // same frame dedupes into one candidate instead of a
+                        // fresh surfaced candidate every decay tick.
+                        summary: format!("Frame '{}' long-running", title),
                         related_frame_id: Some(frame_id),
                     },
                 })

@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2026-01-08
+          toolchain: nightly-2026-08-28
           targets: ${{ matrix.target }}
       - uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -67,7 +67,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2026-01-08
+          toolchain: nightly-2026-08-28
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: windows-dependency-preflight-${{ matrix.architecture }}
@@ -100,7 +100,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2026-01-08
+          toolchain: nightly-2026-08-28
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: windows-ota-e2e-${{ matrix.architecture }}

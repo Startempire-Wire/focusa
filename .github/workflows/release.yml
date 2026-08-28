@@ -407,7 +407,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2026-01-08
+          toolchain: nightly-2026-08-28
           targets: ${{ matrix.rust_target }}
       - uses: Swatinem/rust-cache@v2
 
@@ -693,7 +693,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2026-01-08
+          toolchain: nightly-2026-08-28
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:

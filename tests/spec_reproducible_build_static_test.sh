@@ -10,7 +10,7 @@ PORTABILITY="$ROOT_DIR/docs/current/PORTABILITY_AUDIT.md"
 
 # Toolchain pinning.
 rg -q 'dtolnay/rust-toolchain@nightly' "$WORKFLOW" || fail "release.yml must pin dtolnay/rust-toolchain"
-rg -q 'toolchain: nightly-2026-01-08' "$WORKFLOW" || fail "release.yml must pin nightly-2026-01-08"
+rg -q 'toolchain: nightly-2026-08-28' "$WORKFLOW" || fail "release.yml must pin nightly-2026-08-28"
 
 # Cosign signature job.
 rg -q 'sigstore/cosign-installer' "$WORKFLOW" || fail "release.yml must install cosign"
