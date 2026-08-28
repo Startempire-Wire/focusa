@@ -2,6 +2,17 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+if [[ -z "${CARGO_TARGET_DIR:-}" ]]; then
+  export CARGO_TARGET_DIR="/tmp/focusa-ci-local-$$-1"
+fi
+export FOCUSA_CARGO_TARGET_DIR="${FOCUSA_CARGO_TARGET_DIR:-$CARGO_TARGET_DIR}"
+cleanup_ephemeral_builds() {
+  "$ROOT_DIR/scripts/ci/cleanup-ephemeral-build-target.sh" "$CARGO_TARGET_DIR"
+}
+trap cleanup_ephemeral_builds EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 EXPECTED_OWNER="$(stat -c %U "$ROOT_DIR")"
 find_owner_drift() {
   find "$ROOT_DIR" -xdev     \( -path "$ROOT_DIR/.git" -o -path "$ROOT_DIR/target" -o -path '*/node_modules' -o -path "$ROOT_DIR/data" -o -path "$ROOT_DIR/ecs" \) -prune -o     -user root -print -quit
@@ -28,7 +39,7 @@ export FOCUSA_DATA_DIR="${FOCUSA_DATA_DIR:-$(mktemp -d /tmp/focusa-spec-gates.XX
 # crates/focusa-api/src/middleware/entitlement.rs:369.
 export FOCUSA_TEST_MODE="${FOCUSA_TEST_MODE:-1}"
 
-DAEMON_BIN="${DAEMON_BIN:-./target/release/focusa-daemon}"
+DAEMON_BIN="${DAEMON_BIN:-$CARGO_TARGET_DIR/release/focusa-daemon}"
 if [ ! -x "$DAEMON_BIN" ]; then
   CARGO_BIN="${CARGO_BIN:-cargo}"
   export CARGO_PROFILE_RELEASE_LTO="${CARGO_PROFILE_RELEASE_LTO:-off}"
@@ -144,6 +155,7 @@ run_gate bash ./tests/phone_bridge_automatic_callback_static_test.sh
 run_gate bash ./tests/release_notes_workflow_static_test.sh
 run_gate python3 ./tests/release_tag_template_static_test.py
 run_gate bash ./tests/release_proof_status_route_static_test.sh
+run_gate bash ./tests/build_cruft_cleanup_test.sh
 run_gate bash ./tests/spec80_impl_parquet_export_support_test.sh
 run_gate bash ./tests/spec96_trajectory_context_tool_docs_static_test.sh
 run_gate bash ./tests/spec96_static_false_positive_guard_test.sh
