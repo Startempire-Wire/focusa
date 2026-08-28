@@ -6,6 +6,11 @@
 # job, real MSVC toolchain. Operator must connect the repo once at
 # https://ci.appveyor.com/projects/new (GitHub OAuth).
 #
+# Full Windows surface coverage (not just CLI):
+#   - Rust binaries (focusa-daemon, focusa, focusa-tui) for x86_64 + aarch64 MSVC
+#   - Menubar Tauri NSIS bundle (x86_64, tag only)
+#   - tag-gated upload of all artifacts back to the GitHub Release
+#
 # Unplug: delete this file when GH billing is settled and the full
 # canonical Release matrix is restored.
 
@@ -16,33 +21,81 @@ image:
   - Visual Studio 2022
 
 environment:
+  # Public authority root (embedded at build time via build.rs/env!).
+  FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
   matrix:
     - RUST_TARGET: x86_64-pc-windows-msvc
+      MSVC_ARCH: amd64
+    - RUST_TARGET: aarch64-pc-windows-msvc
+      MSVC_ARCH: amd64_arm64
 
 install:
   - appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
-  - rustup-init.exe -y --default-toolchain stable --target %RUST_TARGET%
+  - rustup-init.exe -y --default-toolchain nightly-2026-08-28 --target %RUST_TARGET%
   - set PATH=%USERPROFILE%\.cargo\bin;%PATH%
   - rustc --version && cargo --version
 
 build_script:
-  - cargo build --release --target %RUST_TARGET% -p focusa-cli
+  # ARM64 cross-build needs the MSVC ARM64 cross-toolchain env (host x64 -> arm64).
+  - cmd: |
+      if "%RUST_TARGET%"=="aarch64-pc-windows-msvc" (
+        if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" %MSVC_ARCH%
+        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" (
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" %MSVC_ARCH%
+        )
+      )
+      cargo build --release --target %RUST_TARGET%
+
+after_build:
+  - mkdir artifacts
+  - copy target\%RUST_TARGET%\release\focusa-daemon.exe artifacts\
+  - copy target\%RUST_TARGET%\release\focusa.exe artifacts\
+  - copy target\%RUST_TARGET%\release\focusa-tui.exe artifacts\
+  # Menubar Tauri NSIS (x86_64 + tag only) — full desktop surface on Windows.
+  - ps: |
+      if ($env:RUST_TARGET -eq "x86_64-pc-windows-msvc" -and $env:APPVEYOR_REPO_TAG -eq "true") {
+        npm install -g bun
+        Set-Location apps/menubar
+        bun install
+        bun run build
+        npx tauri build --bundles nsis
+        $exe = Get-ChildItem -Recurse -Filter "*.exe" src-tauri/target/release/bundle/nsis | Select-Object -First 1
+        if ($exe) { Copy-Item $exe.FullName ..\..\artifacts\focusa-menubar-$env:APPVEYOR_REPO_TAG_NAME-x86_64-pc-windows-msvc-setup.exe }
+        Set-Location ..\..
+      }
 
 test_script:
   - cargo test --target %RUST_TARGET% -p focusa-license
   - cargo test --target %RUST_TARGET% -p focusa-core --lib
 
-after_build:
-  - mkdir artifacts
-  - copy target\%RUST_TARGET%\release\focusa.exe artifacts\
-  - ps: >-
+# Tag pushes: upload every artifact back to the GitHub Release (idempotent).
+on_success:
+  - ps: |
       if ($env:APPVEYOR_REPO_TAG -eq "true") {
-        $tag = $env:APPVEYOR_REPO_TAG_NAME
-        Push-AppveyorArtifact "target\$env:RUST_TARGET\release\focusa.exe" -FileName "focusa-$tag-x86_64-pc-windows-msvc.exe"
+        Get-ChildItem artifacts | ForEach-Object {
+          Push-AppveyorArtifact $_.FullName -FileName $_.Name
+        }
+        if ($env:GH_TOKEN) {
+          $tag = $env:APPVEYOR_REPO_TAG_NAME
+          $repo = "Startempire-Wire/focusa"
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/tags/$tag" -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; "User-Agent" = "appveyor" }
+          Get-ChildItem artifacts | ForEach-Object {
+            $name = $_.Name
+            try {
+              Invoke-RestMethod -Method Post -Uri "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$name" `
+                -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
+                -InFile $_.FullName | Out-Null
+              Write-Host "uploaded $name"
+            } catch {
+              Write-Host "upload failed for $name : $_"
+            }
+          }
+        }
       }
 
 artifacts:
   - path: artifacts\*
 
-# Tag pushes also build here so release packaging can pull the exe.
+# Tag pushes also build here so release packaging can pull the artifacts.
 deploy: off

@@ -1,10 +1,16 @@
-# Codemagic macOS build lane — Spec 177 CI parity stop-gap (2026-08-24).
+# Codemagic macOS build lanes — Spec 177 CI parity stop-gap (2026-08-24).
 # Provider authority, release receipts, and all-at-once GitHub restoration:
 # docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
 # Restores the third OS of the canonical Release matrix: GitHub hosted
 # macos-latest is billing-locked, Cirrus is defunct, AppVeyor free tier is
 # Windows-only. Codemagic personal accounts include 500 free macOS M2
-# minutes/month — sufficient for tag-gated menubar package proofs.
+# minutes/month.
+#
+# Two tag-gated workflows:
+#   1. menubar-macos-package-proof — Tauri .app bundle (ad-hoc signed)
+#   2. macos-rust-binaries        — CLI + daemon + TUI for both macOS archs,
+#                                   trust-root embedded, uploaded to the
+#                                   GitHub Release (full macOS surface parity).
 #
 # Trigger policy: release/dev tags ONLY. Push/PR builds stay on the free
 # self-hosted Linux + AppVeyor Windows lanes so the minute budget is never
@@ -72,6 +78,66 @@ workflows:
           codesign -dv "$APP_PATH" 2>&1 | tee /tmp/codesign_proof.txt
           grep -q 'Signature=adhoc' /tmp/codesign_proof.txt
           echo "✓ Menubar macOS bundle proven (ad-hoc signature)"
+    publishing:
+      email:
+        recipients:
+          - verious.smith@philoveracity.com
+        notify:
+          success: true
+          failure: true
+
+  macos-rust-binaries:
+    name: macOS Rust binaries (cli + daemon + tui, arm64 + x86_64)
+    max_build_duration: 60
+    when:
+      changeset:
+        includes:
+          - "crates/**"
+          - "Cargo.toml"
+          - "Cargo.lock"
+          - "codemagic.yaml"
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "v*"
+      cancel_previous_builds: true
+    environment:
+      xcode: latest
+      groups:
+        - github_credentials
+      vars:
+        FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
+    scripts:
+      - name: Install Rust + macOS targets
+        script: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+            --default-toolchain nightly-2026-08-28 --profile minimal
+          export PATH="$HOME/.cargo/bin:$PATH"
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          rustc --version && cargo --version
+      - name: Build macOS Rust binaries (arm64 + x86_64)
+        script: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          export FOCUSA_AUTHORITY_ROOT_KEYS_JSON='{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
+          mkdir -p dist
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --release --target "$target"
+            for bin in focusa-daemon focusa focusa-tui; do
+              cp "target/$target/release/$bin" "dist/${bin}-${CM_TAG}-${target}"
+            done
+          done
+          ls -la dist/
+      - name: Upload binaries to GitHub Release
+        script: |
+          export GH_TOKEN="${GITHUB_TOKEN:-$GH_TOKEN}"
+          if [ -n "$GH_TOKEN" ] && command -v gh >/dev/null 2>&1; then
+            gh release upload "$CM_TAG" dist/* --clobber || echo "upload skipped (release not ready yet)"
+          else
+            echo "gh or GH_TOKEN unavailable; binaries remain in artifacts"
+          fi
+    artifacts:
+      - dist/*
     publishing:
       email:
         recipients:
