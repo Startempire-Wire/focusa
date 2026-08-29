@@ -11,8 +11,8 @@
   "compatibility_status": "compatible",
   "drift_findings": [],
   "evidence_ref": "scripts/verify-version-surfaces.py",
-  "generated_at": "2026-08-29T23:54:26.984665Z",
+  "generated_at": "2026-08-29T23:55:25.735114Z",
   "release_version": "0.9.186",
   "schema": "focusa.distribution_manifest.v1",
-  "source_commit": "bafc0a28f"
+  "source_commit": "d71c328b4"
 }
