@@ -25,7 +25,7 @@ pass "all four external Rust targets (win x64/arm64 + mac x64/arm64) in receipt 
 # AppVeyor builds the full Windows surface; Codemagic builds the full macOS surface.
 grep -q 'focusa-daemon' "$APPVEYOR" || fail "AppVeyor must build the daemon (full Windows surface)"
 grep -q 'aarch64-pc-windows-msvc' "$APPVEYOR" || fail "AppVeyor must build Windows ARM64"
-grep -q 'macos-rust-binaries' "$CODEMAGIC" || fail "Codemagic must define the macos-rust-binaries workflow"
+grep -q 'rust-macos-release-binaries' "$CODEMAGIC" || fail "Codemagic must define the rust-macos-release-binaries workflow"
 grep -q 'aarch64-apple-darwin' "$CODEMAGIC" || fail "Codemagic must build macOS ARM64"
 grep -q 'x86_64-apple-darwin' "$CODEMAGIC" || fail "Codemagic must build macOS x86_64"
 
