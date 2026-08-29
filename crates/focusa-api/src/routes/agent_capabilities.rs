@@ -207,8 +207,10 @@ fn op(
     docs: &'static str,
     deprecation: Option<DeprecationEntry>,
 ) -> OperationEntry {
+    let read_only_operation = method == "GET" || id == "focusa.callgraph.validate";
     let project_scoped = !matches!(family, "health" | "device" | "license" | "events")
-        && id != "focusa.compatibility_lock.read";
+        && id != "focusa.compatibility_lock.read"
+        && id != "focusa.callgraph.validate";
     let workstream_scoped = matches!(
         family,
         "trajectory"
@@ -263,7 +265,7 @@ fn op(
     if attachment_scoped {
         required_keys.push("attachment_id");
     }
-    let mode = if method == "GET" {
+    let mode = if read_only_operation {
         "read"
     } else if req_preview {
         "preview"
@@ -273,7 +275,7 @@ fn op(
     let confirmation = if confirm { "consequential" } else { "none" };
     let sensitivity = if confirm {
         "consequential"
-    } else if method == "GET" {
+    } else if read_only_operation {
         "routine"
     } else {
         "scoped_mutation"
@@ -328,7 +330,7 @@ fn op(
             confirmation,
             idempotency_required: req_idempotency,
             optimistic_concurrency_required: req_if_match,
-            receipt_required: method != "GET",
+            receipt_required: !read_only_operation,
             reversible: id.contains("restore") || id.contains("rollback"),
         },
         ui: OperationUi {
@@ -2348,6 +2350,29 @@ fn build_operations() -> Vec<OperationEntry> {
             "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
             None,
         ),
+        op(
+            "focusa.callgraph.validate",
+            "Validate CallGraph Definition",
+            "callgraph",
+            "POST",
+            "/v1/callgraphs/validate",
+            true,
+            None,
+            "read_validation",
+            "inline",
+            vec!["inspect"],
+            false,
+            false,
+            false,
+            vec!["callgraph:read"],
+            false,
+            "compact",
+            vec!["compact", "standard"],
+            "focusa.callgraph_validate.request.v1",
+            "focusa.callgraph_validate.response.v1",
+            "docs/155-focusa-callgraph-workflow-and-flow-mesh-execution-integration-spec.md",
+            None,
+        ),
     ]
 }
 
@@ -2376,6 +2401,7 @@ fn build_families() -> Vec<&'static str> {
         "license",
         "dxux",
         "call_stack",
+        "callgraph",
         "turn",
         "memory",
     ]
@@ -3517,6 +3543,47 @@ fn context_graph_response_schema(schema_id: &str, mutation: bool) -> Value {
 }
 
 fn json_schema_document(schema_id: &str) -> Value {
+    if schema_id == "focusa.callgraph_validate.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": true,
+            "required": ["schema", "graph_id", "revision", "scope", "entry_frame_ids", "frames", "edges", "policies", "required_evidence", "created_at", "created_by"],
+            "properties": {
+                "schema": {"const": "focusa.callgraph.v1"},
+                "graph_id": {"type": "string", "minLength": 1},
+                "revision": {"type": "integer", "minimum": 1},
+                "scope": {"type": "object"},
+                "entry_frame_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+                "frames": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+                "edges": {"type": "array", "items": {"type": "object"}},
+                "policies": {"type": "object"},
+                "required_evidence": {"type": "array", "items": {"type": "object"}},
+                "created_at": {"type": "string", "format": "date-time"},
+                "created_by": {"type": "object"}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "focusa_core::callgraph::FocusaCallGraphDefinition"
+        });
+    }
+    if schema_id == "focusa.callgraph_validate.response.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["status", "valid", "issues", "graph_id", "revision", "canonical"],
+            "properties": {
+                "status": {"enum": ["valid", "invalid"]},
+                "valid": {"type": "boolean"},
+                "issues": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["severity", "path", "message"], "properties": {"severity": {"type": "string"}, "path": {"type": "string"}, "message": {"type": "string"}}}},
+                "graph_id": {"type": "string"},
+                "revision": {"type": "integer", "minimum": 1},
+                "canonical": {"const": true}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "focusa_core::callgraph::ValidationReport"
+        });
+    }
     if schema_id == "focusa.context_source_commit.request.v1" {
         return json!({
             "$schema": JSON_SCHEMA_DIALECT_2020_12,
@@ -4773,6 +4840,7 @@ mod tests {
         let families = build_families();
         assert!(families.contains(&"turn"));
         assert!(families.contains(&"memory"));
+        assert!(families.contains(&"callgraph"));
     }
 
     #[test]
@@ -4830,6 +4898,27 @@ mod tests {
                 assert!(rendered.get(extension).is_some(), "missing {extension}");
             }
         }
+    }
+
+    #[test]
+    fn callgraph_validation_is_read_only_and_openapi_visible() {
+        let operation = build_operations()
+            .into_iter()
+            .find(|operation| operation.operation_id == "focusa.callgraph.validate")
+            .expect("CallGraph validation operation");
+        assert_eq!(operation.method, "POST");
+        assert_eq!(operation.path, "/v1/callgraphs/validate");
+        assert_eq!(operation.side_effect_profile, "read_validation");
+        assert_eq!(operation.control.mode, "read");
+        assert!(!operation.control.receipt_required);
+        assert!(!operation.scope.project_scoped);
+        assert!(!operation.scope.workstream_scoped);
+
+        let document = openapi_document();
+        let rendered = &document["paths"]["/v1/callgraphs/validate"]["post"];
+        assert_eq!(rendered["operationId"], "focusa.callgraph.validate");
+        assert_eq!(rendered["x-focusa-mode"], "read");
+        assert_eq!(rendered["x-focusa-receipt"], false);
     }
 
     #[test]

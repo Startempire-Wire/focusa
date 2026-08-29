@@ -16,6 +16,9 @@ pub mod bloatgaurd_optical;
 pub mod bounded;
 pub mod browser_interop;
 pub mod call_stack;
+pub mod callgraph;
+#[cfg(test)]
+mod callgraph_validation_test;
 pub mod capabilities;
 pub mod capabilities_extra;
 pub mod clt;

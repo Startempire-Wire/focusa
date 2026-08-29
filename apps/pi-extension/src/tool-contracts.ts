@@ -1223,11 +1223,11 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_callgraph_validate",
     label: "CallGraph Validate",
     purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "validating a CallGraph definition deterministically before any create or dispatch action.",
     family: "callgraph",
     ontology_action: "callgraph.validate",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/callgraph-runs/{run_id}/frontier"],
+    api_routes: ["POST /v1/callgraphs/validate"],
     cli_commands: [],
     core_surface: "callgraph/definition validation",
     doc_path: "docs/focusa-tools/tools/focusa_callgraph_validate.md",

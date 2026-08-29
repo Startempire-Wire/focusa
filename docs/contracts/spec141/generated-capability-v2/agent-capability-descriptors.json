@@ -15849,21 +15849,21 @@
         "cli": [],
         "rest": [
           {
-            "method": "/v1/callgraph-runs/{run_id}/frontier",
-            "path": ""
+            "method": "POST",
+            "path": "/v1/callgraphs/validate"
           }
         ]
       },
       "version": "2.0.0",
       "title": "Focusa CallGraph Validate",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "validating a CallGraph definition deterministically before any create or dispatch action.",
+      "description": "Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when validating a CallGraph definition deterministically before any create or dispatch action. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "callgraph",
       "namespace": "focusa.callgraph",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/callgraph-runs/{run_id}/frontier",
-        "path": "",
+        "method": "POST",
+        "path": "/v1/callgraphs/validate",
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -15877,8 +15877,8 @@
       "operation_policies": [
         {
           "operation_id": null,
-          "method": "/v1/callgraph-runs/{run_id}/frontier",
-          "path": "",
+          "method": "POST",
+          "path": "/v1/callgraphs/validate",
           "operation_class": "read",
           "capability_family": "read_projection",
           "commercial_treatment": "read_allowance",
@@ -16207,7 +16207,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/callgraph-runs/{run_id}/frontier",
+          "route": "POST /v1/callgraphs/validate",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -16248,7 +16248,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "validating a CallGraph definition deterministically before any create or dispatch action.",
           "arguments": {
             "graph": {}
           },
@@ -16326,7 +16326,7 @@
         "snippet": "Use before creating or dispatching any CallGraph.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3579475ac96ddab54e5ce8b02808ae5e6973fe34174b21bb761be73cf26dd5d5"
+      "descriptor_digest": "sha256:5128334f7f0e75d4503faad6a311c10b76d79f30997413a59167468c69007479"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86427,5 +86427,5 @@
       "descriptor_digest": "sha256:d5350211c874cf4ebd08b6b589633dbe53e70b29b5bab857db7aec93e996aa4c"
     }
   ],
-  "registry_digest": "sha256:76a566ac0283eb7a6344878fcffbdfdff07e77829039f0a0561f6dea5f95087c"
+  "registry_digest": "sha256:f086bc5e80fc92b45a63ae29170f799a2ce03ea0bc0b25d6e580b76912c9e655"
 }

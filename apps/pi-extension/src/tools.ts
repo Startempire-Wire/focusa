@@ -4706,19 +4706,65 @@ pi.registerTool({
     graph: Type.Object({}, { additionalProperties: true }),
   }),
   async execute(_id: any, params: any) {
-    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
-    const res = await fetch(`${base}/v1/callgraphs/validate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params.graph),
-    });
-    const body = await res.json();
+    const runtime = getAttachmentRuntime();
+    const base = String(runtime?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1").replace(/\/+$/, "");
+    const token = runtime?.cfg?.focusaToken || "";
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      timeoutBudgetForRoute("/callgraphs/validate", "POST")
+    );
+    let res: Response;
+    try {
+      res = await fetch(`${base}/callgraphs/validate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(params.graph),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return toolResult(false, "transport_failed", `CallGraph validator unavailable: ${message}`, {
+        status: "transport_failed",
+        canonical: false,
+        failure_class: "callgraph_validation_transport_failed",
+        error: message,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+    let body: any = null;
+    try {
+      body = await res.json();
+    } catch {
+      body = null;
+    }
+    if (!res.ok) {
+      const message = String(body?.error || `daemon returned HTTP ${res.status}`);
+      return toolResult(false, body?.status || "blocked", `CallGraph validator unavailable: ${message}`, {
+        ...(body || {}),
+        status: body?.status || "blocked",
+        canonical: false,
+        failure_class: body?.failure_class || "callgraph_validation_http_error",
+        http_status: res.status,
+      });
+    }
+    if (typeof body?.valid !== "boolean" || !Array.isArray(body?.issues)) {
+      return toolResult(false, "protocol_invalid", "CallGraph validator returned an invalid response envelope.", {
+        status: "protocol_invalid",
+        canonical: false,
+        failure_class: "callgraph_validation_protocol_invalid",
+      });
+    }
     return toolResult(
-      res.ok,
-      body.status || "valid",
+      true,
+      body.status || (body.valid ? "valid" : "invalid"),
       body.valid
         ? "CallGraph definition validates."
-        : `CallGraph invalid: ${(body.issues || []).map((i: any) => i.path + ": " + i.message).join("; ")}`,
+        : `CallGraph invalid: ${body.issues.map((issue: any) => issue.path + ": " + issue.message).join("; ")}`,
       body
     );
   },

@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:76a566ac0283eb7a6344878fcffbdfdff07e77829039f0a0561f6dea5f95087c",
+  "registry_digest": "sha256:f086bc5e80fc92b45a63ae29170f799a2ce03ea0bc0b25d6e580b76912c9e655",
   "operations": [
     {
       "method": "POST",
@@ -11434,8 +11434,8 @@
       "policy_owner": "entitlement_policy_resolver"
     },
     {
-      "method": "/v1/callgraph-runs/{run_id}/frontier",
-      "path": "",
+      "method": "POST",
+      "path": "/v1/callgraphs/validate",
       "capability_id": "focusa.callgraph.validate",
       "operation_id": "focusa_callgraph_validate",
       "canonical_operation_id": null,
@@ -11729,7 +11729,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/callgraph-runs/{run_id}/frontier",
+          "route": "POST /v1/callgraphs/validate",
           "scope": {
             "kind": "read",
             "route_family": "auto"
