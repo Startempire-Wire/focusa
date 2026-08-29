@@ -694,7 +694,7 @@ jobs:
     # support artifacts are still queued on that same runner pool.
     needs: [create-release, pi-extension-release]
     runs-on: self-hosted
-    timeout-minutes: 50
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v6
         with:
@@ -709,7 +709,7 @@ jobs:
           python3 scripts/wait-for-external-release-assets.py \
             --tag "${RELEASE_TAG}" \
             --kind menubar \
-            --timeout-minutes 48
+            --timeout-minutes 145
 
   rust-release:
     name: Rust Binaries (${{ matrix.target }})
@@ -824,7 +824,7 @@ jobs:
     # OVH lanes before a long external-provider receipt wait may begin.
     needs: [create-release, rust-release]
     runs-on: self-hosted
-    timeout-minutes: 50
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v6
         with:
@@ -839,7 +839,7 @@ jobs:
           python3 scripts/wait-for-external-release-assets.py \
             --tag "${RELEASE_TAG}" \
             --kind rust-binaries \
-            --timeout-minutes 48
+            --timeout-minutes 145
 
   pi-extension-release:
     name: Package Pi Extension

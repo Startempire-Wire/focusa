@@ -74,7 +74,13 @@ grep -Fq 'needs: [create-release, pi-extension-release]' <<<"$menubar_receipt_bl
   || fail "external menubar receipt waiter can starve the Pi-extension producer"
 grep -Fq 'needs: [create-release, rust-release]' <<<"$rust_receipt_block" \
   || fail "external Rust receipt waiter can starve the Linux matrix producers"
-pass "external macOS/Windows receipt gates are producer-ordered in the release DAG"
+for receipt_block in "$menubar_receipt_block" "$rust_receipt_block"; do
+  grep -Fq 'timeout-minutes: 150' <<<"$receipt_block" \
+    || fail "external receipt job cannot cover the serial AppVeyor matrix"
+  grep -Fq -- '--timeout-minutes 145' <<<"$receipt_block" \
+    || fail "external receipt polling cannot cover the serial AppVeyor matrix"
+done
+pass "external macOS/Windows receipt gates are producer-ordered and serial-provider-budgeted"
 
 # Billing-lock recovery must resume an immutable tag from the current
 # controller without moving it. The exact tag/SHA pair is verified before any
