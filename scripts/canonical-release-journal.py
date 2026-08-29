@@ -703,7 +703,10 @@ def cmd_finalize(args: argparse.Namespace) -> dict[str, Any]:
         for stage in ("release", "deploy", "final")
     }
     plan_learning = plan.get("measurements", {}).get("learning", {})
-    guard_artifact = Path(f"/tmp/focusa-{args.tag.removeprefix('v')}-learning-guards.json")
+    guard_artifact = Path(
+        os.environ.get("FOCUSA_LEARNING_GUARDS_ARTIFACT", "").strip()
+        or f"/tmp/focusa-{os.getuid()}-{args.tag.removeprefix('v')}-learning-guards.json"
+    )
     guard_result = json.loads(guard_artifact.read_text()) if guard_artifact.exists() else {"guards": []}
     actuals["learning"] = {
         "retrieved_lesson_count": plan_learning.get("retrieved_lessons", {}).get("candidate_count", 0),

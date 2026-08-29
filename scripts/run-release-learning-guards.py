@@ -47,7 +47,11 @@ def main() -> int:
     config = json.loads(CONFIG.read_text())
     if config.get("schema") != "focusa.release_learning_guards.v1":
         raise SystemExit("release learning guard schema mismatch")
-    output = Path(args.output or f"/tmp/focusa-{args.tag.removeprefix('v')}-learning-guards.json")
+    output = Path(
+        args.output
+        or os.environ.get("FOCUSA_LEARNING_GUARDS_ARTIFACT", "").strip()
+        or f"/tmp/focusa-{os.getuid()}-{args.tag.removeprefix('v')}-learning-guards.json"
+    )
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     if output.exists():
         cached = json.loads(output.read_text())

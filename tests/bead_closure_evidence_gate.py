@@ -3,7 +3,7 @@
 Guard for #317/#318: Spec 131 Closure Authority — every bead close requires
 cargo fmt + clippy + spec gate + docs/evidence/finish/<id>-acceptance.txt with commit SHA.
 """
-import subprocess, pathlib, sys, re
+import os, subprocess, pathlib, sys, re
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 # Find commits in range that look like bd close
 try:

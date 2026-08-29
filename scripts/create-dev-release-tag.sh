@@ -480,14 +480,17 @@ if [[ "$PUSH" -eq 1 && "$RELEASE_JOURNAL_MODE" != "off" ]]; then
   fi
 fi
 
+LEARNING_GUARDS_ARTIFACT="/tmp/focusa-$(id -u)-${VERSION}-learning-guards.json"
+export FOCUSA_LEARNING_GUARDS_ARTIFACT="$LEARNING_GUARDS_ARTIFACT"
+
 if [[ "$PUSH" -eq 1 ]]; then
-  if ! python3 scripts/run-release-learning-guards.py --tag "$TAG"; then
+  if ! python3 scripts/run-release-learning-guards.py --tag "$TAG" --output "$LEARNING_GUARDS_ARTIFACT"; then
     if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
       journal_client problem --tag "$TAG" --stage "learning-guards" \
         --diagnosis "one or more retrieved release recurrence guards blocked" \
         --impact "release stopped before version stamping or immutable tagging" \
         --recovery "resolve the blocking resource or regression and rerun the same planned release" \
-        --evidence-ref "artifact:/tmp/focusa-${VERSION}-learning-guards.json"
+        --evidence-ref "artifact:${LEARNING_GUARDS_ARTIFACT}"
     fi
     exit 1
   fi
@@ -495,7 +498,7 @@ if [[ "$PUSH" -eq 1 ]]; then
   if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
     journal_client progress --tag "$TAG" --stage "learning-guards" --status "completed" \
       --details "all retrieved recurrence guards passed before version stamping" \
-      --evidence-ref "artifact:/tmp/focusa-${VERSION}-learning-guards.json"
+      --evidence-ref "artifact:${LEARNING_GUARDS_ARTIFACT}"
   fi
 fi
 
