@@ -86,6 +86,7 @@ assert_grep 'FOCUSA_ROUTE_DRY_RUN=1 cargo --version' scripts/local-release-prefl
 assert_grep '[[ "$CARGO_ROUTE" == route=ovh* ]]' scripts/local-release-preflight.sh 'strict preflight must detect the canonical OVH cargo route'
 assert_grep 'FOCUSA_SOURCE_ROOT="$ROOT" /usr/local/bin/focusa-ovh-build' scripts/local-release-preflight.sh 'routed OVH spec gate must bind the exact release checkout'
 assert_grep 'env -u CARGO_TARGET_DIR -u FOCUSA_CARGO_TARGET_DIR -u DAEMON_BIN' scripts/local-release-preflight.sh 'routed OVH spec gate must preserve ephemeral target isolation'
+assert_grep 'FOCUSA_HISTORYLESS_GATE=1 bash scripts/ci/run-spec-gates.sh' scripts/local-release-preflight.sh 'routed OVH spec gate must explicitly classify its historyless source sync'
 assert_grep 'bash scripts/ci/run-spec-gates.sh' scripts/local-release-preflight.sh 'strict preflight must preserve native runner execution'
 cleanup_block="$(awk '/^cleanup\(\) \{/{capture=1} capture{print} capture && /^}/{exit}' scripts/ci/run-spec-gates.sh)"
 grep -Fq 'cleanup_ephemeral_builds' <<<"$cleanup_block" || { echo '✗ strict spec combined EXIT cleanup missing'; exit 1; }

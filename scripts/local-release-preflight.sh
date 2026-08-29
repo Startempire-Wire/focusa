@@ -105,7 +105,7 @@ if [[ "$STRICT" -eq 1 ]]; then
       echo "routing dynamic spec gates to OVH build host"
       FOCUSA_SOURCE_ROOT="$ROOT" /usr/local/bin/focusa-ovh-build \
         env -u CARGO_TARGET_DIR -u FOCUSA_CARGO_TARGET_DIR -u DAEMON_BIN \
-        bash scripts/ci/run-spec-gates.sh
+        FOCUSA_HISTORYLESS_GATE=1 bash scripts/ci/run-spec-gates.sh
     else
       bash scripts/ci/run-spec-gates.sh
     fi
