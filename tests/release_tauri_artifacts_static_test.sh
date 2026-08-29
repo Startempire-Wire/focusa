@@ -48,7 +48,7 @@ grep -Fq 'arch="x64"' "$CODEMAGIC" || fail "Codemagic missing macOS x64 updater 
 grep -Fq 'arch="aarch64"' "$CODEMAGIC" || fail "Codemagic missing macOS ARM64 updater architecture mapping"
 grep -Fq 'Focusa_${arch}.app.tar.gz.sig' "$CODEMAGIC" || fail "Codemagic missing signed macOS updater filename template"
 grep -Fq 'nsis' "$APPVEYOR" || fail "AppVeyor missing NSIS menubar bundle"
-grep -Fq 'npx tauri build --target $env:RUST_TARGET' "$APPVEYOR" || fail "AppVeyor must build menubar for both Windows targets"
+grep -Fq 'bunx --bun tauri --version && bunx --bun tauri build --target $env:RUST_TARGET' "$APPVEYOR" || fail "AppVeyor must resolve locked Tauri CLI and build menubar for both Windows targets"
 grep -Fq '".sig"' "$APPVEYOR" || fail "AppVeyor must retain Windows updater signature receipts"
 grep -Fq 'Generate signed Tauri updater metadata from provider receipts' "$WORKFLOW" || fail "release workflow must generate latest.json from provider signatures"
 

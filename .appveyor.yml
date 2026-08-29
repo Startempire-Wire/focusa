@@ -118,7 +118,7 @@ after_build:
           )
           $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           if (-not $vcvars) { throw "vcvarsall.bat not found" }
-          $command = "call `"$vcvars`" $env:MSVC_ARCH && npx tauri build --target $env:RUST_TARGET --bundles nsis,msi 2>&1"
+          $command = "call `"$vcvars`" $env:MSVC_ARCH && bunx --bun tauri --version && bunx --bun tauri build --target $env:RUST_TARGET --bundles nsis,msi 2>&1"
           & cmd.exe /d /s /c $command
           if ($LASTEXITCODE -ne 0) { throw "Tauri build failed with exit code $LASTEXITCODE" }
           $bundle = "src-tauri/target/$env:RUST_TARGET/release/bundle"
