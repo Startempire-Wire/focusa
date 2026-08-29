@@ -92,7 +92,7 @@ Disable the recovery record immediately after release closure.
 17. Codemagic release scripts use strict shell mode. The existing Tauri private
 key is transported as a secure base64-encoded file payload, decoded only inside
 the private ephemeral builder, validated without printing, and reduced to the
-single base64 secret-key line expected by Tauri in a mode-0600 file. The file is
+base64 secret-key bytes expected by Tauri—without comment header or trailing newline—in a mode-0600 file. The file is
 used through `TAURI_SIGNING_PRIVATE_KEY=<path>`, overwritten and removed on
 exit. Both architecture-specific updater signatures must exist and be nonempty
 before any menubar asset upload; a signer decode error is a hard provider
