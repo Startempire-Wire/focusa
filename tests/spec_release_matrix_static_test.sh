@@ -81,6 +81,12 @@ grep -Fq 'RELEASE_SHA: ${{ inputs.release_sha || github.sha }}' "$WF" \
   || fail "release recovery does not carry the exact candidate SHA"
 grep -q 'release_candidate_identity=passed' "$WF" \
   || fail "release recovery does not verify tag/SHA identity"
+create_block="$(awk '/^  create-release:/{job=1} /^  tauri-build:/{job=0} job{print}' "$WF")"
+if grep -q 'actions/upload-artifact' <<<"$create_block"; then
+  fail "candidate lock must not depend on billing-locked GitHub artifact storage"
+fi
+grep -q 'files: release-candidate.json' <<<"$create_block" \
+  || fail "candidate lock is not attached durably to the draft Release"
 grep -q 'candidate_gate_substituted workflow=Spec-132 route=spec178 providers=ovh,appveyor,codemagic' "$WF" \
   || fail "Spec 132 billing-locked receipt is not delegated to the Spec 178 providers"
 if grep -q 'require_success_with_wait "Spec 132 terminal matrix"' "$WF"; then

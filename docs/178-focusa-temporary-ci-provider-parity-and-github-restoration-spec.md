@@ -53,7 +53,9 @@ authority and notarization evidence.
 9. If a tag-triggered controller run was blocked before draft creation, resume
 it through `Release` `workflow_dispatch` with both the immutable `release_tag`
 and its full `release_sha`. The controller must verify that the tag, input SHA,
-and checkout HEAD are identical before creating or modifying the Release.
+and checkout HEAD are identical before creating or modifying the Release. The
+candidate-lock JSON is attached to the draft Release itself; recovery must not
+depend on billing-locked GitHub Actions artifact storage.
 10. GitHub-hosted release packaging rows remain visible but skipped unless the
 repository variable `FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX` is explicitly set to
 `enabled` as part of the all-at-once restoration procedure.

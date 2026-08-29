@@ -361,14 +361,6 @@ jobs:
               benchmark: null
             }' > release-candidate.json
           jq -e '.exact_sha == env.RELEASE_SHA and .stage == "locked"' release-candidate.json >/dev/null
-      - name: Upload release candidate lock
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-candidate-${{ env.RELEASE_TAG }}
-          path: release-candidate.json
-          if-no-files-found: error
-          retention-days: 90
-
       - name: Generate release notes
         id: notes
         env:
@@ -380,12 +372,14 @@ jobs:
           echo "release_notes_generated $(wc -l < /tmp/release-notes.md) lines for $TAG"
           head -n 20 /tmp/release-notes.md
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release and attach candidate lock
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: Focusa ${{ env.RELEASE_TAG }}
           body_path: /tmp/release-notes.md
+          files: release-candidate.json
+          fail_on_unmatched_files: true
           draft: true
           prerelease: false
         env:
