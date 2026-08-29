@@ -12,11 +12,13 @@ use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     net::IpAddr,
-    os::unix::fs::PermissionsExt,
     path::PathBuf,
     sync::{Arc, OnceLock},
     time::Duration,
 };
+
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 use crate::server::AppState;
 
@@ -47,12 +49,15 @@ fn broker_config() -> Result<(String, String), &'static str> {
     );
     let metadata =
         std::fs::symlink_metadata(&token_path).map_err(|_| "sms_broker_token_unavailable")?;
-    if !metadata.is_file()
-        || metadata.file_type().is_symlink()
-        || metadata.permissions().mode() & 0o077 != 0
-    {
+    if !metadata.is_file() || metadata.file_type().is_symlink() {
         return Err("sms_broker_token_permissions_invalid");
     }
+    #[cfg(unix)]
+    if metadata.permissions().mode() & 0o077 != 0 {
+        return Err("sms_broker_token_permissions_invalid");
+    }
+    #[cfg(not(unix))]
+    return Err("sms_broker_token_permissions_unverifiable");
     let token = std::fs::read_to_string(token_path).map_err(|_| "sms_broker_token_unavailable")?;
     let token = token.trim().to_string();
     if token.len() < 32 {
