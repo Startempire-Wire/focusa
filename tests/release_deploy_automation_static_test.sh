@@ -138,6 +138,9 @@ assert_grep 'wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"' scripts/create-de
 assert_grep 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh 'release helper must commit and dry-run-revert stamped Pi extension versions'
 [[ "$(grep -o 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh | wc -l)" -ge 2 ]] \
   || fail 'Pi extension version surfaces must appear in both commit and dry-run rollback sets'
+manifest_surface='docs/contracts/spec141/generated-capability-v2/distribution-manifest.json'
+[[ "$(grep -o "$manifest_surface" scripts/create-dev-release-tag.sh | wc -l)" -eq 3 ]] \
+  || fail 'Distribution manifest must appear in retry allowlist, dry-run rollback, and release commit sets'
 assert_grep 'timeout-minutes: 50' .github/workflows/release.yml 'External Menubar receipt gate timeout must be bounded (waits for Codemagic/AppVeyor)'
 assert_grep 'timeout-minutes: 30' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
 rust_check_block="$(awk '/^  rust-check:/{job=1} /^  tag-ci-proof:/{job=0} job{print}' .github/workflows/release.yml)"
@@ -268,7 +271,12 @@ assert_grep 'scripts/self-heal-decision-drill.py' .github/workflows/self-heal-fa
 assert_grep 'repair_required_no_rerun' scripts/self-heal-decision-drill.py 'drill must prove deterministic no-rerun decision'
 assert_grep 'rerun_once_allowed' scripts/self-heal-decision-drill.py 'drill must prove transient rerun-once decision'
 drill_json="$(mktemp)"
+tracked_self_heal_result=release-proof/audit/self-heal-result.json
+tracked_self_heal_before="$(sha256sum "$tracked_self_heal_result" | awk '{print $1}')"
 python3 scripts/self-heal-decision-drill.py --fixture all --json > "$drill_json"
+tracked_self_heal_after="$(sha256sum "$tracked_self_heal_result" | awk '{print $1}')"
+[[ "$tracked_self_heal_before" == "$tracked_self_heal_after" ]] \
+  || fail 'Self-heal failure injection drill must not rewrite tracked release proof'
 python3 - "$drill_json" <<'PY'
 import json, sys
 payload = json.load(open(sys.argv[1]))

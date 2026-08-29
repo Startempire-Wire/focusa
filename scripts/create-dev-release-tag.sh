@@ -361,7 +361,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
     RELEASE_RETRY_DIRTY=1
     while IFS= read -r dirty_path; do
       case "$dirty_path" in
-        Cargo.toml|Cargo.lock|README.md|docs/current/.release-version-stamp|docs/current/CURRENT_RUNTIME_STATUS.md|docs/contracts/spec141/generated-capability-v2/agent-card.json|apps/menubar/package.json|apps/menubar/package-lock.json|apps/menubar/src-tauri/Cargo.toml|apps/menubar/src-tauri/Cargo.lock|apps/menubar/src-tauri/tauri.conf.json|apps/menubar/src/lib/components/Settings.svelte|apps/pi-extension/package.json|apps/pi-extension/package-lock.json|apps/pi-extension/src/auto-compaction.ts) ;;
+        Cargo.toml|Cargo.lock|README.md|docs/current/.release-version-stamp|docs/current/CURRENT_RUNTIME_STATUS.md|docs/contracts/spec141/generated-capability-v2/agent-card.json|docs/contracts/spec141/generated-capability-v2/distribution-manifest.json|apps/menubar/package.json|apps/menubar/package-lock.json|apps/menubar/src-tauri/Cargo.toml|apps/menubar/src-tauri/Cargo.lock|apps/menubar/src-tauri/tauri.conf.json|apps/menubar/src/lib/components/Settings.svelte|apps/pi-extension/package.json|apps/pi-extension/package-lock.json|apps/pi-extension/src/auto-compaction.ts) ;;
         *) RELEASE_RETRY_DIRTY=0; break ;;
       esac
     done < <(git status --porcelain | cut -c4-)
@@ -526,6 +526,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   git checkout -- Cargo.toml Cargo.lock README.md \
     docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
     docs/contracts/spec141/generated-capability-v2/agent-card.json \
+    docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
     scripts/install-focusa.sh \
     apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
@@ -541,6 +542,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
   git add Cargo.toml Cargo.lock README.md \
     docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
     docs/contracts/spec141/generated-capability-v2/agent-card.json \
+    docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
     scripts/install-focusa.sh \
     apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
