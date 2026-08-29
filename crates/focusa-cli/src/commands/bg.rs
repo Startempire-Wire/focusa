@@ -246,14 +246,19 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                 if let Some(dir) = args.cwd.as_deref() {
                     monitor.current_dir(dir);
                 }
-                if let Err(error) = monitor.spawn() {
-                    let _ = api
+                if let Err(spawn_error) = monitor.spawn() {
+                    if let Err(mark_error) = api
                         .post(
                             &format!("/v1/background-jobs/{job_id}"),
                             &json!({ "status": "monitor_lost" }),
                         )
-                        .await;
-                    return Err(error.into());
+                        .await
+                    {
+                        anyhow::bail!(
+                            "detached monitor spawn failed: {spawn_error}; marking job {job_id} monitor_lost also failed: {mark_error}"
+                        );
+                    }
+                    return Err(spawn_error.into());
                 }
                 let dispatched = json!({
                     "schema": focusa_core::background_jobs::BACKGROUND_JOB_DISPATCH_SCHEMA,
@@ -272,7 +277,23 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
 
             // Detach the child from the terminal signal group, then wait on
             // it — this CLI is the monitor.
-            let mut child = build_child(&args.command, &log_path)?;
+            let mut child = match build_child(&args.command, &log_path) {
+                Ok(child) => child,
+                Err(spawn_error) => {
+                    if let Err(mark_error) = api
+                        .post(
+                            &format!("/v1/background-jobs/{job_id}"),
+                            &json!({ "status": "monitor_lost" }),
+                        )
+                        .await
+                    {
+                        anyhow::bail!(
+                            "background command spawn failed: {spawn_error}; marking job {job_id} monitor_lost also failed: {mark_error}"
+                        );
+                    }
+                    return Err(spawn_error);
+                }
+            };
             let pid = child.id();
             let _: Value = api
                 .post(
