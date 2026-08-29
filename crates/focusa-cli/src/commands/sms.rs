@@ -4,7 +4,7 @@
 
 use crate::api_client::ApiClient;
 use clap::Subcommand;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::io::{self, Read};
 
 #[derive(Subcommand)]

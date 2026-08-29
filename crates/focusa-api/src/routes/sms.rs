@@ -3,12 +3,12 @@
 //! forwards only versioned capability requests and redacted envelopes.
 
 use axum::{
+    Json, Router,
     extract::{Path, Query},
     http::StatusCode,
     routing::{get, post},
-    Json, Router,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     net::IpAddr,
