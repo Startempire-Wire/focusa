@@ -134,8 +134,19 @@ lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
 uploads = [i for i, line in enumerate(lines) if "uses: softprops/action-gh-release@v2" in line]
 assert uploads, "release workflow has no GitHub Release upload actions"
 for i in uploads:
-    block = "\n".join(lines[i:i + 12])
+    block = "\n".join(lines[i:i + 16])
     assert "tag_name: ${{ env.RELEASE_TAG }}" in block, f"release upload at line {i + 1} infers tag from github.ref"
+    assert "draft: true" in block, f"release upload at line {i + 1} can publish before receipt gates"
+text = "\n".join(lines)
+tauri_uploads = [i for i, line in enumerate(lines) if "uses: tauri-apps/tauri-action@v0" in line]
+assert tauri_uploads, "release workflow has no Tauri upload action"
+for i in tauri_uploads:
+    block = "\n".join(lines[i:i + 24])
+    assert "releaseDraft: true" in block, f"Tauri upload at line {i + 1} can publish before receipt gates"
+assert text.count("--draft=false") == 1, "release workflow must have exactly one final publisher"
+publish = text.index("--draft=false")
+checksums = text.index("  checksums:")
+assert publish > checksums, "release publisher must remain downstream of receipt-gated checksums"
 PY
 if grep -q 'Method Post.*repos/\$repo/releases"' "$APPVEYOR"; then
   fail "AppVeyor must never create the canonical GitHub Release"

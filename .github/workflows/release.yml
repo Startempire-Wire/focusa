@@ -563,7 +563,9 @@ jobs:
           tagName: ${{ env.RELEASE_TAG }}
           releaseName: 'Focusa ${{ env.RELEASE_TAG }}'
           releaseBody: 'Canonical Focusa release for macOS, Windows, and Linux. OTA authenticity is enforced by the pinned updater key.'
-          releaseDraft: false
+          # Artifact producers preserve the gated draft. Only the final
+          # evidence-backed publisher may make the release public.
+          releaseDraft: true
           prerelease: false
           tauriScript: bunx tauri
           uploadUpdaterJson: true
@@ -670,6 +672,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
           files: dist/menubar/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -679,6 +682,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
           files: scripts/install-focusa-menubar-beta.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -805,6 +809,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
           files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -875,6 +880,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
           files: |
             focusa-pi-extension-*.tar.gz
             focusa-installer-*.sh
@@ -1049,6 +1055,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
           files: |
             dist/*.sig
             dist/*.pem
