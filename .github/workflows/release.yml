@@ -218,7 +218,17 @@ jobs:
             echo "candidate_gate_substituted workflow=Spec-132 route=spec178 providers=ovh,appveyor,codemagic sha=${candidate_sha}"
           fi
       - name: OTA installability release contract gate
-        run: python3 tests/spec143_ota_installability_release_gate_test.py
+        env:
+          CONTROLLER_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          controller_test="${RUNNER_TEMP}/spec143-controller-test.py"
+          controller_workflow="${RUNNER_TEMP}/release-controller.yml"
+          git show "${CONTROLLER_SHA}:tests/spec143_ota_installability_release_gate_test.py" > "$controller_test"
+          git show "${CONTROLLER_SHA}:.github/workflows/release.yml" > "$controller_workflow"
+          FOCUSA_SPEC143_ROOT="$PWD" \
+          FOCUSA_RELEASE_WORKFLOW_PATH="$controller_workflow" \
+            python3 "$controller_test"
       - name: Spec104 static audit
         run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
 

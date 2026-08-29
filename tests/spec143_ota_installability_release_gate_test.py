@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 import ast
+import os
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-release = (ROOT / ".github/workflows/release.yml").read_text()
+ROOT = Path(os.environ.get("FOCUSA_SPEC143_ROOT", Path(__file__).resolve().parents[1]))
+release_path = Path(
+    os.environ.get("FOCUSA_RELEASE_WORKFLOW_PATH", ROOT / ".github/workflows/release.yml")
+)
+release = release_path.read_text()
 deploy = (ROOT / ".github/workflows/deploy-live-daemon.yml").read_text()
 installer = (ROOT / "scripts/install-focusa.sh").read_text()
 installer_ps1 = (ROOT / "scripts/install-focusa.ps1").read_text()
@@ -20,7 +24,7 @@ assert '-f asset_suffix="x86_64-unknown-linux-gnu"' not in release
 assert "cross build --release --target ${{ matrix.target }}" in release
 assert "target: aarch64-unknown-linux-gnu" in release
 assert "matrix.musl == true || matrix.cross == true" in release
-assert "if: ${{ startsWith(github.ref, 'refs/tags/') }}" in release
+assert "startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'" in release
 assert "startsWith(github.ref, refs/tags/)" not in release
 assert "NODE_OPTIONS: --use-system-ca" in release
 rust_release = release[release.index("  rust-release:") : release.index("  pi-extension-release:")]
