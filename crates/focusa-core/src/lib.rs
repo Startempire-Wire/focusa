@@ -192,6 +192,7 @@ pub mod silent_session_workspace;
 pub mod silent_session_writer;
 pub mod silent_sessions;
 pub mod skills;
+pub mod sms;
 pub mod software_domain;
 pub mod spec138_operations;
 pub mod sync;

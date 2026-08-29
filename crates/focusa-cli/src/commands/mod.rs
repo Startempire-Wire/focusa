@@ -70,6 +70,7 @@ pub mod setup;
 pub mod silent;
 mod silent_render;
 pub mod skills;
+pub mod sms;
 pub mod telemetry;
 pub mod temporal;
 pub mod temporal_clients;

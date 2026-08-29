@@ -70,6 +70,7 @@ function safeErrorText(value: unknown): string {
   return String(value ?? "");
 }
 import { registerAgentRuntimeTools } from "./agent-runtime-tools.js";
+import { registerSmsTools } from "./sms-tools.js";
 import {
   SPEC138_OPERATIONS,
   bindSpec138OperationPath,
@@ -2371,6 +2372,7 @@ export function registerTools(pi: ExtensionAPI) {
     return registerTool(normalized);
   }) as typeof pi.registerTool;
   registerAgentRuntimeTools(pi);
+  registerSmsTools(pi);
 
 pi.registerTool({
     name: "focusa_daemon_routing_status",

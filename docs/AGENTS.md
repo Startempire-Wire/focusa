@@ -12,6 +12,7 @@ For KH/OVH/operator policy, use `agent-kb-api` first, verify freshness, retrieve
 ## Agent communications + GitHub 2FA documentation contract
 
 - Communications design must identify authorized `github.com` SMS OTP retrieval/injection as the immediate release-critical use case while prohibiting ambient message access.
+- Specifications and runbooks must make GitHub MFA SMS-first: broker-side `inject_otp` is the default; degraded pairing triggers private connector repair/re-pairing, not silent substitution with GitHub Mobile, passkey, or authenticator app. Alternate renewable methods require explicit Sir V3 direction.
 - Specifications must extend Spec 156 credential/MFA authority and existing privacy, adapter, audit, placement, and Veragensia lifecycle contracts rather than create a parallel secret system. OTP values are ephemeral P4 material: persist only redacted handles and value-free evidence.
 - GitHub OTP is the first bounded slice. Specifications must preserve a later customer-authorized SMS API for thread listing, bounded reads, sends, and events, with capabilities and consent distinct from OTP access; no privilege widening is allowed.
 - Shared CLI/API/MCP/OpenClaw contracts stay transport-neutral behind versioned connector adapters. Android/Google Messages is a bounded bootstrap; **iPhone/iOS is a concurrent urgent target**, with an explicit supported/user-consented integration decision, parity matrix, migration/portability path, real-device acceptance, and no dependency on private Apple APIs.

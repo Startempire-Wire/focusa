@@ -96,6 +96,7 @@ pub mod silent_sessions_restart;
 pub mod silent_sessions_retention;
 pub mod silent_sessions_retention_export;
 pub mod skills;
+pub mod sms;
 pub mod snapshots;
 pub mod spec_workbench;
 pub mod sse;
