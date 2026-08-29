@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   signing-proof:
-    runs-on: [self-hosted, Linux, X64, ovh-build]
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 20
     env:
       RELEASE_TAG: ${{ inputs.tag }}
