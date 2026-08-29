@@ -4,6 +4,16 @@
 
 For KH/OVH/operator policy, inherit `/root/AGENTS.md`: query `agent-kb-api` first, verify freshness, use exact document lookup after empty searches, and treat local Agent KB files as read-only fallback.
 
+## Agent communications + GitHub 2FA (mandatory, cross-platform)
+
+- The immediate communications use case is authorized completion of an active `github.com` login with a renewable SMS OTP so build/release work can proceed. It does not grant ambient inbox, thread, notification, or phone access.
+- Route OTP retrieval through the daemon-owned credential/communications broker under Spec 156: bind provider=`github.com`, enrolled phone identity, expected sender/message class, active challenge, and short expiry. Prefer one-time broker injection; plaintext reveal requires a separate explicit grant. Never place OTP values in model context, CLI arguments, logs, receipts, screenshots, evidence, or persisted Focusa state.
+- Expose revocable capability actions (`read_otp`/`inject_otp`, health, enrollment status, revoke) through consistent CLI, HTTP, MCP, Pi, OpenClaw, and generic-agent `tool_result_v1` adapters. Thin clients never receive browser cookies, Google/Apple credentials, or paired-profile state. Enforce attribution, audit, redaction, replay protection, rate limits, and deny-by-default policy.
+- GitHub OTP is the first bounded, release-critical slice—not the final product boundary. Preserve a versioned customer-authorized SMS API for thread listing, bounded reads, sending, and events. Every broader action needs a separate explicit grant, scope, redaction policy, prompt-injection defense, idempotency/rate controls, and audit; OTP permission never becomes general SMS permission.
+- Android/Google Messages may bootstrap the connector, but shared broker and adapter contracts must be transport-neutral. Do not encode Google Messages, Chromium profile details, Android identifiers, or Android-only semantics into canonical domain types.
+- **iPhone/iOS is an urgent first-class implementation track, not a later port.** Use a versioned connector boundary and preserve equivalent customer-owned enrollment, consent, GitHub OTP scoping/injection, restart recovery, health, revoke/re-pair, audit, and zero-residue teardown on Android and iPhone. Use only Apple-supported/user-consented paths; never assume private iMessage/SMS APIs or weaken controls to claim parity.
+- Cross-platform done means shared contract tests plus real-device proof per supported platform. Android-only work must remain an explicitly bounded bootstrap with an active iPhone task and no architecture that blocks or materially delays iPhone delivery. Recovery codes remain forbidden.
+
 ## Focusa agent docs entry point
 
 Before broad Focusa code changes or after context loss, read `docs/agent/01-focusa-agent-docs-index.md`. It is the bounded, public-safe architecture/commands/API/Workpoint/Trajectory/private-boundary guide for agents.
