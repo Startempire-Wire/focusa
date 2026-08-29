@@ -1,182 +1,263 @@
 # Codemagic macOS build lanes — Spec 177 CI parity stop-gap (2026-08-24).
-# Provider authority, release receipts, and all-at-once GitHub restoration:
-# docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
-# Restores the third OS of the canonical Release matrix: GitHub hosted
-# macos-latest is billing-locked, Cirrus is defunct, AppVeyor free tier is
+#
+# WHY: GitHub Actions hosted runners are billing-locked for this account.
+# The Linux self-hosted OVH lane remains canonical for Linux. AppVeyor is
 # Windows-only. Codemagic personal accounts include 500 free macOS M2
-# minutes/month.
-#
-# Two tag-gated workflows:
-#   1. menubar-macos-package-proof — Tauri .app + .dmg for both macOS archs,
-#                                    packaged to the canonical asset names
-#   2. macos-rust-binaries        — CLI + daemon + TUI for both macOS archs,
-#                                    trust-root embedded, uploaded to the
-#                                    GitHub Release (full macOS surface parity).
-#
-# Trigger policy: release/dev tags ONLY. Push/PR builds stay on the free
-# self-hosted Linux + AppVeyor Windows lanes so the minute budget is never
-# burned on ordinary development.
-#
-# Unplug: delete this file when GH hosted macOS billing is settled and the
-# canonical Release matrix is restored there.
-
+# minutes/month and this file intentionally spends those minutes only on
+# release tags or an explicitly authorized immutable-tag recovery build.
+# See docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
 workflows:
   menubar-macos-package-proof:
     name: Menubar macOS package proof
-    max_build_duration: 60
-    triggering:
-      events:
-        - tag
-      tag_patterns:
-        - pattern: "v*"
-      cancel_previous_builds: true
+    max_build_duration: 45
+    instance_type: mac_mini_m2
     environment:
-      node: v22.12.0
+      node: 22
       xcode: latest
       groups:
         - github_credentials
         - focusa_release_signing
-      vars:
-        APP_DIR: apps/menubar
-        FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc
-        VITE_FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
+    cache:
+      cache_paths:
+        - $HOME/.cargo/registry
+        - $HOME/.cargo/git
+        - apps/menubar/node_modules
+        - apps/menubar/src-tauri/target
     scripts:
+      - name: Verify immutable release identity
+        script: |
+          set -euo pipefail
+          recovery_file="config/codemagic-release-recovery.json"
+          if [[ "${FOCUSA_CODEMAGIC_RECOVERY:-disabled}" == "enabled" ]]; then
+            [[ -f "$recovery_file" ]]
+            identity="$(python3 - "$recovery_file" <<'PY'
+          import json, sys
+          payload = json.load(open(sys.argv[1], encoding="utf-8"))
+          print("true" if payload.get("enabled") is True else "false", payload.get("tag", ""), payload.get("sha", ""), sep="\t")
+          PY
+            )"
+            IFS=$'\t' read -r recovery_enabled release_tag release_sha <<< "$identity"
+            [[ "$recovery_enabled" == "true" ]]
+          else
+            release_tag="${CM_TAG:-}"
+            release_sha="${CM_COMMIT:-}"
+          fi
+          [[ "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --force origin "refs/tags/${release_tag}:refs/tags/${release_tag}"
+          tag_sha="$(git rev-parse "${release_tag}^{commit}")"
+          [[ "$tag_sha" == "$release_sha" ]]
+          git checkout --detach "$release_sha"
+          [[ "$(git rev-parse HEAD)" == "$release_sha" ]]
+          printf 'FOCUSA_RELEASE_TAG=%s\nFOCUSA_RELEASE_SHA=%s\n' "$release_tag" "$release_sha" >> "$CM_ENV"
+          echo "codemagic_recovery_identity=passed tag=$release_tag sha=$release_sha"
       - name: Show build context
         script: |
-          echo "Tag: $CM_TAG"
-          echo "Commit: $CM_COMMIT"
+          set -euo pipefail
+          echo "Tag: ${FOCUSA_RELEASE_TAG:?missing verified release tag}"
+          echo "Commit: ${FOCUSA_RELEASE_SHA:?missing verified release SHA}"
           sw_vers
-          node --version && npm --version
+          uname -m
+          node --version
+          npm --version
+          rustc --version || true
       - name: Install dependencies + Rust + both macOS targets
         script: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
-          export PATH="$HOME/.cargo/bin:$PATH"
-          rustup target add aarch64-apple-darwin x86_64-apple-darwin
-          rustc --version && cargo --version
+          set -euo pipefail
           cd apps/menubar
           npm ci
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
       - name: Typecheck + web build
         script: |
+          set -euo pipefail
           cd apps/menubar
           npm run check
           npm run build
       - name: Tauri package both macOS archs (.app + .dmg)
         script: |
-          export PATH="$HOME/.cargo/bin:$PATH"
-          export APPLE_SIGNING_IDENTITY=-
+          set -euo pipefail
           cd apps/menubar
-          mkdir -p ../../dist/menubar
+          : "${TAURI_SIGNING_PRIVATE_KEY:?missing base64 Tauri updater signing key payload}"
+          : "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:?missing Tauri updater signing password}"
+          key_file="$(mktemp "${TMPDIR:-/tmp}/focusa-tauri-signing-key.XXXXXX")"
+          chmod 600 "$key_file"
+          export FOCUSA_TAURI_SIGNING_KEY_B64="$TAURI_SIGNING_PRIVATE_KEY"
+          unset TAURI_SIGNING_PRIVATE_KEY
+          python3 - "$key_file" <<'PY'
+          import base64, os, pathlib, sys
+          path = pathlib.Path(sys.argv[1])
+          raw = base64.b64decode(os.environ["FOCUSA_TAURI_SIGNING_KEY_B64"], validate=True)
+          lines = raw.splitlines()
+          assert len(lines) == 2, "Tauri signing key file must contain exactly two lines"
+          assert lines[0].startswith(b"untrusted comment:"), "Tauri signing key comment missing"
+          base64.b64decode(lines[1], validate=True)
+          path.write_bytes(raw)
+          PY
+          unset FOCUSA_TAURI_SIGNING_KEY_B64
+          export TAURI_SIGNING_PRIVATE_KEY="$key_file"
+          cleanup_signing_key() {
+            if [[ -f "$key_file" ]]; then
+              python3 - "$key_file" <<'PY'
+          import pathlib, sys
+          path = pathlib.Path(sys.argv[1])
+          if path.exists():
+              path.write_bytes(b"\0" * path.stat().st_size)
+              path.unlink()
+          PY
+            fi
+          }
+          trap cleanup_signing_key EXIT
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
-            : "${TAURI_SIGNING_PRIVATE_KEY:?missing Tauri updater signing key}"
-            : "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:?missing Tauri updater signing password}"
-            npx tauri build --target "$target" --bundles app,dmg \
-              --config '{"bundle":{"createUpdaterArtifacts":true}}'
-            app="$(find src-tauri/target/${target}/release/bundle/macos -name '*.app' -print -quit)"
-            test -n "$app"
-            ditto -c -k --keepParent "$app" "../../dist/menubar/Focusa-${CM_TAG}-${target}.app.zip"
-            for dmg in src-tauri/target/${target}/release/bundle/dmg/*.dmg; do
-              cp "$dmg" "../../dist/menubar/"
-            done
-            updater="$(find src-tauri/target/${target}/release/bundle/macos -name '*.app.tar.gz' -print -quit)"
-            test -n "$updater"
+            rm -rf "src-tauri/target/$target/release/bundle"
+            npx tauri build --target "$target" --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":true}}'
+            app="src-tauri/target/$target/release/bundle/macos/Focusa.app"
+            dmg="$(find "src-tauri/target/$target/release/bundle/dmg" -maxdepth 1 -name '*.dmg' -print -quit)"
+            updater="$(find "src-tauri/target/$target/release/bundle/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit)"
+            test -d "$app"
+            test -s "$dmg"
+            test -s "$updater"
             test -s "${updater}.sig"
-            arch="x64"
-            [ "$target" = "aarch64-apple-darwin" ] && arch="aarch64"
-            cp "$updater" "../../dist/menubar/Focusa_${arch}.app.tar.gz"
-            cp "${updater}.sig" "../../dist/menubar/Focusa_${arch}.app.tar.gz.sig"
+            mkdir -p ../../dist/menubar
+            ditto -c -k --keepParent "$app" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.app.zip"
+            cp "$dmg" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.dmg"
+            cp "$updater" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.app.tar.gz"
+            cp "${updater}.sig" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.app.tar.gz.sig"
           done
-          ls -la ../../dist/menubar
+          ls -lh ../../dist/menubar
       - name: Validate macOS bundles (ad-hoc signature)
         script: |
           set -euo pipefail
           cd apps/menubar
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
-            app="$(find src-tauri/target/${target}/release/bundle/macos -name '*.app' -print -quit)"
-            test -n "$app"
-            test -f "$app/Contents/Info.plist"
-            /usr/bin/plutil -lint "$app/Contents/Info.plist"
-            codesign --verify --deep --strict "$app"
-            codesign -dv "$app" 2>&1 | tee /tmp/codesign_proof.txt
-            grep -q 'Signature=adhoc' /tmp/codesign_proof.txt
+            app="src-tauri/target/$target/release/bundle/macos/Focusa.app"
+            plutil -lint "$app/Contents/Info.plist"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = "${FOCUSA_RELEASE_TAG#v}"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = "dev.focusa.menubar"
+            codesign --verify --deep --strict --verbose=2 "$app"
+            codesign -dv --verbose=4 "$app" 2>&1 | grep -q 'Signature=adhoc'
+            test -s "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.app.tar.gz.sig"
           done
-          echo "✓ Menubar macOS bundles proven (ad-hoc signature)"
       - name: Upload menubar bundles to canonical GitHub Release
         script: |
           set -euo pipefail
-          export GH_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
-          : "${GH_TOKEN:?missing GitHub release upload credential}"
-          command -v gh >/dev/null 2>&1
-          # The provider may build before the canonical gated draft exists.
-          # Wait boundedly; never create or bypass the canonical release.
-          for attempt in $(seq 1 80); do
-            gh release view "$CM_TAG" >/dev/null 2>&1 && break
-            sleep 30
+          : "${GITHUB_TOKEN:?missing GitHub release upload credential}"
+          release_tag="${FOCUSA_RELEASE_TAG:?missing verified release tag}"
+          expected=(
+            "dist/menubar/Focusa-${release_tag}-aarch64-apple-darwin.app.zip"
+            "dist/menubar/Focusa-${release_tag}-aarch64-apple-darwin.dmg"
+            "dist/menubar/Focusa-${release_tag}-aarch64-apple-darwin.app.tar.gz"
+            "dist/menubar/Focusa-${release_tag}-aarch64-apple-darwin.app.tar.gz.sig"
+            "dist/menubar/Focusa-${release_tag}-x86_64-apple-darwin.app.zip"
+            "dist/menubar/Focusa-${release_tag}-x86_64-apple-darwin.dmg"
+            "dist/menubar/Focusa-${release_tag}-x86_64-apple-darwin.app.tar.gz"
+            "dist/menubar/Focusa-${release_tag}-x86_64-apple-darwin.app.tar.gz.sig"
+          )
+          for file in "${expected[@]}"; do test -s "$file"; done
+          for attempt in $(seq 1 60); do
+            gh release view "$release_tag" >/dev/null 2>&1 && break
+            sleep 10
           done
-          gh release view "$CM_TAG" >/dev/null 2>&1
-          gh release upload "$CM_TAG" dist/menubar/* --clobber
+          gh release view "$release_tag" >/dev/null 2>&1
+          gh release upload "$release_tag" "${expected[@]}" --clobber
     artifacts:
       - dist/menubar/*
-    publishing:
-      email:
-        recipients:
-          - verious.smith@philoveracity.com
-        notify:
-          success: true
-          failure: true
 
-  macos-rust-binaries:
-    name: macOS Rust binaries (cli + daemon + tui, arm64 + x86_64)
-    max_build_duration: 60
-    triggering:
-      events:
-        - tag
-      tag_patterns:
-        - pattern: "v*"
-      cancel_previous_builds: true
+  rust-macos-release-binaries:
+    name: Rust macOS release binaries
+    max_build_duration: 45
+    instance_type: mac_mini_m2
     environment:
       xcode: latest
       groups:
         - github_credentials
-      vars:
-        FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
+    cache:
+      cache_paths:
+        - $HOME/.cargo/registry
+        - $HOME/.cargo/git
+        - target
     scripts:
-      - name: Install Rust + macOS targets
-        script: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-            --default-toolchain nightly-2026-08-28 --profile minimal
-          export PATH="$HOME/.cargo/bin:$PATH"
-          rustup target add aarch64-apple-darwin x86_64-apple-darwin
-          rustc --version && cargo --version
-      - name: Build macOS Rust binaries (arm64 + x86_64)
-        script: |
-          export PATH="$HOME/.cargo/bin:$PATH"
-          export FOCUSA_AUTHORITY_ROOT_KEYS_JSON='{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
-          mkdir -p dist
-          for target in aarch64-apple-darwin x86_64-apple-darwin; do
-            cargo build --release --target "$target"
-            for bin in focusa-daemon focusa focusa-tui; do
-              cp "target/$target/release/$bin" "dist/${bin}-${CM_TAG}-${target}"
-            done
-          done
-          ls -la dist/
-      - name: Upload binaries to canonical GitHub Release
+      - name: Verify immutable release identity
         script: |
           set -euo pipefail
-          export GH_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
-          : "${GH_TOKEN:?missing GitHub release upload credential}"
-          command -v gh >/dev/null 2>&1
-          for attempt in $(seq 1 80); do
-            gh release view "$CM_TAG" >/dev/null 2>&1 && break
-            sleep 30
+          recovery_file="config/codemagic-release-recovery.json"
+          if [[ "${FOCUSA_CODEMAGIC_RECOVERY:-disabled}" == "enabled" ]]; then
+            [[ -f "$recovery_file" ]]
+            identity="$(python3 - "$recovery_file" <<'PY'
+          import json, sys
+          payload = json.load(open(sys.argv[1], encoding="utf-8"))
+          print("true" if payload.get("enabled") is True else "false", payload.get("tag", ""), payload.get("sha", ""), sep="\t")
+          PY
+            )"
+            IFS=$'\t' read -r recovery_enabled release_tag release_sha <<< "$identity"
+            [[ "$recovery_enabled" == "true" ]]
+          else
+            release_tag="${CM_TAG:-}"
+            release_sha="${CM_COMMIT:-}"
+          fi
+          [[ "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --force origin "refs/tags/${release_tag}:refs/tags/${release_tag}"
+          tag_sha="$(git rev-parse "${release_tag}^{commit}")"
+          [[ "$tag_sha" == "$release_sha" ]]
+          git checkout --detach "$release_sha"
+          [[ "$(git rev-parse HEAD)" == "$release_sha" ]]
+          printf 'FOCUSA_RELEASE_TAG=%s\nFOCUSA_RELEASE_SHA=%s\n' "$release_tag" "$release_sha" >> "$CM_ENV"
+          echo "codemagic_recovery_identity=passed tag=$release_tag sha=$release_sha"
+      - name: Show build context
+        script: |
+          set -euo pipefail
+          echo "Tag: ${FOCUSA_RELEASE_TAG:?missing verified release tag}"
+          echo "Commit: ${FOCUSA_RELEASE_SHA:?missing verified release SHA}"
+          sw_vers
+          uname -m
+          rustc --version || true
+      - name: Install Rust targets
+        script: |
+          set -euo pipefail
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - name: Build + package both macOS targets
+        script: |
+          set -euo pipefail
+          mkdir -p dist
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --locked --release --target "$target" -p focusa-cli -p focusad -p focusa-tui
+            for bin in focusa focusad focusa-tui; do
+              test -x "target/$target/release/$bin"
+              cp "target/$target/release/$bin" "dist/${bin}-${FOCUSA_RELEASE_TAG}-${target}"
+            done
           done
-          gh release view "$CM_TAG" >/dev/null 2>&1
-          gh release upload "$CM_TAG" dist/* --clobber
+          ls -lh dist
+      - name: Upload Rust binaries to canonical GitHub Release
+        script: |
+          set -euo pipefail
+          : "${GITHUB_TOKEN:?missing GitHub release upload credential}"
+          release_tag="${FOCUSA_RELEASE_TAG:?missing verified release tag}"
+          expected=(
+            "dist/focusa-${release_tag}-aarch64-apple-darwin"
+            "dist/focusad-${release_tag}-aarch64-apple-darwin"
+            "dist/focusa-tui-${release_tag}-aarch64-apple-darwin"
+            "dist/focusa-${release_tag}-x86_64-apple-darwin"
+            "dist/focusad-${release_tag}-x86_64-apple-darwin"
+            "dist/focusa-tui-${release_tag}-x86_64-apple-darwin"
+          )
+          for file in "${expected[@]}"; do test -s "$file"; done
+          for attempt in $(seq 1 60); do
+            gh release view "$release_tag" >/dev/null 2>&1 && break
+            sleep 10
+          done
+          gh release view "$release_tag" >/dev/null 2>&1
+          gh release upload "$release_tag" "${expected[@]}" --clobber
     artifacts:
       - dist/*
-    publishing:
-      email:
-        recipients:
-          - verious.smith@philoveracity.com
-        notify:
-          success: true
-          failure: true

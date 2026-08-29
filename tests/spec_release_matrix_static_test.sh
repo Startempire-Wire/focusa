@@ -20,9 +20,15 @@ WAIT="$ROOT_DIR/scripts/wait-for-external-release-assets.py"
 CODEMAGIC="$ROOT_DIR/codemagic.yaml"
 APPVEYOR="$ROOT_DIR/.appveyor.yml"
 APPVEYOR_RECOVERY="$ROOT_DIR/config/appveyor-release-recovery.json"
+CODEMAGIC_RECOVERY="$ROOT_DIR/config/codemagic-release-recovery.json"
 
 fail() { echo "✗ FAIL: $*" >&2; exit 1; }
 pass() { echo "✓ PASS: $*"; }
+
+if awk 'NF && $0 !~ /^[[:space:]]/ && $0 !~ /^#/ && $0 != "workflows:" { print NR ":" $0 }' "$CODEMAGIC" | grep -q .; then
+  fail "Codemagic YAML contains unexpected unindented block content"
+fi
+pass "Codemagic YAML block content remains structurally indented"
 
 # Linux targets retained in the GitHub (OVH self-hosted) matrix.
 for target in \
@@ -115,8 +121,22 @@ pass "immutable-tag recovery bypasses GitHub billing through exact provider rece
 if grep -q 'changeset:' "$CODEMAGIC"; then
   fail "Codemagic release tag workflows must not be path-filtered"
 fi
-[ "$(grep -c 'gh release view "\$CM_TAG"' "$CODEMAGIC")" -ge 2 ] \
+[ "$(grep -c 'gh release view "\$release_tag"' "$CODEMAGIC")" -ge 2 ] \
   || fail "Codemagic adapters must wait for the canonical GitHub Release"
+grep -q 'FOCUSA_CODEMAGIC_RECOVERY' "$CODEMAGIC" \
+  || fail "Codemagic recovery requires an explicit branch-build grant"
+[ "$(grep -c 'codemagic_recovery_identity=passed' "$CODEMAGIC")" -eq 2 ] \
+  || fail "both Codemagic workflows must prove exact tag/SHA identity"
+grep -q 'missing base64 Tauri updater signing key payload' "$CODEMAGIC" \
+  || fail "Codemagic signer does not require the encoded key payload"
+grep -q 'base64.b64decode' "$CODEMAGIC" \
+  || fail "Codemagic signer does not decode the key into a private file"
+grep -q 'trap cleanup_signing_key EXIT' "$CODEMAGIC" \
+  || fail "Codemagic signer does not remove the decoded key on exit"
+grep -Fq 'test -s "${updater}.sig"' "$CODEMAGIC" \
+  || fail "Codemagic package step does not fail on a missing generated signature"
+[ "$(grep -Fc 'app.tar.gz.sig' "$CODEMAGIC")" -ge 4 ] \
+  || fail "Codemagic package/upload contract does not require both updater signatures"
 if grep -q 'bundles remain in artifacts\|binaries remain in artifacts' "$CODEMAGIC"; then
   fail "Codemagic must fail closed when GitHub upload authority is unavailable"
 fi
@@ -124,19 +144,26 @@ grep -Fq "target\\%RUST_TARGET% -> Cargo.lock" "$APPVEYOR" \
   || fail "AppVeyor must keep target-specific Cargo.lock-keyed caches"
 grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
   || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
+grep -Fq '[Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)' "$APPVEYOR" \
+  || fail "AppVeyor does not decode the secure signing key payload"
+grep -Fq '[IO.File]::WriteAllBytes($keyPath, (New-Object byte[] $keyLength))' "$APPVEYOR" \
+  || fail "AppVeyor does not overwrite the decoded signing key"
+grep -Fq 'Remove-Item -Force $keyPath' "$APPVEYOR" \
+  || fail "AppVeyor does not remove the decoded signing key"
 grep -q 'appveyor_recovery_identity=passed' "$APPVEYOR" \
   || fail "AppVeyor lacks exact tag/SHA recovery identity proof"
 grep -q 'FOCUSA_RECOVERY_TAG' "$APPVEYOR" \
   || fail "AppVeyor recovery does not carry the immutable release tag"
 [ "$(grep -Fc '2>&1"' "$APPVEYOR")" -ge 3 ] \
   || fail "AppVeyor native commands do not redirect normal Cargo stderr inside cmd.exe"
-python3 - "$APPVEYOR_RECOVERY" "$WF" <<'PY'
+python3 - "$APPVEYOR_RECOVERY" "$CODEMAGIC_RECOVERY" "$WF" "$CODEMAGIC" <<'PY'
 import json, re, sys
-payload = json.load(open(sys.argv[1], encoding="utf-8"))
-assert isinstance(payload.get("enabled"), bool)
-assert re.fullmatch(r"v\d+\.\d+\.\d+", payload["tag"])
-assert re.fullmatch(r"[0-9a-f]{40}", payload["sha"])
-lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+for recovery_path in sys.argv[1:3]:
+    payload = json.load(open(recovery_path, encoding="utf-8"))
+    assert isinstance(payload.get("enabled"), bool)
+    assert re.fullmatch(r"v\d+\.\d+\.\d+", payload["tag"])
+    assert re.fullmatch(r"[0-9a-f]{40}", payload["sha"])
+lines = open(sys.argv[3], encoding="utf-8").read().splitlines()
 uploads = [i for i, line in enumerate(lines) if "uses: softprops/action-gh-release@v2" in line]
 assert uploads, "release workflow has no GitHub Release upload actions"
 for i in uploads:
@@ -153,6 +180,17 @@ assert text.count("--draft=false") == 1, "release workflow must have exactly one
 publish = text.index("--draft=false")
 checksums = text.index("  checksums:")
 assert publish > checksums, "release publisher must remain downstream of receipt-gated checksums"
+cm_lines = open(sys.argv[4], encoding="utf-8").read().splitlines()
+script_count = 0
+for index, line in enumerate(cm_lines):
+    if line.strip() != "script: |":
+        continue
+    script_count += 1
+    cursor = index + 1
+    while cursor < len(cm_lines) and not cm_lines[cursor].strip():
+        cursor += 1
+    assert cm_lines[cursor].strip() == "set -euo pipefail", f"Codemagic script at line {index + 1} lacks strict shell mode"
+assert script_count >= 10, "Codemagic release workflow unexpectedly lost script gates"
 PY
 if grep -q 'Method Post.*repos/\$repo/releases"' "$APPVEYOR"; then
   fail "AppVeyor must never create the canonical GitHub Release"

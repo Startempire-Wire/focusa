@@ -82,12 +82,33 @@ While AppVeyor has one-job concurrency, its x64 and ARM64 rows run serially;
 receipt jobs therefore have a 150-minute outer bound and 145-minute polling
 bound. The poll remains fail-closed on exact asset names, but must not expire
 before two valid serial provider rows can complete.
+16. Codemagic recovery may load `config/codemagic-release-recovery.json` only
+when an API-triggered controller-branch build explicitly sets
+`FOCUSA_CODEMAGIC_RECOVERY=enabled`. Both YAML workflows verify the record,
+fetch the immutable tag, require its commit to equal the recorded full SHA,
+detach-checkout that SHA, and export the verified identity before dependency,
+build, package, or upload steps. A normal tag build ignores the recovery record.
+Disable the recovery record immediately after release closure.
+17. Codemagic release scripts use strict shell mode. The existing Tauri private
+key is transported as a secure base64-encoded file payload, decoded only inside
+the private ephemeral builder to a mode-0600 file, validated without printing,
+used through `TAURI_SIGNING_PRIVATE_KEY=<path>`, overwritten and removed on
+exit. Both architecture-specific updater signatures must exist and be nonempty
+before any menubar asset upload; a signer decode error is a hard provider
+failure, never a green warning.
+18. AppVeyor uses the same secure base64 key-file payload contract. Windows
+release packaging decodes and validates the key only in the private build-user
+temporary directory, points Tauri at that path, then overwrites and removes the
+file in a `finally` block. The provider project must hold both the key payload
+and password as secure variables; absent authority fails before package work.
 
 ## 4. Spending and trigger boundary
 
 - Codemagic uses the personal-account 500 free macOS M2 minutes/month budget.
 - Both Codemagic workflows are release-tag (`v*`) scoped; ordinary push and PR
-work remains on the free self-hosted Linux and AppVeyor Windows lanes.
+work remains on the free self-hosted Linux and AppVeyor Windows lanes. The only
+branch-build exception is a bounded API-triggered immutable-tag recovery with
+the explicit recovery variable and enabled recovery record described above.
 - Secure upload/signing variables live only in provider secret groups; the
 repository stores names and fail-closed checks, never secret values.
 - No agent may enable paid hosted macOS capacity, create a paid plan, or widen

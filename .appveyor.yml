@@ -98,26 +98,45 @@ after_build:
   # Menubar Tauri NSIS + MSI for both Windows targets (tag or exact recovery).
   - ps: |
       if ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG) {
-        if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw "missing Tauri updater signing key" }
+        if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw "missing base64 Tauri updater signing key payload" }
         if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { throw "missing Tauri updater signing password" }
-        npm install -g bun
-        Set-Location apps/menubar
-        bun install
-        bun run build
-        $vcvarsCandidates = @(
-          "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
-          "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
-        )
-        $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-        if (-not $vcvars) { throw "vcvarsall.bat not found" }
-        $command = "call `"$vcvars`" $env:MSVC_ARCH && npx tauri build --target $env:RUST_TARGET --bundles nsis,msi 2>&1"
-        & cmd.exe /d /s /c $command
-        if ($LASTEXITCODE -ne 0) { throw "Tauri build failed with exit code $LASTEXITCODE" }
-        $bundle = "src-tauri/target/$env:RUST_TARGET/release/bundle"
-        Get-ChildItem -Recurse -File $bundle | Where-Object { $_.Extension -in ".exe", ".msi", ".sig" } | ForEach-Object {
-          Copy-Item $_.FullName ..\..\artifacts\
+        $repoRoot = (Resolve-Path .).Path
+        $keyPath = Join-Path $env:TEMP "focusa-tauri-signing-$($env:APPVEYOR_JOB_ID).key"
+        try {
+          $keyBytes = [Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)
+          [IO.File]::WriteAllBytes($keyPath, $keyBytes)
+          $keyLines = [IO.File]::ReadAllLines($keyPath)
+          if ($keyLines.Length -ne 2 -or -not $keyLines[0].StartsWith("untrusted comment:")) {
+            throw "invalid Tauri signing key file structure"
+          }
+          [Convert]::FromBase64String($keyLines[1]) | Out-Null
+          $env:TAURI_SIGNING_PRIVATE_KEY = $keyPath
+          npm install -g bun
+          Set-Location apps/menubar
+          bun install
+          bun run build
+          $vcvarsCandidates = @(
+            "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
+            "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
+          )
+          $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $vcvars) { throw "vcvarsall.bat not found" }
+          $command = "call `"$vcvars`" $env:MSVC_ARCH && npx tauri build --target $env:RUST_TARGET --bundles nsis,msi 2>&1"
+          & cmd.exe /d /s /c $command
+          if ($LASTEXITCODE -ne 0) { throw "Tauri build failed with exit code $LASTEXITCODE" }
+          $bundle = "src-tauri/target/$env:RUST_TARGET/release/bundle"
+          Get-ChildItem -Recurse -File $bundle | Where-Object { $_.Extension -in ".exe", ".msi", ".sig" } | ForEach-Object {
+            Copy-Item $_.FullName (Join-Path $repoRoot "artifacts")
+          }
+        } finally {
+          Set-Location $repoRoot
+          $env:TAURI_SIGNING_PRIVATE_KEY = $null
+          if (Test-Path $keyPath) {
+            $keyLength = (Get-Item $keyPath).Length
+            [IO.File]::WriteAllBytes($keyPath, (New-Object byte[] $keyLength))
+            Remove-Item -Force $keyPath
+          }
         }
-        Set-Location ..\..
       }
 
 test_script:
