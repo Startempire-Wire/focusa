@@ -294,7 +294,9 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                     return Err(spawn_error);
                 }
             };
-            let pid = child.id();
+            // The durable row tracks the lifecycle-owning monitor, not its
+            // child command; status reaping uses this PID to detect monitor loss.
+            let pid = std::process::id();
             let _: Value = api
                 .post(
                     &format!("/v1/background-jobs/{job_id}"),
