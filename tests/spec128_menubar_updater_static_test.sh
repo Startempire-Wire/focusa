@@ -13,12 +13,25 @@ SETTINGS="$ROOT/apps/menubar/src/lib/components/Settings.svelte"
 RELEASE="$ROOT/.github/workflows/release.yml"
 CI="$ROOT/.github/workflows/ci.yml"
 SIGNING_PROOF="$ROOT/.github/workflows/tauri-updater-signing-proof.yml"
+TRUST_KEYS="$ROOT/config/focusa-trusted-release-keys.json"
 BETA_INSTALLER="$ROOT/scripts/install-focusa-menubar-beta.sh"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
 jq -e '.bundle.createUpdaterArtifacts == true' "$CONF" >/dev/null || fail "Tauri updater artifacts disabled"
 jq -e '.plugins.updater.pubkey | type == "string" and length > 80' "$CONF" >/dev/null || fail "Tauri updater public key missing"
+python3 - "$CONF" <<'PY'
+import base64
+import hashlib
+import json
+import sys
+from pathlib import Path
+public_box = base64.b64decode(json.loads(Path(sys.argv[1]).read_text())["plugins"]["updater"]["pubkey"], validate=True)
+public_raw = base64.b64decode(public_box.splitlines()[1], validate=True)
+assert public_raw[2:10].hex() == "5f216ee7de6246e8"
+assert hashlib.sha256(public_raw[10:]).hexdigest() == "10ee85d8b85062a049a1443303300d8475e0cb15e4cc45cdcb1995b0802f9f0f"
+PY
+jq -e '.keys | any(.key_id == "focusa-release-2026-08-24-4ed9c92b" and .valid_from == "2026-08-24T00:00:00Z" and .valid_until == null)' "$TRUST_KEYS" >/dev/null || fail "rotated release trust root missing"
 jq -e '.plugins.updater.endpoints | any(startswith("https://") and endswith("latest.json"))' "$CONF" >/dev/null || fail "HTTPS updater endpoint missing"
 jq -e '.permissions | index("updater:default") and index("process:allow-restart")' "$CAP" >/dev/null || fail "updater/relaunch capabilities missing"
 jq -e '.dependencies["@tauri-apps/plugin-updater"] and .dependencies["@tauri-apps/plugin-process"]' "$PKG" >/dev/null || fail "frontend updater dependencies missing"
