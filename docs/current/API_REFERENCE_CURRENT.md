@@ -3976,6 +3976,94 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/skills.rs`
 - Agent operations: none
 
+### `/v1/sms/checkpoint`
+
+- Methods: `POST /v1/sms/checkpoint`
+- Classification: `agent_eligible`
+- Rationale: Plan 180 separately grants checkpoint authority and returns value-free encrypted-checkpoint receipts.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.checkpoint`
+
+### `/v1/sms/enrollment`
+
+- Methods: `GET /v1/sms/enrollment`
+- Classification: `agent_eligible`
+- Rationale: Plan 180 exposes value-free customer-owned connector enrollment status.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.enrollment`
+
+### `/v1/sms/events`
+
+- Methods: `GET /v1/sms/events`
+- Classification: `agent_eligible`
+- Rationale: Requires a distinct events capability and returns bounded value-free audit events.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.events`
+
+### `/v1/sms/health`
+
+- Methods: `GET /v1/sms/health`
+- Classification: `agent_eligible`
+- Rationale: Plan 180 exposes value-free connector and checkpoint health.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.health`
+
+### `/v1/sms/otp/challenges`
+
+- Methods: `POST /v1/sms/otp/challenges`
+- Classification: `agent_eligible`
+- Rationale: Registers a short-lived provider/target-bound OTP challenge without returning an OTP value.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.otp.challenge`
+
+### `/v1/sms/otp/inject`
+
+- Methods: `POST /v1/sms/otp/inject`
+- Classification: `agent_eligible`
+- Rationale: Requires an exact inject_otp grant; OTP values remain broker-side and absent from responses.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.otp.inject`
+
+### `/v1/sms/revoke`
+
+- Methods: `POST /v1/sms/revoke`
+- Classification: `agent_eligible`
+- Rationale: Destructive customer-owned connector revocation requires explicit confirmation and dedicated authority.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.revoke`
+
+### `/v1/sms/search`
+
+- Methods: `GET /v1/sms/search`
+- Classification: `agent_eligible`
+- Rationale: Requires a distinct search grant and returns bounded authorized message scope.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.search`
+
+### `/v1/sms/send`
+
+- Methods: `POST /v1/sms/send`
+- Classification: `agent_eligible`
+- Rationale: Requires a distinct send grant, confirmation, attribution, and an idempotency key.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.send`
+
+### `/v1/sms/threads`
+
+- Methods: `GET /v1/sms/threads`
+- Classification: `agent_eligible`
+- Rationale: Requires a distinct list_threads grant and returns bounded customer-authorized summaries.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.threads.list`
+
+### `/v1/sms/threads/{thread}/messages`
+
+- Methods: `GET /v1/sms/threads/{thread}/messages`
+- Classification: `agent_eligible`
+- Rationale: Requires a distinct thread-scoped read grant; OTP authority never implies message access.
+- Sources: `crates/focusa-api/src/routes/sms.rs`
+- Agent operations: `focusa.sms.thread.read`
+
 ### `/v1/spec-workbench/session/mutate`
 
 - Methods: `POST /v1/spec-workbench/session/mutate`
