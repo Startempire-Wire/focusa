@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 146,
+  "tool_count": 157,
   "contracts": [
     {
       "name": "focusa_agent_runtime_effective",
@@ -567,6 +567,488 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_sms_health",
+      "family": "communications",
+      "label": "SMS Broker Health",
+      "purpose": "Read value-free connector and encrypted-checkpoint health.",
+      "ontology_action": "communications.health.read",
+      "ontology_objects": [
+        "CommunicationsConnectorHealth",
+        "EncryptedConnectorCheckpoint"
+      ],
+      "api_routes": [
+        "GET /v1/sms/health"
+      ],
+      "cli_commands": [
+        "focusa sms health"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_health.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_value_free_health",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:health"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/health"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_enrollment",
+      "family": "communications",
+      "label": "SMS Enrollment",
+      "purpose": "Read value-free customer-owned connector enrollment status.",
+      "ontology_action": "communications.enrollment.read",
+      "ontology_objects": [
+        "CommunicationsEnrollment"
+      ],
+      "api_routes": [
+        "GET /v1/sms/enrollment"
+      ],
+      "cli_commands": [
+        "focusa sms enrollment"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_enrollment.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_value_free_enrollment",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:enrollment"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/enrollment"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_threads",
+      "family": "communications",
+      "label": "SMS Threads",
+      "purpose": "List customer-authorized thread summaries under the separate list_threads grant.",
+      "ontology_action": "communications.threads.list",
+      "ontology_objects": [
+        "CommunicationsThread",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "GET /v1/sms/threads"
+      ],
+      "cli_commands": [
+        "focusa sms threads"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_threads.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "authorized_customer_data_read",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:list_threads"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/threads"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_read_thread",
+      "family": "communications",
+      "label": "Read SMS Thread",
+      "purpose": "Read one bounded customer-authorized thread; OTP authority never implies message-read authority.",
+      "ontology_action": "communications.thread.read",
+      "ontology_objects": [
+        "CommunicationsThread",
+        "CommunicationsMessage",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "GET /v1/sms/threads/{thread}/messages"
+      ],
+      "cli_commands": [
+        "focusa sms read <thread-handle>"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_read_thread.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "authorized_customer_data_read",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:read_thread"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/threads/{thread}/messages"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_search",
+      "family": "communications",
+      "label": "Search SMS",
+      "purpose": "Search separately authorized message scope with bounded results.",
+      "ontology_action": "communications.messages.search",
+      "ontology_objects": [
+        "CommunicationsMessage",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "GET /v1/sms/search"
+      ],
+      "cli_commands": [
+        "focusa sms search <query>"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_search.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "authorized_customer_data_read",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:search"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/search"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_send",
+      "family": "communications",
+      "label": "Send SMS",
+      "purpose": "Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution.",
+      "ontology_action": "communications.message.send",
+      "ontology_objects": [
+        "CommunicationsDelivery",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "POST /v1/sms/send"
+      ],
+      "cli_commands": [
+        "focusa sms send <recipient-handle> --confirm"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_send.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_idempotent_message_delivery",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "sms:send"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/send"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_otp_challenge",
+      "family": "communications",
+      "label": "Register SMS OTP Challenge",
+      "purpose": "Register an exact provider and target challenge before OTP delivery.",
+      "ontology_action": "communications.otp_challenge.register",
+      "ontology_objects": [
+        "OtpChallenge",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "POST /v1/sms/otp/challenges"
+      ],
+      "cli_commands": [
+        "focusa sms otp-challenge"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_otp_challenge.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "bounded_challenge_registration",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "sms:otp_challenge"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/otp/challenges"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_otp_inject",
+      "family": "communications",
+      "label": "Inject SMS OTP",
+      "purpose": "Inject one eligible OTP into its exact bound target without exposing the value to model context.",
+      "ontology_action": "communications.otp.inject",
+      "ontology_objects": [
+        "OtpChallenge",
+        "TargetInjectionReceipt"
+      ],
+      "api_routes": [
+        "POST /v1/sms/otp/inject"
+      ],
+      "cli_commands": [
+        "focusa sms otp-inject"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_otp_inject.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "single_use_secret_injection",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "control",
+        "route_family": "sms:inject_otp"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/otp/inject"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_checkpoint",
+      "family": "communications",
+      "label": "Checkpoint SMS Connector",
+      "purpose": "Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata.",
+      "ontology_action": "communications.connector.checkpoint",
+      "ontology_objects": [
+        "EncryptedConnectorCheckpoint"
+      ],
+      "api_routes": [
+        "POST /v1/sms/checkpoint"
+      ],
+      "cli_commands": [
+        "focusa sms checkpoint"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_checkpoint.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_encrypted_checkpoint",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "control",
+        "route_family": "sms:checkpoint"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/checkpoint"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_events",
+      "family": "communications",
+      "label": "SMS Broker Events",
+      "purpose": "Read bounded value-free communications audit events.",
+      "ontology_action": "communications.events.read",
+      "ontology_objects": [
+        "CommunicationsAuditEvent"
+      ],
+      "api_routes": [
+        "GET /v1/sms/events"
+      ],
+      "cli_commands": [
+        "focusa sms events"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_events.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_value_free_audit_events",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:events"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/events"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_revoke",
+      "family": "communications",
+      "label": "Revoke SMS Connector",
+      "purpose": "Revoke one customer-owned connector and all associated grants with explicit confirmation.",
+      "ontology_action": "communications.connector.revoke",
+      "ontology_objects": [
+        "CommunicationsConnector",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "POST /v1/sms/revoke"
+      ],
+      "cli_commands": [
+        "focusa sms revoke --confirm"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_revoke.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_connector_and_grant_revocation",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "control",
+        "route_family": "sms:revoke"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/revoke"
+      },
+      "operation_policy": {
+        "operation_class": "recovery",
+        "capability_family": "account_recovery",
+        "commercial_treatment": "always_available",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "account_recovery",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {

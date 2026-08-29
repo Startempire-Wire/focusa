@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 146,
-  "edge_count": 405,
+  "tool_count": 157,
+  "edge_count": 438,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -760,6 +760,61 @@
       "focusa_metacog_capture",
       "focusa_metacog_reflect",
       "focusa_tree_snapshot_state"
+    ],
+    "focusa_sms_health": [
+      "focusa_sms_enrollment",
+      "focusa_sms_checkpoint",
+      "focusa_sms_events"
+    ],
+    "focusa_sms_enrollment": [
+      "focusa_sms_health",
+      "focusa_sms_threads",
+      "focusa_sms_events"
+    ],
+    "focusa_sms_threads": [
+      "focusa_sms_read_thread",
+      "focusa_sms_search",
+      "focusa_sms_send"
+    ],
+    "focusa_sms_read_thread": [
+      "focusa_sms_search",
+      "focusa_sms_send",
+      "focusa_sms_events"
+    ],
+    "focusa_sms_search": [
+      "focusa_sms_read_thread",
+      "focusa_sms_threads",
+      "focusa_sms_send"
+    ],
+    "focusa_sms_send": [
+      "focusa_sms_events",
+      "focusa_sms_threads",
+      "focusa_sms_checkpoint"
+    ],
+    "focusa_sms_otp_challenge": [
+      "focusa_sms_otp_inject",
+      "focusa_sms_events",
+      "focusa_sms_health"
+    ],
+    "focusa_sms_otp_inject": [
+      "focusa_sms_events",
+      "focusa_sms_health",
+      "focusa_sms_revoke"
+    ],
+    "focusa_sms_checkpoint": [
+      "focusa_sms_health",
+      "focusa_sms_events",
+      "focusa_sms_enrollment"
+    ],
+    "focusa_sms_events": [
+      "focusa_sms_health",
+      "focusa_sms_checkpoint",
+      "focusa_sms_revoke"
+    ],
+    "focusa_sms_revoke": [
+      "focusa_sms_enrollment",
+      "focusa_sms_health",
+      "focusa_sms_events"
     ],
     "focusa_awareness_packet": [
       "focusa_workpoint_resume",
@@ -2776,6 +2831,171 @@
     {
       "from": "focusa_li_tree_extract",
       "to": "focusa_tree_snapshot_state",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_health",
+      "to": "focusa_sms_enrollment",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_health",
+      "to": "focusa_sms_checkpoint",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_health",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_enrollment",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_enrollment",
+      "to": "focusa_sms_threads",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_enrollment",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_threads",
+      "to": "focusa_sms_read_thread",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_threads",
+      "to": "focusa_sms_search",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_threads",
+      "to": "focusa_sms_send",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_read_thread",
+      "to": "focusa_sms_search",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_read_thread",
+      "to": "focusa_sms_send",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_read_thread",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_search",
+      "to": "focusa_sms_read_thread",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_search",
+      "to": "focusa_sms_threads",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_search",
+      "to": "focusa_sms_send",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_send",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_send",
+      "to": "focusa_sms_threads",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_send",
+      "to": "focusa_sms_checkpoint",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_challenge",
+      "to": "focusa_sms_otp_inject",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_challenge",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_challenge",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_inject",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_inject",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_inject",
+      "to": "focusa_sms_revoke",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_checkpoint",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_checkpoint",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_checkpoint",
+      "to": "focusa_sms_enrollment",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_events",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_events",
+      "to": "focusa_sms_checkpoint",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_events",
+      "to": "focusa_sms_revoke",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_revoke",
+      "to": "focusa_sms_enrollment",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_revoke",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_revoke",
+      "to": "focusa_sms_events",
       "weight": 1
     },
     {

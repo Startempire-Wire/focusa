@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `660`
+- Classified paths: `671`
 - Agent eligible: `164`
-- Operator only: `484`
+- Operator only: `495`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -3979,90 +3979,90 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/sms/checkpoint`
 
 - Methods: `POST /v1/sms/checkpoint`
-- Classification: `agent_eligible`
-- Rationale: Plan 180 separately grants checkpoint authority and returns value-free encrypted-checkpoint receipts.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.checkpoint`
+- Agent operations: none
 
 ### `/v1/sms/enrollment`
 
 - Methods: `GET /v1/sms/enrollment`
-- Classification: `agent_eligible`
-- Rationale: Plan 180 exposes value-free customer-owned connector enrollment status.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.enrollment`
+- Agent operations: none
 
 ### `/v1/sms/events`
 
 - Methods: `GET /v1/sms/events`
-- Classification: `agent_eligible`
-- Rationale: Requires a distinct events capability and returns bounded value-free audit events.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.events`
+- Agent operations: none
 
 ### `/v1/sms/health`
 
 - Methods: `GET /v1/sms/health`
-- Classification: `agent_eligible`
-- Rationale: Plan 180 exposes value-free connector and checkpoint health.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.health`
+- Agent operations: none
 
 ### `/v1/sms/otp/challenges`
 
 - Methods: `POST /v1/sms/otp/challenges`
-- Classification: `agent_eligible`
-- Rationale: Registers a short-lived provider/target-bound OTP challenge without returning an OTP value.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.otp.challenge`
+- Agent operations: none
 
 ### `/v1/sms/otp/inject`
 
 - Methods: `POST /v1/sms/otp/inject`
-- Classification: `agent_eligible`
-- Rationale: Requires an exact inject_otp grant; OTP values remain broker-side and absent from responses.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.otp.inject`
+- Agent operations: none
 
 ### `/v1/sms/revoke`
 
 - Methods: `POST /v1/sms/revoke`
-- Classification: `agent_eligible`
-- Rationale: Destructive customer-owned connector revocation requires explicit confirmation and dedicated authority.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.revoke`
+- Agent operations: none
 
 ### `/v1/sms/search`
 
 - Methods: `GET /v1/sms/search`
-- Classification: `agent_eligible`
-- Rationale: Requires a distinct search grant and returns bounded authorized message scope.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.search`
+- Agent operations: none
 
 ### `/v1/sms/send`
 
 - Methods: `POST /v1/sms/send`
-- Classification: `agent_eligible`
-- Rationale: Requires a distinct send grant, confirmation, attribution, and an idempotency key.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.send`
+- Agent operations: none
 
 ### `/v1/sms/threads`
 
 - Methods: `GET /v1/sms/threads`
-- Classification: `agent_eligible`
-- Rationale: Requires a distinct list_threads grant and returns bounded customer-authorized summaries.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.threads.list`
+- Agent operations: none
 
 ### `/v1/sms/threads/{thread}/messages`
 
 - Methods: `GET /v1/sms/threads/{thread}/messages`
-- Classification: `agent_eligible`
-- Rationale: Requires a distinct thread-scoped read grant; OTP authority never implies message access.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sms.rs`
-- Agent operations: `focusa.sms.thread.read`
+- Agent operations: none
 
 ### `/v1/spec-workbench/session/mutate`
 

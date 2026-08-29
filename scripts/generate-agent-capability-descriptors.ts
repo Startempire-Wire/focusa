@@ -188,6 +188,7 @@ function skillRefs(contract: FocusaToolContract): string[] {
     workset: "skill:focusa-work-loop",
     callgraph: "skill:focusa-spec-implementation",
     credential: "skill:focusa-security-auth-licensing",
+    communications: "skill:focusa-security-auth-licensing",
     cockpit: "skill:focusa-work-loop",
     background_job: "skill:focusa-silent-sessions",
     session_fanout: "skill:focusa-silent-sessions",

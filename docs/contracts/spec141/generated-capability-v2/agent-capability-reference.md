@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:2f0cab52fdcea96f74251b6080a326f7934ae030d8b46364bede3b22f01c4b59`
+Registry digest: `sha256:76a566ac0283eb7a6344878fcffbdfdff07e77829039f0a0561f6dea5f95087c`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -1245,6 +1245,127 @@ Daemon-native Spec133 Silent Session client for status, observation, steering, c
 - Skills: `skill:focusa`, `skill:focusa-work-loop`, `skill:focusa-silent-sessions`
 - Dependencies/next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_resource_mode`
 - Documentation: `docs/focusa-tools/tools/focusa_silent_sessions.md`
+
+## focusa_sms_checkpoint
+
+Create and verify an encrypted atomic connector checkpoint. Returns value-free receipt metadata only. Use it when Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.checkpoint`
+- Family: `communications`
+- Side effects: `confirmed_encrypted_checkpoint`, `confirmed_encrypted_checkpoint`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_health`, `focusa_sms_events`, `focusa_sms_enrollment`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_checkpoint.md`
+
+## focusa_sms_enrollment
+
+Read value-free customer-owned connector enrollment status. Use it when Read value-free customer-owned connector enrollment status. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.enrollment`
+- Family: `communications`
+- Side effects: `read_value_free_enrollment`, `read_value_free_enrollment`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_health`, `focusa_sms_threads`, `focusa_sms_events`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_enrollment.md`
+
+## focusa_sms_events
+
+Read bounded value-free broker audit events. Use it when Read bounded value-free communications audit events. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.events`
+- Family: `communications`
+- Side effects: `read_value_free_audit_events`, `read_value_free_audit_events`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_health`, `focusa_sms_checkpoint`, `focusa_sms_revoke`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_events.md`
+
+## focusa_sms_health
+
+Read value-free connector/checkpoint health. Never returns messages, cookies, pairing state, or OTP values. Use it when Read value-free connector and encrypted-checkpoint health. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.health`
+- Family: `communications`
+- Side effects: `read_value_free_health`, `read_value_free_health`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_enrollment`, `focusa_sms_checkpoint`, `focusa_sms_events`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_health.md`
+
+## focusa_sms_otp_challenge
+
+Register an exact provider/target challenge before requesting OTP delivery. Returns a handle, never an OTP. Use it when Register an exact provider and target challenge before OTP delivery. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.otp.challenge`
+- Family: `communications`
+- Side effects: `bounded_challenge_registration`, `bounded_challenge_registration`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_otp_inject`, `focusa_sms_events`, `focusa_sms_health`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_otp_challenge.md`
+
+## focusa_sms_otp_inject
+
+Inject one eligible OTP into its exact bound target. The OTP value never enters model context or tool output. Use it when Inject one eligible OTP into its exact bound target without exposing the value to model context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.otp.inject`
+- Family: `communications`
+- Side effects: `single_use_secret_injection`, `single_use_secret_injection`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_events`, `focusa_sms_health`, `focusa_sms_revoke`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_otp_inject.md`
+
+## focusa_sms_read_thread
+
+Read a bounded customer-authorized thread. OTP grants do not authorize this tool. Use it when Read one bounded customer-authorized thread; OTP authority never implies message-read authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.read.thread`
+- Family: `communications`
+- Side effects: `authorized_customer_data_read`, `authorized_customer_data_read`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_search`, `focusa_sms_send`, `focusa_sms_events`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_read_thread.md`
+
+## focusa_sms_revoke
+
+Revoke one customer-owned connector and its grants. Destructive; requires confirm=true. Use it when Revoke one customer-owned connector and all associated grants with explicit confirmation. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.revoke`
+- Family: `communications`
+- Side effects: `confirmed_connector_and_grant_revocation`, `confirmed_connector_and_grant_revocation`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_enrollment`, `focusa_sms_health`, `focusa_sms_events`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_revoke.md`
+
+## focusa_sms_search
+
+Search customer-authorized message scope with bounded results. Use it when Search separately authorized message scope with bounded results. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.search`
+- Family: `communications`
+- Side effects: `authorized_customer_data_read`, `authorized_customer_data_read`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_read_thread`, `focusa_sms_threads`, `focusa_sms_send`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_search.md`
+
+## focusa_sms_send
+
+Send one customer-authorized message. Requires separate send grant, idempotency key, consumer attribution, and confirm=true. Use it when Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.send`
+- Family: `communications`
+- Side effects: `confirmed_idempotent_message_delivery`, `confirmed_idempotent_message_delivery`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_events`, `focusa_sms_threads`, `focusa_sms_checkpoint`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_send.md`
+
+## focusa_sms_threads
+
+List customer-authorized thread summaries under a separately granted list_threads capability. Use it when List customer-authorized thread summaries under the separate list_threads grant. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.threads`
+- Family: `communications`
+- Side effects: `authorized_customer_data_read`, `authorized_customer_data_read`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_read_thread`, `focusa_sms_search`, `focusa_sms_send`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_threads.md`
 
 ## focusa_state_hygiene_apply
 

@@ -14,6 +14,7 @@ export type FocusaToolFamily =
   | "session_transfer"
   | "awareness"
   | "preload"
+  | "communications"
   | "agent_runtime";
 
 export type FocusaToolParityStatus =
@@ -393,8 +394,74 @@ const AGENT_RUNTIME_TOOL_CONTRACTS: FocusaToolContract[] = [
     : { kind: "advisory_only" as const },
 }));
 
+type SmsToolDescriptor = readonly [
+  name: string,
+  label: string,
+  purpose: string,
+  action: string,
+  objects: readonly string[],
+  route: string,
+  command: string,
+  scopeKind: "read" | "write" | "control",
+  scopeFamily: string,
+  sideEffect: string,
+  operationClass: "read" | "value_mutation" | "recovery",
+];
+
+const SMS_TOOL_CONTRACTS: FocusaToolContract[] = ([
+  ["focusa_sms_health", "SMS Broker Health", "Read value-free connector and encrypted-checkpoint health.", "communications.health.read", ["CommunicationsConnectorHealth", "EncryptedConnectorCheckpoint"], "GET /v1/sms/health", "focusa sms health", "read", "sms:health", "read_value_free_health", "read"],
+  ["focusa_sms_enrollment", "SMS Enrollment", "Read value-free customer-owned connector enrollment status.", "communications.enrollment.read", ["CommunicationsEnrollment"], "GET /v1/sms/enrollment", "focusa sms enrollment", "read", "sms:enrollment", "read_value_free_enrollment", "read"],
+  ["focusa_sms_threads", "SMS Threads", "List customer-authorized thread summaries under the separate list_threads grant.", "communications.threads.list", ["CommunicationsThread", "ScopedCapabilityGrant"], "GET /v1/sms/threads", "focusa sms threads", "read", "sms:list_threads", "authorized_customer_data_read", "read"],
+  ["focusa_sms_read_thread", "Read SMS Thread", "Read one bounded customer-authorized thread; OTP authority never implies message-read authority.", "communications.thread.read", ["CommunicationsThread", "CommunicationsMessage", "ScopedCapabilityGrant"], "GET /v1/sms/threads/{thread}/messages", "focusa sms read <thread-handle>", "read", "sms:read_thread", "authorized_customer_data_read", "read"],
+  ["focusa_sms_search", "Search SMS", "Search separately authorized message scope with bounded results.", "communications.messages.search", ["CommunicationsMessage", "ScopedCapabilityGrant"], "GET /v1/sms/search", "focusa sms search <query>", "read", "sms:search", "authorized_customer_data_read", "read"],
+  ["focusa_sms_send", "Send SMS", "Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution.", "communications.message.send", ["CommunicationsDelivery", "ScopedCapabilityGrant"], "POST /v1/sms/send", "focusa sms send <recipient-handle> --confirm", "write", "sms:send", "confirmed_idempotent_message_delivery", "value_mutation"],
+  ["focusa_sms_otp_challenge", "Register SMS OTP Challenge", "Register an exact provider and target challenge before OTP delivery.", "communications.otp_challenge.register", ["OtpChallenge", "ScopedCapabilityGrant"], "POST /v1/sms/otp/challenges", "focusa sms otp-challenge", "write", "sms:otp_challenge", "bounded_challenge_registration", "value_mutation"],
+  ["focusa_sms_otp_inject", "Inject SMS OTP", "Inject one eligible OTP into its exact bound target without exposing the value to model context.", "communications.otp.inject", ["OtpChallenge", "TargetInjectionReceipt"], "POST /v1/sms/otp/inject", "focusa sms otp-inject", "control", "sms:inject_otp", "single_use_secret_injection", "value_mutation"],
+  ["focusa_sms_checkpoint", "Checkpoint SMS Connector", "Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata.", "communications.connector.checkpoint", ["EncryptedConnectorCheckpoint"], "POST /v1/sms/checkpoint", "focusa sms checkpoint", "control", "sms:checkpoint", "confirmed_encrypted_checkpoint", "value_mutation"],
+  ["focusa_sms_events", "SMS Broker Events", "Read bounded value-free communications audit events.", "communications.events.read", ["CommunicationsAuditEvent"], "GET /v1/sms/events", "focusa sms events", "read", "sms:events", "read_value_free_audit_events", "read"],
+  ["focusa_sms_revoke", "Revoke SMS Connector", "Revoke one customer-owned connector and all associated grants with explicit confirmation.", "communications.connector.revoke", ["CommunicationsConnector", "ScopedCapabilityGrant"], "POST /v1/sms/revoke", "focusa sms revoke --confirm", "control", "sms:revoke", "confirmed_connector_and_grant_revocation", "recovery"],
+] as const satisfies readonly SmsToolDescriptor[]).map(
+  ([name, label, purpose, action, objects, route, command, scopeKind, scopeFamily, sideEffect, operationClass]) => {
+    const recovery = operationClass === "recovery";
+    const valueFreeRead = name === "focusa_sms_health" || name === "focusa_sms_enrollment";
+    const operationPolicy: FocusaOperationPolicy = {
+      operation_class: operationClass,
+      capability_family: recovery ? "account_recovery" : valueFreeRead ? "read_projection" : "base_focusa",
+      commercial_treatment: recovery ? "always_available" : valueFreeRead ? "read_allowance" : "base_entitlement",
+      policy_activation: "active",
+      required_feature: null,
+      limit_bucket: null,
+      recovery_allowance: recovery ? "account_recovery" : valueFreeRead ? "read_projection" : "none",
+      source_owner: "communications_capability_contracts",
+      policy_owner: "entitlement_policy_resolver",
+    };
+    return {
+      name,
+      family: "communications",
+      label,
+      purpose,
+      ontology_action: action,
+      ontology_objects: [...objects],
+      api_routes: [route],
+      cli_commands: [command],
+      core_surface: "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      doc_path: `docs/focusa-tools/tools/${name}.md`,
+      spec_path: "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      result_envelope: "tool_result_v1",
+      side_effect_profile: sideEffect,
+      parity_status: "full",
+      exemptions: [],
+      live_check: "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      scope_requirement: { kind: scopeKind, route_family: scopeFamily },
+      authority_requirement: { kind: "canonical", path: route.split(" ", 2)[1] },
+      operation_policy: operationPolicy,
+    };
+  }
+);
+
 export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   ...AGENT_RUNTIME_TOOL_CONTRACTS,
+  ...SMS_TOOL_CONTRACTS,
   {
     name: "focusa_daemon_routing_status",
     label: "Daemon Routing Status",
@@ -3079,6 +3146,7 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
   session_transfer: ["focusa_workpoint_resume", "focusa_device_pair_status", "focusa_trajectory_view"],
   awareness: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_doctor"],
   preload: ["focusa_preload_build", "focusa_preload_verify", "focusa_preload_doctor"],
+  communications: ["focusa_sms_health", "focusa_sms_threads", "focusa_sms_events"],
   agent_runtime: [
     "focusa_agent_runtime_effective",
     "focusa_runtime_constitution_preview",
@@ -3482,6 +3550,17 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   ],
   focusa_lineage_tree: ["focusa_li_tree_extract", "focusa_tree_path", "focusa_traverse"],
   focusa_li_tree_extract: ["focusa_metacog_capture", "focusa_metacog_reflect", "focusa_tree_snapshot_state"],
+  focusa_sms_health: ["focusa_sms_enrollment", "focusa_sms_checkpoint", "focusa_sms_events"],
+  focusa_sms_enrollment: ["focusa_sms_health", "focusa_sms_threads", "focusa_sms_events"],
+  focusa_sms_threads: ["focusa_sms_read_thread", "focusa_sms_search", "focusa_sms_send"],
+  focusa_sms_read_thread: ["focusa_sms_search", "focusa_sms_send", "focusa_sms_events"],
+  focusa_sms_search: ["focusa_sms_read_thread", "focusa_sms_threads", "focusa_sms_send"],
+  focusa_sms_send: ["focusa_sms_events", "focusa_sms_threads", "focusa_sms_checkpoint"],
+  focusa_sms_otp_challenge: ["focusa_sms_otp_inject", "focusa_sms_events", "focusa_sms_health"],
+  focusa_sms_otp_inject: ["focusa_sms_events", "focusa_sms_health", "focusa_sms_revoke"],
+  focusa_sms_checkpoint: ["focusa_sms_health", "focusa_sms_events", "focusa_sms_enrollment"],
+  focusa_sms_events: ["focusa_sms_health", "focusa_sms_checkpoint", "focusa_sms_revoke"],
+  focusa_sms_revoke: ["focusa_sms_enrollment", "focusa_sms_health", "focusa_sms_events"],
   focusa_awareness_packet: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_doctor"],
 };
 
@@ -3501,6 +3580,7 @@ const FAMILY_DEFAULT_INPUTS: Record<FocusaToolFamily, string[]> = {
     "mode=minimal|standard|rich|onboarding",
   ],
   preload: ["profile", "project_root and continuity_id when scoped", "idempotency_key for writes"],
+  communications: ["separately authorized capability grant", "opaque connector/thread/target handles", "confirmation and idempotency for mutations"],
   agent_runtime: [
     "verified project_root",
     "constitution or instruction target",
@@ -3527,6 +3607,7 @@ const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {
     "ignoring suppressed lines when debugging degraded awareness",
   ],
   preload: ["writing outside allowlisted paths", "committing receipts without an idempotency key"],
+  communications: ["assuming OTP authority grants inbox access", "placing OTP/message/credential values in logs, argv, receipts, or model context"],
   agent_runtime: [
     "unverified prompt sources",
     "silent prompt replacement",

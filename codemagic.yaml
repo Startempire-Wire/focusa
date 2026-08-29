@@ -14,6 +14,9 @@ workflows:
     environment:
       node: 22
       xcode: latest
+      vars:
+        FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc
+        VITE_FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc
       groups:
         - github_credentials
         - focusa_release_signing
@@ -101,6 +104,11 @@ workflows:
           base64.b64decode(lines[1], validate=True)
           PY
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            case "$target" in
+              aarch64-apple-darwin) arch="aarch64" ;;
+              x86_64-apple-darwin) arch="x64" ;;
+              *) echo "Unsupported macOS updater target: $target" >&2; exit 1 ;;
+            esac
             rm -rf "src-tauri/target/$target/release/bundle"
             npx tauri build --target "$target" --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":true}}'
             app="src-tauri/target/$target/release/bundle/macos/Focusa.app"
@@ -113,8 +121,8 @@ workflows:
             mkdir -p ../../dist/menubar
             ditto -c -k --keepParent "$app" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.app.zip"
             cp "$dmg" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.dmg"
-            cp "$updater" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.app.tar.gz"
-            cp "${updater}.sig" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.app.tar.gz.sig"
+            cp "$updater" "../../dist/menubar/Focusa_${arch}.app.tar.gz"
+            cp "${updater}.sig" "../../dist/menubar/Focusa_${arch}.app.tar.gz.sig"
           done
           ls -lh ../../dist/menubar
       - name: Validate macOS bundles (ad-hoc signature)
@@ -122,13 +130,18 @@ workflows:
           set -euo pipefail
           cd apps/menubar
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            case "$target" in
+              aarch64-apple-darwin) arch="aarch64" ;;
+              x86_64-apple-darwin) arch="x64" ;;
+              *) echo "Unsupported macOS updater target: $target" >&2; exit 1 ;;
+            esac
             app="src-tauri/target/$target/release/bundle/macos/Focusa.app"
             plutil -lint "$app/Contents/Info.plist"
             test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = "${FOCUSA_RELEASE_TAG#v}"
             test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = "dev.focusa.menubar"
             codesign --verify --deep --strict --verbose=2 "$app"
             codesign -dv --verbose=4 "$app" 2>&1 | grep -q 'Signature=adhoc'
-            test -s "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.app.tar.gz.sig"
+            test -s "../../dist/menubar/Focusa_${arch}.app.tar.gz.sig"
           done
       - name: Upload menubar bundles to canonical GitHub Release
         script: |
@@ -138,12 +151,12 @@ workflows:
           expected=(
             "dist/menubar/Focusa-${release_tag}-aarch64-apple-darwin.app.zip"
             "dist/menubar/Focusa-${release_tag}-aarch64-apple-darwin.dmg"
-            "dist/menubar/Focusa-${release_tag}-aarch64-apple-darwin.app.tar.gz"
-            "dist/menubar/Focusa-${release_tag}-aarch64-apple-darwin.app.tar.gz.sig"
+            "dist/menubar/Focusa_aarch64.app.tar.gz"
+            "dist/menubar/Focusa_aarch64.app.tar.gz.sig"
             "dist/menubar/Focusa-${release_tag}-x86_64-apple-darwin.app.zip"
             "dist/menubar/Focusa-${release_tag}-x86_64-apple-darwin.dmg"
-            "dist/menubar/Focusa-${release_tag}-x86_64-apple-darwin.app.tar.gz"
-            "dist/menubar/Focusa-${release_tag}-x86_64-apple-darwin.app.tar.gz.sig"
+            "dist/menubar/Focusa_x64.app.tar.gz"
+            "dist/menubar/Focusa_x64.app.tar.gz.sig"
           )
           for file in "${expected[@]}"; do test -s "$file"; done
           for attempt in $(seq 1 60); do

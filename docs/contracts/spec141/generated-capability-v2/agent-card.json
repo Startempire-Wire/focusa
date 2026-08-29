@@ -2,7 +2,7 @@
   "schema": "focusa.agent_card.v1",
   "name": "Focusa",
   "description": "Agent-first cognitive infrastructure with scoped Workpoints, Trajectory, evidence, recovery, browser interoperability, and cross-harness capability contracts.",
-  "version": "0.9.185",
+  "version": "0.9.186",
   "interfaces": [
     "pi",
     "mcp",
@@ -41,9 +41,9 @@
       "guided_orientation_optional": true
     }
   },
-  "registry_digest": "sha256:2f0cab52fdcea96f74251b6080a326f7934ae030d8b46364bede3b22f01c4b59",
-  "pi_tool_count": 146,
-  "pi_tool_docs_count": 146,
+  "registry_digest": "sha256:76a566ac0283eb7a6344878fcffbdfdff07e77829039f0a0561f6dea5f95087c",
+  "pi_tool_count": 157,
+  "pi_tool_docs_count": 157,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
   "pi_tool_docs_path": "docs/focusa-tools/tools/",
   "skill_count": 30,
@@ -383,6 +383,7 @@
     "background_job",
     "callgraph",
     "cockpit",
+    "communications",
     "credential",
     "diagnostics_hygiene",
     "focus_state",
@@ -399,5 +400,5 @@
     "workset"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:ede2e2dfc722a20b45d90e86042e4a8d62a42882b60b4c7ce6415b9bcca62c6a"
+  "card_digest": "sha256:682eb4fb42cb52ec5f88e1533dcd0e7e23d2da83b7f7c535245d3fb449bdec3a"
 }

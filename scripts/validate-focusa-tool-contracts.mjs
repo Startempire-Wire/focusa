@@ -7,6 +7,7 @@ import { parseJsonLikeTsLiteral } from './lib/json-like-ts.mjs';
 const root = process.cwd();
 const toolsPath = path.join(root, 'apps/pi-extension/src/tools.ts');
 const agentRuntimeToolsPath = path.join(root, 'apps/pi-extension/src/agent-runtime-tools.ts');
+const smsToolsPath = path.join(root, 'apps/pi-extension/src/sms-tools.ts');
 const contractsPath = path.join(root, 'apps/pi-extension/src/tool-contracts.ts');
 const readmePath = path.join(root, 'README.md');
 const toolDocsIndexPath = path.join(root, 'docs/focusa-tools/README.md');
@@ -25,6 +26,7 @@ function fail(message, detail = undefined) {
 const failures = [];
 const toolsSrc = read(toolsPath);
 const agentRuntimeToolsSrc = read(agentRuntimeToolsPath);
+const smsToolsSrc = read(smsToolsPath);
 const contractsSrc = read(contractsPath);
 const readme = read(readmePath);
 
@@ -36,6 +38,7 @@ if (wrapperInstallIndex === -1 || !wrapperInstallBlock.includes('withToolResultE
 
 const toolMatches = [...toolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)];
 const agentRuntimeToolMatches = [...agentRuntimeToolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)];
+const smsToolMatches = [...smsToolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)];
 const dynamicPreloadMatch = toolsSrc.match(/const preloadReadTools:[^=]+ = (\[[\s\S]*?\n  \]);/);
 const dynamicPreloadNames = dynamicPreloadMatch
   ? parseJsonLikeTsLiteral(dynamicPreloadMatch[1]).map(([name]) => name)
@@ -43,6 +46,7 @@ const dynamicPreloadNames = dynamicPreloadMatch
 const toolNames = [
   ...toolMatches.map((m) => m[1]),
   ...agentRuntimeToolMatches.map((m) => m[1]),
+  ...smsToolMatches.map((m) => m[1]),
   ...dynamicPreloadNames,
 ];
 for (const match of toolMatches) {
@@ -57,6 +61,7 @@ if (toolNames.length !== uniqueToolNames.length) {
 
 const preloadMatch = contractsSrc.match(/const PRELOAD_TOOL_CONTRACTS: FocusaToolContract\[] = (\[[\s\S]*?\])\.map/);
 const agentRuntimeMatch = contractsSrc.match(/const AGENT_RUNTIME_TOOL_CONTRACTS: FocusaToolContract\[] = (\[[\s\S]*?\])\.map/);
+const smsMatch = contractsSrc.match(/const SMS_TOOL_CONTRACTS: FocusaToolContract\[] = \((\[[\s\S]*?\])\s+as const satisfies readonly SmsToolDescriptor\[]\)\.map/);
 const jsonMatch = contractsSrc.match(/export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract\[] = ([\s\S]*?)\n\](?:\s*as\s+[\w\[\].]+\)?\.map|\.map|\)|;)/);
 if (!preloadMatch) {
   fail('could not parse PRELOAD_TOOL_CONTRACTS registry');
@@ -64,12 +69,15 @@ if (!preloadMatch) {
 if (!agentRuntimeMatch) {
   fail('could not parse AGENT_RUNTIME_TOOL_CONTRACTS registry');
 }
+if (!smsMatch) {
+  fail('could not parse SMS_TOOL_CONTRACTS registry');
+}
 if (!jsonMatch) {
   fail('could not parse FOCUSA_TOOL_CONTRACTS registry');
 }
 
 let contracts = [];
-if (preloadMatch && agentRuntimeMatch && jsonMatch) {
+if (preloadMatch && agentRuntimeMatch && smsMatch && jsonMatch) {
   const preloadRows = parseJsonLikeTsLiteral(preloadMatch[1]);
   const preloadContracts = preloadRows.map(([suffix, label, purpose, sideEffect, method]) => {
     const action = suffix.replace('_', '-');
@@ -120,11 +128,48 @@ if (preloadMatch && agentRuntimeMatch && jsonMatch) {
       ? { kind: 'canonical', path: '/v1/agent-runtime/delivery/commit' }
       : { kind: 'advisory_only' },
   }));
+  const smsRows = parseJsonLikeTsLiteral(smsMatch[1]);
+  const smsContracts = smsRows.map(([name, label, purpose, action, objects, route, command, scopeKind, scopeFamily, sideEffect, operationClass]) => {
+    const recovery = operationClass === 'recovery';
+    const valueFreeRead = name === 'focusa_sms_health' || name === 'focusa_sms_enrollment';
+    return {
+      name,
+      family: 'communications',
+      label,
+      purpose,
+      ontology_action: action,
+      ontology_objects: [...objects],
+      api_routes: [route],
+      cli_commands: [command],
+      core_surface: 'Plan 180 customer-owned communications broker and Spec 156 credential authority',
+      doc_path: `docs/focusa-tools/tools/${name}.md`,
+      spec_path: 'docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md',
+      result_envelope: 'tool_result_v1',
+      side_effect_profile: sideEffect,
+      parity_status: 'full',
+      exemptions: [],
+      live_check: 'SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests',
+      scope_requirement: { kind: scopeKind, route_family: scopeFamily },
+      authority_requirement: { kind: 'canonical', path: route.split(' ', 2)[1] },
+      operation_policy: {
+        operation_class: operationClass,
+        capability_family: recovery ? 'account_recovery' : valueFreeRead ? 'read_projection' : 'base_focusa',
+        commercial_treatment: recovery ? 'always_available' : valueFreeRead ? 'read_allowance' : 'base_entitlement',
+        policy_activation: 'active',
+        required_feature: null,
+        limit_bucket: null,
+        recovery_allowance: recovery ? 'account_recovery' : valueFreeRead ? 'read_projection' : 'none',
+        source_owner: 'communications_capability_contracts',
+        policy_owner: 'entitlement_policy_resolver',
+      },
+    };
+  });
   const baseContractsLiteral = jsonMatch[1].replace(/^[(]/, "")
     .replace(/\.\.\.PRELOAD_TOOL_CONTRACTS\s*,?/, '')
-    .replace(/\.\.\.AGENT_RUNTIME_TOOL_CONTRACTS\s*,?/, '');
+    .replace(/\.\.\.AGENT_RUNTIME_TOOL_CONTRACTS\s*,?/, '')
+    .replace(/\.\.\.SMS_TOOL_CONTRACTS\s*,?/, '');
   const baseContracts = parseJsonLikeTsLiteral(`${baseContractsLiteral}\n]`);
-  contracts = [...agentRuntimeContracts, ...preloadContracts, ...baseContracts];
+  contracts = [...agentRuntimeContracts, ...smsContracts, ...preloadContracts, ...baseContracts];
 }
 
 const registryProjection = {
@@ -174,7 +219,7 @@ const extraContracts = contractNames.filter((name) => !toolSet.has(name));
 if (missingContracts.length) fail('tools missing contracts', missingContracts);
 if (extraContracts.length) fail('contracts without registered tools', extraContracts);
 
-const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal', 'session_transfer', 'awareness', 'preload', 'agent_runtime', 'workset', 'callgraph', 'credential', 'cockpit', 'background_job', 'session_fanout']);
+const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal', 'session_transfer', 'awareness', 'preload', 'communications', 'agent_runtime', 'workset', 'callgraph', 'credential', 'cockpit', 'background_job', 'session_fanout']);
 const validParity = new Set(['full', 'domain', 'pi_only', 'local_only', 'degraded_known', 'api_only', 'daemon_backed']);
 const validExemptions = new Set(['local_scratchpad_only', 'pi_session_only', 'doctor_composition_only', 'domain_cli_only', 'api_domain_only', 'pi_session_snapshot_only', 'pi_only', 'api_only', 'daemon_backed_no_cli']);
 

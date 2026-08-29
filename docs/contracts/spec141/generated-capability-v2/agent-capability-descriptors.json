@@ -5,7 +5,7 @@
     "apps/pi-extension/src/tools.ts",
     "apps/pi-extension/src/tool-contracts.ts"
   ],
-  "capability_count": 146,
+  "capability_count": 157,
   "operator_alignment": {
     "schema": "focusa.operator_alignment.v1",
     "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
@@ -61177,6 +61177,5753 @@
           "guided_orientation_optional": true
         }
       },
+      "capability_id": "focusa.sms.checkpoint",
+      "tool_names": {
+        "pi": "focusa_sms_checkpoint",
+        "mcp": "focusa.sms.checkpoint",
+        "openai": "focusa_sms_checkpoint",
+        "cli": [
+          "focusa sms checkpoint"
+        ],
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/sms/checkpoint"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Checkpoint SMS Connector",
+      "summary": "Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata.",
+      "description": "Create and verify an encrypted atomic connector checkpoint. Returns value-free receipt metadata only. Use it when Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "POST",
+        "path": "/v1/sms/checkpoint",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/sms/checkpoint",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "confirm"
+        ],
+        "properties": {
+          "confirm": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "control",
+        "route_family": "sms:checkpoint"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/checkpoint"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/sms/checkpoint",
+          "scope": {
+            "kind": "control",
+            "route_family": "sms:checkpoint"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "confirmed_encrypted_checkpoint",
+        "confirmed_encrypted_checkpoint"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": false,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata.",
+          "arguments": {
+            "confirm": false
+          },
+          "human_invocation": "focusa sms checkpoint",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_checkpoint.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_health",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_events",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_enrollment",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_health",
+        "focusa_sms_events",
+        "focusa_sms_enrollment"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_checkpoint.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.connector.checkpoint",
+        "objects": [
+          "EncryptedConnectorCheckpoint"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [
+        "stable evidence or receipt ref proving the mutation outcome"
+      ],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_checkpoint"
+      ],
+      "prompt": {
+        "snippet": "Create and verify an encrypted atomic connector checkpoint. Returns value-free receipt metadata only.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:977b5e102f71e447680fd43d977996349435113fbd84f0122bba4c26d605bba1"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
+      "capability_id": "focusa.sms.enrollment",
+      "tool_names": {
+        "pi": "focusa_sms_enrollment",
+        "mcp": "focusa.sms.enrollment",
+        "openai": "focusa_sms_enrollment",
+        "cli": [
+          "focusa sms enrollment"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/sms/enrollment"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "SMS Enrollment",
+      "summary": "Read value-free customer-owned connector enrollment status.",
+      "description": "Read value-free customer-owned connector enrollment status. Use it when Read value-free customer-owned connector enrollment status. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "GET",
+        "path": "/v1/sms/enrollment",
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "GET",
+          "path": "/v1/sms/enrollment",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "sms:enrollment"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/enrollment"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/sms/enrollment",
+          "scope": {
+            "kind": "read",
+            "route_family": "sms:enrollment"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "read_value_free_enrollment",
+        "read_value_free_enrollment"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Read value-free customer-owned connector enrollment status.",
+          "arguments": {},
+          "human_invocation": "focusa sms enrollment",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_enrollment.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_health",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_threads",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_events",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_health",
+        "focusa_sms_threads",
+        "focusa_sms_events"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_enrollment.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.enrollment.read",
+        "objects": [
+          "CommunicationsEnrollment"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_enrollment"
+      ],
+      "prompt": {
+        "snippet": "Read value-free customer-owned connector enrollment status.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:9eb11001e22713cfae9bce4eb3b4eb719138a10bc729c0fe0b6bfedd88f191c0"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
+      "capability_id": "focusa.sms.events",
+      "tool_names": {
+        "pi": "focusa_sms_events",
+        "mcp": "focusa.sms.events",
+        "openai": "focusa_sms_events",
+        "cli": [
+          "focusa sms events"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/sms/events"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "SMS Broker Events",
+      "summary": "Read bounded value-free communications audit events.",
+      "description": "Read bounded value-free broker audit events. Use it when Read bounded value-free communications audit events. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "GET",
+        "path": "/v1/sms/events",
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "GET",
+          "path": "/v1/sms/events",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "since": {
+            "type": "string"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "sms:events"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/events"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/sms/events",
+          "scope": {
+            "kind": "read",
+            "route_family": "sms:events"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "read_value_free_audit_events",
+        "read_value_free_audit_events"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Read bounded value-free communications audit events.",
+          "arguments": {},
+          "human_invocation": "focusa sms events",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_events.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_health",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_checkpoint",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_revoke",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_health",
+        "focusa_sms_checkpoint",
+        "focusa_sms_revoke"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_events.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.events.read",
+        "objects": [
+          "CommunicationsAuditEvent"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_events"
+      ],
+      "prompt": {
+        "snippet": "Read bounded value-free broker audit events.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:9e386ae0ca7b68528b5527d07ad04835493366b2d1bc7ca10eb93510f380287a"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
+      "capability_id": "focusa.sms.health",
+      "tool_names": {
+        "pi": "focusa_sms_health",
+        "mcp": "focusa.sms.health",
+        "openai": "focusa_sms_health",
+        "cli": [
+          "focusa sms health"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/sms/health"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "SMS Broker Health",
+      "summary": "Read value-free connector and encrypted-checkpoint health.",
+      "description": "Read value-free connector/checkpoint health. Never returns messages, cookies, pairing state, or OTP values. Use it when Read value-free connector and encrypted-checkpoint health. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "GET",
+        "path": "/v1/sms/health",
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "GET",
+          "path": "/v1/sms/health",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "sms:health"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/health"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/sms/health",
+          "scope": {
+            "kind": "read",
+            "route_family": "sms:health"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "read_value_free_health",
+        "read_value_free_health"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Read value-free connector and encrypted-checkpoint health.",
+          "arguments": {},
+          "human_invocation": "focusa sms health",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_health.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_enrollment",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_checkpoint",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_events",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_enrollment",
+        "focusa_sms_checkpoint",
+        "focusa_sms_events"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_health.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.health.read",
+        "objects": [
+          "CommunicationsConnectorHealth",
+          "EncryptedConnectorCheckpoint"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_health"
+      ],
+      "prompt": {
+        "snippet": "Read value-free connector/checkpoint health. Never returns messages, cookies, pairing state, or OTP values.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:8ad155432e746082b690c9d0bb81b85accfcbcc29e0a42ee7b0e450a757c1ff3"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
+      "capability_id": "focusa.sms.otp.challenge",
+      "tool_names": {
+        "pi": "focusa_sms_otp_challenge",
+        "mcp": "focusa.sms.otp.challenge",
+        "openai": "focusa_sms_otp_challenge",
+        "cli": [
+          "focusa sms otp-challenge"
+        ],
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/sms/otp/challenges"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Register SMS OTP Challenge",
+      "summary": "Register an exact provider and target challenge before OTP delivery.",
+      "description": "Register an exact provider/target challenge before requesting OTP delivery. Returns a handle, never an OTP. Use it when Register an exact provider and target challenge before OTP delivery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "POST",
+        "path": "/v1/sms/otp/challenges",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/sms/otp/challenges",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "provider",
+          "target_handle",
+          "consumer_ref"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "target_handle": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "ttl_seconds": {
+            "minimum": 30,
+            "maximum": 600,
+            "default": 300,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "write",
+        "route_family": "sms:otp_challenge"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/otp/challenges"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/sms/otp/challenges",
+          "scope": {
+            "kind": "write",
+            "route_family": "sms:otp_challenge"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "bounded_challenge_registration",
+        "bounded_challenge_registration"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": false,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Register an exact provider and target challenge before OTP delivery.",
+          "arguments": {
+            "provider": "example",
+            "target_handle": "example",
+            "consumer_ref": "example"
+          },
+          "human_invocation": "focusa sms otp-challenge",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_otp_challenge.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_otp_inject",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_events",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_health",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_otp_inject",
+        "focusa_sms_events",
+        "focusa_sms_health"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_otp_challenge.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.otp_challenge.register",
+        "objects": [
+          "OtpChallenge",
+          "ScopedCapabilityGrant"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [
+        "stable evidence or receipt ref proving the mutation outcome"
+      ],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_otp_challenge"
+      ],
+      "prompt": {
+        "snippet": "Register an exact provider/target challenge before requesting OTP delivery. Returns a handle, never an OTP.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:419c3b4d7c5e67302c130b30c4799c1629b8ce36f3ff5da7ce4cf1802f2f31cd"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
+      "capability_id": "focusa.sms.otp.inject",
+      "tool_names": {
+        "pi": "focusa_sms_otp_inject",
+        "mcp": "focusa.sms.otp.inject",
+        "openai": "focusa_sms_otp_inject",
+        "cli": [
+          "focusa sms otp-inject"
+        ],
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/sms/otp/inject"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Inject SMS OTP",
+      "summary": "Inject one eligible OTP into its exact bound target without exposing the value to model context.",
+      "description": "Inject one eligible OTP into its exact bound target. The OTP value never enters model context or tool output. Use it when Inject one eligible OTP into its exact bound target without exposing the value to model context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "POST",
+        "path": "/v1/sms/otp/inject",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/sms/otp/inject",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "challenge_handle",
+          "target_handle",
+          "consumer_ref"
+        ],
+        "properties": {
+          "challenge_handle": {
+            "type": "string"
+          },
+          "target_handle": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "control",
+        "route_family": "sms:inject_otp"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/otp/inject"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/sms/otp/inject",
+          "scope": {
+            "kind": "control",
+            "route_family": "sms:inject_otp"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "single_use_secret_injection",
+        "single_use_secret_injection"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": false,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Inject one eligible OTP into its exact bound target without exposing the value to model context.",
+          "arguments": {
+            "challenge_handle": "example",
+            "target_handle": "example",
+            "consumer_ref": "example"
+          },
+          "human_invocation": "focusa sms otp-inject",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_otp_inject.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_events",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_health",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_revoke",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_events",
+        "focusa_sms_health",
+        "focusa_sms_revoke"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_otp_inject.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.otp.inject",
+        "objects": [
+          "OtpChallenge",
+          "TargetInjectionReceipt"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [
+        "stable evidence or receipt ref proving the mutation outcome"
+      ],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_otp_inject"
+      ],
+      "prompt": {
+        "snippet": "Inject one eligible OTP into its exact bound target. The OTP value never enters model context or tool output.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:80bdc3da5111da2511ec75d5731e2ec3f5158045dcd574e76416f230d38a27ab"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
+      "capability_id": "focusa.sms.read.thread",
+      "tool_names": {
+        "pi": "focusa_sms_read_thread",
+        "mcp": "focusa.sms.read.thread",
+        "openai": "focusa_sms_read_thread",
+        "cli": [
+          "focusa sms read <thread-handle>"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/sms/threads/{thread}/messages"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Read SMS Thread",
+      "summary": "Read one bounded customer-authorized thread; OTP authority never implies message-read authority.",
+      "description": "Read a bounded customer-authorized thread. OTP grants do not authorize this tool. Use it when Read one bounded customer-authorized thread; OTP authority never implies message-read authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "GET",
+        "path": "/v1/sms/threads/{thread}/messages",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "GET",
+          "path": "/v1/sms/threads/{thread}/messages",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "thread_handle"
+        ],
+        "properties": {
+          "thread_handle": {
+            "type": "string"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "sms:read_thread"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/threads/{thread}/messages"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/sms/threads/{thread}/messages",
+          "scope": {
+            "kind": "read",
+            "route_family": "sms:read_thread"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "authorized_customer_data_read",
+        "authorized_customer_data_read"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": true
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Read one bounded customer-authorized thread; OTP authority never implies message-read authority.",
+          "arguments": {
+            "thread_handle": "example"
+          },
+          "human_invocation": "focusa sms read <thread-handle>",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_read_thread.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_search",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_send",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_events",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_search",
+        "focusa_sms_send",
+        "focusa_sms_events"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_read_thread.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.thread.read",
+        "objects": [
+          "CommunicationsThread",
+          "CommunicationsMessage",
+          "ScopedCapabilityGrant"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [
+        "stable evidence or receipt ref proving the mutation outcome"
+      ],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_read_thread"
+      ],
+      "prompt": {
+        "snippet": "Read a bounded customer-authorized thread. OTP grants do not authorize this tool.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:c8aa6d994b9ac1f12ac662f90de3bde41c41b52830a137cbca87dea99be7f2f1"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
+      "capability_id": "focusa.sms.revoke",
+      "tool_names": {
+        "pi": "focusa_sms_revoke",
+        "mcp": "focusa.sms.revoke",
+        "openai": "focusa_sms_revoke",
+        "cli": [
+          "focusa sms revoke --confirm"
+        ],
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/sms/revoke"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Revoke SMS Connector",
+      "summary": "Revoke one customer-owned connector and all associated grants with explicit confirmation.",
+      "description": "Revoke one customer-owned connector and its grants. Destructive; requires confirm=true. Use it when Revoke one customer-owned connector and all associated grants with explicit confirmation. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "POST",
+        "path": "/v1/sms/revoke",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/sms/revoke",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "connector_id",
+          "confirm"
+        ],
+        "properties": {
+          "connector_id": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "control",
+        "route_family": "sms:revoke"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/revoke"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/sms/revoke",
+          "scope": {
+            "kind": "control",
+            "route_family": "sms:revoke"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "confirmed_connector_and_grant_revocation",
+        "confirmed_connector_and_grant_revocation"
+      ],
+      "confirmation": {
+        "required": true,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": false,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": false,
+        "compensation": [
+          "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+          "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+          "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+        ]
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Revoke one customer-owned connector and all associated grants with explicit confirmation.",
+          "arguments": {
+            "connector_id": "example",
+            "confirm": false
+          },
+          "human_invocation": "focusa sms revoke --confirm",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_revoke.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_enrollment",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_health",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_events",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_enrollment",
+        "focusa_sms_health",
+        "focusa_sms_events"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_revoke.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.connector.revoke",
+        "objects": [
+          "CommunicationsConnector",
+          "ScopedCapabilityGrant"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [
+        "stable evidence or receipt ref proving the mutation outcome"
+      ],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_revoke"
+      ],
+      "prompt": {
+        "snippet": "Revoke one customer-owned connector and its grants. Destructive; requires confirm=true.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:57e3655b0bce299455004f723c0de937b5ceecc309bfac9a654fc5e5bca121cf"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
+      "capability_id": "focusa.sms.search",
+      "tool_names": {
+        "pi": "focusa_sms_search",
+        "mcp": "focusa.sms.search",
+        "openai": "focusa_sms_search",
+        "cli": [
+          "focusa sms search <query>"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/sms/search"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Search SMS",
+      "summary": "Search separately authorized message scope with bounded results.",
+      "description": "Search customer-authorized message scope with bounded results. Use it when Search separately authorized message scope with bounded results. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "GET",
+        "path": "/v1/sms/search",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "GET",
+          "path": "/v1/sms/search",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "minLength": 1,
+            "maxLength": 500,
+            "type": "string"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "sms:search"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/search"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/sms/search",
+          "scope": {
+            "kind": "read",
+            "route_family": "sms:search"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "authorized_customer_data_read",
+        "authorized_customer_data_read"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": true
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Search separately authorized message scope with bounded results.",
+          "arguments": {
+            "query": "workpoint resume"
+          },
+          "human_invocation": "focusa sms search <query>",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_search.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_read_thread",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_threads",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_send",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_read_thread",
+        "focusa_sms_threads",
+        "focusa_sms_send"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_search.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.messages.search",
+        "objects": [
+          "CommunicationsMessage",
+          "ScopedCapabilityGrant"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [
+        "stable evidence or receipt ref proving the mutation outcome"
+      ],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_search"
+      ],
+      "prompt": {
+        "snippet": "Search customer-authorized message scope with bounded results.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:b8b3747c451ed660002ad6060e92436e8a38c6c22744ca71efbb1da76fe67071"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
+      "capability_id": "focusa.sms.send",
+      "tool_names": {
+        "pi": "focusa_sms_send",
+        "mcp": "focusa.sms.send",
+        "openai": "focusa_sms_send",
+        "cli": [
+          "focusa sms send <recipient-handle> --confirm"
+        ],
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/sms/send"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Send SMS",
+      "summary": "Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution.",
+      "description": "Send one customer-authorized message. Requires separate send grant, idempotency key, consumer attribution, and confirm=true. Use it when Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "POST",
+        "path": "/v1/sms/send",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "POST",
+          "path": "/v1/sms/send",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "recipient_handle",
+          "body",
+          "idempotency_key",
+          "grant_id",
+          "consumer_ref",
+          "confirm"
+        ],
+        "properties": {
+          "recipient_handle": {
+            "type": "string"
+          },
+          "body": {
+            "minLength": 1,
+            "maxLength": 5000,
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "write",
+        "route_family": "sms:send"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/send"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/sms/send",
+          "scope": {
+            "kind": "write",
+            "route_family": "sms:send"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "confirmed_idempotent_message_delivery",
+        "confirmed_idempotent_message_delivery"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": false,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution.",
+          "arguments": {
+            "recipient_handle": "example",
+            "body": "example",
+            "idempotency_key": "example",
+            "grant_id": "example",
+            "consumer_ref": "example",
+            "confirm": false
+          },
+          "human_invocation": "focusa sms send <recipient-handle> --confirm",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_send.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_events",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_threads",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_checkpoint",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_events",
+        "focusa_sms_threads",
+        "focusa_sms_checkpoint"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_send.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.message.send",
+        "objects": [
+          "CommunicationsDelivery",
+          "ScopedCapabilityGrant"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [
+        "stable evidence or receipt ref proving the mutation outcome"
+      ],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_send"
+      ],
+      "prompt": {
+        "snippet": "Send one customer-authorized message. Requires separate send grant, idempotency key, consumer attribution, and confirm=true.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:e3ff62528b411644053c4f55155ad9577174c238dab24b290e847e68fbc89f6f"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
+      "capability_id": "focusa.sms.threads",
+      "tool_names": {
+        "pi": "focusa_sms_threads",
+        "mcp": "focusa.sms.threads",
+        "openai": "focusa_sms_threads",
+        "cli": [
+          "focusa sms threads"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/sms/threads"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "SMS Threads",
+      "summary": "List customer-authorized thread summaries under the separate list_threads grant.",
+      "description": "List customer-authorized thread summaries under a separately granted list_threads capability. Use it when List customer-authorized thread summaries under the separate list_threads grant. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "communications",
+      "namespace": "focusa.communications",
+      "operation_policy": {
+        "operation_id": null,
+        "method": "GET",
+        "path": "/v1/sms/threads",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      },
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "GET",
+          "path": "/v1/sms/threads",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "none",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "none",
+      "source_owner": "agent_capability_contracts",
+      "policy_owner": "entitlement_policy_resolver",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "not_found",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entitlement_decision": {},
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "family": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "reflex_suggestions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ontology_candidate_delta_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "allowed_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "raw": {},
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "sms:list_threads"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/sms/threads"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/sms/threads",
+          "scope": {
+            "kind": "read",
+            "route_family": "sms:list_threads"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "authorized_customer_data_read",
+        "authorized_customer_data_read"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": true
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "List customer-authorized thread summaries under the separate list_threads grant.",
+          "arguments": {},
+          "human_invocation": "focusa sms threads",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_threads.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming OTP authority grants inbox access"
+        },
+        {
+          "description": "placing OTP/message/credential values in logs, argv, receipts, or model context"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_sms_read_thread",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_search",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_sms_send",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_sms_read_thread",
+        "focusa_sms_search",
+        "focusa_sms_send"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-security-auth-licensing"
+      ],
+      "runbook_refs": [
+        "runbook:communications"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_sms_threads.md",
+      "spec_refs": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md"
+      ],
+      "ontology": {
+        "action": "communications.threads.list",
+        "objects": [
+          "CommunicationsThread",
+          "ScopedCapabilityGrant"
+        ],
+        "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority"
+      },
+      "evidence_requirements": [
+        "stable evidence or receipt ref proving the mutation outcome"
+      ],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_sms_threads"
+      ],
+      "prompt": {
+        "snippet": "List customer-authorized thread summaries under a separately granted list_threads capability.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:be91d9ef19b0070ef03ac2eb665681774ccc32184ee1cb18ae7bdd60fd74cd2b"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "operator_alignment": {
+        "schema": "focusa.operator_alignment.v1",
+        "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+        "requirements": [
+          "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+          "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+          "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+          "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+          "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+          "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+          "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+        ],
+        "project_reception": {
+          "candidate_scan_depth_min": 2,
+          "candidate_limit": 20,
+          "mutation_before_confirmation": false,
+          "guided_orientation_optional": true
+        }
+      },
       "capability_id": "focusa.state.hygiene.apply",
       "tool_names": {
         "pi": "focusa_state_hygiene_apply",
@@ -80680,5 +86427,5 @@
       "descriptor_digest": "sha256:d5350211c874cf4ebd08b6b589633dbe53e70b29b5bab857db7aec93e996aa4c"
     }
   ],
-  "registry_digest": "sha256:2f0cab52fdcea96f74251b6080a326f7934ae030d8b46364bede3b22f01c4b59"
+  "registry_digest": "sha256:76a566ac0283eb7a6344878fcffbdfdff07e77829039f0a0561f6dea5f95087c"
 }
