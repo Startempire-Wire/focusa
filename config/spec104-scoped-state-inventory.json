@@ -203,6 +203,16 @@
       "acceptance_test": "client contains no canonical scope state"
     },
     {
+      "annex_id": "API-11",
+      "path": "crates/focusa-api/src/routes/sms.rs",
+      "symbol": "CLIENT",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Shared stateless HTTP connection pool for the private communications broker",
+      "acceptance_test": "client contains no scope connector token credential message or customer state"
+    },
+    {
       "annex_id": "API-07",
       "path": "crates/focusa-api/src/routes/snapshots.rs",
       "symbol": "SNAPSHOTS",
