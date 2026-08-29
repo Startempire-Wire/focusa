@@ -61,10 +61,8 @@ jobs:
           set -euo pipefail
           : "${TAURI_SIGNING_PRIVATE_KEY:?missing Tauri updater signing key}"
           : "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:?missing Tauri updater signing password}"
-          if [[ "$TAURI_SIGNING_PRIVATE_KEY" == "untrusted comment:"* ]]; then
-            TAURI_SIGNING_PRIVATE_KEY="$(printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" | base64 -w 0)"
-            export TAURI_SIGNING_PRIVATE_KEY
-          fi
+          TAURI_SIGNING_PRIVATE_KEY="$(python3 scripts/ci/convert-legacy-tauri-signing-key.py)"
+          export TAURI_SIGNING_PRIVATE_KEY
           work="${RUNNER_TEMP}/focusa-tauri-signing-${GITHUB_RUN_ID}"
           install -d -m 0700 "$work"
           cleanup() {
