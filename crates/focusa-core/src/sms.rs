@@ -18,6 +18,7 @@ pub enum SmsCapability {
     Checkpoint,
     Revoke,
     ReadOtp,
+    OtpChallenge,
     InjectOtp,
     ListThreads,
     ReadThread,
@@ -63,6 +64,7 @@ pub struct SmsGrant {
 pub struct SmsOtpChallenge {
     pub schema: String,
     pub challenge_handle: String,
+    pub grant_id: String,
     pub provider: String,
     pub connector_id: String,
     pub target_handle: String,
@@ -105,7 +107,7 @@ pub struct SmsMessage {
     pub sender_handle: Option<String>,
     pub recipient_handles: Vec<String>,
     pub body: String,
-    pub sent_at: String,
+    pub sent_at: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -115,6 +117,7 @@ pub struct SmsSendRequest {
     pub idempotency_key: String,
     pub grant_id: String,
     pub consumer_ref: String,
+    pub confirm: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -191,7 +194,15 @@ pub fn authorize_otp_injection(
     if grant.scope.provider.as_deref() != Some(challenge.provider.as_str()) {
         verdict.reasons.push("provider mismatch".into());
     }
-    if grant.scope.challenge_handle.as_deref() != Some(challenge.challenge_handle.as_str()) {
+    if challenge.grant_id != grant.grant_id {
+        verdict.reasons.push("challenge grant mismatch".into());
+    }
+    if grant
+        .scope
+        .challenge_handle
+        .as_deref()
+        .is_some_and(|value| value != challenge.challenge_handle)
+    {
         verdict.reasons.push("challenge mismatch".into());
     }
     if grant.scope.target_handle.as_deref() != Some(challenge.target_handle.as_str()) {
@@ -273,6 +284,7 @@ mod tests {
         let mut challenge = SmsOtpChallenge {
             schema: SMS_CHALLENGE_SCHEMA.into(),
             challenge_handle: "challenge-1".into(),
+            grant_id: "grant-1".into(),
             provider: "github.com".into(),
             connector_id: "sms-1".into(),
             target_handle: "target-1".into(),
@@ -285,6 +297,28 @@ mod tests {
         assert!(
             authorize_otp_injection(&grant, &challenge, "agent-1", "2026-08-29T00:30:00Z").allowed
         );
+        let mut dynamically_bound = grant.clone();
+        dynamically_bound.scope.challenge_handle = None;
+        assert!(
+            authorize_otp_injection(
+                &dynamically_bound,
+                &challenge,
+                "agent-1",
+                "2026-08-29T00:30:00Z"
+            )
+            .allowed
+        );
+        challenge.grant_id = "wrong-grant".into();
+        assert!(
+            !authorize_otp_injection(
+                &dynamically_bound,
+                &challenge,
+                "agent-1",
+                "2026-08-29T00:30:00Z"
+            )
+            .allowed
+        );
+        challenge.grant_id = "grant-1".into();
         challenge.target_handle = "wrong".into();
         assert!(
             !authorize_otp_injection(&grant, &challenge, "agent-1", "2026-08-29T00:30:00Z").allowed

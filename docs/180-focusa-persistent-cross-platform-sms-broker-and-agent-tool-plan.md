@@ -22,10 +22,10 @@ This design forbids that state shape. Enrollment cannot report `paired` until an
 1. `os.focusa.dev` remains a credential-free public-demo trust class. Its Chrome profile, webtop container, public stream, extension, and demo daemon never store SMS/provider auth.
 2. The SMS appliance has no public ingress. Browser CDP and broker HTTP listen only on private loopback/Unix socket; remote administration requires the authorized tailnet plus local peer authorization.
 3. Pairing/profile/cookie/IndexedDB/service-worker state is P4. It never enters Focusa SQLite, model context, evidence, logs, screenshots, receipts, shell arguments, git, or release assets.
-4. Runtime browser state exists only in a private tmpfs directory. Durable state is one encrypted, atomic, mode-0600 checkpoint plus value-free metadata.
+4. Runtime browser state exists only in a private tmpfs directory. Durable state is a bounded set of encrypted, atomic, mode-0600 checkpoint generations plus value-free metadata; at least current and previous verified generations are retained for rollback.
 5. GitHub MFA is SMS-first. Connector degradation triggers repair/restore, not silent GitHub Mobile/passkey/TOTP substitution. Alternative renewable methods require explicit Sir V3 direction. Recovery-code automation is permanently forbidden.
 6. `read_otp`/`inject_otp` never implies inbox, thread, notification, or send access.
-7. Immutable release tag `v0.9.185` remains unchanged. The appliance is private operator infrastructure; it cannot alter/tag/repackage release payloads.
+7. Immutable release tags `v0.9.185` and `v0.9.186` remain unchanged. The appliance is private operator infrastructure; it cannot alter/tag/repackage release payloads.
 
 ## 4. Architecture
 
@@ -54,9 +54,10 @@ Android Messages / future iPhone connector
 - Value-free metadata: `${XDG_STATE_HOME}/focusa/sms-broker/connector-state.json`; schema/version, connector ID, status, checkpoint generation, created/checked timestamps, ciphertext digest, and no URL/query, account, phone, sender, message, cookie, registration, pairing, or OTP values.
 - Unlock identity: machine-bound protected credential supplied to the service through the approved credential authority/system credential surface. It is never an environment value exposed to agents and never committed beside ciphertext.
 - Start: authenticate owner and paths; create tmpfs runtime; decrypt checkpoint; reject traversal/symlinks/foreign ownership; unpack; launch private Chromium; prove connector readiness.
-- Checkpoint: stop/flush browser or use a consistent profile snapshot; omit rebuildable caches; archive; encrypt to same-filesystem temporary file; fsync file and directory; validate decrypt/list in a separate temporary runtime; atomic rename; retain one encrypted rollback generation.
+- Checkpoint: pause the source browser without disposing it; omit rebuildable caches; reject links/foreign ownership/special files; archive; encrypt to same-filesystem temporary file; fsync file and directory; authenticate the generation; atomic rename; retain encrypted rollback generations; resume the source.
 - Checkpoint triggers: successful enrollment, connector state change, bounded periodic dirty-state checkpoint, graceful shutdown, and explicit `focusa sms checkpoint`.
-- Enrollment returns `paired_persisted` only after checkpoint, disposal of the enrollment runtime, restore into a fresh runtime, and a second readiness proof.
+- Enrollment handoff order is fixed: prove source readiness; pause source; checkpoint; restore into an isolated successor profile/process; require two semantic readiness probes; only then retire the source. Any failure kills the successor, removes its plaintext runtime, resumes the original source, and reports `handoff_rolled_back`.
+- Enrollment returns `paired_persisted` only after this source-preserving handoff succeeds. URL/title checks are insufficient: readiness requires the Messages conversations origin/route, no unable-to-connect state, and an operational bounded conversation-list probe.
 
 ### 4.2 Broker authority
 
@@ -101,7 +102,7 @@ focusa_sms_checkpoint
 focusa_sms_revoke
 ```
 
-Future separately granted tools: `focusa_sms_threads`, `focusa_sms_read_thread`, `focusa_sms_send`, and `focusa_sms_events`. They are not part of an OTP grant.
+Separately granted tools: `focusa_sms_threads`, `focusa_sms_read_thread`, `focusa_sms_search`, `focusa_sms_send`, and `focusa_sms_events`. They are implemented but remain inaccessible to an OTP-only grant.
 
 ## 5. Five-hour release-critical lane
 
@@ -117,10 +118,10 @@ Future separately granted tools: `focusa_sms_threads`, `focusa_sms_read_thread`,
 1. Start the private enrollment runtime with a new persistent profile in tmpfs.
 2. Sir V3 performs the one required phone pairing/consent action.
 3. Broker observes `ready` without reading any message.
-4. Create and verify the encrypted atomic checkpoint.
-5. Destroy the runtime profile/process completely.
-6. Restore from ciphertext into a new tmpfs/profile/process.
-7. Require `ready` after restore. If restore fails, enrollment is not accepted and no release authentication starts.
+4. Pause—but do not dispose—the paired source and create/verify an encrypted atomic generation.
+5. Restore that generation into a separate tmpfs profile/process while the source remains recoverable.
+6. Require two semantic `ready` probes from the restored successor.
+7. Only after both proofs, retire the source and report `paired_persisted`. If restore/probe fails, destroy only the successor, resume the source, and do not accept enrollment or start release authentication.
 
 ### Phase R2 — GitHub SMS and AppVeyor authority (35–55 minutes)
 
@@ -144,16 +145,20 @@ Future separately granted tools: `focusa_sms_threads`, `focusa_sms_read_thread`,
 
 ### Phase R4 — release handoff (by 5 hours)
 
-- Release `v0.9.185` public and Latest, or fail closed with the exact remaining provider/gate—not a partial release.
+- Release `v0.9.186` public and Latest, or fail closed with the exact remaining provider/gate—not a partial release.
 - SMS connector remains encrypted, restart-durable, private, healthy, and available to authorized agents.
 
 ## 6. Product implementation workbreakdown
 
 Exact planned Focusa surfaces:
 
-- `scripts/focusa-sms-appliance.py` — sole DRY authority for atomic authenticated checkpoint seal/verify/restore.
-- `scripts/focusa-google-messages-broker.py` — private Android/Google Messages connector adapter; no provider detail enters shared contracts.
-- `tests/sms_appliance_checkpoint_test.py` — round-trip, permissions, redaction, and corruption rejection.
+- `scripts/focusa-sms-appliance.py` — sole DRY authority for atomic authenticated generations, safe archive/restore, rollback, guarded handoff, readiness promotion, and explicit cryptographic revoke.
+- `scripts/focusa-sms-supervisor.py` — managed enrollment/restore/browser/broker owner, source-preserving handoff, periodic/shutdown checkpoint, crash recovery, and watchdog.
+- `scripts/focusa-sms-ready-probe.mjs` — value-free semantic Messages readiness probe.
+- `scripts/focusa-google-messages-broker.py` — private Android/Google Messages adapter with read-only grant projections, separate usage ledger, challenge baseline, exact target injection, replay rejection, and supervisor control.
+- `scripts/install-focusa-sms-appliance-service.sh` and `templates/systemd/focusa-sms-appliance.service` — encrypted-credential, restart-always, watchdog-managed private service.
+- `tests/sms_appliance_checkpoint_test.py` — round-trip, permissions, redaction, generation rollback, symlink rejection, source-resume rollback, and explicit revoke.
+- `tests/sms_broker_contract_test.py` and `tests/sms_pair_once_lifecycle_static_test.py` — capability isolation, replay ledger, consumer surfaces, lifecycle order, semantic gate, and managed service posture.
 - `crates/focusa-core/src/sms.rs` — domain contracts, lifecycle reducer, grant policy, redacted audit types.
 - `crates/focusa-core/src/lib.rs` — module export.
 - `crates/focusa-api/src/routes/sms.rs` — loopback authenticated health/enroll/checkpoint/revoke/challenge/inject routes.

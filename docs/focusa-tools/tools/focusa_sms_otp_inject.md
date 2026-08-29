@@ -13,6 +13,7 @@ Inject one eligible OTP into its exact bound target. The OTP value never enters 
 - `challenge_handle` (required; string): See the strict descriptor schema.
 - `target_handle` (required; string): See the strict descriptor schema.
 - `consumer_ref` (required; string): See the strict descriptor schema.
+- `grant_id` (required; string): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_sms_otp_inject`.
 
@@ -26,7 +27,8 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 {
   "challenge_handle": "example",
   "target_handle": "example",
-  "consumer_ref": "example"
+  "consumer_ref": "example",
+  "grant_id": "example"
 }
 ```
 
@@ -80,4 +82,4 @@ Likely next: `focusa_sms_events`, `focusa_sms_health`, `focusa_sms_revoke`.
 - CLI: `focusa sms otp-inject`.
 - REST: `POST /v1/sms/otp/inject`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:80bdc3da5111da2511ec75d5731e2ec3f5158045dcd574e76416f230d38a27ab`.
+- Descriptor digest: `sha256:14b378351e7b5a21ad9628f18cdc00570559a5db2e0b38b673b27f585be7f59f`.

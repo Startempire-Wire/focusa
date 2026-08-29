@@ -45,6 +45,19 @@ Before risky mutation, every adapter must classify prompt mode, inspect environm
 
 Risky mutation includes deploy, daemon restart, binary replacement, git push, destructive file operation, database migration, generated-code overwrite, secret/config change, release publish, broad refactor, cross-project edit, and pairing/install/update ambiguity.
 
+## Communications capability contract
+
+Communications adapters remain thin and connector-neutral. They pass opaque handles and `focusa.tool_result_v1`; they never receive connector profile state, pairing payloads, provider cookies, or OTP values.
+
+- Health/enrollment are value-free diagnostics.
+- Every list/read/search/send/event/checkpoint/revoke/challenge/inject request carries an active `grant_id` and attributable `consumer_ref` except value-free health/enrollment.
+- OTP challenge registration binds provider + exact target before delivery. Injection requires the same grant, consumer, challenge, and target; successful output is `injected=true`, never the value.
+- `inject_otp` does not imply thread/read/search/send/event authority. Each broader operation requires its own capability.
+- Mutations retain confirmation/idempotency rules; revoke requires explicit owner confirmation and cryptographic erasure.
+- Adapters must reject noncanonical broker envelopes or responses containing credential/OTP/pairing fields.
+
+Canonical generated schemas: `docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json` and `docs/focusa-tools/tools/focusa_sms_*.md`.
+
 ## Failure behavior
 
 Adapters must:

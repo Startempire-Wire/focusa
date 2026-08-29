@@ -10,6 +10,8 @@ Create and verify an encrypted atomic connector checkpoint. Returns value-free r
 
 ## Parameters and strict input schema
 
+- `grant_id` (required; string): See the strict descriptor schema.
+- `consumer_ref` (required; string): See the strict descriptor schema.
 - `confirm` (required; boolean): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_sms_checkpoint`.
@@ -22,6 +24,8 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 ```json
 {
+  "grant_id": "example",
+  "consumer_ref": "example",
   "confirm": false
 }
 ```
@@ -76,4 +80,4 @@ Likely next: `focusa_sms_health`, `focusa_sms_events`, `focusa_sms_enrollment`.
 - CLI: `focusa sms checkpoint`.
 - REST: `POST /v1/sms/checkpoint`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:977b5e102f71e447680fd43d977996349435113fbd84f0122bba4c26d605bba1`.
+- Descriptor digest: `sha256:dfca8726677388b7a770e6e62db2841aae522944b97c67bf5f342f7a834aeead`.

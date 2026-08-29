@@ -4,7 +4,7 @@
 
 use crate::api_client::ApiClient;
 use clap::Subcommand;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::io::{self, Read};
 
 #[derive(Subcommand)]
@@ -15,18 +15,30 @@ pub enum SmsCmd {
     Enrollment,
     /// List authorized thread summaries.
     Threads {
+        #[arg(long)]
+        grant_id: String,
+        #[arg(long)]
+        consumer_ref: String,
         #[arg(long, default_value_t = 50)]
         limit: u32,
     },
     /// Read a bounded authorized thread.
     Read {
         thread_handle: String,
+        #[arg(long)]
+        grant_id: String,
+        #[arg(long)]
+        consumer_ref: String,
         #[arg(long, default_value_t = 50)]
         limit: u32,
     },
     /// Search authorized messages.
     Search {
         query: String,
+        #[arg(long)]
+        grant_id: String,
+        #[arg(long)]
+        consumer_ref: String,
         #[arg(long, default_value_t = 50)]
         limit: u32,
     },
@@ -51,6 +63,8 @@ pub enum SmsCmd {
         target_handle: String,
         #[arg(long)]
         consumer_ref: String,
+        #[arg(long)]
+        grant_id: String,
         #[arg(long, default_value_t = 300)]
         ttl_seconds: u64,
     },
@@ -63,11 +77,22 @@ pub enum SmsCmd {
         target_handle: String,
         #[arg(long)]
         consumer_ref: String,
+        #[arg(long)]
+        grant_id: String,
     },
     /// Atomically checkpoint connector state.
-    Checkpoint,
+    Checkpoint {
+        #[arg(long)]
+        grant_id: String,
+        #[arg(long)]
+        consumer_ref: String,
+    },
     /// Read bounded value-free event metadata.
     Events {
+        #[arg(long)]
+        grant_id: String,
+        #[arg(long)]
+        consumer_ref: String,
         #[arg(long)]
         since: Option<String>,
         #[arg(long, default_value_t = 100)]
@@ -77,6 +102,10 @@ pub enum SmsCmd {
     Revoke {
         #[arg(long)]
         connector_id: String,
+        #[arg(long)]
+        grant_id: String,
+        #[arg(long)]
+        consumer_ref: String,
         #[arg(long)]
         confirm: bool,
     },
@@ -96,24 +125,24 @@ pub async fn run(cmd: SmsCmd, json_mode: bool) -> anyhow::Result<()> {
     let response = match cmd {
         SmsCmd::Health => api.get("/v1/sms/health").await?,
         SmsCmd::Enrollment => api.get("/v1/sms/enrollment").await?,
-        SmsCmd::Threads { limit } => api.get(&format!("/v1/sms/threads?limit={limit}")).await?,
-        SmsCmd::Read { thread_handle, limit } => api.get(&format!("/v1/sms/threads/{}/messages?limit={limit}", urlencoding::encode(&thread_handle))).await?,
-        SmsCmd::Search { query, limit } => api.get(&format!("/v1/sms/search?query={}&limit={limit}", urlencoding::encode(&query))).await?,
+        SmsCmd::Threads { grant_id, consumer_ref, limit } => api.get(&format!("/v1/sms/threads?limit={limit}&grant_id={}&consumer_ref={}", urlencoding::encode(&grant_id), urlencoding::encode(&consumer_ref))).await?,
+        SmsCmd::Read { thread_handle, grant_id, consumer_ref, limit } => api.get(&format!("/v1/sms/threads/{}/messages?limit={limit}&grant_id={}&consumer_ref={}", urlencoding::encode(&thread_handle), urlencoding::encode(&grant_id), urlencoding::encode(&consumer_ref))).await?,
+        SmsCmd::Search { query, grant_id, consumer_ref, limit } => api.get(&format!("/v1/sms/search?query={}&limit={limit}&grant_id={}&consumer_ref={}", urlencoding::encode(&query), urlencoding::encode(&grant_id), urlencoding::encode(&consumer_ref))).await?,
         SmsCmd::Send { recipient_handle, idempotency_key, grant_id, consumer_ref, confirm } => {
             if !confirm { anyhow::bail!("send requires --confirm"); }
             let mut body = String::new(); io::stdin().read_to_string(&mut body)?;
             if body.trim().is_empty() { anyhow::bail!("message body on stdin must be non-empty"); }
             api.post("/v1/sms/send", &json!({"recipient_handles":[recipient_handle],"body":body,"idempotency_key":idempotency_key,"grant_id":grant_id,"consumer_ref":consumer_ref,"confirm":true})).await?
         }
-        SmsCmd::OtpChallenge { provider, target_handle, consumer_ref, ttl_seconds } => api.post("/v1/sms/otp/challenges", &json!({"provider":provider,"target_handle":target_handle,"consumer_ref":consumer_ref,"ttl_seconds":ttl_seconds})).await?,
-        SmsCmd::OtpInject { challenge_handle, target_handle, consumer_ref } => api.post("/v1/sms/otp/inject", &json!({"challenge_handle":challenge_handle,"target_handle":target_handle,"consumer_ref":consumer_ref})).await?,
-        SmsCmd::Checkpoint => api.post("/v1/sms/checkpoint", &json!({"confirm":true})).await?,
-        SmsCmd::Events { since, limit } => {
-            let mut path = format!("/v1/sms/events?limit={limit}"); if let Some(value)=since { path.push_str("&since="); path.push_str(&urlencoding::encode(&value)); } api.get(&path).await?
+        SmsCmd::OtpChallenge { provider, target_handle, consumer_ref, grant_id, ttl_seconds } => api.post("/v1/sms/otp/challenges", &json!({"provider":provider,"target_handle":target_handle,"consumer_ref":consumer_ref,"grant_id":grant_id,"ttl_seconds":ttl_seconds})).await?,
+        SmsCmd::OtpInject { challenge_handle, target_handle, consumer_ref, grant_id } => api.post("/v1/sms/otp/inject", &json!({"challenge_handle":challenge_handle,"target_handle":target_handle,"consumer_ref":consumer_ref,"grant_id":grant_id})).await?,
+        SmsCmd::Checkpoint { grant_id, consumer_ref } => api.post("/v1/sms/checkpoint", &json!({"grant_id":grant_id,"consumer_ref":consumer_ref})).await?,
+        SmsCmd::Events { grant_id, consumer_ref, since, limit } => {
+            let mut path = format!("/v1/sms/events?limit={limit}&grant_id={}&consumer_ref={}", urlencoding::encode(&grant_id), urlencoding::encode(&consumer_ref)); if let Some(value)=since { path.push_str("&since="); path.push_str(&urlencoding::encode(&value)); } api.get(&path).await?
         }
-        SmsCmd::Revoke { connector_id, confirm } => {
+        SmsCmd::Revoke { connector_id, grant_id, consumer_ref, confirm } => {
             if !confirm { anyhow::bail!("revoke requires --confirm"); }
-            api.post("/v1/sms/revoke", &json!({"connector_id":connector_id,"confirm":true})).await?
+            api.post("/v1/sms/revoke", &json!({"connector_id":connector_id,"grant_id":grant_id,"consumer_ref":consumer_ref,"confirm":"REVOKE"})).await?
         }
     };
     render(response, json_mode)

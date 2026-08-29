@@ -524,8 +524,8 @@ pi_tools = load_json(PI_TOOLS)
 descriptors = load_json(DESCRIPTORS)
 
 check(pi_tools["schema"] == "focusa.pi_tool_projection.v2", "pi tool projection schema")
-check(len(pi_tools["tools"]) == len(descriptors["descriptors"]) == 146,
-      "Pi tools and descriptors total 136")
+check(len(pi_tools["tools"]) == len(descriptors["descriptors"]) == 157,
+      "Pi tools and descriptors total 157")
 
 # Descriptor operation policy inherits the canonical family treatment.
 policy_fields = {

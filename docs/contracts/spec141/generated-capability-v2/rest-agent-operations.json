@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:76a566ac0283eb7a6344878fcffbdfdff07e77829039f0a0561f6dea5f95087c",
+  "registry_digest": "sha256:fbd2f66be3a0d30af3953d1b68c882b5c7c92e042332d49a3456cf16eed7bc3b",
   "operations": [
     {
       "method": "POST",
@@ -69665,9 +69665,17 @@
       "input_schema": {
         "type": "object",
         "required": [
+          "grant_id",
+          "consumer_ref",
           "confirm"
         ],
         "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
           "confirm": {
             "type": "boolean"
           }
@@ -70283,7 +70291,17 @@
       "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
+        "required": [
+          "grant_id",
+          "consumer_ref"
+        ],
         "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
           "since": {
             "type": "string"
           },
@@ -70908,7 +70926,8 @@
         "required": [
           "provider",
           "target_handle",
-          "consumer_ref"
+          "consumer_ref",
+          "grant_id"
         ],
         "properties": {
           "provider": {
@@ -70918,6 +70937,9 @@
             "type": "string"
           },
           "consumer_ref": {
+            "type": "string"
+          },
+          "grant_id": {
             "type": "string"
           },
           "ttl_seconds": {
@@ -71235,7 +71257,8 @@
         "required": [
           "challenge_handle",
           "target_handle",
-          "consumer_ref"
+          "consumer_ref",
+          "grant_id"
         ],
         "properties": {
           "challenge_handle": {
@@ -71245,6 +71268,9 @@
             "type": "string"
           },
           "consumer_ref": {
+            "type": "string"
+          },
+          "grant_id": {
             "type": "string"
           }
         },
@@ -71554,10 +71580,18 @@
       "input_schema": {
         "type": "object",
         "required": [
-          "thread_handle"
+          "thread_handle",
+          "grant_id",
+          "consumer_ref"
         ],
         "properties": {
           "thread_handle": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
             "type": "string"
           },
           "limit": {
@@ -71874,10 +71908,18 @@
         "type": "object",
         "required": [
           "connector_id",
+          "grant_id",
+          "consumer_ref",
           "confirm"
         ],
         "properties": {
           "connector_id": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
             "type": "string"
           },
           "confirm": {
@@ -72190,12 +72232,20 @@
       "input_schema": {
         "type": "object",
         "required": [
-          "query"
+          "query",
+          "grant_id",
+          "consumer_ref"
         ],
         "properties": {
           "query": {
             "minLength": 1,
             "maxLength": 500,
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
             "type": "string"
           },
           "limit": {
@@ -72845,7 +72895,17 @@
       "canonical_operation_id": null,
       "input_schema": {
         "type": "object",
+        "required": [
+          "grant_id",
+          "consumer_ref"
+        ],
         "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
           "limit": {
             "minimum": 1,
             "maximum": 200,

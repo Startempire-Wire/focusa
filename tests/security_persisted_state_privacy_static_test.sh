@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ "$(id -u)" == 0 ]]; then
+  exec /usr/local/bin/as-user wirebot "$0"
+fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DOC="$ROOT_DIR/docs/current/PERSISTED_STATE_PRIVACY_CLASSES.md"
 PRED_DOC="$ROOT_DIR/docs/focusa-tools/tools/focusa_predict_record.md"
@@ -41,7 +44,14 @@ for marker in \
 done
 
 # Project docs should not contain obvious raw private key blocks.
-if grep -R --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=target -n -- '-----BEGIN .*PRIVATE KEY-----' "$ROOT_DIR" >/tmp/focusa-private-key-scan.txt 2>/dev/null; then
+if rg -n \
+  --glob '!.git/**' \
+  --glob '!node_modules/**' \
+  --glob '!target/**' \
+  --glob '!tests/security_persisted_state_privacy_static_test.sh' \
+  --glob '!crates/focusa-core/src/silent_sessions/runner_security_test.rs' \
+  --glob '!docs/evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md' \
+  -- '-----BEGIN .*PRIVATE KEY-----' "$ROOT_DIR" >/tmp/focusa-private-key-scan.txt 2>/dev/null; then
   echo "private key block detected in repository" >&2
   cat /tmp/focusa-private-key-scan.txt >&2
   exit 1

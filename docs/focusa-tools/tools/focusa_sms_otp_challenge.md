@@ -13,6 +13,7 @@ Register an exact provider/target challenge before requesting OTP delivery. Retu
 - `provider` (required; string): See the strict descriptor schema.
 - `target_handle` (required; string): See the strict descriptor schema.
 - `consumer_ref` (required; string): See the strict descriptor schema.
+- `grant_id` (required; string): See the strict descriptor schema.
 - `ttl_seconds` (optional; integer; min=30, max=600, default=300): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_sms_otp_challenge`.
@@ -27,7 +28,8 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 {
   "provider": "example",
   "target_handle": "example",
-  "consumer_ref": "example"
+  "consumer_ref": "example",
+  "grant_id": "example"
 }
 ```
 
@@ -81,4 +83,4 @@ Likely next: `focusa_sms_otp_inject`, `focusa_sms_events`, `focusa_sms_health`.
 - CLI: `focusa sms otp-challenge`.
 - REST: `POST /v1/sms/otp/challenges`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:419c3b4d7c5e67302c130b30c4799c1629b8ce36f3ff5da7ce4cf1802f2f31cd`.
+- Descriptor digest: `sha256:98d64356a5183ce2eb7f24cbdc4ce40e41224da62bfb3ca7ff747f80fbbe6ddd`.
