@@ -77,6 +77,12 @@ assert_grep 'export DAEMON_BIN="${DAEMON_BIN:-$CARGO_TARGET_DIR/release/focusa-d
 cleanup_block="$(awk '/^cleanup\(\) \{/{capture=1} capture{print} capture && /^}/{exit}' scripts/ci/run-spec-gates.sh)"
 grep -Fq 'cleanup_ephemeral_builds' <<<"$cleanup_block" || { echo '✗ strict spec combined EXIT cleanup missing'; exit 1; }
 
+# Self-hosted AlmaLinux cannot provision actions/setup-python 3.13 (#388).
+docs_workflow=.github/workflows/spec152-documentation-consistency.yml
+assert_not_grep 'actions/setup-python' "$docs_workflow" 'Spec 152 docs workflow must use the installed self-hosted Python runtime'
+assert_grep "sys.version_info >= (3, 12)" "$docs_workflow" 'Spec 152 docs workflow must enforce its Python runtime floor'
+assert_grep 'python3 tests/spec152_documentation_consistency_gate.py' "$docs_workflow" 'Spec 152 documentation gate command missing'
+
 # install-daemon.sh assertions
 assert_grep 'flock -n 9' scripts/install-daemon.sh 'deploy lock missing'
 assert_grep 'backup saved to' scripts/install-daemon.sh 'backup path log missing'

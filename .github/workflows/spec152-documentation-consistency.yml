@@ -32,9 +32,10 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
+      - name: Verify self-hosted Python runtime
+        run: |
+          python3 --version
+          python3 -c 'import sys; assert sys.version_info >= (3, 12), sys.version'
       - name: Run Spec 152 documentation gate
         run: python3 tests/spec152_documentation_consistency_gate.py
       - name: Verify canonical and packaged install runbooks are byte-identical
