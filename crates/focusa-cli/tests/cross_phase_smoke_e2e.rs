@@ -178,6 +178,11 @@ fn detached_background_job_reuses_one_durable_row() {
     assert_eq!(wait_result["status"], "done");
     assert_eq!(wait_result["job"]["job_id"], job_id);
     assert_eq!(wait_result["job"]["status"], "completed");
+    assert_eq!(
+        wait_result["completion_event"]["event_type"],
+        focusa_core::background_jobs::BACKGROUND_JOB_COMPLETION_EVENT
+    );
+    assert_eq!(wait_result["completion_event"]["job_id"], job_id);
 
     let listed = Command::new(FOCUSA_BIN)
         .args(["bg", "--json", "list"])
