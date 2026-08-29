@@ -100,7 +100,15 @@ if [[ "$STRICT" -eq 1 ]]; then
     python3 tests/spec104_singleton_inventory_gate.py --closure
     python3 scripts/verify-version-surfaces.py "$TAG"
   else
-    bash scripts/ci/run-spec-gates.sh
+    CARGO_ROUTE="$(FOCUSA_ROUTE_DRY_RUN=1 cargo --version 2>/dev/null || true)"
+    if [[ "$CARGO_ROUTE" == route=ovh* ]] && [[ -x /usr/local/bin/focusa-ovh-build ]]; then
+      echo "routing dynamic spec gates to OVH build host"
+      FOCUSA_SOURCE_ROOT="$ROOT" /usr/local/bin/focusa-ovh-build \
+        env -u CARGO_TARGET_DIR -u FOCUSA_CARGO_TARGET_DIR -u DAEMON_BIN \
+        bash scripts/ci/run-spec-gates.sh
+    else
+      bash scripts/ci/run-spec-gates.sh
+    fi
   fi
   echo "spec gates: PASS"
 fi

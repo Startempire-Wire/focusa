@@ -74,6 +74,19 @@ assert_grep 'concurrency:' .github/workflows/deploy-live-daemon.yml 'deploy conc
 
 # Per-run strict-spec daemon and cleanup propagation guards (#387).
 assert_grep 'export DAEMON_BIN="${DAEMON_BIN:-$CARGO_TARGET_DIR/release/focusa-daemon}"' scripts/ci/run-spec-gates.sh 'strict spec child gates must inherit the isolated daemon path'
+assert_grep 'spec-gates daemon missing after successful build: $DAEMON_BIN' scripts/ci/run-spec-gates.sh 'strict spec gate must fail immediately when its daemon artifact is absent'
+assert_grep 'TEST_BEADS_FIXTURE="$ROOT_DIR/.beads/issues.jsonl"' scripts/ci/run-spec-gates.sh 'isolated spec gates must provision only a synthetic Beads fixture when history is absent'
+assert_grep 'rm -f "$TEST_BEADS_FIXTURE"' scripts/ci/run-spec-gates.sh 'synthetic Beads fixture must be removed on exit'
+assert_grep 'TEST_GIT_DIR="$(mktemp -d "$ROOT_DIR/../gate-git-meta.XXXXXX")"' scripts/ci/run-spec-gates.sh 'remote spec gates must use disposable Git metadata when worktree metadata is unavailable'
+assert_grep 'export GIT_WORK_TREE="$ROOT_DIR"' scripts/ci/run-spec-gates.sh 'disposable Git metadata must bind the exact gate worktree'
+assert_grep 'FOCUSA_HISTORYLESS_GATE' scripts/ci/run-spec-gates.sh 'isolated historyless gate mode must be explicit'
+assert_grep 'historyless isolated source sync' tests/bead_closure_evidence_gate.py 'history-only gate must report bounded historyless mode'
+assert_grep 'rm -rf "$TEST_GIT_DIR"' scripts/ci/run-spec-gates.sh 'disposable Git metadata must be removed on exit'
+assert_grep 'FOCUSA_ROUTE_DRY_RUN=1 cargo --version' scripts/local-release-preflight.sh 'strict preflight must query the canonical cargo routing authority'
+assert_grep '[[ "$CARGO_ROUTE" == route=ovh* ]]' scripts/local-release-preflight.sh 'strict preflight must detect the canonical OVH cargo route'
+assert_grep 'FOCUSA_SOURCE_ROOT="$ROOT" /usr/local/bin/focusa-ovh-build' scripts/local-release-preflight.sh 'routed OVH spec gate must bind the exact release checkout'
+assert_grep 'env -u CARGO_TARGET_DIR -u FOCUSA_CARGO_TARGET_DIR -u DAEMON_BIN' scripts/local-release-preflight.sh 'routed OVH spec gate must preserve ephemeral target isolation'
+assert_grep 'bash scripts/ci/run-spec-gates.sh' scripts/local-release-preflight.sh 'strict preflight must preserve native runner execution'
 cleanup_block="$(awk '/^cleanup\(\) \{/{capture=1} capture{print} capture && /^}/{exit}' scripts/ci/run-spec-gates.sh)"
 grep -Fq 'cleanup_ephemeral_builds' <<<"$cleanup_block" || { echo '✗ strict spec combined EXIT cleanup missing'; exit 1; }
 

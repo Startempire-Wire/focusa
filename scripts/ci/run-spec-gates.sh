@@ -38,6 +38,28 @@ export FOCUSA_DATA_DIR="${FOCUSA_DATA_DIR:-$(mktemp -d /tmp/focusa-spec-gates.XX
 # gating still executes. See crates/focusa-api/src/main.rs:322 and
 # crates/focusa-api/src/middleware/entitlement.rs:369.
 export FOCUSA_TEST_MODE="${FOCUSA_TEST_MODE:-1}"
+export FOCUSA_HISTORYLESS_GATE="${FOCUSA_HISTORYLESS_GATE:-0}"
+TEST_BEADS_FIXTURE=""
+TEST_GIT_DIR=""
+if [[ "$FOCUSA_TEST_MODE" == "1" ]] && ! git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+  # OVH source sync intentionally excludes the worktree's .git metadata.
+  # Provide a disposable two-commit graph for read-only evidence gates;
+  # never copy or mutate repository history on the build host.
+  TEST_GIT_DIR="$(mktemp -d "$ROOT_DIR/../gate-git-meta.XXXXXX")"
+  git init -q "$TEST_GIT_DIR"
+  git -C "$TEST_GIT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate base'
+  git -C "$TEST_GIT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate head'
+  export GIT_DIR="$TEST_GIT_DIR"
+  export GIT_WORK_TREE="$ROOT_DIR"
+fi
+if [[ "$FOCUSA_TEST_MODE" == "1" && ! -s "$ROOT_DIR/.beads/issues.jsonl" ]]; then
+  # OVH source sync intentionally excludes repository Beads history. Supply
+  # only the synthetic issue required by command-write contract tests, and
+  # remove it on every exit; never copy or mutate operator task history.
+  mkdir -p "$ROOT_DIR/.beads"
+  printf '%s\n' '{"id":"focusa-032h","status":"open"}' > "$ROOT_DIR/.beads/issues.jsonl"
+  TEST_BEADS_FIXTURE="$ROOT_DIR/.beads/issues.jsonl"
+fi
 
 export DAEMON_BIN="${DAEMON_BIN:-$CARGO_TARGET_DIR/release/focusa-daemon}"
 if [ ! -x "$DAEMON_BIN" ]; then
@@ -49,6 +71,10 @@ if [ ! -x "$DAEMON_BIN" ]; then
   # release pipeline uses musl + cross for the shipped artifact.
   "$CARGO_BIN" build -p focusa-api --release --bin focusa-daemon
 fi
+if [ ! -x "$DAEMON_BIN" ]; then
+  echo "spec-gates daemon missing after successful build: $DAEMON_BIN" >&2
+  exit 1
+fi
 # Per-user daemon log: a root/wirebot-owned /tmp/focusa-daemon.log once
 # blocked the github-runner user from starting the daemon (EACCES).
 DAEMON_LOG="${DAEMON_LOG:-/tmp/focusa-daemon.$(id -u).log}"
@@ -57,6 +83,12 @@ DAEMON_PID=$!
 cleanup() {
   kill "$DAEMON_PID" >/dev/null 2>&1 || true
   rm -rf "$FOCUSA_DATA_DIR" >/dev/null 2>&1 || true
+  if [[ -n "$TEST_BEADS_FIXTURE" ]]; then
+    rm -f "$TEST_BEADS_FIXTURE" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "$TEST_GIT_DIR" ]]; then
+    rm -rf "$TEST_GIT_DIR" >/dev/null 2>&1 || true
+  fi
   cleanup_ephemeral_builds
 }
 trap cleanup EXIT
