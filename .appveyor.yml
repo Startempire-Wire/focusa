@@ -101,17 +101,13 @@ after_build:
         if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw "missing base64 Tauri updater signing key payload" }
         if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { throw "missing Tauri updater signing password" }
         $repoRoot = (Resolve-Path .).Path
-        $keyPath = Join-Path $env:TEMP "focusa-tauri-signing-$($env:APPVEYOR_JOB_ID).key"
         try {
-          $keyBytes = [Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)
-          [IO.File]::WriteAllBytes($keyPath, $keyBytes)
-          $keyLines = [IO.File]::ReadAllLines($keyPath)
+          $keyText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY))
+          $keyLines = @($keyText -split "`r?`n" | Where-Object { $_ })
           if ($keyLines.Length -ne 2 -or -not $keyLines[0].StartsWith("untrusted comment:")) {
-            throw "invalid Tauri signing key file structure"
+            throw "invalid Tauri signing key payload structure"
           }
           [Convert]::FromBase64String($keyLines[1]) | Out-Null
-          [IO.File]::WriteAllBytes($keyPath, [Text.Encoding]::ASCII.GetBytes($keyLines[1]))
-          $env:TAURI_SIGNING_PRIVATE_KEY = $keyPath
           npm install -g bun
           Set-Location apps/menubar
           bun install
@@ -132,11 +128,6 @@ after_build:
         } finally {
           Set-Location $repoRoot
           $env:TAURI_SIGNING_PRIVATE_KEY = $null
-          if (Test-Path $keyPath) {
-            $keyLength = (Get-Item $keyPath).Length
-            [IO.File]::WriteAllBytes($keyPath, (New-Object byte[] $keyLength))
-            Remove-Item -Force $keyPath
-          }
         }
       }
 

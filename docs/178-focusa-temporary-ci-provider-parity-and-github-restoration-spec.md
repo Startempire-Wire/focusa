@@ -89,19 +89,18 @@ fetch the immutable tag, require its commit to equal the recorded full SHA,
 detach-checkout that SHA, and export the verified identity before dependency,
 build, package, or upload steps. A normal tag build ignores the recovery record.
 Disable the recovery record immediately after release closure.
-17. Codemagic release scripts use strict shell mode. The existing Tauri private
-key is transported as a secure base64-encoded file payload, decoded only inside
-the private ephemeral builder, validated without printing, and reduced to the
-base64 secret-key bytes expected by Tauri—without comment header or trailing newline—in a mode-0600 file. The file is
-used through `TAURI_SIGNING_PRIVATE_KEY=<path>`, overwritten and removed on
-exit. Both architecture-specific updater signatures must exist and be nonempty
-before any menubar asset upload; a signer decode error is a hard provider
-failure, never a green warning.
-18. AppVeyor uses the same secure base64 key-file payload contract. Windows
-release packaging decodes and validates the key only in the private build-user
-temporary directory, points Tauri at that path, then overwrites and removes the
-file in a `finally` block. The provider project must hold both the key payload
-and password as secure variables; absent authority fails before package work.
+17. Codemagic release scripts use strict shell mode. The existing two-line
+Minisign private-key file is transported as one secure outer-base64 payload.
+The private ephemeral builder validates both the outer payload and inner key
+line without printing or persisting decoded content, then passes the unchanged
+outer-base64 value directly through `TAURI_SIGNING_PRIVATE_KEY`, as required by
+Tauri's decoder. Both architecture-specific updater signatures must exist and
+be nonempty before any menubar asset upload; a signer decode error is a hard
+provider failure, never a green warning.
+18. AppVeyor uses the same secure outer-base64 payload contract and validates it
+in memory before Tauri packaging. No decoded signing-key file is written on
+either provider. The AppVeyor project must hold both the key payload and
+password as secure variables; absent authority fails before package work.
 
 ## 4. Spending and trigger boundary
 

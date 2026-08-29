@@ -133,14 +133,13 @@ grep -q 'FOCUSA_CODEMAGIC_RECOVERY' "$CODEMAGIC" \
   || fail "both Codemagic workflows must pin the canonical Rust toolchain"
 grep -q 'missing base64 Tauri updater signing key payload' "$CODEMAGIC" \
   || fail "Codemagic signer does not require the encoded key payload"
-grep -q 'base64.b64decode' "$CODEMAGIC" \
-  || fail "Codemagic signer does not decode the key into a private file"
-grep -Fq 'path.write_bytes(lines[1])' "$CODEMAGIC" \
-  || fail "Codemagic passes the Minisign comment header to the Tauri decoder"
-grep -Fq '[Text.Encoding]::ASCII.GetBytes($keyLines[1])' "$APPVEYOR" \
-  || fail "AppVeyor passes the Minisign comment header to the Tauri decoder"
-grep -q 'trap cleanup_signing_key EXIT' "$CODEMAGIC" \
-  || fail "Codemagic signer does not remove the decoded key on exit"
+grep -Fq 'base64.b64decode(os.environ["TAURI_SIGNING_PRIVATE_KEY"], validate=True)' "$CODEMAGIC" \
+  || fail "Codemagic does not validate the secure outer-base64 key payload"
+grep -Fq '[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY))' "$APPVEYOR" \
+  || fail "AppVeyor does not validate the secure outer-base64 key payload"
+if grep -q 'focusa-tauri-signing-key\|keyPath\|TAURI_SIGNING_PRIVATE_KEY = \$keyPath' "$CODEMAGIC" "$APPVEYOR"; then
+  fail "provider workflow must not persist the decoded Tauri signing key"
+fi
 grep -Fq 'test -s "${updater}.sig"' "$CODEMAGIC" \
   || fail "Codemagic package step does not fail on a missing generated signature"
 [ "$(grep -Fc 'app.tar.gz.sig' "$CODEMAGIC")" -ge 4 ] \
@@ -154,10 +153,8 @@ grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
   || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
 grep -Fq '[Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)' "$APPVEYOR" \
   || fail "AppVeyor does not decode the secure signing key payload"
-grep -Fq '[IO.File]::WriteAllBytes($keyPath, (New-Object byte[] $keyLength))' "$APPVEYOR" \
-  || fail "AppVeyor does not overwrite the decoded signing key"
-grep -Fq 'Remove-Item -Force $keyPath' "$APPVEYOR" \
-  || fail "AppVeyor does not remove the decoded signing key"
+grep -Fq '$env:TAURI_SIGNING_PRIVATE_KEY = $null' "$APPVEYOR" \
+  || fail "AppVeyor does not clear the signing payload after package work"
 grep -q 'appveyor_recovery_identity=passed' "$APPVEYOR" \
   || fail "AppVeyor lacks exact tag/SHA recovery identity proof"
 grep -q 'FOCUSA_RECOVERY_TAG' "$APPVEYOR" \

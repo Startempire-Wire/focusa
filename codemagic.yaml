@@ -92,34 +92,14 @@ workflows:
           cd apps/menubar
           : "${TAURI_SIGNING_PRIVATE_KEY:?missing base64 Tauri updater signing key payload}"
           : "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:?missing Tauri updater signing password}"
-          key_file="$(mktemp "${TMPDIR:-/tmp}/focusa-tauri-signing-key.XXXXXX")"
-          chmod 600 "$key_file"
-          export FOCUSA_TAURI_SIGNING_KEY_B64="$TAURI_SIGNING_PRIVATE_KEY"
-          unset TAURI_SIGNING_PRIVATE_KEY
-          python3 - "$key_file" <<'PY'
-          import base64, os, pathlib, sys
-          path = pathlib.Path(sys.argv[1])
-          raw = base64.b64decode(os.environ["FOCUSA_TAURI_SIGNING_KEY_B64"], validate=True)
+          python3 - <<'PY'
+          import base64, os
+          raw = base64.b64decode(os.environ["TAURI_SIGNING_PRIVATE_KEY"], validate=True)
           lines = raw.splitlines()
-          assert len(lines) == 2, "Tauri signing key file must contain exactly two lines"
+          assert len(lines) == 2, "Tauri signing key payload must contain exactly two lines"
           assert lines[0].startswith(b"untrusted comment:"), "Tauri signing key comment missing"
           base64.b64decode(lines[1], validate=True)
-          path.write_bytes(lines[1])
           PY
-          unset FOCUSA_TAURI_SIGNING_KEY_B64
-          export TAURI_SIGNING_PRIVATE_KEY="$key_file"
-          cleanup_signing_key() {
-            if [[ -f "$key_file" ]]; then
-              python3 - "$key_file" <<'PY'
-          import pathlib, sys
-          path = pathlib.Path(sys.argv[1])
-          if path.exists():
-              path.write_bytes(b"\0" * path.stat().st_size)
-              path.unlink()
-          PY
-            fi
-          }
-          trap cleanup_signing_key EXIT
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
             rm -rf "src-tauri/target/$target/release/bundle"
             npx tauri build --target "$target" --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":true}}'
