@@ -72,7 +72,14 @@ workflows:
           set -euo pipefail
           cd apps/menubar
           npm ci
-          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain nightly-2026-08-28
+            export PATH="$HOME/.cargo/bin:$PATH"
+            printf 'PATH=%s\n' "$PATH" >> "$CM_ENV"
+          fi
+          rustup toolchain install nightly-2026-08-28 --profile minimal
+          rustup default nightly-2026-08-28
+          rustup target add --toolchain nightly-2026-08-28 aarch64-apple-darwin x86_64-apple-darwin
       - name: Typecheck + web build
         script: |
           set -euo pipefail
@@ -226,7 +233,14 @@ workflows:
       - name: Install Rust targets
         script: |
           set -euo pipefail
-          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain nightly-2026-08-28
+            export PATH="$HOME/.cargo/bin:$PATH"
+            printf 'PATH=%s\n' "$PATH" >> "$CM_ENV"
+          fi
+          rustup toolchain install nightly-2026-08-28 --profile minimal
+          rustup default nightly-2026-08-28
+          rustup target add --toolchain nightly-2026-08-28 aarch64-apple-darwin x86_64-apple-darwin
       - name: Build + package both macOS targets
         script: |
           set -euo pipefail

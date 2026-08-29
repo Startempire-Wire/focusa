@@ -127,6 +127,10 @@ grep -q 'FOCUSA_CODEMAGIC_RECOVERY' "$CODEMAGIC" \
   || fail "Codemagic recovery requires an explicit branch-build grant"
 [ "$(grep -c 'codemagic_recovery_identity=passed' "$CODEMAGIC")" -eq 2 ] \
   || fail "both Codemagic workflows must prove exact tag/SHA identity"
+[ "$(grep -Fc 'https://sh.rustup.rs' "$CODEMAGIC")" -eq 2 ] \
+  || fail "both Codemagic workflows must bootstrap Rust on a clean API build"
+[ "$(grep -Fc 'rustup default nightly-2026-08-28' "$CODEMAGIC")" -eq 2 ] \
+  || fail "both Codemagic workflows must pin the canonical Rust toolchain"
 grep -q 'missing base64 Tauri updater signing key payload' "$CODEMAGIC" \
   || fail "Codemagic signer does not require the encoded key payload"
 grep -q 'base64.b64decode' "$CODEMAGIC" \
@@ -180,7 +184,9 @@ assert text.count("--draft=false") == 1, "release workflow must have exactly one
 publish = text.index("--draft=false")
 checksums = text.index("  checksums:")
 assert publish > checksums, "release publisher must remain downstream of receipt-gated checksums"
-cm_lines = open(sys.argv[4], encoding="utf-8").read().splitlines()
+cm_text = open(sys.argv[4], encoding="utf-8").read()
+assert cm_text.count("printf 'PATH=%s\\n' \"$PATH\" >> \"$CM_ENV\"") == 2, "Codemagic Rust bootstrap PATH does not persist across steps"
+cm_lines = cm_text.splitlines()
 script_count = 0
 for index, line in enumerate(cm_lines):
     if line.strip() != "script: |":
