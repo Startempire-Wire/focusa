@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFile } from "node:child_process";
 // E2E live-route matrix — exercises every closed-bug fix + every feature
 // against the running daemon. Machine-readable report; exit 1 on any gap.
 const BASE = process.env.FOCUSA_API_BASE || "http://127.0.0.1:8787/v1";
@@ -39,6 +40,40 @@ check("bg create/complete loop (#311)", async () => {
   const event = completed.json?.completion_event;
   return done?.status === "completed" && event?.event_type === "background_job_completion"
     && typeof event.output_tail === "string";
+});
+
+check("bg detached receipt reuses one durable row (#390)", async () => {
+  const cli = process.env.FOCUSA_CLI_BIN || "focusa";
+  const name = `e2e-detach-${Date.now()}`;
+  const stdout = await new Promise((resolve, reject) => {
+    execFile(
+      cli,
+      [
+        "bg", "--json", "run", "--detach", "--name", name, "--cwd", "/tmp", "--",
+        process.execPath, "-e", "process.stdout.write('bg-e2e')",
+      ],
+      { timeout: 10_000, maxBuffer: 256 * 1024 },
+      (error, childStdout, childStderr) => {
+        if (error) {
+          reject(new Error(String(childStderr || `bg detach exited ${error.code ?? "unknown"}`)));
+          return;
+        }
+        resolve(childStdout);
+      }
+    );
+  });
+  const receipt = JSON.parse(String(stdout));
+  if (receipt?.schema !== "focusa.background_job_dispatch.v1" || !receipt?.job_id) return false;
+  const waited = await call(
+    "GET",
+    `/background-jobs/wait?job_id=${encodeURIComponent(receipt.job_id)}&timeout_ms=10000`
+  );
+  const listed = await call("GET", "/background-jobs");
+  const matching = listed.json?.jobs?.filter((job) => job.name === name) || [];
+  return waited.json?.status === "done"
+    && waited.json?.job?.job_id === receipt.job_id
+    && matching.length === 1
+    && matching[0]?.job_id === receipt.job_id;
 });
 
 check("completion claim evaluate (#276/#277)", async () => {

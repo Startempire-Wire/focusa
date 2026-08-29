@@ -46,7 +46,8 @@ focusa bg status → ledger row + monitor-lost reaping (/proc pid check)
 1. Completion is recorded durably BEFORE the SSE broadcast (mirrors #311).
 2. The CLI monitor owns the lifecycle; a dead monitor is detected by
    `bg status` (pid liveness) and recorded as `monitor_lost` — never
-   silently "running" forever.
+   silently "running" forever. Every `monitor_lost` transition is terminal,
+   receives `completed_at`, and broadcasts the same completion envelope.
 3. Job output streams to the job's log file (reported in every envelope);
    the ledger stores the log path, not the log contents.
 4. Waiters and the agent surface read the SAME completion envelope —
@@ -139,3 +140,21 @@ and the human had no persistent view of running jobs. v2 closes all three.
   exit code + bounded tail line.
 - AC4 widget renders ≥1 running job during a sleep job and clears to
   recent-completions view after.
+
+## v2.1 hardening — durable receipt required (2026-08-28)
+
+A Pi tool must never infer dispatch from successfully starting a local CLI
+process. `focusa_bg_run` and every lane of `focusa_bg_run_many` invoke
+`focusa bg run --detach --json` and report success only after parsing a
+non-empty durable `job_id` and `log_path` from
+`focusa.background_job_dispatch.v1` (legacy text receipts remain readable).
+Quoted command strings are passed as one platform-shell payload, never split
+on spaces.
+
+The detached CLI monitor reuses the job row created by its parent through
+hidden internal binding arguments; it must not create a second queued row.
+`focusa_bg_status` normalizes API bases once and fails closed on HTTP errors,
+missing jobs, invalid JSON, or malformed ledger envelopes. Entitlement and
+daemon failures remain visible tool failures and never produce “dispatched”
+wording. The daemon must declare and merge the background-job router; the
+isolated same-row e2e is the registration and monitor-parity release proof.

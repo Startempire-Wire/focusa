@@ -567,6 +567,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::instances::router())
         .merge(routes::attachments::router())
         .merge(routes::sync::router())
+        .merge(routes::background_jobs::router())
         .merge(routes::bloatgaurd::router())
         .merge(routes::focus::router())
         .merge(routes::work_items::router())

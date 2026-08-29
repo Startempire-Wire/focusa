@@ -2064,7 +2064,7 @@
     {
       "name": "focusa_bg_run",
       "label": "BG Run",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.",
       "family": "background_job",
       "ontology_action": "background_job.run",
       "ontology_objects": [
@@ -2076,16 +2076,16 @@
       "api_routes": [
         "/v1/background-jobs"
       ],
-      "cli_commands": [],
-      "core_surface": "background_jobs route",
+      "cli_commands": [
+        "focusa bg run --detach"
+      ],
+      "core_surface": "background_jobs route and CLI monitor",
       "doc_path": "docs/focusa-tools/tools/focusa_bg_run.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "durable_dispatch",
-      "parity_status": "daemon_backed",
-      "exemptions": [
-        "daemon_backed_no_cli"
-      ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "dispatch returns a non-empty durable job_id; the same row is observable and completes through SSE",
       "scope_requirement": {
         "kind": "read",
         "route_family": "auto"
@@ -2097,7 +2097,7 @@
     {
       "name": "focusa_bg_run_many",
       "label": "BG Run Many",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.",
       "family": "background_job",
       "ontology_action": "background_job.run_many",
       "ontology_objects": [
@@ -2109,16 +2109,16 @@
       "api_routes": [
         "/v1/background-jobs"
       ],
-      "cli_commands": [],
-      "core_surface": "background_jobs route",
+      "cli_commands": [
+        "focusa bg run --detach"
+      ],
+      "core_surface": "background_jobs route and CLI monitor",
       "doc_path": "docs/focusa-tools/tools/focusa_bg_run_many.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "durable_dispatch",
-      "parity_status": "daemon_backed",
-      "exemptions": [
-        "daemon_backed_no_cli"
-      ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "every successful lane returns a durable job_id; failures name the lane and never claim full dispatch",
       "scope_requirement": {
         "kind": "read",
         "route_family": "auto"
@@ -2130,7 +2130,7 @@
     {
       "name": "focusa_bg_status",
       "label": "BG Status",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
       "family": "background_job",
       "ontology_action": "background_job.status",
       "ontology_objects": [
@@ -2142,16 +2142,17 @@
       "api_routes": [
         "/v1/background-jobs"
       ],
-      "cli_commands": [],
+      "cli_commands": [
+        "focusa bg status --job",
+        "focusa bg list"
+      ],
       "core_surface": "background_job_store",
       "doc_path": "docs/focusa-tools/tools/focusa_bg_status.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_status",
-      "parity_status": "daemon_backed",
-      "exemptions": [
-        "daemon_backed_no_cli"
-      ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "Pi and CLI observe the same durable job row; HTTP, missing-row, and invalid-envelope states fail closed",
       "scope_requirement": {
         "kind": "read",
         "route_family": "auto"

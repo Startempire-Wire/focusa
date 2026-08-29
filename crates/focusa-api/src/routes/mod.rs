@@ -10,6 +10,7 @@ pub mod ascc;
 pub mod attachments;
 pub mod autonomy;
 pub mod awareness;
+pub mod background_jobs;
 pub mod bloatgaurd;
 pub mod bloatgaurd_optical;
 pub mod bounded;

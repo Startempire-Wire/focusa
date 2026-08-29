@@ -10,6 +10,7 @@
 use serde::{Deserialize, Serialize};
 
 pub const BACKGROUND_JOB_SCHEMA: &str = "focusa.background_job.v1";
+pub const BACKGROUND_JOB_DISPATCH_SCHEMA: &str = "focusa.background_job_dispatch.v1";
 pub const BACKGROUND_JOB_COMPLETION_EVENT: &str = "background_job_completion";
 /// docs/165 v2: broadcast when a job transitions queued → running so
 /// surfaces see dispatch latency, not just completion.

@@ -5265,7 +5265,9 @@
         "pi": "focusa_bg_run",
         "mcp": "focusa.bg.run",
         "openai": "focusa_bg_run",
-        "cli": [],
+        "cli": [
+          "focusa bg run --detach"
+        ],
         "rest": [
           {
             "method": "/v1/background-jobs",
@@ -5275,8 +5277,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa BG Run",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.",
+      "description": "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "background_job",
       "namespace": "focusa.background_job",
       "operation_policy": {
@@ -5324,12 +5326,11 @@
           "pi",
           "mcp",
           "openai",
-          "rest"
+          "rest",
+          "cli"
         ],
-        "parity_status": "daemon_backed",
-        "exemptions": [
-          "daemon_backed_no_cli"
-        ]
+        "parity_status": "full",
+        "exemptions": []
       },
       "input_schema": {
         "type": "object",
@@ -5339,14 +5340,17 @@
         ],
         "properties": {
           "name": {
+            "minLength": 1,
             "description": "Human job name (appears in the completion notification).",
             "type": "string"
           },
           "command": {
+            "minLength": 1,
             "description": "The full command line to execute (after -- semantics).",
             "type": "string"
           },
           "cwd": {
+            "minLength": 1,
             "description": "Working directory (defaults to the current session cwd).",
             "type": "string"
           }
@@ -5675,12 +5679,12 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.",
           "arguments": {
             "name": "focusa_workpoint_resume",
             "command": "example"
           },
-          "human_invocation": "focusa_bg_run { ... }",
+          "human_invocation": "focusa bg run --detach",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run.md"
         }
       ],
@@ -5738,7 +5742,7 @@
           "Credential",
           "BackgroundJob"
         ],
-        "core_surface": "background_jobs route"
+        "core_surface": "background_jobs route and CLI monitor"
       },
       "evidence_requirements": [
         "stable evidence or receipt ref proving the mutation outcome"
@@ -5756,7 +5760,7 @@
         "snippet": "The canonical non-blocking dispatch for builds/tests/long scans.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:eba3886251790b86ae7ae5d6ef010a17a68f985d54838f3710102dcc910e7d13"
+      "descriptor_digest": "sha256:e325c11f824d89a3bd2d291d6bfa07986d0b1f4bf20c17f7b566864e20db763c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5784,7 +5788,9 @@
         "pi": "focusa_bg_run_many",
         "mcp": "focusa.bg.run.many",
         "openai": "focusa_bg_run_many",
-        "cli": [],
+        "cli": [
+          "focusa bg run --detach"
+        ],
         "rest": [
           {
             "method": "/v1/background-jobs",
@@ -5794,8 +5800,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa BG Run Many (parallel orchestration)",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.",
+      "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "background_job",
       "namespace": "focusa.background_job",
       "operation_policy": {
@@ -5843,12 +5849,11 @@
           "pi",
           "mcp",
           "openai",
-          "rest"
+          "rest",
+          "cli"
         ],
-        "parity_status": "daemon_backed",
-        "exemptions": [
-          "daemon_backed_no_cli"
-        ]
+        "parity_status": "full",
+        "exemptions": []
       },
       "input_schema": {
         "type": "object",
@@ -5857,6 +5862,7 @@
         ],
         "properties": {
           "jobs": {
+            "minItems": 1,
             "type": "array",
             "items": {
               "type": "object",
@@ -5866,14 +5872,17 @@
               ],
               "properties": {
                 "name": {
+                  "minLength": 1,
                   "description": "Job name (appears in its completion notification).",
                   "type": "string"
                 },
                 "command": {
+                  "minLength": 1,
                   "description": "Full command line to execute.",
                   "type": "string"
                 },
                 "cwd": {
+                  "minLength": 1,
                   "description": "Working directory override.",
                   "type": "string"
                 }
@@ -6206,11 +6215,16 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.",
           "arguments": {
-            "jobs": []
+            "jobs": [
+              {
+                "name": "focusa_workpoint_resume",
+                "command": "example"
+              }
+            ]
           },
-          "human_invocation": "focusa_bg_run_many { ... }",
+          "human_invocation": "focusa bg run --detach",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run_many.md"
         }
       ],
@@ -6268,7 +6282,7 @@
           "Credential",
           "BackgroundJob"
         ],
-        "core_surface": "background_jobs route"
+        "core_surface": "background_jobs route and CLI monitor"
       },
       "evidence_requirements": [
         "stable evidence or receipt ref proving the mutation outcome"
@@ -6286,7 +6300,7 @@
         "snippet": "Use to parallelize independent long-running commands.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c98365944e03db22475a74229e965d2e6f1cf97670ffe2adeb7159235477c75c"
+      "descriptor_digest": "sha256:94eb9d688eda728faa0ec6d3610f2310f32a11e0f429ee5da4327d005d240533"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -6314,7 +6328,10 @@
         "pi": "focusa_bg_status",
         "mcp": "focusa.bg.status",
         "openai": "focusa_bg_status",
-        "cli": [],
+        "cli": [
+          "focusa bg status --job",
+          "focusa bg list"
+        ],
         "rest": [
           {
             "method": "/v1/background-jobs",
@@ -6324,8 +6341,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa BG Status",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+      "description": "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "background_job",
       "namespace": "focusa.background_job",
       "operation_policy": {
@@ -6373,17 +6390,17 @@
           "pi",
           "mcp",
           "openai",
-          "rest"
+          "rest",
+          "cli"
         ],
-        "parity_status": "daemon_backed",
-        "exemptions": [
-          "daemon_backed_no_cli"
-        ]
+        "parity_status": "full",
+        "exemptions": []
       },
       "input_schema": {
         "type": "object",
         "properties": {
           "job_id": {
+            "minLength": 1,
             "description": "Optional job id; omit to list recent jobs.",
             "type": "string"
           }
@@ -6712,9 +6729,9 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
           "arguments": {},
-          "human_invocation": "focusa_bg_status { ... }",
+          "human_invocation": "focusa bg status --job",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md"
         }
       ],
@@ -6788,7 +6805,7 @@
         "snippet": "Use for a one-shot ledger snapshot; never poll with it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:84e636c178998523f36e461a92b4394a0d90775ff378854ba48aee3fe96d3ddf"
+      "descriptor_digest": "sha256:cd7b79dcb364712958c9d6b6e00c8a2269082fb40d3ced8da97e0c1e2eeeae31"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -80663,5 +80680,5 @@
       "descriptor_digest": "sha256:d5350211c874cf4ebd08b6b589633dbe53e70b29b5bab857db7aec93e996aa4c"
     }
   ],
-  "registry_digest": "sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0"
+  "registry_digest": "sha256:2f0cab52fdcea96f74251b6080a326f7934ae030d8b46364bede3b22f01c4b59"
 }

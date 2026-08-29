@@ -2,7 +2,7 @@
 // Full tool-health sweep: probe every route the agent card advertises.
 // Reports status + classification; exit 1 on any 5xx or 404.
 const BASE = process.env.FOCUSA_API_BASE || "http://127.0.0.1:8787/v1";
-const ROOT_BASE = "http://127.0.0.1:8787";
+const ROOT_BASE = BASE.replace(/\/v1\/?$/, "");
 const SCOPED = {
   "X-Scope-Project-Root": "/srv/focusa",
   "X-Scope-Continuity-Id": "cont-probe",
@@ -60,7 +60,7 @@ const main = async () => {
   await probe("POST", "/metacognition/capture", {
     kind: "reflection", content: "probe", rationale: "probe", confidence: 0.5, strategy_class: "probe",
   });
-  const bad = results.filter((r) => r.status >= 500 || r.status === 404);
+  const bad = results.filter((r) => r.status >= 500 || r.status === 404 || r.status === 405);
   for (const r of results) {
     console.log(`${r.status}  ${r.method.padEnd(4)} ${r.path}`);
   }

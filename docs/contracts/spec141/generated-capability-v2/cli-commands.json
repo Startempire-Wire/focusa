@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0",
+  "registry_digest": "sha256:2f0cab52fdcea96f74251b6080a326f7934ae030d8b46364bede3b22f01c4b59",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -248,6 +248,173 @@
           },
           "human_invocation": "focusa agent-runtime headless-verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg run --detach",
+      "capability_id": "focusa.bg.run",
+      "summary": "Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "name",
+          "command"
+        ],
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "description": "Human job name (appears in the completion notification).",
+            "type": "string"
+          },
+          "command": {
+            "minLength": 1,
+            "description": "The full command line to execute (after -- semantics).",
+            "type": "string"
+          },
+          "cwd": {
+            "minLength": 1,
+            "description": "Working directory (defaults to the current session cwd).",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "durable_dispatch",
+        "durable_dispatch"
+      ],
+      "examples": [
+        {
+          "description": "Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.",
+          "arguments": {
+            "name": "focusa_workpoint_resume",
+            "command": "example"
+          },
+          "human_invocation": "focusa bg run --detach",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg run --detach",
+      "capability_id": "focusa.bg.run.many",
+      "summary": "Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "jobs"
+        ],
+        "properties": {
+          "jobs": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "command"
+              ],
+              "properties": {
+                "name": {
+                  "minLength": 1,
+                  "description": "Job name (appears in its completion notification).",
+                  "type": "string"
+                },
+                "command": {
+                  "minLength": 1,
+                  "description": "Full command line to execute.",
+                  "type": "string"
+                },
+                "cwd": {
+                  "minLength": 1,
+                  "description": "Working directory override.",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "durable_dispatch",
+        "durable_dispatch"
+      ],
+      "examples": [
+        {
+          "description": "Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.",
+          "arguments": {
+            "jobs": [
+              {
+                "name": "focusa_workpoint_resume",
+                "command": "example"
+              }
+            ]
+          },
+          "human_invocation": "focusa bg run --detach",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run_many.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg status --job",
+      "capability_id": "focusa.bg.status",
+      "summary": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "minLength": 1,
+            "description": "Optional job id; omit to list recent jobs.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_status",
+        "read_status"
+      ],
+      "examples": [
+        {
+          "description": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+          "arguments": {},
+          "human_invocation": "focusa bg status --job",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg list",
+      "capability_id": "focusa.bg.status",
+      "summary": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "minLength": 1,
+            "description": "Optional job id; omit to list recent jobs.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_status",
+        "read_status"
+      ],
+      "examples": [
+        {
+          "description": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+          "arguments": {},
+          "human_invocation": "focusa bg status --job",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md"
         }
       ],
       "deprecation": null

@@ -133,10 +133,14 @@ async fn update_job(
             record.status = BackgroundJobStatus::parse(&status);
         }
         record.pid = body.pid.or(record.pid);
-        focusa_core::background_job_store::upsert_job(&conn, &record)?;
-        // docs/165 v2 §2 — durable first, then broadcast the started
-        // envelope so surfaces see dispatch latency.
         let became_running = record.status == BackgroundJobStatus::Running;
+        let became_monitor_lost = record.status == BackgroundJobStatus::MonitorLost;
+        if became_monitor_lost && record.completed_at.is_none() {
+            record.completed_at = Some(now_iso());
+        }
+        focusa_core::background_job_store::upsert_job(&conn, &record)?;
+        // docs/165 v2 §2 — durable first, then broadcast lifecycle
+        // envelopes so surfaces see dispatch latency and monitor loss.
         let started_event = if became_running {
             serde_json::to_string(
                 &focusa_core::background_jobs::BackgroundJobStartedEvent::from_record(&record),
@@ -145,16 +149,25 @@ async fn update_job(
         } else {
             None
         };
+        let completion_event = if became_monitor_lost {
+            serde_json::to_string(&BackgroundJobCompletionEvent::from_record(&record)).ok()
+        } else {
+            None
+        };
         Ok(json!({
             "status": "updated",
             "job": record,
             "started_event": started_event,
+            "completion_event": completion_event,
         }))
     })
     .await;
     match result {
         Ok(Ok(payload)) => {
             if let Some(event) = payload.get("started_event").and_then(|v| v.as_str()) {
+                let _ = events_tx.send(event.to_string());
+            }
+            if let Some(event) = payload.get("completion_event").and_then(|v| v.as_str()) {
                 let _ = events_tx.send(event.to_string());
             }
             Json(json!({

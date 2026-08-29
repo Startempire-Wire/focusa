@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:84e9b49b79c7109b6e47bc2ec2fd25f0fdc11d11928648609152f855ae8922d0",
+  "registry_digest": "sha256:2f0cab52fdcea96f74251b6080a326f7934ae030d8b46364bede3b22f01c4b59",
   "operations": [
     {
       "method": "POST",
@@ -3568,14 +3568,17 @@
         ],
         "properties": {
           "name": {
+            "minLength": 1,
             "description": "Human job name (appears in the completion notification).",
             "type": "string"
           },
           "command": {
+            "minLength": 1,
             "description": "The full command line to execute (after -- semantics).",
             "type": "string"
           },
           "cwd": {
+            "minLength": 1,
             "description": "Working directory (defaults to the current session cwd).",
             "type": "string"
           }
@@ -3889,6 +3892,7 @@
         ],
         "properties": {
           "jobs": {
+            "minItems": 1,
             "type": "array",
             "items": {
               "type": "object",
@@ -3898,14 +3902,17 @@
               ],
               "properties": {
                 "name": {
+                  "minLength": 1,
                   "description": "Job name (appears in its completion notification).",
                   "type": "string"
                 },
                 "command": {
+                  "minLength": 1,
                   "description": "Full command line to execute.",
                   "type": "string"
                 },
                 "cwd": {
+                  "minLength": 1,
                   "description": "Working directory override.",
                   "type": "string"
                 }
@@ -4220,6 +4227,7 @@
         "type": "object",
         "properties": {
           "job_id": {
+            "minLength": 1,
             "description": "Optional job id; omit to list recent jobs.",
             "type": "string"
           }
