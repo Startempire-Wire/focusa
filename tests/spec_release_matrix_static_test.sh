@@ -135,6 +135,10 @@ grep -q 'missing base64 Tauri updater signing key payload' "$CODEMAGIC" \
   || fail "Codemagic signer does not require the encoded key payload"
 grep -q 'base64.b64decode' "$CODEMAGIC" \
   || fail "Codemagic signer does not decode the key into a private file"
+grep -Fq 'path.write_bytes(lines[1] + b"\n")' "$CODEMAGIC" \
+  || fail "Codemagic passes the Minisign comment header to the Tauri decoder"
+grep -Fq '[Text.Encoding]::ASCII.GetBytes($keyLines[1] + "`n")' "$APPVEYOR" \
+  || fail "AppVeyor passes the Minisign comment header to the Tauri decoder"
 grep -q 'trap cleanup_signing_key EXIT' "$CODEMAGIC" \
   || fail "Codemagic signer does not remove the decoded key on exit"
 grep -Fq 'test -s "${updater}.sig"' "$CODEMAGIC" \

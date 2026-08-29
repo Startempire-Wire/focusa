@@ -104,7 +104,7 @@ workflows:
           assert len(lines) == 2, "Tauri signing key file must contain exactly two lines"
           assert lines[0].startswith(b"untrusted comment:"), "Tauri signing key comment missing"
           base64.b64decode(lines[1], validate=True)
-          path.write_bytes(raw)
+          path.write_bytes(lines[1] + b"\n")
           PY
           unset FOCUSA_TAURI_SIGNING_KEY_B64
           export TAURI_SIGNING_PRIVATE_KEY="$key_file"

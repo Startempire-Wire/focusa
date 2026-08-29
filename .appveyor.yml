@@ -110,6 +110,7 @@ after_build:
             throw "invalid Tauri signing key file structure"
           }
           [Convert]::FromBase64String($keyLines[1]) | Out-Null
+          [IO.File]::WriteAllBytes($keyPath, [Text.Encoding]::ASCII.GetBytes($keyLines[1] + "`n"))
           $env:TAURI_SIGNING_PRIVATE_KEY = $keyPath
           npm install -g bun
           Set-Location apps/menubar
