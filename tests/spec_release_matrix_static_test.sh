@@ -19,6 +19,7 @@ CI="$ROOT_DIR/.github/workflows/ci.yml"
 WAIT="$ROOT_DIR/scripts/wait-for-external-release-assets.py"
 CODEMAGIC="$ROOT_DIR/codemagic.yaml"
 APPVEYOR="$ROOT_DIR/.appveyor.yml"
+APPVEYOR_RECOVERY="$ROOT_DIR/config/appveyor-release-recovery.json"
 
 fail() { echo "✗ FAIL: $*" >&2; exit 1; }
 pass() { echo "✓ PASS: $*"; }
@@ -111,6 +112,25 @@ grep -Fq "target\\%RUST_TARGET% -> Cargo.lock" "$APPVEYOR" \
   || fail "AppVeyor must keep target-specific Cargo.lock-keyed caches"
 grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
   || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
+grep -q 'appveyor_recovery_identity=passed' "$APPVEYOR" \
+  || fail "AppVeyor lacks exact tag/SHA recovery identity proof"
+grep -q 'FOCUSA_RECOVERY_TAG' "$APPVEYOR" \
+  || fail "AppVeyor recovery does not carry the immutable release tag"
+[ "$(grep -Fc '2>&1"' "$APPVEYOR")" -ge 3 ] \
+  || fail "AppVeyor native commands do not redirect normal Cargo stderr inside cmd.exe"
+python3 - "$APPVEYOR_RECOVERY" "$WF" <<'PY'
+import json, re, sys
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+assert isinstance(payload.get("enabled"), bool)
+assert re.fullmatch(r"v\d+\.\d+\.\d+", payload["tag"])
+assert re.fullmatch(r"[0-9a-f]{40}", payload["sha"])
+lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+uploads = [i for i, line in enumerate(lines) if "uses: softprops/action-gh-release@v2" in line]
+assert uploads, "release workflow has no GitHub Release upload actions"
+for i in uploads:
+    block = "\n".join(lines[i:i + 12])
+    assert "tag_name: ${{ env.RELEASE_TAG }}" in block, f"release upload at line {i + 1} infers tag from github.ref"
+PY
 if grep -q 'Method Post.*repos/\$repo/releases"' "$APPVEYOR"; then
   fail "AppVeyor must never create the canonical GitHub Release"
 fi

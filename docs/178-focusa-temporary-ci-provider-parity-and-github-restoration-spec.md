@@ -59,6 +59,15 @@ depend on billing-locked GitHub Actions artifact storage.
 10. GitHub-hosted release packaging rows remain visible but skipped unless the
 repository variable `FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX` is explicitly set to
 `enabled` as part of the all-at-once restoration procedure.
+11. AppVeyor recovery may load `config/appveyor-release-recovery.json` from a
+controller commit, verify the immutable tag/SHA pair, detach-checkout that SHA,
+and only then build/test/package/upload. Recovery assets use the immutable tag,
+not the controller commit. Disable the recovery record immediately after the
+release. Cargo/Tauri/test stderr must be redirected inside `cmd.exe`; successful
+native commands must not become PowerShell `NativeCommandError` failures.
+12. Every `softprops/action-gh-release` step declares
+`tag_name: ${{ env.RELEASE_TAG }}`. Recovery dispatch runs from a controller
+branch, so no upload may infer release identity from `github.ref`.
 
 ## 4. Spending and trigger boundary
 

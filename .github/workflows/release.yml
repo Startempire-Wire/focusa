@@ -669,6 +669,7 @@ jobs:
         if: ${{ contains(matrix.platform, 'macos') }}
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: dist/menubar/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -677,6 +678,7 @@ jobs:
         if: ${{ matrix.rust_target == 'aarch64-apple-darwin' }}
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: scripts/install-focusa-menubar-beta.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -800,6 +802,7 @@ jobs:
       - name: Upload binaries to release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -867,6 +870,7 @@ jobs:
       - name: Upload Pi extension, installers, generated clients, and agent context archives
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: |
             focusa-pi-extension-*.tar.gz
             focusa-installer-*.sh
@@ -1040,6 +1044,7 @@ jobs:
       - name: Upload trusted OTA metadata and detached signatures
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: |
             dist/*.sig
             dist/*.pem
