@@ -686,7 +686,9 @@ jobs:
   external-menubar-receipts:
     name: External Menubar Receipt Gate
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: create-release
+    # Producer-before-waiter: do not consume a bounded OVH lane while local
+    # support artifacts are still queued on that same runner pool.
+    needs: [create-release, pi-extension-release]
     runs-on: self-hosted
     timeout-minutes: 50
     steps:
@@ -813,7 +815,9 @@ jobs:
   external-rust-binaries:
     name: External Rust Binary Receipt Gate
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: create-release
+    # Producer-before-waiter: all Linux matrix rows must release their bounded
+    # OVH lanes before a long external-provider receipt wait may begin.
+    needs: [create-release, rust-release]
     runs-on: self-hosted
     timeout-minutes: 50
     steps:

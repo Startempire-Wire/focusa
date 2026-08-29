@@ -68,6 +68,10 @@ native commands must not become PowerShell `NativeCommandError` failures.
 12. Every `softprops/action-gh-release` step declares
 `tag_name: ${{ env.RELEASE_TAG }}`. Recovery dispatch runs from a controller
 branch, so no upload may infer release identity from `github.ref`.
+13. Bounded self-hosted producers run before long external receipt waiters.
+`external-rust-binaries` depends on the full Linux `rust-release` matrix, and
+`external-menubar-receipts` depends on `pi-extension-release`; a provider wait
+must never occupy all OVH lanes while local release artifacts remain queued.
 
 ## 4. Spending and trigger boundary
 

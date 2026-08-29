@@ -68,7 +68,13 @@ grep -q 'External Menubar Receipt Gate' "$WF" \
   || fail "release.yml missing external menubar receipt gate job"
 grep -q 'wait-for-external-release-assets.py' "$WF" \
   || fail "release.yml missing external receipt wait script invocation"
-pass "external macOS/Windows receipt gates wired into release DAG"
+menubar_receipt_block="$(awk '/^  external-menubar-receipts:/{job=1} /^  rust-release:/{job=0} job{print}' "$WF")"
+rust_receipt_block="$(awk '/^  external-rust-binaries:/{job=1} /^  pi-extension-release:/{job=0} job{print}' "$WF")"
+grep -Fq 'needs: [create-release, pi-extension-release]' <<<"$menubar_receipt_block" \
+  || fail "external menubar receipt waiter can starve the Pi-extension producer"
+grep -Fq 'needs: [create-release, rust-release]' <<<"$rust_receipt_block" \
+  || fail "external Rust receipt waiter can starve the Linux matrix producers"
+pass "external macOS/Windows receipt gates are producer-ordered in the release DAG"
 
 # Billing-lock recovery must resume an immutable tag from the current
 # controller without moving it. The exact tag/SHA pair is verified before any
