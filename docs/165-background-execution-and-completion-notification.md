@@ -46,7 +46,8 @@ focusa bg status → ledger row + monitor-lost reaping (/proc pid check)
 1. Completion is recorded durably BEFORE the SSE broadcast (mirrors #311).
 2. The CLI monitor owns the lifecycle; a dead monitor is detected by
    `bg status` (pid liveness) and recorded as `monitor_lost` — never
-   silently "running" forever.
+   silently "running" forever. Every `monitor_lost` transition is terminal,
+   receives `completed_at`, and broadcasts the same completion envelope.
 3. Job output streams to the job's log file (reported in every envelope);
    the ledger stores the log path, not the log contents.
 4. Waiters and the agent surface read the SAME completion envelope —
