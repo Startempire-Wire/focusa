@@ -69,6 +69,27 @@ grep -q 'wait-for-external-release-assets.py' "$WF" \
   || fail "release.yml missing external receipt wait script invocation"
 pass "external macOS/Windows receipt gates wired into release DAG"
 
+# Billing-lock recovery must resume an immutable tag from the current
+# controller without moving it. The exact tag/SHA pair is verified before any
+# draft Release is created; hosted rows stay visible but are disabled until the
+# all-at-once restoration switch is explicitly enabled.
+grep -q 'workflow_dispatch:' "$WF" \
+  || fail "release controller lacks immutable-tag recovery dispatch"
+grep -Fq 'RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}' "$WF" \
+  || fail "release recovery does not carry the requested immutable tag"
+grep -Fq 'RELEASE_SHA: ${{ inputs.release_sha || github.sha }}' "$WF" \
+  || fail "release recovery does not carry the exact candidate SHA"
+grep -q 'release_candidate_identity=passed' "$WF" \
+  || fail "release recovery does not verify tag/SHA identity"
+grep -q 'candidate_gate_substituted workflow=Spec-132 route=spec178 providers=ovh,appveyor,codemagic' "$WF" \
+  || fail "Spec 132 billing-locked receipt is not delegated to the Spec 178 providers"
+if grep -q 'require_success_with_wait "Spec 132 terminal matrix"' "$WF"; then
+  fail "release controller still hard-blocks on GitHub-hosted Spec 132"
+fi
+grep -Fq "vars.FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX == 'enabled'" "$WF" \
+  || fail "GitHub-hosted release matrix lacks an explicit restoration boundary"
+pass "immutable-tag recovery bypasses GitHub billing through exact provider receipts"
+
 # Release tags must trigger both Codemagic workflows regardless of the final
 # stamped commit's changed paths. External adapters wait for, but never create,
 # the canonical gated GitHub Release and fail closed on upload authority/errors.

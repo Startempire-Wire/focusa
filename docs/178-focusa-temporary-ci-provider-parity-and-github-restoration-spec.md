@@ -6,10 +6,11 @@
 
 ## 1. Purpose
 
-GitHub-hosted macOS capacity is billing-locked. Cirrus is defunct. This
-spec records the complete temporary release build route so any agent can
-execute and audit a release without guessing, treating a green GitHub
-`macos-latest` result as available, or silently substituting a provider.
+GitHub-hosted runner admission is account-wide billing-locked. Cirrus is
+defunct. This spec records the complete temporary release build route so any
+agent can execute and audit a release without guessing, waiting on an
+unavailable GitHub-hosted Linux/macOS/Windows row, or silently substituting a
+provider.
 
 This is a temporary provider delegation, not a new release channel or a
 second release authority. Tags, manifest freshness, release evidence, and
@@ -20,15 +21,17 @@ the canonical release scripts remain the authority.
 | Required surface | Temporary provider | Entry point | Required proof | Current limitation |
 |---|---|---|---|---|
 | Linux daemon, CLI, API, specs | GitHub Actions self-hosted `host-focusa-deploy` | `.github/workflows/ci.yml`, `release.yml` | Rust, Spec Gates, release automation, meaningful commits green | Shared production host; Rust exit-241 flake is tracked separately. |
-| Windows CLI verification/artifact | AppVeyor public-project lane | `.appveyor.yml` | MSVC build plus `focusa-license` and `focusa-core` tests; tagged CLI artifact | Does not replace Windows menubar packaging. |
+| Windows binaries and menubar packages | AppVeyor public-project lane | `.appveyor.yml` | MSVC builds/tests; tagged CLI, daemon, TUI, NSIS, MSI, and updater-signature assets | One concurrent public-project job; both target architectures run serially. |
 | macOS menubar package proof | Codemagic cloud `mac_mini_m2` | `codemagic.yaml`, workflow `menubar-macos-package-proof` | npm ci, typecheck, web build, Rust/Tauri `.app`, plist lint, ad-hoc codesign and verification green | Proof is ad-hoc signed; it is not notarized customer distribution. |
-| GitHub hosted macOS jobs | temporarily non-authoritative | `ci.yml`, `spec132-terminal-matrix.yml`, `release.yml` | Informational only while billing-locked | Must not be silently deleted or individually re-enabled. |
+| GitHub-hosted Linux/macOS/Windows jobs | temporarily non-authoritative | `ci.yml`, `spec132-terminal-matrix.yml`, `release.yml` | Informational only while account admission is billing-locked | Must not be silently deleted or individually re-enabled. The monolithic Spec 132 receipt is substituted by exact-SHA self-hosted CI plus the downstream AppVeyor/Codemagic receipt gates. |
 
 ## 3. Canonical temporary release procedure
 
 1. Run the normal canonical preflight and create the requested dev or stable
-tag through the existing release scripts. Never hand-build, hand-copy, or
-hand-publish an artifact.
+tag through the existing release scripts. Exact candidate CI remains mandatory;
+the billing-locked Spec 132 workflow is recorded as substituted and its external
+surfaces remain publication gates. Never hand-build, hand-copy, or hand-publish
+an artifact.
 2. The matching `v*` tag automatically triggers both Codemagic release
 workflows and AppVeyor; release tags are never filtered by changed paths.
 3. Require Linux/self-hosted GitHub evidence plus AppVeyor Windows and
@@ -47,6 +50,13 @@ provider proof as a release blocker. `beta_ad_hoc` is permitted only with the
 canonical pre-license consent markers; `production_notarized` requires Apple
 authority and notarization evidence.
 8. Publish only after all required proof surfaces for that release are green.
+9. If a tag-triggered controller run was blocked before draft creation, resume
+it through `Release` `workflow_dispatch` with both the immutable `release_tag`
+and its full `release_sha`. The controller must verify that the tag, input SHA,
+and checkout HEAD are identical before creating or modifying the Release.
+10. GitHub-hosted release packaging rows remain visible but skipped unless the
+repository variable `FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX` is explicitly set to
+`enabled` as part of the all-at-once restoration procedure.
 
 ## 4. Spending and trigger boundary
 
@@ -64,9 +74,10 @@ The return to GitHub is a single operator-triggered transition, never a
 partial provider flip. The operator asks to restore GitHub macOS, then one
 change set performs all of the following together:
 
-1. Confirm GitHub-hosted macOS billing/capacity is available with a manual
-proof build.
-2. Re-enable and prove every existing GitHub macOS consumer together:
+1. Confirm GitHub-hosted Linux, macOS, and Windows billing/capacity is available
+with a manual proof build on every OS.
+2. Set `FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX=enabled` and re-enable/prove every
+existing GitHub-hosted consumer together:
    `ci.yml` Menubar, `spec132-terminal-matrix.yml` macOS terminal rows, and
    `release.yml` macOS Tauri/artifact rows.
 3. Require the GitHub macOS package contract to match Codemagic's current

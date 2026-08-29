@@ -67,7 +67,7 @@ require(
         "scripts/generate-locked-release-candidate-ancestry.py",
         "scripts/generate-locked-release-governance-receipt.py",
         "CANDIDATE_CHANGED_PATHS=\"$(git diff --name-only",
-        "ensure_source_workflow \"Spec 132 terminal matrix\" \"$HEAD_SHA\"",
+        "source_gate_substituted workflow=Spec-132 route=spec178 providers=ovh,appveyor,codemagic",
         "source_gate_dispatch_blocked",
         'git push origin "${TAG}"',
         "scripts/select-release-version.py",
@@ -97,7 +97,7 @@ candidate_push = TAG_SCRIPT.index("  push_candidate_main_with_auto_rebase\n", pr
 benchmark = TAG_SCRIPT.index("journal_client benchmark --tag")
 assert stamp_commit < proof_reseal < benchmark < candidate_push, "benchmark does not use sealed stamped proof"
 assert candidate_push < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before candidate preflight"
-assert TAG_SCRIPT.index('ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"') < TAG_SCRIPT.index('wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"'), "Spec132 wait begins before missing-run dispatch"
+assert 'wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"' not in TAG_SCRIPT, "billing-locked Spec132 still blocks immutable tag creation"
 require(
     RELEASE_CLI,
     [
@@ -208,7 +208,7 @@ require(
     [
         "tags:",
         "'v*'",
-        "release-${{ github.ref }}",
+        "release-${{ inputs.release_tag || github.ref }}",
         "Swatinem/rust-cache@v2",
         "Lock exact release candidate",
         "focusa.release_candidate.v1",
@@ -231,7 +231,7 @@ require(
     RELEASE,
     [
         "--json number,mergeCommit,mergedAt,baseRefName",
-        'select(.baseRefName == "main" and .mergedAt > $since)',
+        'select(.baseRefName == "main" and .mergedAt > $since and .mergedAt <= $until)',
         'candidate_changed_paths="$(git diff --name-only',
     ],
     "main-scoped PR and Spec132 inclusion gates",
