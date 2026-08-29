@@ -75,6 +75,10 @@ assert_grep 'concurrency:' .github/workflows/deploy-live-daemon.yml 'deploy conc
 # Per-run strict-spec daemon and cleanup propagation guards (#387).
 assert_grep 'export DAEMON_BIN="${DAEMON_BIN:-$CARGO_TARGET_DIR/release/focusa-daemon}"' scripts/ci/run-spec-gates.sh 'strict spec child gates must inherit the isolated daemon path'
 assert_grep 'spec-gates daemon missing after successful build: $DAEMON_BIN' scripts/ci/run-spec-gates.sh 'strict spec gate must fail immediately when its daemon artifact is absent'
+assert_grep 's.bind(("127.0.0.1", 0))' scripts/ci/run-spec-gates.sh 'strict spec gate must allocate an isolated loopback port by default'
+assert_grep 'http://127.0.0.1:${GATE_PORT}' scripts/ci/run-spec-gates.sh 'strict spec base URL must match its isolated daemon port'
+assert_grep 'kill -0 "$DAEMON_PID"' scripts/ci/run-spec-gates.sh 'strict spec health poll must verify its own daemon remains alive'
+assert_grep 'spec-gates daemon exited before health' scripts/ci/run-spec-gates.sh 'strict spec bind failures must stop immediately'
 assert_grep 'TEST_BEADS_FIXTURE="$ROOT_DIR/.beads/issues.jsonl"' scripts/ci/run-spec-gates.sh 'isolated spec gates must provision only a synthetic Beads fixture when history is absent'
 assert_grep 'rm -f "$TEST_BEADS_FIXTURE"' scripts/ci/run-spec-gates.sh 'synthetic Beads fixture must be removed on exit'
 assert_grep 'TEST_GIT_DIR="$(mktemp -d "$ROOT_DIR/../gate-git-meta.XXXXXX")"' scripts/ci/run-spec-gates.sh 'remote spec gates must use disposable Git metadata when worktree metadata is unavailable'

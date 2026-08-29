@@ -29,9 +29,14 @@ if [[ "$EXPECTED_OWNER" != root ]]; then
   fi
 fi
 
-BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:18787}"
+if [[ -z "${FOCUSA_BIND:-}" ]]; then
+  GATE_PORT="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+  export FOCUSA_BIND="127.0.0.1:${GATE_PORT}"
+else
+  GATE_PORT="${FOCUSA_BIND##*:}"
+fi
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:${GATE_PORT}}"
 export FOCUSA_BASE_URL="$BASE_URL"
-export FOCUSA_BIND="${FOCUSA_BIND:-127.0.0.1:18787}"
 export FOCUSA_DATA_DIR="${FOCUSA_DATA_DIR:-$(mktemp -d /tmp/focusa-spec-gates.XXXXXX)}"
 # Isolated CI daemon must exercise real entitlement path, not 403.
 # FOCUSA_TEST_MODE=1 grants a bounded test lease (active, sha256, 1h) so write
@@ -94,6 +99,11 @@ cleanup() {
 trap cleanup EXIT
 
 for i in $(seq 1 60); do
+  if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
+    echo "spec-gates daemon exited before health on ${FOCUSA_BIND}" >&2
+    tail -60 "$DAEMON_LOG" >&2
+    exit 1
+  fi
   if curl -fsS "${BASE_URL}/v1/health" >/dev/null; then
     break
   fi
