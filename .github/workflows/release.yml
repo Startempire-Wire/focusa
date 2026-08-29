@@ -229,8 +229,8 @@ jobs:
           FOCUSA_SPEC143_ROOT="$PWD" \
           FOCUSA_RELEASE_WORKFLOW_PATH="$controller_workflow" \
             python3 "$controller_test"
-      - name: Spec104 static audit
-        run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
+      - name: Spec104 scoped-state closure gate
+        run: python3 tests/spec104_singleton_inventory_gate.py --closure
 
   tag-ci-proof:
     name: Exact tag CI proof
