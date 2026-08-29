@@ -72,6 +72,16 @@ branch, so no upload may infer release identity from `github.ref`.
 `external-rust-binaries` depends on the full Linux `rust-release` matrix, and
 `external-menubar-receipts` depends on `pi-extension-release`; a provider wait
 must never occupy all OVH lanes while local release artifacts remain queued.
+14. Every pre-final artifact producer preserves the gated Release as a draft.
+`softprops/action-gh-release` uploads declare `draft: true`, and restored Tauri
+uploads declare `releaseDraft: true`. Exactly one final publisher may set
+`draft=false`, only after both external receipt gates, canonical asset
+verification, signatures, checksums, updater metadata, and trust metadata pass.
+15. External receipt timeouts cover the provider topology, not one nominal job.
+While AppVeyor has one-job concurrency, its x64 and ARM64 rows run serially;
+receipt jobs therefore have a 150-minute outer bound and 145-minute polling
+bound. The poll remains fail-closed on exact asset names, but must not expire
+before two valid serial provider rows can complete.
 
 ## 4. Spending and trigger boundary
 
