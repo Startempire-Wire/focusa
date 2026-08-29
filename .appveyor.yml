@@ -118,7 +118,9 @@ after_build:
           )
           $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           if (-not $vcvars) { throw "vcvarsall.bat not found" }
-          $command = "call `"$vcvars`" $env:MSVC_ARCH && bunx --bun tauri --version && bunx --bun tauri build --target $env:RUST_TARGET --bundles nsis,msi 2>&1"
+          $tauriCli = "node_modules\@tauri-apps\cli\tauri.js"
+          if (-not (Test-Path $tauriCli)) { throw "package-owned Tauri CLI missing at $tauriCli" }
+          $command = "call `"$vcvars`" $env:MSVC_ARCH && bun.exe $tauriCli --version && bun.exe $tauriCli build --target $env:RUST_TARGET --bundles nsis,msi 2>&1"
           & cmd.exe /d /s /c $command
           if ($LASTEXITCODE -ne 0) { throw "Tauri build failed with exit code $LASTEXITCODE" }
           $bundle = "src-tauri/target/$env:RUST_TARGET/release/bundle"
