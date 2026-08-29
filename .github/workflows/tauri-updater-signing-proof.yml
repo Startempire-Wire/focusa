@@ -2,50 +2,120 @@ name: Tauri Updater Signing Proof
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/menubar/src-tauri/tauri.conf.json'
-      - 'apps/menubar/package.json'
-      - 'apps/menubar/package-lock.json'
-      - '.github/workflows/tauri-updater-signing-proof.yml'
+    inputs:
+      tag:
+        description: Immutable release tag
+        required: true
+        default: v0.9.185
+      sha:
+        description: Immutable release commit SHA
+        required: true
+        default: f46a111155654ce7ba8840f4f253916db9b8c603
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: tauri-updater-signing-${{ inputs.tag }}
+  cancel-in-progress: false
 
 jobs:
   signing-proof:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ovh-build]
+    timeout-minutes: 20
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_SHA: ${{ inputs.sha }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
         with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: apps/menubar/package-lock.json
+          fetch-depth: 0
+
+      - name: Verify immutable release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RELEASE_TAG" = "v0.9.185"
+          test "$RELEASE_SHA" = "f46a111155654ce7ba8840f4f253916db9b8c603"
+          git fetch --force origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          actual="$(git rev-parse "$RELEASE_TAG^{commit}")"
+          test "$actual" = "$RELEASE_SHA"
+          echo "tauri_signing_identity=passed tag=$RELEASE_TAG sha=$actual"
+
       - name: Install locked Tauri CLI
         working-directory: apps/menubar
-        run: npm ci --ignore-scripts
-      - name: Install minisign verifier
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y minisign
-      - name: Sign and verify updater proof artifact
-        working-directory: apps/menubar
+          set -euo pipefail
+          npm ci --ignore-scripts
+          test "$(node_modules/.bin/tauri --version)" = "tauri-cli 2.11.4"
+
+      - name: Sign and verify immutable macOS updater archives
+        shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          test -n "${TAURI_SIGNING_PRIVATE_KEY:-}"
-          test -n "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}"
-          proof_dir="${RUNNER_TEMP}/focusa-updater-signing-proof"
-          mkdir -m 0700 "$proof_dir"
-          printf 'focusa-tauri-updater-signing-proof-v1\n' > "$proof_dir/artifact"
-          jq -r '.plugins.updater.pubkey' src-tauri/tauri.conf.json | base64 -d > "$proof_dir/public.key"
-          node_modules/.bin/tauri signer sign "$proof_dir/artifact" >/dev/null
-          base64 -d "$proof_dir/artifact.sig" > "$proof_dir/artifact.minisig"
-          public_key="$(tail -n 1 "$proof_dir/public.key")"
-          test -n "$public_key"
-          minisign -Vm "$proof_dir/artifact" -x "$proof_dir/artifact.minisig" -P "$public_key"
-          echo "Tauri updater private key matches committed public key."
+          : "${TAURI_SIGNING_PRIVATE_KEY:?missing Tauri updater signing key}"
+          : "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:?missing Tauri updater signing password}"
+          work="${RUNNER_TEMP}/focusa-tauri-signing-${GITHUB_RUN_ID}"
+          install -d -m 0700 "$work"
+          cleanup() {
+            python3 - "$work" <<'PY'
+          import shutil
+          import sys
+          shutil.rmtree(sys.argv[1], ignore_errors=False)
+          PY
+          }
+          trap cleanup EXIT
+
+          git show "$RELEASE_SHA:apps/menubar/src-tauri/tauri.conf.json" > "$work/tauri.conf.json"
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'Focusa_*.app.tar.gz' \
+            --dir "$work"
+          mapfile -t archives < <(find "$work" -maxdepth 1 -type f -name 'Focusa_*.app.tar.gz' -print | sort)
+          test "${#archives[@]}" -eq 2
+
+          for archive in "${archives[@]}"; do
+            apps/menubar/node_modules/.bin/tauri signer sign "$archive" >/dev/null
+            test -s "$archive.sig"
+            python3 - "$work/tauri.conf.json" "$archive" "$archive.sig" <<'PY'
+          import base64
+          import hashlib
+          import json
+          import sys
+          from pathlib import Path
+          from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+          config = json.loads(Path(sys.argv[1]).read_text())
+          public_box = base64.b64decode(config["plugins"]["updater"]["pubkey"], validate=True)
+          public_raw = base64.b64decode(public_box.splitlines()[1], validate=True)
+          signature_box = base64.b64decode(Path(sys.argv[3]).read_bytes(), validate=True)
+          signature_raw = base64.b64decode(signature_box.splitlines()[1], validate=True)
+          if len(public_raw) != 42 or len(signature_raw) != 74:
+              raise SystemExit("invalid Minisign public key or signature length")
+          if public_raw[:2] != b"Ed" or signature_raw[:2] not in (b"Ed", b"ED"):
+              raise SystemExit("invalid Minisign algorithm identifier")
+          if public_raw[2:10] != signature_raw[2:10]:
+              raise SystemExit("updater signature key ID mismatch")
+          message = Path(sys.argv[2]).read_bytes()
+          if signature_raw[:2] == b"ED":
+              message = hashlib.blake2b(message, digest_size=64).digest()
+          Ed25519PublicKey.from_public_bytes(public_raw[10:]).verify(signature_raw[10:], message)
+          print(f"verified={Path(sys.argv[2]).name} sha256={hashlib.sha256(Path(sys.argv[2]).read_bytes()).hexdigest()}")
+          PY
+          done
+
+          mapfile -t signatures < <(find "$work" -maxdepth 1 -type f -name 'Focusa_*.app.tar.gz.sig' -print | sort)
+          test "${#signatures[@]}" -eq 2
+          gh release upload "$RELEASE_TAG" "${signatures[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+          for signature in "${signatures[@]}"; do
+            printf 'uploaded=%s sha256=%s\n' \
+              "$(basename "$signature")" \
+              "$(sha256sum "$signature" | awk '{print $1}')"
+          done

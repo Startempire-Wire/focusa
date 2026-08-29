@@ -36,7 +36,8 @@ rg -q 'uploadUpdaterJson: true' "$RELEASE" || fail "release updater JSON upload 
 rg -q 'APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_API_KEY_ID APPLE_API_ISSUER_ID APPLE_API_KEY_P8 APPLE_TEAM_ID' "$RELEASE" || fail "mandatory Apple signing/notarization preflight missing"
 if rg -q 'UNNOTARIZED-PREVIEW' "$RELEASE"; then fail "release still allows unnotarized updater artifacts"; fi
 rg -q 'tauri signer sign' "$SIGNING_PROOF" || fail "secret-backed updater signing proof missing"
-rg -q 'minisign -Vm' "$SIGNING_PROOF" || fail "updater public-key verification missing"
+rg -q 'Ed25519PublicKey.*verify' "$SIGNING_PROOF" || fail "updater Ed25519 verification missing"
+rg -q 'public_raw\[2:10\].*signature_raw\[2:10\]' "$SIGNING_PROOF" || fail "updater key-ID verification missing"
 rg -q 'createUpdaterArtifacts.*false' "$CI" || fail "non-release CI must not require private updater signing material"
 
 if rg -n 'BEGIN (OPENSSH |RSA |EC )?PRIVATE KEY|untrusted comment: encrypted secret key' "$ROOT/apps" "$ROOT/.github" --glob '!package-lock.json'; then
