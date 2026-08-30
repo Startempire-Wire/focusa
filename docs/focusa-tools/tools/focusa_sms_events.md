@@ -10,6 +10,8 @@ Read bounded value-free broker audit events. Use it when Read bounded value-free
 
 ## Parameters and strict input schema
 
+- `grant_id` (required; string): See the strict descriptor schema.
+- `consumer_ref` (required; string): See the strict descriptor schema.
 - `since` (optional; string): See the strict descriptor schema.
 - `limit` (optional; integer; min=1, max=500, default=100): See the strict descriptor schema.
 
@@ -22,7 +24,10 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 ## Example
 
 ```json
-{}
+{
+  "grant_id": "example",
+  "consumer_ref": "example"
+}
 ```
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_events.md
@@ -75,4 +80,4 @@ Likely next: `focusa_sms_health`, `focusa_sms_checkpoint`, `focusa_sms_revoke`.
 - CLI: `focusa sms events`.
 - REST: `GET /v1/sms/events`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:9e386ae0ca7b68528b5527d07ad04835493366b2d1bc7ca10eb93510f380287a`.
+- Descriptor digest: `sha256:7f3809c27906e4a722f00bbd982180d1f7517ba260e40cf7076a426a1b7ca159`.

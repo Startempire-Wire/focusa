@@ -11,6 +11,8 @@ Search customer-authorized message scope with bounded results. Use it when Searc
 ## Parameters and strict input schema
 
 - `query` (required; string): See the strict descriptor schema.
+- `grant_id` (required; string): See the strict descriptor schema.
+- `consumer_ref` (required; string): See the strict descriptor schema.
 - `limit` (optional; integer; min=1, max=200, default=50): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_sms_search`.
@@ -23,7 +25,9 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 ```json
 {
-  "query": "workpoint resume"
+  "query": "workpoint resume",
+  "grant_id": "example",
+  "consumer_ref": "example"
 }
 ```
 
@@ -77,4 +81,4 @@ Likely next: `focusa_sms_read_thread`, `focusa_sms_threads`, `focusa_sms_send`.
 - CLI: `focusa sms search <query>`.
 - REST: `GET /v1/sms/search`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:b8b3747c451ed660002ad6060e92436e8a38c6c22744ca71efbb1da76fe67071`.
+- Descriptor digest: `sha256:2da452985267f59454dd005c1f6318cb3d4bcf58e62f241316a8a9f9a80002a6`.

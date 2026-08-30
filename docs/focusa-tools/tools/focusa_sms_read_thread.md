@@ -11,6 +11,8 @@ Read a bounded customer-authorized thread. OTP grants do not authorize this tool
 ## Parameters and strict input schema
 
 - `thread_handle` (required; string): See the strict descriptor schema.
+- `grant_id` (required; string): See the strict descriptor schema.
+- `consumer_ref` (required; string): See the strict descriptor schema.
 - `limit` (optional; integer; min=1, max=200, default=50): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_sms_read_thread`.
@@ -23,7 +25,9 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 ```json
 {
-  "thread_handle": "example"
+  "thread_handle": "example",
+  "grant_id": "example",
+  "consumer_ref": "example"
 }
 ```
 
@@ -77,4 +81,4 @@ Likely next: `focusa_sms_search`, `focusa_sms_send`, `focusa_sms_events`.
 - CLI: `focusa sms read <thread-handle>`.
 - REST: `GET /v1/sms/threads/{thread}/messages`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:c8aa6d994b9ac1f12ac662f90de3bde41c41b52830a137cbca87dea99be7f2f1`.
+- Descriptor digest: `sha256:9b0c5ec1303a99748781990c2ecd3eee1d7bdce916d2073777b837c9b5421425`.

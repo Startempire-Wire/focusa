@@ -11,6 +11,8 @@ Revoke one customer-owned connector and its grants. Destructive; requires confir
 ## Parameters and strict input schema
 
 - `connector_id` (required; string): See the strict descriptor schema.
+- `grant_id` (required; string): See the strict descriptor schema.
+- `consumer_ref` (required; string): See the strict descriptor schema.
 - `confirm` (required; boolean): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_sms_revoke`.
@@ -24,6 +26,8 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 ```json
 {
   "connector_id": "example",
+  "grant_id": "example",
+  "consumer_ref": "example",
   "confirm": false
 }
 ```
@@ -78,4 +82,4 @@ Likely next: `focusa_sms_enrollment`, `focusa_sms_health`, `focusa_sms_events`.
 - CLI: `focusa sms revoke --confirm`.
 - REST: `POST /v1/sms/revoke`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:57e3655b0bce299455004f723c0de937b5ceecc309bfac9a654fc5e5bca121cf`.
+- Descriptor digest: `sha256:a451c8257426244237809de3dea8e586dce6b8bedd22dcd948ad6da737613df9`.

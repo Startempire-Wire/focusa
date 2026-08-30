@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:f086bc5e80fc92b45a63ae29170f799a2ce03ea0bc0b25d6e580b76912c9e655`
+Registry digest: `sha256:78e4a214223840b95637a62e869e73fd8d99115cfaba007145d5035cc924878b`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 

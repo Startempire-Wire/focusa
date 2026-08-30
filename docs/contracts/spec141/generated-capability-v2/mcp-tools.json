@@ -1,6 +1,6 @@
 {
   "schema": "focusa.mcp_tool_projection.v2",
-  "registry_digest": "sha256:f086bc5e80fc92b45a63ae29170f799a2ce03ea0bc0b25d6e580b76912c9e655",
+  "registry_digest": "sha256:78e4a214223840b95637a62e869e73fd8d99115cfaba007145d5035cc924878b",
   "tools": [
     {
       "name": "focusa.active.object.resolve",
@@ -31369,9 +31369,17 @@
       "inputSchema": {
         "type": "object",
         "required": [
+          "grant_id",
+          "consumer_ref",
           "confirm"
         ],
         "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
           "confirm": {
             "type": "boolean"
           }
@@ -31895,7 +31903,17 @@
       "description": "Read bounded value-free broker audit events. Use it when Read bounded value-free communications audit events. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "inputSchema": {
         "type": "object",
+        "required": [
+          "grant_id",
+          "consumer_ref"
+        ],
         "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
           "since": {
             "type": "string"
           },
@@ -32428,7 +32446,8 @@
         "required": [
           "provider",
           "target_handle",
-          "consumer_ref"
+          "consumer_ref",
+          "grant_id"
         ],
         "properties": {
           "provider": {
@@ -32438,6 +32457,9 @@
             "type": "string"
           },
           "consumer_ref": {
+            "type": "string"
+          },
+          "grant_id": {
             "type": "string"
           },
           "ttl_seconds": {
@@ -32709,7 +32731,8 @@
         "required": [
           "challenge_handle",
           "target_handle",
-          "consumer_ref"
+          "consumer_ref",
+          "grant_id"
         ],
         "properties": {
           "challenge_handle": {
@@ -32719,6 +32742,9 @@
             "type": "string"
           },
           "consumer_ref": {
+            "type": "string"
+          },
+          "grant_id": {
             "type": "string"
           }
         },
@@ -32982,10 +33008,18 @@
       "inputSchema": {
         "type": "object",
         "required": [
-          "thread_handle"
+          "thread_handle",
+          "grant_id",
+          "consumer_ref"
         ],
         "properties": {
           "thread_handle": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
             "type": "string"
           },
           "limit": {
@@ -33256,10 +33290,18 @@
         "type": "object",
         "required": [
           "connector_id",
+          "grant_id",
+          "consumer_ref",
           "confirm"
         ],
         "properties": {
           "connector_id": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
             "type": "string"
           },
           "confirm": {
@@ -33526,12 +33568,20 @@
       "inputSchema": {
         "type": "object",
         "required": [
-          "query"
+          "query",
+          "grant_id",
+          "consumer_ref"
         ],
         "properties": {
           "query": {
             "minLength": 1,
             "maxLength": 500,
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
             "type": "string"
           },
           "limit": {
@@ -34089,7 +34139,17 @@
       "description": "List customer-authorized thread summaries under a separately granted list_threads capability. Use it when List customer-authorized thread summaries under the separate list_threads grant. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "inputSchema": {
         "type": "object",
+        "required": [
+          "grant_id",
+          "consumer_ref"
+        ],
         "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
           "limit": {
             "minimum": 1,
             "maximum": 200,

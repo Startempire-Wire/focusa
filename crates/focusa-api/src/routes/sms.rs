@@ -91,11 +91,48 @@ fn unavailable(failure_class: &str) -> (StatusCode, Json<Value>) {
     )
 }
 
+fn broker_envelope_valid(value: &Value, authorized_content: bool) -> bool {
+    fn forbidden(value: &Value, authorized_content: bool) -> bool {
+        match value {
+            Value::Object(entries) => entries.iter().any(|(key, child)| {
+                let normalized = key.to_ascii_lowercase();
+                let secret_key = matches!(
+                    normalized.as_str(),
+                    "otp"
+                        | "otp_value"
+                        | "code"
+                        | "token"
+                        | "cookie"
+                        | "cookies"
+                        | "password"
+                        | "secret"
+                        | "pairing_payload"
+                        | "qr_payload"
+                );
+                let content_key = !authorized_content
+                    && matches!(
+                        normalized.as_str(),
+                        "body" | "message" | "messages" | "snippet"
+                    );
+                secret_key || content_key || forbidden(child, authorized_content)
+            }),
+            Value::Array(values) => values
+                .iter()
+                .any(|child| forbidden(child, authorized_content)),
+            _ => false,
+        }
+    }
+    value.get("schema").and_then(Value::as_str) == Some("focusa.tool_result_v1")
+        && value.get("canonical").and_then(Value::as_bool) == Some(true)
+        && !forbidden(value, authorized_content)
+}
+
 async fn forward(
     method: reqwest::Method,
     path: &str,
     query: HashMap<String, String>,
     body: Option<Value>,
+    authorized_content: bool,
 ) -> (StatusCode, Json<Value>) {
     let (base, token) = match broker_config() {
         Ok(value) => value,
@@ -123,16 +160,24 @@ async fn forward(
         return unavailable("sms_broker_response_too_large");
     }
     let value = match response.bytes().await {
-        Ok(bytes) if bytes.len() <= 1_048_576 => serde_json::from_slice::<Value>(&bytes).unwrap_or_else(|_| {
-            json!({"schema":"focusa.tool_result_v1","canonical":true,"ok":false,"status":"blocked","failure_class":"sms_broker_invalid_envelope","summary":"Private SMS broker returned an invalid envelope."})
-        }),
+        Ok(bytes) if bytes.len() <= 1_048_576 => match serde_json::from_slice::<Value>(&bytes) {
+            Ok(value) if broker_envelope_valid(&value, authorized_content) => value,
+            _ => return unavailable("sms_broker_invalid_envelope"),
+        },
         _ => return unavailable("sms_broker_response_too_large"),
     };
     (status, Json(value))
 }
 
 async fn health() -> (StatusCode, Json<Value>) {
-    forward(reqwest::Method::GET, "/v1/sms/health", HashMap::new(), None).await
+    forward(
+        reqwest::Method::GET,
+        "/v1/sms/health",
+        HashMap::new(),
+        None,
+        false,
+    )
+    .await
 }
 async fn enrollment() -> (StatusCode, Json<Value>) {
     forward(
@@ -140,11 +185,12 @@ async fn enrollment() -> (StatusCode, Json<Value>) {
         "/v1/sms/enrollment",
         HashMap::new(),
         None,
+        false,
     )
     .await
 }
 async fn threads(Query(query): Query<HashMap<String, String>>) -> (StatusCode, Json<Value>) {
-    forward(reqwest::Method::GET, "/v1/sms/threads", query, None).await
+    forward(reqwest::Method::GET, "/v1/sms/threads", query, None, true).await
 }
 async fn messages(
     Path(thread): Path<String>,
@@ -163,13 +209,13 @@ async fn messages(
         );
     }
     let path = format!("/v1/sms/threads/{thread}/messages");
-    forward(reqwest::Method::GET, &path, query, None).await
+    forward(reqwest::Method::GET, &path, query, None, true).await
 }
 async fn search(Query(query): Query<HashMap<String, String>>) -> (StatusCode, Json<Value>) {
-    forward(reqwest::Method::GET, "/v1/sms/search", query, None).await
+    forward(reqwest::Method::GET, "/v1/sms/search", query, None, true).await
 }
 async fn events(Query(query): Query<HashMap<String, String>>) -> (StatusCode, Json<Value>) {
-    forward(reqwest::Method::GET, "/v1/sms/events", query, None).await
+    forward(reqwest::Method::GET, "/v1/sms/events", query, None, false).await
 }
 async fn challenge(Json(body): Json<Value>) -> (StatusCode, Json<Value>) {
     forward(
@@ -177,6 +223,7 @@ async fn challenge(Json(body): Json<Value>) -> (StatusCode, Json<Value>) {
         "/v1/sms/otp/challenges",
         HashMap::new(),
         Some(body),
+        false,
     )
     .await
 }
@@ -186,6 +233,7 @@ async fn inject(Json(body): Json<Value>) -> (StatusCode, Json<Value>) {
         "/v1/sms/otp/inject",
         HashMap::new(),
         Some(body),
+        false,
     )
     .await
 }
@@ -195,6 +243,7 @@ async fn send(Json(body): Json<Value>) -> (StatusCode, Json<Value>) {
         "/v1/sms/send",
         HashMap::new(),
         Some(body),
+        false,
     )
     .await
 }
@@ -204,6 +253,7 @@ async fn checkpoint(Json(body): Json<Value>) -> (StatusCode, Json<Value>) {
         "/v1/sms/checkpoint",
         HashMap::new(),
         Some(body),
+        false,
     )
     .await
 }
@@ -213,6 +263,7 @@ async fn revoke(Json(body): Json<Value>) -> (StatusCode, Json<Value>) {
         "/v1/sms/revoke",
         HashMap::new(),
         Some(body),
+        false,
     )
     .await
 }
@@ -230,4 +281,33 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/sms/send", post(send))
         .route("/v1/sms/checkpoint", post(checkpoint))
         .route("/v1/sms/revoke", post(revoke))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_noncanonical_and_secret_broker_envelopes() {
+        assert!(!broker_envelope_valid(&json!({"ok": true}), false));
+        assert!(!broker_envelope_valid(
+            &json!({"schema":"focusa.tool_result_v1","canonical":true,"ok":true,"otp_value":"123456"}),
+            false
+        ));
+        assert!(!broker_envelope_valid(
+            &json!({"schema":"focusa.tool_result_v1","canonical":true,"ok":true,"nested":{"cookie":"value"}}),
+            true
+        ));
+    }
+
+    #[test]
+    fn authorized_content_is_route_scoped() {
+        let data = json!({"schema":"focusa.tool_result_v1","canonical":true,"ok":true,"messages":[{"body":"authorized"}]});
+        assert!(broker_envelope_valid(&data, true));
+        assert!(!broker_envelope_valid(&data, false));
+        assert!(broker_envelope_valid(
+            &json!({"schema":"focusa.tool_result_v1","canonical":true,"ok":true,"injected":true}),
+            false
+        ));
+    }
 }

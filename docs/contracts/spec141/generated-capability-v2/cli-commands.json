@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:f086bc5e80fc92b45a63ae29170f799a2ce03ea0bc0b25d6e580b76912c9e655",
+  "registry_digest": "sha256:78e4a214223840b95637a62e869e73fd8d99115cfaba007145d5035cc924878b",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -6067,9 +6067,17 @@
       "input_schema": {
         "type": "object",
         "required": [
+          "grant_id",
+          "consumer_ref",
           "confirm"
         ],
         "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
           "confirm": {
             "type": "boolean"
           }
@@ -6084,6 +6092,8 @@
         {
           "description": "Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata.",
           "arguments": {
+            "grant_id": "example",
+            "consumer_ref": "example",
             "confirm": false
           },
           "human_invocation": "focusa sms checkpoint",
@@ -6121,7 +6131,17 @@
       "summary": "Read bounded value-free communications audit events.",
       "input_schema": {
         "type": "object",
+        "required": [
+          "grant_id",
+          "consumer_ref"
+        ],
         "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
           "since": {
             "type": "string"
           },
@@ -6141,7 +6161,10 @@
       "examples": [
         {
           "description": "Read bounded value-free communications audit events.",
-          "arguments": {},
+          "arguments": {
+            "grant_id": "example",
+            "consumer_ref": "example"
+          },
           "human_invocation": "focusa sms events",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_events.md"
         }
@@ -6180,7 +6203,8 @@
         "required": [
           "provider",
           "target_handle",
-          "consumer_ref"
+          "consumer_ref",
+          "grant_id"
         ],
         "properties": {
           "provider": {
@@ -6190,6 +6214,9 @@
             "type": "string"
           },
           "consumer_ref": {
+            "type": "string"
+          },
+          "grant_id": {
             "type": "string"
           },
           "ttl_seconds": {
@@ -6211,7 +6238,8 @@
           "arguments": {
             "provider": "example",
             "target_handle": "example",
-            "consumer_ref": "example"
+            "consumer_ref": "example",
+            "grant_id": "example"
           },
           "human_invocation": "focusa sms otp-challenge",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_otp_challenge.md"
@@ -6228,7 +6256,8 @@
         "required": [
           "challenge_handle",
           "target_handle",
-          "consumer_ref"
+          "consumer_ref",
+          "grant_id"
         ],
         "properties": {
           "challenge_handle": {
@@ -6238,6 +6267,9 @@
             "type": "string"
           },
           "consumer_ref": {
+            "type": "string"
+          },
+          "grant_id": {
             "type": "string"
           }
         },
@@ -6253,7 +6285,8 @@
           "arguments": {
             "challenge_handle": "example",
             "target_handle": "example",
-            "consumer_ref": "example"
+            "consumer_ref": "example",
+            "grant_id": "example"
           },
           "human_invocation": "focusa sms otp-inject",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_otp_inject.md"
@@ -6268,10 +6301,18 @@
       "input_schema": {
         "type": "object",
         "required": [
-          "thread_handle"
+          "thread_handle",
+          "grant_id",
+          "consumer_ref"
         ],
         "properties": {
           "thread_handle": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
             "type": "string"
           },
           "limit": {
@@ -6291,7 +6332,9 @@
         {
           "description": "Read one bounded customer-authorized thread; OTP authority never implies message-read authority.",
           "arguments": {
-            "thread_handle": "example"
+            "thread_handle": "example",
+            "grant_id": "example",
+            "consumer_ref": "example"
           },
           "human_invocation": "focusa sms read <thread-handle>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_read_thread.md"
@@ -6307,10 +6350,18 @@
         "type": "object",
         "required": [
           "connector_id",
+          "grant_id",
+          "consumer_ref",
           "confirm"
         ],
         "properties": {
           "connector_id": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
             "type": "string"
           },
           "confirm": {
@@ -6328,6 +6379,8 @@
           "description": "Revoke one customer-owned connector and all associated grants with explicit confirmation.",
           "arguments": {
             "connector_id": "example",
+            "grant_id": "example",
+            "consumer_ref": "example",
             "confirm": false
           },
           "human_invocation": "focusa sms revoke --confirm",
@@ -6343,12 +6396,20 @@
       "input_schema": {
         "type": "object",
         "required": [
-          "query"
+          "query",
+          "grant_id",
+          "consumer_ref"
         ],
         "properties": {
           "query": {
             "minLength": 1,
             "maxLength": 500,
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
             "type": "string"
           },
           "limit": {
@@ -6368,7 +6429,9 @@
         {
           "description": "Search separately authorized message scope with bounded results.",
           "arguments": {
-            "query": "workpoint resume"
+            "query": "workpoint resume",
+            "grant_id": "example",
+            "consumer_ref": "example"
           },
           "human_invocation": "focusa sms search <query>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_search.md"
@@ -6441,7 +6504,17 @@
       "summary": "List customer-authorized thread summaries under the separate list_threads grant.",
       "input_schema": {
         "type": "object",
+        "required": [
+          "grant_id",
+          "consumer_ref"
+        ],
         "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
           "limit": {
             "minimum": 1,
             "maximum": 200,
@@ -6458,7 +6531,10 @@
       "examples": [
         {
           "description": "List customer-authorized thread summaries under the separate list_threads grant.",
-          "arguments": {},
+          "arguments": {
+            "grant_id": "example",
+            "consumer_ref": "example"
+          },
           "human_invocation": "focusa sms threads",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_threads.md"
         }

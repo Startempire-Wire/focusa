@@ -109,6 +109,10 @@ after_build:
           }
           [Convert]::FromBase64String($keyLines[1]) | Out-Null
           npm install -g bun
+          $npmRoot = (& npm root -g).Trim()
+          if ($LASTEXITCODE -ne 0 -or -not $npmRoot) { throw "npm global root unavailable" }
+          $bunExe = Join-Path $npmRoot "bun\bin\bun.exe"
+          if (-not (Test-Path $bunExe)) { throw "Bun executable missing under npm global root" }
           Set-Location apps/menubar
           bun install
           bun run build
@@ -120,8 +124,6 @@ after_build:
           if (-not $vcvars) { throw "vcvarsall.bat not found" }
           $tauriCli = "node_modules\@tauri-apps\cli\tauri.js"
           if (-not (Test-Path $tauriCli)) { throw "package-owned Tauri CLI missing at $tauriCli" }
-          $bunExe = (Get-Command bun.exe -ErrorAction Stop).Source
-          if (-not (Test-Path $bunExe)) { throw "Bun executable missing at resolved path" }
           $command = "call `"$vcvars`" $env:MSVC_ARCH && `"$bunExe`" $tauriCli --version && `"$bunExe`" $tauriCli build --target $env:RUST_TARGET --bundles nsis,msi 2>&1"
           & cmd.exe /d /s /c $command
           if ($LASTEXITCODE -ne 0) { throw "Tauri build failed with exit code $LASTEXITCODE" }

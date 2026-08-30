@@ -10,6 +10,8 @@ List customer-authorized thread summaries under a separately granted list_thread
 
 ## Parameters and strict input schema
 
+- `grant_id` (required; string): See the strict descriptor schema.
+- `consumer_ref` (required; string): See the strict descriptor schema.
 - `limit` (optional; integer; min=1, max=200, default=50): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_sms_threads`.
@@ -21,7 +23,10 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 ## Example
 
 ```json
-{}
+{
+  "grant_id": "example",
+  "consumer_ref": "example"
+}
 ```
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_threads.md
@@ -74,4 +79,4 @@ Likely next: `focusa_sms_read_thread`, `focusa_sms_search`, `focusa_sms_send`.
 - CLI: `focusa sms threads`.
 - REST: `GET /v1/sms/threads`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:be91d9ef19b0070ef03ac2eb665681774ccc32184ee1cb18ae7bdd60fd74cd2b`.
+- Descriptor digest: `sha256:36e9795dfe70fe68b780f64d7c2106437fa185192c0c30783e189af3975a5901`.

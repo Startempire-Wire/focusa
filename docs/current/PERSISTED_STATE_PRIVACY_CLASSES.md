@@ -26,6 +26,8 @@ Status: current privacy classification for local Focusa stores. Focusa is local-
 | Telemetry/events | P1/P2 | Counts/status low risk; event payloads may include summaries. |
 | ECS/reference store | P2/P3 | Artifact offloading surface; use handles and retrieval budgets. |
 | Peer sync tokens | P4 | `auth_token` fields are credentials; peer registration rejects token persistence until encrypted secret storage exists. |
+| Communications connector checkpoint | P4 | Only authenticated ciphertext generations may persist in the owner-only system state root; plaintext browser/connector state is tmpfs-only and never enters Focusa SQLite/evidence/model context. |
+| Communications grant usage/audit/idempotency | P1/P2 | Value-free handles, counts, digests, status, and attribution only; no message/OTP/credential/pairing payloads. |
 
 ## Persistence rules
 
