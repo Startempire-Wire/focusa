@@ -1,7 +1,8 @@
 schema: focusa.spec137a_runtime_proof_map.v1
 generated_at: '2026-07-30T13:39:19.346006+00:00'
 source_sha256: 2747f7f1ff7417c4541d7223199b3a480128ca049c9fe4a45859028af99a8419
-status: verified_complete
+status: proof_pending
+invalidation_reason: audited_runtime_proof_not_executable_github_436
 row_count: 172
 rows:
 - requirement_id: S137A-C-0030-e303969d103d
@@ -24,7 +25,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -52,7 +53,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -80,7 +81,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -108,7 +109,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -136,7 +137,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -164,7 +165,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -192,7 +193,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -220,7 +221,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -248,7 +249,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -276,7 +277,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -304,7 +305,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -332,7 +333,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -360,7 +361,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -388,7 +389,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -416,7 +417,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -444,7 +445,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -472,7 +473,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -500,7 +501,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -528,7 +529,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -556,7 +557,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -584,7 +585,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -612,7 +613,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -640,7 +641,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -668,7 +669,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -696,7 +697,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -724,7 +725,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -752,7 +753,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -780,7 +781,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -808,7 +809,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -836,7 +837,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -864,7 +865,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -892,7 +893,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -920,7 +921,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -948,7 +949,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -976,7 +977,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1004,7 +1005,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1032,7 +1033,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1060,7 +1061,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1088,7 +1089,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1116,7 +1117,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1144,7 +1145,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1172,7 +1173,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1200,7 +1201,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1228,7 +1229,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1256,7 +1257,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1284,7 +1285,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1312,7 +1313,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1340,7 +1341,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1368,7 +1369,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1396,7 +1397,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1424,7 +1425,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1452,7 +1453,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1480,7 +1481,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1508,7 +1509,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1536,7 +1537,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1564,7 +1565,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1592,7 +1593,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1620,7 +1621,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1648,7 +1649,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1676,7 +1677,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1704,7 +1705,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1732,7 +1733,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1760,7 +1761,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1788,7 +1789,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1816,7 +1817,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1844,7 +1845,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1872,7 +1873,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1900,7 +1901,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1928,7 +1929,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1956,7 +1957,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -1984,7 +1985,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2012,7 +2013,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2040,7 +2041,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2068,7 +2069,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2096,7 +2097,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2124,7 +2125,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2152,7 +2153,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2180,7 +2181,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2208,7 +2209,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2236,7 +2237,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2264,7 +2265,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2292,7 +2293,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2320,7 +2321,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2348,7 +2349,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2376,7 +2377,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2404,7 +2405,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2432,7 +2433,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2460,7 +2461,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2488,7 +2489,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2516,7 +2517,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2544,7 +2545,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2572,7 +2573,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2600,7 +2601,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2628,7 +2629,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2656,7 +2657,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2684,7 +2685,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2712,7 +2713,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2740,7 +2741,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2768,7 +2769,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2796,7 +2797,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2824,7 +2825,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2852,7 +2853,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2880,7 +2881,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2908,7 +2909,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2936,7 +2937,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2964,7 +2965,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -2992,7 +2993,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3020,7 +3021,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3048,7 +3049,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3076,7 +3077,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3104,7 +3105,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3132,7 +3133,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3160,7 +3161,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3188,7 +3189,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3216,7 +3217,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3244,7 +3245,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3272,7 +3273,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3300,7 +3301,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3328,7 +3329,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3356,7 +3357,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3384,7 +3385,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3412,7 +3413,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3440,7 +3441,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3468,7 +3469,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3496,7 +3497,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3524,7 +3525,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3552,7 +3553,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3580,7 +3581,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3608,7 +3609,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3636,7 +3637,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3666,7 +3667,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3696,7 +3697,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3726,7 +3727,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3756,7 +3757,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3786,7 +3787,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3816,7 +3817,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3846,7 +3847,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3876,7 +3877,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3906,7 +3907,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3936,7 +3937,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3966,7 +3967,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -3996,7 +3997,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4026,7 +4027,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4056,7 +4057,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4086,7 +4087,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4116,7 +4117,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4146,7 +4147,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4176,7 +4177,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4206,7 +4207,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4236,7 +4237,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4266,7 +4267,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4296,7 +4297,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4326,7 +4327,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4356,7 +4357,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4386,7 +4387,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4416,7 +4417,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4446,7 +4447,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4476,7 +4477,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4506,7 +4507,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4536,7 +4537,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4566,7 +4567,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4596,7 +4597,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4626,7 +4627,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4656,7 +4657,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4686,7 +4687,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4716,7 +4717,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4746,7 +4747,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4776,7 +4777,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4806,7 +4807,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4836,7 +4837,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4866,7 +4867,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:
@@ -4896,7 +4897,7 @@ rows:
   - docs/evidence/spec137a/S137A-combined-acceptance.txt
   receipt_refs:
   - docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
-  status: verified_complete
+  status: proof_pending
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
   applicable_scope_refs:

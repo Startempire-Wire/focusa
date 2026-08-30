@@ -2,7 +2,8 @@ schema: focusa.spec137_complete_feature_ledger.v1
 spec_ref: docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md
 source_spec_sha256: b3f3aceb1b534a07f18bb0b265d9013d493cafed091114159bce95cfc4c0078d
 generated_at: '2026-07-30T09:09:32.365590+00:00'
-status: verified_complete
+status: implementation_open
+invalidation_reason: audited_runtime_conformance_missing_github_436
 authority: Spec 137 acceptance criteria normalize detailed normative clauses; implementation
   truth remains Evidence/Receipt-gated; Specs 130A, 131, and 136 retain their declared
   neighboring authority.
@@ -688,7 +689,7 @@ requirements:
   - G-04
   - G-16
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -770,7 +771,7 @@ requirements:
   finding_refs:
   - G-16
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -850,7 +851,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   reducer_events:
@@ -928,7 +929,7 @@ requirements:
   - G-15
   - G-37
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   reducer_events:
@@ -1005,7 +1006,7 @@ requirements:
   - G-15
   - G-32
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   reducer_events:
@@ -1080,7 +1081,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -1160,7 +1161,7 @@ requirements:
   finding_refs:
   - G-09
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -1243,7 +1244,7 @@ requirements:
   - G-05
   - G-09
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -1324,7 +1325,7 @@ requirements:
   finding_refs:
   - G-16
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -1403,7 +1404,7 @@ requirements:
   finding_refs:
   - G-10
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -1484,7 +1485,7 @@ requirements:
   - G-09
   - G-11
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -1568,7 +1569,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -1654,7 +1655,7 @@ requirements:
   - G-21
   - G-36
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -1739,7 +1740,7 @@ requirements:
   - A-03
   - G-21
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -1819,7 +1820,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_forecast.rs
@@ -1897,7 +1898,7 @@ requirements:
   finding_refs:
   - G-20
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_forecast.rs
@@ -1974,7 +1975,7 @@ requirements:
   finding_refs:
   - G-18
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_forecast.rs
@@ -2051,7 +2052,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -2136,7 +2137,7 @@ requirements:
   - G-22
   - G-33
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -2219,7 +2220,7 @@ requirements:
   - C-08
   - A-03
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -2298,7 +2299,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_progress.rs
@@ -2373,7 +2374,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -2455,7 +2456,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_progress.rs
@@ -2532,7 +2533,7 @@ requirements:
   finding_refs:
   - G-13
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_progress.rs
@@ -2617,7 +2618,7 @@ requirements:
   - G-24
   - G-25
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -2695,7 +2696,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_progress.rs
@@ -2773,7 +2774,7 @@ requirements:
   finding_refs:
   - G-33
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_forecast.rs
@@ -2854,7 +2855,7 @@ requirements:
   finding_refs:
   - G-33
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_forecast.rs
@@ -2932,7 +2933,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_progress.rs
@@ -3010,7 +3011,7 @@ requirements:
   finding_refs:
   - C-03
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -3089,7 +3090,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_forecast.rs
@@ -3168,7 +3169,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -3250,7 +3251,7 @@ requirements:
   finding_refs:
   - A-04
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_progress.rs
@@ -3326,7 +3327,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_progress.rs
@@ -3404,7 +3405,7 @@ requirements:
   finding_refs:
   - G-34
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_progress.rs
@@ -3480,7 +3481,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_forecast.rs
@@ -3562,7 +3563,7 @@ requirements:
   - C-07
   - A-01
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -3644,7 +3645,7 @@ requirements:
   - A-02
   - G-31
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -3725,7 +3726,7 @@ requirements:
   finding_refs:
   - A-01
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_forecast.rs
@@ -3804,7 +3805,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   reducer_events:
@@ -3880,7 +3881,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -3961,7 +3962,7 @@ requirements:
   - A-07
   - G-25
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -4038,7 +4039,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -4118,7 +4119,7 @@ requirements:
   - A-06
   - G-24
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -4196,7 +4197,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   reducer_events:
@@ -4272,7 +4273,7 @@ requirements:
   finding_refs:
   - G-31
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -4353,7 +4354,7 @@ requirements:
   finding_refs:
   - A-05
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -4431,7 +4432,7 @@ requirements:
   finding_refs:
   - G-06
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -4518,7 +4519,7 @@ requirements:
   - G-32
   - G-36
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -4603,7 +4604,7 @@ requirements:
   finding_refs:
   - G-28
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_forecast.rs
@@ -4685,7 +4686,7 @@ requirements:
   - C-07
   - G-29
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -4766,7 +4767,7 @@ requirements:
   finding_refs:
   - G-15
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_high_consequence.rs
@@ -4844,7 +4845,7 @@ requirements:
   finding_refs:
   - C-07
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_high_consequence.rs
@@ -4924,7 +4925,7 @@ requirements:
   finding_refs:
   - G-28
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -5008,7 +5009,7 @@ requirements:
   finding_refs:
   - G-35
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -5095,7 +5096,7 @@ requirements:
   finding_refs:
   - G-35
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_high_consequence.rs
@@ -5173,7 +5174,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -5258,7 +5259,7 @@ requirements:
   - G-27
   - G-30
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_high_consequence.rs
@@ -5343,7 +5344,7 @@ requirements:
   - G-30
   - G-36
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_high_consequence.rs
@@ -5422,7 +5423,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   reducer_events:
@@ -5497,7 +5498,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   reducer_events:
@@ -5574,7 +5575,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   reducer_events:
@@ -5653,7 +5654,7 @@ requirements:
   - G-35
   - G-37
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_high_consequence.rs
@@ -5731,7 +5732,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   reducer_events:
@@ -5806,7 +5807,7 @@ requirements:
   blocking_dependencies: []
   finding_refs: []
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_progress.rs
@@ -5884,7 +5885,7 @@ requirements:
   finding_refs:
   - G-01
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -5966,7 +5967,7 @@ requirements:
   - G-02
   - G-36
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -6050,7 +6051,7 @@ requirements:
   - G-03
   - G-16
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -6134,7 +6135,7 @@ requirements:
   - G-11
   - G-36
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -6213,7 +6214,7 @@ requirements:
   finding_refs:
   - G-05
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -6298,7 +6299,7 @@ requirements:
   - G-13
   - G-14
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -6381,7 +6382,7 @@ requirements:
   - C-08
   - A-03
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -6468,7 +6469,7 @@ requirements:
   - G-22
   - G-36
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_forecast.rs
@@ -6549,7 +6550,7 @@ requirements:
   - C-06
   - G-18
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -6629,7 +6630,7 @@ requirements:
   - A-07
   - G-23
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -6711,7 +6712,7 @@ requirements:
   - G-24
   - G-25
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_high_consequence.rs
@@ -6796,7 +6797,7 @@ requirements:
   - G-29
   - G-30
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_deadline.rs
@@ -6880,7 +6881,7 @@ requirements:
   - G-31
   - G-36
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_high_consequence.rs
@@ -6960,7 +6961,7 @@ requirements:
   - G-32
   - G-36
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -7048,7 +7049,7 @@ requirements:
   - G-33
   - G-36
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -7129,7 +7130,7 @@ requirements:
   - G-15
   - G-36
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -7213,7 +7214,7 @@ requirements:
   finding_refs:
   - G-35
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -7296,7 +7297,7 @@ requirements:
   finding_refs:
   - G-34
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_high_consequence.rs
@@ -7375,7 +7376,7 @@ requirements:
   finding_refs:
   - C-02
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   reducer_events:
@@ -7452,7 +7453,7 @@ requirements:
   finding_refs:
   - C-01
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_progress.rs
@@ -7532,7 +7533,7 @@ requirements:
   finding_refs:
   - G-21
   amendment_ref: null
-  status: verified_complete
+  status: implementation_open
   core_types:
   - crates/focusa-core/src/temporal.rs
   - crates/focusa-core/src/temporal_clock.rs
@@ -7590,7 +7591,7 @@ combined_normative_source_v2:
   combined_hash: c4195171721cde8821a9c54a2e83d819afe226a20937930af2d4db770916978f
   source_coverage_ref: docs/contracts/spec137a-normative-source-coverage.v1.yaml
   legacy_parent_requirement_ids_preserved: true
-  full_conformance_status: verified_complete
+  full_conformance_status: open
   root_delivery_dag_ref: docs/contracts/spec137a-root-delivery-dag.v1.yaml
   delivery_node_count: 258
   zero_omission_receipt_ref: docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
@@ -7601,10 +7602,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -7650,10 +7651,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -7699,10 +7700,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -7748,10 +7749,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -7797,10 +7798,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -7846,10 +7847,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: conditional
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -7895,10 +7896,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -7944,10 +7945,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: conditional
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -7993,10 +7994,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8042,10 +8043,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8091,10 +8092,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8140,10 +8141,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8189,10 +8190,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8238,10 +8239,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8287,10 +8288,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8336,10 +8337,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8385,10 +8386,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8434,10 +8435,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8483,10 +8484,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8532,10 +8533,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8581,10 +8582,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8630,10 +8631,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8679,10 +8680,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8728,10 +8729,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8777,10 +8778,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8826,10 +8827,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8875,10 +8876,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8924,10 +8925,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -8973,10 +8974,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9022,10 +9023,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9071,10 +9072,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9120,10 +9121,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9169,10 +9170,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9218,10 +9219,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9267,10 +9268,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: conditional
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9316,10 +9317,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9365,10 +9366,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: conditional
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9414,10 +9415,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9463,10 +9464,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9512,10 +9513,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9561,10 +9562,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9610,10 +9611,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9659,10 +9660,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9708,10 +9709,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9757,10 +9758,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9805,10 +9806,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9853,10 +9854,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9901,10 +9902,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9949,10 +9950,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -9997,10 +9998,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10045,10 +10046,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10093,10 +10094,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10141,10 +10142,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10189,10 +10190,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10237,10 +10238,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10285,10 +10286,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10333,10 +10334,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10381,10 +10382,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10429,10 +10430,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10477,10 +10478,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10525,10 +10526,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10573,10 +10574,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10621,10 +10622,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10669,10 +10670,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10717,10 +10718,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10765,10 +10766,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10813,10 +10814,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10861,10 +10862,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10911,10 +10912,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -10961,10 +10962,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11011,10 +11012,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11061,10 +11062,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11111,10 +11112,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11161,10 +11162,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11211,10 +11212,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11261,10 +11262,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11311,10 +11312,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11361,10 +11362,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11411,10 +11412,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11461,10 +11462,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11511,10 +11512,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11561,10 +11562,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11611,10 +11612,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11661,10 +11662,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11711,10 +11712,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11761,10 +11762,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11811,10 +11812,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11861,10 +11862,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11911,10 +11912,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -11961,10 +11962,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12011,10 +12012,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12061,10 +12062,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12111,10 +12112,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12161,10 +12162,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12211,10 +12212,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12261,10 +12262,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12311,10 +12312,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12361,10 +12362,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12411,10 +12412,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12461,10 +12462,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12511,10 +12512,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12561,10 +12562,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12611,10 +12612,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12661,10 +12662,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12711,10 +12712,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12761,10 +12762,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12811,10 +12812,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12861,10 +12862,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12911,10 +12912,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -12961,10 +12962,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13011,10 +13012,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13061,10 +13062,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13111,10 +13112,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13161,10 +13162,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13211,10 +13212,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13261,10 +13262,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13311,10 +13312,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13361,10 +13362,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13411,10 +13412,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13461,10 +13462,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13511,10 +13512,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13561,10 +13562,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13611,10 +13612,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13661,10 +13662,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: conditional
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13711,10 +13712,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13761,10 +13762,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13811,10 +13812,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13861,10 +13862,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13911,10 +13912,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -13961,10 +13962,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14011,10 +14012,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14065,10 +14066,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14119,10 +14120,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14173,10 +14174,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14227,10 +14228,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14281,10 +14282,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14335,10 +14336,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14389,10 +14390,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14443,10 +14444,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14497,10 +14498,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14551,10 +14552,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14605,10 +14606,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14659,10 +14660,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: conditional
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14713,10 +14714,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14767,10 +14768,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14821,10 +14822,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14875,10 +14876,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14929,10 +14930,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -14983,10 +14984,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15037,10 +15038,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15091,10 +15092,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15145,10 +15146,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15199,10 +15200,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15253,10 +15254,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15307,10 +15308,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15361,10 +15362,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15415,10 +15416,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15469,10 +15470,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15523,10 +15524,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15577,10 +15578,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15631,10 +15632,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15685,10 +15686,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15739,10 +15740,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15793,10 +15794,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15847,10 +15848,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15901,10 +15902,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -15955,10 +15956,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -16009,10 +16010,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -16063,10 +16064,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -16117,10 +16118,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -16171,10 +16172,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
@@ -16225,10 +16226,10 @@ spec137a_requirement_rows:
   primitive_owner: Spec 137A
   applicability_class: required
   applicability_status: active
-  documentation_status: verified_complete
-  runtime_status: verified_complete
-  evidence_status: verified_complete
-  receipt_status: verified_complete
+  documentation_status: implementation_open
+  runtime_status: implementation_open
+  evidence_status: implementation_open
+  receipt_status: implementation_open
   closure_impact: blocking_for_claimed_conformance
   applicability_evidence_refs:
   - docs/evidence/spec137a/S137A-applicability-decisions.txt
