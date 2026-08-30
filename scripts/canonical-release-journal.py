@@ -29,6 +29,7 @@ FOCUSA_PROJECT_ROOT = os.environ.get("FOCUSA_PROJECT_ROOT", "/home/wirebot/focus
 FOCUSA_PROJECT_FINGERPRINT = os.environ.get("FOCUSA_PROJECT_FINGERPRINT", "project-fnv1a64:c435b14d4fb3ab67")
 FOCUSA_CONTINUITY_ID = os.environ.get("FOCUSA_CONTINUITY_ID", "focusa-v0.9.135-locked-14")
 WORKFLOW_NAMES = ("CI", "Release", "Deploy Live Daemon")
+COMMAND_DIAGNOSTIC_BYTES = 2048
 
 
 def utcnow() -> str:
@@ -39,8 +40,34 @@ def parse_time(value: str) -> dt.datetime:
     return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def _bounded_command_diagnostic(value: str) -> str:
+    raw = value.encode("utf-8", errors="replace")[-COMMAND_DIAGNOSTIC_BYTES:]
+    tail = raw.decode("utf-8", errors="replace")
+    tail = re.sub(r"(?i)(bearer\s+)[^\s]+", r"\1[REDACTED]", tail)
+    tail = re.sub(
+        r"(?i)((?:api[_-]?key|token|password|secret)\s*[=:]\s*)[^\s,;]+",
+        r"\1[REDACTED]",
+        tail,
+    )
+    return tail
+
+
 def command(args: list[str], *, cwd: Path = ROOT, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=check)
+    result = subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=False)
+    if check and result.returncode != 0:
+        failed_check = " ".join(str(part) for part in args[:2])
+        diagnostic = {
+            "status": "blocked",
+            "failed_check": _bounded_command_diagnostic(failed_check),
+            "exit_code": result.returncode,
+            "stdout_tail": _bounded_command_diagnostic(result.stdout or ""),
+            "stderr_tail": _bounded_command_diagnostic(result.stderr or ""),
+        }
+        raise RuntimeError(
+            "release benchmark command failed: "
+            + json.dumps(diagnostic, sort_keys=True, ensure_ascii=False)
+        )
+    return result
 
 
 def git(*args: str) -> str:
