@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:fbd2f66be3a0d30af3953d1b68c882b5c7c92e042332d49a3456cf16eed7bc3b`
+Registry digest: `sha256:78e4a214223840b95637a62e869e73fd8d99115cfaba007145d5035cc924878b`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -346,7 +346,7 @@ Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic re
 
 ## focusa_callgraph_validate
 
-Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when validating a CallGraph definition deterministically before any create or dispatch action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.callgraph.validate`
 - Family: `callgraph`

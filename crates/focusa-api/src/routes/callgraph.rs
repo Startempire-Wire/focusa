@@ -70,14 +70,19 @@ async fn validate(
     State(_state): State<Arc<AppState>>,
     Json(graph): Json<FocusaCallGraphDefinition>,
 ) -> Json<Value> {
-    let report = validate_graph(&graph);
-    Json(json!({
+    Json(validation_response(&graph))
+}
+
+pub(crate) fn validation_response(graph: &FocusaCallGraphDefinition) -> Value {
+    let report = validate_graph(graph);
+    json!({
         "status": if report.valid { "valid" } else { "invalid" },
         "valid": report.valid,
         "issues": report.issues,
         "graph_id": graph.graph_id,
         "revision": graph.revision,
-    }))
+        "canonical": true,
+    })
 }
 
 async fn eligibility(

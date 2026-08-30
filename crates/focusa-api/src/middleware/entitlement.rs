@@ -292,7 +292,7 @@ pub async fn entitlement_gate_layer(
         path,
         state_has_canonical_workpoint(&state).await,
     );
-    if is_home_dev_bypass() {
+    if is_home_dev_bypass() || is_pure_read_validation_exempt(&method, path) {
         return next.run(request).await;
     }
     let requires_entitlement = route_requires_entitlement(&method, path) && !bootstrap_exempt;
@@ -800,6 +800,12 @@ fn route_has_declared_methods(path: &str) -> bool {
     })
 }
 
+fn is_pure_read_validation_exempt(method: &Method, path: &str) -> bool {
+    // Spec 155 structural validation is deterministic and performs no IO or state mutation;
+    // agents must be able to validate a proposed graph before project or entitlement binding.
+    method == Method::POST && path == "/v1/callgraphs/validate"
+}
+
 fn is_read_only_preflight(path: &str) -> bool {
     let segments: Vec<_> = path.trim_matches('/').split('/').collect();
     path == "/v1/silent-sessions/preflight"
@@ -823,6 +829,22 @@ fn is_export_manifest_read(path: &str) -> bool {
 mod tests {
     use super::*;
     use focusa_license::{LicenseGuard, authority::EntitlementSnapshot};
+
+    #[test]
+    fn pure_callgraph_validation_is_entitlement_exempt() {
+        assert!(is_pure_read_validation_exempt(
+            &Method::POST,
+            "/v1/callgraphs/validate"
+        ));
+        assert!(!is_pure_read_validation_exempt(
+            &Method::POST,
+            "/v1/callgraphs"
+        ));
+        assert!(!is_pure_read_validation_exempt(
+            &Method::GET,
+            "/v1/callgraphs/validate"
+        ));
+    }
 
     #[test]
     fn mutation_routes_require_entitlement_before_handlers() {

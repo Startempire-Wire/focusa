@@ -1,10 +1,10 @@
 # `focusa_callgraph_validate`
 
-Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when validating a CallGraph definition deterministically before any create or dispatch action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- validating a CallGraph definition deterministically before any create or dispatch action.
 - Capability family: `callgraph`; namespace: `focusa.callgraph`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -72,6 +72,6 @@ Likely next: `focusa_callgraph_observe`, `focusa_tool_describe`.
 - Runbooks: `runbook:callgraph`
 - Pi: `focusa_callgraph_validate`; MCP: `focusa.callgraph.validate`; OpenAI: `focusa_callgraph_validate`.
 - CLI: none.
-- REST: `/v1/callgraph-runs/{run_id}/frontier `.
+- REST: `POST /v1/callgraphs/validate`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3579475ac96ddab54e5ce8b02808ae5e6973fe34174b21bb761be73cf26dd5d5`.
+- Descriptor digest: `sha256:5128334f7f0e75d4503faad6a311c10b76d79f30997413a59167468c69007479`.
