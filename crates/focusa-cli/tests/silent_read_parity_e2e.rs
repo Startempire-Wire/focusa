@@ -149,7 +149,20 @@ fn list_show_status_and_output_use_bounded_exact_daemon_routes() {
             "exit_status": null
         }
     }));
-    let show_target = format!("/v1/silent-sessions/{session_id}?run_id={run_id}");
+    let show_target = format!("/v1/silent-sessions/{session_id}");
+    let (output, server) = run_mocked(
+        &["--json", "silent", "show", &session_id],
+        &show_target,
+        None,
+        "200 OK",
+        "application/json",
+        show_body.clone(),
+    );
+    let stdout = assert_success(&output, server);
+    let value: Value = serde_json::from_str(&stdout).expect("show emits one JSON envelope");
+    assert_eq!(value["data"]["session"]["session_id"], session_id);
+    assert_eq!(value["data"]["run"]["run_id"], run_id);
+
     let (output, server) = run_mocked(
         &["--json", "silent", "show", &session_id, "--run", &run_id],
         &show_target,
@@ -158,10 +171,7 @@ fn list_show_status_and_output_use_bounded_exact_daemon_routes() {
         "application/json",
         show_body,
     );
-    let stdout = assert_success(&output, server);
-    let value: Value = serde_json::from_str(&stdout).expect("show emits one JSON envelope");
-    assert_eq!(value["data"]["session"]["session_id"], session_id);
-    assert_eq!(value["data"]["run"]["run_id"], run_id);
+    assert_success(&output, server);
 
     let status_body = success(json!({
         "session_id": session_id,
@@ -176,9 +186,18 @@ fn list_show_status_and_output_use_bounded_exact_daemon_routes() {
         "ended_at": null,
         "exit_status": null
     }));
-    let status_target = format!("/v1/silent-sessions/{session_id}/status?run_id={run_id}");
+    let status_target =
+        format!("/v1/silent-sessions/{session_id}/status?run_id={run_id}&generation=3");
     let (output, server) = run_mocked(
-        &["silent", "status", &session_id, "--run-id", &run_id],
+        &[
+            "silent",
+            "status",
+            &session_id,
+            "--run-id",
+            &run_id,
+            "--generation",
+            "3",
+        ],
         &status_target,
         None,
         "200 OK",
@@ -210,7 +229,7 @@ fn list_show_status_and_output_use_bounded_exact_daemon_routes() {
         }]
     }));
     let output_target = format!(
-        "/v1/silent-sessions/{session_id}/output?run_id={run_id}&limit=5&after=opaque%2Fcursor%3Fx"
+        "/v1/silent-sessions/{session_id}/output?run_id={run_id}&generation=3&follow=false&limit=5&after=opaque%2Fcursor%3Fx"
     );
     let (output, server) = run_mocked(
         &[
@@ -220,6 +239,8 @@ fn list_show_status_and_output_use_bounded_exact_daemon_routes() {
             &session_id,
             "--run",
             &run_id,
+            "--generation",
+            "3",
             "--after",
             "opaque/cursor?x",
             "--limit",
@@ -345,9 +366,18 @@ fn cross_run_daemon_response_fails_closed_without_leaking_payload() {
         "completion_status": "not_completed",
         "api_key": "cross-run-secret"
     }));
-    let target = format!("/v1/silent-sessions/{session_id}/status?run_id={run_id}");
+    let target = format!("/v1/silent-sessions/{session_id}/status?run_id={run_id}&generation=1");
     let (output, server) = run_mocked(
-        &["--json", "silent", "status", &session_id, "--run", &run_id],
+        &[
+            "--json",
+            "silent",
+            "status",
+            &session_id,
+            "--run",
+            &run_id,
+            "--generation",
+            "1",
+        ],
         &target,
         None,
         "200 OK",
@@ -387,7 +417,9 @@ fn daemon_rejection_keeps_shared_envelope_redacted_and_exits_nonzero() {
         "data": {"access_token": "rejection-secret"}
     })
     .to_string();
-    let target = format!("/v1/silent-sessions/{session_id}/output?run_id={run_id}&limit=3");
+    let target = format!(
+        "/v1/silent-sessions/{session_id}/output?run_id={run_id}&generation=1&follow=false&limit=3"
+    );
     let (output, server) = run_mocked(
         &[
             "--json",
@@ -396,6 +428,8 @@ fn daemon_rejection_keeps_shared_envelope_redacted_and_exits_nonzero() {
             &session_id,
             "--run",
             &run_id,
+            "--generation",
+            "1",
             "--limit",
             "3",
         ],

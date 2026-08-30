@@ -84,6 +84,7 @@ mod semantic_integrity_executor;
 pub mod session;
 pub mod silent_sessions;
 pub mod silent_sessions_adopt;
+pub mod silent_sessions_approvals;
 pub mod silent_sessions_authorize;
 pub mod silent_sessions_capabilities;
 pub mod silent_sessions_config_mutation;

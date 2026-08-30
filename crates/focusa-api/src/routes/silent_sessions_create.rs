@@ -119,6 +119,15 @@ pub(super) async fn create(
                 status: "replayed".into(),
                 target_ref: Some(session.id.to_string()),
             });
+            add_start_approval_next_step(
+                &mut envelope,
+                session.id,
+                payload
+                    .get("run_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                payload.get("run_generation").and_then(Value::as_u64),
+            );
             return (StatusCode::OK, Json(envelope));
         }
         Ok(None) => {}
@@ -232,6 +241,12 @@ pub(super) async fn create(
         }),
     );
     principal_side_effect(&mut envelope, &principal);
+    add_start_approval_next_step(
+        &mut envelope,
+        session.id,
+        Some(run.id.to_string()),
+        Some(run.generation.get()),
+    );
     envelope.side_effects.extend([
         ApiSideEffect {
             effect: "silent_session_projection".into(),
@@ -255,6 +270,25 @@ pub(super) async fn create(
         },
     ]);
     (StatusCode::CREATED, Json(envelope))
+}
+
+fn add_start_approval_next_step(
+    envelope: &mut SilentSessionApiEnvelope<Value>,
+    session_id: focusa_core::silent_sessions::SilentSessionId,
+    run_id: Option<String>,
+    generation: Option<u64>,
+) {
+    envelope.next_tools.push(format!(
+        "focusa silent approval preview {session_id} --request-file <approval-request.json>"
+    ));
+    envelope.recovery_hint = Some(match (run_id, generation) {
+        (Some(run_id), Some(generation)) => format!(
+            "Next: preview and create a start approval bound to run_id={run_id}, generation={generation}."
+        ),
+        _ => {
+            "Next: read the exact run identity, then preview and create its start approval.".into()
+        }
+    });
 }
 
 fn authorize_config(
@@ -403,6 +437,19 @@ mod tests {
         assert!(authorize_config(&allowed, SilentSessionAction::Create, &config(), "hash").is_ok());
         let denied = principal([SilentSessionRouteScope::Read].into_iter().collect());
         assert!(authorize_config(&denied, SilentSessionAction::Create, &config(), "hash").is_err());
+    }
+
+    #[test]
+    fn create_result_points_directly_to_start_approval() {
+        let session_id = focusa_core::silent_sessions::SilentSessionId::new();
+        let run_id = SilentSessionRunId::new();
+        let mut envelope = SilentSessionApiEnvelope::canonical("created", json!({}));
+        add_start_approval_next_step(&mut envelope, session_id, Some(run_id.to_string()), Some(1));
+        assert_eq!(envelope.next_tools.len(), 1);
+        assert!(envelope.next_tools[0].contains(&session_id.to_string()));
+        assert!(envelope.recovery_hint.as_deref().is_some_and(|hint| {
+            hint.contains(&run_id.to_string()) && hint.contains("generation=1")
+        }));
     }
 
     #[test]
