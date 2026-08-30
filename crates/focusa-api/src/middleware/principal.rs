@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, sync::OnceLock};
+use std::collections::BTreeSet;
 
 #[cfg(unix)]
 use std::process::Command;
@@ -94,10 +94,8 @@ async fn paired_device(token: &str) -> Option<focusa_core::types::DeviceToken> {
     })
 }
 
-static DAEMON_OS_USER: OnceLock<Option<String>> = OnceLock::new();
-
 fn daemon_os_user() -> Option<String> {
-    DAEMON_OS_USER.get_or_init(resolve_daemon_os_user).clone()
+    resolve_daemon_os_user()
 }
 
 fn resolve_daemon_os_user() -> Option<String> {
