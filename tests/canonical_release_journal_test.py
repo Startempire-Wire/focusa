@@ -14,6 +14,37 @@ module = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
 spec.loader.exec_module(module)
 
+original_subprocess_run = module.subprocess.run
+try:
+    def failed_proof(args, **_kwargs):
+        return subprocess.CompletedProcess(
+            args,
+            17,
+            stdout=("discarded-prefix\n" * 300) + "FAILED latency_p95_budget\n",
+            stderr="Authorization: Bearer super-secret-token\ntoken=another-secret\n",
+        )
+
+    module.subprocess.run = failed_proof
+    try:
+        module.command([sys.executable, "scripts/spec135-live-performance-proof.py"])
+        raise AssertionError("failing proof command must raise")
+    except RuntimeError as error:
+        diagnostic = str(error)
+        assert "scripts/spec135-live-performance-proof.py" in diagnostic
+        assert '"exit_code": 17' in diagnostic
+        assert "FAILED latency_p95_budget" in diagnostic
+        assert "super-secret-token" not in diagnostic
+        assert "another-secret" not in diagnostic
+        assert "[REDACTED]" in diagnostic
+        assert len(diagnostic.encode()) < 5000
+
+    unchecked = module.command(
+        [sys.executable, "scripts/spec135-live-performance-proof.py"], check=False
+    )
+    assert unchecked.returncode == 17
+finally:
+    module.subprocess.run = original_subprocess_run
+
 original_focusa_token = module.os.environ.get("FOCUSA_AUTH_TOKEN")
 try:
     module.os.environ["FOCUSA_AUTH_TOKEN"] = "test-release-token"
