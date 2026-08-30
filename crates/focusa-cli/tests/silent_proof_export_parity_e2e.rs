@@ -152,7 +152,7 @@ fn evidence_and_receipts_are_bounded_redacted_and_exact_run_scoped_in_both_modes
             json!([]),
         );
         let target = format!(
-            "/v1/silent-sessions/{session_id}/artifacts?run_id={run_id}&limit=3&after=opaque%2Fcursor%3F1"
+            "/v1/silent-sessions/{session_id}/artifacts?run_id={run_id}&generation=4&limit=3&after=opaque%2Fcursor%3F1"
         );
         let cli_args = args(
             json_mode,
@@ -161,6 +161,8 @@ fn evidence_and_receipts_are_bounded_redacted_and_exact_run_scoped_in_both_modes
                 &session_id,
                 "--run",
                 &run_id,
+                "--generation",
+                "4",
                 "--after",
                 "opaque/cursor?1",
                 "--limit",
@@ -208,10 +210,21 @@ fn evidence_and_receipts_are_bounded_redacted_and_exact_run_scoped_in_both_modes
             json!([]),
             json!([receipt_ref]),
         );
-        let target = format!("/v1/silent-sessions/{session_id}/receipts?run_id={run_id}&limit=2");
+        let target = format!(
+            "/v1/silent-sessions/{session_id}/receipts?run_id={run_id}&generation=4&limit=2"
+        );
         let cli_args = args(
             json_mode,
-            &["receipt", &session_id, "--run-id", &run_id, "--limit", "2"],
+            &[
+                "receipt",
+                &session_id,
+                "--run-id",
+                &run_id,
+                "--generation",
+                "4",
+                "--limit",
+                "2",
+            ],
         );
         let (output, server) = run_mocked(&cli_args, "GET", &target, "200 OK", response, |body| {
             assert!(body.is_none())
@@ -230,6 +243,27 @@ fn evidence_and_receipts_are_bounded_redacted_and_exact_run_scoped_in_both_modes
             assert!(stdout.contains("Receipts: 1"));
             assert!(stdout.contains("kind=receipt.committed"));
         }
+    }
+}
+
+#[test]
+fn evidence_and_receipt_require_exact_generation_before_network_access() {
+    let session_id = Uuid::now_v7().to_string();
+    let run_id = Uuid::now_v7().to_string();
+
+    for command in ["evidence", "receipt"] {
+        let output = Command::new(FOCUSA_BIN)
+            .args(["silent", command, &session_id, "--run", &run_id])
+            .output()
+            .expect("run missing-generation parser check");
+        assert!(
+            !output.status.success(),
+            "missing generation must fail closed"
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains("--generation"),
+            "CLI must identify the missing exact generation"
+        );
     }
 }
 
@@ -330,10 +364,20 @@ fn proof_and_export_fail_closed_on_cross_run_or_unbounded_daemon_responses() {
         json!(["artifact:wrong-run"]),
         json!([]),
     );
-    let target = format!("/v1/silent-sessions/{session_id}/artifacts?run_id={run_id}&limit=1");
+    let target =
+        format!("/v1/silent-sessions/{session_id}/artifacts?run_id={run_id}&generation=1&limit=1");
     let cli_args = args(
         true,
-        &["evidence", &session_id, "--run", &run_id, "--limit", "1"],
+        &[
+            "evidence",
+            &session_id,
+            "--run",
+            &run_id,
+            "--generation",
+            "1",
+            "--limit",
+            "1",
+        ],
     );
     let (output, server) = run_mocked(&cli_args, "GET", &target, "200 OK", response, |body| {
         assert!(body.is_none())
@@ -346,6 +390,52 @@ fn proof_and_export_fail_closed_on_cross_run_or_unbounded_daemon_responses() {
     assert!(
         !String::from_utf8_lossy(&output.stdout).contains("artifact:wrong-run"),
         "cross-run artifact refs must not reach stdout"
+    );
+
+    let wrong_generation_response = envelope(
+        json!({
+            "session_id": session_id,
+            "run_id": run_id,
+            "generation": 2,
+            "limit": 1,
+            "artifact_refs": ["artifact:wrong-generation"]
+        }),
+        json!(["artifact:wrong-generation"]),
+        json!([]),
+    );
+    let generation_target =
+        format!("/v1/silent-sessions/{session_id}/artifacts?run_id={run_id}&generation=1&limit=1");
+    let generation_args = args(
+        true,
+        &[
+            "evidence",
+            &session_id,
+            "--run",
+            &run_id,
+            "--generation",
+            "1",
+            "--limit",
+            "1",
+        ],
+    );
+    let (generation_output, generation_server) = run_mocked(
+        &generation_args,
+        "GET",
+        &generation_target,
+        "200 OK",
+        wrong_generation_response,
+        |body| assert!(body.is_none()),
+    );
+    generation_server
+        .join()
+        .expect("mock daemon validates generation request");
+    assert!(
+        !generation_output.status.success(),
+        "cross-generation response must fail closed"
+    );
+    assert!(
+        !String::from_utf8_lossy(&generation_output.stdout).contains("artifact:wrong-generation"),
+        "cross-generation artifact refs must not reach stdout"
     );
 
     let output = Command::new(FOCUSA_BIN)
