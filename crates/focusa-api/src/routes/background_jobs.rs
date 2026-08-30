@@ -60,6 +60,10 @@ pub struct CompleteJobBody {
     pub exit_code: i32,
     #[serde(default)]
     pub status: Option<String>,
+    /// Monitor-captured tail. Required for cross-namespace delivery when the
+    /// daemon cannot see the CLI monitor's host `/tmp` log.
+    #[serde(default)]
+    pub output_tail: String,
 }
 
 #[derive(Deserialize)]
@@ -98,6 +102,7 @@ async fn create_job(
                 .unwrap_or_else(|| format!("/tmp/focusa-bg-{job_id}.log")),
             started_at: now_iso(),
             completed_at: None,
+            output_tail: String::new(),
         };
         focusa_core::background_job_store::upsert_job(&conn, &record)?;
         Ok(json!({ "status": "queued", "job": record }))
@@ -215,6 +220,12 @@ async fn complete_job(
         record.status = status;
         record.exit_code = Some(body.exit_code);
         record.completed_at = Some(now_iso());
+        record.output_tail =
+            focusa_core::background_jobs::bounded_output_tail(&body.output_tail, 4096);
+        if record.output_tail.is_empty() {
+            record.output_tail =
+                focusa_core::background_jobs::resolved_background_job_output_tail(&record);
+        }
         focusa_core::background_job_store::upsert_job(&conn, &record)?;
         let envelope = BackgroundJobCompletionEvent::from_record(&record);
         // Duration stats feed the ETA for the next same-name job.

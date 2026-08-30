@@ -48,13 +48,20 @@ focusa bg status → ledger row + monitor-lost reaping (/proc pid check)
    `bg status` (pid liveness) and recorded as `monitor_lost` — never
    silently "running" forever. Every `monitor_lost` transition is terminal,
    receives `completed_at`, and broadcasts the same completion envelope.
-3. Job output streams to the job's log file (reported in every envelope);
-   the ledger stores the log path, not the log contents.
+3. Job output streams to the job's log file (reported in every envelope).
+   The completing monitor also sends the bounded `output_tail`, which the
+   ledger stores durably before broadcast. Consumers never depend on the
+   daemon sharing the monitor's filesystem or `/tmp` namespace. Legacy
+   monitors without the durable tail retain direct log-path fallback and,
+   on Linux while the monitor is alive, a bounded `/proc/<pid>/root` fallback
+   for `PrivateTmp` cross-version interoperability.
 4. Waiters and the agent surface read the SAME completion envelope —
    no per-consumer reconstruction.
 5. `focusa bg run` is the monitor process: dispatch it with
    `setsid nohup focusa bg run … &` for terminal detachment; the job
-   record survives independent of the caller.
+   record survives independent of the caller. `--cwd` is applied to the
+   child command in both foreground-monitor and detached-monitor modes;
+   recording a directory without executing there is forbidden.
 
 ## Interaction audit (checked at landing)
 

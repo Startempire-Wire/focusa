@@ -146,12 +146,24 @@ const observed = await readBackgroundJobs(
     return {
       ok: true,
       status: 200,
-      async json() { return { status: "ok", job: { job_id: "bg id/1", status: "running" } }; },
+      async json() {
+        return {
+          status: "ok",
+          job: {
+            job_id: "bg id/1",
+            status: "failed",
+            exit_code: 1,
+            output_tail: "exact compiler failure",
+          },
+        };
+      },
     };
   }
 );
 assert.equal(requestedUrl, "http://127.0.0.1:8787/v1/background-jobs/bg%20id%2F1");
-assert.equal(observed.job.status, "running");
+assert.equal(observed.job.status, "failed");
+assert.equal(observed.job.exit_code, 1);
+assert.equal(observed.job.output_tail, "exact compiler failure");
 
 await assert.rejects(
   readBackgroundJobs(
