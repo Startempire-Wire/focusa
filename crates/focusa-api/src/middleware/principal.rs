@@ -1,4 +1,7 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, sync::OnceLock};
+
+#[cfg(unix)]
+use std::process::Command;
 
 use axum::http::HeaderMap;
 use focusa_core::silent_sessions::{
@@ -19,7 +22,7 @@ pub struct ApiRequestPrincipal {
 }
 
 pub async fn request_principal(headers: &HeaderMap) -> Option<ApiRequestPrincipal> {
-    let daemon_user = std::env::var("USER").unwrap_or_else(|_| "unknown".into());
+    let daemon_user = daemon_os_user()?;
     let authorization = headers
         .get("authorization")
         .and_then(|value| value.to_str().ok())
@@ -88,6 +91,43 @@ async fn paired_device(token: &str) -> Option<focusa_core::types::DeviceToken> {
         expires_at: stored.expires_at,
         last_used_at: None,
         issued_to: stored.issued_to,
+    })
+}
+
+static DAEMON_OS_USER: OnceLock<Option<String>> = OnceLock::new();
+
+fn daemon_os_user() -> Option<String> {
+    DAEMON_OS_USER.get_or_init(resolve_daemon_os_user).clone()
+}
+
+fn resolve_daemon_os_user() -> Option<String> {
+    let from_environment = first_valid_os_user([
+        std::env::var("USER").ok(),
+        std::env::var("LOGNAME").ok(),
+        std::env::var("USERNAME").ok(),
+    ]);
+    if from_environment.is_some() {
+        return from_environment;
+    }
+
+    #[cfg(unix)]
+    {
+        let output = Command::new("id").arg("-un").output().ok()?;
+        if !output.status.success() {
+            return None;
+        }
+        first_valid_os_user([String::from_utf8(output.stdout).ok()])
+    }
+
+    #[cfg(not(unix))]
+    None
+}
+
+fn first_valid_os_user<const N: usize>(candidates: [Option<String>; N]) -> Option<String> {
+    candidates.into_iter().flatten().find_map(|candidate| {
+        let candidate = candidate.trim();
+        (!candidate.is_empty() && !candidate.eq_ignore_ascii_case("unknown"))
+            .then(|| candidate.to_owned())
     })
 }
 
@@ -196,5 +236,25 @@ mod tests {
         assert!(constant_time_eq(b"same", b"same"));
         assert!(!constant_time_eq(b"same", b"diff"));
         assert!(!constant_time_eq(b"short", b"longer"));
+    }
+
+    #[test]
+    fn os_user_resolution_rejects_unknown_and_uses_next_exact_identity() {
+        assert_eq!(
+            first_valid_os_user([
+                Some(" unknown ".into()),
+                Some("".into()),
+                Some(" wirebot ".into()),
+            ]),
+            Some("wirebot".into())
+        );
+    }
+
+    #[test]
+    fn os_user_resolution_fails_closed_without_a_real_identity() {
+        assert_eq!(
+            first_valid_os_user([None, Some("UNKNOWN".into()), Some("  ".into())]),
+            None
+        );
     }
 }
