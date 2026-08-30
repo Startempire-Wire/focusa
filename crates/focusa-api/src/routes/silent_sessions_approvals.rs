@@ -161,7 +161,7 @@ fn build_approval(
         )));
     }
     let now = Utc::now();
-    let risk_class = validate_approval_request(request, now).map_err(Box::new)?;
+    let risk_class = validate_approval_request(request, now)?;
     let session = load_session(&state.persistence, session_id)
         .map_err(|error| Box::new(persistence_failure(error)))?
         .ok_or_else(|| Box::new(not_found("session_id")))?;
@@ -269,23 +269,23 @@ fn approval_success(
 fn validate_approval_request(
     request: &ApprovalRequest,
     now: DateTime<Utc>,
-) -> Result<String, ApiResponse> {
+) -> Result<String, Box<ApiResponse>> {
     if !request.action.requires_approval() {
-        return Err(failure(
+        return Err(Box::new(failure(
             StatusCode::BAD_REQUEST,
             "invalid_request",
             "approval_not_required",
             "Select an action whose contract requires durable approval.",
-        ));
+        )));
     }
     let risk_class = request.risk_class.trim();
     if risk_class.is_empty() {
-        return Err(invalid("risk_class is required"));
+        return Err(Box::new(invalid("risk_class is required")));
     }
     if request.expires_at <= now || request.expires_at > now + MAX_APPROVAL_LIFETIME {
-        return Err(invalid(
+        return Err(Box::new(invalid(
             "expires_at must be in the future and no more than 24 hours away",
-        ));
+        )));
     }
     if request.requested_side_effects.is_empty()
         || request
@@ -299,9 +299,9 @@ fn validate_approval_request(
             .len()
             != request.requested_side_effects.len()
     {
-        return Err(invalid(
+        return Err(Box::new(invalid(
             "requested_side_effects must be non-empty, non-blank, and unique",
-        ));
+        )));
     }
     Ok(risk_class.to_string())
 }
