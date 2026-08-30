@@ -116,7 +116,7 @@ fn resolve_daemon_os_user() -> Option<String> {
         if !output.status.success() {
             return None;
         }
-        return first_valid_os_user([String::from_utf8(output.stdout).ok()]);
+        first_valid_os_user([String::from_utf8(output.stdout).ok()])
     }
 
     #[cfg(not(unix))]
