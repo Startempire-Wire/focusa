@@ -76,17 +76,18 @@ python3 tests/spec104_mismatch_semantic_static_test.py
 bash tests/spec130_rotating_continuity_transfer_static_test.sh
 pass 'worktree and authority gates'
 
-# Cache-safe prefix stabilization and automatic Pi activation runtime proof.
-# Run locally with the routed toolchain bypassed (the remote build host does not
-# carry the pi-extension node_modules).
+# Cache-safe prefix stabilization, background-job consumer receipts, and
+# automatic Pi activation runtime proof. Run locally with the routed toolchain
+# bypassed (the remote build host does not carry the pi-extension node_modules).
 (
   cd apps/pi-extension
   FOCUSA_ROUTE_DRY_RUN=1 npm run test:cache-safe-context
   FOCUSA_ROUTE_DRY_RUN=1 npm run test:ota-activation
   FOCUSA_ROUTE_DRY_RUN=1 npm run test:spec104-attachment
+  FOCUSA_ROUTE_DRY_RUN=1 npm run test:bg-tools
   FOCUSA_ROUTE_DRY_RUN=1 npm run test:unbound-project
 )
-pass 'cache miss mitigation and Pi OTA activation gates'
+pass 'cache, background receipt, and Pi OTA activation gates'
 
 # Compaction provider-overflow, native recovery, persistence, crash, and rotating-agent proof.
 forbid 'pi\.sendUserMessage\("/focusa-rollover execute"' apps/pi-extension/src/auto-compaction.ts 'transport retry exhaustion must not auto-queue rollover'
