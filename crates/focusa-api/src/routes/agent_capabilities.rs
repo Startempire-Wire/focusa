@@ -4948,7 +4948,7 @@ mod tests {
             );
             assert!(!operation.control.capability_refs.is_empty());
             assert!(!operation.ui.default_label.is_empty());
-            if operation.method != "GET" {
+            if operation.control.mode != "read" {
                 assert!(operation.control.receipt_required);
             }
         }
