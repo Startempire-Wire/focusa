@@ -277,7 +277,7 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
 
             // Detach the child from the terminal signal group, then wait on
             // it — this CLI is the monitor.
-            let mut child = match build_child(&args.command, &log_path) {
+            let mut child = match build_child(&args.command, &log_path, args.cwd.as_deref()) {
                 Ok(child) => child,
                 Err(spawn_error) => {
                     if let Err(mark_error) = api
@@ -306,10 +306,11 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
 
             let status = child.wait()?;
             let exit_code = status.code().unwrap_or(-1);
+            let output_tail = focusa_core::background_jobs::bounded_log_tail(&log_path, 4096);
             let result: Value = api
                 .post(
                     &format!("/v1/background-jobs/{job_id}/complete"),
-                    &json!({ "exit_code": exit_code }),
+                    &json!({ "exit_code": exit_code, "output_tail": output_tail }),
                 )
                 .await?;
 
@@ -354,7 +355,11 @@ fn configure_detached_monitor(command: &mut std::process::Command) {
 fn configure_detached_monitor(_command: &mut std::process::Command) {}
 
 #[cfg(unix)]
-fn build_child(command: &[String], log_path: &str) -> anyhow::Result<std::process::Child> {
+fn build_child(
+    command: &[String],
+    log_path: &str,
+    cwd: Option<&str>,
+) -> anyhow::Result<std::process::Child> {
     use std::os::unix::process::CommandExt;
     use std::process::Stdio;
     let log = std::fs::OpenOptions::new()
@@ -363,8 +368,12 @@ fn build_child(command: &[String], log_path: &str) -> anyhow::Result<std::proces
         .open(log_path)?;
     let log_clone = log.try_clone()?;
     let (program, rest) = command.split_first().expect("command non-empty");
-    Ok(std::process::Command::new(program)
-        .args(rest)
+    let mut child = std::process::Command::new(program);
+    child.args(rest);
+    if let Some(cwd) = cwd {
+        child.current_dir(cwd);
+    }
+    Ok(child
         .stdout(Stdio::from(log))
         .stderr(Stdio::from(log_clone))
         .stdin(Stdio::null())
@@ -373,7 +382,11 @@ fn build_child(command: &[String], log_path: &str) -> anyhow::Result<std::proces
 }
 
 #[cfg(not(unix))]
-fn build_child(command: &[String], log_path: &str) -> anyhow::Result<std::process::Child> {
+fn build_child(
+    command: &[String],
+    log_path: &str,
+    cwd: Option<&str>,
+) -> anyhow::Result<std::process::Child> {
     use std::process::Stdio;
     let log = std::fs::OpenOptions::new()
         .create(true)
@@ -381,8 +394,12 @@ fn build_child(command: &[String], log_path: &str) -> anyhow::Result<std::proces
         .open(log_path)?;
     let log_clone = log.try_clone()?;
     let (program, rest) = command.split_first().expect("command non-empty");
-    Ok(std::process::Command::new(program)
-        .args(rest)
+    let mut child = std::process::Command::new(program);
+    child.args(rest);
+    if let Some(cwd) = cwd {
+        child.current_dir(cwd);
+    }
+    Ok(child
         .stdout(Stdio::from(log))
         .stderr(Stdio::from(log_clone))
         .stdin(Stdio::null())
@@ -403,6 +420,22 @@ mod tests {
             internal_log_path: log_path.map(str::to_string),
             command: vec!["true".to_string()],
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn child_execution_honors_requested_working_directory() {
+        let root = std::env::temp_dir().join(format!("focusa-bg-cwd-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&root).unwrap();
+        let log = root.join("pwd.log");
+        let command = vec!["pwd".to_string()];
+        let mut child = build_child(&command, log.to_str().unwrap(), root.to_str()).unwrap();
+        assert!(child.wait().unwrap().success());
+        assert_eq!(
+            std::fs::read_to_string(&log).unwrap().trim(),
+            root.to_str().unwrap()
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

@@ -9,6 +9,15 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::background_jobs::{BackgroundJobRecord, BackgroundJobStatus};
 
+fn has_output_tail_column(conn: &Connection) -> Result<bool> {
+    Ok(conn
+        .prepare("PRAGMA table_info(background_jobs)")?
+        .query_map([], |row| row.get::<_, String>(1))?
+        .collect::<rusqlite::Result<Vec<_>>>()?
+        .iter()
+        .any(|name| name == "output_tail"))
+}
+
 pub fn ensure_schema(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         r#"
@@ -28,18 +37,31 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
             pid INTEGER,
             log_path TEXT NOT NULL,
             started_at TEXT NOT NULL,
-            completed_at TEXT
+            completed_at TEXT,
+            output_tail TEXT NOT NULL DEFAULT ''
         );
         "#,
     )?;
+    if !has_output_tail_column(conn)? {
+        if let Err(error) = conn.execute(
+            "ALTER TABLE background_jobs ADD COLUMN output_tail TEXT NOT NULL DEFAULT ''",
+            [],
+        ) {
+            // A concurrent first-use migration may have added the column
+            // after our initial read. Only accept that proven state.
+            if !has_output_tail_column(conn)? {
+                return Err(error.into());
+            }
+        }
+    }
     Ok(())
 }
 
 pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()> {
     conn.execute(
         "INSERT INTO background_jobs
-         (job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+         (job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
          ON CONFLICT(job_id) DO UPDATE SET
             name = excluded.name,
             command = excluded.command,
@@ -48,7 +70,8 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
             exit_code = excluded.exit_code,
             pid = excluded.pid,
             log_path = excluded.log_path,
-            completed_at = excluded.completed_at",
+            completed_at = excluded.completed_at,
+            output_tail = excluded.output_tail",
         params![
             record.job_id,
             record.name,
@@ -60,6 +83,7 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
             record.log_path,
             record.started_at,
             record.completed_at,
+            record.output_tail,
         ],
     )?;
     Ok(())
@@ -67,7 +91,7 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
 
 pub fn load_job(conn: &Connection, job_id: &str) -> Result<Option<BackgroundJobRecord>> {
     conn.query_row(
-        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at
+        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail
          FROM background_jobs WHERE job_id = ?1",
         params![job_id],
         row_from,
@@ -78,7 +102,7 @@ pub fn load_job(conn: &Connection, job_id: &str) -> Result<Option<BackgroundJobR
 
 pub fn list_jobs(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
     let mut stmt = conn.prepare(
-        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at
+        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail
          FROM background_jobs ORDER BY started_at DESC",
     )?;
     let rows = stmt.query_map([], row_from)?;
@@ -120,7 +144,7 @@ pub fn eta_ms_for(conn: &Connection, name: &str) -> Result<Option<i64>> {
 
 pub fn list_running(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
     let mut stmt = conn.prepare(
-        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at
+        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail
          FROM background_jobs WHERE status = 'running' ORDER BY started_at",
     )?;
     let rows = stmt.query_map([], row_from)?;
@@ -141,6 +165,7 @@ fn row_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<BackgroundJobRecord> {
         log_path: row.get(7)?,
         started_at: row.get(8)?,
         completed_at: row.get(9)?,
+        output_tail: row.get(10)?,
     })
 }
 
@@ -162,6 +187,7 @@ mod tests {
             log_path: format!("/tmp/{id}.log"),
             started_at: "t0".to_string(),
             completed_at: None,
+            output_tail: String::new(),
         }
     }
 
@@ -184,6 +210,32 @@ mod tests {
         assert_eq!(loaded.status, BackgroundJobStatus::Completed);
         assert_eq!(loaded.exit_code, Some(0));
         assert_eq!(loaded.completed_at.as_deref(), Some("t1"));
+    }
+
+    #[test]
+    fn existing_schema_migrates_and_persists_monitor_tail() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE background_jobs (
+                job_id TEXT PRIMARY KEY, name TEXT NOT NULL, command TEXT NOT NULL,
+                cwd TEXT NOT NULL, status TEXT NOT NULL, exit_code INTEGER, pid INTEGER,
+                log_path TEXT NOT NULL, started_at TEXT NOT NULL, completed_at TEXT
+            );",
+        )
+        .unwrap();
+        ensure_schema(&conn).unwrap();
+        let mut job = sample("legacy-schema");
+        job.status = BackgroundJobStatus::Failed;
+        job.exit_code = Some(1);
+        job.output_tail = "compiler error".into();
+        upsert_job(&conn, &job).unwrap();
+        assert_eq!(
+            load_job(&conn, "legacy-schema")
+                .unwrap()
+                .unwrap()
+                .output_tail,
+            "compiler error"
+        );
     }
 
     #[test]
