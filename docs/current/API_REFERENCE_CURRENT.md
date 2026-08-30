@@ -3784,6 +3784,22 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/silent_sessions.rs`
 - Agent operations: none
 
+### `/v1/silent-sessions/{session_id}/approvals`
+
+- Methods: `POST /v1/silent-sessions/{session_id}/approvals`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/silent_sessions.rs`
+- Agent operations: none
+
+### `/v1/silent-sessions/{session_id}/approvals/preview`
+
+- Methods: `POST /v1/silent-sessions/{session_id}/approvals/preview`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/silent_sessions.rs`
+- Agent operations: none
+
 ### `/v1/silent-sessions/{session_id}/artifacts`
 
 - Methods: `GET /v1/silent-sessions/{session_id}/artifacts`

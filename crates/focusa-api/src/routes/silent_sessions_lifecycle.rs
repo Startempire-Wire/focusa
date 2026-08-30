@@ -131,12 +131,7 @@ pub(super) async fn start(
         Ok(Some(approval)) => approval,
         Ok(None) => {
             return after_principal(
-                failure(
-                    StatusCode::FORBIDDEN,
-                    "approval_required",
-                    "approval_not_found",
-                    "Create a durable approval matching this exact start request.",
-                ),
+                approval_required(session_id, body.run_id, body.generation),
                 &principal,
             );
         }
@@ -212,6 +207,27 @@ pub(super) async fn start(
         temporal_context,
         Some(temporal_guard),
     )
+}
+
+fn approval_required(
+    session_id: SilentSessionId,
+    run_id: SilentSessionRunId,
+    generation: focusa_core::silent_sessions::RunGeneration,
+) -> ApiResponse {
+    let mut response = failure(
+        StatusCode::FORBIDDEN,
+        "approval_required",
+        "approval_not_found",
+        "Create a durable approval matching this exact start request.",
+    );
+    response.1.0.next_tools.push(format!(
+        "focusa silent approval preview {session_id} --request-file <approval-request.json>"
+    ));
+    response.1.0.recovery_hint = Some(format!(
+        "Bind approval to run_id={run_id}, generation={}, action=start, and side effect={START_SIDE_EFFECT}.",
+        generation.get()
+    ));
+    response
 }
 
 fn authorize_start(
@@ -367,6 +383,25 @@ mod tests {
         changed.idempotency_key = "start-2".into();
         assert_eq!(request_hash(&original), request_hash(&original));
         assert_ne!(request_hash(&original), request_hash(&changed));
+    }
+
+    #[test]
+    fn missing_start_approval_returns_exact_next_command() {
+        let session_id = SilentSessionId::new();
+        let run_id = SilentSessionRunId::new();
+        let generation = RunGeneration::first();
+        let response = approval_required(session_id, run_id, generation);
+        assert_eq!(response.0, StatusCode::FORBIDDEN);
+        assert_eq!(response.1.0.status, "approval_required");
+        assert_eq!(
+            response.1.0.failure_class.as_deref(),
+            Some("approval_not_found")
+        );
+        assert_eq!(response.1.0.next_tools.len(), 1);
+        assert!(response.1.0.next_tools[0].contains(&session_id.to_string()));
+        assert!(response.1.0.recovery_hint.as_deref().is_some_and(|hint| {
+            hint.contains(&run_id.to_string()) && hint.contains("runner_start_request")
+        }));
     }
 
     #[test]

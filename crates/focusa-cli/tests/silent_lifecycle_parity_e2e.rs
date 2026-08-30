@@ -185,48 +185,49 @@ fn control_args(
 #[test]
 fn preflight_create_and_controls_map_one_to_one_to_daemon_routes() {
     let context = context_authority();
-    let context_path = temp_json("context-authority", &context);
+    let preflight_config = json!({
+        "identity": {
+            "project_root": "/tmp/focusa-project",
+            "project_identity_ref": "project:test",
+            "continuity_id": "continuity:test",
+            "work_item_ref": "focusa-test",
+            "mission": "Prove lifecycle parity"
+        }
+    });
+    let preflight_path = temp_json("preflight-config", &preflight_config);
     let preflight_response = success(
-        json!({
-            "action_digest": "digest:preflight",
-            "approval_id": "approval:preflight",
-            "context_authority_ref": "context-authority:fresh",
-            "fresh_until": context["expires_at"]
-        }),
+        json!({"resolved_effective_config": preflight_config}),
         json!([]),
-        json!(["silent-session-preflight:digest:preflight"]),
+        json!([]),
     );
     let preflight_args = vec![
         "--json".into(),
         "silent".into(),
         "preflight".into(),
-        "--actor-instance-ref".into(),
-        "actor-instance:test".into(),
-        "--approval-id".into(),
-        "approval:preflight".into(),
-        "--session-owner-os-user".into(),
-        "operator".into(),
-        "--context-authority-file".into(),
-        context_path.display().to_string(),
+        "--config-file".into(),
+        preflight_path.display().to_string(),
     ];
+    let expected_preflight_config = preflight_config.clone();
     let (output, server) = run_mocked_post(
         &preflight_args,
         "/v1/silent-sessions/preflight",
         "200 OK",
         preflight_response,
-        |body| {
-            assert_eq!(body["actor_instance_ref"], "actor-instance:test");
-            assert_eq!(body["approval_id"], "approval:preflight");
-            assert_eq!(body["legacy_approved"], false);
-            assert_eq!(
-                body["context_authority"]["verdict_ref"],
-                "context-authority:fresh"
-            );
+        move |body| {
+            assert_eq!(body["config"], expected_preflight_config);
+            assert_eq!(body["layers"], json!([]));
+            assert!(body.get("approval_id").is_none());
+            assert!(body.get("context_authority").is_none());
         },
     );
     let stdout = assert_success(&output, server);
     let preflight_value: Value = serde_json::from_str(&stdout).unwrap();
-    assert_eq!(preflight_value["receipt_refs"].as_array().unwrap().len(), 1);
+    assert!(
+        preflight_value["receipt_refs"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
 
     let (session_id, run_id) = exact_ids();
     let create_request = json!({
@@ -337,7 +338,86 @@ fn preflight_create_and_controls_map_one_to_one_to_daemon_routes() {
         assert_eq!(value["side_effects"].as_array().unwrap().len(), 1);
     }
 
-    for path in [context_path, create_path, lease_path] {
+    for path in [preflight_path, create_path, lease_path] {
+        let _ = fs::remove_file(path);
+    }
+}
+
+#[test]
+fn approval_preview_and_create_map_to_exact_daemon_routes() {
+    let (session_id, run_id) = exact_ids();
+    let approval_id = Uuid::now_v7().to_string();
+    let expires_at = (Utc::now() + Duration::hours(1)).to_rfc3339();
+    let preview_request = json!({
+        "approval_id": approval_id,
+        "run_id": run_id,
+        "generation": 1,
+        "action": "start",
+        "risk_class": "read_only_verifier",
+        "expires_at": expires_at,
+        "requested_side_effects": ["runner_start_request"]
+    });
+    let preview_path = temp_json("approval-preview", &preview_request);
+    let preview_args = vec![
+        "--json".into(),
+        "silent".into(),
+        "approval".into(),
+        "preview".into(),
+        session_id.clone(),
+        "--request-file".into(),
+        preview_path.display().to_string(),
+    ];
+    let expected_preview = preview_request.clone();
+    let (output, server) = run_mocked_post(
+        &preview_args,
+        &format!("/v1/silent-sessions/{session_id}/approvals/preview"),
+        "200 OK",
+        success(
+            json!({"approval": {"action_digest": "digest:start"}, "persisted": false}),
+            json!([]),
+            json!([]),
+        ),
+        move |body| assert_eq!(body, expected_preview),
+    );
+    assert_success(&output, server);
+
+    let create_request = json!({
+        "request": {
+            "approval_id": approval_id,
+            "run_id": run_id,
+            "generation": 1,
+            "action": "start",
+            "risk_class": "read_only_verifier",
+            "expires_at": expires_at,
+            "requested_side_effects": ["runner_start_request"]
+        },
+        "expected_action_digest": "digest:start"
+    });
+    let create_path = temp_json("approval-create", &create_request);
+    let create_args = vec![
+        "--json".into(),
+        "silent".into(),
+        "approval".into(),
+        "create".into(),
+        session_id.clone(),
+        "--request-file".into(),
+        create_path.display().to_string(),
+    ];
+    let expected_create = create_request.clone();
+    let (output, server) = run_mocked_post(
+        &create_args,
+        &format!("/v1/silent-sessions/{session_id}/approvals"),
+        "201 Created",
+        success(
+            json!({"approval": {"approval_id": approval_id}, "persisted": true}),
+            json!([{"effect": "durable_approval_create", "status": "persisted"}]),
+            json!([format!("silent-session-approval:{approval_id}")]),
+        ),
+        move |body| assert_eq!(body, expected_create),
+    );
+    assert_success(&output, server);
+
+    for path in [preview_path, create_path] {
         let _ = fs::remove_file(path);
     }
 }

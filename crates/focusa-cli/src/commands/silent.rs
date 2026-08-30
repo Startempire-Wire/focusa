@@ -15,12 +15,15 @@ use super::silent_render::{CLI_SCHEMA, print_result};
 
 #[derive(Subcommand, Debug)]
 pub enum SilentCmd {
-    Preflight(PreflightArgs),
+    /// Resolve and validate an exact SilentSessionConfig without creating a session.
+    Preflight(ConfigInputArgs),
     Create(CreateArgs),
     Start(SessionMutationArgs),
+    #[command(subcommand)]
+    Approval(ApprovalCmd),
     List(ListArgs),
-    Show(ReadArgs),
-    Status(ReadArgs),
+    Show(ShowArgs),
+    Status(StatusArgs),
     Watch(WatchArgs),
     Output(OutputArgs),
     Send(InputArgs),
@@ -49,6 +52,23 @@ pub enum SilentCmd {
     Delete(RetentionArgs),
     Purge(RetentionArgs),
     Doctor(DoctorArgs),
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ApprovalCmd {
+    /// Preview the exact server-derived approval target and action digest.
+    Preview(ApprovalFileArgs),
+    /// Persist the exact previewed approval; the request must include expected_action_digest.
+    Create(ApprovalFileArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct ApprovalFileArgs {
+    /// Exact durable Silent Session id.
+    pub session_id: String,
+    /// JSON request bound to the exact session/run/generation/action.
+    #[arg(long)]
+    pub request_file: PathBuf,
 }
 
 #[derive(Subcommand, Debug)]
@@ -98,16 +118,21 @@ pub struct ModelPreflightArgs {
 }
 
 #[derive(Args, Debug, Clone)]
-pub struct SessionArgs {
-    /// Exact durable Silent Session id.
+pub struct ShowArgs {
     pub session_id: String,
+    /// Accepted for backward compatibility; show is session-scoped.
+    #[arg(long, alias = "run")]
+    pub run_id: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]
-pub struct ReadArgs {
+pub struct StatusArgs {
     pub session_id: String,
     #[arg(long, alias = "run")]
     pub run_id: String,
+    /// Exact current run generation; stale generations fail closed.
+    #[arg(long)]
+    pub generation: u64,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -152,18 +177,6 @@ pub struct ConfigInputArgs {
     /// Optional ConfigLayer JSON array.
     #[arg(long)]
     pub layers_file: Option<PathBuf>,
-}
-
-#[derive(Args, Debug)]
-pub struct PreflightArgs {
-    #[arg(long)]
-    pub actor_instance_ref: String,
-    #[arg(long)]
-    pub approval_id: String,
-    #[arg(long)]
-    pub session_owner_os_user: String,
-    #[arg(long)]
-    pub context_authority_file: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -222,7 +235,7 @@ pub struct OutputArgs {
     #[arg(long, alias = "run")]
     pub run_id: String,
     #[arg(long)]
-    pub generation: Option<u64>,
+    pub generation: u64,
     #[arg(long, alias = "after")]
     pub cursor: Option<String>,
     #[arg(long, default_value_t = 200)]
@@ -460,16 +473,6 @@ fn config_apply_body(args: &ConfigSessionArgs) -> Result<Value> {
     config_session_body(args)
 }
 
-fn preflight_body(args: &PreflightArgs) -> Result<Value> {
-    Ok(json!({
-        "actor_instance_ref": args.actor_instance_ref,
-        "approval_id": args.approval_id,
-        "legacy_approved": false,
-        "session_owner_os_user": args.session_owner_os_user,
-        "context_authority": read_json(&args.context_authority_file)?,
-    }))
-}
-
 fn create_body(args: &CreateArgs) -> Result<Value> {
     if let Some(path) = &args.request_file {
         let request = read_json(path)?;
@@ -569,6 +572,24 @@ async fn lifecycle_call(
             .unwrap_or("lifecycle_rejected");
         bail!("lifecycle mutation rejected: {failure}");
     }
+    Ok(result)
+}
+
+fn validate_session_read(result: Value, session_id: &str) -> Result<Value> {
+    let response_session = result
+        .pointer("/data/id")
+        .and_then(Value::as_str)
+        .or_else(|| result.pointer("/data/session_id").and_then(Value::as_str))
+        .or_else(|| result.pointer("/data/session/id").and_then(Value::as_str))
+        .or_else(|| {
+            result
+                .pointer("/data/session/session_id")
+                .and_then(Value::as_str)
+        });
+    anyhow::ensure!(
+        response_session == Some(session_id),
+        "[API_DECODE_ERROR] daemon response did not match the exact requested session"
+    );
     Ok(result)
 }
 
@@ -1097,8 +1118,22 @@ async fn silent_doctor_report(client: &ApiClient) -> Value {
 
 async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> Result<()> {
     let (name, result) = match command {
-        SilentCmd::Preflight(args) => ("preflight", client.post("/v1/silent-sessions/preflight", &preflight_body(&args)?).await?),
+        SilentCmd::Preflight(args) => ("preflight", client.post("/v1/silent-sessions/preflight", &config_body(&args)?).await?),
         SilentCmd::Create(args) => ("create", client.post("/v1/silent-sessions", &create_body(&args)?).await?),
+        SilentCmd::Approval(ApprovalCmd::Preview(args)) => (
+            "approval preview",
+            client.post(
+                &format!("/v1/silent-sessions/{}/approvals/preview", args.session_id),
+                &read_json(&args.request_file)?,
+            ).await?,
+        ),
+        SilentCmd::Approval(ApprovalCmd::Create(args)) => (
+            "approval create",
+            client.post(
+                &format!("/v1/silent-sessions/{}/approvals", args.session_id),
+                &read_json(&args.request_file)?,
+            ).await?,
+        ),
         SilentCmd::Start(args) => ("start", lifecycle_call(client, &args, "start").await?),
         SilentCmd::List(args) => {
             let query = query(&[
@@ -1110,17 +1145,20 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
             ("list", client.get(&format!("/v1/silent-sessions{query}")).await?)
         }
         SilentCmd::Show(args) => {
-            let result = client.get(&format!("/v1/silent-sessions/{}?run_id={}", args.session_id, urlencoding::encode(&args.run_id))).await?;
-            ("show", validate_exact_read(result, &args.session_id, &args.run_id)?)
+            drop(args.run_id); // compatibility-only; canonical show is session-scoped.
+            let result = client
+                .get(&format!("/v1/silent-sessions/{}", args.session_id))
+                .await?;
+            ("show", validate_session_read(result, &args.session_id)?)
         }
         SilentCmd::Status(args) => {
-            let result = client.get(&format!("/v1/silent-sessions/{}/status?run_id={}", args.session_id, urlencoding::encode(&args.run_id))).await?;
+            let result = client.get(&format!("/v1/silent-sessions/{}/status?run_id={}&generation={}", args.session_id, urlencoding::encode(&args.run_id), args.generation)).await?;
             ("status", validate_exact_read(result, &args.session_id, &args.run_id)?)
         }
         SilentCmd::Watch(args) => ("watch", watch_call(client, &args).await?),
         SilentCmd::Output(args) => {
             anyhow::ensure!((1..=1000).contains(&args.limit), "--limit must be between 1-1000");
-            let mut path = format!("/v1/silent-sessions/{}/output?run_id={}&limit={}", args.session_id, urlencoding::encode(&args.run_id), args.limit);
+            let mut path = format!("/v1/silent-sessions/{}/output?run_id={}&generation={}&follow=false&limit={}", args.session_id, urlencoding::encode(&args.run_id), args.generation, args.limit);
             if let Some(after) = &args.cursor { path.push_str("&after="); path.push_str(&urlencoding::encode(after)); }
             let result = client.get(&path).await?;
             ("output", validate_exact_read(result, &args.session_id, &args.run_id)?)

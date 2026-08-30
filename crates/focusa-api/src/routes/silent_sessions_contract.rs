@@ -34,7 +34,7 @@ macro_rules! route {
     };
 }
 
-pub const SILENT_SESSION_PHASE2_ROUTES: [SilentSessionRouteSpec; 35] = [
+pub const SILENT_SESSION_PHASE2_ROUTES: [SilentSessionRouteSpec; 37] = [
     route!(
         "preflight",
         Post,
@@ -58,6 +58,22 @@ pub const SILENT_SESSION_PHASE2_ROUTES: [SilentSessionRouteSpec; 35] = [
         Post,
         "/v1/silent-sessions/{session_id}/start",
         Create,
+        true,
+        true
+    ),
+    route!(
+        "approval_preview",
+        Post,
+        "/v1/silent-sessions/{session_id}/approvals/preview",
+        Admin,
+        false,
+        true
+    ),
+    route!(
+        "approval_create",
+        Post,
+        "/v1/silent-sessions/{session_id}/approvals",
+        Admin,
         true,
         true
     ),
@@ -445,12 +461,12 @@ mod tests {
 
     #[test]
     fn registry_covers_all_owned_routes_without_duplicates() {
-        assert_eq!(SILENT_SESSION_PHASE2_ROUTES.len(), 35);
+        assert_eq!(SILENT_SESSION_PHASE2_ROUTES.len(), 37);
         let unique = SILENT_SESSION_PHASE2_ROUTES
             .iter()
             .map(|route| (route.method, route.path))
             .collect::<std::collections::BTreeSet<_>>();
-        assert_eq!(unique.len(), 35);
+        assert_eq!(unique.len(), 37);
         assert!(SILENT_SESSION_PHASE2_ROUTES.iter().all(|route| {
             !route.mutates || matches!(route.method, SilentSessionApiMethod::Post)
         }));
