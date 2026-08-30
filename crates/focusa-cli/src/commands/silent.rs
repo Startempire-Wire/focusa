@@ -325,6 +325,9 @@ pub struct ProofArgs {
     pub session_id: String,
     #[arg(long, alias = "run")]
     pub run_id: String,
+    /// Exact current run generation; stale generations fail closed.
+    #[arg(long)]
+    pub generation: u64,
     #[arg(long)]
     pub after: Option<String>,
     #[arg(long, default_value_t = 200)]
@@ -691,10 +694,11 @@ async fn proof_call(client: &ApiClient, args: &ProofArgs, collection: &str) -> R
         _ => anyhow::bail!("unsupported proof collection"),
     };
     let mut path = format!(
-        "/v1/silent-sessions/{}{}?run_id={}&limit={}",
+        "/v1/silent-sessions/{}{}?run_id={}&generation={}&limit={}",
         args.session_id,
         route,
         urlencoding::encode(&args.run_id),
+        args.generation,
         args.limit
     );
     if let Some(after) = &args.after {
@@ -703,12 +707,15 @@ async fn proof_call(client: &ApiClient, args: &ProofArgs, collection: &str) -> R
     }
     let result = client.get(&path).await?;
     anyhow::ensure!(
-        result.pointer("/data/run_id").and_then(Value::as_str) == Some(args.run_id.as_str())
+        result.pointer("/data/session_id").and_then(Value::as_str)
+            == Some(args.session_id.as_str())
+            && result.pointer("/data/run_id").and_then(Value::as_str) == Some(args.run_id.as_str())
+            && result.pointer("/data/generation").and_then(Value::as_u64) == Some(args.generation)
             && result
                 .pointer("/data/limit")
                 .and_then(Value::as_u64)
                 .is_none_or(|limit| limit <= args.limit as u64),
-        "proof response violated exact-run or bounded-limit authority"
+        "proof response violated exact session/run/generation or bounded-limit authority"
     );
     Ok(result)
 }

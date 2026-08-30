@@ -2606,7 +2606,7 @@ Requirements:
 * cursor-based follow;
 * no raw secret output;
 * explicit side effects;
-* exact session and run IDs;
+* exact session ID, run ID, and run generation;
 * no ambiguous retries;
 * completion status separate from process status.
 

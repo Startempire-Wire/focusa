@@ -108,11 +108,13 @@ async fn artifacts(
             Err(error) => return after(persistence_failure(error), &context.principal),
         };
     let refs = artifact_refs(&checkpoints, &evaluations);
-    let data = if context.redacted {
-        json!({"artifact_count": refs.len(), "projection": "redacted_summary"})
-    } else {
-        json!({"artifact_refs": refs})
-    };
+    let data = artifact_projection(
+        session_id,
+        context.run.id,
+        context.run.generation,
+        refs,
+        context.redacted,
+    );
     success("artifacts", data, &context.principal)
 }
 
@@ -133,20 +135,13 @@ async fn receipts(
                 .filter(|value| value.receipt_ready)
                 .map(|value| value.id.to_string())
                 .collect::<Vec<_>>();
-            let data = if context.redacted {
-                json!({
-                    "receipt_count": 0,
-                    "ready_evaluation_count": ready_ids.len(),
-                    "materialization_pending": !ready_ids.is_empty(),
-                    "projection": "redacted_summary"
-                })
-            } else {
-                json!({
-                    "receipt_refs": [],
-                    "ready_evaluation_ids": ready_ids,
-                    "materialization_pending": !ready_ids.is_empty()
-                })
-            };
+            let data = receipt_projection(
+                session_id,
+                context.run.id,
+                context.run.generation,
+                ready_ids,
+                context.redacted,
+            );
             success("receipts", data, &context.principal)
         }
         Err(error) => after(persistence_failure(error), &context.principal),
@@ -221,6 +216,60 @@ fn artifact_refs(checkpoints: &[Value], evaluations: &[CompletionEvaluation]) ->
     refs.into_iter().collect()
 }
 
+fn artifact_projection(
+    session_id: SilentSessionId,
+    run_id: SilentSessionRunId,
+    generation: RunGeneration,
+    refs: Vec<String>,
+    redacted: bool,
+) -> Value {
+    if redacted {
+        json!({
+            "session_id": session_id,
+            "run_id": run_id,
+            "generation": generation,
+            "artifact_count": refs.len(),
+            "projection": "redacted_summary"
+        })
+    } else {
+        json!({
+            "session_id": session_id,
+            "run_id": run_id,
+            "generation": generation,
+            "artifact_refs": refs
+        })
+    }
+}
+
+fn receipt_projection(
+    session_id: SilentSessionId,
+    run_id: SilentSessionRunId,
+    generation: RunGeneration,
+    ready_ids: Vec<String>,
+    redacted: bool,
+) -> Value {
+    if redacted {
+        json!({
+            "session_id": session_id,
+            "run_id": run_id,
+            "generation": generation,
+            "receipt_count": 0,
+            "ready_evaluation_count": ready_ids.len(),
+            "materialization_pending": !ready_ids.is_empty(),
+            "projection": "redacted_summary"
+        })
+    } else {
+        json!({
+            "session_id": session_id,
+            "run_id": run_id,
+            "generation": generation,
+            "receipt_refs": [],
+            "ready_evaluation_ids": ready_ids,
+            "materialization_pending": !ready_ids.is_empty()
+        })
+    }
+}
+
 fn redacted_checkpoint(value: &Value) -> Value {
     json!({
         "id": value.get("id"),
@@ -273,6 +322,34 @@ mod tests {
         let checkpoints = vec![json!({"evidence_refs": ["z", "a", "z"]})];
         let refs = artifact_refs(&checkpoints, &[]);
         assert_eq!(refs, vec!["a", "z"]);
+    }
+
+    #[test]
+    fn proof_projections_bind_exact_session_run_and_generation() {
+        let session_id = SilentSessionId::new();
+        let run_id = SilentSessionRunId::new();
+        let generation = RunGeneration::first();
+
+        for projection in [
+            artifact_projection(
+                session_id,
+                run_id,
+                generation,
+                vec!["artifact:1".into()],
+                false,
+            ),
+            receipt_projection(
+                session_id,
+                run_id,
+                generation,
+                vec!["evaluation:1".into()],
+                false,
+            ),
+        ] {
+            assert_eq!(projection["session_id"], json!(session_id));
+            assert_eq!(projection["run_id"], json!(run_id));
+            assert_eq!(projection["generation"], json!(generation));
+        }
     }
 
     #[test]
