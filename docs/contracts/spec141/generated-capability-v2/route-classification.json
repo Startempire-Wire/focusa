@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 671,
+  "route_count": 673,
   "classification_counts": {
     "agent_eligible": 164,
     "internal": 6,
-    "operator_only": 495,
+    "operator_only": 497,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -5873,6 +5873,30 @@
     },
     {
       "path": "/v1/silent-sessions/{session_id}/adopt",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/silent_sessions.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/silent-sessions/{session_id}/approvals",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/silent_sessions.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/silent-sessions/{session_id}/approvals/preview",
       "classification": "operator_only",
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
