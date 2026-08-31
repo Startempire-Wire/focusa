@@ -9,6 +9,7 @@ WORKFLOW="$ROOT_DIR/.github/workflows/release.yml"
 WAIT="$ROOT_DIR/scripts/wait-for-external-release-assets.py"
 CODEMAGIC="$ROOT_DIR/codemagic.yaml"
 APPVEYOR="$ROOT_DIR/.appveyor.yml"
+MENUBAR_CONFIG="$ROOT_DIR/apps/menubar/src-tauri/tauri.conf.json"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -47,6 +48,15 @@ grep -Fq 'VITE_FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc' "$CODEMAGIC" || fail "Cod
 grep -Fq 'arch="x64"' "$CODEMAGIC" || fail "Codemagic missing macOS x64 updater architecture mapping"
 grep -Fq 'arch="aarch64"' "$CODEMAGIC" || fail "Codemagic missing macOS ARM64 updater architecture mapping"
 grep -Fq 'Focusa_${arch}.app.tar.gz.sig' "$CODEMAGIC" || fail "Codemagic missing signed macOS updater filename template"
+[ "$(jq -r '.identifier' "$MENUBAR_CONFIG")" = "com.focusa.menubar" ] \
+  || fail "Tauri config has unexpected canonical menubar identifier"
+grep -Fq '[[ "$expected_identifier" == "com.focusa.menubar" ]]' "$CODEMAGIC" \
+  || fail "Codemagic does not pin the canonical menubar identifier"
+grep -Fq "Print :CFBundleIdentifier' \"\$app/Contents/Info.plist\")\" = \"\$expected_identifier\"" "$CODEMAGIC" \
+  || fail "Codemagic Info.plist gate does not use the canonical config identifier"
+if grep -Fq 'dev.focusa.menubar' "$CODEMAGIC"; then
+  fail "Codemagic retains the obsolete menubar identifier"
+fi
 grep -Fq 'nsis' "$APPVEYOR" || fail "AppVeyor missing NSIS menubar bundle"
 grep -Fq '$npmRoot = (& npm root -g).Trim()' "$APPVEYOR" || fail "AppVeyor must resolve npm global root after installing Bun"
 grep -Fq '$bunExe = Join-Path $npmRoot "bun\bin\bun.exe"' "$APPVEYOR" || fail "AppVeyor must resolve the real Bun executable beneath npm global root instead of the PowerShell shim"
