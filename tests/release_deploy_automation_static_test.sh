@@ -184,6 +184,7 @@ done
 assert_grep 'Release workflow validation' .github/workflows/release.yml 'release workflow needs unconditional validation step to avoid No jobs were run'
 assert_grep "- 'v*'" .github/workflows/release.yml 'release workflow must trigger for immutable stable and preview tags'
 assert_grep 'scripts/verify-release-tag-trigger.py' scripts/create-dev-release-tag.sh 'release helper must verify trigger compatibility before immutable tagging'
+tests/release_candidate_main_push_retry_test.sh
 assert_grep 'release_tag_validation=ok' .github/workflows/release.yml 'release tag validation step missing'
 assert_grep 'needs: checksums' .github/workflows/release.yml 'deploy dispatch must depend on the actual checksums job id'
 if grep -A3 '^  rust-check:' .github/workflows/release.yml | grep -q 'if:'; then

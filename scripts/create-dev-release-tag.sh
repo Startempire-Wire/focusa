@@ -109,31 +109,25 @@ if ! [[ "$CI_TIMEOUT_SECS" =~ ^[0-9]+$ ]]; then
 fi
 
 push_candidate_main_with_auto_rebase() {
-  local tag="${1:-$TAG}"
   local max_attempts=3
   local attempt=1
 
   while [[ "$attempt" -le "$max_attempts" ]]; do
-    echo "Pushing main and ${tag} (attempt ${attempt}/${max_attempts})..."
-    if git push origin HEAD:main && git push origin "${tag}"; then
+    echo "Pushing candidate main (attempt ${attempt}/${max_attempts})..."
+    if git push origin HEAD:main; then
       return 0
     fi
 
-    echo "push_failed_non_fast_forward_or_remote_race: auto-healing with git pull --rebase and tag retarget" >&2
+    echo "candidate_main_push_race: auto-healing with git pull --rebase" >&2
     # Audit Recorder/Watchdog commits can move origin/main while this helper is
-    # stamping a release. Rebase, retarget the still-local tag to the rebased
-    # HEAD, and retry. This keeps the canonical full pipeline intact without
-    # manual rebase/retag intervention.
+    # stamping a release. Rebase and retry the candidate main push. The release
+    # tag intentionally does not exist yet: stable candidate CI must accept the
+    # exact rebased SHA before the immutable-tag stage creates and pushes it.
     git pull --rebase origin main
-    if [[ "$FORCE_RELEASE" -eq 1 ]]; then
-      git tag -fa "${tag}" -m "Release override: ${RELEASE_REASON}" HEAD
-    else
-      git tag -f "${tag}" HEAD
-    fi
     attempt=$((attempt + 1))
   done
 
-  echo "release_tag_push_failed_after_auto_rebase: tag=${tag}; inspect gh/audit logs and fix the pipeline system" >&2
+  echo "candidate_main_push_failed_after_auto_rebase: inspect gh/audit logs and fix the pipeline system" >&2
   return 1
 }
 
