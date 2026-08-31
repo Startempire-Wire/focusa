@@ -132,6 +132,27 @@ workflows:
             test -s "$dmg"
             test -s "$updater"
             test -s "${updater}.sig"
+
+            # Tauri's ad-hoc executable signature does not seal the completed
+            # .app resource tree. Seal the complete bundle, then regenerate
+            # every distributable from these exact verified bytes.
+            codesign --force --deep --sign - "$app"
+            test -s "$app/Contents/_CodeSignature/CodeResources"
+            codesign --verify --deep --strict --verbose=2 "$app"
+            codesign -dv --verbose=4 "$app" 2>&1 | grep -q 'Signature=adhoc'
+
+            dmg_stage="$(mktemp -d)"
+            ditto "$app" "$dmg_stage/Focusa.app"
+            ln -s /Applications "$dmg_stage/Applications"
+            hdiutil create -volname Focusa -srcfolder "$dmg_stage" -ov -format UDZO "$dmg"
+            test -s "$dmg"
+
+            mv "${updater}.sig" "${updater}.sig.tauri-original"
+            tar -czf "$updater" -C "$(dirname "$app")" "$(basename "$app")"
+            tar -tzf "$updater" | grep -Fx 'Focusa.app/Contents/_CodeSignature/CodeResources'
+            npx tauri signer sign "$updater"
+            test -s "${updater}.sig"
+
             mkdir -p ../../dist/menubar
             ditto -c -k --keepParent "$app" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.app.zip"
             cp "$dmg" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.dmg"
@@ -155,8 +176,10 @@ workflows:
             plutil -lint "$app/Contents/Info.plist"
             test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = "${FOCUSA_RELEASE_TAG#v}"
             test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = "$expected_identifier"
+            test -s "$app/Contents/_CodeSignature/CodeResources"
             codesign --verify --deep --strict --verbose=2 "$app"
             codesign -dv --verbose=4 "$app" 2>&1 | grep -q 'Signature=adhoc'
+            tar -tzf "../../dist/menubar/Focusa_${arch}.app.tar.gz" | grep -Fx 'Focusa.app/Contents/_CodeSignature/CodeResources'
             test -s "../../dist/menubar/Focusa_${arch}.app.tar.gz.sig"
           done
       - name: Upload menubar bundles to canonical GitHub Release
