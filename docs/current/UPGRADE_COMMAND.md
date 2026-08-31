@@ -1,6 +1,6 @@
 # focusa upgrade command
 
-Status: implemented MVP for `focusa-upgrade-cmd`.
+Status: exact-release, rollback-safe stable upgrade path implemented.
 
 ## Why
 
@@ -18,10 +18,13 @@ focusa --json upgrade --dry-run
 
 ## Behavior
 
-- `focusa upgrade --dry-run` prints current vs latest version information and the planned atomic installer route without swapping binaries.
-- Latest version source order: `FOCUSA_LATEST_VERSION`, optional `gh release view` via `--check-github`, then `unknown` with a recovery hint.
-- Real `focusa upgrade` delegates to `focusa install --target=auto --channel=<channel>`.
-- The installer path owns atomic stash and rollback, checksum verification, service rendering, and license preserved behavior.
+- `focusa upgrade --dry-run` resolves and validates the same exact immutable release tag used by a real upgrade, then prints the plan without swapping binaries.
+- Stable upgrades use an explicit valid `FOCUSA_RELEASE_TAG` when supplied; otherwise they resolve GitHub's published, non-prerelease Latest release through the canonical Releases API. Lookup or identity ambiguity fails closed.
+- `--check-github` remains accepted for CLI compatibility; stable resolution is always authoritative and no longer depends on a local `gh` executable.
+- Preview/nightly keep their channel-qualified compiled tag unless an exact valid `FOCUSA_RELEASE_TAG` is supplied.
+- Real `focusa upgrade` binds the resolved tag into every delegated installer download; asset, Pi-extension, and agent-context surfaces cannot drift to another tag.
+- When the running CLI comes from the authoritative `/usr/local/bin` surface, upgrade transactionally promotes CLI, daemon, and TUI links there, verifies all three exact versions, restarts an active system daemon against the promoted bytes, and restores/restarts the prior system installation on failure.
+- The installer path owns atomic stash and rollback, checksum verification, service rendering, authoritative-path promotion, and license-preserved behavior.
 - Failure output includes `failure_class=upgrade_failed`, `recovery_hint`, and next tools: `focusa recover --dry-run`, `focusa doctor --scope host`, and `focusa install --dry-run`.
 
 ## Acceptance proof
@@ -29,6 +32,7 @@ focusa --json upgrade --dry-run
 - Implementation: `crates/focusa-cli/src/commands/upgrade.rs`
 - CLI wiring: `crates/focusa-cli/src/main.rs`, `crates/focusa-cli/src/commands/mod.rs`
 - Static guard: `tests/spec_upgrade_cmd_static_test.sh`
+- Regression tests: exact Latest parsing, channel/tag validation, immutable release binding, system-surface detection, three-binary promotion, and rollback restoration.
 
 ## Safety boundary
 

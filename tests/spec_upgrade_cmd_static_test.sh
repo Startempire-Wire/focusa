@@ -14,8 +14,11 @@ for needle in \
   'dry_run' \
   'current_version' \
   'latest_version' \
-  'FOCUSA_LATEST_VERSION' \
-  'gh release view' \
+  'FOCUSA_RELEASE_TAG' \
+  'github_releases_latest_api' \
+  'resolved_release_tag' \
+  'release_tag_override' \
+  'system_install' \
   'delegates_to_focusa_install_atomic_stash_and_rollback' \
   'license_preserved' \
   'recovery_hint' \
@@ -33,12 +36,13 @@ pass "upgrade command is wired into CLI"
 [ -f "$DOC" ] || fail "UPGRADE_COMMAND.md missing"
 for needle in \
   'focusa upgrade --dry-run' \
-  'current vs latest version' \
+  'same exact immutable release tag' \
+  'canonical Releases API' \
   'focusa install' \
   'atomic stash and rollback' \
-  'license preserved' \
+  'license-preserved' \
   'recovery_hint' \
-  'focusa-upgrade-cmd'; do
+  'authoritative `/usr/local/bin` surface'; do
   rg -n -F "$needle" "$DOC" >/dev/null || fail "upgrade doc missing marker: $needle"
 done
 pass "upgrade docs describe evaluator acceptance and usage"
