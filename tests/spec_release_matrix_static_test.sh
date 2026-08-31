@@ -213,8 +213,16 @@ grep -Fq '$env:TAURI_SIGNING_PRIVATE_KEY = $null' "$APPVEYOR" \
   || fail "AppVeyor does not clear the signing payload after package work"
 grep -q 'appveyor_recovery_identity=passed' "$APPVEYOR" \
   || fail "AppVeyor lacks exact tag/SHA recovery identity proof"
+grep -Fq '$recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true"' "$APPVEYOR" \
+  || fail "AppVeyor recovery is not restricted to controller branch builds"
+grep -Fq 'appveyor_recovery_ignored_for_tag=true' "$APPVEYOR" \
+  || fail "AppVeyor tag builds do not explicitly ignore recovery state"
 grep -q 'FOCUSA_RECOVERY_TAG' "$APPVEYOR" \
   || fail "AppVeyor recovery does not carry the immutable release tag"
+grep -Fq '$env:CI = "true"' "$APPVEYOR" \
+  || fail "AppVeyor does not normalize Tauri CI semantics to lowercase true"
+grep -Fq 'appveyor_tauri_ci_normalized=$env:CI' "$APPVEYOR" \
+  || fail "AppVeyor lacks lowercase Tauri CI proof"
 [ "$(grep -Fc '2>&1"' "$APPVEYOR")" -ge 3 ] \
   || fail "AppVeyor native commands do not redirect normal Cargo stderr inside cmd.exe"
 python3 - "$APPVEYOR_RECOVERY" "$CODEMAGIC_RECOVERY" "$WF" "$CODEMAGIC" <<'PY'
@@ -224,6 +232,12 @@ for recovery_path in sys.argv[1:3]:
     assert isinstance(payload.get("enabled"), bool)
     assert re.fullmatch(r"v\d+\.\d+\.\d+", payload["tag"])
     assert re.fullmatch(r"[0-9a-f]{40}", payload["sha"])
+appveyor_recovery = json.load(open(sys.argv[1], encoding="utf-8"))
+assert appveyor_recovery == {
+    "enabled": True,
+    "tag": "v0.9.187",
+    "sha": "01aae7ea9ab886627d49b68e7aed2349d9ceafc0",
+}, "AppVeyor recovery identity must remain pinned to the immutable v0.9.187 candidate"
 lines = open(sys.argv[3], encoding="utf-8").read().splitlines()
 uploads = [i for i, line in enumerate(lines) if "uses: softprops/action-gh-release@v2" in line]
 assert uploads, "release workflow has no GitHub Release upload actions"

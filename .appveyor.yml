@@ -45,7 +45,7 @@ install:
       $recoveryPath = "config/appveyor-release-recovery.json"
       if (Test-Path $recoveryPath) {
         $recovery = Get-Content $recoveryPath -Raw | ConvertFrom-Json
-        if ($recovery.enabled -eq $true) {
+        if ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true") {
           if (-not ($recovery.tag -match '^v[0-9]+\.[0-9]+\.[0-9]+$')) { throw "invalid recovery tag" }
           if (-not ($recovery.sha -match '^[0-9a-f]{40}$')) { throw "invalid recovery SHA" }
           git fetch --force origin "refs/tags/$($recovery.tag):refs/tags/$($recovery.tag)"
@@ -61,6 +61,8 @@ install:
           Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TAG -Value $recovery.tag
           Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_SHA -Value $recovery.sha
           Write-Host "appveyor_recovery_identity=passed tag=$($recovery.tag) sha=$headSha"
+        } elseif ($recovery.enabled -eq $true) {
+          Write-Host "appveyor_recovery_ignored_for_tag=true tag=$env:APPVEYOR_REPO_TAG_NAME"
         }
       }
   - appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
@@ -101,6 +103,9 @@ after_build:
         if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw "missing base64 Tauri updater signing key payload" }
         if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { throw "missing Tauri updater signing password" }
         $repoRoot = (Resolve-Path .).Path
+        $originalCi = $env:CI
+        $env:CI = "true"
+        Write-Host "appveyor_tauri_ci_normalized=$env:CI"
         try {
           $keyText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY))
           $keyLines = @($keyText -split "`r?`n" | Where-Object { $_ })
@@ -133,6 +138,7 @@ after_build:
           }
         } finally {
           Set-Location $repoRoot
+          $env:CI = $originalCi
           $env:TAURI_SIGNING_PRIVATE_KEY = $null
         }
       }
