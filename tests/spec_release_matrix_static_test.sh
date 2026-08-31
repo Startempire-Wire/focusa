@@ -224,6 +224,8 @@ grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-license
   || fail "AppVeyor test jobs must use the bounded release profile"
 grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-core --lib' "$APPVEYOR" \
   || fail "AppVeyor test jobs must retain bounded core library coverage"
+grep -Fq '$coreFilters = @("background_job", "callgraph", "release_adapters", "install_lifecycle", "installation_convergence", "license::tests")' "$APPVEYOR" \
+  || fail "AppVeyor must execute the frozen cross-platform release-critical core subset"
 grep -Fq 'if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG))' "$APPVEYOR" \
   || fail "AppVeyor Menubar packaging must be surface-isolated and release-gated"
 [ "$(grep -Fc 'if ($env:SURFACE -ne "binaries")' "$APPVEYOR")" -eq 2 ] \
