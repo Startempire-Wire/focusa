@@ -3802,22 +3802,45 @@ fn create_symlink(_target: &std::path::Path, _link: &std::path::Path) -> Result<
 }
 
 #[cfg(unix)]
-type SystemLinkEntry = (std::path::PathBuf, std::path::PathBuf, bool);
+struct SystemLinkEntry {
+    system_path: std::path::PathBuf,
+    system_backup: std::path::PathBuf,
+    had_system_original: bool,
+    local_path: std::path::PathBuf,
+    local_backup: std::path::PathBuf,
+    local_swapped: bool,
+}
 
 #[cfg(unix)]
 fn rollback_system_links(entries: &[SystemLinkEntry]) -> Result<()> {
     let mut failures = Vec::new();
-    for (link, backup, had_original) in entries.iter().rev() {
-        if let Err(error) = std::fs::remove_file(link)
+    for entry in entries.iter().rev() {
+        if entry.local_swapped {
+            if let Err(error) = std::fs::remove_file(&entry.local_path)
+                && error.kind() != std::io::ErrorKind::NotFound
+            {
+                failures.push(format!("remove {}: {error}", entry.local_path.display()));
+            }
+            if let Err(error) = std::fs::rename(&entry.local_backup, &entry.local_path) {
+                failures.push(format!(
+                    "restore {} from {}: {error}",
+                    entry.local_path.display(),
+                    entry.local_backup.display()
+                ));
+            }
+        }
+        if let Err(error) = std::fs::remove_file(&entry.system_path)
             && error.kind() != std::io::ErrorKind::NotFound
         {
-            failures.push(format!("remove {}: {error}", link.display()));
+            failures.push(format!("remove {}: {error}", entry.system_path.display()));
         }
-        if *had_original && let Err(error) = std::fs::rename(backup, link) {
+        if entry.had_system_original
+            && let Err(error) = std::fs::rename(&entry.system_backup, &entry.system_path)
+        {
             failures.push(format!(
                 "restore {} from {}: {error}",
-                link.display(),
-                backup.display()
+                entry.system_path.display(),
+                entry.system_backup.display()
             ));
         }
     }
@@ -3901,48 +3924,67 @@ fn promote_system_links(
     let transaction = format!("{}", std::process::id());
     let mut entries: Vec<SystemLinkEntry> = Vec::new();
     for name in ["focusa", "focusa-daemon", "focusa-tui"] {
-        let target = bin_dir.join(name);
-        if !target.is_file() {
+        let local_path = bin_dir.join(name);
+        if !local_path.is_file() {
             return Err(error_after_system_rollback(
                 anyhow!(
                     "verified system promotion target is missing: {}",
-                    target.display()
+                    local_path.display()
                 ),
                 &entries,
             ));
         }
-        let link = system_bin.join(name);
-        let backup = system_bin.join(format!(".focusa-{name}.rollback-{transaction}"));
-        let staged = system_bin.join(format!(".focusa-{name}.staged-{transaction}"));
-        if backup.exists() || staged.exists() {
+        let system_path = system_bin.join(name);
+        let system_backup = system_bin.join(format!(".focusa-{name}.rollback-{transaction}"));
+        let system_staged = system_bin.join(format!(".focusa-{name}.staged-{transaction}"));
+        let local_backup = bin_dir.join(format!(".{name}.promoted-{transaction}"));
+        let local_staged = bin_dir.join(format!(".{name}.system-link-{transaction}"));
+        if system_backup.exists()
+            || system_staged.exists()
+            || local_backup.exists()
+            || local_staged.exists()
+        {
             return Err(error_after_system_rollback(
                 anyhow!("stale system promotion transaction exists for {name}"),
                 &entries,
             ));
         }
-        let had_original = std::fs::symlink_metadata(&link).is_ok();
-        if had_original && let Err(error) = std::fs::rename(&link, &backup) {
+        let had_system_original = std::fs::symlink_metadata(&system_path).is_ok();
+        if had_system_original && let Err(error) = std::fs::rename(&system_path, &system_backup) {
             return Err(error_after_system_rollback(
-                anyhow!(error).context(format!("stash authoritative {}", link.display())),
+                anyhow!(error).context(format!("stash authoritative {}", system_path.display())),
                 &entries,
             ));
         }
-        entries.push((link.clone(), backup, had_original));
-        if let Err(error) = create_symlink(&target, &staged).and_then(|()| {
-            std::fs::rename(&staged, &link)
-                .with_context(|| format!("promote authoritative {}", link.display()))
+        entries.push(SystemLinkEntry {
+            system_path: system_path.clone(),
+            system_backup,
+            had_system_original,
+            local_path: local_path.clone(),
+            local_backup: local_backup.clone(),
+            local_swapped: false,
+        });
+        if let Err(error) = std::fs::copy(&local_path, &system_staged)
+            .with_context(|| format!("stage authoritative {}", system_path.display()))
+            .and_then(|_| {
+                std::fs::rename(&system_staged, &system_path)
+                    .with_context(|| format!("promote authoritative {}", system_path.display()))
+            })
+        {
+            let _ = std::fs::remove_file(&system_staged);
+            return Err(error_after_system_rollback(error, &entries));
+        }
+        if let Err(error) = std::fs::rename(&local_path, &local_backup)
+            .with_context(|| format!("stash promoted local {}", local_path.display()))
+        {
+            return Err(error_after_system_rollback(error, &entries));
+        }
+        entries.last_mut().expect("promotion entry").local_swapped = true;
+        if let Err(error) = create_symlink(&system_path, &local_staged).and_then(|()| {
+            std::fs::rename(&local_staged, &local_path)
+                .with_context(|| format!("link local install to {}", system_path.display()))
         }) {
-            if let Err(cleanup_error) = std::fs::remove_file(&staged)
-                && cleanup_error.kind() != std::io::ErrorKind::NotFound
-            {
-                return Err(error_after_system_rollback(
-                    error.context(format!(
-                        "remove staged system link {}: {cleanup_error}",
-                        staged.display()
-                    )),
-                    &entries,
-                ));
-            }
+            let _ = std::fs::remove_file(&local_staged);
             return Err(error_after_system_rollback(error, &entries));
         }
     }
@@ -3988,11 +4030,19 @@ fn promote_system_links(
     } else {
         false
     };
-    for (_, backup, had_original) in &entries {
-        if *had_original && let Err(error) = std::fs::remove_file(backup) {
+    for entry in &entries {
+        if entry.had_system_original
+            && let Err(error) = std::fs::remove_file(&entry.system_backup)
+        {
             eprintln!(
                 "warning: committed system promotion retained rollback {}: {error}",
-                backup.display()
+                entry.system_backup.display()
+            );
+        }
+        if let Err(error) = std::fs::remove_file(&entry.local_backup) {
+            eprintln!(
+                "warning: committed system promotion retained local staging {}: {error}",
+                entry.local_backup.display()
             );
         }
     }
@@ -4998,13 +5048,22 @@ mod tests {
         }
         assert!(!promote_system_links(&bin, &system, "v0.9.187", false).unwrap());
         for name in ["focusa", "focusa-daemon", "focusa-tui"] {
+            assert!(system.join(name).is_file());
+            assert!(
+                !std::fs::symlink_metadata(system.join(name))
+                    .unwrap()
+                    .file_type()
+                    .is_symlink()
+            );
             assert_eq!(
-                std::fs::read_link(system.join(name)).unwrap(),
-                bin.join(name)
+                std::fs::read_link(bin.join(name)).unwrap(),
+                system.join(name)
             );
         }
 
         for name in ["focusa", "focusa-daemon", "focusa-tui"] {
+            std::fs::remove_file(bin.join(name)).unwrap();
+            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.187\\n'\n");
             std::fs::remove_file(system.join(name)).unwrap();
             std::fs::write(system.join(name), format!("restored-{name}")).unwrap();
         }
@@ -5017,6 +5076,13 @@ mod tests {
             assert_eq!(
                 std::fs::read_to_string(system.join(name)).unwrap(),
                 format!("restored-{name}")
+            );
+            assert!(bin.join(name).is_file());
+            assert!(
+                !std::fs::symlink_metadata(bin.join(name))
+                    .unwrap()
+                    .file_type()
+                    .is_symlink()
             );
         }
         std::fs::remove_dir_all(fixture).unwrap();
