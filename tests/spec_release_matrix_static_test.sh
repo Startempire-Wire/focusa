@@ -243,7 +243,7 @@ grep -Fq 'appveyor_tauri_signer_normalized=EdScB2' "$APPVEYOR" \
 grep -Fq '$env:FOCUSA_SODIUM_LIBRARY = $null' "$APPVEYOR" \
   || fail "AppVeyor does not clear the temporary signer runtime binding"
 sodium_hash_line="$(grep -Fn -m1 'Get-FileHash -Algorithm SHA256' "$APPVEYOR" | cut -d: -f1)"
-conversion_line="$(grep -Fn -m1 '$convertedKey = & python -c $converterDriver' "$APPVEYOR" | cut -d: -f1)"
+conversion_line="$(grep -Fn -m1 '$convertedKey = & python $converterDriverPath' "$APPVEYOR" | cut -d: -f1)"
 tauri_build_line="$(grep -Fn -m1 '$tauriCli build --target' "$APPVEYOR" | cut -d: -f1)"
 [ "$sodium_hash_line" -lt "$conversion_line" ] && [ "$conversion_line" -lt "$tauri_build_line" ] \
   || fail "AppVeyor must verify runtime, convert signer, then package in that order"
@@ -253,6 +253,8 @@ grep -Fq '[Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)' "$APPVEYO
   || fail "AppVeyor does not decode the secure signing key payload"
 grep -Fq '$env:TAURI_SIGNING_PRIVATE_KEY = $null' "$APPVEYOR" \
   || fail "AppVeyor does not clear the signing payload after package work"
+grep -Fq 'Remove-Item -Force $converterDriverPath' "$APPVEYOR" \
+  || fail "AppVeyor does not remove the nonsecret converter driver"
 grep -q 'appveyor_recovery_identity=passed' "$APPVEYOR" \
   || fail "AppVeyor lacks exact tag/SHA recovery identity proof"
 grep -Fq '$recoveryControllerBranch = "fix/issue-480-appveyor-recovery"' "$APPVEYOR" \

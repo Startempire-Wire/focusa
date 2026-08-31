@@ -167,8 +167,17 @@ after_build:
           if (-not (Test-Path $converter)) { throw "legacy Tauri key converter is unavailable" }
           $env:FOCUSA_SODIUM_LIBRARY = $sodiumDll
           $env:FOCUSA_TAURI_KEY_CONVERTER = $converter
-          $converterDriver = 'import importlib.util, os; spec = importlib.util.spec_from_file_location("focusa_tauri_key_converter", os.environ["FOCUSA_TAURI_KEY_CONVERTER"]); module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module); module.ctypes.util.find_library = lambda _name: os.environ["FOCUSA_SODIUM_LIBRARY"]; module.main()'
-          $convertedKey = & python -c $converterDriver
+          $converterDriverPath = Join-Path $env:TEMP "focusa-tauri-key-converter-driver.py"
+          @'
+      import importlib.util
+      import os
+      spec = importlib.util.spec_from_file_location("focusa_tauri_key_converter", os.environ["FOCUSA_TAURI_KEY_CONVERTER"])
+      module = importlib.util.module_from_spec(spec)
+      spec.loader.exec_module(module)
+      module.ctypes.util.find_library = lambda _name: os.environ["FOCUSA_SODIUM_LIBRARY"]
+      module.main()
+      '@ | Set-Content -Path $converterDriverPath -Encoding UTF8
+          $convertedKey = & python $converterDriverPath
           if ($LASTEXITCODE -ne 0 -or -not $convertedKey) { throw "legacy Tauri key conversion failed" }
           $env:TAURI_SIGNING_PRIVATE_KEY = $convertedKey.Trim()
           Write-Host "appveyor_tauri_signer_normalized=EdScB2"
@@ -203,6 +212,9 @@ after_build:
           $env:FOCUSA_TAURI_KEY_CONVERTER = $null
           $env:FOCUSA_SODIUM_LIBRARY = $null
           $env:TAURI_SIGNING_PRIVATE_KEY = $null
+          if ($converterDriverPath -and (Test-Path $converterDriverPath)) {
+            Remove-Item -Force $converterDriverPath
+          }
         }
       }
 
