@@ -92,10 +92,12 @@ Disable the recovery record immediately after release closure.
 17. Codemagic release scripts use strict shell mode. The existing two-line
 Minisign private-key file is transported as one secure outer-base64 payload.
 The private ephemeral builder validates both the outer payload and inner key
-line without printing or persisting decoded content, then normalizes the
-authenticated legacy envelope in memory through
-`scripts/ci/convert-legacy-tauri-signing-key.py` and passes the resulting current
-outer-base64 value through `TAURI_SIGNING_PRIVATE_KEY`. The conversion preserves
+line without printing or persisting decoded content. Before conversion, it
+installs libsodium only when absent and proves that Python can discover the
+resulting ephemeral runtime. It then normalizes the authenticated legacy
+envelope in memory through `scripts/ci/convert-legacy-tauri-signing-key.py` and
+passes the resulting current outer-base64 value through
+`TAURI_SIGNING_PRIVATE_KEY`. The conversion preserves
 the signing identity and never logs or persists private material. Both
 architecture-specific updater signatures must exist and be nonempty before any
 menubar asset upload; a signer decode or conversion error is a hard provider

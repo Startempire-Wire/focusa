@@ -144,6 +144,14 @@ grep -Fq 'base64.b64decode(os.environ["TAURI_SIGNING_PRIVATE_KEY"], validate=Tru
   || fail "Codemagic does not validate the secure outer-base64 key payload"
 [ "$(grep -Fc 'python3 ../../scripts/ci/convert-legacy-tauri-signing-key.py' "$CODEMAGIC")" -eq 1 ] \
   || fail "Codemagic must convert the authenticated legacy signer to the current in-memory envelope exactly once"
+[ "$(grep -Fc 'brew install libsodium' "$CODEMAGIC")" -eq 1 ] \
+  || fail "Codemagic must install the signer conversion runtime exactly once"
+grep -Fq 'assert ctypes.util.find_library("sodium"), "installed libsodium is not discoverable"' "$CODEMAGIC" \
+  || fail "Codemagic must prove libsodium discovery before signer conversion"
+libsodium_line="$(grep -Fn -m1 'brew install libsodium' "$CODEMAGIC" | cut -d: -f1)"
+conversion_line="$(grep -Fn -m1 'python3 ../../scripts/ci/convert-legacy-tauri-signing-key.py' "$CODEMAGIC" | cut -d: -f1)"
+[ "$libsodium_line" -lt "$conversion_line" ] \
+  || fail "Codemagic must prepare libsodium before signer conversion"
 grep -Fq '[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY))' "$APPVEYOR" \
   || fail "AppVeyor does not validate the secure outer-base64 key payload"
 if grep -q 'focusa-tauri-signing-key\|keyPath\|TAURI_SIGNING_PRIVATE_KEY = \$keyPath' "$CODEMAGIC" "$APPVEYOR"; then
