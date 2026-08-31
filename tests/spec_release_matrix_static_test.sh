@@ -255,8 +255,12 @@ grep -Fq '$env:TAURI_SIGNING_PRIVATE_KEY = $null' "$APPVEYOR" \
   || fail "AppVeyor does not clear the signing payload after package work"
 grep -q 'appveyor_recovery_identity=passed' "$APPVEYOR" \
   || fail "AppVeyor lacks exact tag/SHA recovery identity proof"
-grep -Fq '$recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true"' "$APPVEYOR" \
-  || fail "AppVeyor recovery is not restricted to controller branch builds"
+grep -Fq '$recoveryControllerBranch = "fix/issue-480-appveyor-recovery"' "$APPVEYOR" \
+  || fail "AppVeyor recovery lacks one exact controller branch"
+grep -Fq '$env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch' "$APPVEYOR" \
+  || fail "AppVeyor recovery is not restricted to the exact controller branch"
+grep -Fq 'appveyor_recovery_ignored_for_branch=true' "$APPVEYOR" \
+  || fail "AppVeyor does not prove unrelated branches ignored recovery state"
 grep -Fq 'appveyor_recovery_ignored_for_tag=true' "$APPVEYOR" \
   || fail "AppVeyor tag builds do not explicitly ignore recovery state"
 grep -q 'FOCUSA_RECOVERY_TAG' "$APPVEYOR" \

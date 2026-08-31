@@ -66,7 +66,8 @@ install:
       $recoveryPath = "config/appveyor-release-recovery.json"
       if (Test-Path $recoveryPath) {
         $recovery = Get-Content $recoveryPath -Raw | ConvertFrom-Json
-        if ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true") {
+        $recoveryControllerBranch = "fix/issue-480-appveyor-recovery"
+        if ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true" -and $env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch) {
           if (-not ($recovery.tag -match '^v[0-9]+\.[0-9]+\.[0-9]+$')) { throw "invalid recovery tag" }
           if (-not ($recovery.sha -match '^[0-9a-f]{40}$')) { throw "invalid recovery SHA" }
           git fetch --force origin "refs/tags/$($recovery.tag):refs/tags/$($recovery.tag)"
@@ -82,8 +83,10 @@ install:
           Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TAG -Value $recovery.tag
           Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_SHA -Value $recovery.sha
           Write-Host "appveyor_recovery_identity=passed tag=$($recovery.tag) sha=$headSha"
-        } elseif ($recovery.enabled -eq $true) {
+        } elseif ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -eq "true") {
           Write-Host "appveyor_recovery_ignored_for_tag=true tag=$env:APPVEYOR_REPO_TAG_NAME"
+        } elseif ($recovery.enabled -eq $true) {
+          Write-Host "appveyor_recovery_ignored_for_branch=true branch=$env:APPVEYOR_REPO_BRANCH controller=$recoveryControllerBranch"
         }
       }
   - appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
