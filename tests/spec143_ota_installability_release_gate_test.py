@@ -107,6 +107,22 @@ assert stamped_root_packages == workspace_package_names, (
     f"extra={sorted(stamped_root_packages - workspace_package_names)}"
 )
 verify = (ROOT / "scripts/verify-version-surfaces.py").read_text()
+verify_tree = ast.parse(verify)
+verify_root_package_assignment = next(
+    node
+    for node in verify_tree.body
+    if isinstance(node, ast.Assign)
+    and any(
+        isinstance(target, ast.Name) and target.id == "ROOT_RUST_PACKAGES"
+        for target in node.targets
+    )
+)
+verified_root_packages = ast.literal_eval(verify_root_package_assignment.value)
+assert verified_root_packages == workspace_package_names, (
+    "root lockfile verification allowlist must equal all version.workspace packages: "
+    f"missing={sorted(workspace_package_names - verified_root_packages)} "
+    f"extra={sorted(verified_root_packages - workspace_package_names)}"
+)
 tag_script = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
 assert "replace_extension_build" in stamp
 assert "apps/pi-extension/src/auto-compaction.ts" in stamp
