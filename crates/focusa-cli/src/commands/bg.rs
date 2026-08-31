@@ -42,12 +42,6 @@ pub struct RunArgs {
     /// detach branch and run the blocking wait/complete flow.
     #[arg(long, hide = true)]
     pub internal_monitor: bool,
-    /// Internal: durable job id created by the `--detach` parent.
-    #[arg(long, hide = true, requires = "internal_monitor")]
-    pub internal_job_id: Option<String>,
-    /// Internal: durable log path created by the `--detach` parent.
-    #[arg(long, hide = true, requires = "internal_monitor")]
-    pub internal_log_path: Option<String>,
     /// The command to run. Everything after `--` is the command.
     #[arg(last = true, required = true)]
     pub command: Vec<String>,
@@ -68,23 +62,6 @@ pub struct WaitArgs {
     /// Poll timeout in milliseconds.
     #[arg(long, default_value_t = 30_000)]
     pub timeout_ms: u64,
-}
-
-fn internal_job_binding(args: &RunArgs) -> anyhow::Result<Option<(String, String)>> {
-    if !args.internal_monitor {
-        return Ok(None);
-    }
-    let job_id = args
-        .internal_job_id
-        .as_deref()
-        .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| anyhow::anyhow!("internal monitor job_id missing"))?;
-    let log_path = args
-        .internal_log_path
-        .as_deref()
-        .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| anyhow::anyhow!("internal monitor log_path missing"))?;
-    Ok(Some((job_id.to_string(), log_path.to_string())))
 }
 
 fn print_bg(result: Value, json_mode: bool) {
@@ -189,35 +166,30 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                     .map(|p| p.to_string_lossy().to_string())
                     .unwrap_or_else(|_| ".".to_string())
             });
-            let (job_id, log_path) = if let Some(binding) = internal_job_binding(&args)? {
-                binding
-            } else {
-                let command = args.command.join(" ");
-                let created: Value = api
-                    .post(
-                        "/v1/background-jobs",
-                        &json!({
-                            "name": args.name,
-                            "command": command,
-                            "cwd": cwd,
-                        }),
-                    )
-                    .await?;
-                let job = created
-                    .get("job")
-                    .ok_or_else(|| anyhow::anyhow!("daemon did not return a job record"))?;
-                let job_id = job
-                    .get("job_id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| anyhow::anyhow!("job_id missing"))?
-                    .to_string();
-                let log_path = job
-                    .get("log_path")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| anyhow::anyhow!("log_path missing"))?
-                    .to_string();
-                (job_id, log_path)
-            };
+            let command = args.command.join(" ");
+            let created: Value = api
+                .post(
+                    "/v1/background-jobs",
+                    &json!({
+                        "name": args.name,
+                        "command": command,
+                        "cwd": cwd,
+                    }),
+                )
+                .await?;
+            let job = created
+                .get("job")
+                .ok_or_else(|| anyhow::anyhow!("daemon did not return a job record"))?;
+            let job_id = job
+                .get("job_id")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("job_id missing"))?
+                .to_string();
+            let log_path = job
+                .get("log_path")
+                .and_then(|v| v.as_str())
+                .unwrap_or("/dev/null")
+                .to_string();
 
             // docs/165 v2: --detach re-execs this binary as a detached
             // process-group-0 monitor and returns immediately; the parent
@@ -226,42 +198,29 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                 let exe = std::env::current_exe()?;
                 let mut monitor = std::process::Command::new(exe);
                 monitor
-                    .args([
-                        "bg",
-                        "run",
-                        "--name",
-                        &args.name,
-                        "--internal-monitor",
-                        "--internal-job-id",
-                        &job_id,
-                        "--internal-log-path",
-                        &log_path,
-                    ])
+                    .args(["bg", "run", "--name", &args.name, "--internal-monitor"])
                     .arg("--")
                     .args(&args.command)
                     .stdin(std::process::Stdio::null())
                     .stdout(std::process::Stdio::null())
                     .stderr(std::process::Stdio::null());
-                configure_detached_monitor(&mut monitor);
+                #[cfg(unix)]
+                {
+                    use std::os::unix::process::CommandExt;
+                    monitor.process_group(0);
+                }
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+                    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+                    monitor.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
+                }
                 if let Some(dir) = args.cwd.as_deref() {
                     monitor.current_dir(dir);
                 }
-                if let Err(spawn_error) = monitor.spawn() {
-                    if let Err(mark_error) = api
-                        .post(
-                            &format!("/v1/background-jobs/{job_id}"),
-                            &json!({ "status": "monitor_lost" }),
-                        )
-                        .await
-                    {
-                        anyhow::bail!(
-                            "detached monitor spawn failed: {spawn_error}; marking job {job_id} monitor_lost also failed: {mark_error}"
-                        );
-                    }
-                    return Err(spawn_error.into());
-                }
+                monitor.spawn()?;
                 let dispatched = json!({
-                    "schema": focusa_core::background_jobs::BACKGROUND_JOB_DISPATCH_SCHEMA,
                     "status": "dispatched",
                     "job_id": job_id,
                     "name": args.name,
@@ -277,26 +236,8 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
 
             // Detach the child from the terminal signal group, then wait on
             // it — this CLI is the monitor.
-            let mut child = match build_child(&args.command, &log_path, args.cwd.as_deref()) {
-                Ok(child) => child,
-                Err(spawn_error) => {
-                    if let Err(mark_error) = api
-                        .post(
-                            &format!("/v1/background-jobs/{job_id}"),
-                            &json!({ "status": "monitor_lost" }),
-                        )
-                        .await
-                    {
-                        anyhow::bail!(
-                            "background command spawn failed: {spawn_error}; marking job {job_id} monitor_lost also failed: {mark_error}"
-                        );
-                    }
-                    return Err(spawn_error);
-                }
-            };
-            // The durable row tracks the lifecycle-owning monitor, not its
-            // child command; status reaping uses this PID to detect monitor loss.
-            let pid = std::process::id();
+            let mut child = build_child(&args.command, &log_path)?;
+            let pid = child.id();
             let _: Value = api
                 .post(
                     &format!("/v1/background-jobs/{job_id}"),
@@ -306,11 +247,10 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
 
             let status = child.wait()?;
             let exit_code = status.code().unwrap_or(-1);
-            let output_tail = focusa_core::background_jobs::bounded_log_tail(&log_path, 4096);
             let result: Value = api
                 .post(
                     &format!("/v1/background-jobs/{job_id}/complete"),
-                    &json!({ "exit_code": exit_code, "output_tail": output_tail }),
+                    &json!({ "exit_code": exit_code }),
                 )
                 .await?;
 
@@ -337,29 +277,7 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
 }
 
 #[cfg(unix)]
-fn configure_detached_monitor(command: &mut std::process::Command) {
-    use std::os::unix::process::CommandExt;
-    command.process_group(0);
-}
-
-#[cfg(windows)]
-fn configure_detached_monitor(command: &mut std::process::Command) {
-    use std::os::windows::process::CommandExt;
-    const DETACHED_PROCESS: u32 = 0x0000_0008;
-    const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
-    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    command.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
-}
-
-#[cfg(not(any(unix, windows)))]
-fn configure_detached_monitor(_command: &mut std::process::Command) {}
-
-#[cfg(unix)]
-fn build_child(
-    command: &[String],
-    log_path: &str,
-    cwd: Option<&str>,
-) -> anyhow::Result<std::process::Child> {
+fn build_child(command: &[String], log_path: &str) -> anyhow::Result<std::process::Child> {
     use std::os::unix::process::CommandExt;
     use std::process::Stdio;
     let log = std::fs::OpenOptions::new()
@@ -368,12 +286,8 @@ fn build_child(
         .open(log_path)?;
     let log_clone = log.try_clone()?;
     let (program, rest) = command.split_first().expect("command non-empty");
-    let mut child = std::process::Command::new(program);
-    child.args(rest);
-    if let Some(cwd) = cwd {
-        child.current_dir(cwd);
-    }
-    Ok(child
+    Ok(std::process::Command::new(program)
+        .args(rest)
         .stdout(Stdio::from(log))
         .stderr(Stdio::from(log_clone))
         .stdin(Stdio::null())
@@ -382,11 +296,7 @@ fn build_child(
 }
 
 #[cfg(not(unix))]
-fn build_child(
-    command: &[String],
-    log_path: &str,
-    cwd: Option<&str>,
-) -> anyhow::Result<std::process::Child> {
+fn build_child(command: &[String], log_path: &str) -> anyhow::Result<std::process::Child> {
     use std::process::Stdio;
     let log = std::fs::OpenOptions::new()
         .create(true)
@@ -394,72 +304,10 @@ fn build_child(
         .open(log_path)?;
     let log_clone = log.try_clone()?;
     let (program, rest) = command.split_first().expect("command non-empty");
-    let mut child = std::process::Command::new(program);
-    child.args(rest);
-    if let Some(cwd) = cwd {
-        child.current_dir(cwd);
-    }
-    Ok(child
+    Ok(std::process::Command::new(program)
+        .args(rest)
         .stdout(Stdio::from(log))
         .stderr(Stdio::from(log_clone))
         .stdin(Stdio::null())
         .spawn()?)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn run_args(internal_monitor: bool, job_id: Option<&str>, log_path: Option<&str>) -> RunArgs {
-        RunArgs {
-            name: "test-job".to_string(),
-            cwd: Some("/tmp".to_string()),
-            detach: false,
-            internal_monitor,
-            internal_job_id: job_id.map(str::to_string),
-            internal_log_path: log_path.map(str::to_string),
-            command: vec!["true".to_string()],
-        }
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn child_execution_honors_requested_working_directory() {
-        let root = std::env::temp_dir().join(format!("focusa-bg-cwd-{}", uuid::Uuid::now_v7()));
-        std::fs::create_dir_all(&root).unwrap();
-        let log = root.join("pwd.log");
-        let command = vec!["pwd".to_string()];
-        let mut child = build_child(&command, log.to_str().unwrap(), root.to_str()).unwrap();
-        assert!(child.wait().unwrap().success());
-        assert_eq!(
-            std::fs::read_to_string(&log).unwrap().trim(),
-            root.to_str().unwrap()
-        );
-        std::fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn detached_monitor_reuses_parent_job_binding() {
-        let binding =
-            internal_job_binding(&run_args(true, Some("bg-123"), Some("/tmp/bg-123.log")))
-                .expect("valid binding");
-        assert_eq!(
-            binding,
-            Some(("bg-123".to_string(), "/tmp/bg-123.log".to_string()))
-        );
-    }
-
-    #[test]
-    fn detached_monitor_requires_parent_job_binding() {
-        let error = internal_job_binding(&run_args(true, None, None)).unwrap_err();
-        assert!(error.to_string().contains("job_id missing"));
-    }
-
-    #[test]
-    fn ordinary_run_creates_its_own_job() {
-        assert_eq!(
-            internal_job_binding(&run_args(false, None, None)).expect("ordinary run"),
-            None
-        );
-    }
 }
