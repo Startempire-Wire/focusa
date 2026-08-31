@@ -88,7 +88,15 @@ when an API-triggered controller-branch build explicitly sets
 fetch the immutable tag, require its commit to equal the recorded full SHA,
 detach-checkout that SHA, and export the verified identity before dependency,
 build, package, or upload steps. A normal tag build ignores the recovery record.
-Disable the recovery record immediately after release closure.
+For the exact `v0.9.187` / `01aae7ea9ab886627d49b68e7aed2349d9ceafc0`
+Rust recovery only, Cargo may normalize the four workspace-local lock versions
+named in Issue #473 from `0.9.186` to `0.9.187`. The adapter must snapshot and
+parse both lockfiles, prove identical package multisets after normalizing only
+those four local version fields, reject every source/checksum/dependency/count
+or external-package difference, return to `cargo build --locked`, and restore
+the candidate lockfile after packaging. This exception is unavailable to normal
+tag builds or any other tag/SHA. Disable the recovery record immediately after
+release closure.
 17. Codemagic release scripts use strict shell mode. The existing two-line
 Minisign private-key file is transported as one secure outer-base64 payload.
 The private ephemeral builder validates both the outer payload and inner key

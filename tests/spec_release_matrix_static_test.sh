@@ -135,6 +135,18 @@ grep -Fq -- '-p focusa-cli -p focusa-api -p focusa-tui' "$CODEMAGIC" \
   || fail "Codemagic Rust workflow must select the canonical daemon package"
 [ "$(grep -Fc 'focusa-daemon-${release_tag}-' "$CODEMAGIC")" -eq 2 ] \
   || fail "Codemagic Rust workflow must require both canonical daemon assets"
+grep -Fq '[[ "$FOCUSA_RELEASE_TAG" == "v0.9.187" ]]' "$CODEMAGIC" \
+  || fail "Codemagic lock normalization is not fixed to exact recovery tag"
+grep -Fq '[[ "$FOCUSA_RELEASE_SHA" == "01aae7ea9ab886627d49b68e7aed2349d9ceafc0" ]]' "$CODEMAGIC" \
+  || fail "Codemagic lock normalization is not fixed to exact recovery SHA"
+grep -Fq 'assert normalized(before) == normalized(after), "Cargo.lock drift exceeds recovery allowlist"' "$CODEMAGIC" \
+  || fail "Codemagic recovery does not reject out-of-allowlist lock drift"
+grep -Fq 'git diff --exit-code -- Cargo.lock' "$CODEMAGIC" \
+  || fail "Codemagic recovery does not restore the immutable candidate lock"
+grep -Fq 'cargo metadata --locked --format-version 1' "$CODEMAGIC" \
+  || fail "normal Codemagic Rust builds do not prove locked metadata"
+[ "$(grep -Fc 'cargo build --locked --release --target "$target"' "$CODEMAGIC")" -eq 1 ] \
+  || fail "Codemagic Rust packaging must return to one locked build loop"
 if grep -Eq '(^|[^[:alnum:]_-])focusad([^[:alnum:]_-]|$)' "$CODEMAGIC"; then
   fail "Codemagic Rust workflow references nonexistent focusad package or binary"
 fi
@@ -254,5 +266,7 @@ grep -q 'CREATE_NEW_PROCESS_GROUP' "$BG" \
 grep -q 'CREATE_NO_WINDOW' "$BG" \
   || fail "bg detached monitor is missing Windows no-window behavior"
 pass "bg detached monitor is platform-correct for Windows release builds"
+
+python3 tests/codemagic_recovery_lock_normalization_test.py
 
 echo "✓ All release matrix static checks passed"

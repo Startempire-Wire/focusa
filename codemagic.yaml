@@ -251,6 +251,69 @@ workflows:
       - name: Build + package both macOS targets
         script: |
           set -euo pipefail
+          lock_before=""
+          if [[ "${FOCUSA_CODEMAGIC_RECOVERY:-}" == "enabled" ]]; then
+            [[ "$FOCUSA_RELEASE_TAG" == "v0.9.187" ]]
+            [[ "$FOCUSA_RELEASE_SHA" == "01aae7ea9ab886627d49b68e7aed2349d9ceafc0" ]]
+            lock_before="$(mktemp "${TMPDIR:-/tmp}/focusa-cargo-lock-before.XXXXXX")"
+            cp Cargo.lock "$lock_before"
+            cargo metadata --format-version 1 >/dev/null
+            python3 - "$lock_before" Cargo.lock "${FOCUSA_RELEASE_TAG#v}" <<'PY'
+          import collections
+          import copy
+          import json
+          import sys
+          import tomllib
+
+          before_path, after_path, target_version = sys.argv[1:]
+          allowed = {
+              "agent-stateful-cognitive-runtime",
+              "cognitive-state-projection",
+              "letta-adapter",
+              "pi-client-tool-gateway",
+          }
+
+          def load(path):
+              with open(path, "rb") as handle:
+                  return tomllib.load(handle)["package"]
+
+          before = load(before_path)
+          after = load(after_path)
+
+          def local_allowed(packages, name):
+              matches = [p for p in packages if p["name"] == name and "source" not in p]
+              assert len(matches) == 1, f"expected one local lock package for {name}"
+              return matches[0]
+
+          for name in sorted(allowed):
+              old = local_allowed(before, name)
+              new = local_allowed(after, name)
+              assert old["version"] == "0.9.186", f"unexpected recovery source version for {name}"
+              assert new["version"] == target_version, f"unexpected recovery target version for {name}"
+              old_without_version = {k: v for k, v in old.items() if k != "version"}
+              new_without_version = {k: v for k, v in new.items() if k != "version"}
+              assert old_without_version == new_without_version, f"non-version lock drift for {name}"
+
+          def normalized(packages):
+              records = []
+              for package in packages:
+                  record = copy.deepcopy(package)
+                  if record["name"] in allowed and "source" not in record:
+                      record["version"] = "__RECOVERY_LOCAL_VERSION__"
+                  records.append(json.dumps(record, sort_keys=True, separators=(",", ":")))
+              return collections.Counter(records)
+
+          assert normalized(before) == normalized(after), "Cargo.lock drift exceeds recovery allowlist"
+          print(
+              "codemagic_recovery_lock_normalization=passed "
+              f"packages={','.join(sorted(allowed))} from=0.9.186 to={target_version}"
+          )
+          PY
+            changed="$(git diff --name-only)"
+            [[ "$changed" == "Cargo.lock" ]]
+          else
+            cargo metadata --locked --format-version 1 >/dev/null
+          fi
           mkdir -p dist
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
             cargo build --locked --release --target "$target" -p focusa-cli -p focusa-api -p focusa-tui
@@ -259,6 +322,11 @@ workflows:
               cp "target/$target/release/$bin" "dist/${bin}-${FOCUSA_RELEASE_TAG}-${target}"
             done
           done
+          if [[ -n "$lock_before" ]]; then
+            cp "$lock_before" Cargo.lock
+            git diff --exit-code -- Cargo.lock
+            echo "codemagic_recovery_lock_restore=passed"
+          fi
           ls -lh dist
       - name: Upload Rust binaries to canonical GitHub Release
         script: |
