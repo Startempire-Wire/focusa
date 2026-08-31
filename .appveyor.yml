@@ -10,8 +10,8 @@
 #   - Rust binaries (focusa-daemon, focusa, focusa-tui) for x86_64 + aarch64 MSVC
 #   - Menubar Tauri NSIS + MSI bundles (x86_64 + aarch64; tag only)
 #   - tag-gated upload of all artifacts back to the GitHub Release
-# AppVeyor hosted jobs have a hard 60-minute quota. Rust binaries/tests and
-# Menubar packaging therefore occupy separate serial jobs per architecture.
+# AppVeyor hosted jobs have a hard 60-minute quota. Rust binaries, Rust tests,
+# and Menubar packaging therefore occupy separate serial jobs per architecture.
 #
 # Unplug: delete this file when GH billing is settled and the full
 # canonical Release matrix is restored.
@@ -37,13 +37,19 @@ environment:
   matrix:
     - RUST_TARGET: x86_64-pc-windows-msvc
       MSVC_ARCH: amd64
-      SURFACE: rust
+      SURFACE: binaries
+    - RUST_TARGET: x86_64-pc-windows-msvc
+      MSVC_ARCH: amd64
+      SURFACE: tests
     - RUST_TARGET: x86_64-pc-windows-msvc
       MSVC_ARCH: amd64
       SURFACE: menubar
     - RUST_TARGET: aarch64-pc-windows-msvc
       MSVC_ARCH: amd64_arm64
-      SURFACE: rust
+      SURFACE: binaries
+    - RUST_TARGET: aarch64-pc-windows-msvc
+      MSVC_ARCH: amd64_arm64
+      SURFACE: tests
     - RUST_TARGET: aarch64-pc-windows-msvc
       MSVC_ARCH: amd64_arm64
       SURFACE: menubar
@@ -85,8 +91,8 @@ build_script:
   # Keep vcvarsall and Cargo in one process: AppVeyor command-list entries do
   # not preserve a prior batch block's environment (GH#382).
   - ps: |
-      if ($env:SURFACE -ne "rust") {
-        Write-Host "appveyor_surface_skipped=rust selected=$env:SURFACE"
+      if ($env:SURFACE -ne "binaries") {
+        Write-Host "appveyor_surface_skipped=binaries-build selected=$env:SURFACE"
         return
       }
       $vcvarsCandidates = @(
@@ -106,8 +112,8 @@ after_build:
   # Canonical asset names required by verify-canonical-release-assets.py:
   #   {surface}-{tag}-{target}.exe
   - ps: |
-      if ($env:SURFACE -ne "rust") {
-        Write-Host "appveyor_surface_skipped=binaries selected=$env:SURFACE"
+      if ($env:SURFACE -ne "binaries") {
+        Write-Host "appveyor_surface_skipped=binaries-copy selected=$env:SURFACE"
         return
       }
       $releaseTag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } elseif ($env:APPVEYOR_REPO_TAG -eq "true") { $env:APPVEYOR_REPO_TAG_NAME } else { "branch-$($env:APPVEYOR_REPO_COMMIT.Substring(0, 8))" }
@@ -132,6 +138,34 @@ after_build:
             throw "invalid Tauri signing key payload structure"
           }
           [Convert]::FromBase64String($keyLines[1]) | Out-Null
+
+          # The immutable candidate carries an authenticated legacy Minisign
+          # envelope whose 1 GiB scrypt parameters exceed current Tauri limits.
+          # Convert it in memory with a pinned official libsodium runtime; never
+          # write decoded or converted key material to disk or logs.
+          $sodiumUrl = "https://download.libsodium.org/libsodium/releases/libsodium-1.0.21-stable-msvc.zip"
+          $sodiumSha256 = "b19069c44c3875a2d9b46123bee3200cdc26eb9514c296b13cf91e96f1175269"
+          $sodiumZip = Join-Path $env:TEMP "libsodium-1.0.21-stable-msvc.zip"
+          $sodiumRoot = Join-Path $env:TEMP "focusa-libsodium-1.0.21"
+          appveyor DownloadFile $sodiumUrl -FileName $sodiumZip
+          if ($LASTEXITCODE -ne 0) { throw "failed to download pinned libsodium runtime" }
+          $actualSodiumSha256 = (Get-FileHash -Algorithm SHA256 $sodiumZip).Hash.ToLowerInvariant()
+          if ($actualSodiumSha256 -ne $sodiumSha256) { throw "libsodium archive checksum mismatch" }
+          Expand-Archive -Path $sodiumZip -DestinationPath $sodiumRoot -Force
+          $sodiumDll = Join-Path $sodiumRoot "libsodium\x64\Release\v143\dynamic\libsodium.dll"
+          if (-not (Test-Path $sodiumDll) -or (Get-Item $sodiumDll).Length -le 0) {
+            throw "pinned libsodium runtime is unavailable"
+          }
+          $converter = Join-Path $repoRoot "scripts\ci\convert-legacy-tauri-signing-key.py"
+          if (-not (Test-Path $converter)) { throw "legacy Tauri key converter is unavailable" }
+          $env:FOCUSA_SODIUM_LIBRARY = $sodiumDll
+          $env:FOCUSA_TAURI_KEY_CONVERTER = $converter
+          $converterDriver = 'import importlib.util, os; spec = importlib.util.spec_from_file_location("focusa_tauri_key_converter", os.environ["FOCUSA_TAURI_KEY_CONVERTER"]); module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module); module.ctypes.util.find_library = lambda _name: os.environ["FOCUSA_SODIUM_LIBRARY"]; module.main()'
+          $convertedKey = & python -c $converterDriver
+          if ($LASTEXITCODE -ne 0 -or -not $convertedKey) { throw "legacy Tauri key conversion failed" }
+          $env:TAURI_SIGNING_PRIVATE_KEY = $convertedKey.Trim()
+          Write-Host "appveyor_tauri_signer_normalized=EdScB2"
+
           npm install -g bun
           $npmRoot = (& npm root -g).Trim()
           if ($LASTEXITCODE -ne 0 -or -not $npmRoot) { throw "npm global root unavailable" }
@@ -158,13 +192,16 @@ after_build:
         } finally {
           Set-Location $repoRoot
           $env:CI = $originalCi
+          $convertedKey = $null
+          $env:FOCUSA_TAURI_KEY_CONVERTER = $null
+          $env:FOCUSA_SODIUM_LIBRARY = $null
           $env:TAURI_SIGNING_PRIVATE_KEY = $null
         }
       }
 
 test_script:
   - ps: |
-      if ($env:SURFACE -ne "rust") {
+      if ($env:SURFACE -ne "tests") {
         Write-Host "appveyor_surface_skipped=tests selected=$env:SURFACE"
         return
       }
@@ -175,7 +212,7 @@ test_script:
       $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
       if (-not $vcvars) { throw "vcvarsall.bat not found" }
       $mode = if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") { "--no-run" } else { "" }
-      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo test $mode --target $env:RUST_TARGET -p focusa-license && cargo test $mode --target $env:RUST_TARGET -p focusa-core --lib 2>&1"
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo test --release $mode --target $env:RUST_TARGET -p focusa-license && cargo test --release $mode --target $env:RUST_TARGET -p focusa-core --lib 2>&1"
       & cmd.exe /d /s /c $command
       if ($LASTEXITCODE -ne 0) { throw "Rust tests failed with exit code $LASTEXITCODE" }
 

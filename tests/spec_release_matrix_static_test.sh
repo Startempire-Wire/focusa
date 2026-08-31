@@ -207,16 +207,41 @@ grep -Fq "target\\%RUST_TARGET% -> Cargo.lock" "$APPVEYOR" \
   || fail "AppVeyor must keep target-specific Cargo.lock-keyed caches"
 grep -Fq "apps\\menubar\\src-tauri\\target\\%RUST_TARGET% -> apps\\menubar\\src-tauri\\Cargo.lock" "$APPVEYOR" \
   || fail "AppVeyor must keep target-specific Menubar caches"
-[ "$(grep -c '^      SURFACE: rust$' "$APPVEYOR")" -eq 2 ] \
-  || fail "AppVeyor must isolate Rust work into two architecture jobs"
+[ "$(grep -c '^      SURFACE: binaries$' "$APPVEYOR")" -eq 2 ] \
+  || fail "AppVeyor must isolate release binaries into two architecture jobs"
+[ "$(grep -c '^      SURFACE: tests$' "$APPVEYOR")" -eq 2 ] \
+  || fail "AppVeyor must isolate Rust tests into two architecture jobs"
 [ "$(grep -c '^      SURFACE: menubar$' "$APPVEYOR")" -eq 2 ] \
   || fail "AppVeyor must isolate Menubar work into two architecture jobs"
 grep -Fq 'cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-tui' "$APPVEYOR" \
-  || fail "AppVeyor Rust jobs must build only canonical release packages"
+  || fail "AppVeyor binary jobs must build only canonical release packages"
+grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-license' "$APPVEYOR" \
+  || fail "AppVeyor test jobs must use the bounded release profile"
+grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-core --lib' "$APPVEYOR" \
+  || fail "AppVeyor test jobs must retain bounded core library coverage"
 grep -Fq 'if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG))' "$APPVEYOR" \
   || fail "AppVeyor Menubar packaging must be surface-isolated and release-gated"
-[ "$(grep -Fc 'if ($env:SURFACE -ne "rust")' "$APPVEYOR")" -eq 3 ] \
-  || fail "AppVeyor Rust build, binary copy, and tests must be surface-isolated"
+[ "$(grep -Fc 'if ($env:SURFACE -ne "binaries")' "$APPVEYOR")" -eq 2 ] \
+  || fail "AppVeyor binary build and copy work must be surface-isolated"
+[ "$(grep -Fc 'if ($env:SURFACE -ne "tests")' "$APPVEYOR")" -eq 1 ] \
+  || fail "AppVeyor Rust tests must be surface-isolated"
+grep -Fq 'libsodium-1.0.21-stable-msvc.zip' "$APPVEYOR" \
+  || fail "AppVeyor signer conversion lacks a pinned official libsodium runtime"
+grep -Fq 'b19069c44c3875a2d9b46123bee3200cdc26eb9514c296b13cf91e96f1175269' "$APPVEYOR" \
+  || fail "AppVeyor signer runtime lacks immutable checksum verification"
+grep -Fq 'scripts\ci\convert-legacy-tauri-signing-key.py' "$APPVEYOR" \
+  || fail "AppVeyor does not use the authenticated legacy key converter"
+grep -Fq '$env:TAURI_SIGNING_PRIVATE_KEY = $convertedKey.Trim()' "$APPVEYOR" \
+  || fail "AppVeyor does not bind the in-memory converted signer"
+grep -Fq 'appveyor_tauri_signer_normalized=EdScB2' "$APPVEYOR" \
+  || fail "AppVeyor lacks current signer-envelope proof"
+grep -Fq '$env:FOCUSA_SODIUM_LIBRARY = $null' "$APPVEYOR" \
+  || fail "AppVeyor does not clear the temporary signer runtime binding"
+sodium_hash_line="$(grep -Fn -m1 'Get-FileHash -Algorithm SHA256' "$APPVEYOR" | cut -d: -f1)"
+conversion_line="$(grep -Fn -m1 '$convertedKey = & python -c $converterDriver' "$APPVEYOR" | cut -d: -f1)"
+tauri_build_line="$(grep -Fn -m1 '$tauriCli build --target' "$APPVEYOR" | cut -d: -f1)"
+[ "$sodium_hash_line" -lt "$conversion_line" ] && [ "$conversion_line" -lt "$tauri_build_line" ] \
+  || fail "AppVeyor must verify runtime, convert signer, then package in that order"
 grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
   || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
 grep -Fq '[Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)' "$APPVEYOR" \
