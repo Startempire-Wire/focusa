@@ -87,6 +87,8 @@ install:
           Write-Host "appveyor_recovery_ignored_for_tag=true tag=$env:APPVEYOR_REPO_TAG_NAME"
         } elseif ($recovery.enabled -eq $true) {
           Write-Host "appveyor_recovery_ignored_for_branch=true branch=$env:APPVEYOR_REPO_BRANCH controller=$recoveryControllerBranch"
+          Write-Host "appveyor_noncontroller_build_stopped_before_dependencies=true"
+          Exit-AppveyorBuild
         }
       }
   - appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe

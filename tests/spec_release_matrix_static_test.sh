@@ -265,6 +265,10 @@ grep -Fq '$env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch' "$APPVEYOR" \
   || fail "AppVeyor recovery is not restricted to the exact controller branch"
 grep -Fq 'appveyor_recovery_ignored_for_branch=true' "$APPVEYOR" \
   || fail "AppVeyor does not prove unrelated branches ignored recovery state"
+grep -Fq 'appveyor_noncontroller_build_stopped_before_dependencies=true' "$APPVEYOR" \
+  || fail "AppVeyor does not stop unrelated branch builds before dependencies"
+grep -Fq 'Exit-AppveyorBuild' "$APPVEYOR" \
+  || fail "AppVeyor unrelated branch stop is not provider-native"
 grep -Fq 'appveyor_recovery_ignored_for_tag=true' "$APPVEYOR" \
   || fail "AppVeyor tag builds do not explicitly ignore recovery state"
 grep -q 'FOCUSA_RECOVERY_TAG' "$APPVEYOR" \
