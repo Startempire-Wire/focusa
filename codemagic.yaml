@@ -103,6 +103,8 @@ workflows:
           assert lines[0].startswith(b"untrusted comment:"), "Tauri signing key comment missing"
           base64.b64decode(lines[1], validate=True)
           PY
+          TAURI_SIGNING_PRIVATE_KEY="$(python3 ../../scripts/ci/convert-legacy-tauri-signing-key.py)"
+          export TAURI_SIGNING_PRIVATE_KEY
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
             case "$target" in
               aarch64-apple-darwin) arch="aarch64" ;;
