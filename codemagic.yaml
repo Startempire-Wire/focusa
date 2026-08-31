@@ -241,8 +241,8 @@ workflows:
           set -euo pipefail
           mkdir -p dist
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
-            cargo build --locked --release --target "$target" -p focusa-cli -p focusad -p focusa-tui
-            for bin in focusa focusad focusa-tui; do
+            cargo build --locked --release --target "$target" -p focusa-cli -p focusa-api -p focusa-tui
+            for bin in focusa focusa-daemon focusa-tui; do
               test -x "target/$target/release/$bin"
               cp "target/$target/release/$bin" "dist/${bin}-${FOCUSA_RELEASE_TAG}-${target}"
             done
@@ -255,10 +255,10 @@ workflows:
           release_tag="${FOCUSA_RELEASE_TAG:?missing verified release tag}"
           expected=(
             "dist/focusa-${release_tag}-aarch64-apple-darwin"
-            "dist/focusad-${release_tag}-aarch64-apple-darwin"
+            "dist/focusa-daemon-${release_tag}-aarch64-apple-darwin"
             "dist/focusa-tui-${release_tag}-aarch64-apple-darwin"
             "dist/focusa-${release_tag}-x86_64-apple-darwin"
-            "dist/focusad-${release_tag}-x86_64-apple-darwin"
+            "dist/focusa-daemon-${release_tag}-x86_64-apple-darwin"
             "dist/focusa-tui-${release_tag}-x86_64-apple-darwin"
           )
           for file in "${expected[@]}"; do test -s "$file"; done

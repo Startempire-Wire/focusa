@@ -131,6 +131,13 @@ grep -q 'FOCUSA_CODEMAGIC_RECOVERY' "$CODEMAGIC" \
   || fail "both Codemagic workflows must bootstrap Rust on a clean API build"
 [ "$(grep -Fc 'rustup default nightly-2026-08-28' "$CODEMAGIC")" -eq 2 ] \
   || fail "both Codemagic workflows must pin the canonical Rust toolchain"
+grep -Fq -- '-p focusa-cli -p focusa-api -p focusa-tui' "$CODEMAGIC" \
+  || fail "Codemagic Rust workflow must select the canonical daemon package"
+[ "$(grep -Fc 'focusa-daemon-${release_tag}-' "$CODEMAGIC")" -eq 2 ] \
+  || fail "Codemagic Rust workflow must require both canonical daemon assets"
+if grep -Eq '(^|[^[:alnum:]_-])focusad([^[:alnum:]_-]|$)' "$CODEMAGIC"; then
+  fail "Codemagic Rust workflow references nonexistent focusad package or binary"
+fi
 grep -q 'missing base64 Tauri updater signing key payload' "$CODEMAGIC" \
   || fail "Codemagic signer does not require the encoded key payload"
 grep -Fq 'base64.b64decode(os.environ["TAURI_SIGNING_PRIVATE_KEY"], validate=True)' "$CODEMAGIC" \
