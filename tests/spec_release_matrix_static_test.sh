@@ -173,6 +173,11 @@ grep -Fq 'test -s "${updater}.sig"' "$CODEMAGIC" \
   || fail "Codemagic package step does not fail on a missing generated signature"
 grep -Fq 'codesign --force --deep --sign - "$app"' "$CODEMAGIC" \
   || fail "Codemagic does not seal the completed app bundle"
+[ "$(grep -Fc 'codesign -dv --verbose=4 "$app" 2>&1 | grep -F '\''Signature=adhoc'\''' "$CODEMAGIC")" -eq 2 ] \
+  || fail "Codemagic must consume both complete codesign detail streams while asserting ad-hoc identity"
+if grep -Fq "grep -q 'Signature=adhoc'" "$CODEMAGIC"; then
+  fail "Codemagic ad-hoc verification can SIGPIPE codesign under pipefail"
+fi
 grep -Fq 'test -s "$app/Contents/_CodeSignature/CodeResources"' "$CODEMAGIC" \
   || fail "Codemagic does not require the app resource seal"
 grep -Fq 'hdiutil create -volname Focusa -srcfolder "$dmg_stage" -ov -format UDZO "$dmg"' "$CODEMAGIC" \
