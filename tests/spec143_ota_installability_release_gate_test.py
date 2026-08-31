@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import ast
 import os
+import tomllib
 from pathlib import Path
 
 ROOT = Path(os.environ.get("FOCUSA_SPEC143_ROOT", Path(__file__).resolve().parents[1]))
@@ -80,6 +81,31 @@ assert "refresh_apply_summary(&mut apply);" in update
 assert "do not bypass trust" in update
 
 stamp = (ROOT / "scripts/stamp-menubar-version.py").read_text()
+stamp_tree = ast.parse(stamp)
+root_package_assignment = next(
+    node
+    for node in stamp_tree.body
+    if isinstance(node, ast.Assign)
+    and any(
+        isinstance(target, ast.Name) and target.id == "ROOT_RUST_PACKAGES"
+        for target in node.targets
+    )
+)
+stamped_root_packages = ast.literal_eval(root_package_assignment.value)
+workspace = tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))
+workspace_package_names = set()
+for member in workspace["workspace"]["members"]:
+    manifest = tomllib.loads(
+        (ROOT / member / "Cargo.toml").read_text(encoding="utf-8")
+    )
+    package = manifest["package"]
+    if package.get("version", {}).get("workspace") is True:
+        workspace_package_names.add(package["name"])
+assert stamped_root_packages == workspace_package_names, (
+    "root lockfile stamp allowlist must equal all version.workspace packages: "
+    f"missing={sorted(workspace_package_names - stamped_root_packages)} "
+    f"extra={sorted(stamped_root_packages - workspace_package_names)}"
+)
 verify = (ROOT / "scripts/verify-version-surfaces.py").read_text()
 tag_script = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
 assert "replace_extension_build" in stamp
