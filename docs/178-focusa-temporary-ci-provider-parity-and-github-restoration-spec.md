@@ -109,7 +109,13 @@ passes the resulting current outer-base64 value through
 the signing identity and never logs or persists private material. Both
 architecture-specific updater signatures must exist and be nonempty before any
 menubar asset upload; a signer decode or conversion error is a hard provider
-failure, never a green warning.
+failure, never a green warning. Tauri's initial ad-hoc executable signature is
+not sufficient release proof: Codemagic must seal the completed `.app` resource
+tree, require a nonempty `_CodeSignature/CodeResources`, and pass strict deep
+verification. The `.app.zip`, DMG, and updater archive must then be regenerated
+from those exact sealed app bytes, and the regenerated updater archive must be
+signed through the environment-bound Tauri signer. Validating one byte set
+while uploading a different pre-seal bundle is forbidden.
 18. AppVeyor uses the same secure outer-base64 payload contract and validates it
 in memory before Tauri packaging. No decoded signing-key file is written on
 either provider. The AppVeyor project must hold both the key payload and

@@ -171,6 +171,28 @@ if grep -q 'focusa-tauri-signing-key\|keyPath\|TAURI_SIGNING_PRIVATE_KEY = \$key
 fi
 grep -Fq 'test -s "${updater}.sig"' "$CODEMAGIC" \
   || fail "Codemagic package step does not fail on a missing generated signature"
+grep -Fq 'codesign --force --deep --sign - "$app"' "$CODEMAGIC" \
+  || fail "Codemagic does not seal the completed app bundle"
+grep -Fq 'test -s "$app/Contents/_CodeSignature/CodeResources"' "$CODEMAGIC" \
+  || fail "Codemagic does not require the app resource seal"
+grep -Fq 'hdiutil create -volname Focusa -srcfolder "$dmg_stage" -ov -format UDZO "$dmg"' "$CODEMAGIC" \
+  || fail "Codemagic does not rebuild the DMG from the sealed app"
+grep -Fq 'mv "${updater}.sig" "${updater}.sig.tauri-original"' "$CODEMAGIC" \
+  || fail "Codemagic can accidentally reuse the pre-seal updater signature"
+grep -Fq 'tar -czf "$updater" -C "$(dirname "$app")" "$(basename "$app")"' "$CODEMAGIC" \
+  || fail "Codemagic does not rebuild the updater archive from the sealed app"
+grep -Fq 'npx tauri signer sign "$updater"' "$CODEMAGIC" \
+  || fail "Codemagic does not re-sign the regenerated updater archive"
+build_line="$(grep -Fn -m1 'npx tauri build --target "$target"' "$CODEMAGIC" | cut -d: -f1)"
+seal_line="$(grep -Fn -m1 'codesign --force --deep --sign - "$app"' "$CODEMAGIC" | cut -d: -f1)"
+dmg_line="$(grep -Fn -m1 'hdiutil create -volname Focusa' "$CODEMAGIC" | cut -d: -f1)"
+updater_line="$(grep -Fn -m1 'tar -czf "$updater"' "$CODEMAGIC" | cut -d: -f1)"
+signer_line="$(grep -Fn -m1 'npx tauri signer sign "$updater"' "$CODEMAGIC" | cut -d: -f1)"
+copy_line="$(grep -Fn -m1 'ditto -c -k --keepParent "$app"' "$CODEMAGIC" | cut -d: -f1)"
+[ "$build_line" -lt "$seal_line" ] && [ "$seal_line" -lt "$dmg_line" ] \
+  && [ "$dmg_line" -lt "$updater_line" ] && [ "$updater_line" -lt "$signer_line" ] \
+  && [ "$signer_line" -lt "$copy_line" ] \
+  || fail "Codemagic must seal, rebuild, sign, then copy menubar artifacts in that order"
 [ "$(grep -Fc 'app.tar.gz.sig' "$CODEMAGIC")" -ge 4 ] \
   || fail "Codemagic package/upload contract does not require both updater signatures"
 if grep -q 'bundles remain in artifacts\|binaries remain in artifacts' "$CODEMAGIC"; then
