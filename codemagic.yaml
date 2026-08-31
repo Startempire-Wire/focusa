@@ -143,6 +143,8 @@ workflows:
         script: |
           set -euo pipefail
           cd apps/menubar
+          expected_identifier="$(python3 -c 'import json; print(json.load(open("src-tauri/tauri.conf.json", encoding="utf-8"))["identifier"])')"
+          [[ "$expected_identifier" == "com.focusa.menubar" ]]
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
             case "$target" in
               aarch64-apple-darwin) arch="aarch64" ;;
@@ -152,7 +154,7 @@ workflows:
             app="src-tauri/target/$target/release/bundle/macos/Focusa.app"
             plutil -lint "$app/Contents/Info.plist"
             test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = "${FOCUSA_RELEASE_TAG#v}"
-            test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = "dev.focusa.menubar"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = "$expected_identifier"
             codesign --verify --deep --strict --verbose=2 "$app"
             codesign -dv --verbose=4 "$app" 2>&1 | grep -q 'Signature=adhoc'
             test -s "../../dist/menubar/Focusa_${arch}.app.tar.gz.sig"
