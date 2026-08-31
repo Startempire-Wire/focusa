@@ -135,6 +135,8 @@ grep -q 'missing base64 Tauri updater signing key payload' "$CODEMAGIC" \
   || fail "Codemagic signer does not require the encoded key payload"
 grep -Fq 'base64.b64decode(os.environ["TAURI_SIGNING_PRIVATE_KEY"], validate=True)' "$CODEMAGIC" \
   || fail "Codemagic does not validate the secure outer-base64 key payload"
+[ "$(grep -Fc 'python3 ../../scripts/ci/convert-legacy-tauri-signing-key.py' "$CODEMAGIC")" -eq 1 ] \
+  || fail "Codemagic must convert the authenticated legacy signer to the current in-memory envelope exactly once"
 grep -Fq '[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY))' "$APPVEYOR" \
   || fail "AppVeyor does not validate the secure outer-base64 key payload"
 if grep -q 'focusa-tauri-signing-key\|keyPath\|TAURI_SIGNING_PRIVATE_KEY = \$keyPath' "$CODEMAGIC" "$APPVEYOR"; then
