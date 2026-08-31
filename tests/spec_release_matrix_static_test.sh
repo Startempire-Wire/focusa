@@ -213,6 +213,11 @@ grep -Fq "apps\\menubar\\src-tauri\\target\\%RUST_TARGET% -> apps\\menubar\\src-
   || fail "AppVeyor must isolate Rust tests into two architecture jobs"
 [ "$(grep -c '^      SURFACE: menubar$' "$APPVEYOR")" -eq 2 ] \
   || fail "AppVeyor must isolate Menubar work into two architecture jobs"
+[ "$(grep -c '^  CARGO_PROFILE_RELEASE_LTO: "false"$' "$APPVEYOR")" -eq 1 ] \
+  || fail "AppVeyor must disable only provider-local release LTO to fit the hosted quota"
+if grep -Eq '^  CARGO_PROFILE_RELEASE_(OPT_LEVEL|PANIC|STRIP):' "$APPVEYOR"; then
+  fail "AppVeyor must not weaken release optimization, panic, or strip semantics"
+fi
 grep -Fq 'cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-tui' "$APPVEYOR" \
   || fail "AppVeyor binary jobs must build only canonical release packages"
 grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-license' "$APPVEYOR" \

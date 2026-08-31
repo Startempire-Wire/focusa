@@ -32,6 +32,10 @@ image:
   - Visual Studio 2022
 
 environment:
+  # AppVeyor's hosted Windows linker cannot complete workspace thin LTO within
+  # its immutable 60-minute job quota. Keep release optimization/profile
+  # semantics while disabling only cross-crate LTO on this provider.
+  CARGO_PROFILE_RELEASE_LTO: "false"
   # Public authority root (embedded at build time via build.rs/env!).
   FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
   matrix:
