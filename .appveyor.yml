@@ -233,7 +233,8 @@ test_script:
       $mode = if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") { "--no-run" } else { "" }
       $coreFilters = @("background_job", "callgraph", "release_adapters", "install_lifecycle", "installation_convergence", "license::tests")
       $coreCommands = $coreFilters | ForEach-Object { "cargo test --release $mode --target $env:RUST_TARGET -p focusa-core --lib $_" }
-      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo test --release $mode --target $env:RUST_TARGET -p focusa-license && $($coreCommands -join ' && ') 2>&1"
+      $testCommands = @("cargo test --release $mode --target $env:RUST_TARGET -p focusa-license") + $coreCommands
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && ($($testCommands -join ' && ')) 2>&1"
       & cmd.exe /d /s /c $command
       if ($LASTEXITCODE -ne 0) { throw "Rust tests failed with exit code $LASTEXITCODE" }
 
