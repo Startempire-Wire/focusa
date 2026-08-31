@@ -24,6 +24,8 @@ VERSION_RE = re.compile(r"^v?(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)$")
 OLD_VERSION_RE = re.compile(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?")
 
 ROOT_RUST_PACKAGES = {
+    "agent-stateful-cognitive-runtime",
+    "cognitive-state-projection",
     "focusa-api",
     "focusa-bench",
     "focusa-cli",
@@ -33,6 +35,8 @@ ROOT_RUST_PACKAGES = {
     "focusa-session-runner",
     "focusa-terminal-ui",
     "focusa-tui",
+    "letta-adapter",
+    "pi-client-tool-gateway",
 }
 MENUBAR_RUST_PACKAGES = {"focusa-menubar"}
 
