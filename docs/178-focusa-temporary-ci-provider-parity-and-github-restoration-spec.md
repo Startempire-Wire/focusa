@@ -92,11 +92,14 @@ Disable the recovery record immediately after release closure.
 17. Codemagic release scripts use strict shell mode. The existing two-line
 Minisign private-key file is transported as one secure outer-base64 payload.
 The private ephemeral builder validates both the outer payload and inner key
-line without printing or persisting decoded content, then passes the unchanged
-outer-base64 value directly through `TAURI_SIGNING_PRIVATE_KEY`, as required by
-Tauri's decoder. Both architecture-specific updater signatures must exist and
-be nonempty before any menubar asset upload; a signer decode error is a hard
-provider failure, never a green warning.
+line without printing or persisting decoded content, then normalizes the
+authenticated legacy envelope in memory through
+`scripts/ci/convert-legacy-tauri-signing-key.py` and passes the resulting current
+outer-base64 value through `TAURI_SIGNING_PRIVATE_KEY`. The conversion preserves
+the signing identity and never logs or persists private material. Both
+architecture-specific updater signatures must exist and be nonempty before any
+menubar asset upload; a signer decode or conversion error is a hard provider
+failure, never a green warning.
 18. AppVeyor uses the same secure outer-base64 payload contract and validates it
 in memory before Tauri packaging. No decoded signing-key file is written on
 either provider. The AppVeyor project must hold both the key payload and
