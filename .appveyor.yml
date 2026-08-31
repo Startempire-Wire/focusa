@@ -10,6 +10,8 @@
 #   - Rust binaries (focusa-daemon, focusa, focusa-tui) for x86_64 + aarch64 MSVC
 #   - Menubar Tauri NSIS + MSI bundles (x86_64 + aarch64; tag only)
 #   - tag-gated upload of all artifacts back to the GitHub Release
+# AppVeyor hosted jobs have a hard 60-minute quota. Rust binaries/tests and
+# Menubar packaging therefore occupy separate serial jobs per architecture.
 #
 # Unplug: delete this file when GH billing is settled and the full
 # canonical Release matrix is restored.
@@ -24,6 +26,7 @@ cache:
   - '%USERPROFILE%\.cargo\registry -> Cargo.lock'
   - '%USERPROFILE%\.cargo\git -> Cargo.lock'
   - 'target\%RUST_TARGET% -> Cargo.lock'
+  - 'apps\menubar\src-tauri\target\%RUST_TARGET% -> apps\menubar\src-tauri\Cargo.lock'
 
 image:
   - Visual Studio 2022
@@ -34,8 +37,16 @@ environment:
   matrix:
     - RUST_TARGET: x86_64-pc-windows-msvc
       MSVC_ARCH: amd64
+      SURFACE: rust
+    - RUST_TARGET: x86_64-pc-windows-msvc
+      MSVC_ARCH: amd64
+      SURFACE: menubar
     - RUST_TARGET: aarch64-pc-windows-msvc
       MSVC_ARCH: amd64_arm64
+      SURFACE: rust
+    - RUST_TARGET: aarch64-pc-windows-msvc
+      MSVC_ARCH: amd64_arm64
+      SURFACE: menubar
 
 install:
   # A controller commit can recover one immutable tag without retagging. The
@@ -74,6 +85,10 @@ build_script:
   # Keep vcvarsall and Cargo in one process: AppVeyor command-list entries do
   # not preserve a prior batch block's environment (GH#382).
   - ps: |
+      if ($env:SURFACE -ne "rust") {
+        Write-Host "appveyor_surface_skipped=rust selected=$env:SURFACE"
+        return
+      }
       $vcvarsCandidates = @(
         "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
         "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
@@ -82,7 +97,7 @@ build_script:
       if (-not $vcvars) { throw "vcvarsall.bat not found" }
       # Cargo writes progress to stderr. Redirect inside cmd.exe so AppVeyor's
       # PowerShell host does not convert a successful build into NativeCommandError.
-      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo build --release --target $env:RUST_TARGET 2>&1"
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-tui 2>&1"
       & cmd.exe /d /s /c $command
       if ($LASTEXITCODE -ne 0) { throw "Rust build failed with exit code $LASTEXITCODE" }
 
@@ -91,6 +106,10 @@ after_build:
   # Canonical asset names required by verify-canonical-release-assets.py:
   #   {surface}-{tag}-{target}.exe
   - ps: |
+      if ($env:SURFACE -ne "rust") {
+        Write-Host "appveyor_surface_skipped=binaries selected=$env:SURFACE"
+        return
+      }
       $releaseTag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } elseif ($env:APPVEYOR_REPO_TAG -eq "true") { $env:APPVEYOR_REPO_TAG_NAME } else { "branch-$($env:APPVEYOR_REPO_COMMIT.Substring(0, 8))" }
       foreach ($bin in @("focusa-daemon", "focusa", "focusa-tui")) {
         $source = "target\$env:RUST_TARGET\release\$bin.exe"
@@ -99,7 +118,7 @@ after_build:
       }
   # Menubar Tauri NSIS + MSI for both Windows targets (tag or exact recovery).
   - ps: |
-      if ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG) {
+      if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG)) {
         if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw "missing base64 Tauri updater signing key payload" }
         if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { throw "missing Tauri updater signing password" }
         $repoRoot = (Resolve-Path .).Path
@@ -145,6 +164,10 @@ after_build:
 
 test_script:
   - ps: |
+      if ($env:SURFACE -ne "rust") {
+        Write-Host "appveyor_surface_skipped=tests selected=$env:SURFACE"
+        return
+      }
       $vcvarsCandidates = @(
         "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
         "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"

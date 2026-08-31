@@ -205,6 +205,18 @@ if grep -q 'bundles remain in artifacts\|binaries remain in artifacts' "$CODEMAG
 fi
 grep -Fq "target\\%RUST_TARGET% -> Cargo.lock" "$APPVEYOR" \
   || fail "AppVeyor must keep target-specific Cargo.lock-keyed caches"
+grep -Fq "apps\\menubar\\src-tauri\\target\\%RUST_TARGET% -> apps\\menubar\\src-tauri\\Cargo.lock" "$APPVEYOR" \
+  || fail "AppVeyor must keep target-specific Menubar caches"
+[ "$(grep -c '^      SURFACE: rust$' "$APPVEYOR")" -eq 2 ] \
+  || fail "AppVeyor must isolate Rust work into two architecture jobs"
+[ "$(grep -c '^      SURFACE: menubar$' "$APPVEYOR")" -eq 2 ] \
+  || fail "AppVeyor must isolate Menubar work into two architecture jobs"
+grep -Fq 'cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-tui' "$APPVEYOR" \
+  || fail "AppVeyor Rust jobs must build only canonical release packages"
+grep -Fq 'if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG))' "$APPVEYOR" \
+  || fail "AppVeyor Menubar packaging must be surface-isolated and release-gated"
+[ "$(grep -Fc 'if ($env:SURFACE -ne "rust")' "$APPVEYOR")" -eq 3 ] \
+  || fail "AppVeyor Rust build, binary copy, and tests must be surface-isolated"
 grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
   || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
 grep -Fq '[Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)' "$APPVEYOR" \
