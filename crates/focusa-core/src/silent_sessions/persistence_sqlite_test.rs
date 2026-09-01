@@ -42,9 +42,13 @@ fn persistence() -> (std::path::PathBuf, SqlitePersistence) {
     (dir, persistence)
 }
 
+fn project_root() -> String {
+    crate::test_support::absolute_path_string("silent-persistence-project")
+}
+
 fn session() -> SilentSession {
     SilentSession::draft(
-        SilentSessionAuthority::new("/repo/focusa", "continuity-1").unwrap(),
+        SilentSessionAuthority::new(project_root(), "continuity-1").unwrap(),
         "proof",
         "prove persistence",
         ConfigRevisionId::new(),
@@ -57,7 +61,7 @@ fn config() -> SilentSessionConfig {
     SilentSessionConfig::new(
         IdentityConfig {
             display_name: "proof".into(),
-            project_root: "/repo/focusa".into(),
+            project_root: project_root(),
             continuity_id: "continuity-1".into(),
             work_item_ref: None,
             mission: "prove persistence".into(),
@@ -599,7 +603,11 @@ fn chain_mismatch_and_scope_mismatch_roll_back() {
     assert!(append_reducer_event_and_project(&persistence, &mut wrong_chain, &projection).is_err());
 
     let mut wrong_scope = projection.clone();
-    wrong_scope.authority = SilentSessionAuthority::new("/repo/other", "continuity-1").unwrap();
+    wrong_scope.authority = SilentSessionAuthority::new(
+        crate::test_support::absolute_path_string("silent-persistence-other-project"),
+        "continuity-1",
+    )
+    .unwrap();
     let mut second = event(&projection, 2, Some(first.event_hash));
     assert!(append_reducer_event_and_project(&persistence, &mut second, &wrong_scope).is_err());
 

@@ -429,7 +429,7 @@ mod tests {
             created_by_actor_ref: "actor:test".into(),
             operator_principal_ref: "operator:test".into(),
             os_execution_user: "runner".into(),
-            project_root: PathBuf::from("/projects/focusa"),
+            project_root: crate::test_support::absolute_path("silent-completion-project"),
             project_identity_ref: "project:focusa".into(),
             continuity_id: "continuity:test".into(),
             trajectory_ref: Some("trajectory:test".into()),
@@ -467,7 +467,7 @@ mod tests {
             observed_model_binding: None,
             workspace_binding: WorkspaceBinding {
                 workspace_id: "workspace:test".into(),
-                root: PathBuf::from("/projects/focusa-worktree"),
+                root: crate::test_support::absolute_path("silent-completion-worktree"),
                 strategy: WorkspaceStrategy::IsolatedWorktree,
                 branch_ref: Some("branch:test".into()),
             },
@@ -492,9 +492,9 @@ mod tests {
             dirty: false,
         };
         CompletionEvidenceBundle {
-            project_root: PathBuf::from("/projects/focusa"),
+            project_root: crate::test_support::absolute_path("silent-completion-project"),
             project_identity_ref: "project:focusa".into(),
-            workspace_root: PathBuf::from("/projects/focusa-worktree"),
+            workspace_root: crate::test_support::absolute_path("silent-completion-worktree"),
             workspace_ref: "workspace:test".into(),
             starting_git_status: status.clone(),
             ending_git_status: status,

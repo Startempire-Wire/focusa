@@ -596,14 +596,14 @@ mod tests {
         let mission_sha256 = sha256_hex(mission);
         LaunchManifest {
             schema: LAUNCH_MANIFEST_SCHEMA.into(),
-            executable: PathBuf::from("/usr/local/bin/pi"),
+            executable: crate::test_support::executable_path(),
             argv: vec![
                 "-a".into(),
                 "--model".into(),
                 "gpt-test".into(),
                 "literal 'quotes' \"double\" $HOME; $(touch nope) | & > <".into(),
             ],
-            cwd: PathBuf::from("/projects/focusa-worktree"),
+            cwd: crate::test_support::absolute_path("silent-launch-worktree"),
             safe_env: BTreeMap::from([
                 ("LANG".into(), "en_US.UTF-8".into()),
                 ("SAFE_MULTILINE".into(), "line one\nline two;$HOME".into()),

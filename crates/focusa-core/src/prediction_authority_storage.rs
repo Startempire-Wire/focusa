@@ -365,11 +365,9 @@ fn atomic_write_rows(
         file.write_all(b"\n").map_err(io_error)?;
     }
     file.sync_all().map_err(io_error)?;
-    fs::rename(&temporary, path).map_err(io_error)?;
+    crate::durable_fs::atomic_replace(&temporary, path).map_err(io_error)?;
     if let Some(parent) = path.parent() {
-        File::open(parent)
-            .and_then(|directory| directory.sync_all())
-            .map_err(io_error)?;
+        crate::durable_fs::sync_directory(parent).map_err(io_error)?;
     }
     Ok(())
 }

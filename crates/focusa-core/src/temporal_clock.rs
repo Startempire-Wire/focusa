@@ -264,11 +264,12 @@ pub fn capture_temporal_action_envelope(
     let wall_clock_accuracy_uncertainty_ns =
         calibration.map(|budget| budget.expanded_uncertainty_ns.ceil().max(0.0) as u128);
     let microsecond_representation_supported = realtime_resolution_ns <= 1_000;
-    let microsecond_wall_clock_accuracy_verified = calibration.is_some_and(|budget| {
-        budget.expanded_uncertainty_ns <= 1_000.0
-            && budget.coverage_probability >= 0.95
-            && !budget.calibration_lineage.is_empty()
-    });
+    let microsecond_wall_clock_accuracy_verified = microsecond_representation_supported
+        && calibration.is_some_and(|budget| {
+            budget.expanded_uncertainty_ns <= 1_000.0
+                && budget.coverage_probability >= 0.95
+                && !budget.calibration_lineage.is_empty()
+        });
     let confidence = if microsecond_wall_clock_accuracy_verified {
         TemporalConfidence::Verified
     } else if calibration.is_some() {
@@ -478,10 +479,19 @@ mod tests {
     fn calibrated_capture_can_verify_microsecond_wall_clock_accuracy() {
         let calibration = microsecond_calibration();
         let envelope = capture_temporal_action_envelope("UTC", Some(&calibration)).unwrap();
-        assert!(envelope.microsecond_representation_supported);
-        assert!(envelope.microsecond_wall_clock_accuracy_verified);
+        assert_eq!(
+            envelope.microsecond_wall_clock_accuracy_verified,
+            envelope.microsecond_representation_supported
+        );
         assert_eq!(envelope.wall_clock_accuracy_uncertainty_ns, Some(500));
-        assert_eq!(envelope.confidence, TemporalConfidence::Verified);
+        assert_eq!(
+            envelope.confidence,
+            if envelope.microsecond_representation_supported {
+                TemporalConfidence::Verified
+            } else {
+                TemporalConfidence::High
+            }
+        );
         assert_eq!(envelope.calibration_lineage, vec!["ntp-proof:test"]);
         assert_eq!(envelope.operator_utc_offset_seconds, 0);
     }

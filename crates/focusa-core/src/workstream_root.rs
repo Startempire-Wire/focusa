@@ -321,9 +321,13 @@ mod tests {
             workstream_scope_key("/root/release-cycle/", "cont-1"),
             "/root/release-cycle|cont-1"
         );
-        let partition = partition_paths(std::path::Path::new("/data"), "ws1");
-        assert!(partition.state_ref.starts_with("/data/workstreams/ws1/"));
-        assert!(partition.evidence_ref.ends_with("/evidence"));
+        let data_dir = crate::test_support::absolute_path("workstream-partitions");
+        let partition = partition_paths(&data_dir, "ws1");
+        assert!(
+            std::path::Path::new(&partition.state_ref)
+                .starts_with(data_dir.join("workstreams/ws1"))
+        );
+        assert!(std::path::Path::new(&partition.evidence_ref).ends_with("evidence"));
     }
 
     #[test]

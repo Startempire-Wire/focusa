@@ -83,6 +83,7 @@ pub mod daemon_identity;
 pub mod daemon_multiplex;
 pub mod direction_ledger;
 pub mod direction_operations;
+pub mod durable_fs;
 pub mod dxux;
 pub mod entitlement_execution_guard;
 pub mod epistemic_conformance;
@@ -217,6 +218,8 @@ pub mod temporal_operations;
 pub mod temporal_platform;
 pub mod temporal_progress;
 pub mod temporal_release_gate;
+#[cfg(test)]
+pub(crate) mod test_support;
 pub mod threads;
 pub mod tool_result;
 pub mod training;

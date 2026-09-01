@@ -84,8 +84,8 @@ pub(super) fn atomic_publish(
     file.write_all(bytes).map_err(anyhow::Error::from)?;
     file.sync_all().map_err(anyhow::Error::from)?;
     drop(file);
-    fs::rename(&temporary, final_path).map_err(anyhow::Error::from)?;
-    sync_directory(directory)?;
+    crate::durable_fs::atomic_replace(&temporary, final_path).map_err(anyhow::Error::from)?;
+    crate::durable_fs::sync_directory(directory).map_err(anyhow::Error::from)?;
     Ok(())
 }
 
@@ -143,12 +143,6 @@ fn secure_directory_permissions(path: &Path) -> Result<(), StreamStorageError> {
 
 #[cfg(windows)]
 fn secure_directory_permissions(_path: &Path) -> Result<(), StreamStorageError> {
-    Ok(())
-}
-
-fn sync_directory(path: &Path) -> Result<(), StreamStorageError> {
-    let directory = File::open(path).map_err(anyhow::Error::from)?;
-    directory.sync_all().map_err(anyhow::Error::from)?;
     Ok(())
 }
 
