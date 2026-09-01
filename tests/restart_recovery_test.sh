@@ -68,9 +68,14 @@ else
 fi
 
 log_info "Seed session + frame + checkpoint data"
-curl -sS -X POST "${BASE_URL}/v1/session/start" \
+start_resp=$(curl -sS -X POST "${BASE_URL}/v1/session/start" \
   -H "Content-Type: application/json" \
-  -d "{\"workspace_id\":\"${REPO_ROOT}\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"recovery-test\"}" >/dev/null
+  -d "{\"workspace_id\":\"${REPO_ROOT}\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"recovery-test\"}")
+if echo "$start_resp" | jq -e '.status == "accepted" and (.session_id != null)' >/dev/null 2>&1; then
+  log_pass "Session start returned typed acceptance"
+else
+  log_fail "Session start rejected before recovery seed :: $start_resp"
+fi
 session_ready=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
   if curl -sS "${BASE_URL}/v1/status" | jq -e '.session != null' >/dev/null 2>&1; then
