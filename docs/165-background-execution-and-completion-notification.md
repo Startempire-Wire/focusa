@@ -165,3 +165,35 @@ missing jobs, invalid JSON, or malformed ledger envelopes. Entitlement and
 daemon failures remain visible tool failures and never produce “dispatched”
 wording. The daemon must declare and merge the background-job router; the
 isolated same-row e2e is the registration and monitor-parity release proof.
+
+## v2.2 — exact Workstream delivery and durable Pi rendering
+
+Background execution is daemon-global; Pi progress is not. A completion may
+render only in the native Pi session that dispatched it.
+
+1. After project verification, the Pi extension promotes a private per-session
+   bootstrap runtime into a verified `AttachmentKey` using
+   `AsyncLocalStorage.enterWith()`. It re-keys the same runtime object; it never
+   mutates the process-global bootstrap key.
+2. The extension publishes that non-secret typed key as
+   `FOCUSA_ATTACHMENT_KEY_V1`. A child `focusa bg run` validates it and includes
+   it in the create request. Manual callers without the variable remain valid
+   unscoped producers.
+3. New records use `focusa.background_job.v2` and persist optional
+   `attachment_json`. Migration is additive; v1 rows remain readable and
+   explicitly unscoped. Started/completion SSE envelopes copy the attachment
+   from the durable row.
+4. Pi compares every ScopeRef, continuity, instance, session, and attachment
+   field. Missing or foreign attachments are inert: no footer, widget,
+   notification, or transcript entry. It never infers scope from `cwd`.
+5. Running/recent visual state lives in `AttachmentRuntimeState`, never module
+   globals. This preserves two-session isolation through switch, resume, and
+   rehydration.
+6. `pi.appendEntry("focusa-bg-completion", …)` stores a bounded, ANSI-sanitized
+   `focusa.pi_background_completion_entry.v1`. The registered entry renderer
+   makes new and restored receipts visible. `sendMessage()` is forbidden, so
+   progress never enters model context.
+
+Acceptance requires producer/store tests, Pi exact-attachment and restored
+renderer tests, two-session runtime promotion/isolation, cross-version v1 row
+migration, and a live scoped completion after canonical installation.

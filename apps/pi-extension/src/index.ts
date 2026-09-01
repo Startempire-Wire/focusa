@@ -14,6 +14,7 @@ import {
   getActiveWorkpointPacket,
   isProjectRootAuthoritySafe,
   makeAttachmentKey,
+  makeSessionBootstrapAttachmentKey,
   runWithAttachmentRuntime,
 } from "./state.js";
 import {
@@ -58,21 +59,7 @@ if (process.platform === "win32") {
 export default function focusaPiBridge(pi: ExtensionAPI) {
   // Extension module load happens before daemon-backed project verification.
   // Bootstrap on a host scope; never fabricate project authority just to load Pi.
-  const extensionKey: AttachmentKey = {
-    workstream: {
-      root_scope: {
-        scope_kind: "host",
-        scope_id: "host:pi-extension-bootstrap",
-        root_path: "/",
-        canonical_name: "Pi Extension Bootstrap",
-        fingerprint: "bootstrap:pi-extension",
-      },
-      continuity_id: "extension-bootstrap",
-    },
-    instance_id: "extension-bootstrap",
-    session_id: `pi-extension-${process.pid}`,
-    attachment_id: "extension-bootstrap",
-  };
+  const extensionKey: AttachmentKey = makeSessionBootstrapAttachmentKey(`pi-extension-${process.pid}`);
   const withRuntime = <T>(fn: () => T): T => runWithAttachmentRuntime(extensionKey, fn);
   const sessionBinding = new PiExtensionSessionBinding();
   return withRuntime(() => {
@@ -97,7 +84,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
       );
       // Let session_start establish verified identity from the host bootstrap.
       // Promote only after initFocusa has registered the exact project ScopeRef.
-      if (!verifiedScopeRefForRoot(projectRoot)) return extensionKey;
+      if (!verifiedScopeRefForRoot(projectRoot)) return makeSessionBootstrapAttachmentKey(sessionId);
       return makeAttachmentKey({ projectRoot, continuityId, sessionId, attachmentId: sessionId });
     };
     const prepareRuntime = (key: AttachmentKey) => {

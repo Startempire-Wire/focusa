@@ -41,6 +41,8 @@ pub struct CreateJobBody {
     pub cwd: String,
     #[serde(default)]
     pub log_path: Option<String>,
+    #[serde(default)]
+    pub attachment: Option<focusa_core::scoped_state::AttachmentKey>,
 }
 
 fn default_cwd() -> String {
@@ -85,6 +87,14 @@ async fn create_job(
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         focusa_core::background_job_store::ensure_schema(&conn)?;
+        if let Some(attachment) = body.attachment.as_ref() {
+            attachment.validate()?;
+            anyhow::ensure!(
+                attachment.workstream.root_scope.scope_kind
+                    == focusa_core::scoped_state::ScopeKind::Project,
+                "background job attachment must use a verified project scope"
+            );
+        }
         let job_id = body
             .job_id
             .unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
@@ -94,6 +104,7 @@ async fn create_job(
             name: body.name,
             command: body.command,
             cwd: body.cwd,
+            attachment: body.attachment,
             status: BackgroundJobStatus::Queued,
             exit_code: None,
             pid: None,

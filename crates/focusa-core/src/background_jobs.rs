@@ -9,9 +9,11 @@
 
 use std::io::{Read, Seek, SeekFrom};
 
+use crate::scoped_state::AttachmentKey;
 use serde::{Deserialize, Serialize};
 
-pub const BACKGROUND_JOB_SCHEMA: &str = "focusa.background_job.v1";
+pub const BACKGROUND_JOB_SCHEMA_V1: &str = "focusa.background_job.v1";
+pub const BACKGROUND_JOB_SCHEMA: &str = "focusa.background_job.v2";
 pub const BACKGROUND_JOB_DISPATCH_SCHEMA: &str = "focusa.background_job_dispatch.v1";
 pub const BACKGROUND_JOB_COMPLETION_EVENT: &str = "background_job_completion";
 /// docs/165 v2: broadcast when a job transitions queued → running so
@@ -57,6 +59,10 @@ pub struct BackgroundJobRecord {
     pub name: String,
     pub command: String,
     pub cwd: String,
+    /// Exact producer attachment. Legacy/manual jobs may be unscoped, but Pi
+    /// consumers must treat those records as inert rather than infer scope.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attachment: Option<AttachmentKey>,
     pub status: BackgroundJobStatus,
     pub exit_code: Option<i32>,
     pub pid: Option<u32>,
@@ -78,6 +84,8 @@ pub struct BackgroundJobCompletionEvent {
     pub name: String,
     pub command: String,
     pub cwd: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attachment: Option<AttachmentKey>,
     pub status: BackgroundJobStatus,
     pub exit_code: Option<i32>,
     pub log_path: String,
@@ -98,6 +106,8 @@ pub struct BackgroundJobStartedEvent {
     pub name: String,
     pub command: String,
     pub cwd: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attachment: Option<AttachmentKey>,
     pub pid: Option<u32>,
     pub log_path: String,
     pub started_at: String,
@@ -112,6 +122,7 @@ impl BackgroundJobStartedEvent {
             name: record.name.clone(),
             command: record.command.clone(),
             cwd: record.cwd.clone(),
+            attachment: record.attachment.clone(),
             pid: record.pid,
             log_path: record.log_path.clone(),
             started_at: record.started_at.clone(),
@@ -190,6 +201,7 @@ impl BackgroundJobCompletionEvent {
             name: record.name.clone(),
             command: record.command.clone(),
             cwd: record.cwd.clone(),
+            attachment: record.attachment.clone(),
             status: record.status,
             exit_code: record.exit_code,
             log_path: record.log_path.clone(),
@@ -206,6 +218,20 @@ impl BackgroundJobCompletionEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::scoped_state::{ScopeRef, WorkstreamKey};
+
+    fn attachment() -> AttachmentKey {
+        let root = std::env::temp_dir().join("focusa-bg-event-project");
+        let scope =
+            ScopeRef::project("project:bg", root, "Background Project", "fingerprint:bg").unwrap();
+        AttachmentKey::new(
+            WorkstreamKey::new(scope, "continuity-bg").unwrap(),
+            "pi-42",
+            "session-bg",
+            "attachment-bg",
+        )
+        .unwrap()
+    }
 
     #[test]
     fn completion_envelope_carries_every_consumer_field() {
@@ -215,6 +241,7 @@ mod tests {
             name: "gate".to_string(),
             command: "cargo test".to_string(),
             cwd: "/root/proj".to_string(),
+            attachment: Some(attachment()),
             status: BackgroundJobStatus::Completed,
             exit_code: Some(0),
             pid: Some(42),
@@ -230,6 +257,7 @@ mod tests {
         let value = serde_json::to_value(&envelope).unwrap();
         assert_eq!(value["event_type"], "background_job_completion");
         assert_eq!(value["output_tail"], "typecheck failed");
+        assert_eq!(value["attachment"]["session_id"], "session-bg");
     }
 
     #[test]
@@ -268,6 +296,7 @@ mod tests {
             name: "gate".into(),
             command: "false".into(),
             cwd: ".".into(),
+            attachment: None,
             status: BackgroundJobStatus::Failed,
             exit_code: Some(1),
             pid: None,
@@ -313,6 +342,7 @@ mod tests {
             name: "gate".to_string(),
             command: "true".to_string(),
             cwd: ".".to_string(),
+            attachment: None,
             status: BackgroundJobStatus::Failed,
             exit_code: Some(1),
             pid: None,
