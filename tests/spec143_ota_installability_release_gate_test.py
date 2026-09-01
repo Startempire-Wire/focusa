@@ -8,6 +8,14 @@ ROOT = Path(os.environ.get("FOCUSA_SPEC143_ROOT", Path(__file__).resolve().paren
 release_path = Path(
     os.environ.get("FOCUSA_RELEASE_WORKFLOW_PATH", ROOT / ".github/workflows/release.yml")
 )
+stamper_path = Path(
+    os.environ.get("FOCUSA_RELEASE_STAMPER_PATH", ROOT / "scripts/stamp-menubar-version.py")
+)
+version_verifier_path = Path(
+    os.environ.get(
+        "FOCUSA_VERSION_VERIFIER_PATH", ROOT / "scripts/verify-version-surfaces.py"
+    )
+)
 release = release_path.read_text()
 deploy = (ROOT / ".github/workflows/deploy-live-daemon.yml").read_text()
 installer = (ROOT / "scripts/install-focusa.sh").read_text()
@@ -15,8 +23,8 @@ installer_ps1 = (ROOT / "scripts/install-focusa.ps1").read_text()
 install_rs = (ROOT / "crates/focusa-cli/src/commands/install.rs").read_text()
 update = (ROOT / "crates/focusa-cli/src/commands/update.rs").read_text()
 trust = (ROOT / "crates/focusa-cli/src/commands/update_trust.rs").read_text()
-stamper = (ROOT / "scripts/stamp-menubar-version.py").read_text()
-version_verifier = (ROOT / "scripts/verify-version-surfaces.py").read_text()
+stamper = stamper_path.read_text()
+version_verifier = version_verifier_path.read_text()
 
 assert "target: x86_64-unknown-linux-musl" in release
 assert "musl: true" in release
@@ -80,7 +88,7 @@ for field in [
 assert "refresh_apply_summary(&mut apply);" in update
 assert "do not bypass trust" in update
 
-stamp = (ROOT / "scripts/stamp-menubar-version.py").read_text()
+stamp = stamper_path.read_text()
 stamp_tree = ast.parse(stamp)
 root_package_assignment = next(
     node
@@ -106,7 +114,7 @@ assert stamped_root_packages == workspace_package_names, (
     f"missing={sorted(workspace_package_names - stamped_root_packages)} "
     f"extra={sorted(stamped_root_packages - workspace_package_names)}"
 )
-verify = (ROOT / "scripts/verify-version-surfaces.py").read_text()
+verify = version_verifier_path.read_text()
 verify_tree = ast.parse(verify)
 verify_root_package_assignment = next(
     node

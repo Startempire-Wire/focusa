@@ -224,10 +224,16 @@ jobs:
           set -euo pipefail
           controller_test="${RUNNER_TEMP}/spec143-controller-test.py"
           controller_workflow="${RUNNER_TEMP}/release-controller.yml"
+          controller_stamper="${RUNNER_TEMP}/stamp-menubar-version.py"
+          controller_version_verifier="${RUNNER_TEMP}/verify-version-surfaces.py"
           git show "${CONTROLLER_SHA}:tests/spec143_ota_installability_release_gate_test.py" > "$controller_test"
           git show "${CONTROLLER_SHA}:.github/workflows/release.yml" > "$controller_workflow"
+          git show "${CONTROLLER_SHA}:scripts/stamp-menubar-version.py" > "$controller_stamper"
+          git show "${CONTROLLER_SHA}:scripts/verify-version-surfaces.py" > "$controller_version_verifier"
           FOCUSA_SPEC143_ROOT="$PWD" \
           FOCUSA_RELEASE_WORKFLOW_PATH="$controller_workflow" \
+          FOCUSA_RELEASE_STAMPER_PATH="$controller_stamper" \
+          FOCUSA_VERSION_VERIFIER_PATH="$controller_version_verifier" \
             python3 "$controller_test"
       - name: Spec104 scoped-state closure gate
         run: python3 tests/spec104_singleton_inventory_gate.py --closure
