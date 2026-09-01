@@ -3,7 +3,7 @@
 //! Replaces the shell-heavy `scripts/install-focusa.sh` with a Rust subcommand
 //! that owns all install behavior:
 //!   * signed authority-lease resolution and verified-email device authorization
-//!   * asset download (`focusa`, `focusa-daemon`, `focusa-tui`)
+//!   * four-binary asset download (`focusa`, daemon, TUI, session runner)
 //!   * SHA256SUMS verification
 //!   * symlink placement (`~/.local/bin > /usr/local/bin`)
 //!   * service rendering delegation to `service::run_systemd_user` /
@@ -57,6 +57,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::JoinHandle;
 use std::time::Duration;
+
+const CANONICAL_RELEASE_BINARIES: [&str; 4] = [
+    "focusa",
+    "focusa-daemon",
+    "focusa-tui",
+    "focusa-session-runner",
+];
 
 struct UiChannel {
     sender: mpsc::Sender<InstallEvent>,
@@ -2155,7 +2162,12 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         }
     };
     let bin_dir = install_root.join("bin");
-    if let Err(e) = phase_smoke_test(target, &bin_dir).await {
+    let expected_tag = result
+        .assets
+        .first()
+        .map(|asset| asset.version.as_str())
+        .ok_or_else(|| anyhow!("installed release identity is missing"))?;
+    if let Err(e) = phase_smoke_test(target, &bin_dir, expected_tag).await {
         sink.emit(InstallEvent::PhaseFailed {
             phase: InstallPhase::RunHealthChecks,
             message: "Installed focusa --version smoke test failed".into(),
@@ -2296,6 +2308,10 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         daemon_health: "smoke-test pending separate daemon health check".into(),
         tui_path: authoritative_bin_dir
             .join(installed_binary_name(target, "focusa-tui"))
+            .display()
+            .to_string(),
+        runner_path: authoritative_bin_dir
+            .join(installed_binary_name(target, "focusa-session-runner"))
             .display()
             .to_string(),
         service_status: result.service_status.clone(),
@@ -2887,7 +2903,7 @@ async fn phase_asset_download(
     let tag_name = release.tag;
     let client = release.client;
     let triple = triple_for(target);
-    let assets = ["focusa", "focusa-daemon", "focusa-tui"];
+    let assets = CANONICAL_RELEASE_BINARIES;
     let mut out = Vec::new();
     let executable_suffix = release_executable_suffix(target);
     for asset_name in assets {
@@ -3771,7 +3787,7 @@ fn place_symlinks(
         .map(std::path::PathBuf::from)
         .ok_or_else(|| anyhow!("HOME not set"))?;
     let local_bin = home.join(".local/bin");
-    for bin in ["focusa", "focusa-daemon", "focusa-tui"] {
+    for bin in CANONICAL_RELEASE_BINARIES {
         let target = bin_dir.join(bin);
         let link = local_bin.join(bin);
         if let Some(parent) = link.parent() {
@@ -3923,7 +3939,7 @@ fn promote_system_links(
         .with_context(|| format!("create authoritative system path {}", system_bin.display()))?;
     let transaction = format!("{}", std::process::id());
     let mut entries: Vec<SystemLinkEntry> = Vec::new();
-    for name in ["focusa", "focusa-daemon", "focusa-tui"] {
+    for name in CANONICAL_RELEASE_BINARIES {
         let local_path = bin_dir.join(name);
         if !local_path.is_file() {
             return Err(error_after_system_rollback(
@@ -3989,7 +4005,7 @@ fn promote_system_links(
         }
     }
     let expected_version = expected_tag.strip_prefix('v').unwrap_or(expected_tag);
-    for name in ["focusa", "focusa-daemon", "focusa-tui"] {
+    for name in CANONICAL_RELEASE_BINARIES {
         let smoke = std::process::Command::new(system_bin.join(name))
             .arg("--version")
             .output();
@@ -4460,41 +4476,55 @@ fn phase_atomic_cleanup(stash: &std::path::Path) -> Result<()> {
     Ok(())
 }
 
-/// Smoke test: invoke the just-installed `focusa --version` and require
-/// exit 0. This is the gate Spec 112 §6 puts between install and
-/// commit-success.
-async fn phase_smoke_test(target: InstallTarget, bin_dir: &std::path::Path) -> Result<()> {
-    let focusa = bin_dir.join(installed_binary_name(target, "focusa"));
-    if !focusa.exists() {
-        return Err(anyhow!(
-            "smoke test failed: focusa binary not present at {}",
-            focusa.display()
-        ));
-    }
-    let output = std::process::Command::new(&focusa)
-        .arg("--version")
-        .output();
-    match output {
-        Ok(output) if output.status.success() => Ok(()),
-        Ok(output) => {
-            let detail: String = String::from_utf8_lossy(&output.stderr)
-                .chars()
-                .take(240)
-                .collect();
-            Err(anyhow!(
-                "smoke test failed: focusa --version exited {}{}",
-                output.status.code().unwrap_or(-1),
-                if detail.trim().is_empty() {
-                    String::new()
-                } else {
-                    format!(" ({})", detail.trim())
-                }
-            ))
+/// Smoke test every canonical binary before install commit. Each producer must
+/// expose `--version`, so a missing, stale, or non-runnable fourth binary fails
+/// the same atomic rollback boundary as the CLI.
+async fn phase_smoke_test(
+    target: InstallTarget,
+    bin_dir: &std::path::Path,
+    expected_tag: &str,
+) -> Result<()> {
+    let expected_version = expected_tag.strip_prefix('v').unwrap_or(expected_tag);
+    for name in CANONICAL_RELEASE_BINARIES {
+        let binary = bin_dir.join(installed_binary_name(target, name));
+        if !binary.exists() {
+            return Err(anyhow!(
+                "smoke test failed: {name} binary not present at {}",
+                binary.display()
+            ));
         }
-        Err(e) => Err(anyhow!(
-            "smoke test failed: could not exec focusa --version: {e}"
-        )),
+        match std::process::Command::new(&binary)
+            .arg("--version")
+            .output()
+        {
+            Ok(output)
+                if output.status.success()
+                    && String::from_utf8_lossy(&output.stdout)
+                        .split_whitespace()
+                        .any(|part| part == expected_version) => {}
+            Ok(output) => {
+                let detail: String = String::from_utf8_lossy(&output.stderr)
+                    .chars()
+                    .take(240)
+                    .collect();
+                return Err(anyhow!(
+                    "smoke test failed: {name} --version did not report {expected_version}; exit={}{}",
+                    output.status.code().unwrap_or(-1),
+                    if detail.trim().is_empty() {
+                        String::new()
+                    } else {
+                        format!(" ({})", detail.trim())
+                    }
+                ));
+            }
+            Err(error) => {
+                return Err(anyhow!(
+                    "smoke test failed: could not exec {name} --version: {error}"
+                ));
+            }
+        }
     }
+    Ok(())
 }
 
 fn bin_dir_for(install_root: &std::path::Path) -> std::path::PathBuf {
@@ -4687,7 +4717,11 @@ async fn execute_real_install(
     // Prove all promoted binaries before any external symlink, service, or shell
     // profile mutation. A failed fresh install can then remove the install root
     // without leaving dangling links or a partially registered service.
-    phase_smoke_test(target, &bin_dir)
+    let expected_tag = assets
+        .first()
+        .map(|asset| asset.version.as_str())
+        .ok_or_else(|| anyhow!("verified release identity is missing"))?;
+    phase_smoke_test(target, &bin_dir, expected_tag)
         .await
         .context("pre-commit binary smoke test failed")?;
     place_symlinks(target, &bin_dir, install_root)?;
@@ -4859,52 +4893,34 @@ fn build_plan(
     target: InstallTarget,
     root: &std::path::Path,
 ) -> Result<InstallPlan> {
+    let mut assets_planned = CANONICAL_RELEASE_BINARIES
+        .into_iter()
+        .map(|name| AssetPlan {
+            name: name.to_string(),
+            version: "<detected>".to_string(),
+            triple: triple_for(target),
+            install_path: root
+                .join("bin")
+                .join(installed_binary_name(target, name))
+                .display()
+                .to_string(),
+        })
+        .collect::<Vec<_>>();
+    assets_planned.push(AssetPlan {
+        name: "focusa-agent-context".to_string(),
+        version: "<detected>".to_string(),
+        triple: "all".to_string(),
+        install_path: root
+            .join("share")
+            .join("focusa-agent-context-<version>.tar.gz")
+            .display()
+            .to_string(),
+    });
     Ok(InstallPlan {
         target,
         channel: args.channel,
         install_root: root.display().to_string(),
-        assets_planned: vec![
-            AssetPlan {
-                name: "focusa".to_string(),
-                version: "<detected>".to_string(),
-                triple: triple_for(target),
-                install_path: root
-                    .join("bin")
-                    .join(installed_binary_name(target, "focusa"))
-                    .display()
-                    .to_string(),
-            },
-            AssetPlan {
-                name: "focusa-daemon".to_string(),
-                version: "<detected>".to_string(),
-                triple: triple_for(target),
-                install_path: root
-                    .join("bin")
-                    .join(installed_binary_name(target, "focusa-daemon"))
-                    .display()
-                    .to_string(),
-            },
-            AssetPlan {
-                name: "focusa-tui".to_string(),
-                version: "<detected>".to_string(),
-                triple: triple_for(target),
-                install_path: root
-                    .join("bin")
-                    .join(installed_binary_name(target, "focusa-tui"))
-                    .display()
-                    .to_string(),
-            },
-            AssetPlan {
-                name: "focusa-agent-context".to_string(),
-                version: "<detected>".to_string(),
-                triple: "all".to_string(),
-                install_path: root
-                    .join("share")
-                    .join("focusa-agent-context-<version>.tar.gz")
-                    .display()
-                    .to_string(),
-            },
-        ],
+        assets_planned,
         symlink_planned: format!(
             "{}/.local/bin/focusa",
             std::env::var("HOME").unwrap_or_default()
@@ -4939,7 +4955,7 @@ fn build_plan(
             args.channel,
             &root.join("bin"),
             root,
-            /* asset_count */ 4,
+            CANONICAL_RELEASE_BINARIES.len() + 1,
         )),
     })
 }
@@ -5042,12 +5058,12 @@ mod tests {
         let system = fixture.join("usr-local-bin");
         std::fs::create_dir_all(&bin).unwrap();
         std::fs::create_dir_all(&system).unwrap();
-        for name in ["focusa", "focusa-daemon", "focusa-tui"] {
+        for name in CANONICAL_RELEASE_BINARIES {
             write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.187\\n'\n");
             std::fs::write(system.join(name), format!("old-{name}")).unwrap();
         }
         assert!(!promote_system_links(&bin, &system, "v0.9.187", false).unwrap());
-        for name in ["focusa", "focusa-daemon", "focusa-tui"] {
+        for name in CANONICAL_RELEASE_BINARIES {
             assert!(system.join(name).is_file());
             assert!(
                 !std::fs::symlink_metadata(system.join(name))
@@ -5061,7 +5077,7 @@ mod tests {
             );
         }
 
-        for name in ["focusa", "focusa-daemon", "focusa-tui"] {
+        for name in CANONICAL_RELEASE_BINARIES {
             std::fs::remove_file(bin.join(name)).unwrap();
             write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.187\\n'\n");
             std::fs::remove_file(system.join(name)).unwrap();
@@ -5072,7 +5088,7 @@ mod tests {
             "#!/bin/sh\nprintf 'focusa-daemon 0.9.186\\n'\n",
         );
         assert!(promote_system_links(&bin, &system, "v0.9.187", false).is_err());
-        for name in ["focusa", "focusa-daemon", "focusa-tui"] {
+        for name in CANONICAL_RELEASE_BINARIES {
             assert_eq!(
                 std::fs::read_to_string(system.join(name)).unwrap(),
                 format!("restored-{name}")
@@ -5161,7 +5177,7 @@ mod tests {
     }
 
     #[test]
-    fn dry_run_plan_lists_three_assets() {
+    fn dry_run_plan_lists_four_binaries_and_context() {
         let args = InstallArgs {
             target: InstallTarget::Linux,
             channel: Channel::Stable,
@@ -5191,18 +5207,14 @@ mod tests {
             std::path::Path::new("/tmp/.focusa"),
         )
         .unwrap();
-        assert_eq!(plan.assets_planned.len(), 4);
-        assert!(plan.assets_planned.iter().any(|a| a.name == "focusa"));
+        assert_eq!(plan.assets_planned.len(), 5);
+        for name in CANONICAL_RELEASE_BINARIES {
+            assert!(plan.assets_planned.iter().any(|asset| asset.name == name));
+        }
         assert!(
             plan.assets_planned
                 .iter()
-                .any(|a| a.name == "focusa-daemon")
-        );
-        assert!(plan.assets_planned.iter().any(|a| a.name == "focusa-tui"));
-        assert!(
-            plan.assets_planned
-                .iter()
-                .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
+                .any(|asset| asset.name == "focusa-agent-context" && asset.triple == "all")
         );
         assert_eq!(plan.license_mode, "authority_existing_or_limited_access");
     }
