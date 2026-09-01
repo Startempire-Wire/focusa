@@ -273,6 +273,16 @@ grep -Fq '$recoveryControllerBranch = "fix/issue-480-appveyor-recovery"' "$APPVE
   || fail "AppVeyor recovery lacks one exact controller branch"
 grep -Fq '$env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch' "$APPVEYOR" \
   || fail "AppVeyor recovery is not restricted to the exact controller branch"
+grep -Fq '$recoveryControllerPullRequest = "482"' "$APPVEYOR" \
+  || fail "AppVeyor same-repository recovery is not restricted to exact PR 482"
+grep -Fq '$recoveryRepository = "Startempire-Wire/focusa"' "$APPVEYOR" \
+  || fail "AppVeyor same-repository recovery is not restricted to the canonical repository"
+grep -Fq '$env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -eq $recoveryControllerBranch' "$APPVEYOR" \
+  || fail "AppVeyor same-repository recovery is not restricted to the exact controller head branch"
+grep -Fq '$env:APPVEYOR_PULL_REQUEST_HEAD_REPO_NAME -eq $recoveryRepository' "$APPVEYOR" \
+  || fail "AppVeyor same-repository recovery does not verify head repository identity"
+grep -Fq 'route=$controllerRoute' "$APPVEYOR" \
+  || fail "AppVeyor recovery does not prove the selected controller route"
 grep -Fq 'appveyor_recovery_ignored_for_branch=true' "$APPVEYOR" \
   || fail "AppVeyor does not prove unrelated branches ignored recovery state"
 grep -Fq 'appveyor_noncontroller_build_stopped_before_dependencies=true' "$APPVEYOR" \

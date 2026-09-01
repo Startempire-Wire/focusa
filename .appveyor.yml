@@ -67,7 +67,17 @@ install:
       if (Test-Path $recoveryPath) {
         $recovery = Get-Content $recoveryPath -Raw | ConvertFrom-Json
         $recoveryControllerBranch = "fix/issue-480-appveyor-recovery"
-        if ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true" -and $env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch) {
+        $recoveryControllerPullRequest = "482"
+        $recoveryRepository = "Startempire-Wire/focusa"
+        $isControllerBranch = $env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch
+        $isControllerPullRequest = (
+          $env:APPVEYOR_PULL_REQUEST_NUMBER -eq $recoveryControllerPullRequest -and
+          $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -eq $recoveryControllerBranch -and
+          $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_NAME -eq $recoveryRepository -and
+          $env:APPVEYOR_REPO_NAME -eq $recoveryRepository
+        )
+        $isControllerRequest = $isControllerBranch -or $isControllerPullRequest
+        if ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true" -and $isControllerRequest) {
           if (-not ($recovery.tag -match '^v[0-9]+\.[0-9]+\.[0-9]+$')) { throw "invalid recovery tag" }
           if (-not ($recovery.sha -match '^[0-9a-f]{40}$')) { throw "invalid recovery SHA" }
           git fetch --force origin "refs/tags/$($recovery.tag):refs/tags/$($recovery.tag)"
@@ -82,7 +92,8 @@ install:
           if ($headSha -ne $recovery.sha) { throw "recovery checkout mismatch" }
           Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TAG -Value $recovery.tag
           Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_SHA -Value $recovery.sha
-          Write-Host "appveyor_recovery_identity=passed tag=$($recovery.tag) sha=$headSha"
+          $controllerRoute = if ($isControllerPullRequest) { "same_repo_pr" } else { "branch" }
+          Write-Host "appveyor_recovery_identity=passed tag=$($recovery.tag) sha=$headSha route=$controllerRoute"
         } elseif ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -eq "true") {
           Write-Host "appveyor_recovery_ignored_for_tag=true tag=$env:APPVEYOR_REPO_TAG_NAME"
         } elseif ($recovery.enabled -eq $true) {
