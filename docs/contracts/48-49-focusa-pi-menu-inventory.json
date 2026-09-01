@@ -1,7 +1,7 @@
 {
   "schema": "focusa.pi_menu_inventory.v1",
   "generated": true,
-  "source_sha256": "78d2d20dd4b7e286b72e53b85d9f75d1f6e9bfa9844d9be3e26bcce20878d8f7",
+  "source_sha256": "95ef9e6ae7f0e52264711aadc9cd90267005ac8f9e4f90030b8d31d85810e616",
   "baseline": {
     "top_level_commands": 9,
     "simple_settings": 11,
@@ -9,7 +9,7 @@
     "simple_choice_depth": 11
   },
   "after": {
-    "top_level_commands": 12,
+    "top_level_commands": 13,
     "simple_settings": 9,
     "advanced_settings": 29,
     "simple_choice_depth": 9
@@ -105,11 +105,11 @@
       "owner": "focusa-pi-extension",
       "user_job": "Retrieve bounded content for a Focusa ECS or local output handle",
       "placement": "top_level_command",
-      "rationale": "complete the advertised output-handle recovery path without loading unrelated context",
-      "help": "Retrieve bounded content: /focusa-rehydrate <handle_id> [max_tokens]",
-      "scope": "current_session_local_or_authorized_ecs_handle",
-      "risk": "read_only_bounded_content",
-      "interaction_test": "rehydrate-command-runtime.test.mjs"
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Retrieve bounded content for a Focusa ECS or local output handle",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
     },
     {
       "id": "focusa-status",
