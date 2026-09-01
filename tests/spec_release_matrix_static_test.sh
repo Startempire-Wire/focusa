@@ -205,16 +205,108 @@ if grep -q 'bundles remain in artifacts\|binaries remain in artifacts' "$CODEMAG
 fi
 grep -Fq "target\\%RUST_TARGET% -> Cargo.lock" "$APPVEYOR" \
   || fail "AppVeyor must keep target-specific Cargo.lock-keyed caches"
+grep -Fq "apps\\menubar\\src-tauri\\target\\%RUST_TARGET% -> apps\\menubar\\src-tauri\\Cargo.lock" "$APPVEYOR" \
+  || fail "AppVeyor must keep target-specific Menubar caches"
+[ "$(grep -c '^      SURFACE: binaries$' "$APPVEYOR")" -eq 2 ] \
+  || fail "AppVeyor must isolate release binaries into two architecture jobs"
+[ "$(grep -c '^      SURFACE: tests$' "$APPVEYOR")" -eq 2 ] \
+  || fail "AppVeyor must isolate Rust tests into two architecture jobs"
+[ "$(grep -c '^      SURFACE: menubar$' "$APPVEYOR")" -eq 2 ] \
+  || fail "AppVeyor must isolate Menubar work into two architecture jobs"
+[ "$(grep -c '^  CARGO_PROFILE_RELEASE_LTO: "false"$' "$APPVEYOR")" -eq 1 ] \
+  || fail "AppVeyor must disable only provider-local release LTO to fit the hosted quota"
+if grep -Eq '^  CARGO_PROFILE_RELEASE_(OPT_LEVEL|PANIC|STRIP):' "$APPVEYOR"; then
+  fail "AppVeyor must not weaken release optimization, panic, or strip semantics"
+fi
+grep -Fq '$env:CI = "true"' "$APPVEYOR" \
+  || fail "AppVeyor must normalize its CI boolean before invoking Tauri"
+grep -Fq 'cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui' "$APPVEYOR" \
+  || fail "AppVeyor binary jobs must build the four canonical release packages"
+grep -Fq 'foreach ($bin in @("focusa-daemon", "focusa", "focusa-session-runner", "focusa-tui"))' "$APPVEYOR" \
+  || fail "AppVeyor binary jobs must package all four canonical binaries"
+grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-license' "$APPVEYOR" \
+  || fail "AppVeyor test jobs must use the bounded release profile"
+grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-core --lib' "$APPVEYOR" \
+  || fail "AppVeyor test jobs must retain bounded core library coverage"
+grep -Fq '$coreFilters = @("background_job", "callgraph", "release_adapters", "install_lifecycle", "installation_convergence", "license::tests")' "$APPVEYOR" \
+  || fail "AppVeyor must execute the frozen cross-platform release-critical core subset"
+grep -Fq 'if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG))' "$APPVEYOR" \
+  || fail "AppVeyor Menubar packaging must be surface-isolated and release-gated"
+[ "$(grep -Fc 'if ($env:SURFACE -ne "binaries")' "$APPVEYOR")" -eq 2 ] \
+  || fail "AppVeyor binary build and copy work must be surface-isolated"
+[ "$(grep -Fc 'if ($env:SURFACE -ne "tests")' "$APPVEYOR")" -eq 1 ] \
+  || fail "AppVeyor Rust tests must be surface-isolated"
+grep -Fq 'appveyor_recovery_test_receipt=passed' "$APPVEYOR" \
+  || fail "AppVeyor immutable recovery does not prove reused exact-candidate tests"
+grep -Fq '$receiptControllerSha = "9b18fb6edb49aecf0656774b6e36a65e9fd8542d"' "$APPVEYOR" \
+  || fail "AppVeyor reused tests are not bound to the frozen provider controller"
+grep -Fq 'https://ci.appveyor.com/api/projects/verioussmith/focusa/build/$receiptBuild' "$APPVEYOR" \
+  || fail "AppVeyor reused tests do not verify the frozen provider build"
+grep -Fq 'missing GitHub release upload credential' "$APPVEYOR" \
+  || fail "AppVeyor reused tests do not prove execution reached the post-test hook"
+grep -Fq 'libsodium-1.0.21-stable-msvc.zip' "$APPVEYOR" \
+  || fail "AppVeyor signer conversion lacks a pinned official libsodium runtime"
+grep -Fq 'b19069c44c3875a2d9b46123bee3200cdc26eb9514c296b13cf91e96f1175269' "$APPVEYOR" \
+  || fail "AppVeyor signer runtime lacks immutable checksum verification"
+grep -Fq 'scripts\ci\convert-legacy-tauri-signing-key.py' "$APPVEYOR" \
+  || fail "AppVeyor does not use the authenticated legacy key converter"
+grep -Fq '$env:TAURI_SIGNING_PRIVATE_KEY = $convertedKey.Trim()' "$APPVEYOR" \
+  || fail "AppVeyor does not bind the in-memory converted signer"
+grep -Fq 'appveyor_tauri_signer_normalized=EdScB2' "$APPVEYOR" \
+  || fail "AppVeyor lacks current signer-envelope proof"
+grep -Fq '$env:FOCUSA_SODIUM_LIBRARY = $null' "$APPVEYOR" \
+  || fail "AppVeyor does not clear the temporary signer runtime binding"
+grep -Fq "ctypes.CDLL(os.environ['FOCUSA_SODIUM_PROBE'])" "$APPVEYOR" \
+  || fail "AppVeyor does not probe libsodium against the host Python architecture"
+grep -Fq '$env:FOCUSA_SODIUM_PROBE = $null' "$APPVEYOR" \
+  || fail "AppVeyor does not clear the temporary libsodium probe binding"
+sodium_hash_line="$(grep -Fn -m1 'Get-FileHash -Algorithm SHA256' "$APPVEYOR" | cut -d: -f1)"
+conversion_line="$(grep -Fn -m1 '$convertedKey = & python $converterDriverPath' "$APPVEYOR" | cut -d: -f1)"
+tauri_build_line="$(grep -Fn -m1 '$tauriCli build --target' "$APPVEYOR" | cut -d: -f1)"
+[ "$sodium_hash_line" -lt "$conversion_line" ] && [ "$conversion_line" -lt "$tauri_build_line" ] \
+  || fail "AppVeyor must verify runtime, convert signer, then package in that order"
 grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
   || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
+grep -Fq '@($env:GH_TOKEN, $env:GITHUB_RELEASE_TOKEN)' "$APPVEYOR" \
+  || fail "AppVeyor does not consume the configured GitHub release token authority"
+grep -Fq '$env:SURFACE -in @("binaries", "menubar")' "$APPVEYOR" \
+  || fail "AppVeyor upload settlement must exclude non-artifact test jobs"
 grep -Fq '[Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)' "$APPVEYOR" \
   || fail "AppVeyor does not decode the secure signing key payload"
 grep -Fq '$env:TAURI_SIGNING_PRIVATE_KEY = $null' "$APPVEYOR" \
   || fail "AppVeyor does not clear the signing payload after package work"
+grep -Fq 'Remove-Item -Force $converterDriverPath' "$APPVEYOR" \
+  || fail "AppVeyor does not remove the nonsecret converter driver"
 grep -q 'appveyor_recovery_identity=passed' "$APPVEYOR" \
   || fail "AppVeyor lacks exact tag/SHA recovery identity proof"
+grep -Fq '$recoveryControllerBranch = "fix/issue-480-appveyor-recovery"' "$APPVEYOR" \
+  || fail "AppVeyor recovery lacks one exact controller branch"
+grep -Fq '$env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch' "$APPVEYOR" \
+  || fail "AppVeyor recovery is not restricted to the exact controller branch"
+grep -Fq '$recoveryControllerPullRequest = "482"' "$APPVEYOR" \
+  || fail "AppVeyor same-repository recovery is not restricted to exact PR 482"
+grep -Fq '$recoveryRepository = "Startempire-Wire/focusa"' "$APPVEYOR" \
+  || fail "AppVeyor same-repository recovery is not restricted to the canonical repository"
+grep -Fq '$env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -eq $recoveryControllerBranch' "$APPVEYOR" \
+  || fail "AppVeyor same-repository recovery is not restricted to the exact controller head branch"
+grep -Fq '$env:APPVEYOR_PULL_REQUEST_HEAD_REPO_NAME -eq $recoveryRepository' "$APPVEYOR" \
+  || fail "AppVeyor same-repository recovery does not verify head repository identity"
+grep -Fq 'route=$controllerRoute' "$APPVEYOR" \
+  || fail "AppVeyor recovery does not prove the selected controller route"
+grep -Fq 'appveyor_recovery_ignored_for_branch=true' "$APPVEYOR" \
+  || fail "AppVeyor does not prove unrelated branches ignored recovery state"
+grep -Fq 'appveyor_noncontroller_build_stopped_before_dependencies=true' "$APPVEYOR" \
+  || fail "AppVeyor does not stop unrelated branch builds before dependencies"
+grep -Fq 'Exit-AppveyorBuild' "$APPVEYOR" \
+  || fail "AppVeyor unrelated branch stop is not provider-native"
+grep -Fq 'appveyor_recovery_ignored_for_tag=true' "$APPVEYOR" \
+  || fail "AppVeyor tag builds do not explicitly ignore recovery state"
 grep -q 'FOCUSA_RECOVERY_TAG' "$APPVEYOR" \
   || fail "AppVeyor recovery does not carry the immutable release tag"
+grep -Fq '$env:CI = "true"' "$APPVEYOR" \
+  || fail "AppVeyor does not normalize Tauri CI semantics to lowercase true"
+grep -Fq 'appveyor_tauri_ci_normalized=$env:CI' "$APPVEYOR" \
+  || fail "AppVeyor lacks lowercase Tauri CI proof"
 [ "$(grep -Fc '2>&1"' "$APPVEYOR")" -ge 3 ] \
   || fail "AppVeyor native commands do not redirect normal Cargo stderr inside cmd.exe"
 python3 - "$APPVEYOR_RECOVERY" "$CODEMAGIC_RECOVERY" "$WF" "$CODEMAGIC" <<'PY'
@@ -224,6 +316,17 @@ for recovery_path in sys.argv[1:3]:
     assert isinstance(payload.get("enabled"), bool)
     assert re.fullmatch(r"v\d+\.\d+\.\d+", payload["tag"])
     assert re.fullmatch(r"[0-9a-f]{40}", payload["sha"])
+appveyor_recovery = json.load(open(sys.argv[1], encoding="utf-8"))
+assert appveyor_recovery == {
+    "enabled": True,
+    "tag": "v0.9.187",
+    "sha": "01aae7ea9ab886627d49b68e7aed2349d9ceafc0",
+    "verified_test_receipts": {
+        "build": 242,
+        "x86_64_job": "6o84mlsuilovxtua",
+        "aarch64_job": "uskaruf7e5hjkhqv",
+    },
+}, "AppVeyor recovery identity and test receipts must remain pinned to v0.9.187"
 lines = open(sys.argv[3], encoding="utf-8").read().splitlines()
 uploads = [i for i, line in enumerate(lines) if "uses: softprops/action-gh-release@v2" in line]
 assert uploads, "release workflow has no GitHub Release upload actions"

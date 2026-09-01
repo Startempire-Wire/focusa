@@ -10,6 +10,8 @@
 #   - Rust binaries (focusa-daemon, focusa, focusa-tui) for x86_64 + aarch64 MSVC
 #   - Menubar Tauri NSIS + MSI bundles (x86_64 + aarch64; tag only)
 #   - tag-gated upload of all artifacts back to the GitHub Release
+# AppVeyor hosted jobs have a hard 60-minute quota. Rust binaries, Rust tests,
+# and Menubar packaging therefore occupy separate serial jobs per architecture.
 #
 # Unplug: delete this file when GH billing is settled and the full
 # canonical Release matrix is restored.
@@ -24,18 +26,37 @@ cache:
   - '%USERPROFILE%\.cargo\registry -> Cargo.lock'
   - '%USERPROFILE%\.cargo\git -> Cargo.lock'
   - 'target\%RUST_TARGET% -> Cargo.lock'
+  - 'apps\menubar\src-tauri\target\%RUST_TARGET% -> apps\menubar\src-tauri\Cargo.lock'
 
 image:
   - Visual Studio 2022
 
 environment:
+  # AppVeyor's hosted Windows linker cannot complete workspace thin LTO within
+  # its immutable 60-minute job quota. Keep release optimization/profile
+  # semantics while disabling only cross-crate LTO on this provider.
+  CARGO_PROFILE_RELEASE_LTO: "false"
   # Public authority root (embedded at build time via build.rs/env!).
   FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
   matrix:
     - RUST_TARGET: x86_64-pc-windows-msvc
       MSVC_ARCH: amd64
+      SURFACE: binaries
+    - RUST_TARGET: x86_64-pc-windows-msvc
+      MSVC_ARCH: amd64
+      SURFACE: tests
+    - RUST_TARGET: x86_64-pc-windows-msvc
+      MSVC_ARCH: amd64
+      SURFACE: menubar
     - RUST_TARGET: aarch64-pc-windows-msvc
       MSVC_ARCH: amd64_arm64
+      SURFACE: binaries
+    - RUST_TARGET: aarch64-pc-windows-msvc
+      MSVC_ARCH: amd64_arm64
+      SURFACE: tests
+    - RUST_TARGET: aarch64-pc-windows-msvc
+      MSVC_ARCH: amd64_arm64
+      SURFACE: menubar
 
 install:
   # A controller commit can recover one immutable tag without retagging. The
@@ -45,7 +66,18 @@ install:
       $recoveryPath = "config/appveyor-release-recovery.json"
       if (Test-Path $recoveryPath) {
         $recovery = Get-Content $recoveryPath -Raw | ConvertFrom-Json
-        if ($recovery.enabled -eq $true) {
+        $recoveryControllerBranch = "fix/issue-480-appveyor-recovery"
+        $recoveryControllerPullRequest = "482"
+        $recoveryRepository = "Startempire-Wire/focusa"
+        $isControllerBranch = $env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch
+        $isControllerPullRequest = (
+          $env:APPVEYOR_PULL_REQUEST_NUMBER -eq $recoveryControllerPullRequest -and
+          $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -eq $recoveryControllerBranch -and
+          $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_NAME -eq $recoveryRepository -and
+          $env:APPVEYOR_REPO_NAME -eq $recoveryRepository
+        )
+        $isControllerRequest = $isControllerBranch -or $isControllerPullRequest
+        if ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true" -and $isControllerRequest) {
           if (-not ($recovery.tag -match '^v[0-9]+\.[0-9]+\.[0-9]+$')) { throw "invalid recovery tag" }
           if (-not ($recovery.sha -match '^[0-9a-f]{40}$')) { throw "invalid recovery SHA" }
           git fetch --force origin "refs/tags/$($recovery.tag):refs/tags/$($recovery.tag)"
@@ -60,7 +92,14 @@ install:
           if ($headSha -ne $recovery.sha) { throw "recovery checkout mismatch" }
           Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TAG -Value $recovery.tag
           Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_SHA -Value $recovery.sha
-          Write-Host "appveyor_recovery_identity=passed tag=$($recovery.tag) sha=$headSha"
+          $controllerRoute = if ($isControllerPullRequest) { "same_repo_pr" } else { "branch" }
+          Write-Host "appveyor_recovery_identity=passed tag=$($recovery.tag) sha=$headSha route=$controllerRoute"
+        } elseif ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -eq "true") {
+          Write-Host "appveyor_recovery_ignored_for_tag=true tag=$env:APPVEYOR_REPO_TAG_NAME"
+        } elseif ($recovery.enabled -eq $true) {
+          Write-Host "appveyor_recovery_ignored_for_branch=true branch=$env:APPVEYOR_REPO_BRANCH controller=$recoveryControllerBranch"
+          Write-Host "appveyor_noncontroller_build_stopped_before_dependencies=true"
+          Exit-AppveyorBuild
         }
       }
   - appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
@@ -72,6 +111,10 @@ build_script:
   # Keep vcvarsall and Cargo in one process: AppVeyor command-list entries do
   # not preserve a prior batch block's environment (GH#382).
   - ps: |
+      if ($env:SURFACE -ne "binaries") {
+        Write-Host "appveyor_surface_skipped=binaries-build selected=$env:SURFACE"
+        return
+      }
       $vcvarsCandidates = @(
         "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
         "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
@@ -80,7 +123,7 @@ build_script:
       if (-not $vcvars) { throw "vcvarsall.bat not found" }
       # Cargo writes progress to stderr. Redirect inside cmd.exe so AppVeyor's
       # PowerShell host does not convert a successful build into NativeCommandError.
-      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo build --release --target $env:RUST_TARGET 2>&1"
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui 2>&1"
       & cmd.exe /d /s /c $command
       if ($LASTEXITCODE -ne 0) { throw "Rust build failed with exit code $LASTEXITCODE" }
 
@@ -89,18 +132,25 @@ after_build:
   # Canonical asset names required by verify-canonical-release-assets.py:
   #   {surface}-{tag}-{target}.exe
   - ps: |
+      if ($env:SURFACE -ne "binaries") {
+        Write-Host "appveyor_surface_skipped=binaries-copy selected=$env:SURFACE"
+        return
+      }
       $releaseTag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } elseif ($env:APPVEYOR_REPO_TAG -eq "true") { $env:APPVEYOR_REPO_TAG_NAME } else { "branch-$($env:APPVEYOR_REPO_COMMIT.Substring(0, 8))" }
-      foreach ($bin in @("focusa-daemon", "focusa", "focusa-tui")) {
+      foreach ($bin in @("focusa-daemon", "focusa", "focusa-session-runner", "focusa-tui")) {
         $source = "target\$env:RUST_TARGET\release\$bin.exe"
         if (-not (Test-Path $source)) { throw "missing release binary $source" }
         Move-Item $source "artifacts\$bin-$releaseTag-$env:RUST_TARGET.exe"
       }
   # Menubar Tauri NSIS + MSI for both Windows targets (tag or exact recovery).
   - ps: |
-      if ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG) {
+      if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG)) {
         if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw "missing base64 Tauri updater signing key payload" }
         if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { throw "missing Tauri updater signing password" }
         $repoRoot = (Resolve-Path .).Path
+        $originalCi = $env:CI
+        $env:CI = "true"
+        Write-Host "appveyor_tauri_ci_normalized=$env:CI"
         try {
           $keyText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY))
           $keyLines = @($keyText -split "`r?`n" | Where-Object { $_ })
@@ -108,6 +158,58 @@ after_build:
             throw "invalid Tauri signing key payload structure"
           }
           [Convert]::FromBase64String($keyLines[1]) | Out-Null
+
+          # The immutable candidate carries an authenticated legacy Minisign
+          # envelope whose 1 GiB scrypt parameters exceed current Tauri limits.
+          # Convert it in memory with a pinned official libsodium runtime; never
+          # write decoded or converted key material to disk or logs.
+          $sodiumUrl = "https://download.libsodium.org/libsodium/releases/libsodium-1.0.21-stable-msvc.zip"
+          $sodiumSha256 = "b19069c44c3875a2d9b46123bee3200cdc26eb9514c296b13cf91e96f1175269"
+          $sodiumZip = Join-Path $env:TEMP "libsodium-1.0.21-stable-msvc.zip"
+          $sodiumRoot = Join-Path $env:TEMP "focusa-libsodium-1.0.21"
+          appveyor DownloadFile $sodiumUrl -FileName $sodiumZip
+          if ($LASTEXITCODE -ne 0) { throw "failed to download pinned libsodium runtime" }
+          $actualSodiumSha256 = (Get-FileHash -Algorithm SHA256 $sodiumZip).Hash.ToLowerInvariant()
+          if ($actualSodiumSha256 -ne $sodiumSha256) { throw "libsodium archive checksum mismatch" }
+          Expand-Archive -Path $sodiumZip -DestinationPath $sodiumRoot -Force
+          # The converter runs under the host Python architecture, independent
+          # of the Rust target. Probe only the two pinned archive candidates and
+          # select the first runtime Python can load; never guess from RUST_TARGET.
+          $sodiumDll = $null
+          foreach ($candidate in @(
+            (Join-Path $sodiumRoot "libsodium\x64\Release\v143\dynamic\libsodium.dll"),
+            (Join-Path $sodiumRoot "libsodium\Win32\Release\v143\dynamic\libsodium.dll")
+          )) {
+            if (-not (Test-Path $candidate) -or (Get-Item $candidate).Length -le 0) { continue }
+            $env:FOCUSA_SODIUM_PROBE = $candidate
+            $probeOutput = & python -c "import ctypes, os; ctypes.CDLL(os.environ['FOCUSA_SODIUM_PROBE'])" 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              $sodiumDll = $candidate
+              break
+            }
+          }
+          $env:FOCUSA_SODIUM_PROBE = $null
+          $probeOutput = $null
+          if (-not $sodiumDll) { throw "pinned libsodium runtime is not loadable by host Python" }
+          $converter = Join-Path $repoRoot "scripts\ci\convert-legacy-tauri-signing-key.py"
+          if (-not (Test-Path $converter)) { throw "legacy Tauri key converter is unavailable" }
+          $env:FOCUSA_SODIUM_LIBRARY = $sodiumDll
+          $env:FOCUSA_TAURI_KEY_CONVERTER = $converter
+          $converterDriverPath = Join-Path $env:TEMP "focusa-tauri-key-converter-driver.py"
+          @'
+      import importlib.util
+      import os
+      spec = importlib.util.spec_from_file_location("focusa_tauri_key_converter", os.environ["FOCUSA_TAURI_KEY_CONVERTER"])
+      module = importlib.util.module_from_spec(spec)
+      spec.loader.exec_module(module)
+      module.ctypes.util.find_library = lambda _name: os.environ["FOCUSA_SODIUM_LIBRARY"]
+      module.main()
+      '@ | Set-Content -Path $converterDriverPath -Encoding UTF8
+          $convertedKey = & python $converterDriverPath
+          if ($LASTEXITCODE -ne 0 -or -not $convertedKey) { throw "legacy Tauri key conversion failed" }
+          $env:TAURI_SIGNING_PRIVATE_KEY = $convertedKey.Trim()
+          Write-Host "appveyor_tauri_signer_normalized=EdScB2"
+
           npm install -g bun
           $npmRoot = (& npm root -g).Trim()
           if ($LASTEXITCODE -ne 0 -or -not $npmRoot) { throw "npm global root unavailable" }
@@ -124,6 +226,9 @@ after_build:
           if (-not $vcvars) { throw "vcvarsall.bat not found" }
           $tauriCli = "node_modules\@tauri-apps\cli\tauri.js"
           if (-not (Test-Path $tauriCli)) { throw "package-owned Tauri CLI missing at $tauriCli" }
+          # AppVeyor injects CI=True, but Tauri's strict bool parser accepts
+          # lowercase true/false only.
+          $env:CI = "true"
           $command = "call `"$vcvars`" $env:MSVC_ARCH && `"$bunExe`" $tauriCli --version && `"$bunExe`" $tauriCli build --target $env:RUST_TARGET --bundles nsis,msi 2>&1"
           & cmd.exe /d /s /c $command
           if ($LASTEXITCODE -ne 0) { throw "Tauri build failed with exit code $LASTEXITCODE" }
@@ -133,12 +238,59 @@ after_build:
           }
         } finally {
           Set-Location $repoRoot
+          $env:CI = $originalCi
+          $convertedKey = $null
+          $env:FOCUSA_TAURI_KEY_CONVERTER = $null
+          $env:FOCUSA_SODIUM_LIBRARY = $null
+          $env:FOCUSA_SODIUM_PROBE = $null
           $env:TAURI_SIGNING_PRIVATE_KEY = $null
+          if ($converterDriverPath -and (Test-Path $converterDriverPath)) {
+            Remove-Item -Force $converterDriverPath
+          }
         }
       }
 
 test_script:
   - ps: |
+      if ($env:SURFACE -ne "tests") {
+        Write-Host "appveyor_surface_skipped=tests selected=$env:SURFACE"
+        return
+      }
+      if ($env:FOCUSA_RECOVERY_TAG) {
+        $recovery = Get-Content "config/appveyor-release-recovery.json" -Raw | ConvertFrom-Json
+        $receiptBuild = [int]$recovery.verified_test_receipts.build
+        $receiptControllerSha = "9b18fb6edb49aecf0656774b6e36a65e9fd8542d"
+        $receiptJob = if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") {
+          $recovery.verified_test_receipts.aarch64_job
+        } else {
+          $recovery.verified_test_receipts.x86_64_job
+        }
+        if ($receiptBuild -ne 242 -or -not ($receiptJob -match '^[a-z0-9]{16}$')) {
+          throw "invalid frozen AppVeyor test receipt identity"
+        }
+        $receiptState = Invoke-RestMethod -Uri "https://ci.appveyor.com/api/projects/verioussmith/focusa/build/$receiptBuild"
+        if ($receiptState.build.commitId -ne $receiptControllerSha -or $receiptState.build.branch -ne "fix/issue-480-appveyor-recovery") {
+          throw "frozen AppVeyor test receipt controller mismatch"
+        }
+        $receiptLog = (Invoke-WebRequest -UseBasicParsing -Uri "https://ci.appveyor.com/api/buildjobs/$receiptJob/log").Content
+        if (-not $receiptLog.Contains("appveyor_recovery_identity=passed tag=$env:FOCUSA_RECOVERY_TAG sha=$env:FOCUSA_RECOVERY_SHA")) {
+          throw "frozen AppVeyor test receipt candidate mismatch"
+        }
+        if (-not $receiptLog.Contains("missing GitHub release upload credential")) {
+          throw "frozen AppVeyor test receipt did not reach the post-test upload hook"
+        }
+        if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") {
+          if (-not $receiptLog.Contains("Executable unittests") -or -not $receiptLog.Contains("focusa_core")) {
+            throw "frozen ARM64 no-run test receipt is incomplete"
+          }
+        } else {
+          if ($receiptLog.Contains("test result: FAILED") -or ([regex]::Matches($receiptLog, "test result: ok").Count -lt 7)) {
+            throw "frozen x64 test receipt is incomplete or failed"
+          }
+        }
+        Write-Host "appveyor_recovery_test_receipt=passed build=$receiptBuild job=$receiptJob target=$env:RUST_TARGET candidate=$env:FOCUSA_RECOVERY_SHA"
+        return
+      }
       $vcvarsCandidates = @(
         "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
         "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
@@ -146,7 +298,10 @@ test_script:
       $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
       if (-not $vcvars) { throw "vcvarsall.bat not found" }
       $mode = if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") { "--no-run" } else { "" }
-      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo test $mode --target $env:RUST_TARGET -p focusa-license && cargo test $mode --target $env:RUST_TARGET -p focusa-core --lib 2>&1"
+      $coreFilters = @("background_job", "callgraph", "release_adapters", "install_lifecycle", "installation_convergence", "license::tests")
+      $coreCommands = $coreFilters | ForEach-Object { "cargo test --release $mode --target $env:RUST_TARGET -p focusa-core --lib $_" }
+      $testCommands = @("cargo test --release $mode --target $env:RUST_TARGET -p focusa-license") + $coreCommands
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && ($($testCommands -join ' && ')) 2>&1"
       & cmd.exe /d /s /c $command
       if ($LASTEXITCODE -ne 0) { throw "Rust tests failed with exit code $LASTEXITCODE" }
 
@@ -154,11 +309,12 @@ test_script:
 # creates its gated draft Release. Provider adapters never create Releases.
 on_success:
   - ps: |
-      if ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG) {
-        if (-not $env:GH_TOKEN) { throw "missing GitHub release upload credential" }
+      if (($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG) -and $env:SURFACE -in @("binaries", "menubar")) {
+        $uploadToken = @($env:GH_TOKEN, $env:GITHUB_RELEASE_TOKEN) | Where-Object { $_ } | Select-Object -First 1
+        if (-not $uploadToken) { throw "missing GitHub release upload credential" }
         $tag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } else { $env:APPVEYOR_REPO_TAG_NAME }
         $repo = "Startempire-Wire/focusa"
-        $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; "User-Agent" = "appveyor"; "Accept" = "application/vnd.github+json" }
+        $headers = @{ Authorization = "Bearer $uploadToken"; "User-Agent" = "appveyor"; "Accept" = "application/vnd.github+json" }
         $release = $null
         for ($attempt = 1; $attempt -le 80; $attempt++) {
           try {
@@ -172,10 +328,12 @@ on_success:
         Get-ChildItem artifacts | ForEach-Object {
           $name = $_.Name
           Invoke-RestMethod -Method Post -Uri "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$name" `
-            -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
+            -Headers @{ Authorization = "Bearer $uploadToken"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
             -InFile $_.FullName | Out-Null
           Write-Host "uploaded $name"
         }
+        $headers = $null
+        $uploadToken = $null
       }
 
 artifacts:
