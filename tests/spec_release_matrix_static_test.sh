@@ -234,6 +234,14 @@ grep -Fq 'if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true"
   || fail "AppVeyor binary build and copy work must be surface-isolated"
 [ "$(grep -Fc 'if ($env:SURFACE -ne "tests")' "$APPVEYOR")" -eq 1 ] \
   || fail "AppVeyor Rust tests must be surface-isolated"
+grep -Fq 'appveyor_recovery_test_receipt=passed' "$APPVEYOR" \
+  || fail "AppVeyor immutable recovery does not prove reused exact-candidate tests"
+grep -Fq '$receiptControllerSha = "9b18fb6edb49aecf0656774b6e36a65e9fd8542d"' "$APPVEYOR" \
+  || fail "AppVeyor reused tests are not bound to the frozen provider controller"
+grep -Fq 'https://ci.appveyor.com/api/projects/verioussmith/focusa/build/$receiptBuild' "$APPVEYOR" \
+  || fail "AppVeyor reused tests do not verify the frozen provider build"
+grep -Fq 'missing GitHub release upload credential' "$APPVEYOR" \
+  || fail "AppVeyor reused tests do not prove execution reached the post-test hook"
 grep -Fq 'libsodium-1.0.21-stable-msvc.zip' "$APPVEYOR" \
   || fail "AppVeyor signer conversion lacks a pinned official libsodium runtime"
 grep -Fq 'b19069c44c3875a2d9b46123bee3200cdc26eb9514c296b13cf91e96f1175269' "$APPVEYOR" \
@@ -311,7 +319,12 @@ assert appveyor_recovery == {
     "enabled": True,
     "tag": "v0.9.187",
     "sha": "01aae7ea9ab886627d49b68e7aed2349d9ceafc0",
-}, "AppVeyor recovery identity must remain pinned to the immutable v0.9.187 candidate"
+    "verified_test_receipts": {
+        "build": 242,
+        "x86_64_job": "6o84mlsuilovxtua",
+        "aarch64_job": "uskaruf7e5hjkhqv",
+    },
+}, "AppVeyor recovery identity and test receipts must remain pinned to v0.9.187"
 lines = open(sys.argv[3], encoding="utf-8").read().splitlines()
 uploads = [i for i, line in enumerate(lines) if "uses: softprops/action-gh-release@v2" in line]
 assert uploads, "release workflow has no GitHub Release upload actions"
