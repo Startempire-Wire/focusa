@@ -6,7 +6,10 @@
 //! ledger-backed monitor.
 
 use clap::{Args, Subcommand};
+use focusa_core::scoped_state::{AttachmentKey, ScopeKind};
 use serde_json::{Value, json};
+
+const FOCUSA_ATTACHMENT_KEY_ENV_V1: &str = "FOCUSA_ATTACHMENT_KEY_V1";
 
 #[derive(Args, Debug)]
 pub struct BgArgs {
@@ -85,6 +88,24 @@ fn internal_job_binding(args: &RunArgs) -> anyhow::Result<Option<(String, String
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| anyhow::anyhow!("internal monitor log_path missing"))?;
     Ok(Some((job_id.to_string(), log_path.to_string())))
+}
+
+fn parse_published_attachment(raw: Option<&str>) -> anyhow::Result<Option<AttachmentKey>> {
+    let Some(raw) = raw.filter(|value| !value.trim().is_empty()) else {
+        return Ok(None);
+    };
+    let attachment: AttachmentKey = serde_json::from_str(raw)
+        .map_err(|error| anyhow::anyhow!("invalid {FOCUSA_ATTACHMENT_KEY_ENV_V1}: {error}"))?;
+    attachment.validate()?;
+    anyhow::ensure!(
+        attachment.workstream.root_scope.scope_kind == ScopeKind::Project,
+        "{FOCUSA_ATTACHMENT_KEY_ENV_V1} must carry a verified project attachment"
+    );
+    Ok(Some(attachment))
+}
+
+fn published_attachment() -> anyhow::Result<Option<AttachmentKey>> {
+    parse_published_attachment(std::env::var(FOCUSA_ATTACHMENT_KEY_ENV_V1).ok().as_deref())
 }
 
 fn print_bg(result: Value, json_mode: bool) {
@@ -184,6 +205,7 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
             if args.command.is_empty() {
                 anyhow::bail!("provide a command after --");
             }
+            let attachment = published_attachment()?;
             let cwd = args.cwd.clone().unwrap_or_else(|| {
                 std::env::current_dir()
                     .map(|p| p.to_string_lossy().to_string())
@@ -200,6 +222,7 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                             "name": args.name,
                             "command": command,
                             "cwd": cwd,
+                            "attachment": attachment,
                         }),
                     )
                     .await?;
@@ -409,6 +432,20 @@ fn build_child(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use focusa_core::scoped_state::{ScopeRef, WorkstreamKey};
+
+    fn attachment() -> AttachmentKey {
+        let root = std::env::temp_dir().join("focusa-bg-cli-project");
+        let scope =
+            ScopeRef::project("project:bg", root, "Background Project", "fingerprint:bg").unwrap();
+        AttachmentKey::new(
+            WorkstreamKey::new(scope, "continuity-bg").unwrap(),
+            "pi-42",
+            "session-bg",
+            "attachment-bg",
+        )
+        .unwrap()
+    }
 
     fn run_args(internal_monitor: bool, job_id: Option<&str>, log_path: Option<&str>) -> RunArgs {
         RunArgs {
@@ -420,6 +457,18 @@ mod tests {
             internal_log_path: log_path.map(str::to_string),
             command: vec!["true".to_string()],
         }
+    }
+
+    #[test]
+    fn published_attachment_parser_is_versioned_exact_and_fail_closed() {
+        assert_eq!(parse_published_attachment(None).unwrap(), None);
+        let expected = attachment();
+        let encoded = serde_json::to_string(&expected).unwrap();
+        assert_eq!(
+            parse_published_attachment(Some(&encoded)).unwrap(),
+            Some(expected)
+        );
+        assert!(parse_published_attachment(Some("{broken")).is_err());
     }
 
     #[cfg(unix)]

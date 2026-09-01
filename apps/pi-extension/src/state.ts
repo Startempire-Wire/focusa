@@ -380,6 +380,13 @@ function createAttachmentRuntime() {
     footerSyncInterval: null as ReturnType<typeof setInterval> | null,
     healthBackoffMs: 30_000, // §11 exponential backoff
     healthFailCount: 0,
+    // docs/165 + #496 — visual background state is attachment-local. A
+    // process-global map leaks one Pi session's jobs into another transcript.
+    backgroundJobs: {
+      running: new Map<string, { name: string; startedAt: string }>(),
+      recent: [] as Array<{ name: string; status: string; exitCode: number | null }>,
+    },
+    bgSeeded: false,
     daemonRestartAttempts: [] as number[],
     daemonRestartInFlight: null as Promise<boolean> | null,
     daemonHoldoverMode: false,
@@ -463,6 +470,23 @@ export class AttachmentRuntimeRegistry {
     this.boundAttachmentsBySession.set(key.session_id, key);
   }
 
+  promoteRuntime(source: AttachmentKey, target: AttachmentKey): AttachmentRuntimeState {
+    if (source.session_id !== target.session_id) {
+      throw new Error("attachment_runtime_session_mismatch");
+    }
+    const sourceId = attachmentRuntimeKey(source);
+    const targetId = attachmentRuntimeKey(target);
+    const sourceRuntime = this.getOrCreate(source);
+    if (sourceId === targetId) return sourceRuntime;
+    const existingTarget = this.runtimes.get(targetId);
+    if (existingTarget && existingTarget !== sourceRuntime) {
+      throw new Error("attachment_runtime_target_already_exists");
+    }
+    this.runtimes.delete(sourceId);
+    this.runtimes.set(targetId, sourceRuntime);
+    return sourceRuntime;
+  }
+
   boundSessionAttachment(sessionId: string): AttachmentKey | undefined {
     return this.boundAttachmentsBySession.get(sessionId);
   }
@@ -470,11 +494,32 @@ export class AttachmentRuntimeRegistry {
   reset(): void {
     this.runtimes.clear();
     this.boundAttachmentsBySession.clear();
+    delete process.env.FOCUSA_ATTACHMENT_KEY_V1;
   }
 }
 
 export const attachmentRuntimeRegistry = new AttachmentRuntimeRegistry();
 const attachmentRuntimeContext = new AsyncLocalStorage<AttachmentKey>();
+
+export function makeSessionBootstrapAttachmentKey(sessionId: string): AttachmentKey {
+  const boundedSessionId = String(sessionId || "").trim();
+  if (!boundedSessionId) throw new Error("attachment_runtime_session_required");
+  return {
+    workstream: {
+      root_scope: {
+        scope_kind: "host",
+        scope_id: "host:pi-extension-bootstrap",
+        root_path: "/",
+        canonical_name: "Pi Extension Bootstrap",
+        fingerprint: "bootstrap:pi-extension",
+      },
+      continuity_id: "extension-bootstrap",
+    },
+    instance_id: `pi-${process.pid}`,
+    session_id: boundedSessionId,
+    attachment_id: `extension-bootstrap:${boundedSessionId}`,
+  };
+}
 
 export function makeAttachmentKey(input: {
   projectRoot: string;
@@ -493,6 +538,54 @@ export function makeAttachmentKey(input: {
 
 export function currentAttachmentKey(): AttachmentKey | undefined {
   return attachmentRuntimeContext.getStore();
+}
+
+/**
+ * Promote one verified Pi session from its private host bootstrap runtime into
+ * the exact project/workstream attachment. Re-key the same runtime object so
+ * recovered session state survives; never mutate the global bootstrap key.
+ */
+export function promoteCurrentSessionAttachment(input: {
+  projectRoot: string;
+  continuityId: string;
+  sessionId: string;
+}): AttachmentKey {
+  const current = currentAttachmentKey();
+  if (!current) throw new Error("attachment_runtime_key_required");
+  if (current.session_id !== input.sessionId) throw new Error("attachment_runtime_session_mismatch");
+  if (!isProjectRootAuthoritySafe(input.projectRoot)) {
+    throw new Error("attachment_runtime_safe_project_required");
+  }
+  if (!input.continuityId || input.continuityId === "extension-bootstrap") {
+    throw new Error("attachment_runtime_continuity_required");
+  }
+  if (!verifiedScopeRefForRoot(input.projectRoot)) {
+    throw new Error("attachment_runtime_verified_scope_required");
+  }
+  const promoted = makeAttachmentKey(input);
+  const runtime = attachmentRuntimeRegistry.promoteRuntime(current, promoted);
+  runtime.sessionCwd = input.projectRoot;
+  runtime.continuityId = input.continuityId;
+  runtime.sessionFrameKey = input.sessionId;
+  attachmentRuntimeRegistry.bindSessionAttachment(promoted);
+  attachmentRuntimeContext.enterWith(promoted);
+  process.env.FOCUSA_ATTACHMENT_KEY_V1 = JSON.stringify(promoted);
+  return promoted;
+}
+
+export function clearPublishedAttachmentEnvironment(sessionId?: string): boolean {
+  const raw = process.env.FOCUSA_ATTACHMENT_KEY_V1;
+  if (!raw) return false;
+  if (sessionId) {
+    try {
+      const published = JSON.parse(raw) as Partial<AttachmentKey>;
+      if (published.session_id !== sessionId) return false;
+    } catch {
+      // Malformed process-local routing state carries no authority and is cleared.
+    }
+  }
+  delete process.env.FOCUSA_ATTACHMENT_KEY_V1;
+  return true;
 }
 
 export function getAttachmentRuntime(key?: AttachmentKey): any {
