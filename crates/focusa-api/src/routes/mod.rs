@@ -32,6 +32,7 @@ pub mod context_claims;
 pub mod context_cognition;
 pub mod context_sources;
 pub mod convergence;
+pub mod credentials;
 pub mod daemon_routing;
 pub mod deck;
 pub mod device_pairing;
