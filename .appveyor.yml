@@ -121,9 +121,15 @@ build_script:
       )
       $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
       if (-not $vcvars) { throw "vcvarsall.bat not found" }
+      # Branch/PR validation must not spend the provider's 60-minute budget on
+      # release optimization. Exact tags/recovery build canonical artifacts;
+      # ordinary commits use the same four-package target check.
+      $isReleaseCandidate = $env:APPVEYOR_REPO_TAG -eq "true" -or [bool]$env:FOCUSA_RECOVERY_TAG
+      $cargoAction = if ($isReleaseCandidate) { "build --release" } else { "check" }
+      Write-Host "appveyor_binary_cargo_action=$cargoAction target=$env:RUST_TARGET"
       # Cargo writes progress to stderr. Redirect inside cmd.exe so AppVeyor's
       # PowerShell host does not convert a successful build into NativeCommandError.
-      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui 2>&1"
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo $cargoAction --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui 2>&1"
       & cmd.exe /d /s /c $command
       if ($LASTEXITCODE -ne 0) { throw "Rust build failed with exit code $LASTEXITCODE" }
 
@@ -134,6 +140,10 @@ after_build:
   - ps: |
       if ($env:SURFACE -ne "binaries") {
         Write-Host "appveyor_surface_skipped=binaries-copy selected=$env:SURFACE"
+        return
+      }
+      if ($env:APPVEYOR_REPO_TAG -ne "true" -and -not $env:FOCUSA_RECOVERY_TAG) {
+        Write-Host "appveyor_branch_artifact_copy_skipped=true"
         return
       }
       $releaseTag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } elseif ($env:APPVEYOR_REPO_TAG -eq "true") { $env:APPVEYOR_REPO_TAG_NAME } else { "branch-$($env:APPVEYOR_REPO_COMMIT.Substring(0, 8))" }
@@ -226,9 +236,6 @@ after_build:
           if (-not $vcvars) { throw "vcvarsall.bat not found" }
           $tauriCli = "node_modules\@tauri-apps\cli\tauri.js"
           if (-not (Test-Path $tauriCli)) { throw "package-owned Tauri CLI missing at $tauriCli" }
-          # AppVeyor injects CI=True, but Tauri's strict bool parser accepts
-          # lowercase true/false only.
-          $env:CI = "true"
           $command = "call `"$vcvars`" $env:MSVC_ARCH && `"$bunExe`" $tauriCli --version && `"$bunExe`" $tauriCli build --target $env:RUST_TARGET --bundles nsis,msi 2>&1"
           & cmd.exe /d /s /c $command
           if ($LASTEXITCODE -ne 0) { throw "Tauri build failed with exit code $LASTEXITCODE" }

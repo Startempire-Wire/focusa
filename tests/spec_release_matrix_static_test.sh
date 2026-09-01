@@ -220,8 +220,12 @@ if grep -Eq '^  CARGO_PROFILE_RELEASE_(OPT_LEVEL|PANIC|STRIP):' "$APPVEYOR"; the
 fi
 grep -Fq '$env:CI = "true"' "$APPVEYOR" \
   || fail "AppVeyor must normalize its CI boolean before invoking Tauri"
-grep -Fq 'cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui' "$APPVEYOR" \
-  || fail "AppVeyor binary jobs must build the four canonical release packages"
+grep -Fq '$cargoAction = if ($isReleaseCandidate) { "build --release" } else { "check" }' "$APPVEYOR" \
+  || fail "AppVeyor must reserve release optimization for tags/recovery"
+grep -Fq 'cargo $cargoAction --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui' "$APPVEYOR" \
+  || fail "AppVeyor binary jobs must cover the four canonical packages"
+grep -Fq 'appveyor_branch_artifact_copy_skipped=true' "$APPVEYOR" \
+  || fail "AppVeyor branch checks must not publish release artifacts"
 grep -Fq 'foreach ($bin in @("focusa-daemon", "focusa", "focusa-session-runner", "focusa-tui"))' "$APPVEYOR" \
   || fail "AppVeyor binary jobs must package all four canonical binaries"
 grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-license' "$APPVEYOR" \
@@ -386,14 +390,16 @@ grep -Fq 'group: focusa-cargo-spec-${{ github.ref }}' <<<"$spec_ci_block" \
 pass "Rust and Spec CI cannot cancel each other and superseded work is bounded"
 
 # External Windows compilation must not cross an unguarded POSIX process API.
-BG="crates/focusa-cli/src/commands/bg.rs"
-grep -q '#\[cfg(unix)\]' "$BG" \
+BG_SURFACE=$(cat \
+  crates/focusa-cli/src/commands/bg.rs \
+  crates/focusa-cli/src/commands/bg_lifecycle.rs)
+grep -q '#\[cfg(unix)\]' <<<"$BG_SURFACE" \
   || fail "bg detached monitor is missing Unix process-group boundary"
-grep -q '#\[cfg(windows)\]' "$BG" \
+grep -q '#\[cfg(windows)\]' <<<"$BG_SURFACE" \
   || fail "bg detached monitor is missing Windows process boundary"
-grep -q 'CREATE_NEW_PROCESS_GROUP' "$BG" \
+grep -q 'CREATE_NEW_PROCESS_GROUP' <<<"$BG_SURFACE" \
   || fail "bg detached monitor is missing Windows new-process-group authority"
-grep -q 'CREATE_NO_WINDOW' "$BG" \
+grep -q 'CREATE_NO_WINDOW' <<<"$BG_SURFACE" \
   || fail "bg detached monitor is missing Windows no-window behavior"
 pass "bg detached monitor is platform-correct for Windows release builds"
 
