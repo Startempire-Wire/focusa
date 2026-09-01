@@ -200,8 +200,8 @@ impl SecureSilentStreamChunk {
         let final_name = format!("{}-{:06}.jsonl", self.stream.file_stem(), self.chunk_index);
         let final_path = self.run_root.join("streams").join(&final_name);
         anyhow::ensure!(!final_path.exists(), "stream chunk already exists");
-        fs::rename(&self.partial_path, &final_path)?;
-        sync_directory(final_path.parent().expect("stream file has parent"))?;
+        crate::durable_fs::atomic_replace(&self.partial_path, &final_path)?;
+        crate::durable_fs::sync_directory(final_path.parent().expect("stream file has parent"))?;
         let manifest = SilentStreamChunkManifest {
             schema: SILENT_STREAM_MANIFEST_SCHEMA.into(),
             session_id: self.session_id,
@@ -675,12 +675,8 @@ fn atomic_secure_json<T: Serialize>(path: &Path, value: &T) -> anyhow::Result<()
     serde_json::to_writer(&mut file, value)?;
     file.write_all(b"\n")?;
     file.sync_all()?;
-    fs::rename(&temporary, path)?;
-    sync_directory(path.parent().expect("manifest has parent"))
-}
-
-fn sync_directory(path: &Path) -> anyhow::Result<()> {
-    File::open(path)?.sync_all()?;
+    crate::durable_fs::atomic_replace(&temporary, path)?;
+    crate::durable_fs::sync_directory(path.parent().expect("manifest has parent"))?;
     Ok(())
 }
 

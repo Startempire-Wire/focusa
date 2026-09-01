@@ -452,7 +452,7 @@ mod tests {
             schema: SILENT_SESSION_CONFIG_SCHEMA.into(),
             identity: SilentSessionIdentityConfig {
                 display_name: "test".into(),
-                project_root: PathBuf::from("/tmp/project"),
+                project_root: crate::test_support::absolute_path("silent-config-project"),
                 project_identity_ref: "project:test".into(),
                 continuity_id: "main".into(),
                 work_item_ref: Some("item".into()),
@@ -480,8 +480,8 @@ mod tests {
             },
             workspace: WorkspaceConfig {
                 strategy: WorkspaceStrategy::IsolatedWorktree,
-                source_root: PathBuf::from("/tmp/project"),
-                worktree_root: Some(PathBuf::from("/tmp/worktree")),
+                source_root: crate::test_support::absolute_path("silent-config-project"),
+                worktree_root: Some(crate::test_support::absolute_path("silent-config-worktree")),
                 base_ref: Some("main".into()),
                 branch_name: Some("work".into()),
                 integration_policy: IntegrationPolicy::Manual,
@@ -666,7 +666,7 @@ mod tests {
             created_by_actor_ref: "actor:test".into(),
             operator_principal_ref: "operator:test".into(),
             os_execution_user: "test".into(),
-            project_root: PathBuf::from("/tmp/project"),
+            project_root: crate::test_support::absolute_path("silent-config-project"),
             project_identity_ref: "project:test".into(),
             continuity_id: "main".into(),
             trajectory_ref: None,

@@ -818,7 +818,7 @@ mod tests {
             fresh_until,
             project_identity: ProjectIdentityBootstrapBinding {
                 project_identity_ref: project_identity_ref.clone(),
-                project_root: PathBuf::from("/projects/focusa"),
+                project_root: crate::test_support::absolute_path("silent-bootstrap-project"),
                 fingerprint: "focusa-fingerprint".into(),
                 snapshot_ref: "project-snapshot:1".into(),
                 snapshot_sha256: "1".repeat(64),
@@ -875,7 +875,7 @@ mod tests {
             work_item_ref: Some("focusa-a6yq6.4.4".into()),
             workspace: BootstrapWorkspaceBinding {
                 workspace_ref: "workspace:spec133".into(),
-                workspace_root: PathBuf::from("/projects/focusa-worktree"),
+                workspace_root: crate::test_support::absolute_path("silent-bootstrap-worktree"),
             },
             model: model.clone(),
             role_ref: "role:implementer".into(),
@@ -1079,7 +1079,7 @@ mod tests {
             grant.verify_execution_scope(
                 &fixture.packet.project_identity.project_root,
                 &fixture.packet.project_identity.project_identity_ref,
-                Path::new("/projects/other-worktree"),
+                &crate::test_support::absolute_path("silent-bootstrap-other-worktree"),
                 fixture.now,
             ),
             Err(AgentBootstrapBarrierError::ScopeMismatch("execution_scope"))

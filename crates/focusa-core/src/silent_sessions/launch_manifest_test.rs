@@ -9,10 +9,15 @@ fn manifest() -> LaunchManifest {
     let mission = "quotes: ' \"; newline:\n$(not-a-shell)";
     LaunchManifest {
         schema: LaunchManifest::SCHEMA.into(),
-        executable: "/usr/bin/pi".into(),
+        executable: crate::test_support::executable_path()
+            .to_string_lossy()
+            .into_owned(),
         argv: vec!["-a".into(), mission.into()],
-        cwd: "/home/wirebot/focusa".into(),
-        safe_env: BTreeMap::from([("PATH".into(), "/usr/bin".into())]),
+        cwd: crate::test_support::absolute_path_string("silent-launch-manifest-project"),
+        safe_env: BTreeMap::from([(
+            "PATH".into(),
+            crate::test_support::absolute_path_string("bin"),
+        )]),
         secret_env_refs: vec![SecretEnvironmentRef {
             env_name: "PROVIDER_TOKEN".into(),
             secret_ref: "secret://provider-token".into(),
@@ -25,7 +30,11 @@ fn manifest() -> LaunchManifest {
         stdin_mode: StdioMode::Null,
         stdout_mode: StdioMode::Pipe,
         stderr_mode: StdioMode::Pipe,
-        process_backend: ProcessBackend::UnixProcessGroup,
+        process_backend: if cfg!(windows) {
+            ProcessBackend::WindowsJobObject
+        } else {
+            ProcessBackend::UnixProcessGroup
+        },
         os_user: "wirebot".into(),
         resource_limits: LaunchResourceLimits {
             max_runtime_seconds: Some(3_600),

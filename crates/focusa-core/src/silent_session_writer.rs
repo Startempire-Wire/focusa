@@ -488,7 +488,7 @@ mod tests {
             created_by_actor_ref: "operator:test".into(),
             operator_principal_ref: "operator:test".into(),
             os_execution_user: "runner".into(),
-            project_root: PathBuf::from("/projects/focusa"),
+            project_root: crate::test_support::absolute_path("silent-writer-project"),
             project_identity_ref: "project:focusa".into(),
             continuity_id: "workloop-completion".into(),
             trajectory_ref: None,

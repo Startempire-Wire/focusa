@@ -32,10 +32,23 @@ pub trait EvidenceVerifier: Send + Sync {
 // Shared utilities
 // ---------------------------------------------------------------------------
 
+fn citation_path_component(value: &str) -> &str {
+    let without_fragment = value.split_once('#').map(|(path, _)| path).unwrap_or(value);
+    without_fragment
+        .rsplit_once(':')
+        .filter(|(_, suffix)| {
+            !suffix.is_empty()
+                && suffix
+                    .chars()
+                    .all(|character| character.is_ascii_digit() || character == '-')
+        })
+        .map(|(path, _)| path)
+        .unwrap_or(without_fragment)
+}
+
 /// Resolve a citation `ref_` against the project root. Strips a
-/// leading `crates/...:LINE` or `docs/...#section` or `tests/...` to a
-/// concrete path; returns `None` when the ref is not a path (e.g. an
-/// HTTP URL).
+/// trailing `:LINE` / `:LINE-LINE` or `#section` without splitting a Windows
+/// drive-letter prefix; returns `None` when the ref is not a path.
 pub fn citation_path(project_root: &Path, ref_: &str) -> Option<PathBuf> {
     let s = ref_.trim();
     if s.starts_with("http://") || s.starts_with("https://") {
@@ -44,14 +57,7 @@ pub fn citation_path(project_root: &Path, ref_: &str) -> Option<PathBuf> {
     if s.starts_with("gh-") || s.starts_with("gh ") {
         return None;
     }
-    // Strip "path:LINE" or "path:LINE-LINE"
-    let path_part = s.split_once(':').map(|(p, _rest)| p).unwrap_or(s);
-    // Strip "path#section"
-    let path_part = path_part
-        .split_once('#')
-        .map(|(p, _rest)| p)
-        .unwrap_or(path_part);
-    Some(project_root.join(path_part))
+    Some(project_root.join(citation_path_component(s)))
 }
 
 /// Run a child process and return exit status + tail of stderr.
@@ -171,7 +177,7 @@ fn citation_root_from_ref(ref_: &str) -> Option<PathBuf> {
     // accept absolute paths and look for a project_root marker in the
     // ref itself. The lifecycle wires the project_root in before
     // calling the verifier.
-    let p = Path::new(ref_);
+    let p = Path::new(citation_path_component(ref_));
     if p.is_absolute() {
         return Some(p.parent()?.to_path_buf());
     }
@@ -822,6 +828,19 @@ impl EvidenceVerifier for ArtifactStub {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn citation_line_suffix_parser_preserves_windows_drive_prefix() {
+        assert_eq!(
+            citation_path_component(r"C:\projects\focusa\src\lib.rs:12-15"),
+            r"C:\projects\focusa\src\lib.rs"
+        );
+        assert_eq!(
+            citation_path_component(r"C:\projects\focusa\docs\01-spec.md#acceptance"),
+            r"C:\projects\focusa\docs\01-spec.md"
+        );
+        assert_eq!(citation_path_component("src/lib.rs:12"), "src/lib.rs");
+    }
 
     fn tmpfile_with(content: &str, ext: &str) -> PathBuf {
         let dir = std::env::temp_dir().join("focusa-evidence-tests");

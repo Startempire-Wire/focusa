@@ -138,8 +138,7 @@ impl TemporalLedger {
         }
         file.sync_data()
             .map_err(|error| TemporalLedgerError::Io(error.to_string()))?;
-        File::open(parent)
-            .and_then(|directory| directory.sync_all())
+        crate::durable_fs::sync_directory(parent)
             .map_err(|error| TemporalLedgerError::Io(error.to_string()))?;
         Ok(sealed)
     }
@@ -160,10 +159,13 @@ mod tests {
     use std::fs;
 
     fn test_scope() -> TemporalScope {
-        let root = format!("/tmp/focusa-test-ledger-{}", uuid::Uuid::now_v7());
+        let root = crate::test_support::absolute_path(&format!(
+            "temporal-ledger-{}",
+            uuid::Uuid::now_v7()
+        ));
         fs::create_dir_all(&root).unwrap();
         TemporalScope {
-            project_root: root,
+            project_root: root.to_string_lossy().into_owned(),
             continuity_id: "test".into(),
             host_id: None,
             operator_id: None,
@@ -274,10 +276,13 @@ mod tests {
     fn ledger_rejects_cross_scope_events() {
         let scope = test_scope();
         let project_root = scope.project_root.clone();
-        let other_root = format!("/tmp/focusa-test-ledger-other-{}", uuid::Uuid::now_v7());
+        let other_root = crate::test_support::absolute_path(&format!(
+            "temporal-ledger-other-{}",
+            uuid::Uuid::now_v7()
+        ));
         fs::create_dir_all(&other_root).unwrap();
         let other_scope = TemporalScope {
-            project_root: other_root.clone(),
+            project_root: other_root.to_string_lossy().into_owned(),
             ..scope.clone()
         };
         let ledger = TemporalLedger::for_project(scope.clone()).unwrap();
