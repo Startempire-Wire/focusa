@@ -32,6 +32,7 @@
     "test:ota-activation": "node tests/ota-activation.test.mjs",
     "test:work-rail-width": "node tests/work-rail-widget-width.test.mjs",
     "test:bg-tools": "node tests/background-job-tools.test.mjs",
+    "test:bg-progress": "node tests/background-progress-workstream-isolation.test.mjs",
     "test:operator-status": "node tests/operator-status-widgets.test.mjs",
     "test:settings-attachment": "node tests/settings-attachment-safety.test.mjs",
     "test:interaction-mode": "node tests/interaction-mode.test.mjs",

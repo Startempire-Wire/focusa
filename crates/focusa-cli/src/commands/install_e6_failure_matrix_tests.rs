@@ -130,6 +130,7 @@ async fn phase_pi_extension_download_returns_none_when_pi_binary_is_missing() {
     let result = phase_pi_extension_download(
         Channel::Stable,
         None,
+        None,
         &install_root,
         &NullEventSink,
         &CancellationToken::new(),

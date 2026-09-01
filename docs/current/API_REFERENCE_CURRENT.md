@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `673`
+- Classified paths: `674`
 - Agent eligible: `164`
-- Operator only: `497`
+- Operator only: `498`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -3686,6 +3686,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/session.rs`
+- Agent operations: none
+
+### `/v1/shutdown`
+
+- Methods: `POST /v1/shutdown`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/shutdown.rs`
 - Agent operations: none
 
 ### `/v1/silent-sessions`

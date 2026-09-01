@@ -118,6 +118,12 @@ async fn is_authorized(auth_header: &str) -> bool {
 pub async fn auth_layer(req: Request, next: Next) -> Result<Response, StatusCode> {
     let path = req.uri().path();
 
+    // Shutdown has a dedicated per-start bearer credential and exact process
+    // identity check in its route. Do not widen that credential to other APIs.
+    if path == "/v1/shutdown" {
+        return Ok(next.run(req).await);
+    }
+
     // Pre-auth routes bypass auth entirely (pairing bootstrap is public).
     if is_pre_auth(path) {
         return Ok(next.run(req).await);

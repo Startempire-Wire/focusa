@@ -86,6 +86,16 @@ def detect_prev_tag(tag):
     return ""
 
 
+def git_ref_exists(ref):
+    return subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"],
+        cwd=str(ROOT),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    ).returncode == 0
+
+
 def categorize_commit(subject):
     # Returns (type, breaking)
     breaking = "!" in subject.split(":")[0] if ":" in subject else "!" in subject
@@ -116,7 +126,14 @@ def generate(tag, range_arg, output, preview=False):
         prev_tag = range_arg.split("..")[0] if ".." in range_arg else ""
     else:
         prev_tag = detect_prev_tag(tag)
-        range_spec = f"{prev_tag}..{tag}" if prev_tag else tag
+        analysis_target = tag
+        if not git_ref_exists(tag):
+            if not preview:
+                raise SystemExit(
+                    f"release tag {tag} does not exist; use --preview for a pre-tag HEAD analysis"
+                )
+            analysis_target = sh("git rev-parse --verify HEAD^{commit}")
+        range_spec = f"{prev_tag}..{analysis_target}" if prev_tag else analysis_target
 
     repo = os.environ.get("GITHUB_REPOSITORY", "Startempire-Wire/focusa")
     server = os.environ.get("GITHUB_SERVER_URL", "https://github.com")

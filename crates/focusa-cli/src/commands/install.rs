@@ -3,7 +3,7 @@
 //! Replaces the shell-heavy `scripts/install-focusa.sh` with a Rust subcommand
 //! that owns all install behavior:
 //!   * signed authority-lease resolution and verified-email device authorization
-//!   * asset download (`focusa`, `focusa-daemon`, `focusa-tui`)
+//!   * four-binary asset download (`focusa`, daemon, TUI, session runner)
 //!   * SHA256SUMS verification
 //!   * symlink placement (`~/.local/bin > /usr/local/bin`)
 //!   * service rendering delegation to `service::run_systemd_user` /
@@ -57,6 +57,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::JoinHandle;
 use std::time::Duration;
+
+const CANONICAL_RELEASE_BINARIES: [&str; 4] = [
+    "focusa",
+    "focusa-daemon",
+    "focusa-tui",
+    "focusa-session-runner",
+];
 
 struct UiChannel {
     sender: mpsc::Sender<InstallEvent>,
@@ -231,6 +238,14 @@ pub struct InstallArgs {
     /// Internal delegated-install path: let the caller own the completion envelope.
     #[arg(skip)]
     pub suppress_completion_output: bool,
+
+    /// Internal delegated-install path: bind every downloaded surface to one exact tag.
+    #[arg(skip)]
+    pub release_tag_override: Option<String>,
+
+    /// Internal upgrade path: preserve an existing authoritative system surface.
+    #[arg(skip)]
+    pub system_install: bool,
 
     /// Persist PATH addition to shell rc file when interactive.
     #[arg(long)]
@@ -2147,7 +2162,12 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         }
     };
     let bin_dir = install_root.join("bin");
-    if let Err(e) = phase_smoke_test(target, &bin_dir).await {
+    let expected_tag = result
+        .assets
+        .first()
+        .map(|asset| asset.version.as_str())
+        .ok_or_else(|| anyhow!("installed release identity is missing"))?;
+    if let Err(e) = phase_smoke_test(target, &bin_dir, expected_tag).await {
         sink.emit(InstallEvent::PhaseFailed {
             phase: InstallPhase::RunHealthChecks,
             message: "Installed focusa --version smoke test failed".into(),
@@ -2200,6 +2220,44 @@ pub async fn run(args: InstallArgs) -> Result<()> {
                 "failed to restore customer data from the prior install; prior installation restored",
             );
         }
+    }
+    if args.system_install {
+        let expected_tag = result
+            .assets
+            .first()
+            .map(|asset| asset.version.as_str())
+            .ok_or_else(|| anyhow!("verified Focusa CLI asset identity is missing"))?;
+        match promote_system_links(
+            &bin_dir,
+            std::path::Path::new("/usr/local/bin"),
+            expected_tag,
+            !args.no_service && matches!(target, InstallTarget::Linux | InstallTarget::Auto),
+        ) {
+            Ok(service_restarted) => {
+                result.service_status = if service_restarted {
+                    "authoritative system service restarted".into()
+                } else if args.no_service {
+                    "system promotion completed; service restart skipped".into()
+                } else {
+                    "system promotion completed; no active system service".into()
+                };
+            }
+            Err(error) => {
+                if let Err(rollback_error) =
+                    phase_atomic_recover(&install_root, &stash_path, stashed)
+                {
+                    return Err(error).context(format!(
+                    "authoritative system promotion failed and local rollback failed: {rollback_error}; restore {} before retrying",
+                    stash_path.display()
+                ));
+                }
+                return Err(error).context(
+                    "authoritative system promotion failed; prior system links and installation restored",
+                );
+            }
+        }
+    }
+    if stashed {
         if let Err(error) = phase_atomic_cleanup(&stash_path) {
             return Err(error).context(
                 "new installation and customer data are intact, but prior stash cleanup failed; remove the reported stash after verification",
@@ -2229,22 +2287,31 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         .first()
         .map(|asset| asset.version.clone())
         .unwrap_or_else(|| "unknown".into());
+    let authoritative_bin_dir = if args.system_install {
+        std::path::Path::new("/usr/local/bin")
+    } else {
+        bin_dir.as_path()
+    };
     let summary = InstallCompletionSummary {
         version: version.clone(),
         target: format!("{:?}", target),
         channel: format!("{:?}", channel),
         install_root: install_root.display().to_string(),
-        cli_path: bin_dir
+        cli_path: authoritative_bin_dir
             .join(installed_binary_name(target, "focusa"))
             .display()
             .to_string(),
-        daemon_path: bin_dir
+        daemon_path: authoritative_bin_dir
             .join(installed_binary_name(target, "focusa-daemon"))
             .display()
             .to_string(),
         daemon_health: "smoke-test pending separate daemon health check".into(),
-        tui_path: bin_dir
+        tui_path: authoritative_bin_dir
             .join(installed_binary_name(target, "focusa-tui"))
+            .display()
+            .to_string(),
+        runner_path: authoritative_bin_dir
+            .join(installed_binary_name(target, "focusa-session-runner"))
             .display()
             .to_string(),
         service_status: result.service_status.clone(),
@@ -2705,18 +2772,54 @@ fn dry_run_summary(
     None
 }
 
-fn release_tag(channel: Channel) -> String {
-    if let Ok(tag) = std::env::var("FOCUSA_RELEASE_TAG") {
-        let tag = tag.trim();
-        if !tag.is_empty() {
-            return tag.to_string();
-        }
+fn release_tag(channel: Channel, override_tag: Option<&str>) -> Result<String> {
+    let selected = override_tag
+        .map(str::trim)
+        .filter(|tag| !tag.is_empty())
+        .map(str::to_string)
+        .or_else(|| {
+            std::env::var("FOCUSA_RELEASE_TAG")
+                .ok()
+                .map(|tag| tag.trim().to_string())
+                .filter(|tag| !tag.is_empty())
+        })
+        .unwrap_or_else(|| match channel {
+            Channel::Stable => format!("v{}", env!("CARGO_PKG_VERSION")),
+            Channel::Preview => format!("v{}-preview", env!("CARGO_PKG_VERSION")),
+            Channel::Nightly => format!("v{}-nightly", env!("CARGO_PKG_VERSION")),
+        });
+    validate_release_tag(channel, &selected)?;
+    Ok(selected)
+}
+
+pub(crate) fn validate_release_tag(channel: Channel, tag: &str) -> Result<()> {
+    let body = tag
+        .strip_prefix('v')
+        .ok_or_else(|| anyhow!("release tag must start with v"))?;
+    let valid_numeric =
+        |value: &str| !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_digit());
+    let core_valid = |core: &str| {
+        let parts = core.split('.').collect::<Vec<_>>();
+        parts.len() == 3 && parts.into_iter().all(valid_numeric)
+    };
+    let valid = match channel {
+        Channel::Stable => core_valid(body),
+        Channel::Preview => body.split_once('-').is_some_and(|(core, suffix)| {
+            core_valid(core)
+                && (suffix == "preview"
+                    || suffix == "dev"
+                    || suffix.starts_with("dev.")
+                    || suffix == "rc"
+                    || suffix.starts_with("rc."))
+        }),
+        Channel::Nightly => body.split_once('-').is_some_and(|(core, suffix)| {
+            core_valid(core) && (suffix == "nightly" || suffix.starts_with("nightly."))
+        }),
+    };
+    if !valid {
+        bail!("release tag {tag} is invalid for {:?} channel", channel);
     }
-    match channel {
-        Channel::Stable => format!("v{}", env!("CARGO_PKG_VERSION")),
-        Channel::Preview => format!("v{}-preview", env!("CARGO_PKG_VERSION")),
-        Channel::Nightly => format!("v{}-nightly", env!("CARGO_PKG_VERSION")),
-    }
+    Ok(())
 }
 
 fn release_asset_url(repo: &str, tag: &str, name: &str) -> String {
@@ -2735,8 +2838,28 @@ struct ResolvedRelease {
     client: reqwest::Client,
 }
 
-async fn resolve_release(channel: Channel, github_repo: &str) -> Result<ResolvedRelease> {
-    let tag = release_tag(channel);
+fn bind_resolved_release_tag(
+    channel: Channel,
+    requested_tag: &str,
+    release: &serde_json::Value,
+) -> Result<String> {
+    let remote_tag = release
+        .get("tag_name")
+        .and_then(|value| value.as_str())
+        .ok_or_else(|| anyhow!("GitHub release response omitted tag_name"))?;
+    if remote_tag != requested_tag {
+        bail!("GitHub release identity mismatch for requested tag");
+    }
+    validate_release_tag(channel, remote_tag)?;
+    Ok(remote_tag.to_string())
+}
+
+async fn resolve_release(
+    channel: Channel,
+    github_repo: &str,
+    release_tag_override: Option<&str>,
+) -> Result<ResolvedRelease> {
+    let tag = release_tag(channel, release_tag_override)?;
     let client = reqwest::Client::builder()
         .user_agent("focusa-install/0.9.54-dev")
         .timeout(std::time::Duration::from_secs(15))
@@ -2754,11 +2877,7 @@ async fn resolve_release(channel: Channel, github_repo: &str) -> Result<Resolved
             .json()
             .await
             .map_err(|e| anyhow!("github release response not JSON: {e}"))?;
-        release
-            .get("tag_name")
-            .and_then(|v| v.as_str())
-            .unwrap_or(&tag)
-            .to_string()
+        bind_resolved_release_tag(channel, &tag, &release)?
     };
     Ok(ResolvedRelease {
         tag: resolved_tag,
@@ -2770,6 +2889,7 @@ async fn phase_asset_download(
     target: InstallTarget,
     channel: Channel,
     github_repo: Option<&str>,
+    release_tag_override: Option<&str>,
     install_root: &std::path::Path,
     sink: &dyn InstallEventSink,
     cancellation: &CancellationToken,
@@ -2779,11 +2899,11 @@ async fn phase_asset_download(
         message: "streaming assets to staged files".into(),
     });
     let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
-    let release = resolve_release(channel, repo).await?;
+    let release = resolve_release(channel, repo, release_tag_override).await?;
     let tag_name = release.tag;
     let client = release.client;
     let triple = triple_for(target);
-    let assets = ["focusa", "focusa-daemon", "focusa-tui"];
+    let assets = CANONICAL_RELEASE_BINARIES;
     let mut out = Vec::new();
     let executable_suffix = release_executable_suffix(target);
     for asset_name in assets {
@@ -2912,6 +3032,7 @@ fn reject_release_rollback(install_root: &std::path::Path, target: &str) -> Resu
 async fn phase_pi_extension_download(
     channel: Channel,
     github_repo: Option<&str>,
+    release_tag_override: Option<&str>,
     install_root: &std::path::Path,
     sink: &dyn InstallEventSink,
     cancellation: &CancellationToken,
@@ -2920,7 +3041,7 @@ async fn phase_pi_extension_download(
         return Ok(None);
     }
     let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
-    let release = resolve_release(channel, repo).await?;
+    let release = resolve_release(channel, repo, release_tag_override).await?;
     let name = format!("focusa-pi-extension-{}.tar.gz", release.tag);
     let share = install_root.join("share");
     std::fs::create_dir_all(&share)?;
@@ -2944,12 +3065,13 @@ async fn phase_pi_extension_download(
 async fn phase_agent_context_download(
     channel: Channel,
     github_repo: Option<&str>,
+    release_tag_override: Option<&str>,
     install_root: &std::path::Path,
     sink: &dyn InstallEventSink,
     cancellation: &CancellationToken,
 ) -> Result<InstalledAsset> {
     let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
-    let tag = release_tag(channel);
+    let tag = release_tag(channel, release_tag_override)?;
     let name = format!("focusa-agent-context-{tag}.tar.gz");
     let share = install_root.join("share");
     std::fs::create_dir_all(&share)?;
@@ -3665,7 +3787,7 @@ fn place_symlinks(
         .map(std::path::PathBuf::from)
         .ok_or_else(|| anyhow!("HOME not set"))?;
     let local_bin = home.join(".local/bin");
-    for bin in ["focusa", "focusa-daemon", "focusa-tui"] {
+    for bin in CANONICAL_RELEASE_BINARIES {
         let target = bin_dir.join(bin);
         let link = local_bin.join(bin);
         if let Some(parent) = link.parent() {
@@ -3693,6 +3815,264 @@ fn create_symlink(target: &std::path::Path, link: &std::path::Path) -> Result<()
 #[cfg(not(any(unix, windows)))]
 fn create_symlink(_target: &std::path::Path, _link: &std::path::Path) -> Result<()> {
     bail!("symlink install is unsupported on this platform")
+}
+
+#[cfg(unix)]
+struct SystemLinkEntry {
+    system_path: std::path::PathBuf,
+    system_backup: std::path::PathBuf,
+    had_system_original: bool,
+    local_path: std::path::PathBuf,
+    local_backup: std::path::PathBuf,
+    local_swapped: bool,
+}
+
+#[cfg(unix)]
+fn rollback_system_links(entries: &[SystemLinkEntry]) -> Result<()> {
+    let mut failures = Vec::new();
+    for entry in entries.iter().rev() {
+        if entry.local_swapped {
+            if let Err(error) = std::fs::remove_file(&entry.local_path)
+                && error.kind() != std::io::ErrorKind::NotFound
+            {
+                failures.push(format!("remove {}: {error}", entry.local_path.display()));
+            }
+            if let Err(error) = std::fs::rename(&entry.local_backup, &entry.local_path) {
+                failures.push(format!(
+                    "restore {} from {}: {error}",
+                    entry.local_path.display(),
+                    entry.local_backup.display()
+                ));
+            }
+        }
+        if let Err(error) = std::fs::remove_file(&entry.system_path)
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
+            failures.push(format!("remove {}: {error}", entry.system_path.display()));
+        }
+        if entry.had_system_original
+            && let Err(error) = std::fs::rename(&entry.system_backup, &entry.system_path)
+        {
+            failures.push(format!(
+                "restore {} from {}: {error}",
+                entry.system_path.display(),
+                entry.system_backup.display()
+            ));
+        }
+    }
+    if !failures.is_empty() {
+        bail!("system link rollback failed: {}", failures.join("; "));
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn error_after_system_rollback(error: anyhow::Error, entries: &[SystemLinkEntry]) -> anyhow::Error {
+    match rollback_system_links(entries) {
+        Ok(()) => error,
+        Err(rollback_error) => error.context(rollback_error.to_string()),
+    }
+}
+
+#[cfg(unix)]
+fn system_daemon_active() -> Result<bool> {
+    let output = std::process::Command::new("systemctl")
+        .args(["is-active", "--quiet", "focusa-daemon.service"])
+        .output()
+        .context("inspect authoritative system daemon state")?;
+    match output.status.code() {
+        Some(0) => Ok(true),
+        Some(3 | 4) => Ok(false),
+        _ => {
+            let detail = String::from_utf8_lossy(&output.stderr)
+                .chars()
+                .take(240)
+                .collect::<String>();
+            bail!(
+                "inspect authoritative system daemon failed: exit={}{}",
+                output.status.code().unwrap_or(-1),
+                if detail.trim().is_empty() {
+                    String::new()
+                } else {
+                    format!(" ({})", detail.trim())
+                }
+            )
+        }
+    }
+}
+
+#[cfg(unix)]
+fn restart_system_daemon() -> Result<()> {
+    let output = std::process::Command::new("systemctl")
+        .args(["restart", "focusa-daemon.service"])
+        .output()
+        .context("restart authoritative system daemon")?;
+    if !output.status.success() {
+        let detail = String::from_utf8_lossy(&output.stderr)
+            .chars()
+            .take(240)
+            .collect::<String>();
+        bail!(
+            "restart authoritative system daemon failed: exit={}{}",
+            output.status.code().unwrap_or(-1),
+            if detail.trim().is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", detail.trim())
+            }
+        );
+    }
+    if !system_daemon_active()? {
+        bail!("authoritative system daemon is not active after restart");
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn promote_system_links(
+    bin_dir: &std::path::Path,
+    system_bin: &std::path::Path,
+    expected_tag: &str,
+    restart_service: bool,
+) -> Result<bool> {
+    std::fs::create_dir_all(system_bin)
+        .with_context(|| format!("create authoritative system path {}", system_bin.display()))?;
+    let transaction = format!("{}", std::process::id());
+    let mut entries: Vec<SystemLinkEntry> = Vec::new();
+    for name in CANONICAL_RELEASE_BINARIES {
+        let local_path = bin_dir.join(name);
+        if !local_path.is_file() {
+            return Err(error_after_system_rollback(
+                anyhow!(
+                    "verified system promotion target is missing: {}",
+                    local_path.display()
+                ),
+                &entries,
+            ));
+        }
+        let system_path = system_bin.join(name);
+        let system_backup = system_bin.join(format!(".focusa-{name}.rollback-{transaction}"));
+        let system_staged = system_bin.join(format!(".focusa-{name}.staged-{transaction}"));
+        let local_backup = bin_dir.join(format!(".{name}.promoted-{transaction}"));
+        let local_staged = bin_dir.join(format!(".{name}.system-link-{transaction}"));
+        if system_backup.exists()
+            || system_staged.exists()
+            || local_backup.exists()
+            || local_staged.exists()
+        {
+            return Err(error_after_system_rollback(
+                anyhow!("stale system promotion transaction exists for {name}"),
+                &entries,
+            ));
+        }
+        let had_system_original = std::fs::symlink_metadata(&system_path).is_ok();
+        if had_system_original && let Err(error) = std::fs::rename(&system_path, &system_backup) {
+            return Err(error_after_system_rollback(
+                anyhow!(error).context(format!("stash authoritative {}", system_path.display())),
+                &entries,
+            ));
+        }
+        entries.push(SystemLinkEntry {
+            system_path: system_path.clone(),
+            system_backup,
+            had_system_original,
+            local_path: local_path.clone(),
+            local_backup: local_backup.clone(),
+            local_swapped: false,
+        });
+        if let Err(error) = std::fs::copy(&local_path, &system_staged)
+            .with_context(|| format!("stage authoritative {}", system_path.display()))
+            .and_then(|_| {
+                std::fs::rename(&system_staged, &system_path)
+                    .with_context(|| format!("promote authoritative {}", system_path.display()))
+            })
+        {
+            let _ = std::fs::remove_file(&system_staged);
+            return Err(error_after_system_rollback(error, &entries));
+        }
+        if let Err(error) = std::fs::rename(&local_path, &local_backup)
+            .with_context(|| format!("stash promoted local {}", local_path.display()))
+        {
+            return Err(error_after_system_rollback(error, &entries));
+        }
+        entries.last_mut().expect("promotion entry").local_swapped = true;
+        if let Err(error) = create_symlink(&system_path, &local_staged).and_then(|()| {
+            std::fs::rename(&local_staged, &local_path)
+                .with_context(|| format!("link local install to {}", system_path.display()))
+        }) {
+            let _ = std::fs::remove_file(&local_staged);
+            return Err(error_after_system_rollback(error, &entries));
+        }
+    }
+    let expected_version = expected_tag.strip_prefix('v').unwrap_or(expected_tag);
+    for name in CANONICAL_RELEASE_BINARIES {
+        let smoke = std::process::Command::new(system_bin.join(name))
+            .arg("--version")
+            .output();
+        let valid = smoke.as_ref().is_ok_and(|output| {
+            output.status.success()
+                && String::from_utf8_lossy(&output.stdout)
+                    .split_whitespace()
+                    .any(|part| part == expected_version)
+        });
+        if !valid {
+            return Err(error_after_system_rollback(
+                anyhow!("authoritative system {name} --version did not report {expected_version}"),
+                &entries,
+            ));
+        }
+    }
+    let service_restarted = if restart_service {
+        match system_daemon_active() {
+            Ok(true) => {
+                if let Err(restart_error) = restart_system_daemon() {
+                    let rollback_error = rollback_system_links(&entries).err();
+                    let restore_error = restart_system_daemon().err();
+                    return Err(restart_error).context(format!(
+                        "new daemon restart failed; system rollback={}; prior daemon restart={}",
+                        rollback_error
+                            .map(|error| error.to_string())
+                            .unwrap_or_else(|| "ok".into()),
+                        restore_error
+                            .map(|error| error.to_string())
+                            .unwrap_or_else(|| "ok".into())
+                    ));
+                }
+                true
+            }
+            Ok(false) => false,
+            Err(error) => return Err(error_after_system_rollback(error, &entries)),
+        }
+    } else {
+        false
+    };
+    for entry in &entries {
+        if entry.had_system_original
+            && let Err(error) = std::fs::remove_file(&entry.system_backup)
+        {
+            eprintln!(
+                "warning: committed system promotion retained rollback {}: {error}",
+                entry.system_backup.display()
+            );
+        }
+        if let Err(error) = std::fs::remove_file(&entry.local_backup) {
+            eprintln!(
+                "warning: committed system promotion retained local staging {}: {error}",
+                entry.local_backup.display()
+            );
+        }
+    }
+    Ok(service_restarted)
+}
+
+#[cfg(not(unix))]
+fn promote_system_links(
+    _bin_dir: &std::path::Path,
+    _system_bin: &std::path::Path,
+    _expected_tag: &str,
+    _restart_service: bool,
+) -> Result<bool> {
+    bail!("authoritative system installation is unsupported on this platform")
 }
 
 // ----- Phase 6: PATH automation (focusa-112-path-automation, Spec 112 §15A.6) -----
@@ -4096,41 +4476,55 @@ fn phase_atomic_cleanup(stash: &std::path::Path) -> Result<()> {
     Ok(())
 }
 
-/// Smoke test: invoke the just-installed `focusa --version` and require
-/// exit 0. This is the gate Spec 112 §6 puts between install and
-/// commit-success.
-async fn phase_smoke_test(target: InstallTarget, bin_dir: &std::path::Path) -> Result<()> {
-    let focusa = bin_dir.join(installed_binary_name(target, "focusa"));
-    if !focusa.exists() {
-        return Err(anyhow!(
-            "smoke test failed: focusa binary not present at {}",
-            focusa.display()
-        ));
-    }
-    let output = std::process::Command::new(&focusa)
-        .arg("--version")
-        .output();
-    match output {
-        Ok(output) if output.status.success() => Ok(()),
-        Ok(output) => {
-            let detail: String = String::from_utf8_lossy(&output.stderr)
-                .chars()
-                .take(240)
-                .collect();
-            Err(anyhow!(
-                "smoke test failed: focusa --version exited {}{}",
-                output.status.code().unwrap_or(-1),
-                if detail.trim().is_empty() {
-                    String::new()
-                } else {
-                    format!(" ({})", detail.trim())
-                }
-            ))
+/// Smoke test every canonical binary before install commit. Each producer must
+/// expose `--version`, so a missing, stale, or non-runnable fourth binary fails
+/// the same atomic rollback boundary as the CLI.
+async fn phase_smoke_test(
+    target: InstallTarget,
+    bin_dir: &std::path::Path,
+    expected_tag: &str,
+) -> Result<()> {
+    let expected_version = expected_tag.strip_prefix('v').unwrap_or(expected_tag);
+    for name in CANONICAL_RELEASE_BINARIES {
+        let binary = bin_dir.join(installed_binary_name(target, name));
+        if !binary.exists() {
+            return Err(anyhow!(
+                "smoke test failed: {name} binary not present at {}",
+                binary.display()
+            ));
         }
-        Err(e) => Err(anyhow!(
-            "smoke test failed: could not exec focusa --version: {e}"
-        )),
+        match std::process::Command::new(&binary)
+            .arg("--version")
+            .output()
+        {
+            Ok(output)
+                if output.status.success()
+                    && String::from_utf8_lossy(&output.stdout)
+                        .split_whitespace()
+                        .any(|part| part == expected_version) => {}
+            Ok(output) => {
+                let detail: String = String::from_utf8_lossy(&output.stderr)
+                    .chars()
+                    .take(240)
+                    .collect();
+                return Err(anyhow!(
+                    "smoke test failed: {name} --version did not report {expected_version}; exit={}{}",
+                    output.status.code().unwrap_or(-1),
+                    if detail.trim().is_empty() {
+                        String::new()
+                    } else {
+                        format!(" ({})", detail.trim())
+                    }
+                ));
+            }
+            Err(error) => {
+                return Err(anyhow!(
+                    "smoke test failed: could not exec {name} --version: {error}"
+                ));
+            }
+        }
     }
+    Ok(())
 }
 
 fn bin_dir_for(install_root: &std::path::Path) -> std::path::PathBuf {
@@ -4222,6 +4616,7 @@ async fn execute_real_install(
         target,
         channel,
         args.github_repo.as_deref(),
+        args.release_tag_override.as_deref(),
         install_root,
         sink,
         cancellation,
@@ -4234,6 +4629,7 @@ async fn execute_real_install(
     let pi_extension = match phase_pi_extension_download(
         channel,
         args.github_repo.as_deref(),
+        args.release_tag_override.as_deref(),
         install_root,
         sink,
         cancellation,
@@ -4253,6 +4649,7 @@ async fn execute_real_install(
     let agent_context = phase_agent_context_download(
         channel,
         args.github_repo.as_deref(),
+        args.release_tag_override.as_deref(),
         install_root,
         sink,
         cancellation,
@@ -4320,7 +4717,11 @@ async fn execute_real_install(
     // Prove all promoted binaries before any external symlink, service, or shell
     // profile mutation. A failed fresh install can then remove the install root
     // without leaving dangling links or a partially registered service.
-    phase_smoke_test(target, &bin_dir)
+    let expected_tag = assets
+        .first()
+        .map(|asset| asset.version.as_str())
+        .ok_or_else(|| anyhow!("verified release identity is missing"))?;
+    phase_smoke_test(target, &bin_dir, expected_tag)
         .await
         .context("pre-commit binary smoke test failed")?;
     place_symlinks(target, &bin_dir, install_root)?;
@@ -4333,7 +4734,7 @@ async fn execute_real_install(
         phase: InstallPhase::RegisterService,
         message: "Registering service".into(),
     });
-    let service_status = if !args.no_service {
+    let service_status = if !args.no_service && !args.system_install {
         match delegate_service_render(target, &bin_dir, args.dry_run).await? {
             ServiceRegistrationOutcome::Registered(detail) => {
                 sink.emit(InstallEvent::PhaseSucceeded {
@@ -4356,9 +4757,17 @@ async fn execute_real_install(
     } else {
         sink.emit(InstallEvent::PhaseSkipped {
             phase: InstallPhase::RegisterService,
-            reason: "--no-service".into(),
+            reason: if args.system_install {
+                "authoritative system service restart deferred until system promotion".into()
+            } else {
+                "--no-service".into()
+            },
         });
-        "skipped".to_string()
+        if args.system_install {
+            "system restart pending".to_string()
+        } else {
+            "skipped".to_string()
+        }
     };
 
     ensure_not_cancelled(cancellation)?;
@@ -4484,52 +4893,34 @@ fn build_plan(
     target: InstallTarget,
     root: &std::path::Path,
 ) -> Result<InstallPlan> {
+    let mut assets_planned = CANONICAL_RELEASE_BINARIES
+        .into_iter()
+        .map(|name| AssetPlan {
+            name: name.to_string(),
+            version: "<detected>".to_string(),
+            triple: triple_for(target),
+            install_path: root
+                .join("bin")
+                .join(installed_binary_name(target, name))
+                .display()
+                .to_string(),
+        })
+        .collect::<Vec<_>>();
+    assets_planned.push(AssetPlan {
+        name: "focusa-agent-context".to_string(),
+        version: "<detected>".to_string(),
+        triple: "all".to_string(),
+        install_path: root
+            .join("share")
+            .join("focusa-agent-context-<version>.tar.gz")
+            .display()
+            .to_string(),
+    });
     Ok(InstallPlan {
         target,
         channel: args.channel,
         install_root: root.display().to_string(),
-        assets_planned: vec![
-            AssetPlan {
-                name: "focusa".to_string(),
-                version: "<detected>".to_string(),
-                triple: triple_for(target),
-                install_path: root
-                    .join("bin")
-                    .join(installed_binary_name(target, "focusa"))
-                    .display()
-                    .to_string(),
-            },
-            AssetPlan {
-                name: "focusa-daemon".to_string(),
-                version: "<detected>".to_string(),
-                triple: triple_for(target),
-                install_path: root
-                    .join("bin")
-                    .join(installed_binary_name(target, "focusa-daemon"))
-                    .display()
-                    .to_string(),
-            },
-            AssetPlan {
-                name: "focusa-tui".to_string(),
-                version: "<detected>".to_string(),
-                triple: triple_for(target),
-                install_path: root
-                    .join("bin")
-                    .join(installed_binary_name(target, "focusa-tui"))
-                    .display()
-                    .to_string(),
-            },
-            AssetPlan {
-                name: "focusa-agent-context".to_string(),
-                version: "<detected>".to_string(),
-                triple: "all".to_string(),
-                install_path: root
-                    .join("share")
-                    .join("focusa-agent-context-<version>.tar.gz")
-                    .display()
-                    .to_string(),
-            },
-        ],
+        assets_planned,
         symlink_planned: format!(
             "{}/.local/bin/focusa",
             std::env::var("HOME").unwrap_or_default()
@@ -4564,7 +4955,7 @@ fn build_plan(
             args.channel,
             &root.join("bin"),
             root,
-            /* asset_count */ 4,
+            CANONICAL_RELEASE_BINARIES.len() + 1,
         )),
     })
 }
@@ -4626,6 +5017,92 @@ mod install_e6_failure_matrix_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    fn write_executable(path: &std::path::Path, body: &str) {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::write(path, body).unwrap();
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[test]
+    fn release_tag_override_is_channel_exact() {
+        assert_eq!(
+            release_tag(Channel::Stable, Some("v0.9.187")).unwrap(),
+            "v0.9.187"
+        );
+        assert!(release_tag(Channel::Stable, Some("v0.9.187-dev")).is_err());
+        assert!(release_tag(Channel::Preview, Some("v0.9.187-devil")).is_err());
+        assert!(release_tag(Channel::Nightly, Some("v0.9.187-nightly.1")).is_ok());
+        let exact = serde_json::json!({"tag_name":"v0.9.187"});
+        assert_eq!(
+            bind_resolved_release_tag(Channel::Stable, "v0.9.187", &exact).unwrap(),
+            "v0.9.187"
+        );
+        assert!(
+            bind_resolved_release_tag(
+                Channel::Stable,
+                "v0.9.187",
+                &serde_json::json!({"tag_name":"v0.9.188"})
+            )
+            .is_err()
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn system_promotion_is_atomic_and_rollback_safe() {
+        let fixture =
+            std::env::temp_dir().join(format!("focusa-system-promotion-{}", uuid::Uuid::now_v7()));
+        let bin = fixture.join("verified/bin");
+        let system = fixture.join("usr-local-bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        std::fs::create_dir_all(&system).unwrap();
+        for name in CANONICAL_RELEASE_BINARIES {
+            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.187\\n'\n");
+            std::fs::write(system.join(name), format!("old-{name}")).unwrap();
+        }
+        assert!(!promote_system_links(&bin, &system, "v0.9.187", false).unwrap());
+        for name in CANONICAL_RELEASE_BINARIES {
+            assert!(system.join(name).is_file());
+            assert!(
+                !std::fs::symlink_metadata(system.join(name))
+                    .unwrap()
+                    .file_type()
+                    .is_symlink()
+            );
+            assert_eq!(
+                std::fs::read_link(bin.join(name)).unwrap(),
+                system.join(name)
+            );
+        }
+
+        for name in CANONICAL_RELEASE_BINARIES {
+            std::fs::remove_file(bin.join(name)).unwrap();
+            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.187\\n'\n");
+            std::fs::remove_file(system.join(name)).unwrap();
+            std::fs::write(system.join(name), format!("restored-{name}")).unwrap();
+        }
+        write_executable(
+            &bin.join("focusa-daemon"),
+            "#!/bin/sh\nprintf 'focusa-daemon 0.9.186\\n'\n",
+        );
+        assert!(promote_system_links(&bin, &system, "v0.9.187", false).is_err());
+        for name in CANONICAL_RELEASE_BINARIES {
+            assert_eq!(
+                std::fs::read_to_string(system.join(name)).unwrap(),
+                format!("restored-{name}")
+            );
+            assert!(bin.join(name).is_file());
+            assert!(
+                !std::fs::symlink_metadata(bin.join(name))
+                    .unwrap()
+                    .file_type()
+                    .is_symlink()
+            );
+        }
+        std::fs::remove_dir_all(fixture).unwrap();
+    }
 
     #[cfg(unix)]
     #[test]
@@ -4700,7 +5177,7 @@ mod tests {
     }
 
     #[test]
-    fn dry_run_plan_lists_three_assets() {
+    fn dry_run_plan_lists_four_binaries_and_context() {
         let args = InstallArgs {
             target: InstallTarget::Linux,
             channel: Channel::Stable,
@@ -4716,6 +5193,8 @@ mod tests {
             no_service: false,
             reuse_existing_license: false,
             suppress_completion_output: false,
+            release_tag_override: None,
+            system_install: false,
             persist_path: false,
             no_persist_path: false,
             on_shell: ShellFamily::Auto,
@@ -4728,18 +5207,14 @@ mod tests {
             std::path::Path::new("/tmp/.focusa"),
         )
         .unwrap();
-        assert_eq!(plan.assets_planned.len(), 4);
-        assert!(plan.assets_planned.iter().any(|a| a.name == "focusa"));
+        assert_eq!(plan.assets_planned.len(), 5);
+        for name in CANONICAL_RELEASE_BINARIES {
+            assert!(plan.assets_planned.iter().any(|asset| asset.name == name));
+        }
         assert!(
             plan.assets_planned
                 .iter()
-                .any(|a| a.name == "focusa-daemon")
-        );
-        assert!(plan.assets_planned.iter().any(|a| a.name == "focusa-tui"));
-        assert!(
-            plan.assets_planned
-                .iter()
-                .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
+                .any(|asset| asset.name == "focusa-agent-context" && asset.triple == "all")
         );
         assert_eq!(plan.license_mode, "authority_existing_or_limited_access");
     }
@@ -4761,6 +5236,8 @@ mod tests {
             no_service: false,
             reuse_existing_license: false,
             suppress_completion_output: false,
+            release_tag_override: None,
+            system_install: false,
             persist_path: false,
             no_persist_path: false,
             on_shell: ShellFamily::Auto,
@@ -5124,6 +5601,8 @@ mod tests {
             no_service: false,
             reuse_existing_license: false,
             suppress_completion_output: false,
+            release_tag_override: None,
+            system_install: false,
             persist_path: false,
             no_persist_path: false,
             on_shell: ShellFamily::Auto,

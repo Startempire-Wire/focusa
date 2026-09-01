@@ -6,7 +6,9 @@ pub(super) fn requested() -> SilentSessionConfig {
     SilentSessionConfig::new(
         IdentityConfig {
             display_name: "proof".into(),
-            project_root: "/srv/focusa".into(),
+            project_root: crate::test_support::absolute_path_string(
+                "silent-config-resolution-project",
+            ),
             continuity_id: "proof-continuity".into(),
             work_item_ref: Some("focusa-proof".into()),
             mission: "prove config".into(),

@@ -355,7 +355,7 @@ pub fn repair_marker(root: &Path) -> Result<MarkerWriteOutcome> {
                 anyhow::bail!("marker backup has unknown schema");
             }
             let restored_root = Path::new(&restored.project_root);
-            if restored_root.is_absolute() && restored_root != root {
+            if !restored_root.is_absolute() || restored_root != root {
                 anyhow::bail!(
                     "marker backup identity mismatch: backup root {} != {}",
                     restored.project_root,

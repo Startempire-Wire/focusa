@@ -486,7 +486,7 @@ mod tests {
         let mut draft = SilentSessionWizardDraft::new();
         let inputs = vec![
             WizardInput::ProjectIdentity {
-                project_root: PathBuf::from("/projects/focusa"),
+                project_root: crate::test_support::absolute_path("silent-wizard-project"),
                 project_identity_ref: "project:focusa".into(),
                 verified: true,
             },
@@ -500,7 +500,7 @@ mod tests {
             },
             WizardInput::WorkspaceStrategy {
                 strategy: WorkspaceStrategy::IsolatedWorktree,
-                workspace_root: PathBuf::from("/projects/focusa-worktree"),
+                workspace_root: crate::test_support::absolute_path("silent-wizard-worktree"),
             },
             WizardInput::HarnessProfile {
                 harness_profile_ref: "harness:pi".into(),
@@ -540,7 +540,7 @@ mod tests {
                     provider: "anthropic".into(),
                     model: "claude-test".into(),
                     thinking: Some("high".into()),
-                    workspace_root: PathBuf::from("/projects/focusa-worktree"),
+                    workspace_root: crate::test_support::absolute_path("silent-wizard-worktree"),
                     mutation_allowed: false,
                 },
             },
@@ -586,7 +586,7 @@ mod tests {
             advance_wizard(
                 draft,
                 WizardInput::ProjectIdentity {
-                    project_root: PathBuf::from("/projects/focusa"),
+                    project_root: crate::test_support::absolute_path("silent-wizard-project"),
                     project_identity_ref: "project:focusa".into(),
                     verified: false,
                 },
