@@ -88,6 +88,24 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
     (daemon, base_url)
 }
 
+fn post_json(base_url: &str, path: &str, body: serde_json::Value) -> serde_json::Value {
+    tokio::runtime::Runtime::new()
+        .expect("test HTTP runtime")
+        .block_on(async {
+            reqwest::Client::new()
+                .post(format!("{base_url}{path}"))
+                .json(&body)
+                .send()
+                .await
+                .expect("send test request")
+                .error_for_status()
+                .expect("successful test response")
+                .json()
+                .await
+                .expect("test JSON response")
+        })
+}
+
 #[test]
 fn spec124_cross_phase_cli_smoke_script_passes() {
     let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -119,6 +137,7 @@ fn detached_background_job_reuses_one_durable_row() {
         .and_then(Path::parent)
         .expect("repo root");
     let (_daemon, base_url) = start_isolated_daemon(repo_root);
+    let portable_cwd = std::env::temp_dir().to_string_lossy().into_owned();
     let name = format!("detach-e2e-{}", std::process::id());
     let dispatched = Command::new(FOCUSA_BIN)
         .args([
@@ -129,7 +148,7 @@ fn detached_background_job_reuses_one_durable_row() {
             "--name",
             &name,
             "--cwd",
-            "/tmp",
+            &portable_cwd,
             "--",
             FOCUSA_BIN,
             "--version",
@@ -205,7 +224,7 @@ fn detached_background_job_reuses_one_durable_row() {
     );
     assert_eq!(matching[0]["job_id"], job_id);
 
-    let lost_name = format!("detach-monitor-lost-e2e-{}", std::process::id());
+    let lost_name = format!("detach-launch-failed-e2e-{}", std::process::id());
     let lost_dispatch = Command::new(FOCUSA_BIN)
         .args([
             "bg",
@@ -215,7 +234,7 @@ fn detached_background_job_reuses_one_durable_row() {
             "--name",
             &lost_name,
             "--cwd",
-            "/tmp",
+            &portable_cwd,
             "--",
             "/definitely-not-a-focusa-command-390",
         ])
@@ -224,11 +243,11 @@ fn detached_background_job_reuses_one_durable_row() {
         .expect("dispatch command that the monitor cannot spawn");
     assert!(lost_dispatch.status.success());
     let lost_receipt: serde_json::Value =
-        serde_json::from_slice(&lost_dispatch.stdout).expect("monitor-lost dispatch receipt");
+        serde_json::from_slice(&lost_dispatch.stdout).expect("launch-failed dispatch receipt");
     let lost_job_id = lost_receipt["job_id"]
         .as_str()
         .filter(|value| !value.is_empty())
-        .expect("monitor-lost durable job id");
+        .expect("launch-failed durable job id");
 
     let lost_wait = Command::new(FOCUSA_BIN)
         .args([
@@ -242,18 +261,137 @@ fn detached_background_job_reuses_one_durable_row() {
         ])
         .env("FOCUSA_API_URL", &base_url)
         .output()
-        .expect("wait for monitor-lost background job");
+        .expect("wait for launch-failed background job");
     assert!(lost_wait.status.success());
     let lost_result: serde_json::Value =
-        serde_json::from_slice(&lost_wait.stdout).expect("monitor-lost wait result");
+        serde_json::from_slice(&lost_wait.stdout).expect("launch-failed wait result");
     assert_eq!(lost_result["status"], "done");
     assert_eq!(lost_result["job"]["job_id"], lost_job_id);
-    assert_eq!(lost_result["job"]["status"], "monitor_lost");
+    assert_eq!(lost_result["job"]["status"], "failed");
+    assert_eq!(lost_result["job"]["failure_class"], "launch_failed");
+    assert_eq!(lost_result["job"]["exit_code"], 126);
     assert!(lost_result["job"]["completed_at"].is_string());
+    assert!(
+        lost_result["job"]["output_tail"]
+            .as_str()
+            .unwrap()
+            .contains("[launch_failed:command_spawn]")
+    );
     assert_eq!(
         lost_result["completion_event"]["event_type"],
         focusa_core::background_jobs::BACKGROUND_JOB_COMPLETION_EVENT
     );
     assert_eq!(lost_result["completion_event"]["job_id"], lost_job_id);
-    assert_eq!(lost_result["completion_event"]["status"], "monitor_lost");
+    assert_eq!(lost_result["completion_event"]["status"], "failed");
+    assert_eq!(
+        lost_result["completion_event"]["failure_class"],
+        "launch_failed"
+    );
+
+    let direct_name = format!("direct-launch-failed-e2e-{}", std::process::id());
+    let direct = Command::new(FOCUSA_BIN)
+        .args([
+            "bg",
+            "--json",
+            "run",
+            "--name",
+            &direct_name,
+            "--cwd",
+            &portable_cwd,
+            "--",
+            "/definitely-not-a-focusa-command-391",
+        ])
+        .env("FOCUSA_API_URL", &base_url)
+        .output()
+        .expect("run command that cannot spawn");
+    assert!(
+        !direct.status.success(),
+        "unspawnable command must fail CLI"
+    );
+    let direct_failure: serde_json::Value =
+        serde_json::from_slice(&direct.stdout).expect("structured direct launch error");
+    assert_eq!(direct_failure["status"], "blocked");
+    let direct_error = direct_failure["details"]["raw_error"]
+        .as_str()
+        .unwrap()
+        .to_ascii_lowercase();
+    assert!(
+        direct_error.contains("no such file")
+            || direct_error.contains("not found")
+            || direct_error.contains("cannot find the file"),
+        "unexpected platform spawn error: {direct_error}"
+    );
+
+    let listed = Command::new(FOCUSA_BIN)
+        .args(["bg", "--json", "list"])
+        .env("FOCUSA_API_URL", &base_url)
+        .output()
+        .expect("list direct launch failure");
+    assert!(listed.status.success());
+    let list_result: serde_json::Value =
+        serde_json::from_slice(&listed.stdout).expect("background job list");
+    let direct_job = list_result["jobs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|job| job["name"] == direct_name)
+        .expect("direct launch failure durable row");
+    assert_eq!(direct_job["status"], "failed");
+    assert_eq!(direct_job["failure_class"], "launch_failed");
+    assert_eq!(direct_job["exit_code"], 126);
+}
+
+#[test]
+fn stale_queued_creator_reconciles_through_normal_completion() {
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("repo root");
+    let (_daemon, base_url) = start_isolated_daemon(repo_root);
+    let portable_cwd = std::env::temp_dir().to_string_lossy().into_owned();
+    let name = format!("stale-queued-e2e-{}", std::process::id());
+    let created = post_json(
+        &base_url,
+        "/v1/background-jobs",
+        serde_json::json!({
+            "name": name,
+            "command": "never-started",
+            "cwd": portable_cwd,
+            "pid": u32::MAX,
+        }),
+    );
+    let job_id = created["job"]["job_id"].as_str().expect("created job id");
+    assert_eq!(created["job"]["status"], "queued");
+
+    let waited = Command::new(FOCUSA_BIN)
+        .args([
+            "bg",
+            "--json",
+            "wait",
+            "--job",
+            job_id,
+            "--timeout-ms",
+            "10000",
+        ])
+        .env("FOCUSA_API_URL", &base_url)
+        .output()
+        .expect("reconcile stale queued creator");
+    assert!(
+        waited.status.success(),
+        "stale reconciliation failed: {}",
+        String::from_utf8_lossy(&waited.stderr)
+    );
+    let result: serde_json::Value =
+        serde_json::from_slice(&waited.stdout).expect("stale reconciliation receipt");
+    assert_eq!(result["status"], "done");
+    assert_eq!(result["job"]["status"], "failed");
+    assert_eq!(result["job"]["failure_class"], "launch_failed");
+    assert_eq!(result["job"]["exit_code"], 126);
+    assert!(result["job"]["completed_at"].is_string());
+    assert_eq!(
+        result["completion_event"]["event_type"],
+        focusa_core::background_jobs::BACKGROUND_JOB_COMPLETION_EVENT
+    );
+    assert_eq!(result["completion_event"]["job_id"], job_id);
+    assert_eq!(result["completion_event"]["failure_class"], "launch_failed");
 }

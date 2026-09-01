@@ -7,7 +7,8 @@ use axum::Router;
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use focusa_core::background_jobs::{
-    BACKGROUND_JOB_SCHEMA, BackgroundJobCompletionEvent, BackgroundJobRecord, BackgroundJobStatus,
+    BACKGROUND_JOB_SCHEMA, BackgroundJobCompletionEvent, BackgroundJobFailureClass,
+    BackgroundJobRecord, BackgroundJobStatus,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -41,6 +42,10 @@ pub struct CreateJobBody {
     pub cwd: String,
     #[serde(default)]
     pub log_path: Option<String>,
+    /// Lifecycle-owning creator/monitor process. A queued row with a dead
+    /// creator can be reconciled instead of remaining queued forever.
+    #[serde(default)]
+    pub pid: Option<u32>,
 }
 
 fn default_cwd() -> String {
@@ -60,6 +65,8 @@ pub struct CompleteJobBody {
     pub exit_code: i32,
     #[serde(default)]
     pub status: Option<String>,
+    #[serde(default)]
+    pub failure_class: Option<BackgroundJobFailureClass>,
     /// Monitor-captured tail. Required for cross-namespace delivery when the
     /// daemon cannot see the CLI monitor's host `/tmp` log.
     #[serde(default)]
@@ -95,8 +102,9 @@ async fn create_job(
             command: body.command,
             cwd: body.cwd,
             status: BackgroundJobStatus::Queued,
+            failure_class: None,
             exit_code: None,
-            pid: None,
+            pid: body.pid,
             log_path: body
                 .log_path
                 .unwrap_or_else(|| format!("/tmp/focusa-bg-{job_id}.log")),
@@ -217,7 +225,20 @@ async fn complete_job(
             None if body.exit_code == 0 => BackgroundJobStatus::Completed,
             None => BackgroundJobStatus::Failed,
         };
+        anyhow::ensure!(
+            body.failure_class.is_none() || status == BackgroundJobStatus::Failed,
+            "failure_class is valid only for failed background jobs"
+        );
+        if let Some(failure_class) = body.failure_class {
+            anyhow::ensure!(
+                body.exit_code == failure_class.exit_code(),
+                "{} requires exit_code {}",
+                failure_class.as_str(),
+                failure_class.exit_code()
+            );
+        }
         record.status = status;
+        record.failure_class = body.failure_class;
         record.exit_code = Some(body.exit_code);
         record.completed_at = Some(now_iso());
         record.output_tail =

@@ -50,6 +50,37 @@ impl BackgroundJobStatus {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BackgroundJobFailureClass {
+    LaunchFailed,
+    MonitorFailed,
+}
+
+impl BackgroundJobFailureClass {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::LaunchFailed => "launch_failed",
+            Self::MonitorFailed => "monitor_failed",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "launch_failed" => Some(Self::LaunchFailed),
+            "monitor_failed" => Some(Self::MonitorFailed),
+            _ => None,
+        }
+    }
+
+    pub const fn exit_code(self) -> i32 {
+        match self {
+            Self::LaunchFailed => 126,
+            Self::MonitorFailed => 125,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BackgroundJobRecord {
     pub schema: String,
@@ -58,6 +89,8 @@ pub struct BackgroundJobRecord {
     pub command: String,
     pub cwd: String,
     pub status: BackgroundJobStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_class: Option<BackgroundJobFailureClass>,
     pub exit_code: Option<i32>,
     pub pid: Option<u32>,
     pub log_path: String,
@@ -79,6 +112,8 @@ pub struct BackgroundJobCompletionEvent {
     pub command: String,
     pub cwd: String,
     pub status: BackgroundJobStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_class: Option<BackgroundJobFailureClass>,
     pub exit_code: Option<i32>,
     pub log_path: String,
     pub started_at: String,
@@ -191,6 +226,7 @@ impl BackgroundJobCompletionEvent {
             command: record.command.clone(),
             cwd: record.cwd.clone(),
             status: record.status,
+            failure_class: record.failure_class,
             exit_code: record.exit_code,
             log_path: record.log_path.clone(),
             started_at: record.started_at.clone(),
@@ -216,6 +252,7 @@ mod tests {
             command: "cargo test".to_string(),
             cwd: "/root/proj".to_string(),
             status: BackgroundJobStatus::Completed,
+            failure_class: None,
             exit_code: Some(0),
             pid: Some(42),
             log_path: "/tmp/j1.log".to_string(),
@@ -229,6 +266,7 @@ mod tests {
         assert_eq!(envelope.status, BackgroundJobStatus::Completed);
         let value = serde_json::to_value(&envelope).unwrap();
         assert_eq!(value["event_type"], "background_job_completion");
+        assert_eq!(value["failure_class"], serde_json::Value::Null);
         assert_eq!(value["output_tail"], "typecheck failed");
     }
 
@@ -269,6 +307,7 @@ mod tests {
             command: "false".into(),
             cwd: ".".into(),
             status: BackgroundJobStatus::Failed,
+            failure_class: Some(BackgroundJobFailureClass::MonitorFailed),
             exit_code: Some(1),
             pid: None,
             log_path: "/not-visible-across-private-tmp/job.log".into(),
@@ -286,6 +325,25 @@ mod tests {
                 .output_tail
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn failure_class_roundtrip_is_typed_and_total() {
+        for failure_class in [
+            BackgroundJobFailureClass::LaunchFailed,
+            BackgroundJobFailureClass::MonitorFailed,
+        ] {
+            assert_eq!(
+                BackgroundJobFailureClass::parse(failure_class.as_str()),
+                Some(failure_class)
+            );
+            assert_eq!(
+                serde_json::to_value(failure_class).unwrap(),
+                failure_class.as_str()
+            );
+            assert!(failure_class.exit_code() > 0);
+        }
+        assert_eq!(BackgroundJobFailureClass::parse("unknown"), None);
     }
 
     #[test]
@@ -314,6 +372,7 @@ mod tests {
             command: "true".to_string(),
             cwd: ".".to_string(),
             status: BackgroundJobStatus::Failed,
+            failure_class: Some(BackgroundJobFailureClass::LaunchFailed),
             exit_code: Some(1),
             pid: None,
             log_path: "/tmp/j1.log".to_string(),

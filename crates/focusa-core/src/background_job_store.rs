@@ -7,15 +7,15 @@
 use anyhow::Result;
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::background_jobs::{BackgroundJobRecord, BackgroundJobStatus};
+use crate::background_jobs::{BackgroundJobFailureClass, BackgroundJobRecord, BackgroundJobStatus};
 
-fn has_output_tail_column(conn: &Connection) -> Result<bool> {
+fn has_column(conn: &Connection, expected: &str) -> Result<bool> {
     Ok(conn
         .prepare("PRAGMA table_info(background_jobs)")?
         .query_map([], |row| row.get::<_, String>(1))?
         .collect::<rusqlite::Result<Vec<_>>>()?
         .iter()
-        .any(|name| name == "output_tail"))
+        .any(|name| name == expected))
 }
 
 pub fn ensure_schema(conn: &Connection) -> Result<()> {
@@ -33,6 +33,7 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
             command TEXT NOT NULL,
             cwd TEXT NOT NULL,
             status TEXT NOT NULL,
+            failure_class TEXT,
             exit_code INTEGER,
             pid INTEGER,
             log_path TEXT NOT NULL,
@@ -42,15 +43,20 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
         );
         "#,
     )?;
-    if !has_output_tail_column(conn)? {
-        if let Err(error) = conn.execute(
-            "ALTER TABLE background_jobs ADD COLUMN output_tail TEXT NOT NULL DEFAULT ''",
-            [],
-        ) {
-            // A concurrent first-use migration may have added the column
-            // after our initial read. Only accept that proven state.
-            if !has_output_tail_column(conn)? {
-                return Err(error.into());
+    for (column, declaration) in [
+        ("output_tail", "output_tail TEXT NOT NULL DEFAULT ''"),
+        ("failure_class", "failure_class TEXT"),
+    ] {
+        if !has_column(conn, column)? {
+            if let Err(error) = conn.execute(
+                &format!("ALTER TABLE background_jobs ADD COLUMN {declaration}"),
+                [],
+            ) {
+                // A concurrent first-use migration may have added the column
+                // after our initial read. Only accept that proven state.
+                if !has_column(conn, column)? {
+                    return Err(error.into());
+                }
             }
         }
     }
@@ -60,13 +66,14 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
 pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()> {
     conn.execute(
         "INSERT INTO background_jobs
-         (job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+         (job_id, name, command, cwd, status, failure_class, exit_code, pid, log_path, started_at, completed_at, output_tail)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
          ON CONFLICT(job_id) DO UPDATE SET
             name = excluded.name,
             command = excluded.command,
             cwd = excluded.cwd,
             status = excluded.status,
+            failure_class = excluded.failure_class,
             exit_code = excluded.exit_code,
             pid = excluded.pid,
             log_path = excluded.log_path,
@@ -78,6 +85,7 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
             record.command,
             record.cwd,
             record.status.as_str(),
+            record.failure_class.map(BackgroundJobFailureClass::as_str),
             record.exit_code,
             record.pid,
             record.log_path,
@@ -91,7 +99,7 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
 
 pub fn load_job(conn: &Connection, job_id: &str) -> Result<Option<BackgroundJobRecord>> {
     conn.query_row(
-        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail
+        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail, failure_class
          FROM background_jobs WHERE job_id = ?1",
         params![job_id],
         row_from,
@@ -102,7 +110,7 @@ pub fn load_job(conn: &Connection, job_id: &str) -> Result<Option<BackgroundJobR
 
 pub fn list_jobs(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
     let mut stmt = conn.prepare(
-        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail
+        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail, failure_class
          FROM background_jobs ORDER BY started_at DESC",
     )?;
     let rows = stmt.query_map([], row_from)?;
@@ -144,7 +152,7 @@ pub fn eta_ms_for(conn: &Connection, name: &str) -> Result<Option<i64>> {
 
 pub fn list_running(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
     let mut stmt = conn.prepare(
-        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail
+        "SELECT job_id, name, command, cwd, status, exit_code, pid, log_path, started_at, completed_at, output_tail, failure_class
          FROM background_jobs WHERE status = 'running' ORDER BY started_at",
     )?;
     let rows = stmt.query_map([], row_from)?;
@@ -153,6 +161,22 @@ pub fn list_running(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
 }
 
 fn row_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<BackgroundJobRecord> {
+    let failure_class = row
+        .get::<_, Option<String>>(11)?
+        .map(|value| {
+            BackgroundJobFailureClass::parse(&value).ok_or_else(|| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    11,
+                    rusqlite::types::Type::Text,
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("unknown background job failure class: {value}"),
+                    )
+                    .into(),
+                )
+            })
+        })
+        .transpose()?;
     Ok(BackgroundJobRecord {
         schema: crate::background_jobs::BACKGROUND_JOB_SCHEMA.to_string(),
         job_id: row.get(0)?,
@@ -160,6 +184,7 @@ fn row_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<BackgroundJobRecord> {
         command: row.get(2)?,
         cwd: row.get(3)?,
         status: BackgroundJobStatus::parse(&row.get::<_, String>(4)?),
+        failure_class,
         exit_code: row.get(5)?,
         pid: row.get(6)?,
         log_path: row.get(7)?,
@@ -182,6 +207,7 @@ mod tests {
             command: "cargo test".to_string(),
             cwd: "/root/proj".to_string(),
             status: BackgroundJobStatus::Queued,
+            failure_class: None,
             exit_code: None,
             pid: None,
             log_path: format!("/tmp/{id}.log"),
@@ -226,15 +252,15 @@ mod tests {
         ensure_schema(&conn).unwrap();
         let mut job = sample("legacy-schema");
         job.status = BackgroundJobStatus::Failed;
-        job.exit_code = Some(1);
+        job.failure_class = Some(BackgroundJobFailureClass::LaunchFailed);
+        job.exit_code = Some(126);
         job.output_tail = "compiler error".into();
         upsert_job(&conn, &job).unwrap();
+        let loaded = load_job(&conn, "legacy-schema").unwrap().unwrap();
+        assert_eq!(loaded.output_tail, "compiler error");
         assert_eq!(
-            load_job(&conn, "legacy-schema")
-                .unwrap()
-                .unwrap()
-                .output_tail,
-            "compiler error"
+            loaded.failure_class,
+            Some(BackgroundJobFailureClass::LaunchFailed)
         );
     }
 
