@@ -1,13 +1,16 @@
-//! `focusa upgrade` — evaluator-driven upgrade path for stale daemon/version drift.
+//! `focusa upgrade` — exact-release upgrade path for stale daemon/version drift.
 //!
-//! The real upgrade delegates to `focusa install`, which owns atomic stash,
-//! rollback, checksum, service rendering, and license preservation behavior.
-//! Optional latest lookup shells out to `gh release view` when requested.
+//! Upgrade resolves one immutable release tag, binds that tag into every
+//! delegated installer download, and preserves the authoritative system path
+//! when the running CLI came from `/usr/local/bin`.
 
-use crate::commands::install::{Channel, InstallArgs, InstallTarget, ShellFamily};
+use crate::commands::install::{
+    Channel, InstallArgs, InstallTarget, ShellFamily, validate_release_tag,
+};
+use anyhow::{Context, anyhow};
 use clap::Args;
 use serde_json::{Value, json};
-use std::process::Command;
+use std::path::Path;
 
 #[derive(Args, Debug)]
 pub struct UpgradeArgs {
@@ -15,11 +18,11 @@ pub struct UpgradeArgs {
     #[arg(long, value_name = "CHANNEL", default_value = "stable")]
     pub channel: Channel,
 
-    /// Print current vs latest version and the install plan without swapping binaries.
+    /// Print current vs resolved version and the install plan without swapping binaries.
     #[arg(long)]
     pub dry_run: bool,
 
-    /// Query GitHub release metadata with `gh release view` when available.
+    /// Retained compatibility flag; stable upgrades always resolve canonical GitHub Latest.
     #[arg(long)]
     pub check_github: bool,
 
@@ -48,10 +51,27 @@ pub struct UpgradeArgs {
     pub no_persist_path: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ResolvedUpgradeRelease {
+    tag: String,
+    source: &'static str,
+}
+
 pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
     let current_version = env!("CARGO_PKG_VERSION").to_string();
-    let latest_version =
-        latest_version(args.channel, args.github_repo.as_deref(), args.check_github);
+    let repo = args
+        .github_repo
+        .as_deref()
+        .unwrap_or("Startempire-Wire/focusa");
+    let resolved = resolve_upgrade_release(args.channel, repo).await?;
+    let current_exe = std::env::current_exe().context("resolve current Focusa executable")?;
+    let invoked_as = std::env::args_os().next().map(std::path::PathBuf::from);
+    let system_install = executable_uses_system_surface(&current_exe)
+        || invoked_as
+            .as_deref()
+            .is_some_and(executable_uses_system_surface)
+        || system_link_targets_executable(&current_exe, Path::new("/usr/local/bin/focusa"));
+    let latest_version = json!({"source": resolved.source, "value": resolved.tag.clone()});
     let plan = json!({
         "ok": true,
         "status": if args.dry_run { "dry_run" } else { "planned" },
@@ -59,6 +79,9 @@ pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
         "channel": format!("{:?}", args.channel).to_lowercase(),
         "current_version": current_version,
         "latest_version": latest_version,
+        "resolved_release_tag": resolved.tag.clone(),
+        "system_install": system_install,
+        "authoritative_surface": if system_install { "/usr/local/bin" } else { "$HOME/.local/bin" },
         "atomicity": "delegates_to_focusa_install_atomic_stash_and_rollback",
         "license_preserved": true,
         "recovery_hint": "If upgrade fails, focusa install rollback restores the stashed install; run focusa recover --dry-run and focusa doctor --scope host.",
@@ -86,6 +109,8 @@ pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
         no_service: args.no_service,
         reuse_existing_license: args.license_key.is_none() && !args.eval,
         suppress_completion_output: true,
+        release_tag_override: Some(resolved.tag.clone()),
+        system_install,
         persist_path: args.persist_path,
         no_persist_path: args.no_persist_path,
         on_shell: ShellFamily::Auto,
@@ -100,6 +125,8 @@ pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
             "failure_class": "upgrade_failed",
             "current_version": env!("CARGO_PKG_VERSION"),
             "latest_version": plan["latest_version"],
+            "resolved_release_tag": plan["resolved_release_tag"],
+            "system_install": system_install,
             "license_preserved": true,
             "recovery_hint": format!("Upgrade failed: {error}. Installer rollback should preserve the prior install; run focusa recover --dry-run, focusa doctor --scope host, then retry focusa upgrade --dry-run."),
             "next_tools": ["focusa recover --dry-run", "focusa doctor --scope host", "focusa install --dry-run"],
@@ -114,6 +141,8 @@ pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
         "status": "completed",
         "current_version_before": plan["current_version"],
         "latest_version": plan["latest_version"],
+        "resolved_release_tag": plan["resolved_release_tag"],
+        "system_install": system_install,
         "license_preserved": true,
         "recovery_hint": "Run focusa doctor --scope host and focusa recover --dry-run if post-upgrade daemon state looks stale.",
         "evidence_ref": "crates/focusa-cli/src/commands/upgrade.rs",
@@ -122,31 +151,95 @@ pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn latest_version(channel: Channel, repo: Option<&str>, check_github: bool) -> Value {
-    if let Ok(version) = std::env::var("FOCUSA_LATEST_VERSION") {
-        return json!({"source":"FOCUSA_LATEST_VERSION", "value": version});
-    }
-    if check_github {
-        let repo = repo.unwrap_or("Startempire-Wire/focusa");
-        if let Ok(output) = Command::new("gh")
-            .args([
-                "release", "view", "--repo", repo, "--json", "tagName", "-q", ".tagName",
-            ])
-            .output()
-            && output.status.success()
-        {
-            let tag = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !tag.is_empty() {
-                return json!({"source":"gh_release_view", "value": tag});
-            }
+async fn resolve_upgrade_release(
+    channel: Channel,
+    repo: &str,
+) -> anyhow::Result<ResolvedUpgradeRelease> {
+    if let Ok(tag) = std::env::var("FOCUSA_RELEASE_TAG") {
+        let tag = tag.trim().to_string();
+        if !tag.is_empty() {
+            validate_release_tag(channel, &tag)?;
+            return Ok(ResolvedUpgradeRelease {
+                tag,
+                source: "FOCUSA_RELEASE_TAG",
+            });
         }
     }
-    json!({
-        "source": "not_queried",
-        "value": "unknown",
-        "channel": format!("{:?}", channel).to_lowercase(),
-        "hint": "set FOCUSA_LATEST_VERSION or pass --check-github",
+    if channel != Channel::Stable {
+        let suffix = match channel {
+            Channel::Preview => "preview",
+            Channel::Nightly => "nightly",
+            Channel::Stable => unreachable!(),
+        };
+        let tag = format!("v{}-{suffix}", env!("CARGO_PKG_VERSION"));
+        validate_release_tag(channel, &tag)?;
+        return Ok(ResolvedUpgradeRelease {
+            tag,
+            source: "compiled_channel_version",
+        });
+    }
+    let url = format!("https://api.github.com/repos/{repo}/releases/latest");
+    let body = reqwest::Client::builder()
+        .user_agent("focusa-upgrade/latest-resolver")
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .context("build GitHub latest resolver")?
+        .get(url)
+        .send()
+        .await
+        .context("resolve canonical GitHub Latest release")?
+        .error_for_status()
+        .context("canonical GitHub Latest release returned failure")?
+        .json::<Value>()
+        .await
+        .context("decode canonical GitHub Latest release")?;
+    let tag = parse_latest_release_tag(channel, &body)?;
+    Ok(ResolvedUpgradeRelease {
+        tag,
+        source: "github_releases_latest_api",
     })
+}
+
+fn parse_latest_release_tag(channel: Channel, body: &Value) -> anyhow::Result<String> {
+    let tag = body
+        .get("tag_name")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|tag| !tag.is_empty())
+        .ok_or_else(|| anyhow!("canonical GitHub Latest response has no tag_name"))?
+        .to_string();
+    validate_release_tag(channel, &tag)?;
+    if body.get("draft").and_then(Value::as_bool).unwrap_or(true)
+        || body
+            .get("prerelease")
+            .and_then(Value::as_bool)
+            .unwrap_or(true)
+    {
+        anyhow::bail!("canonical GitHub Latest release is draft or prerelease");
+    }
+    Ok(tag)
+}
+
+fn executable_uses_system_surface(path: &Path) -> bool {
+    path.parent() == Some(Path::new("/usr/local/bin"))
+}
+
+fn system_link_targets_executable(executable: &Path, system_link: &Path) -> bool {
+    let Ok(target) = std::fs::read_link(system_link) else {
+        return false;
+    };
+    let target = if target.is_absolute() {
+        target
+    } else {
+        system_link
+            .parent()
+            .unwrap_or_else(|| Path::new("/"))
+            .join(target)
+    };
+    match (target.canonicalize(), executable.canonicalize()) {
+        (Ok(target), Ok(executable)) => target == executable,
+        _ => false,
+    }
 }
 
 fn print_upgrade(envelope: &Value, json_output: bool) -> anyhow::Result<()> {
@@ -183,8 +276,45 @@ mod tests {
     use super::*;
 
     #[test]
-    fn latest_version_has_non_network_fallback() {
-        let latest = latest_version(Channel::Stable, None, false);
-        assert_eq!(latest["source"], "not_queried");
+    fn latest_release_requires_stable_published_tag() {
+        let body = json!({"tag_name":"v0.9.187", "draft":false, "prerelease":false});
+        assert_eq!(
+            parse_latest_release_tag(Channel::Stable, &body).unwrap(),
+            "v0.9.187"
+        );
+        for bad in [
+            json!({"tag_name":"v0.9.187-dev", "draft":false, "prerelease":false}),
+            json!({"tag_name":"v0.9.187", "draft":true, "prerelease":false}),
+            json!({"tag_name":"", "draft":false, "prerelease":false}),
+        ] {
+            assert!(parse_latest_release_tag(Channel::Stable, &bad).is_err());
+        }
+    }
+
+    #[test]
+    fn authoritative_system_surface_is_exact() {
+        assert!(executable_uses_system_surface(Path::new(
+            "/usr/local/bin/focusa"
+        )));
+        assert!(!executable_uses_system_surface(Path::new(
+            "/root/.local/bin/focusa"
+        )));
+        assert!(!executable_uses_system_surface(Path::new("/tmp/focusa")));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn promoted_system_link_preserves_upgrade_authority() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-upgrade-system-link-{}",
+            uuid::Uuid::now_v7()
+        ));
+        std::fs::create_dir_all(&fixture).unwrap();
+        let executable = fixture.join("focusa-real");
+        let link = fixture.join("focusa");
+        std::fs::write(&executable, b"binary").unwrap();
+        std::os::unix::fs::symlink(&executable, &link).unwrap();
+        assert!(system_link_targets_executable(&executable, &link));
+        std::fs::remove_dir_all(fixture).unwrap();
     }
 }
