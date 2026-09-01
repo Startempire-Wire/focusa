@@ -619,6 +619,7 @@ mod tests {
 
         let (tx, mut rx) = mpsc::channel::<Action>(64);
         let (events_tx, _) = broadcast::channel::<String>(16);
+        let (shutdown_tx, _shutdown_rx) = tokio::sync::watch::channel(false);
         let focusa = Arc::new(RwLock::new(FocusaState::default()));
 
         let p = persistence.clone();
@@ -678,6 +679,16 @@ mod tests {
             pi_rpc_session: Arc::new(Mutex::new(None)),
             supervisor_perf: Arc::new(crate::server::SupervisorPerfCounters::default()),
             external_mutation_epoch: Arc::new(std::sync::atomic::AtomicU64::new(0)),
+            daemon_runtime_identity: Arc::new(crate::server::DaemonRuntimeIdentity {
+                process: focusa_core::daemon_lifecycle::DaemonProcessIdentity::new(
+                    1,
+                    "test-start-token",
+                    "/tmp/focusa-test.lock",
+                ),
+                shutdown_token: "test-shutdown-token".into(),
+            }),
+            shutdown_tx,
+            shutdown_accepted: Arc::new(Mutex::new(false)),
         });
 
         (build_router(state), persistence)

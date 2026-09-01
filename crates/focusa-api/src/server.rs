@@ -13,6 +13,7 @@ use crate::routes::sse::EventBroadcaster;
 use crate::scoped_store::ScopedCrdtLedger;
 use axum::middleware as axum_mw;
 use axum::{Router, extract::DefaultBodyLimit};
+use focusa_core::daemon_lifecycle::DaemonProcessIdentity;
 use focusa_core::prediction::PredictionValue;
 use focusa_core::prediction_authority::ScopedAuthorityEvent;
 use focusa_core::runtime::persistence_actor::PersistenceActor;
@@ -33,7 +34,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::process::{Child, ChildStdin};
 use tokio::sync::RwLock as TokioRwLock;
-use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
+use tokio::sync::{Mutex, RwLock, broadcast, mpsc, watch};
 use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
@@ -230,6 +231,11 @@ pub struct WriterLease {
     pub expires_at: chrono::DateTime<chrono::Utc>,
 }
 
+pub struct DaemonRuntimeIdentity {
+    pub process: DaemonProcessIdentity,
+    pub shutdown_token: String,
+}
+
 pub struct AppState {
     /// Read-only snapshot of cognitive state (daemon writes, API reads).
     pub focusa: Arc<RwLock<FocusaState>>,
@@ -280,6 +286,12 @@ pub struct AppState {
     pub supervisor_perf: Arc<SupervisorPerfCounters>,
     /// Monotonic signal for API routes that mutate shared state outside the daemon reducer.
     pub external_mutation_epoch: Arc<AtomicU64>,
+    /// Exact process identity and per-start credential for governed shutdown.
+    pub daemon_runtime_identity: Arc<DaemonRuntimeIdentity>,
+    /// Shared graceful-shutdown signal; published only after exact identity authorization.
+    pub shutdown_tx: watch::Sender<bool>,
+    /// Single-acceptance guard for the exact shutdown route.
+    pub shutdown_accepted: Arc<Mutex<bool>>,
 }
 
 impl AppState {
@@ -582,6 +594,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::ontology::router())
         .merge(routes::events_sqlite::router())
         .merge(routes::session::router())
+        .merge(routes::shutdown::router())
         .merge(routes::silent_sessions::router())
         .merge(routes::proxy::router())
         .merge(routes::license::router())
@@ -1141,6 +1154,9 @@ pub async fn run(
     write_serial_lock: Arc<Mutex<()>>,
     external_mutation_epoch: Arc<AtomicU64>,
     license_guard: focusa_license::LicenseGuard,
+    daemon_runtime_identity: DaemonRuntimeIdentity,
+    shutdown_tx: watch::Sender<bool>,
+    mut shutdown_rx: watch::Receiver<bool>,
 ) -> anyhow::Result<()> {
     let bind_addr = config.api_bind.clone();
     let (persistence, persistence_actor) = persistence_runtime;
@@ -1183,6 +1199,9 @@ pub async fn run(
         pi_rpc_session: Arc::new(Mutex::new(None)),
         supervisor_perf: Arc::new(SupervisorPerfCounters::default()),
         external_mutation_epoch,
+        daemon_runtime_identity: Arc::new(daemon_runtime_identity),
+        shutdown_tx,
+        shutdown_accepted: Arc::new(Mutex::new(false)),
     });
 
     let app = build_router(state.clone());
@@ -1234,6 +1253,12 @@ pub async fn run(
         listener,
         app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
     )
+    .with_graceful_shutdown(async move {
+        let already_requested = *shutdown_rx.borrow();
+        if !already_requested {
+            let _ = shutdown_rx.wait_for(|requested| *requested).await;
+        }
+    })
     .await?;
 
     Ok(())
