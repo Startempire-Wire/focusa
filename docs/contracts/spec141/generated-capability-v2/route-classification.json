@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 673,
+  "route_count": 674,
   "classification_counts": {
     "agent_eligible": 164,
     "internal": 6,
-    "operator_only": 497,
+    "operator_only": 498,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -5733,6 +5733,18 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/session.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/shutdown",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/shutdown.rs"
       ],
       "methods": [
         "POST"
