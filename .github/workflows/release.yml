@@ -806,7 +806,7 @@ jobs:
           TAG="${RELEASE_TAG}"
           mkdir -p dist
           EXE="${{ matrix.exe || '' }}"
-          for bin in focusa-daemon focusa focusa-tui; do
+          for bin in focusa-daemon focusa focusa-session-runner focusa-tui; do
             src="${CARGO_TARGET_DIR}/${{ matrix.target }}/release/${bin}${EXE}"
             dst="dist/${bin}-${TAG}-${{ matrix.target }}${EXE}"
             if [ -f "$src" ]; then
@@ -826,7 +826,7 @@ jobs:
 
   # Spec 178: macOS (Codemagic) and Windows (AppVeyor) Rust binaries are
   # built off GitHub and uploaded back to this release. This gate fails closed
-  # until all 12 external binaries (6 macOS + 6 Windows) are attached.
+  # until all 16 external binaries (8 macOS + 8 Windows) are attached.
   external-rust-binaries:
     name: External Rust Binary Receipt Gate
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
@@ -937,6 +937,18 @@ jobs:
       - name: Require every canonical surface on every supported system
         run: |
           set -euo pipefail
+          for target in \
+            aarch64-apple-darwin \
+            x86_64-apple-darwin \
+            x86_64-unknown-linux-gnu \
+            aarch64-unknown-linux-gnu \
+            x86_64-unknown-linux-musl; do
+            test -s "dist/focusa-session-runner-${RELEASE_TAG}-${target}"
+          done
+          for target in x86_64-pc-windows-msvc aarch64-pc-windows-msvc; do
+            test -s "dist/focusa-session-runner-${RELEASE_TAG}-${target}.exe"
+          done
+          echo "canonical_session_runner_assets=passed targets=7"
           python3 scripts/verify-canonical-release-assets.py \
             --dist dist \
             --tag "${RELEASE_TAG}"

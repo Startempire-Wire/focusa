@@ -67,7 +67,11 @@ grep -q 'EXE="${{ matrix.exe ||' "$WF" \
   || fail "Packaging step missing optional EXE suffix"
 grep -q 'release/${bin}${EXE}' "$WF" \
   || fail "Packaging step missing .exe-aware source path"
-pass "packaging step handles Windows .exe suffix without renaming Unix assets"
+grep -Fq 'for bin in focusa-daemon focusa focusa-session-runner focusa-tui' "$WF" \
+  || fail "canonical release packaging omits the session runner"
+grep -Fq 'canonical_session_runner_assets=passed targets=7' "$WF" \
+  || fail "canonical release verification lacks the seven-target session-runner gate"
+pass "packaging step handles Windows .exe suffix and all four canonical binaries"
 
 # The external receipt gates are wired into the release DAG.
 grep -q 'External Rust Binary Receipt Gate' "$WF" \
