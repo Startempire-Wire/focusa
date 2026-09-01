@@ -127,6 +127,10 @@ fi
   || fail "Codemagic adapters must wait for the canonical GitHub Release"
 grep -q 'FOCUSA_CODEMAGIC_RECOVERY' "$CODEMAGIC" \
   || fail "Codemagic recovery requires an explicit branch-build grant"
+[ "$(grep -Fc 'recovery_controller_branch="fix/codemagic-codesign-pipefail"' "$CODEMAGIC")" -eq 2 ] \
+  || fail "both Codemagic workflows must bind recovery to the exact controller branch"
+[ "$(grep -Fc "'FOCUSA_CODEMAGIC_RECOVERY=enabled\\n' >> \"\$CM_ENV\"" "$CODEMAGIC")" -eq 2 ] \
+  || fail "both Codemagic workflows must persist exact-branch recovery authority"
 [ "$(grep -c 'codemagic_recovery_identity=passed' "$CODEMAGIC")" -eq 2 ] \
   || fail "both Codemagic workflows must prove exact tag/SHA identity"
 [ "$(grep -Fc 'https://sh.rustup.rs' "$CODEMAGIC")" -eq 2 ] \
