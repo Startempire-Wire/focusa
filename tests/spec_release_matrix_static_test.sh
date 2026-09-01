@@ -218,6 +218,8 @@ grep -Fq "apps\\menubar\\src-tauri\\target\\%RUST_TARGET% -> apps\\menubar\\src-
 if grep -Eq '^  CARGO_PROFILE_RELEASE_(OPT_LEVEL|PANIC|STRIP):' "$APPVEYOR"; then
   fail "AppVeyor must not weaken release optimization, panic, or strip semantics"
 fi
+grep -Fq '$env:CI = "true"' "$APPVEYOR" \
+  || fail "AppVeyor must normalize its CI boolean before invoking Tauri"
 grep -Fq 'cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui' "$APPVEYOR" \
   || fail "AppVeyor binary jobs must build the four canonical release packages"
 grep -Fq 'foreach ($bin in @("focusa-daemon", "focusa", "focusa-session-runner", "focusa-tui"))' "$APPVEYOR" \
