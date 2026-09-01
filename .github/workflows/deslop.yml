@@ -7,23 +7,71 @@ on:
 
 jobs:
   deslop:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build]
+    timeout-minutes: 20
     permissions:
       contents: read
+    env:
+      DESLOP_VERSION: "0.32.0"
+      DESLOP_ARCHIVE_SHA256: "231fd9893609b4fea945b31a6d6e13b3c5fba78a4c94ce2369a8e47faecc588b"
+      DESLOP_CONTAINER: "docker.io/library/node@sha256:dd9d21971ec4395903fa6143c2b9267d048ae01ca6d3ea96f16cb30df6187d94"
     steps:
       - uses: actions/checkout@v4
-      - uses: Nimblesite/Deslop@v0.30.0
-        with:
-          path: .
-          # The committed .deslop.toml owns the ceiling; advisory mode
-          # until the first measured baseline lands, then we ratchet the
-          # threshold down and drop continue-on-error.
-        continue-on-error: true
-      - uses: actions/upload-artifact@v4
+
+      # The published Deslop Linux binary requires glibc >=2.34, while the
+      # AlmaLinux 8 self-hosted runner intentionally remains on glibc 2.28.
+      # Verify the pinned producer artifact on the host, then execute it inside
+      # an immutable modern-glibc container without installing host software.
+      - name: Download and verify pinned Deslop CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="deslop-${DESLOP_VERSION}-linux-x64.tar.gz"
+          url="https://github.com/Nimblesite/Deslop/releases/download/v${DESLOP_VERSION}/${archive}"
+          install_dir="${RUNNER_TEMP}/deslop-${DESLOP_VERSION}"
+          mkdir -p "${install_dir}"
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "${install_dir}/${archive}" "${url}"
+          printf '%s  %s\n' "${DESLOP_ARCHIVE_SHA256}" "${install_dir}/${archive}" | sha256sum -c -
+          tar -xzf "${install_dir}/${archive}" -C "${install_dir}"
+          test -x "${install_dir}/deslop-${DESLOP_VERSION}-linux-x64/deslop"
+
+      - name: Run fail-closed Deslop scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          binary="${RUNNER_TEMP}/deslop-${DESLOP_VERSION}/deslop-${DESLOP_VERSION}-linux-x64/deslop"
+          reports="${RUNNER_TEMP}/deslop-reports"
+          mkdir -p "${reports}"
+          find "${reports}" -mindepth 1 -maxdepth 1 -delete
+          set +e
+          podman run --rm \
+            --memory 4g \
+            --memory-swap 4g \
+            --userns=keep-id \
+            --user "$(id -u):$(id -g)" \
+            --volume "${GITHUB_WORKSPACE}:/workspace:ro,Z" \
+            --volume "${reports}:/reports:Z" \
+            --volume "${binary}:/usr/local/bin/deslop:ro,Z" \
+            --workdir /workspace \
+            "${DESLOP_CONTAINER}" \
+            deslop . --no-incremental --min-nodes 80 --output /reports/deslop-report
+          scan_status=$?
+          set -e
+          printf '%s\n' "${scan_status}" > "${reports}/deslop-exit-code.txt"
+          test -s "${reports}/deslop-report.json"
+          test -s "${reports}/deslop-report.txt"
+          test -s "${reports}/deslop-report.html"
+          exit "${scan_status}"
+
+      - name: Upload Deslop reports
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: deslop-reports
           path: |
-            .deslop/*.json
-            .deslop/*.txt
-            .deslop/*.html
-          if-no-files-found: ignore
+            ${{ runner.temp }}/deslop-reports/deslop-report.json
+            ${{ runner.temp }}/deslop-reports/deslop-report.txt
+            ${{ runner.temp }}/deslop-reports/deslop-report.html
+            ${{ runner.temp }}/deslop-reports/deslop-exit-code.txt
+          if-no-files-found: error
