@@ -7,7 +7,7 @@
 use anyhow::Result;
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::background_jobs::{BackgroundJobRecord, BackgroundJobStatus};
+use crate::background_jobs::{BackgroundJobFailureClass, BackgroundJobRecord, BackgroundJobStatus};
 
 fn has_column(conn: &Connection, expected: &str) -> Result<bool> {
     Ok(conn
@@ -35,6 +35,7 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
             cwd TEXT NOT NULL,
             attachment_json TEXT,
             status TEXT NOT NULL,
+            failure_class TEXT,
             exit_code INTEGER,
             pid INTEGER,
             log_path TEXT NOT NULL,
@@ -51,6 +52,7 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
         ),
         ("output_tail", "output_tail TEXT NOT NULL DEFAULT ''"),
         ("attachment_json", "attachment_json TEXT"),
+        ("failure_class", "failure_class TEXT"),
     ] {
         if !has_column(conn, column)? {
             if let Err(error) = conn.execute(
@@ -76,14 +78,15 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
         .transpose()?;
     conn.execute(
         "INSERT INTO background_jobs
-         (job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+         (job_id, name, command, cwd, attachment_json, status, failure_class, exit_code, pid, log_path, started_at, completed_at, output_tail, schema)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
          ON CONFLICT(job_id) DO UPDATE SET
             name = excluded.name,
             command = excluded.command,
             cwd = excluded.cwd,
             attachment_json = excluded.attachment_json,
             status = excluded.status,
+            failure_class = excluded.failure_class,
             exit_code = excluded.exit_code,
             pid = excluded.pid,
             log_path = excluded.log_path,
@@ -97,6 +100,7 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
             record.cwd,
             attachment_json,
             record.status.as_str(),
+            record.failure_class.map(BackgroundJobFailureClass::as_str),
             record.exit_code,
             record.pid,
             record.log_path,
@@ -111,7 +115,7 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
 
 pub fn load_job(conn: &Connection, job_id: &str) -> Result<Option<BackgroundJobRecord>> {
     conn.query_row(
-        "SELECT job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema
+        "SELECT job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema, failure_class
          FROM background_jobs WHERE job_id = ?1",
         params![job_id],
         row_from,
@@ -122,7 +126,7 @@ pub fn load_job(conn: &Connection, job_id: &str) -> Result<Option<BackgroundJobR
 
 pub fn list_jobs(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
     let mut stmt = conn.prepare(
-        "SELECT job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema
+        "SELECT job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema, failure_class
          FROM background_jobs ORDER BY started_at DESC",
     )?;
     let rows = stmt.query_map([], row_from)?;
@@ -164,7 +168,7 @@ pub fn eta_ms_for(conn: &Connection, name: &str) -> Result<Option<i64>> {
 
 pub fn list_running(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
     let mut stmt = conn.prepare(
-        "SELECT job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema
+        "SELECT job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema, failure_class
          FROM background_jobs WHERE status = 'running' ORDER BY started_at",
     )?;
     let rows = stmt.query_map([], row_from)?;
@@ -173,6 +177,22 @@ pub fn list_running(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
 }
 
 fn row_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<BackgroundJobRecord> {
+    let failure_class = row
+        .get::<_, Option<String>>(13)?
+        .map(|value| {
+            BackgroundJobFailureClass::parse(&value).ok_or_else(|| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    13,
+                    rusqlite::types::Type::Text,
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("unknown background job failure class: {value}"),
+                    )
+                    .into(),
+                )
+            })
+        })
+        .transpose()?;
     let attachment_json: Option<String> = row.get(4)?;
     let attachment = attachment_json
         .map(|value| serde_json::from_str(&value))
@@ -192,6 +212,7 @@ fn row_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<BackgroundJobRecord> {
         cwd: row.get(3)?,
         attachment,
         status: BackgroundJobStatus::parse(&row.get::<_, String>(5)?),
+        failure_class,
         exit_code: row.get(6)?,
         pid: row.get(7)?,
         log_path: row.get(8)?,
@@ -229,6 +250,7 @@ mod tests {
             cwd: "/root/proj".to_string(),
             attachment: None,
             status: BackgroundJobStatus::Queued,
+            failure_class: None,
             exit_code: None,
             pid: None,
             log_path: format!("/tmp/{id}.log"),
@@ -288,7 +310,8 @@ mod tests {
 
         let mut job = sample("current-schema");
         job.status = BackgroundJobStatus::Failed;
-        job.exit_code = Some(1);
+        job.failure_class = Some(BackgroundJobFailureClass::LaunchFailed);
+        job.exit_code = Some(126);
         job.output_tail = "compiler error".into();
         upsert_job(&conn, &job).unwrap();
         let current = load_job(&conn, "current-schema").unwrap().unwrap();
@@ -297,6 +320,10 @@ mod tests {
             crate::background_jobs::BACKGROUND_JOB_SCHEMA
         );
         assert_eq!(current.output_tail, "compiler error");
+        assert_eq!(
+            current.failure_class,
+            Some(BackgroundJobFailureClass::LaunchFailed)
+        );
     }
 
     #[test]

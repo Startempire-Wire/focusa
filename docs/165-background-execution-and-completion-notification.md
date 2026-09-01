@@ -15,9 +15,9 @@ typed, ledger-backed, observable core capability.
 
 ```
 focusa bg run --name X -- <command…>
-    │  1. POST /v1/background-jobs        → durable job row (queued)
-    │  2. spawn child (detached pgid)     → status running + pid
-    │  3. wait on child (the CLI IS the monitor)
+    │  1. POST /v1/background-jobs        → durable row + creator pid (queued)
+    │  2. bind lifecycle monitor pid      → status running before child spawn
+    │  3. spawn/wait child (CLI monitor)  → launch failures complete normally
     │  4. POST /v1/background-jobs/{id}/complete
     ▼
 daemon: records completion durably (background_jobs table),
@@ -44,10 +44,12 @@ focusa bg status → ledger row + monitor-lost reaping (/proc pid check)
 ## Invariants
 
 1. Completion is recorded durably BEFORE the SSE broadcast (mirrors #311).
-2. The CLI monitor owns the lifecycle; a dead monitor is detected by
-   `bg status` (pid liveness) and recorded as `monitor_lost` — never
-   silently "running" forever. Every `monitor_lost` transition is terminal,
-   receives `completed_at`, and broadcasts the same completion envelope.
+2. The CLI monitor owns the lifecycle. Every created row records its creator
+   PID while queued, then the exact lifecycle-monitor PID before child spawn.
+   `bg status`, `bg list`, and `bg wait` reconcile a dead/stale queued creator
+   as terminal `failed` with `failure_class=launch_failed`; a dead running
+   monitor becomes terminal `monitor_lost`. Both receive `completed_at` and
+   broadcast the normal completion envelope after durable settlement.
 3. Job output streams to the job's log file (reported in every envelope).
    The completing monitor also sends the bounded `output_tail`, which the
    ledger stores durably before broadcast. Consumers never depend on the
@@ -57,11 +59,11 @@ focusa bg status → ledger row + monitor-lost reaping (/proc pid check)
    for `PrivateTmp` cross-version interoperability.
 4. Waiters and the agent surface read the SAME completion envelope —
    no per-consumer reconstruction.
-5. `focusa bg run` is the monitor process: dispatch it with
-   `setsid nohup focusa bg run … &` for terminal detachment; the job
-   record survives independent of the caller. `--cwd` is applied to the
-   child command in both foreground-monitor and detached-monitor modes;
-   recording a directory without executing there is forbidden.
+5. `focusa bg run` is the monitor process. Canonical non-blocking dispatch
+   uses `focusa bg run --detach`; raw `setsid`/`nohup` job wrappers are not a
+   supported dispatch surface. `--cwd` is applied to the child command in
+   both foreground-monitor and detached-monitor modes; recording a directory
+   without executing there is forbidden.
 
 ## Interaction audit (checked at landing)
 
@@ -197,3 +199,31 @@ render only in the native Pi session that dispatched it.
 Acceptance requires producer/store tests, Pi exact-attachment and restored
 renderer tests, two-session runtime promotion/isolation, cross-version v1 row
 migration, and a live scoped completion after canonical installation.
+
+## v2.3 — typed pre-start launch settlement (#502)
+
+A successfully created background-job row may never remain permanently
+`queued` because log opening, monitor spawn, child spawn, or the transition to
+`running` failed. The create request records the creator PID. A detached parent
+rebinds the same row to the exact monitor PID without changing status. The
+monitor blocks on a one-use inherited PID-checked pipe until that rebind is
+acknowledged; only then may it record `running`, open the log, or spawn the
+child.
+
+Every pre-start failure uses the existing `/complete` route with terminal
+`status=failed`, `failure_class=launch_failed`, exit code 126, and a bounded
+stage-tagged diagnostic. The daemon commits that row before broadcasting the
+ordinary `background_job_completion` SSE. It preserves the original CLI error;
+a settlement failure is appended rather than substituted or hidden.
+
+Rows from interrupted/legacy creators are reconciled by `bg status`, `bg list`,
+and `bg wait`: a queued row with a dead creator PID settles immediately; a
+queued row lacking monitor identity settles after a 30-second grace period.
+PID liveness uses `/proc` on Linux, signal-zero probing on other Unix systems,
+and a bounded process-handle probe on Windows. Ambiguous permission/probe
+failures treat the process as live (fail closed against false settlement).
+
+Acceptance requires both direct and detached unspawnable-command e2e proof:
+one durable row, terminal `failed`, typed `launch_failed`, exit 126,
+`completed_at`, bounded diagnostic, and the matching completion envelope. No
+failure may be relabeled `monitor_lost`, and no test may blanket-skip Windows.
