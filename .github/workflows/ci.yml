@@ -218,14 +218,26 @@ jobs:
       - name: API contract probe
         env:
           FOCUSA_BIND: 127.0.0.1:18787
+          FOCUSA_DATA_DIR: ${{ runner.temp }}/focusa-api-contract-probe-${{ github.run_id }}-${{ github.run_attempt }}
           CARGO_PROFILE_RELEASE_LTO: off
         run: |
           set -euo pipefail
+          python3 - "$FOCUSA_DATA_DIR" <<'PY'
+          import pathlib, shutil, sys
+          path = pathlib.Path(sys.argv[1])
+          shutil.rmtree(path, ignore_errors=True)
+          path.mkdir(parents=True)
+          PY
           cargo build -p focusa-api --release --bin focusa-daemon
           "$CARGO_TARGET_DIR/release/focusa-daemon" >/tmp/focusa-daemon-probe.log 2>&1 &
           DAEMON_PID=$!
           cleanup() {
             kill "$DAEMON_PID" >/dev/null 2>&1 || true
+            wait "$DAEMON_PID" >/dev/null 2>&1 || true
+            python3 - "$FOCUSA_DATA_DIR" <<'PY'
+          import shutil, sys
+          shutil.rmtree(sys.argv[1], ignore_errors=True)
+          PY
           }
           trap cleanup EXIT
           STARTUP_BUDGET_SECONDS=300

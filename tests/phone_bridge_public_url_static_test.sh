@@ -20,7 +20,7 @@ assert_has() {
   fi
 }
 
-assert_lacks() {
+assert_not_has() {
   local file="$1"
   local pattern="$2"
   local label="$3"
@@ -60,8 +60,10 @@ assert_has "${ROOT_DIR}/crates/focusa-api/src/routes/device_pairing.rs" 'phone b
 assert_has "${ROOT_DIR}/crates/focusa-api/src/routes/device_pairing.rs" 'approval_completed' 'daemon reports approval completion diagnostics'
 assert_has "${ROOT_DIR}/crates/focusa-api/src/routes/device_pairing.rs" 'next_step_hint' 'daemon responses include operator next-step diagnostics'
 assert_has "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'running_version_matches' 'daemon start detects stale daemon version'
-assert_has "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'exact stale-daemon shutdown failed; refusing broad process repair' 'daemon start fails closed when exact stale-daemon shutdown fails'
-assert_lacks "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'kill_daemon_processes|Command::new\("pkill"\)' 'daemon lifecycle rejects broad process-name termination'
+assert_has "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'DaemonShutdownRequest::new' 'daemon start uses typed exact-daemon shutdown for stale versions'
+assert_has "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'daemon health and lock process identities do not match' 'daemon start fails closed on stale identity mismatch'
+assert_has "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'exact stale-daemon shutdown failed; refusing broad process repair' 'daemon start fails closed when exact stale shutdown fails'
+assert_not_has "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'kill_daemon_processes' 'daemon start has no process-name fallback'
 assert_has "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'focusa-daemon' 'daemon discovery keeps CLI and daemon paired'
 
 echo "Phone Bridge transport static test: PASS"
