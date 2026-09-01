@@ -49,7 +49,9 @@ for target in \
   grep -q "$target" "$WAIT" \
     || fail "external macOS/Windows release target missing from receipt gate: $target"
 done
-pass "macOS + Windows release targets retained via external receipt gate"
+grep -Fq 'RUST_SURFACES = ("focusa", "focusa-daemon", "focusa-session-runner", "focusa-tui")' "$WAIT" \
+  || fail "external macOS/Windows receipt gate omits the canonical session runner"
+pass "macOS + Windows four-binary release targets retained via external receipt gate"
 
 # Musl target present and uses cross (older glibc compatibility).
 grep -q 'target: x86_64-unknown-linux-musl' "$WF" \
@@ -131,10 +133,14 @@ grep -q 'FOCUSA_CODEMAGIC_RECOVERY' "$CODEMAGIC" \
   || fail "both Codemagic workflows must bootstrap Rust on a clean API build"
 [ "$(grep -Fc 'rustup default nightly-2026-08-28' "$CODEMAGIC")" -eq 2 ] \
   || fail "both Codemagic workflows must pin the canonical Rust toolchain"
-grep -Fq -- '-p focusa-cli -p focusa-api -p focusa-tui' "$CODEMAGIC" \
-  || fail "Codemagic Rust workflow must select the canonical daemon package"
+grep -Fq -- '-p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui' "$CODEMAGIC" \
+  || fail "Codemagic Rust workflow must select all four canonical binary packages"
+grep -Fq 'for bin in focusa focusa-daemon focusa-session-runner focusa-tui' "$CODEMAGIC" \
+  || fail "Codemagic Rust workflow must package all four canonical binaries"
 [ "$(grep -Fc 'focusa-daemon-${release_tag}-' "$CODEMAGIC")" -eq 2 ] \
   || fail "Codemagic Rust workflow must require both canonical daemon assets"
+[ "$(grep -Fc 'focusa-session-runner-${release_tag}-' "$CODEMAGIC")" -eq 2 ] \
+  || fail "Codemagic Rust workflow must require both canonical session-runner assets"
 grep -Fq '[[ "$FOCUSA_RELEASE_TAG" == "v0.9.187" ]]' "$CODEMAGIC" \
   || fail "Codemagic lock normalization is not fixed to exact recovery tag"
 grep -Fq '[[ "$FOCUSA_RELEASE_SHA" == "01aae7ea9ab886627d49b68e7aed2349d9ceafc0" ]]' "$CODEMAGIC" \
