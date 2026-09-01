@@ -112,7 +112,7 @@ build_script:
       if (-not $vcvars) { throw "vcvarsall.bat not found" }
       # Cargo writes progress to stderr. Redirect inside cmd.exe so AppVeyor's
       # PowerShell host does not convert a successful build into NativeCommandError.
-      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-tui 2>&1"
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui 2>&1"
       & cmd.exe /d /s /c $command
       if ($LASTEXITCODE -ne 0) { throw "Rust build failed with exit code $LASTEXITCODE" }
 
@@ -126,7 +126,7 @@ after_build:
         return
       }
       $releaseTag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } elseif ($env:APPVEYOR_REPO_TAG -eq "true") { $env:APPVEYOR_REPO_TAG_NAME } else { "branch-$($env:APPVEYOR_REPO_COMMIT.Substring(0, 8))" }
-      foreach ($bin in @("focusa-daemon", "focusa", "focusa-tui")) {
+      foreach ($bin in @("focusa-daemon", "focusa", "focusa-session-runner", "focusa-tui")) {
         $source = "target\$env:RUST_TARGET\release\$bin.exe"
         if (-not (Test-Path $source)) { throw "missing release binary $source" }
         Move-Item $source "artifacts\$bin-$releaseTag-$env:RUST_TARGET.exe"
@@ -161,10 +161,25 @@ after_build:
           $actualSodiumSha256 = (Get-FileHash -Algorithm SHA256 $sodiumZip).Hash.ToLowerInvariant()
           if ($actualSodiumSha256 -ne $sodiumSha256) { throw "libsodium archive checksum mismatch" }
           Expand-Archive -Path $sodiumZip -DestinationPath $sodiumRoot -Force
-          $sodiumDll = Join-Path $sodiumRoot "libsodium\x64\Release\v143\dynamic\libsodium.dll"
-          if (-not (Test-Path $sodiumDll) -or (Get-Item $sodiumDll).Length -le 0) {
-            throw "pinned libsodium runtime is unavailable"
+          # The converter runs under the host Python architecture, independent
+          # of the Rust target. Probe only the two pinned archive candidates and
+          # select the first runtime Python can load; never guess from RUST_TARGET.
+          $sodiumDll = $null
+          foreach ($candidate in @(
+            (Join-Path $sodiumRoot "libsodium\x64\Release\v143\dynamic\libsodium.dll"),
+            (Join-Path $sodiumRoot "libsodium\Win32\Release\v143\dynamic\libsodium.dll")
+          )) {
+            if (-not (Test-Path $candidate) -or (Get-Item $candidate).Length -le 0) { continue }
+            $env:FOCUSA_SODIUM_PROBE = $candidate
+            $probeOutput = & python -c "import ctypes, os; ctypes.CDLL(os.environ['FOCUSA_SODIUM_PROBE'])" 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              $sodiumDll = $candidate
+              break
+            }
           }
+          $env:FOCUSA_SODIUM_PROBE = $null
+          $probeOutput = $null
+          if (-not $sodiumDll) { throw "pinned libsodium runtime is not loadable by host Python" }
           $converter = Join-Path $repoRoot "scripts\ci\convert-legacy-tauri-signing-key.py"
           if (-not (Test-Path $converter)) { throw "legacy Tauri key converter is unavailable" }
           $env:FOCUSA_SODIUM_LIBRARY = $sodiumDll
@@ -213,6 +228,7 @@ after_build:
           $convertedKey = $null
           $env:FOCUSA_TAURI_KEY_CONVERTER = $null
           $env:FOCUSA_SODIUM_LIBRARY = $null
+          $env:FOCUSA_SODIUM_PROBE = $null
           $env:TAURI_SIGNING_PRIVATE_KEY = $null
           if ($converterDriverPath -and (Test-Path $converterDriverPath)) {
             Remove-Item -Force $converterDriverPath
@@ -244,11 +260,12 @@ test_script:
 # creates its gated draft Release. Provider adapters never create Releases.
 on_success:
   - ps: |
-      if ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG) {
-        if (-not $env:GH_TOKEN) { throw "missing GitHub release upload credential" }
+      if (($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG) -and $env:SURFACE -in @("binaries", "menubar")) {
+        $uploadToken = @($env:GH_TOKEN, $env:GITHUB_RELEASE_TOKEN) | Where-Object { $_ } | Select-Object -First 1
+        if (-not $uploadToken) { throw "missing GitHub release upload credential" }
         $tag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } else { $env:APPVEYOR_REPO_TAG_NAME }
         $repo = "Startempire-Wire/focusa"
-        $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; "User-Agent" = "appveyor"; "Accept" = "application/vnd.github+json" }
+        $headers = @{ Authorization = "Bearer $uploadToken"; "User-Agent" = "appveyor"; "Accept" = "application/vnd.github+json" }
         $release = $null
         for ($attempt = 1; $attempt -le 80; $attempt++) {
           try {
@@ -262,10 +279,12 @@ on_success:
         Get-ChildItem artifacts | ForEach-Object {
           $name = $_.Name
           Invoke-RestMethod -Method Post -Uri "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$name" `
-            -Headers @{ Authorization = "Bearer $env:GH_TOKEN"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
+            -Headers @{ Authorization = "Bearer $uploadToken"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
             -InFile $_.FullName | Out-Null
           Write-Host "uploaded $name"
         }
+        $headers = $null
+        $uploadToken = $null
       }
 
 artifacts:

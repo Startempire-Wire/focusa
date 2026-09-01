@@ -218,8 +218,10 @@ grep -Fq "apps\\menubar\\src-tauri\\target\\%RUST_TARGET% -> apps\\menubar\\src-
 if grep -Eq '^  CARGO_PROFILE_RELEASE_(OPT_LEVEL|PANIC|STRIP):' "$APPVEYOR"; then
   fail "AppVeyor must not weaken release optimization, panic, or strip semantics"
 fi
-grep -Fq 'cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-tui' "$APPVEYOR" \
-  || fail "AppVeyor binary jobs must build only canonical release packages"
+grep -Fq 'cargo build --release --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui' "$APPVEYOR" \
+  || fail "AppVeyor binary jobs must build the four canonical release packages"
+grep -Fq 'foreach ($bin in @("focusa-daemon", "focusa", "focusa-session-runner", "focusa-tui"))' "$APPVEYOR" \
+  || fail "AppVeyor binary jobs must package all four canonical binaries"
 grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-license' "$APPVEYOR" \
   || fail "AppVeyor test jobs must use the bounded release profile"
 grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-core --lib' "$APPVEYOR" \
@@ -244,6 +246,10 @@ grep -Fq 'appveyor_tauri_signer_normalized=EdScB2' "$APPVEYOR" \
   || fail "AppVeyor lacks current signer-envelope proof"
 grep -Fq '$env:FOCUSA_SODIUM_LIBRARY = $null' "$APPVEYOR" \
   || fail "AppVeyor does not clear the temporary signer runtime binding"
+grep -Fq "ctypes.CDLL(os.environ['FOCUSA_SODIUM_PROBE'])" "$APPVEYOR" \
+  || fail "AppVeyor does not probe libsodium against the host Python architecture"
+grep -Fq '$env:FOCUSA_SODIUM_PROBE = $null' "$APPVEYOR" \
+  || fail "AppVeyor does not clear the temporary libsodium probe binding"
 sodium_hash_line="$(grep -Fn -m1 'Get-FileHash -Algorithm SHA256' "$APPVEYOR" | cut -d: -f1)"
 conversion_line="$(grep -Fn -m1 '$convertedKey = & python $converterDriverPath' "$APPVEYOR" | cut -d: -f1)"
 tauri_build_line="$(grep -Fn -m1 '$tauriCli build --target' "$APPVEYOR" | cut -d: -f1)"
@@ -251,6 +257,10 @@ tauri_build_line="$(grep -Fn -m1 '$tauriCli build --target' "$APPVEYOR" | cut -d
   || fail "AppVeyor must verify runtime, convert signer, then package in that order"
 grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
   || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
+grep -Fq '@($env:GH_TOKEN, $env:GITHUB_RELEASE_TOKEN)' "$APPVEYOR" \
+  || fail "AppVeyor does not consume the configured GitHub release token authority"
+grep -Fq '$env:SURFACE -in @("binaries", "menubar")' "$APPVEYOR" \
+  || fail "AppVeyor upload settlement must exclude non-artifact test jobs"
 grep -Fq '[Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)' "$APPVEYOR" \
   || fail "AppVeyor does not decode the secure signing key payload"
 grep -Fq '$env:TAURI_SIGNING_PRIVATE_KEY = $null' "$APPVEYOR" \
