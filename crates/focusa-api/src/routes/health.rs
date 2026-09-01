@@ -14,6 +14,7 @@ async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         "ok": true,
         "status": "ok",
         "version": env!("CARGO_PKG_VERSION"),
+        "daemon": &state.daemon_runtime_identity.process,
         "uptime_ms": state.started_at.elapsed().as_millis() as u64,
         "persistence": state.persistence_actor.as_ref().map(|actor| actor.metrics()),
     }))

@@ -80,6 +80,7 @@ pub mod credential_authority;
 pub mod daemon_auth;
 pub mod daemon_dispatch;
 pub mod daemon_identity;
+pub mod daemon_lifecycle;
 pub mod daemon_multiplex;
 pub mod direction_ledger;
 pub mod direction_operations;

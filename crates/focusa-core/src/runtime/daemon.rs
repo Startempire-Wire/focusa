@@ -297,11 +297,34 @@ impl Daemon {
         }
     }
 
-    /// Run the main event loop. Blocks until the channel is closed.
-    ///
+    /// Run the main event loop. Blocks until the command channel is closed.
+    pub async fn run(&mut self) -> anyhow::Result<()> {
+        self.run_with_shutdown_signal(std::future::pending()).await
+    }
+
+    /// Run until either the command channel closes or the exact daemon
+    /// lifecycle requests shutdown. Both paths execute the same final durable
+    /// persistence flush before returning.
+    pub async fn run_until_shutdown(
+        &mut self,
+        mut shutdown: tokio::sync::watch::Receiver<bool>,
+    ) -> anyhow::Result<()> {
+        self.run_with_shutdown_signal(async move {
+            let already_requested = *shutdown.borrow();
+            if !already_requested {
+                let _ = shutdown.wait_for(|requested| *requested).await;
+            }
+        })
+        .await
+    }
+
     /// Processes actions from the command channel and runs a periodic
     /// decay tick every 30 seconds (pressure decay + rule weight decay).
-    pub async fn run(&mut self) -> anyhow::Result<()> {
+    async fn run_with_shutdown_signal<F>(&mut self, shutdown: F) -> anyhow::Result<()>
+    where
+        F: std::future::Future<Output = ()>,
+    {
+        tokio::pin!(shutdown);
         tracing::info!("Focusa daemon starting (version {})", self.state.version);
 
         // Seed default constitution on first start (docs/16 §2-§6).
@@ -425,6 +448,10 @@ impl Daemon {
 
         loop {
             tokio::select! {
+                _ = &mut shutdown => {
+                    tracing::info!("exact daemon shutdown requested");
+                    break;
+                }
                 action = self.command_rx.recv() => {
                     match action {
                         Some(action) => {
@@ -475,6 +502,7 @@ impl Daemon {
         // Channel closed — flush final state.
         tracing::info!("Focusa daemon shutting down");
         self.persist_reducer_batch(Vec::new(), true).await?;
+        tracing::info!("Focusa daemon shutdown persistence flush complete");
         Ok(())
     }
 
