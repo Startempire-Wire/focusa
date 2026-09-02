@@ -128,6 +128,11 @@ On a live build host, prefer local repo build/restart over release asset replace
 - `-ne`/`--no-extensions` **never satisfies acceptance**: a fresh Pi process
   must start with zero extension-load, duplicate-tool, and duplicate-flag
   errors.
+- Session replacement and `/reload` invalidate the old Pi `ExtensionAPI`. A
+  process-global coordinator must yield its lease to that stale owner and
+  register the complete tool/hook surface on the replacement API; only a
+  simultaneously active duplicate may be suppressed. Acceptance compares the
+  native `focusa_*` manifest before and after replacement, not merely first load.
 
 ## Proof
 
