@@ -22,6 +22,7 @@ Required environment:
 - `FOCUSA_DEPLOY_AUDIT_LOG=/var/log/focusa/deploy-audit.jsonl` (default)
 - `FOCUSA_DEPLOY_WALL_CLOCK_SEC=600` (default; RSS-budget guard)
 - `FOCUSA_DEPLOY_RSS_LIMIT_MB=768` (default; memory-budget guard)
+- `FOCUSA_CALLGRAPH_VALIDATOR_URL` (optional override; defaults to the canonical URL derived from `HEALTH_URL`)
 - GitHub context: `FOCUSA_GITHUB_RUN_ID`, `FOCUSA_GITHUB_SHA`, `FOCUSA_GITHUB_TAG`, `FOCUSA_GITHUB_WORKFLOW`.
 
 ## Self-heal functions
@@ -90,10 +91,14 @@ Polls the health endpoint.
 
 Contract:
 
-1. Each iteration calls `curl -fsS --max-time 5 <HEALTH_URL>`.
-2. If the response body is JSON and `expected_version` is non-empty, parses the `version` field via `json_field` and retries with `sleep 1` until the version matches.
-3. After every iteration, calls `watchdog_check` so the wall-clock budget is enforced mid-loop.
+1. Each iteration performs a bounded TCP and HTTP health probe through Python's standard library.
+2. If the response body is JSON and `expected_version` is non-empty, it retries until the reported version matches.
+3. An empty or unavailable health response always triggers rollback; an active service is not sufficient acceptance.
 4. After exhausting `attempts` (default 60), audit `deploy_health=timeout` and return 1.
+
+### Installed capability verification
+
+After exact health/version acceptance, `scripts/verify-callgraph-validator.py` posts a deterministic, side-effect-free golden graph to `POST /v1/callgraphs/validate`. Deployment succeeds only when the response is HTTP 200 with `canonical=true`, `valid=true`, `status=valid`, and an empty issue list. Missing routes, transport failures, malformed envelopes, and structural rejection trigger rollback. `--no-verify` remains the explicit operator bypass for the complete verification phase.
 
 ## Audit events emitted
 
@@ -123,6 +128,7 @@ Self-heal branches emit these specific audit outcomes:
 | `deploy_oom_killed=rss_exceeded` | RSS exceeded `RSS_LIMIT_MB` |
 | `deploy_oom_killed=watchdog_exit` | `watchdog_loop` killed the parent |
 | `deploy_health=timeout` | `wait_for_health` exhausted attempts |
+| `deploy_capability=verified` | installed CallGraph validator returned the canonical valid envelope |
 | `deploy_rollback=failed` | rollback restart failed; daemon unhealthy |
 | `deploy_complete=success` | full deploy succeeded |
 | `deploy_install=completed` | installed without restart (--no-restart) |

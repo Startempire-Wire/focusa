@@ -113,6 +113,12 @@ assert_grep 'rollback' scripts/install-daemon.sh 'rollback path missing'
 assert_grep 'pgrep -x' scripts/install-daemon.sh 'duplicate-daemon guard missing'
 assert_grep 'set +e' scripts/install-daemon.sh 'strict-mode kill guard missing'
 assert_grep 'health version mismatch' scripts/install-daemon.sh 'version verification rollback missing'
+assert_grep 'verify-callgraph-validator.py' scripts/install-daemon.sh 'installed CallGraph capability verification missing'
+assert_grep 'CallGraph validator verification failed' scripts/install-daemon.sh 'CallGraph verification rollback missing'
+if grep -Fq 'proceeding despite health check failure' scripts/install-daemon.sh; then
+  echo '✗ active service must not bypass failed health/version verification'
+  exit 1
+fi
 assert_grep 'FOCUSA_DEPLOY_AUDIT_LOG' scripts/install-daemon.sh 'deploy audit log support missing'
 assert_grep 'ExecStart mismatch' scripts/install-daemon.sh 'service ExecStart validation missing'
 assert_grep 'binary_checksum' scripts/install-daemon.sh 'checksum capture missing'
