@@ -182,9 +182,33 @@ class AppVeyorReleaseArtifactIntakeTests(unittest.TestCase):
             "fix/recovery-controller",
         )
         module.validate_recovery_logs(client, jobs, TAG, SHA)
-        client.log = lambda _job_id: "candidate marker absent\n"
+        client.log = lambda _job_id: (
+            f"appveyor_recovery_identity=passed tag={TAG} sha={SHA} "
+            "route=same_repo_pr\n"
+        )
         with self.assertRaisesRegex(module.IntakeError, "candidate marker missing"):
             module.validate_recovery_logs(client, jobs, TAG, SHA)
+
+    def test_test_jobs_must_retain_no_artifacts(self):
+        client = FakeClient()
+        build, jobs = self.validated(client)
+        test_job = jobs[(module.TARGETS[0], "tests")]["jobId"]
+        client.payloads[test_job]["unexpected-test-output.txt"] = b"unexpected"
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "artifacts"
+            with self.assertRaisesRegex(module.IntakeError, "artifacts mismatch"):
+                module.collect_artifacts(
+                    client,
+                    build,
+                    jobs,
+                    TAG,
+                    SHA,
+                    module.DEFAULT_ACCOUNT,
+                    module.DEFAULT_PROJECT,
+                    module.DEFAULT_REPOSITORY,
+                    output,
+                    output / "receipt.json",
+                )
 
     def test_missing_updater_signature_is_rejected(self):
         client = FakeClient()

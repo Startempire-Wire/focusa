@@ -137,9 +137,11 @@ requires an explicit provider build number, full reviewed controller SHA, exact
 controller branch, and the exact candidate checkout marker in every job log;
 failed or partial recovery builds remain inadmissible. Either route requires
 exactly six successful jobs: binaries, tests, and menubar for both MSVC
-architectures. The two binary jobs must retain exactly CLI, daemon,
-session-runner, and TUI executables; the
-two menubar jobs must retain exactly NSIS/MSI bundles and both updater
+architectures. Recovery logs must contain the exact branch-route candidate
+marker; another route suffix is inadmissible. The two test jobs must retain no
+artifacts. The two binary jobs must retain exactly CLI, daemon, session-runner,
+and TUI executables; the two menubar jobs must retain exactly NSIS/MSI bundles
+and both updater
 signatures for the tagged version. Downloads must match provider sizes, use
 safe basenames, and receive local SHA-256 digests in
 `focusa.appveyor_release_artifact_receipt.v1`. Existing draft assets are either

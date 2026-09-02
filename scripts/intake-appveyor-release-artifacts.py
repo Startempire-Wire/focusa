@@ -271,7 +271,7 @@ def validate_recovery_logs(
     tag: str,
     sha: str,
 ) -> None:
-    marker = f"appveyor_recovery_identity=passed tag={tag} sha={sha} route="
+    marker = f"appveyor_recovery_identity=passed tag={tag} sha={sha} route=branch"
     for key, job in jobs.items():
         job_id = _require_string(job.get("jobId"), f"AppVeyor job id for {key}")
         if marker not in client.log(job_id):
@@ -328,6 +328,11 @@ def collect_artifacts(
         raise IntakeError(f"output directory must be empty: {output_dir}")
     artifacts: list[dict[str, Any]] = []
     for target in TARGETS:
+        test_job = jobs[(target, "tests")]
+        test_job_id = _require_string(
+            test_job.get("jobId"), "AppVeyor test job id"
+        )
+        validate_artifact_listing(client.artifacts(test_job_id), set(), test_job_id)
         for surface in ("binaries", "menubar"):
             job = jobs[(target, surface)]
             job_id = _require_string(job.get("jobId"), "AppVeyor artifact job id")
