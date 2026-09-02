@@ -17,7 +17,14 @@ tests/release_version_asset_test.sh
 # GH5 remote marker onboarding guard.
 tests/spec_focusa_gh5_remote_marker_static_test.sh
 
-# L5 TUI usage evidence guard.
+# L5 TUI usage evidence guard. Release Automation must remain compile-free;
+# functional execution belongs to the Rust producer with an exact binary path.
+if grep -Fq 'cargo build' tests/spec_focusa_yixp_tui_usage_static_test.sh; then
+  echo '✗ TUI static proof must not cold-build Rust' >&2
+  exit 1
+fi
+grep -Fq 'FOCUSA_TUI_BIN_PATH: ${{ github.workspace }}/target/debug/focusa-tui' .github/workflows/ci.yml \
+  || { echo '✗ Rust producer does not bind the exact TUI functional-proof binary' >&2; exit 1; }
 tests/spec_focusa_yixp_tui_usage_static_test.sh
 
 # GH7 Pi unbound project nag guard.
