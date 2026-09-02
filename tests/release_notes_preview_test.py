@@ -39,6 +39,14 @@ with tempfile.TemporaryDirectory(prefix="focusa-release-notes-preview-") as tmp:
     )
     fake_gh.chmod(0o755)
     env = os.environ.copy()
+    for key in (
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    ):
+        env.pop(key, None)
     env["PATH"] = f"{fake_bin}:/usr/bin:/bin"
     env["GITHUB_REPOSITORY"] = "example/focusa"
 
