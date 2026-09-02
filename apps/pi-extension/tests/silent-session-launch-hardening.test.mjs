@@ -13,6 +13,13 @@ for (const marker of [
   "generation",
   "approval_id",
   "idempotency_key",
+  "direct configs are wrapped automatically",
+  '"config" in p.config',
+  "{ config: p.config || {} }",
+  "body: JSON.stringify(preflightBody)",
+  "result?.body ?? result?.data ?? result",
+  "payload?.error ?? payload?.message ?? payload?.reason",
+  "http_status",
   'authority: "daemon"',
   'parity: "full"',
 ])

@@ -4569,7 +4569,12 @@ pi.registerTool({
       ),
       cursor: Type.Optional(Type.String({ description: "Opaque event/output cursor." })),
       channel: Type.Optional(Type.String({ description: "Output channel; defaults to stdout." })),
-      config: Type.Optional(Type.Any({ description: "Typed preflight/config request body." })),
+      config: Type.Optional(
+        Type.Any({
+          description:
+            "SilentSessionConfig or {config,layers} preflight envelope; direct configs are wrapped automatically.",
+        })
+      ),
       approved: Type.Optional(
         Type.Boolean({ description: "Legacy compatibility hint only; never grants authority." })
       ),
@@ -4602,9 +4607,13 @@ pi.registerTool({
       } else if (action === "capabilities") {
         result = await focusaFetchDetailed("/silent-sessions/capabilities", { method: "GET" });
       } else if (action === "preflight") {
+        const preflightBody =
+          p.config && typeof p.config === "object" && !Array.isArray(p.config) && "config" in p.config
+            ? p.config
+            : { config: p.config || {} };
         result = await focusaFetchDetailed("/silent-sessions/preflight", {
           method: "POST",
-          body: JSON.stringify(p.config || {}),
+          body: JSON.stringify(preflightBody),
         });
       } else if (["reopen", "health"].includes(action)) {
         result = await focusaFetchDetailed(`/silent-sessions/${requireSession()}`, { method: "GET" });
@@ -4652,16 +4661,24 @@ pi.registerTool({
           body: JSON.stringify(exactMutation()),
         });
       }
-      const payload = result?.data ?? result;
+      const payload = result?.body ?? result?.data ?? result;
+      const outcome = String(
+        payload?.status || payload?.code || (result?.ok ? "completed" : `error ${result?.status ?? "unknown"}`)
+      );
+      const reasonValue = payload?.error ?? payload?.message ?? payload?.reason;
+      const reason =
+        typeof reasonValue === "string" ? reasonValue.replace(/\s+/g, " ").trim().slice(0, 300) : "";
       return {
         content: [
           {
             type: "text",
-            text: `silent ${action} → ${String(payload?.status || result?.status || "completed")}`,
+            text: `silent ${action} → ${outcome}${reason ? `: ${reason}` : ""}`,
           },
         ],
         details: {
           ...payload,
+          ok: result?.ok ?? payload?.ok,
+          http_status: result?.status ?? payload?.http_status,
           canonical: payload?.canonical !== false,
           parity: "full",
           authority: "daemon",
