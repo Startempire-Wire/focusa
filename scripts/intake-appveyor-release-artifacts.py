@@ -329,9 +329,7 @@ def collect_artifacts(
     artifacts: list[dict[str, Any]] = []
     for target in TARGETS:
         test_job = jobs[(target, "tests")]
-        test_job_id = _require_string(
-            test_job.get("jobId"), "AppVeyor test job id"
-        )
+        test_job_id = _require_string(test_job.get("jobId"), "AppVeyor test job id")
         validate_artifact_listing(client.artifacts(test_job_id), set(), test_job_id)
         for surface in ("binaries", "menubar"):
             job = jobs[(target, surface)]
@@ -451,10 +449,7 @@ def main() -> int:
         sha = _require_sha(args.sha)
         if args.timeout_minutes <= 0 or args.poll_seconds <= 0:
             raise IntakeError("timeouts must be positive")
-        recovery_values = (
-            args.recovery_controller_sha,
-            args.recovery_controller_branch,
-        )
+        recovery_values = (args.recovery_controller_sha, args.recovery_controller_branch)
         if any(recovery_values) and not all(recovery_values):
             raise IntakeError("recovery controller SHA and branch must be supplied together")
         if args.recovery_controller_sha is not None:
