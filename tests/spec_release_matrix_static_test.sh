@@ -5,9 +5,9 @@
 # (temporary CI provider parity — docs/178).
 #
 # Linux targets build on OVH self-hosted runners inside release.yml.
-# macOS + Windows Rust binaries build on Codemagic / AppVeyor and are
-# uploaded back to the same release; the durable contract for those
-# external surfaces lives in scripts/wait-for-external-release-assets.py.
+# macOS + Windows Rust binaries build on Codemagic / AppVeyor. Codemagic
+# uploads with scoped authority; AppVeyor is verified and pulled by the
+# canonical intake adapter before the final external completeness gate.
 #
 # No target is removed or renamed from the canonical matrix — only the
 # builder moved off GitHub-hosted (still billing-locked).
@@ -17,6 +17,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WF="$ROOT_DIR/.github/workflows/release.yml"
 CI="$ROOT_DIR/.github/workflows/ci.yml"
 WAIT="$ROOT_DIR/scripts/wait-for-external-release-assets.py"
+INTAKE="$ROOT_DIR/scripts/intake-appveyor-release-artifacts.py"
 CODEMAGIC="$ROOT_DIR/codemagic.yaml"
 APPVEYOR="$ROOT_DIR/.appveyor.yml"
 APPVEYOR_RECOVERY="$ROOT_DIR/config/appveyor-release-recovery.json"
@@ -67,26 +68,32 @@ grep -q 'release/${bin}${EXE}' "$WF" \
   || fail "Packaging step missing .exe-aware source path"
 pass "packaging step handles Windows .exe suffix without renaming Unix assets"
 
-# The external receipt gates are wired into the release DAG.
-grep -q 'External Rust Binary Receipt Gate' "$WF" \
-  || fail "release.yml missing external Rust binary receipt gate job"
-grep -q 'External Menubar Receipt Gate' "$WF" \
-  || fail "release.yml missing external menubar receipt gate job"
+# One external intake job is wired into the release DAG; duplicate waiters are forbidden.
+grep -q 'Exact external provider artifact intake' "$WF" \
+  || fail "release.yml missing exact external provider intake job"
+grep -q 'intake-appveyor-release-artifacts.py' "$WF" \
+  || fail "release.yml missing AppVeyor pull-intake invocation"
 grep -q 'wait-for-external-release-assets.py' "$WF" \
-  || fail "release.yml missing external receipt wait script invocation"
-menubar_receipt_block="$(awk '/^  external-menubar-receipts:/{job=1} /^  rust-release:/{job=0} job{print}' "$WF")"
-rust_receipt_block="$(awk '/^  external-rust-binaries:/{job=1} /^  pi-extension-release:/{job=0} job{print}' "$WF")"
-grep -Fq 'needs: [create-release, pi-extension-release]' <<<"$menubar_receipt_block" \
-  || fail "external menubar receipt waiter can starve the Pi-extension producer"
-grep -Fq 'needs: [create-release, rust-release]' <<<"$rust_receipt_block" \
-  || fail "external Rust receipt waiter can starve the Linux matrix producers"
-for receipt_block in "$menubar_receipt_block" "$rust_receipt_block"; do
-  grep -Fq 'timeout-minutes: 150' <<<"$receipt_block" \
-    || fail "external receipt job cannot cover the serial AppVeyor matrix"
-  grep -Fq -- '--timeout-minutes 145' <<<"$receipt_block" \
-    || fail "external receipt polling cannot cover the serial AppVeyor matrix"
-done
-pass "external macOS/Windows receipt gates are producer-ordered and serial-provider-budgeted"
+  || fail "release.yml missing final external completeness check"
+if grep -Eq '^  external-(menubar-receipts|rust-binaries):' "$WF"; then
+  fail "release.yml retains duplicate long external receipt waiters"
+fi
+provider_block="$(awk '/^  external-provider-receipts:/{job=1} /^  rust-release:/{job=0} job{print}' "$WF")"
+grep -Fq 'needs: [create-release, rust-release, pi-extension-release]' <<<"$provider_block" \
+  || fail "external provider intake can starve bounded local producers"
+grep -Fq 'runs-on: [self-hosted, Linux, X64, focusa-deploy, production]' <<<"$provider_block" \
+  || fail "external provider intake lacks the canonical self-hosted authority boundary"
+grep -Fq 'timeout-minutes: 400' <<<"$provider_block" \
+  || fail "external intake cannot cover the serial AppVeyor matrix"
+grep -Fq -- '--timeout-minutes 385' <<<"$provider_block" \
+  || fail "AppVeyor polling cannot cover the serial provider matrix"
+grep -Fq -- '--kind all' <<<"$provider_block" \
+  || fail "consolidated gate does not require every external surface"
+grep -Fq -- '--timeout-minutes 5' <<<"$provider_block" \
+  || fail "final external completeness check is not bounded"
+[ -x "$INTAKE" ] || fail "AppVeyor intake adapter is missing or not executable"
+python3 "$ROOT_DIR/tests/appveyor_release_artifact_intake_test.py"
+pass "external macOS/Windows intake is consolidated, producer-ordered, behavior-tested, and serial-provider-budgeted"
 
 # Billing-lock recovery must resume an immutable tag from the current
 # controller without moving it. The exact tag/SHA pair is verified before any
@@ -242,8 +249,10 @@ grep -Fq 'if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true"
   || fail "AppVeyor Rust tests must be surface-isolated"
 grep -Fq 'appveyor_recovery_test_receipt=passed' "$APPVEYOR" \
   || fail "AppVeyor immutable recovery does not prove reused exact-candidate tests"
-grep -Fq '$receiptControllerSha = "9b18fb6edb49aecf0656774b6e36a65e9fd8542d"' "$APPVEYOR" \
-  || fail "AppVeyor reused tests are not bound to the frozen provider controller"
+grep -Fq '$receiptControllerSha = $env:FOCUSA_RECOVERY_TEST_CONTROLLER_SHA' "$APPVEYOR" \
+  || fail "AppVeyor reused tests do not consume the pre-checkout frozen controller"
+grep -Fq 'Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TEST_CONTROLLER_SHA' "$APPVEYOR" \
+  || fail "AppVeyor does not freeze test receipt authority before candidate checkout"
 grep -Fq 'https://ci.appveyor.com/api/projects/verioussmith/focusa/build/$receiptBuild' "$APPVEYOR" \
   || fail "AppVeyor reused tests do not verify the frozen provider build"
 grep -Fq 'missing GitHub release upload credential' "$APPVEYOR" \
@@ -269,12 +278,15 @@ conversion_line="$(grep -Fn -m1 '$convertedKey = & python $converterDriverPath' 
 tauri_build_line="$(grep -Fn -m1 '$tauriCli build --target' "$APPVEYOR" | cut -d: -f1)"
 [ "$sodium_hash_line" -lt "$conversion_line" ] && [ "$conversion_line" -lt "$tauri_build_line" ] \
   || fail "AppVeyor must verify runtime, convert signer, then package in that order"
-grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
-  || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
-grep -Fq '@($env:GH_TOKEN, $env:GITHUB_RELEASE_TOKEN)' "$APPVEYOR" \
-  || fail "AppVeyor does not consume the configured GitHub release token authority"
-grep -Fq '$env:SURFACE -in @("binaries", "menubar")' "$APPVEYOR" \
-  || fail "AppVeyor upload settlement must exclude non-artifact test jobs"
+if grep -Eq 'GH_TOKEN|GITHUB_RELEASE_TOKEN|uploads.github.com|^on_success:' "$APPVEYOR"; then
+  fail "AppVeyor must not receive or exercise GitHub write authority"
+fi
+grep -Fq 'canonical GitHub pull intake' "$APPVEYOR" \
+  || fail "AppVeyor does not declare retained-artifact pull settlement"
+grep -Fq 'release asset collision:' "$WF" \
+  || fail "canonical AppVeyor settlement does not reject mismatched existing assets"
+grep -Fq 'identity=byte-identical' "$WF" \
+  || fail "canonical AppVeyor settlement lacks idempotent identical-asset handling"
 grep -Fq '[Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)' "$APPVEYOR" \
   || fail "AppVeyor does not decode the secure signing key payload"
 grep -Fq '$env:TAURI_SIGNING_PRIVATE_KEY = $null' "$APPVEYOR" \
@@ -283,20 +295,21 @@ grep -Fq 'Remove-Item -Force $converterDriverPath' "$APPVEYOR" \
   || fail "AppVeyor does not remove the nonsecret converter driver"
 grep -q 'appveyor_recovery_identity=passed' "$APPVEYOR" \
   || fail "AppVeyor lacks exact tag/SHA recovery identity proof"
-grep -Fq '$recoveryControllerBranch = "fix/issue-480-appveyor-recovery"' "$APPVEYOR" \
-  || fail "AppVeyor recovery lacks one exact controller branch"
+grep -Fq '$recoveryControllerBranch = "fix/352-appveyor-artifact-intake"' "$APPVEYOR" \
+  || fail "AppVeyor recovery lacks one exact reviewed controller branch"
 grep -Fq '$env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch' "$APPVEYOR" \
   || fail "AppVeyor recovery is not restricted to the exact controller branch"
-grep -Fq '$recoveryControllerPullRequest = "482"' "$APPVEYOR" \
-  || fail "AppVeyor same-repository recovery is not restricted to exact PR 482"
 grep -Fq '$recoveryRepository = "Startempire-Wire/focusa"' "$APPVEYOR" \
-  || fail "AppVeyor same-repository recovery is not restricted to the canonical repository"
-grep -Fq '$env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -eq $recoveryControllerBranch' "$APPVEYOR" \
-  || fail "AppVeyor same-repository recovery is not restricted to the exact controller head branch"
-grep -Fq '$env:APPVEYOR_PULL_REQUEST_HEAD_REPO_NAME -eq $recoveryRepository' "$APPVEYOR" \
-  || fail "AppVeyor same-repository recovery does not verify head repository identity"
-grep -Fq 'route=$controllerRoute' "$APPVEYOR" \
-  || fail "AppVeyor recovery does not prove the selected controller route"
+  || fail "AppVeyor recovery is not restricted to the canonical repository"
+grep -Fq -- '-not $env:APPVEYOR_PULL_REQUEST_NUMBER' "$APPVEYOR" \
+  || fail "AppVeyor duplicate PR recovery route is not excluded"
+grep -Fq '$isControllerRequest = $isControllerBranch' "$APPVEYOR" \
+  || fail "AppVeyor recovery authority is not branch-only"
+if grep -Eq 'isControllerPullRequest|recoveryControllerPullRequest|same_repo_pr' "$APPVEYOR"; then
+  fail "AppVeyor recovery can fan out through a duplicate PR matrix"
+fi
+grep -Fq 'route=branch' "$APPVEYOR" \
+  || fail "AppVeyor recovery does not prove its branch-only route"
 grep -Fq 'appveyor_recovery_ignored_for_branch=true' "$APPVEYOR" \
   || fail "AppVeyor does not prove unrelated branches ignored recovery state"
 grep -Fq 'appveyor_noncontroller_build_stopped_before_dependencies=true' "$APPVEYOR" \
@@ -327,6 +340,7 @@ assert appveyor_recovery == {
     "sha": "01aae7ea9ab886627d49b68e7aed2349d9ceafc0",
     "verified_test_receipts": {
         "build": 242,
+        "controller_sha": "9b18fb6edb49aecf0656774b6e36a65e9fd8542d",
         "x86_64_job": "6o84mlsuilovxtua",
         "aarch64_job": "uskaruf7e5hjkhqv",
     },

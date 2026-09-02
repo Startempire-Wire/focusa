@@ -4,6 +4,7 @@
   "sha": "01aae7ea9ab886627d49b68e7aed2349d9ceafc0",
   "verified_test_receipts": {
     "build": 242,
+    "controller_sha": "9b18fb6edb49aecf0656774b6e36a65e9fd8542d",
     "x86_64_job": "6o84mlsuilovxtua",
     "aarch64_job": "uskaruf7e5hjkhqv"
   }

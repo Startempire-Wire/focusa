@@ -21,7 +21,7 @@ the canonical release scripts remain the authority.
 | Required surface | Temporary provider | Entry point | Required proof | Current limitation |
 |---|---|---|---|---|
 | Linux daemon, CLI, API, specs | GitHub Actions self-hosted `host-focusa-deploy` | `.github/workflows/ci.yml`, `release.yml` | Rust, Spec Gates, release automation, meaningful commits green | Shared production host; Rust exit-241 flake is tracked separately. |
-| Windows binaries and menubar packages | AppVeyor public-project lane | `.appveyor.yml` | MSVC builds/tests; tagged CLI, daemon, TUI, NSIS, MSI, and updater-signature assets | One concurrent public-project job; both target architectures run serially. |
+| Windows binaries and menubar packages | AppVeyor public-project lane plus GitHub self-hosted intake | `.appveyor.yml`, `scripts/intake-appveyor-release-artifacts.py`, `release.yml` | Exact-tag MSVC builds/tests; retained CLI, daemon, session-runner, TUI, NSIS, MSI, updater signatures, and a typed digest receipt | One concurrent public-project job; six target/surface rows run serially. |
 | macOS menubar package proof | Codemagic cloud `mac_mini_m2` | `codemagic.yaml`, workflow `menubar-macos-package-proof` | npm ci, typecheck, web build, Rust/Tauri `.app`, plist lint, ad-hoc codesign and verification green | Proof is ad-hoc signed; it is not notarized customer distribution. |
 | GitHub-hosted Linux/macOS/Windows jobs | temporarily non-authoritative | `ci.yml`, `spec132-terminal-matrix.yml`, `release.yml` | Informational only while account admission is billing-locked | Must not be silently deleted or individually re-enabled. The monolithic Spec 132 receipt is substituted by exact-SHA self-hosted CI plus the downstream AppVeyor/Codemagic receipt gates. |
 
@@ -36,9 +36,13 @@ an artifact.
 workflows and AppVeyor; release tags are never filtered by changed paths.
 3. Require Linux/self-hosted GitHub evidence plus AppVeyor Windows and
 Codemagic macOS evidence for the exact tagged commit.
-4. External providers wait boundedly for the canonical GitHub workflow to
-create its gated draft Release. They never create a Release, skip missing
-credentials, or swallow asset-upload failures.
+4. Codemagic waits boundedly for the canonical GitHub workflow to create its
+gated draft Release and uploads with its approved scoped credential. AppVeyor
+never receives GitHub write authority: it retains public read-only artifacts,
+and the canonical self-hosted intake job pulls and verifies them before using
+the workflow-scoped `GITHUB_TOKEN` to attach them to the existing draft.
+Neither provider creates a Release or swallows build, intake, or upload
+failures.
 5. Menubar receipts include both install bundles and Tauri updater signatures
 for macOS and Windows. The canonical checksums job generates `latest.json`
 from those signatures only after every required provider receipt is present.
@@ -68,20 +72,23 @@ native commands must not become PowerShell `NativeCommandError` failures.
 12. Every `softprops/action-gh-release` step declares
 `tag_name: ${{ env.RELEASE_TAG }}`. Recovery dispatch runs from a controller
 branch, so no upload may infer release identity from `github.ref`.
-13. Bounded self-hosted producers run before long external receipt waiters.
-`external-rust-binaries` depends on the full Linux `rust-release` matrix, and
-`external-menubar-receipts` depends on `pi-extension-release`; a provider wait
+13. Bounded self-hosted producers run before the consolidated external intake.
+`external-provider-receipts` depends on the full Linux `rust-release` matrix
+and `pi-extension-release`, then performs one AppVeyor pull plus one complete
+external-asset check. Duplicate long waiters are forbidden; provider waiting
 must never occupy all OVH lanes while local release artifacts remain queued.
 14. Every pre-final artifact producer preserves the gated Release as a draft.
 `softprops/action-gh-release` uploads declare `draft: true`, and restored Tauri
 uploads declare `releaseDraft: true`. Exactly one final publisher may set
-`draft=false`, only after both external receipt gates, canonical asset
+`draft=false`, only after the external provider intake, canonical asset
 verification, signatures, checksums, updater metadata, and trust metadata pass.
 15. External receipt timeouts cover the provider topology, not one nominal job.
-While AppVeyor has one-job concurrency, its x64 and ARM64 rows run serially;
-receipt jobs therefore have a 150-minute outer bound and 145-minute polling
-bound. The poll remains fail-closed on exact asset names, but must not expire
-before two valid serial provider rows can complete.
+AppVeyor has one-job concurrency and six x64/ARM64 build/test/package rows, each
+with a 60-minute provider ceiling. The consolidated intake therefore has a
+400-minute outer bound, 385-minute AppVeyor polling bound, and a final bounded
+five-minute completeness check after settlement. It remains fail-closed on
+exact identity and asset names, but does not expire before a valid serial
+matrix can complete.
 16. Codemagic recovery may load `config/codemagic-release-recovery.json` only
 when an API-triggered controller-branch build explicitly sets
 `FOCUSA_CODEMAGIC_RECOVERY=enabled`. Both YAML workflows verify the record,
@@ -119,7 +126,31 @@ while uploading a different pre-seal bundle is forbidden.
 18. AppVeyor uses the same secure outer-base64 payload contract and validates it
 in memory before Tauri packaging. No decoded signing-key file is written on
 either provider. The AppVeyor project must hold both the key payload and
-password as secure variables; absent authority fails before package work.
+password as secure variables; absent authority fails before package work. One
+exact reviewed branch performs immutable-tag recovery. The duplicate PR webhook
+and every unrelated branch must stop before dependencies, so one recovery
+request cannot fan out into two six-job serial matrices.
+19. AppVeyor artifact intake discovers a normal release only from a public
+project-history record whose repository, tag, full commit SHA, and terminal
+success match the immutable candidate. An immutable-tag recovery additionally
+requires an explicit provider build number, full reviewed controller SHA, exact
+controller branch, and the exact candidate checkout marker in every job log;
+failed or partial recovery builds remain inadmissible. Either route requires
+exactly six successful jobs: binaries, tests, and menubar for both MSVC
+architectures. Recovery logs must contain the exact branch-route candidate
+marker; another route suffix is inadmissible. The two test jobs must retain no
+artifacts. The two binary jobs must retain exactly CLI, daemon, session-runner,
+and TUI executables; the two menubar jobs must retain exactly NSIS/MSI bundles
+and both updater
+signatures for the tagged version. Downloads must match provider sizes, use
+safe basenames, and receive local SHA-256 digests in
+`focusa.appveyor_release_artifact_receipt.v1`. Existing draft assets are either
+byte-identical and retained or produce a hard collision failure. Missing,
+extra, duplicate, failed, stale, wrong-project, wrong-tag, or wrong-SHA evidence
+blocks checksums and publication. Rollback reverts the intake change set and
+restores the previous provider-push adapter only after equivalent renewable,
+scoped secret authority is proven; it never permits hand-copied artifacts or a
+partial release.
 
 ## 4. Spending and trigger boundary
 
@@ -128,8 +159,9 @@ password as secure variables; absent authority fails before package work.
 work remains on the free self-hosted Linux and AppVeyor Windows lanes. The only
 branch-build exception is a bounded API-triggered immutable-tag recovery with
 the explicit recovery variable and enabled recovery record described above.
-- Secure upload/signing variables live only in provider secret groups; the
-repository stores names and fail-closed checks, never secret values.
+- Signing variables live only in provider secret groups; the repository stores
+names and fail-closed checks, never secret values. GitHub upload authority stays
+inside the canonical GitHub workflow and is not delegated to AppVeyor.
 - No agent may enable paid hosted macOS capacity, create a paid plan, or widen
 Codemagic triggers without direct operator authorization.
 

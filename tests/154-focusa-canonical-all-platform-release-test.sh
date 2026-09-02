@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Canonical all-platform release guard under Spec 178 (external provider parity).
-# Windows + macOS surfaces are built off GitHub (AppVeyor / Codemagic) and the
-# durable contract lives in scripts/wait-for-external-release-assets.py, gated
-# by the release.yml external receipt jobs. Linux stays on OVH self-hosted.
+# Windows + macOS surfaces are built off GitHub (AppVeyor / Codemagic).
+# AppVeyor artifacts cross an exact pull-intake boundary before the consolidated
+# external completeness gate. Linux stays on OVH self-hosted.
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORKFLOW="$ROOT/.github/workflows/release.yml"
 WAIT="$ROOT/scripts/wait-for-external-release-assets.py"
+INTAKE="$ROOT/scripts/intake-appveyor-release-artifacts.py"
 APPVEYOR="$ROOT/.appveyor.yml"
 CODEMAGIC="$ROOT/codemagic.yaml"
 WINDOWS_WORKFLOW="$ROOT/.github/workflows/windows-ota-e2e.yml"
@@ -24,7 +25,9 @@ pass "all four external Rust targets (win x64/arm64 + mac x64/arm64) in receipt 
 
 # AppVeyor builds the full Windows surface; Codemagic builds the full macOS surface.
 grep -q 'focusa-daemon' "$APPVEYOR" || fail "AppVeyor must build the daemon (full Windows surface)"
+grep -q 'focusa-session-runner' "$APPVEYOR" || fail "AppVeyor must build the Windows session runner"
 grep -q 'aarch64-pc-windows-msvc' "$APPVEYOR" || fail "AppVeyor must build Windows ARM64"
+grep -q 'focusa.appveyor_release_artifact_receipt.v1' "$INTAKE" || fail "Windows intake lacks typed digest receipt"
 grep -q 'rust-macos-release-binaries' "$CODEMAGIC" || fail "Codemagic must define the rust-macos-release-binaries workflow"
 grep -q 'aarch64-apple-darwin' "$CODEMAGIC" || fail "Codemagic must build macOS ARM64"
 grep -q 'x86_64-apple-darwin' "$CODEMAGIC" || fail "Codemagic must build macOS x86_64"

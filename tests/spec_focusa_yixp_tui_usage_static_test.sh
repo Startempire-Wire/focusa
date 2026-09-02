@@ -53,29 +53,32 @@ assert 'workpoint' in text
 PY
 pass "headless snapshot payload schema fields present"
 
-# Functional proof: redirected stdout must fail cleanly with an actionable stderr message.
-TUI_RUNTIME_BIN="${FOCUSA_TUI_BIN_PATH:-$ROOT_DIR/target/debug/focusa-tui}"
-if [ ! -x "$TUI_RUNTIME_BIN" ]; then
-  cargo build -q -p focusa-tui --bin focusa-tui
-fi
-set +e
-non_tty_output="$("$TUI_RUNTIME_BIN" --no-intro </dev/null 2>&1)"
-non_tty_status=$?
-set -e
-if [ $non_tty_status -eq 1 ] && printf '%s\n' "$non_tty_output" | grep -q 'GLIBC_.*not found'; then
-  grep -q 'x86_64-unknown-linux-musl' "$ROOT_DIR/.github/workflows/release.yml" \
-    || fail "cross-built TUI is incompatible with this host and release lacks musl artifact"
-  grep -q 'x86_64-unknown-linux-musl' "$ROOT_DIR/scripts/install-focusa.sh" \
-    || fail "installer does not select the static musl TUI on older glibc hosts"
-  pass "cross-built glibc TUI deferred; release and installer require host-compatible musl artifact"
+# Functional proof is consumer-side and runs only when a producer supplies one
+# exact executable. The Release Automation static job must never cold-build.
+if [ -z "${FOCUSA_TUI_BIN_PATH:-}" ]; then
+  pass "TUI runtime proof delegated to the Rust producer with an exact binary path"
 else
-  [[ $non_tty_status -eq 64 ]] \
-    || fail "non-TTY run exited $non_tty_status, expected 64"
-  printf '%s\n' "$non_tty_output" | grep -qF 'FOCUSA_TUI_NON_TTY' \
-    || fail "non-TTY output missing stable diagnostic code"
-  printf '%s\n' "$non_tty_output" | grep -qF 'focusa tui --headless-self-test' \
-    || fail "non-TTY output missing recovery command"
-  pass "redirected TUI output fails cleanly with actionable recovery"
+  TUI_RUNTIME_BIN="$FOCUSA_TUI_BIN_PATH"
+  [ -x "$TUI_RUNTIME_BIN" ] || fail "producer-supplied TUI binary is not executable: $TUI_RUNTIME_BIN"
+  set +e
+  non_tty_output="$("$TUI_RUNTIME_BIN" --no-intro </dev/null 2>&1)"
+  non_tty_status=$?
+  set -e
+  if [ $non_tty_status -eq 1 ] && printf '%s\n' "$non_tty_output" | grep -q 'GLIBC_.*not found'; then
+    grep -q 'x86_64-unknown-linux-musl' "$ROOT_DIR/.github/workflows/release.yml" \
+      || fail "cross-built TUI is incompatible with this host and release lacks musl artifact"
+    grep -q 'x86_64-unknown-linux-musl' "$ROOT_DIR/scripts/install-focusa.sh" \
+      || fail "installer does not select the static musl TUI on older glibc hosts"
+    pass "cross-built glibc TUI deferred; release and installer require host-compatible musl artifact"
+  else
+    [[ $non_tty_status -eq 64 ]] \
+      || fail "non-TTY run exited $non_tty_status, expected 64"
+    printf '%s\n' "$non_tty_output" | grep -qF 'FOCUSA_TUI_NON_TTY' \
+      || fail "non-TTY output missing stable diagnostic code"
+    printf '%s\n' "$non_tty_output" | grep -qF 'focusa tui --headless-self-test' \
+      || fail "non-TTY output missing recovery command"
+    pass "redirected TUI output fails cleanly with actionable recovery"
+  fi
 fi
 
 # Functional proof: hit Focusa locally and prove API + TUI surface coverage.

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Guard: the canonical release publishes menubar desktop bundles for macOS and
 # Windows. Under Spec 178 those are built by Codemagic (macOS) and AppVeyor
-# (Windows) and uploaded back to the release; the durable contract is the
-# external menubar receipt gate (tauri-build) + wait script.
+# (Windows). Codemagic uploads; the canonical self-hosted workflow pulls exact
+# AppVeyor artifacts before the consolidated external completeness gate.
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKFLOW="$ROOT_DIR/.github/workflows/release.yml"
 WAIT="$ROOT_DIR/scripts/wait-for-external-release-assets.py"
+INTAKE="$ROOT_DIR/scripts/intake-appveyor-release-artifacts.py"
 CODEMAGIC="$ROOT_DIR/codemagic.yaml"
 APPVEYOR="$ROOT_DIR/.appveyor.yml"
 MENUBAR_CONFIG="$ROOT_DIR/apps/menubar/src-tauri/tauri.conf.json"
@@ -16,11 +17,13 @@ pass() { echo "PASS: $*"; }
 
 [ -f "$WORKFLOW" ] || fail "release workflow missing"
 [ -f "$WAIT" ] || fail "external release asset wait script missing"
+[ -x "$INTAKE" ] || fail "AppVeyor intake adapter missing"
 
-# The menubar receipt gate (kept job id tauri-build) waits on the external bundles.
-grep -Fq 'External Menubar Receipt Gate' "$WORKFLOW" || fail "missing external menubar receipt gate"
-grep -Fq 'wait-for-external-release-assets.py' "$WORKFLOW" || fail "menubar gate does not invoke wait script"
-grep -Fq -- '--kind menubar' "$WORKFLOW" || fail "menubar gate does not scope to menubar assets"
+# One canonical intake pulls Windows bundles and checks every external surface.
+grep -Fq 'Exact external provider artifact intake' "$WORKFLOW" || fail "missing consolidated external intake"
+grep -Fq 'intake-appveyor-release-artifacts.py' "$WORKFLOW" || fail "Windows menubar intake is not invoked"
+grep -Fq 'wait-for-external-release-assets.py' "$WORKFLOW" || fail "external completeness gate does not invoke wait script"
+grep -Fq -- '--kind all' "$WORKFLOW" || fail "external gate does not require all assets"
 
 # The wait script encodes the full macOS + Windows menubar contract.
 for token in \
@@ -65,6 +68,11 @@ grep -Fq '`"$bunExe`" $tauriCli --version && `"$bunExe`" $tauriCli build --targe
 grep -Fq 'Bun executable missing under npm global root' "$APPVEYOR" || fail "AppVeyor must fail closed when the npm-owned Bun executable is unavailable"
 grep -Fq 'package-owned Tauri CLI missing' "$APPVEYOR" || fail "AppVeyor must fail closed when the package-owned Tauri CLI is unavailable"
 grep -Fq '".sig"' "$APPVEYOR" || fail "AppVeyor must retain Windows updater signature receipts"
+if grep -Eq 'GH_TOKEN|GITHUB_RELEASE_TOKEN|uploads.github.com' "$APPVEYOR"; then
+  fail "AppVeyor must not receive GitHub release write authority"
+fi
+grep -Fq 'Focusa_{version}_{architecture}-setup.exe' "$INTAKE" || fail "intake lacks exact tagged NSIS names"
+grep -Fq 'Focusa_{version}_{architecture}_en-US.msi' "$INTAKE" || fail "intake lacks exact tagged MSI names"
 grep -Fq 'Generate signed Tauri updater metadata from provider receipts' "$WORKFLOW" || fail "release workflow must generate latest.json from provider signatures"
 
 pass "release.yml gates signed menubar updater bundles via external providers"
