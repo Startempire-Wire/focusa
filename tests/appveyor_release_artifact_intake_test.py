@@ -216,6 +216,11 @@ class AppVeyorReleaseArtifactIntakeTests(unittest.TestCase):
         with self.assertRaisesRegex(module.IntakeError, "unsafe AppVeyor artifact path"):
             module.validate_artifact_listing(listing, expected, "job")
 
+    def test_canonical_prerelease_tag_grammar_is_preserved(self):
+        self.assertEqual(module._require_tag("v9.9.9-dev"), "v9.9.9-dev")
+        with self.assertRaisesRegex(module.IntakeError, "invalid release tag"):
+            module._require_tag("release/9.9.9")
+
     def test_multiple_exact_tag_builds_are_rejected(self):
         client = FakeClient()
         history = client.history(module.DEFAULT_ACCOUNT, module.DEFAULT_PROJECT)

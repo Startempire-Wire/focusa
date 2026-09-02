@@ -143,8 +143,10 @@ def _require_sha(value: str) -> str:
 
 
 def _require_tag(value: str) -> str:
-    if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", value):
-        raise IntakeError(f"invalid stable release tag: {value!r}")
+    if not re.fullmatch(
+        r"v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?", value
+    ):
+        raise IntakeError(f"invalid release tag: {value!r}")
     return value
 
 
