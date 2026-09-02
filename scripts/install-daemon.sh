@@ -554,29 +554,32 @@ fi
 if [[ "$NO_VERIFY" -eq 0 ]]; then
   payload="$(wait_for_health 60 "$EXPECTED_VERSION" || true)"
   if [[ -z "$payload" ]]; then
-    log "health check curl returned empty — checking service state..."
-    if systemctl is-active "$SERVICE_UNIT" >/dev/null 2>&1; then
-      log "service is active; proceeding despite health check failure (version check skipped)"
-      audit_event "deploy_health" "degraded" "health check failed but service active (version check skipped)"
-    else
-      rollback "health verification failed for $HEALTH_URL (service not active)"
-    fi
-  fi
-  if [[ -n "$payload" ]]; then
-    version="$(printf '%s' "$payload" | json_field version || true)"
-    log "health payload received: len=${#payload}"
-    if [[ -n "$EXPECTED_VERSION" && "$version" != "$EXPECTED_VERSION" ]]; then
-      rollback "health version mismatch: expected $EXPECTED_VERSION, got ${version:-<empty>}"
-    fi
-    log "daemon healthy at $HEALTH_URL"
-    if [[ -n "$version" ]]; then
-      log "live version=$version"
-    fi
-  else
-    log "no health payload available; continuing without version verification"
+    rollback "health verification failed for $HEALTH_URL (empty or unavailable response)"
   fi
 
-  log "daemon is running with expected binary"
+  version="$(printf '%s' "$payload" | json_field version || true)"
+  log "health payload received: len=${#payload}"
+  if [[ -n "$EXPECTED_VERSION" && "$version" != "$EXPECTED_VERSION" ]]; then
+    rollback "health version mismatch: expected $EXPECTED_VERSION, got ${version:-<empty>}"
+  fi
+  log "daemon healthy at $HEALTH_URL"
+  if [[ -n "$version" ]]; then
+    log "live version=$version"
+  fi
+
+  validator_url="${FOCUSA_CALLGRAPH_VALIDATOR_URL:-}"
+  if [[ -z "$validator_url" ]]; then
+    case "$HEALTH_URL" in
+      */v1/health) validator_url="${HEALTH_URL%/v1/health}/v1/callgraphs/validate" ;;
+      *) rollback "CallGraph validator URL cannot be derived from health URL: $HEALTH_URL" ;;
+    esac
+  fi
+  if ! python3 "$ROOT_DIR/scripts/verify-callgraph-validator.py" --url "$validator_url"; then
+    rollback "CallGraph validator verification failed for $validator_url"
+  fi
+  audit_event "deploy_capability" "verified" "canonical CallGraph validator available at $validator_url"
+
+  log "daemon is running with expected binary and required CallGraph validator"
   audit_event "deploy_complete" "success" "deploy complete current_version=${CURRENT_VERSION:-unknown} current_checksum=${CURRENT_CHECKSUM:-unknown} new_checksum=${NEW_CHECKSUM:-unknown}" "${version:-}"
   log "deploy complete"
   exit 0
