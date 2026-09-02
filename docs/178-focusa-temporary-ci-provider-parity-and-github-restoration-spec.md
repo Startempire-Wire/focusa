@@ -126,7 +126,10 @@ while uploading a different pre-seal bundle is forbidden.
 18. AppVeyor uses the same secure outer-base64 payload contract and validates it
 in memory before Tauri packaging. No decoded signing-key file is written on
 either provider. The AppVeyor project must hold both the key payload and
-password as secure variables; absent authority fails before package work.
+password as secure variables; absent authority fails before package work. One
+exact reviewed branch performs immutable-tag recovery. The duplicate PR webhook
+and every unrelated branch must stop before dependencies, so one recovery
+request cannot fan out into two six-job serial matrices.
 19. AppVeyor artifact intake discovers a normal release only from a public
 project-history record whose repository, tag, full commit SHA, and terminal
 success match the immutable candidate. An immutable-tag recovery additionally
