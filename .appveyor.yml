@@ -7,9 +7,9 @@
 # https://ci.appveyor.com/projects/new (GitHub OAuth).
 #
 # Full Windows surface coverage:
-#   - Rust binaries (focusa-daemon, focusa, focusa-tui) for x86_64 + aarch64 MSVC
+#   - Rust binaries (CLI, daemon, session runner, TUI) for x86_64 + aarch64 MSVC
 #   - Menubar Tauri NSIS + MSI bundles (x86_64 + aarch64; tag only)
-#   - tag-gated upload of all artifacts back to the GitHub Release
+#   - tag-gated public retention for exact-SHA canonical GitHub pull intake
 # AppVeyor hosted jobs have a hard 60-minute quota. Rust binaries, Rust tests,
 # and Menubar packaging therefore occupy separate serial jobs per architecture.
 #
@@ -60,8 +60,9 @@ environment:
 
 install:
   # A controller commit can recover one immutable tag without retagging. The
-  # provider loads this YAML first, then this step verifies and checks out the
-  # exact candidate before any dependency, build, test, package, or upload.
+  # provider loads this YAML first, then this step freezes controller receipts,
+  # verifies identity, and checks out the exact candidate before any dependency,
+  # build, test, package, or artifact retention.
   - ps: |
       $recoveryPath = "config/appveyor-release-recovery.json"
       if (Test-Path $recoveryPath) {
@@ -80,6 +81,21 @@ install:
         if ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true" -and $isControllerRequest) {
           if (-not ($recovery.tag -match '^v[0-9]+\.[0-9]+\.[0-9]+$')) { throw "invalid recovery tag" }
           if (-not ($recovery.sha -match '^[0-9a-f]{40}$')) { throw "invalid recovery SHA" }
+          $receipts = $recovery.verified_test_receipts
+          $receiptBuild = [int]$receipts.build
+          $receiptControllerSha = [string]$receipts.controller_sha
+          $receiptX64Job = [string]$receipts.x86_64_job
+          $receiptArm64Job = [string]$receipts.aarch64_job
+          if ($receiptBuild -ne 242 -or -not ($receiptControllerSha -match '^[0-9a-f]{40}$')) {
+            throw "invalid frozen AppVeyor test receipt controller"
+          }
+          if (-not ($receiptX64Job -match '^[a-z0-9]{16}$') -or -not ($receiptArm64Job -match '^[a-z0-9]{16}$')) {
+            throw "invalid frozen AppVeyor test receipt jobs"
+          }
+          Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TEST_BUILD -Value $receiptBuild
+          Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TEST_CONTROLLER_SHA -Value $receiptControllerSha
+          Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TEST_X64_JOB -Value $receiptX64Job
+          Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TEST_ARM64_JOB -Value $receiptArm64Job
           git fetch --force origin "refs/tags/$($recovery.tag):refs/tags/$($recovery.tag)"
           if ($LASTEXITCODE -ne 0) { throw "failed to fetch immutable recovery tag" }
           $tagSha = (git rev-parse "$($recovery.tag)^{commit}").Trim()
@@ -264,15 +280,14 @@ test_script:
         return
       }
       if ($env:FOCUSA_RECOVERY_TAG) {
-        $recovery = Get-Content "config/appveyor-release-recovery.json" -Raw | ConvertFrom-Json
-        $receiptBuild = [int]$recovery.verified_test_receipts.build
-        $receiptControllerSha = "9b18fb6edb49aecf0656774b6e36a65e9fd8542d"
+        $receiptBuild = [int]$env:FOCUSA_RECOVERY_TEST_BUILD
+        $receiptControllerSha = $env:FOCUSA_RECOVERY_TEST_CONTROLLER_SHA
         $receiptJob = if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") {
-          $recovery.verified_test_receipts.aarch64_job
+          $env:FOCUSA_RECOVERY_TEST_ARM64_JOB
         } else {
-          $recovery.verified_test_receipts.x86_64_job
+          $env:FOCUSA_RECOVERY_TEST_X64_JOB
         }
-        if ($receiptBuild -ne 242 -or -not ($receiptJob -match '^[a-z0-9]{16}$')) {
+        if ($receiptBuild -ne 242 -or -not ($receiptControllerSha -match '^[0-9a-f]{40}$') -or -not ($receiptJob -match '^[a-z0-9]{16}$')) {
           throw "invalid frozen AppVeyor test receipt identity"
         }
         $receiptState = Invoke-RestMethod -Uri "https://ci.appveyor.com/api/projects/verioussmith/focusa/build/$receiptBuild"
@@ -312,39 +327,11 @@ test_script:
       & cmd.exe /d /s /c $command
       if ($LASTEXITCODE -ne 0) { throw "Rust tests failed with exit code $LASTEXITCODE" }
 
-# Tag pushes upload every artifact only after the canonical GitHub workflow
-# creates its gated draft Release. Provider adapters never create Releases.
-on_success:
-  - ps: |
-      if (($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG) -and $env:SURFACE -in @("binaries", "menubar")) {
-        $uploadToken = @($env:GH_TOKEN, $env:GITHUB_RELEASE_TOKEN) | Where-Object { $_ } | Select-Object -First 1
-        if (-not $uploadToken) { throw "missing GitHub release upload credential" }
-        $tag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } else { $env:APPVEYOR_REPO_TAG_NAME }
-        $repo = "Startempire-Wire/focusa"
-        $headers = @{ Authorization = "Bearer $uploadToken"; "User-Agent" = "appveyor"; "Accept" = "application/vnd.github+json" }
-        $release = $null
-        for ($attempt = 1; $attempt -le 80; $attempt++) {
-          try {
-            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/tags/$tag" -Headers $headers
-            break
-          } catch {
-            Start-Sleep -Seconds 30
-          }
-        }
-        if (-not $release) { throw "canonical GitHub Release did not appear within 40 minutes" }
-        Get-ChildItem artifacts | ForEach-Object {
-          $name = $_.Name
-          Invoke-RestMethod -Method Post -Uri "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$name" `
-            -Headers @{ Authorization = "Bearer $uploadToken"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
-            -InFile $_.FullName | Out-Null
-          Write-Host "uploaded $name"
-        }
-        $headers = $null
-        $uploadToken = $null
-      }
-
+# AppVeyor is a build/signing producer only. The canonical GitHub Release
+# workflow reads these public retained artifacts, verifies exact identity and
+# digests, then uploads with its own workflow-scoped token.
 artifacts:
   - path: artifacts\*
 
-# Tag pushes also build here so release packaging can pull the artifacts.
+# Tag pushes also build here so canonical pull intake can settle the artifacts.
 deploy: off

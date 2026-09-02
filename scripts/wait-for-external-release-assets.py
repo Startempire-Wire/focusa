@@ -7,10 +7,11 @@ release matrix is carried by:
   - macOS   -> Codemagic (macos-rust-binaries + menubar-macos-package-proof)
   - Windows -> AppVeyor (full Rust binaries + Menubar NSIS/MSI)
 
-Each provider uploads its artifacts straight back to the same GitHub Release
-(tag-keyed). This script is the durable receipt gate: it polls `gh release view`
-until every external surface is present, then exits 0. It fails closed when the
-bounded wait expires with any surface missing.
+Codemagic uploads with approved scoped authority. The canonical self-hosted
+workflow verifies and pulls AppVeyor's public retained artifacts, then uploads
+with its workflow-scoped token. This final completeness gate polls `gh release
+view` until every external surface is present and fails closed when the bounded
+wait expires with any surface missing.
 
 Usage:
   wait-for-external-release-assets.py --tag vX.Y.Z --kind menubar

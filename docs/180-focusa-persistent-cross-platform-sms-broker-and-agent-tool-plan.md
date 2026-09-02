@@ -137,8 +137,8 @@ Separately granted tools: `focusa_sms_threads`, `focusa_sms_read_thread`, `focus
 ### Phase R3 — provider/release completion (55 minutes–4 hours 30 minutes)
 
 1. Require terminal green Codemagic exact-tag/SHA macOS updater signatures.
-2. Require AppVeyor x64 + ARM64 Rust, NSIS, MSI, updater signatures, exact tag/SHA, and successful upload receipt.
-3. Dispatch canonical Spec 178 recovery from the corrected 145/150-minute controller.
+2. Require AppVeyor x64 + ARM64 Rust, NSIS, MSI, updater signatures, exact tag/SHA, and a successful typed pull-intake receipt.
+3. Dispatch canonical Spec 178 recovery through the consolidated 385-minute intake plus five-minute completeness gate.
 4. Verify candidate lock, asset matrix, hashes, updater metadata, trust roots, installers, and all 14/14 release gates.
 5. Publish only through the canonical finalizer; verify Latest and updater/installer consumption.
 6. Disable both provider recovery records after closure.

@@ -14,6 +14,18 @@ on:
         description: Exact commit SHA the release tag must resolve to
         required: true
         type: string
+      appveyor_build_number:
+        description: Optional exact AppVeyor tag or reviewed recovery build number
+        required: false
+        type: string
+      appveyor_controller_sha:
+        description: Full controller SHA for the optional AppVeyor recovery build
+        required: false
+        type: string
+      appveyor_controller_branch:
+        description: Exact controller branch for the optional AppVeyor recovery build
+        required: false
+        type: string
 
 concurrency:
   group: release-${{ inputs.release_tag || github.ref }}
@@ -400,10 +412,10 @@ jobs:
   # macOS package proof. See docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
   # Build Tauri desktop app for macOS only (testing)
   # Spec 178: macOS/Windows menubar packaging is carried by Codemagic
-  # (menubar-macos-package-proof) and AppVeyor (Tauri NSIS/MSI), which upload
-  # their bundles straight back to this release. This job keeps the canonical
-  # job id (tauri-build) as the durable external-receipt gate: it fails closed
-  # until every menubar surface (app.zip + dmg + setup.exe + msi) is attached.
+  # (menubar-macos-package-proof) and AppVeyor (Tauri NSIS/MSI). Codemagic
+  # uploads with scoped authority; AppVeyor retains public artifacts for the
+  # canonical pull-intake job. This disabled matrix remains the restoration
+  # target for every menubar surface (app.zip + dmg + setup.exe + msi).
   tauri-build:
     name: Build Menubar (${{ matrix.platform }})
     # Disabled by default while Spec 178 owns macOS/Windows via external
@@ -697,29 +709,99 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  external-menubar-receipts:
-    name: External Menubar Receipt Gate
+  external-provider-receipts:
+    name: Exact external provider artifact intake
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    # Producer-before-waiter: do not consume a bounded OVH lane while local
-    # support artifacts are still queued on that same runner pool.
-    needs: [create-release, pi-extension-release]
-    runs-on: self-hosted
-    timeout-minutes: 150
+    # Producer-before-waiter: release bounded OVH lanes before the one long,
+    # serial-provider intake. This single job replaces duplicate receipt waits.
+    needs: [create-release, rust-release, pi-extension-release]
+    runs-on: [self-hosted, Linux, X64, focusa-deploy, production]
+    timeout-minutes: 400
     steps:
-      - uses: actions/checkout@v6
+      - name: Check out the reviewed release controller
+        uses: actions/checkout@v6
         with:
-          ref: ${{ env.RELEASE_SHA }}
+          ref: ${{ github.workflow_sha }}
           fetch-depth: 0
+          path: release-controller
 
-      - name: Wait for external menubar artifacts (Codemagic + AppVeyor)
+      - name: Pull and verify exact AppVeyor Windows artifacts
+        env:
+          APPVEYOR_BUILD_NUMBER: ${{ inputs.appveyor_build_number }}
+          APPVEYOR_CONTROLLER_SHA: ${{ inputs.appveyor_controller_sha }}
+          APPVEYOR_CONTROLLER_BRANCH: ${{ inputs.appveyor_controller_branch }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ -n "${APPVEYOR_BUILD_NUMBER:-}" ]]; then
+            [[ "${APPVEYOR_BUILD_NUMBER}" =~ ^[0-9]+$ ]] || { echo "invalid AppVeyor build number" >&2; exit 1; }
+            args+=(--build-number "${APPVEYOR_BUILD_NUMBER}")
+            if [[ -n "${APPVEYOR_CONTROLLER_SHA:-}${APPVEYOR_CONTROLLER_BRANCH:-}" ]]; then
+              [[ "${APPVEYOR_CONTROLLER_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "missing exact AppVeyor controller SHA" >&2; exit 1; }
+              [[ -n "${APPVEYOR_CONTROLLER_BRANCH:-}" ]] || { echo "missing exact AppVeyor controller branch" >&2; exit 1; }
+              args+=(
+                --recovery-controller-sha "${APPVEYOR_CONTROLLER_SHA}"
+                --recovery-controller-branch "${APPVEYOR_CONTROLLER_BRANCH}"
+              )
+            fi
+          elif [[ -n "${APPVEYOR_CONTROLLER_SHA:-}${APPVEYOR_CONTROLLER_BRANCH:-}" ]]; then
+            echo "AppVeyor recovery controller supplied without build number" >&2
+            exit 1
+          fi
+          intake_dir="${RUNNER_TEMP}/focusa-appveyor-intake-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "${intake_dir}"
+          python3 release-controller/scripts/intake-appveyor-release-artifacts.py \
+            --tag "${RELEASE_TAG}" \
+            --sha "${RELEASE_SHA}" \
+            --output-dir "${intake_dir}" \
+            --receipt "${intake_dir}/appveyor-release-receipt-${RELEASE_TAG}.json" \
+            --timeout-minutes 385 \
+            "${args[@]}"
+
+      - name: Attach only verified or byte-identical AppVeyor assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 scripts/wait-for-external-release-assets.py \
+          [[ "$(gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json isDraft --jq .isDraft)" == "true" ]] \
+            || { echo "AppVeyor intake target is not a draft release" >&2; exit 1; }
+          mapfile -t existing_assets < <(
+            gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
+              --json assets --jq '.assets[].name'
+          )
+          intake_dir="${RUNNER_TEMP}/focusa-appveyor-intake-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          existing_dir="${RUNNER_TEMP}/focusa-appveyor-existing-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "${existing_dir}"
+          shopt -s nullglob
+          intake_files=("${intake_dir}"/*)
+          (( ${#intake_files[@]} == 17 )) \
+            || { echo "AppVeyor intake file count is not 16 artifacts plus one receipt" >&2; exit 1; }
+          upload=()
+          for path in "${intake_files[@]}"; do
+            name="$(basename "${path}")"
+            if printf '%s\n' "${existing_assets[@]}" | grep -Fqx "${name}"; then
+              gh release download "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
+                --pattern "${name}" --dir "${existing_dir}" --clobber
+              cmp -s "${path}" "${existing_dir}/${name}" \
+                || { echo "release asset collision: ${name}" >&2; exit 1; }
+              echo "appveyor_asset_retained name=${name} identity=byte-identical"
+            else
+              upload+=("${path}")
+            fi
+          done
+          if (( ${#upload[@]} > 0 )); then
+            gh release upload "${RELEASE_TAG}" "${upload[@]}" --repo "${GITHUB_REPOSITORY}"
+          fi
+
+      - name: Require complete Codemagic and AppVeyor receipts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 release-controller/scripts/wait-for-external-release-assets.py \
             --tag "${RELEASE_TAG}" \
-            --kind menubar \
-            --timeout-minutes 145
+            --kind all \
+            --timeout-minutes 5
 
   rust-release:
     name: Rust Binaries (${{ matrix.target }})
@@ -730,8 +812,8 @@ jobs:
       matrix:
         include:
           # Spec 178: macOS and Windows Rust binaries are built by Codemagic
-          # (macos-rust-binaries) and AppVeyor respectively, then uploaded
-          # straight back to this release. Linux stays on OVH self-hosted.
+          # (macos-rust-binaries) and AppVeyor respectively. Codemagic uploads;
+          # AppVeyor is settled by exact pull intake. Linux stays self-hosted.
           - target: x86_64-unknown-linux-gnu
             # Quality-identical runner swap: same canonical commands (cargo,
             # thin-LTO via Cargo.toml, cross containers), warm continuous cache.
@@ -824,33 +906,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Spec 178: macOS (Codemagic) and Windows (AppVeyor) Rust binaries are
-  # built off GitHub and uploaded back to this release. This gate fails closed
-  # until all 12 external binaries (6 macOS + 6 Windows) are attached.
-  external-rust-binaries:
-    name: External Rust Binary Receipt Gate
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    # Producer-before-waiter: all Linux matrix rows must release their bounded
-    # OVH lanes before a long external-provider receipt wait may begin.
-    needs: [create-release, rust-release]
-    runs-on: self-hosted
-    timeout-minutes: 150
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ env.RELEASE_SHA }}
-          fetch-depth: 0
-
-      - name: Wait for external Rust binaries (Codemagic + AppVeyor)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          python3 scripts/wait-for-external-release-assets.py \
-            --tag "${RELEASE_TAG}" \
-            --kind rust-binaries \
-            --timeout-minutes 145
-
   pi-extension-release:
     name: Package Pi Extension
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
@@ -903,7 +958,7 @@ jobs:
   checksums:
     name: Publish SHA256SUMS
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]
+    needs: [external-provider-receipts, rust-release, pi-extension-release, tag-ci-proof]
     runs-on: self-hosted
     timeout-minutes: 5
     steps:

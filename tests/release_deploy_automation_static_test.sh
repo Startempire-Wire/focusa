@@ -164,7 +164,7 @@ assert_grep 'apps/pi-extension/package.json apps/pi-extension/package-lock.json'
 manifest_surface='docs/contracts/spec141/generated-capability-v2/distribution-manifest.json'
 [[ "$(grep -o "$manifest_surface" scripts/create-dev-release-tag.sh | wc -l)" -eq 3 ]] \
   || fail 'Distribution manifest must appear in retry allowlist, dry-run rollback, and release commit sets'
-assert_grep 'timeout-minutes: 150' .github/workflows/release.yml 'External Menubar receipt gate timeout must cover the bounded 145-minute Codemagic/AppVeyor wait'
+assert_grep 'timeout-minutes: 400' .github/workflows/release.yml 'Consolidated external intake timeout must cover the serial AppVeyor matrix'
 assert_grep 'timeout-minutes: 30' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
 rust_check_block="$(awk '/^  rust-check:/{job=1} /^  tag-ci-proof:/{job=0} job{print}' .github/workflows/release.yml)"
 grep -q 'timeout-minutes: 25' <<<"$rust_check_block" || {
