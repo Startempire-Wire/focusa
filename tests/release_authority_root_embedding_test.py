@@ -12,7 +12,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 PROBE = ROOT / "scripts" / "verify-embedded-authority-root.py"
 KEY_ID = "authority-root-2026-01"
-PUBLIC_KEY = "public-key-fixture-base64=="
+PUBLIC_KEY = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 
 
 class ReleaseAuthorityRootEmbeddingTest(unittest.TestCase):
@@ -43,6 +43,14 @@ class ReleaseAuthorityRootEmbeddingTest(unittest.TestCase):
             forbidden = self.run_probe(binary, {"test-root": PUBLIC_KEY})
             self.assertNotEqual(forbidden.returncode, 0)
             self.assertIn("forbidden non-production", forbidden.stderr)
+
+            malformed = self.run_probe(binary, {KEY_ID: "not-base64"})
+            self.assertNotEqual(malformed.returncode, 0)
+            self.assertIn("not valid Base64", malformed.stderr)
+
+            wrong_length = self.run_probe(binary, {KEY_ID: "c2hvcnQ="})
+            self.assertNotEqual(wrong_length.returncode, 0)
+            self.assertIn("must decode to 32 bytes", wrong_length.stderr)
 
             missing_embedding = self.run_probe(binary, {KEY_ID: PUBLIC_KEY})
             self.assertNotEqual(missing_embedding.returncode, 0)

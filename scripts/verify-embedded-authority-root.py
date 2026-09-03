@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import hashlib
 import json
 import os
@@ -32,6 +34,16 @@ def configured_roots() -> dict[str, str]:
             raise ValueError(f"forbidden non-production authority root key ID: {key_id}")
         if not isinstance(public_key, str) or not public_key.strip():
             raise ValueError(f"authority root {key_id} has no public key")
+        try:
+            decoded = base64.b64decode(public_key, validate=True)
+        except (binascii.Error, ValueError) as error:
+            raise ValueError(
+                f"authority root {key_id} public key is not valid Base64"
+            ) from error
+        if len(decoded) != 32:
+            raise ValueError(
+                f"authority root {key_id} public key must decode to 32 bytes"
+            )
         roots[key_id] = public_key
     return roots
 
