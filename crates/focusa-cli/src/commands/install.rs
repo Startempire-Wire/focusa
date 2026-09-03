@@ -4934,13 +4934,17 @@ fn build_plan(
                 std::env::var("HOME").unwrap_or_default()
             )
         },
-        service_manager_planned: match target {
-            InstallTarget::Linux => "systemd --user".to_string(),
-            InstallTarget::Darwin => "launchd user agent".to_string(),
-            InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => {
-                "Windows service warning".to_string()
+        service_manager_planned: if args.system_install {
+            "existing systemd focusa-daemon.service (restart only if active)".to_string()
+        } else {
+            match target {
+                InstallTarget::Linux => "systemd --user".to_string(),
+                InstallTarget::Darwin => "launchd user agent".to_string(),
+                InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => {
+                    "Windows service warning".to_string()
+                }
+                InstallTarget::Auto => "auto".to_string(),
             }
-            InstallTarget::Auto => "auto".to_string(),
         },
         shell_rc_plan: vec![
             "~/.bashrc".to_string(),
@@ -5238,6 +5242,10 @@ mod tests {
         assert_eq!(
             system_plan.symlink_planned,
             "/usr/local/bin/{focusa,focusa-daemon,focusa-tui,focusa-session-runner} (transactional promotion; user links retained)"
+        );
+        assert_eq!(
+            system_plan.service_manager_planned,
+            "existing systemd focusa-daemon.service (restart only if active)"
         );
     }
 
