@@ -11,10 +11,12 @@ plain channel model. No convoluted processes.
 |---|---|---|---|---|
 | **stable** | `vX.Y.Z` | Full 14-job Release matrix | Latest, immutable | Expensive, rare — unchanged |
 | **preview** | `vX.Y.Z-(dev\|rc)` | Full 14-job Release matrix | Prerelease | Expensive, rare — unchanged |
-| **nightly** | `vX.Y.Z-nightly.YYYYMMDD` | **1 job, ubuntu-latest, Linux x86_64 only** | Rolling prerelease (previous deleted) | ~5 min/day |
+| **nightly** | `vX.Y.Z-nightly.YYYYMMDD` | **1 OVH self-hosted job, Linux x86_64 musl only** | Rolling prerelease (previous deleted) | zero GitHub-hosted runner minutes |
 
-- Nightly is a **dev convenience lane**, not a release. It ships ONLY the
-  Linux x86_64 CLI + daemon that the operator's dev machine runs.
+- Nightly is a **developer convenience lane**, not a stable/preview release. It
+  ships the installable Linux x86_64 musl runtime surfaces required by the
+  canonical installer: CLI, daemon, TUI, `focusa-session-runner`, Pi extension,
+  installer, agent context, and SHA-256 manifest.
 - Stable/Preview keep the full matrix per RELEASE_RULES ("no partial
   releases" applies to stable/preview, not to the nightly dev lane which
   the operator explicitly authorizes here).
@@ -29,16 +31,23 @@ plain channel model. No convoluted processes.
    `workflow_dispatch`. Nothing else. Never on push/PR.
 2. `concurrency`: group `nightly`, cancel-in-progress true (a stuck run
    cannot stack).
-3. Skip rule: if no non-docs commit since the previous nightly tag,
-   exit early ("nothing new") — zero cost on quiet days.
-4. One job: ubuntu-latest, `timeout-minutes: 20`.
-   Build `focusa` + `focusa-daemon` (release, x86_64-unknown-linux-gnu).
-5. Package: `focusa-<tag>-x86_64-unknown-linux-gnu{,.sha256}` +
-   `SHA256SUMS` — names identical to release packaging so the canonical
-   bootstrap works unmodified.
-6. Publish: delete previous `*-nightly*` prerelease + tag (rolling),
-   create `v<stamp>-nightly.YYYYMMDD` prerelease with those assets.
-7. Permissions: `contents: write` only.
+3. Skip rule: fetch full tag history; if no non-docs commit exists since the
+   previous nightly tag, exit early ("nothing new") — zero build cost on quiet days.
+4. One job: the authorized OVH `[self-hosted, Linux, X64, ovh-build-2]`
+   builder, `timeout-minutes: 20`; never a billing-locked hosted runner.
+5. Before compiling, derive `v<stamp>-nightly.YYYYMMDD`, stamp all version
+   surfaces, and verify them. Build with the pinned canonical release toolchain,
+   `x86_64-unknown-linux-musl`, and `FOCUSA_AUTHORITY_ROOT_KEYS_JSON`. Invalidate
+   the license crate's cached build and prove both packaged authority binaries
+   contain the configured production key ID and public key before publication.
+6. Package the CLI, daemon, TUI, session runner, Pi extension, installer, and
+   agent context with names identical to installer resolution. Cover every
+   artifact in `SHA256SUMS.txt`, then use the existing protected release-signing
+   secret to generate the canonical Ed25519 manifest/provenance set and keyless
+   Cosign checksum proof without exposing key material.
+7. Publish: delete the previous `*-nightly.*` prerelease + tag (rolling), then
+   create the dated prerelease against the exact initiating source SHA.
+8. Permissions: `contents: write` only.
 
 ## 3. CI spend control (existing workflows)
 
@@ -74,23 +83,27 @@ are canonical in `docs/178-focusa-temporary-ci-provider-parity-and-github-restor
 
 ## 4. Dev machine policy
 
-Operator's build machine runs the **nightly channel**: installed via the
-canonical installer `scripts/install-focusa.sh --channel=nightly` from the
-published rolling prerelease. Never hand-copied binaries (AGENTS.md
-CANONICAL RELEASE ONLY still applies — nightly artifacts are produced by
-the canonical GitHub pipeline, just a smaller matrix).
+The operator's KnownHost runtime runs the **nightly channel** while OVH owns
+its build. Installation uses the canonical installer with an exact rolling tag:
+`scripts/install-focusa.sh --channel=nightly --release-tag=<nightly-tag>`.
+Never hand-copy binaries. The nightly artifacts are produced by the canonical
+GitHub pipeline on OVH and promoted only after version, checksum, authority-root,
+health, and rollback checks pass.
 
 ## 5. Acceptance
 
-- AC1: nightly.yml exists with cron+dispatch only, single job, 20m timeout,
-  concurrency cancel-in-progress.
-- AC2: a dispatch run produces `v…-nightly.YYYYMMDD` prerelease with
-  `focusa-<tag>-x86_64-unknown-linux-gnu` + sha256 + SHA256SUMS assets.
+- AC1: nightly.yml exists with cron+dispatch only, one OVH self-hosted job,
+  20m timeout, concurrency cancel-in-progress, and zero GitHub-hosted runner minutes.
+- AC2: a dispatch run produces `v…-nightly.YYYYMMDD` with every current
+  installer-required `x86_64-unknown-linux-musl` runtime/package asset and
+  `SHA256SUMS.txt` coverage plus canonical release-manifest, provenance,
+  detached Ed25519, and keyless Cosign trust metadata.
 - AC3: second dispatch replaces (deletes) the prior nightly — no asset
   accumulation.
 - AC4: docs-only day skips with zero build minutes.
-- AC5: `install-focusa.sh --channel=nightly` installs that build on the
-  dev machine; `focusa --version` reports the nightly tag.
+- AC5: `install-focusa.sh --channel=nightly --release-tag=<nightly-tag>`
+  installs that build on KnownHost; CLI, daemon, TUI, and session runner report
+  the nightly version and the daemon proves the compiled authority root.
 - AC6: ci.yml paths-ignore + push cancellation merged.
 - AC7: while GitHub hosted macOS is unavailable, a release-tag Codemagic
   `menubar-macos-package-proof` build is green and retains its build receipt;
