@@ -15,6 +15,8 @@ fi
 require 'fetch-depth: 0' "$WORKFLOW"
 require 'fetch-tags: true' "$WORKFLOW"
 require 'FOCUSA_AUTHORITY_ROOT_KEYS_JSON' "$WORKFLOW"
+require 'cargo clean -p focusa-license' "$WORKFLOW"
+require 'authority_root_embedding=passed' "$WORKFLOW"
 require 'FOCUSA_RELEASE_ED25519_PRIVATE_KEY' "$WORKFLOW"
 require 'scripts/release-trust-metadata.py' "$WORKFLOW"
 require 'SHA256SUMS.txt.cosign.sig' "$WORKFLOW"

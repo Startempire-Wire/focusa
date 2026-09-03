@@ -37,7 +37,9 @@ plain channel model. No convoluted processes.
    builder, `timeout-minutes: 20`; never a billing-locked hosted runner.
 5. Before compiling, derive `v<stamp>-nightly.YYYYMMDD`, stamp all version
    surfaces, and verify them. Build with the pinned canonical release toolchain,
-   `x86_64-unknown-linux-musl`, and `FOCUSA_AUTHORITY_ROOT_KEYS_JSON`.
+   `x86_64-unknown-linux-musl`, and `FOCUSA_AUTHORITY_ROOT_KEYS_JSON`. Invalidate
+   the license crate's cached build and prove both packaged authority binaries
+   contain the configured production key ID and public key before publication.
 6. Package the CLI, daemon, TUI, session runner, Pi extension, installer, and
    agent context with names identical to installer resolution. Cover every
    artifact in `SHA256SUMS.txt`, then use the existing protected release-signing
