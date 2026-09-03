@@ -811,15 +811,17 @@ jobs:
           TAG="${RELEASE_TAG}"
           mkdir -p dist
           EXE="${{ matrix.exe || '' }}"
-          expected=()
+          authority_binaries=()
           for bin in focusa-daemon focusa focusa-tui; do
             src="${CARGO_TARGET_DIR}/${{ matrix.target }}/release/${bin}${EXE}"
             dst="dist/${bin}-${TAG}-${{ matrix.target }}${EXE}"
             test -s "$src"
             cp "$src" "$dst"
-            expected+=("$dst")
+            if [ "$bin" != "focusa-tui" ]; then
+              authority_binaries+=("$dst")
+            fi
           done
-          python3 scripts/verify-embedded-authority-root.py "${expected[@]}"
+          python3 scripts/verify-embedded-authority-root.py "${authority_binaries[@]}"
           ls -la dist/
 
       - name: Upload binaries to release

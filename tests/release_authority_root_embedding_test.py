@@ -76,7 +76,10 @@ class ReleaseAuthorityRootEmbeddingTest(unittest.TestCase):
         self.assertIn(
             'passthrough = ["FOCUSA_AUTHORITY_ROOT_KEYS_JSON"]', github
         )
+        self.assertIn('if [ "$bin" != "focusa-tui" ]', github)
+        self.assertIn('@("focusa-daemon", "focusa")', appveyor)
         self.assertIn("production authority root embedding proof failed", appveyor)
+        self.assertIn('if [[ "$bin" != "focusa-tui" ]]', codemagic)
         self.assertIn('"${authority_binaries[@]}"', codemagic)
 
     def test_probe_rejects_missing_and_empty_binaries(self) -> None:

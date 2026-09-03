@@ -22,7 +22,7 @@ No variants, no shortcuts, no `--no-verify`, no hand-editing `distribution-manif
   Remove this exception when GitHub-hosted macOS proves the same contract green.
 - **Tag ≠ Release.** `git push --tags` only enqueues CI. `Latest` flips only after `Release 14/14 green`. Say "tag pushed, CI queued" vs "Release published as Latest". Never "pushed full release" when only tag exists.
 - **No partial releases.** No OS-only, surface-only, or docs-only ship without explicit operator written approval.
-- **Production authority is artifact-bound.** Every Linux, Windows, and macOS Rust release provider receives the public `FOCUSA_AUTHORITY_ROOT_KEYS_JSON` at compile time (including `cross` container passthrough). Before upload, `scripts/verify-embedded-authority-root.py` must prove each CLI, daemon, and TUI binary contains every configured production key ID and public key. Liveness, a runtime environment drop-in, or an existing lease never substitutes for this binary proof.
+- **Production authority is artifact-bound.** Every Linux, Windows, and macOS Rust release provider receives the public `FOCUSA_AUTHORITY_ROOT_KEYS_JSON` at compile time (including `cross` container passthrough). Before upload, `scripts/verify-embedded-authority-root.py` must prove each authority-verifying CLI and daemon binary contains every configured production key ID and public key. TUI presence remains mandatory, but it does not link the license verifier and must not be given a decorative trust root. Liveness, a runtime environment drop-in, or an existing lease never substitutes for this binary proof.
 
 ### What is deterministic and agent-removed (fewer failure points = less agent)
 

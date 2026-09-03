@@ -153,7 +153,7 @@ after_build:
         if (-not (Test-Path $source)) { throw "missing release binary $source" }
         $destination = "artifacts\$bin-$releaseTag-$env:RUST_TARGET.exe"
         Move-Item $source $destination
-        if ($bin -in @("focusa-daemon", "focusa", "focusa-tui")) {
+        if ($bin -in @("focusa-daemon", "focusa")) {
           $authorityBinaries += $destination
         }
       }
