@@ -64,8 +64,8 @@ jobs:
           test -s "${reports}/deslop-report.html"
           exit "${scan_status}"
 
-      - name: Upload Deslop reports
-        if: always()
+      - name: Upload Deslop failure reports
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: deslop-reports
