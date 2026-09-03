@@ -169,6 +169,7 @@ jobs:
           tar -C bundle -czf "dist/focusa-agent-context-${TAG}.tar.gz" focusa-agent-context
 
           (cd dist && sha256sum \
+            "focusa-${TAG}-${triple}" \
             focusa-*-${TAG}-${triple} \
             "focusa-pi-extension-${TAG}.tar.gz" \
             "focusa-installer-${TAG}.sh" \
