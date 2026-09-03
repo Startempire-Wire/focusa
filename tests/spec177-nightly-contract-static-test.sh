@@ -60,4 +60,6 @@ if not stamp < build < publish:
     raise SystemExit('nightly must stamp before build and publish only after build')
 PY
 
+test "$(jq '[.keys[] | select(.revoked_at == null)] | length' "$ROOT/config/focusa-trusted-release-keys.json")" -eq 1
+
 echo 'PASS Spec 177 nightly workflow contract'
