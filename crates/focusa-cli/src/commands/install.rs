@@ -243,8 +243,9 @@ pub struct InstallArgs {
     #[arg(skip)]
     pub release_tag_override: Option<String>,
 
-    /// Internal upgrade path: preserve an existing authoritative system surface.
-    #[arg(skip)]
+    /// Promote verified assets to the authoritative `/usr/local/bin` system surface.
+    /// Used explicitly by the verified bootstrap when bridging an older system install.
+    #[arg(long)]
     pub system_install: bool,
 
     /// Persist PATH addition to shell rc file when interactive.
@@ -1961,6 +1962,10 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     let target = resolve_target(args.target)?;
     let channel = args.channel;
     let dry_run = args.dry_run;
+    anyhow::ensure!(
+        !args.system_install || target == InstallTarget::Linux,
+        "--system-install is supported only for the Linux authoritative /usr/local/bin surface"
+    );
     let install_root = std::env::var_os("HOME")
         .map(|h| std::path::PathBuf::from(h).join(".focusa"))
         .unwrap_or_else(|| std::path::PathBuf::from("/opt/focusa"));
@@ -4921,10 +4926,14 @@ fn build_plan(
         channel: args.channel,
         install_root: root.display().to_string(),
         assets_planned,
-        symlink_planned: format!(
-            "{}/.local/bin/focusa",
-            std::env::var("HOME").unwrap_or_default()
-        ),
+        symlink_planned: if args.system_install {
+            "/usr/local/bin/{focusa,focusa-daemon,focusa-tui,focusa-session-runner} (transactional promotion; user links retained)".to_string()
+        } else {
+            format!(
+                "{}/.local/bin/focusa",
+                std::env::var("HOME").unwrap_or_default()
+            )
+        },
         service_manager_planned: match target {
             InstallTarget::Linux => "systemd --user".to_string(),
             InstallTarget::Darwin => "launchd user agent".to_string(),
@@ -5217,6 +5226,19 @@ mod tests {
                 .any(|asset| asset.name == "focusa-agent-context" && asset.triple == "all")
         );
         assert_eq!(plan.license_mode, "authority_existing_or_limited_access");
+
+        let mut system_args = args;
+        system_args.system_install = true;
+        let system_plan = build_plan(
+            &system_args,
+            InstallTarget::Linux,
+            std::path::Path::new("/tmp/.focusa"),
+        )
+        .unwrap();
+        assert_eq!(
+            system_plan.symlink_planned,
+            "/usr/local/bin/{focusa,focusa-daemon,focusa-tui,focusa-session-runner} (transactional promotion; user links retained)"
+        );
     }
 
     #[test]

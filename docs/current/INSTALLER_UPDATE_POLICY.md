@@ -27,10 +27,14 @@ Public examples:
 ```bash
 bash scripts/install-focusa.sh --dry-run
 curl -fsS https://install.focusa.dev/focusa | bash
+# After verifying the exact Nightly release bundle, bridge an existing Linux system installation:
+bash focusa-installer-<exact-nightly-tag>.sh --channel=nightly --release-tag=<exact-nightly-tag> --system-install
 curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall
 # Explicit destructive removal only:
 curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall --purge-data
 ```
+
+`--system-install` is an explicit Linux-only bridge for an existing authoritative `/usr/local/bin` installation. The verified bootstrap delegates it to the Rust install transaction, which promotes all canonical binaries and owns rollback; the shell must never copy or relink product binaries itself.
 
 After install, repair, or update, verify daemon health/version, all-Pi-tool discovery, Mission Canvas, and canonical Workpoint resume. Uninstall must remain idempotent when binaries are already absent.
 
