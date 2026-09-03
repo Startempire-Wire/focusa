@@ -21,6 +21,7 @@ concurrency:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   nightly:
@@ -109,6 +110,10 @@ jobs:
             -p focusa-tui \
             -p focusa-session-runner
 
+      - name: Install canonical release signing tools
+        if: steps.changes.outputs.skip != 'true'
+        uses: sigstore/cosign-installer@v3.10.0
+
       - name: Package and verify every installer-required nightly asset
         if: steps.changes.outputs.skip != 'true'
         env:
@@ -144,6 +149,38 @@ jobs:
             "focusa-agent-context-${TAG}.tar.gz" \
             > SHA256SUMS.txt)
           test "$(wc -l < dist/SHA256SUMS.txt)" -eq 7
+
+      - name: Generate trusted Nightly manifest, provenance, and signatures
+        if: steps.changes.outputs.skip != 'true'
+        env:
+          TAG: ${{ steps.nightly.outputs.tag }}
+          FOCUSA_RELEASE_ED25519_PRIVATE_KEY: ${{ secrets.FOCUSA_RELEASE_ED25519_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${FOCUSA_RELEASE_ED25519_PRIVATE_KEY:-}"
+          python3 -m pip install --disable-pip-version-check --user 'cryptography==46.0.4'
+          umask 077
+          key_file="${RUNNER_TEMP}/focusa-nightly-release-ed25519.pem"
+          trap 'shred -u "$key_file" 2>/dev/null || rm -f "$key_file"' EXIT
+          printf '%s\n' "$FOCUSA_RELEASE_ED25519_PRIVATE_KEY" > "$key_file"
+          python3 scripts/release-trust-metadata.py \
+            --dist dist \
+            --tag "$TAG" \
+            --commit "$GITHUB_SHA" \
+            --repo "$GITHUB_REPOSITORY" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --workflow .github/workflows/nightly.yml \
+            --private-key "$key_file" \
+            --trusted-keys config/focusa-trusted-release-keys.json
+          cosign sign-blob --yes \
+            --output-signature dist/SHA256SUMS.txt.cosign.sig \
+            --output-certificate dist/SHA256SUMS.txt.cosign.pem \
+            dist/SHA256SUMS.txt
+          test -s dist/release-manifest.json
+          test -s dist/release-manifest.json.sig
+          test -s dist/SHA256SUMS.txt.cosign.sig
+          test -s dist/SHA256SUMS.txt.cosign.pem
 
       - name: Replace the rolling nightly prerelease
         if: steps.changes.outputs.skip != 'true'

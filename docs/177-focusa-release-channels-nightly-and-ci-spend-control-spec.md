@@ -40,7 +40,9 @@ plain channel model. No convoluted processes.
    `x86_64-unknown-linux-musl`, and `FOCUSA_AUTHORITY_ROOT_KEYS_JSON`.
 6. Package the CLI, daemon, TUI, session runner, Pi extension, installer, and
    agent context with names identical to installer resolution. Cover every
-   artifact in `SHA256SUMS.txt`.
+   artifact in `SHA256SUMS.txt`, then use the existing protected release-signing
+   secret to generate the canonical Ed25519 manifest/provenance set and keyless
+   Cosign checksum proof without exposing key material.
 7. Publish: delete the previous `*-nightly.*` prerelease + tag (rolling), then
    create the dated prerelease against the exact initiating source SHA.
 8. Permissions: `contents: write` only.
@@ -92,7 +94,8 @@ health, and rollback checks pass.
   20m timeout, concurrency cancel-in-progress, and zero GitHub-hosted runner minutes.
 - AC2: a dispatch run produces `v…-nightly.YYYYMMDD` with every current
   installer-required `x86_64-unknown-linux-musl` runtime/package asset and
-  `SHA256SUMS.txt` coverage.
+  `SHA256SUMS.txt` coverage plus canonical release-manifest, provenance,
+  detached Ed25519, and keyless Cosign trust metadata.
 - AC3: second dispatch replaces (deletes) the prior nightly — no asset
   accumulation.
 - AC4: docs-only day skips with zero build minutes.
