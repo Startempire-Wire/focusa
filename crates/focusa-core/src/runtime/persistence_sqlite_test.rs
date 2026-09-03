@@ -139,6 +139,8 @@ fn test_event(turn_id: &str) -> EventLogEntry {
         machine_id: None,
         instance_id: None,
         session_id: None,
+        project_root: None,
+        continuity_id: None,
         thread_id: None,
         is_observation: false,
     }
@@ -174,6 +176,23 @@ fn sqlite_event_hash_chain_links_appended_events() {
     assert_eq!(rows[1].0, 1);
     assert_eq!(rows[1].1, rows[0].2);
     assert_ne!(rows[0].2, rows[1].2);
+}
+
+#[test]
+fn sqlite_event_round_trip_preserves_explicit_project_and_continuity_scope() {
+    let dir = temp_dir();
+    let mut cfg = FocusaConfig::default();
+    cfg.data_dir = dir.to_string_lossy().to_string();
+    let persistence = SqlitePersistence::new(&cfg).unwrap();
+    let mut event = test_event("scope-round-trip");
+    event.project_root = Some("/repo/homepage".to_string());
+    event.continuity_id = Some("homepage-main".to_string());
+    persistence.append_event(&event).unwrap();
+
+    let restored = persistence.events_since(None, None, 10).unwrap();
+    assert_eq!(restored.len(), 1);
+    assert_eq!(restored[0].project_root, event.project_root);
+    assert_eq!(restored[0].continuity_id, event.continuity_id);
 }
 
 #[test]

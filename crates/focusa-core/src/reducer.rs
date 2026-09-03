@@ -392,6 +392,41 @@ fn find_workpoint_mut(
         .ok_or_else(|| ReducerError::InvalidEvent(format!("Workpoint {} not found", workpoint_id)))
 }
 
+fn same_workpoint_scope(left: &WorkpointRecord, right: &WorkpointRecord) -> bool {
+    left.project_root == right.project_root && left.continuity_id == right.continuity_id
+}
+
+fn bound_workpoint_scope_history(state: &mut FocusaState, scope: &WorkpointRecord) {
+    let active_id = state.workpoint.active_workpoint_id;
+    let excess = state
+        .workpoint
+        .records
+        .iter()
+        .filter(|candidate| {
+            same_workpoint_scope(candidate, scope)
+                && !(candidate.canonical && candidate.status == WorkpointStatus::Active)
+                && Some(candidate.workpoint_id) != active_id
+        })
+        .count()
+        .saturating_sub(workpoint_caps::RECORDS);
+    if excess == 0 {
+        return;
+    }
+
+    let mut remaining = excess;
+    state.workpoint.records.retain(|candidate| {
+        let evictable = same_workpoint_scope(candidate, scope)
+            && !(candidate.canonical && candidate.status == WorkpointStatus::Active)
+            && Some(candidate.workpoint_id) != active_id;
+        if evictable && remaining > 0 {
+            remaining -= 1;
+            false
+        } else {
+            true
+        }
+    });
+}
+
 fn upsert_workpoint_record(
     state: &mut FocusaState,
     mut record: WorkpointRecord,
@@ -402,17 +437,25 @@ fn upsert_workpoint_record(
         record.created_at = Some(now);
     }
     record.updated_at = Some(now);
-    if let Some(existing) = state
+
+    // Re-checkpointing is a fresh retention event. Moving the replacement to
+    // the back prevents a newly accepted record from retaining a stale slot.
+    if let Some(index) = state
         .workpoint
         .records
-        .iter_mut()
-        .find(|w| w.workpoint_id == record.workpoint_id)
+        .iter()
+        .position(|candidate| candidate.workpoint_id == record.workpoint_id)
     {
-        *existing = record;
-    } else {
-        state.workpoint.records.push(record);
-        truncate_front(&mut state.workpoint.records, workpoint_caps::RECORDS);
+        state.workpoint.records.remove(index);
     }
+    state.workpoint.records.push(record);
+    let scope = state
+        .workpoint
+        .records
+        .last()
+        .expect("workpoint was just appended")
+        .clone();
+    bound_workpoint_scope_history(state, &scope);
 }
 
 fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
@@ -5432,6 +5475,142 @@ mod tests {
             workpoint_caps::VERIFICATIONS
         );
         assert_eq!(stored.blockers.len(), workpoint_caps::BLOCKERS);
+    }
+
+    #[test]
+    fn test_recheckpointed_active_workpoint_survives_unrelated_scope_pressure() {
+        let target = workpoint_record("homepage-task");
+        let target_id = target.workpoint_id;
+        let target_idempotency = Some("homepage-rebind".to_string());
+        let mut state = reduce(
+            fresh_state(),
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: target },
+        )
+        .unwrap()
+        .new_state;
+        state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id: target_id,
+                confidence: WorkpointConfidence::Verified,
+                reason: "homepage active".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        for index in 0..workpoint_caps::RECORDS {
+            let mut unrelated = workpoint_record(&format!("unrelated-{index}"));
+            unrelated.project_root = Some(format!("/repo/unrelated-{index}"));
+            unrelated.continuity_id = Some(format!("continuity-{index}"));
+            state = reduce(
+                state,
+                FocusaEvent::WorkpointCheckpointProposed {
+                    workpoint: unrelated,
+                },
+            )
+            .unwrap()
+            .new_state;
+        }
+
+        let mut refreshed = workpoint_record("homepage-task");
+        refreshed.workpoint_id = target_id;
+        refreshed.idempotency_key = target_idempotency.clone();
+        state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointProposed {
+                workpoint: refreshed,
+            },
+        )
+        .unwrap()
+        .new_state;
+        state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id: target_id,
+                confidence: WorkpointConfidence::Verified,
+                reason: "homepage rebound".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        let mut final_unrelated = workpoint_record("final-unrelated");
+        final_unrelated.project_root = Some("/repo/focusa".to_string());
+        final_unrelated.continuity_id = Some("focusa-continuity".to_string());
+        state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointProposed {
+                workpoint: final_unrelated,
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        let retained = state
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == target_id)
+            .expect("freshly re-checkpointed active workpoint must survive unrelated traffic");
+        assert_eq!(retained.status, WorkpointStatus::Active);
+        assert_eq!(retained.idempotency_key, target_idempotency);
+    }
+
+    #[test]
+    fn test_workpoint_history_cap_is_per_scope_and_never_evicts_active() {
+        let active = workpoint_record("active-task");
+        let active_id = active.workpoint_id;
+        let mut state = reduce(
+            fresh_state(),
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: active },
+        )
+        .unwrap()
+        .new_state;
+        state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id: active_id,
+                confidence: WorkpointConfidence::Verified,
+                reason: "pin active authority".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        for index in 0..(workpoint_caps::RECORDS + 5) {
+            let mut history = workpoint_record(&format!("history-{index}"));
+            history.status = WorkpointStatus::Superseded;
+            history.canonical = false;
+            state = reduce(
+                state,
+                FocusaEvent::WorkpointCheckpointProposed { workpoint: history },
+            )
+            .unwrap()
+            .new_state;
+        }
+
+        assert!(
+            state
+                .workpoint
+                .records
+                .iter()
+                .any(|record| record.workpoint_id == active_id
+                    && record.status == WorkpointStatus::Active)
+        );
+        assert_eq!(
+            state
+                .workpoint
+                .records
+                .iter()
+                .filter(|record| {
+                    record.project_root.as_deref() == Some("/repo/test")
+                        && record.continuity_id.as_deref() == Some("cont-test")
+                        && record.status != WorkpointStatus::Active
+                })
+                .count(),
+            workpoint_caps::RECORDS
+        );
     }
 
     // ─── Session lifecycle ───────────────────────────────────────────
