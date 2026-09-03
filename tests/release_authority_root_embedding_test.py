@@ -78,6 +78,7 @@ class ReleaseAuthorityRootEmbeddingTest(unittest.TestCase):
             'passthrough = ["FOCUSA_AUTHORITY_ROOT_KEYS_JSON"]', github
         )
         self.assertIn('if [ "$bin" != "focusa-tui" ]', github)
+        self.assertIn("skip_branch_with_pr: true", appveyor)
         self.assertIn('@("focusa-daemon", "focusa")', appveyor)
         self.assertIn("production authority root embedding proof failed", appveyor)
         self.assertIn('if [[ "$bin" != "focusa-tui" ]]', codemagic)
