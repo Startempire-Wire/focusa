@@ -1,6 +1,6 @@
-# Nightly channel (Spec 177). Dev convenience lane: ONE job, Linux x86_64
-# only, rolling prerelease. Expected spend: <60 CI-min/month.
-# NOT a release (see docs/current/RELEASE_RULES_2026-08-19.md vocabulary).
+# Nightly channel (Spec 177). Developer lane: one self-hosted OVH job,
+# Linux x86_64 musl only, rolling prerelease. Expected hosted spend: 0 CI-min/month.
+# NOT a stable/preview release (see docs/current/RELEASE_RULES_2026-08-19.md).
 
 name: Nightly
 
@@ -8,6 +8,12 @@ on:
   schedule:
     - cron: '30 14 * * *' # 06:30 PT daily — once per day, never on push/PR
   workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even when no non-docs commit exists since the last nightly
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: nightly
@@ -15,77 +21,194 @@ concurrency:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   nightly:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 20
+    env:
+      CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-nightly-target/x86_64-unknown-linux-musl
+      FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Skip when no code changes since previous nightly
         id: changes
+        shell: bash
         run: |
           set -euo pipefail
-          prev=$(git tag --list 'v*-nightly*' --sort=-creatordate | head -1 || true)
+          if [ "${{ github.event_name }}" = workflow_dispatch ] && [ "${{ inputs.force }}" = true ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "forced=true"
+            exit 0
+          fi
+          prev=$(git tag --list 'v*-nightly.*' --sort=-creatordate | head -1)
           if [ -n "$prev" ]; then
             count=$(git rev-list --count "$prev"..HEAD -- \
               ':!*.md' ':!docs/**' ':!**/*.md')
             echo "prev=$prev"
             echo "count=$count"
-            echo "skip=$([ "$count" -eq 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+            if [ "$count" -eq 0 ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "skip=false" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Toolchain
+      - name: Verify Nightly workflow contract
         if: steps.changes.outputs.skip != 'true'
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-gnu
+        shell: bash
+        run: bash tests/spec177-nightly-contract-static-test.sh
 
-      - name: Build focusa + focusa-daemon (Linux x86_64)
+      - name: Resolve and stamp rolling nightly identity
         if: steps.changes.outputs.skip != 'true'
-        run: |
-          set -euo pipefail
-          cargo build --release -p focusa-cli --target x86_64-unknown-linux-gnu
-          install -m 0755 \
-            target/x86_64-unknown-linux-gnu/release/focusa \
-            target/x86_64-unknown-linux-gnu/release/focusa-daemon .
-
-      - name: Package + publish rolling prerelease
-        if: steps.changes.outputs.skip != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
+        id: nightly
+        shell: bash
         run: |
           set -euo pipefail
           stamp=$(cat docs/current/.release-version-stamp)
           date=$(date -u +%Y%m%d)
           tag="v${stamp}-nightly.${date}"
+          python3 scripts/stamp-menubar-version.py "$tag"
+          python3 scripts/verify-version-surfaces.py "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
 
-          # Rolling channel: remove the previous nightly release + tags so
-          # assets never accumulate (Spec 177 AC3).
-          for old in $(gh release list --json tagName,isPrerelease \
-              --jq '.[] | select(.isPrerelease) | .tagName' | grep nightly); do
-            gh release delete "$old" --yes --cleanup-tag || true
+      - name: Install pinned release toolchain
+        if: steps.changes.outputs.skip != 'true'
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2026-08-28
+          targets: x86_64-unknown-linux-musl
+
+      - name: Install canonical cross builder
+        if: steps.changes.outputs.skip != 'true'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Build complete installable Linux runtime
+        if: steps.changes.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Cross.toml <<'EOF'
+          [build.env]
+          passthrough = ["CFLAGS_x86_64_unknown_linux_musl", "FOCUSA_AUTHORITY_ROOT_KEYS_JSON"]
+          EOF
+          trap 'rm -f Cross.toml' EXIT
+          export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
+          cargo clean -p focusa-license --target x86_64-unknown-linux-musl
+          cross build --release --target x86_64-unknown-linux-musl \
+            -p focusa-cli \
+            -p focusa-api \
+            -p focusa-tui \
+            -p focusa-session-runner
+
+      - name: Install canonical release signing tools
+        if: steps.changes.outputs.skip != 'true'
+        uses: sigstore/cosign-installer@v3.10.0
+
+      - name: Package and verify every installer-required nightly asset
+        if: steps.changes.outputs.skip != 'true'
+        env:
+          TAG: ${{ steps.nightly.outputs.tag }}
+          VERSION: ${{ steps.nightly.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          triple=x86_64-unknown-linux-musl
+          mkdir -p dist bundle/focusa-agent-context/skills bundle/focusa-agent-context/bin
+          for bin in focusa focusa-daemon focusa-tui focusa-session-runner; do
+            src="${CARGO_TARGET_DIR}/${triple}/release/${bin}"
+            asset="dist/${bin}-${TAG}-${triple}"
+            test -x "$src"
+            install -m 0755 "$src" "$asset"
+            "$asset" --version | grep -F "$VERSION"
           done
-          git push origin :refs/tags/"$tag" 2>/dev/null || true
 
-          triple=x86_64-unknown-linux-gnu
-          for bin in focusa focusa-daemon; do
-            asset="${bin}-${tag}-${triple}"
-            cp "$bin" "$asset"
-            sha256sum "$asset" > "${asset}.sha256"
+          tar -C apps -czf "dist/focusa-pi-extension-${TAG}.tar.gz" pi-extension
+          install -m 0755 scripts/install-focusa.sh "dist/focusa-installer-${TAG}.sh"
+          "dist/focusa-installer-${TAG}.sh" --version | grep -F "$VERSION"
+
+          python3 scripts/verify-embedded-authority-root.py \
+            "dist/focusa-${TAG}-${triple}" \
+            "dist/focusa-daemon-${TAG}-${triple}"
+
+          cp AGENTS.md bundle/focusa-agent-context/AGENTS.md
+          cp -R .pi/skills/. bundle/focusa-agent-context/skills/
+          install -m 0755 scripts/focusa-skill-doctor bundle/focusa-agent-context/bin/focusa-skill-doctor
+          test -n "$(find bundle/focusa-agent-context/skills -name SKILL.md -type f -print -quit)"
+          tar -C bundle -czf "dist/focusa-agent-context-${TAG}.tar.gz" focusa-agent-context
+
+          (cd dist && sha256sum \
+            "focusa-${TAG}-${triple}" \
+            focusa-*-${TAG}-${triple} \
+            "focusa-pi-extension-${TAG}.tar.gz" \
+            "focusa-installer-${TAG}.sh" \
+            "focusa-agent-context-${TAG}.tar.gz" \
+            > SHA256SUMS.txt)
+          test "$(wc -l < dist/SHA256SUMS.txt)" -eq 7
+
+      - name: Generate trusted Nightly manifest, provenance, and signatures
+        if: steps.changes.outputs.skip != 'true'
+        env:
+          TAG: ${{ steps.nightly.outputs.tag }}
+          FOCUSA_RELEASE_ED25519_PRIVATE_KEY: ${{ secrets.FOCUSA_RELEASE_ED25519_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${FOCUSA_RELEASE_ED25519_PRIVATE_KEY:-}"
+          signing_venv="${RUNNER_TEMP}/focusa-nightly-signing-venv"
+          python3 -m venv "$signing_venv"
+          "$signing_venv/bin/python" -m pip install --disable-pip-version-check 'cryptography==46.0.4'
+          umask 077
+          key_file="${RUNNER_TEMP}/focusa-nightly-release-ed25519.pem"
+          trap 'shred -u "$key_file" 2>/dev/null || rm -f "$key_file"' EXIT
+          printf '%s\n' "$FOCUSA_RELEASE_ED25519_PRIVATE_KEY" > "$key_file"
+          "$signing_venv/bin/python" scripts/release-trust-metadata.py \
+            --dist dist \
+            --tag "$TAG" \
+            --commit "$GITHUB_SHA" \
+            --repo "$GITHUB_REPOSITORY" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --workflow .github/workflows/nightly.yml \
+            --private-key "$key_file" \
+            --trusted-keys config/focusa-trusted-release-keys.json
+          cosign sign-blob --yes \
+            --output-signature dist/SHA256SUMS.txt.cosign.sig \
+            --output-certificate dist/SHA256SUMS.txt.cosign.pem \
+            dist/SHA256SUMS.txt
+          test -s dist/release-manifest.json
+          test -s dist/release-manifest.json.sig
+          test -s dist/SHA256SUMS.txt.cosign.sig
+          test -s dist/SHA256SUMS.txt.cosign.pem
+
+      - name: Replace the rolling nightly prerelease
+        if: steps.changes.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.nightly.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t old_tags < <(gh release list --limit 100 --json tagName,isPrerelease \
+            --jq '.[] | select(.isPrerelease and (.tagName | contains("-nightly."))) | .tagName')
+          for old in "${old_tags[@]}"; do
+            gh release delete "$old" --yes --cleanup-tag
           done
-          sha256sum "focusa-${tag}-${triple}" \
-            "focusa-daemon-${tag}-${triple}" > SHA256SUMS
-
-          gh release create "$tag" \
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            git push origin ":refs/tags/$TAG"
+          fi
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
             --prerelease \
-            --title "$tag (nightly — dev lane, not a release)" \
-            --notes "Automated nightly from ${GITHUB_SHA::8}. Linux x86_64 only. Not for stable users." \
-            "focusa-${tag}-${triple}" \
-            "focusa-${tag}-${triple}.sha256" \
-            "focusa-daemon-${tag}-${triple}" \
-            "focusa-daemon-${tag}-${triple}.sha256" \
-            SHA256SUMS
+            --title "$TAG (nightly developer lane)" \
+            --notes "Automated installable nightly from ${GITHUB_SHA::8}. Linux x86_64 musl only; not a stable/preview release." \
+            dist/*

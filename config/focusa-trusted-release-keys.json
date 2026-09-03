@@ -4,7 +4,7 @@
       "key_id": "focusa-release-2026-07-15-82418ad7e4d2",
       "public_key_base64": "lxOPS/4lV4At168EDBycQ2C24FV8BhCFeG5QFKZgFZ4=",
       "public_key_fingerprint": "82418ad7e4d21dd1e70482d070b6014b998977e2b6c0f8bdc1fa716c96b912fc",
-      "revoked_at": null,
+      "revoked_at": "2026-08-24T00:00:00Z",
       "signing_algorithm": "ed25519",
       "valid_from": "2026-07-15T00:00:00Z",
       "valid_until": "2026-08-24T00:00:00Z"
@@ -13,7 +13,7 @@
       "key_id": "focusa-release-2026-08-24-4ed9c92b",
       "note": "rotation 2026-08-24: prior key unrecoverable (ephemeral CI secret); supersedes focusa-release-2026-07-15-82418ad7e4d2",
       "public_key_base64": "aUIw/R9BEtl/74uE/KhLJOzUQhm87VbOzQMEgciHTZI=",
-      "public_key_fingerprint": "4ed9c92b5ea322ef6070173c011332b100f3a80eda062089735f76c9631143c6",
+      "public_key_fingerprint": "c2fed86dff6bb0ff56628211dee14fe40b126a14ef5c0d4b872a11e0c5a40f3e",
       "revoked_at": null,
       "signing_algorithm": "ed25519",
       "valid_from": "2026-08-24T00:00:00Z",
