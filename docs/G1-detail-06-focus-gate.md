@@ -178,9 +178,16 @@ Users can:
 - No auto-popup interruptions.
 
 ## Persistence
-Persist candidate list with bounded size:
-- Keep last N candidates (default 200)
-- Persist to `~/.focusa/state/focus_gate.json`
+Persist candidate list and the gate-consumption cursor with bounded size:
+- Keep the latest 1,000 signals and at most 1,000 matching processed-signal IDs.
+- Each signal ID may affect candidate pressure once; daemon restart and repeated
+  pipeline calls must not replay a recent signal. On first load of a legacy
+  snapshot that already has candidates, retained signals initialize the cursor
+  without applying historical pressure again.
+- Keep last N candidates (default 200).
+- Persist temporal emission markers with state so restarts do not manufacture
+  another time signal.
+- Persist to the canonical Focusa snapshot/store selected by the daemon.
 
 ## Acceptance Tests
 - Duplicate signals merge into same candidate.
@@ -188,6 +195,10 @@ Persist candidate list with bounded size:
 - Suppression hides candidate for the set period.
 - Decay reduces stale candidates over time.
 - No candidate action changes focus stack without explicit CLI/API call.
+- Re-running the pipeline, including after a snapshot round trip, does not change
+  pressure or `times_seen` for an already consumed signal ID.
+- Idle daemon ticks do not append recurring inactivity/long-running events for
+  the same episode or frame.
 
 ---
 
@@ -223,7 +234,12 @@ Add:
 - `deadline_tick`
 
 ### Derived Heuristics (MVP)
-- Frame open > N minutes → signal
+- An active turn that exceeds the inactivity threshold emits once for that turn
+  episode; the next `TurnStarted` event resets its marker.
+- A frame open longer than N minutes emits `long_running_frame` once in that
+  frame's lifetime.
+- A legacy stack migration hydrates markers from retained temporal signals and
+  emits at most one previously unseen temporal signal per daemon tick.
 - Candidate resurfacing over long interval → boost
 - Explicit user deadline → hard signal
 
