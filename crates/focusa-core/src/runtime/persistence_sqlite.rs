@@ -1178,22 +1178,26 @@ impl SqlitePersistence {
 
     fn scope_keys_for_event(entry: &EventLogEntry) -> (String, String) {
         let project_root_key = entry
-            .correlation_id
+            .project_root
             .as_deref()
-            .and_then(|value| {
-                value
-                    .split('|')
-                    .find_map(|part| part.strip_prefix("project_root="))
+            .or_else(|| {
+                entry.correlation_id.as_deref().and_then(|value| {
+                    value
+                        .split('|')
+                        .find_map(|part| part.strip_prefix("project_root="))
+                })
             })
             .unwrap_or("unscoped_project_root")
             .to_string();
         let workstream_key = entry
-            .correlation_id
+            .continuity_id
             .as_deref()
-            .and_then(|value| {
-                value
-                    .split('|')
-                    .find_map(|part| part.strip_prefix("continuity_id="))
+            .or_else(|| {
+                entry.correlation_id.as_deref().and_then(|value| {
+                    value
+                        .split('|')
+                        .find_map(|part| part.strip_prefix("continuity_id="))
+                })
             })
             .unwrap_or("default_workstream")
             .to_string();

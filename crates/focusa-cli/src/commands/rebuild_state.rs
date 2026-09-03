@@ -56,26 +56,53 @@ pub async fn run(args: RebuildStateArgs, json_mode: bool) -> anyhow::Result<()> 
                 _ => focusa_core::types::SignalOrigin::Adapter,
             };
             let id_raw: String = row.get(0)?;
-            Ok(EventLogEntry {
-                id: uuid::Uuid::parse_str(&id_raw).unwrap_or(uuid::Uuid::nil()),
-                timestamp: row.get(1)?,
-                origin,
-                correlation_id: row.get(3)?,
-                event: serde_json::from_str::<focusa_core::types::FocusaEvent>(
-                    row.get::<_, String>(4)?.as_str(),
-                )
+            let id = uuid::Uuid::parse_str(&id_raw).unwrap_or(uuid::Uuid::nil());
+            let timestamp = row.get(1)?;
+            let correlation_id = row.get(3)?;
+            let payload_raw: String = row.get(4)?;
+            let machine_id = row.get(5)?;
+            let instance_id = row.get(6)?;
+            let session_id = row.get(7)?;
+            let thread_id = row.get(8)?;
+            let is_observation = row.get(9)?;
+
+            if let Ok(mut entry) = serde_json::from_str::<EventLogEntry>(&payload_raw) {
+                entry.id = id;
+                entry.timestamp = timestamp;
+                entry.origin = origin;
+                entry.correlation_id = correlation_id;
+                entry.machine_id = machine_id;
+                entry.instance_id = instance_id;
+                entry.session_id = session_id;
+                entry.thread_id = thread_id;
+                entry.is_observation = is_observation;
+                return Ok(entry);
+            }
+
+            let event = serde_json::from_str::<focusa_core::types::FocusaEvent>(&payload_raw)
                 .map_err(|error| {
                     rusqlite::Error::FromSqlConversionFailure(
                         4,
                         rusqlite::types::Type::Text,
                         Box::new(error),
                     )
-                })?,
-                machine_id: row.get(5)?,
-                instance_id: row.get(6)?,
-                session_id: row.get(7)?,
-                thread_id: row.get(8)?,
-                is_observation: row.get(9)?,
+                })?;
+            Ok(EventLogEntry {
+                id,
+                timestamp,
+                temporal: focusa_core::temporal_clock::TemporalActionEnvelope::unavailable(
+                    "legacy_rebuild_event_missing_temporal_action_envelope",
+                ),
+                origin,
+                correlation_id,
+                event,
+                machine_id,
+                instance_id,
+                session_id,
+                project_root: None,
+                continuity_id: None,
+                thread_id,
+                is_observation,
             })
         })?;
         rows.collect::<rusqlite::Result<Vec<_>>>()?

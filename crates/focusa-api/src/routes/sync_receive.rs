@@ -160,6 +160,8 @@ pub async fn receive_impl(
             machine_id: Some(remote.machine_id.clone()),
             instance_id: remote.instance_id.as_ref().and_then(|s| s.parse().ok()),
             session_id: remote.session_id.as_ref().and_then(|s| s.parse().ok()),
+            project_root: None,
+            continuity_id: None,
             thread_id: remote.thread_id.as_ref().and_then(|s| s.parse().ok()),
             is_observation: true, // POLICY #2: Always true for imports
         };

@@ -177,6 +177,8 @@ pub async fn transfer_impl(
                 .or(Some(remote.machine_id.clone())),
             instance_id: None,
             session_id: None,
+            project_root: None,
+            continuity_id: None,
             thread_id: Some(thread_id),
             is_observation: false, // CRITICAL: Must mutate state!
         };
