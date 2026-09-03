@@ -3,12 +3,19 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKFLOW="$ROOT/.github/workflows/nightly.yml"
+CI_WORKFLOW="$ROOT/.github/workflows/ci.yml"
+DESLOP_WORKFLOW="$ROOT/.github/workflows/deslop.yml"
 SPEC="$ROOT/docs/177-focusa-release-channels-nightly-and-ci-spend-control-spec.md"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 require() { grep -Fq -- "$1" "$2" || fail "$2 missing: $1"; }
 
 require 'runs-on: [self-hosted, Linux, X64, ovh-build-2]' "$WORKFLOW"
+require 'runs-on: [self-hosted, Linux, X64, ovh-build-2]' "$CI_WORKFLOW"
+require 'runs-on: [self-hosted, Linux, X64, ovh-build-2]' "$DESLOP_WORKFLOW"
+if grep -R --include='*.yml' -Fq 'ovh-build]' "$ROOT/.github/workflows"; then
+  fail 'active workflows must use the canonical ovh-build-2 runner label'
+fi
 if grep -Fq 'ubuntu-latest' "$WORKFLOW"; then
   fail 'nightly must not depend on billing-locked GitHub-hosted runners'
 fi

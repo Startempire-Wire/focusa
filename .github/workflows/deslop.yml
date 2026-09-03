@@ -7,7 +7,7 @@ on:
 
 jobs:
   deslop:
-    runs-on: [self-hosted, Linux, X64, ovh-build]
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 20
     permissions:
       contents: read
