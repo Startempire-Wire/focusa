@@ -186,12 +186,14 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${FOCUSA_RELEASE_ED25519_PRIVATE_KEY:-}"
-          python3 -m pip install --disable-pip-version-check --user 'cryptography==46.0.4'
+          signing_venv="${RUNNER_TEMP}/focusa-nightly-signing-venv"
+          python3 -m venv "$signing_venv"
+          "$signing_venv/bin/python" -m pip install --disable-pip-version-check 'cryptography==46.0.4'
           umask 077
           key_file="${RUNNER_TEMP}/focusa-nightly-release-ed25519.pem"
           trap 'shred -u "$key_file" 2>/dev/null || rm -f "$key_file"' EXIT
           printf '%s\n' "$FOCUSA_RELEASE_ED25519_PRIVATE_KEY" > "$key_file"
-          python3 scripts/release-trust-metadata.py \
+          "$signing_venv/bin/python" scripts/release-trust-metadata.py \
             --dist dist \
             --tag "$TAG" \
             --commit "$GITHUB_SHA" \
