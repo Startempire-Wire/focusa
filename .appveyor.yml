@@ -147,11 +147,18 @@ after_build:
         return
       }
       $releaseTag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } elseif ($env:APPVEYOR_REPO_TAG -eq "true") { $env:APPVEYOR_REPO_TAG_NAME } else { "branch-$($env:APPVEYOR_REPO_COMMIT.Substring(0, 8))" }
+      $authorityBinaries = @()
       foreach ($bin in @("focusa-daemon", "focusa", "focusa-session-runner", "focusa-tui")) {
         $source = "target\$env:RUST_TARGET\release\$bin.exe"
         if (-not (Test-Path $source)) { throw "missing release binary $source" }
-        Move-Item $source "artifacts\$bin-$releaseTag-$env:RUST_TARGET.exe"
+        $destination = "artifacts\$bin-$releaseTag-$env:RUST_TARGET.exe"
+        Move-Item $source $destination
+        if ($bin -in @("focusa-daemon", "focusa", "focusa-tui")) {
+          $authorityBinaries += $destination
+        }
       }
+      python scripts/verify-embedded-authority-root.py @authorityBinaries
+      if ($LASTEXITCODE -ne 0) { throw "production authority root embedding proof failed" }
   # Menubar Tauri NSIS + MSI for both Windows targets (tag or exact recovery).
   - ps: |
       if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG)) {

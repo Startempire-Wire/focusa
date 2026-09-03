@@ -213,6 +213,9 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       xcode: latest
+      vars:
+        # Public production verification root, compiled into release binaries.
+        FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
       groups:
         - github_credentials
     triggering:
@@ -340,13 +343,17 @@ workflows:
             cargo metadata --locked --format-version 1 >/dev/null
           fi
           mkdir -p dist
+          authority_binaries=()
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
             cargo build --locked --release --target "$target" -p focusa-cli -p focusa-api -p focusa-tui
             for bin in focusa focusa-daemon focusa-tui; do
               test -x "target/$target/release/$bin"
-              cp "target/$target/release/$bin" "dist/${bin}-${FOCUSA_RELEASE_TAG}-${target}"
+              destination="dist/${bin}-${FOCUSA_RELEASE_TAG}-${target}"
+              cp "target/$target/release/$bin" "$destination"
+              authority_binaries+=("$destination")
             done
           done
+          python3 scripts/verify-embedded-authority-root.py "${authority_binaries[@]}"
           if [[ -n "$lock_before" ]]; then
             cp "$lock_before" Cargo.lock
             git diff --exit-code -- Cargo.lock
