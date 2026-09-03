@@ -30,6 +30,7 @@ const INPUTS: [(&str, &str); 4] = [
 ];
 
 fn main() {
+    println!("cargo:rerun-if-env-changed=FOCUSA_AUTHORITY_ROOT_KEYS_JSON");
     let manifest = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let mut bundle = Map::new();
     for (name, relative) in INPUTS {

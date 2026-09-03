@@ -61,6 +61,7 @@ class ReleaseAuthorityRootEmbeddingTest(unittest.TestCase):
         github = (ROOT / ".github/workflows/release.yml").read_text()
         appveyor = (ROOT / ".appveyor.yml").read_text()
         codemagic = (ROOT / "codemagic.yaml").read_text()
+        license_build = (ROOT / "crates/focusa-license/build.rs").read_text()
 
         for name, source in {
             "github": github,
@@ -81,6 +82,10 @@ class ReleaseAuthorityRootEmbeddingTest(unittest.TestCase):
         self.assertIn("production authority root embedding proof failed", appveyor)
         self.assertIn('if [[ "$bin" != "focusa-tui" ]]', codemagic)
         self.assertIn('"${authority_binaries[@]}"', codemagic)
+        self.assertIn(
+            "cargo:rerun-if-env-changed=FOCUSA_AUTHORITY_ROOT_KEYS_JSON",
+            license_build,
+        )
 
     def test_probe_rejects_missing_and_empty_binaries(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
