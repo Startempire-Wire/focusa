@@ -3742,6 +3742,17 @@ pub enum ArtifactLineKind {
 pub struct FocusGateState {
     pub signals: Vec<Signal>,
     pub candidates: Vec<Candidate>,
+    /// Durable cursor: each retained signal may affect candidate pressure once.
+    #[serde(default)]
+    pub processed_signal_ids: Vec<SignalId>,
+    /// One inactivity signal per active-turn episode and frame.
+    #[serde(default)]
+    pub inactivity_signal_frames: Vec<FrameId>,
+    #[serde(default)]
+    pub inactivity_signal_without_frame: bool,
+    /// One long-running signal per frame lifetime.
+    #[serde(default)]
+    pub long_running_signal_frames: Vec<FrameId>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

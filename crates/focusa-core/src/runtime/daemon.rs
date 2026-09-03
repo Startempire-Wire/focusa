@@ -459,7 +459,7 @@ impl Daemon {
                                 tracing::error!("Action processing failed: {}", e);
                             }
                             self.drain_intuition_signals().await;
-                            self.run_gate_pipeline();
+                            self.run_gate_pipeline().await;
                         }
                         None => break, // Channel closed.
                     }
@@ -470,7 +470,7 @@ impl Daemon {
                             tracing::error!("Worker job failed: {}", e);
                         }
                         self.drain_intuition_signals().await;
-                        self.run_gate_pipeline();
+                        self.run_gate_pipeline().await;
                     }
                 }
                 _ = decay_interval.tick() => {
@@ -486,7 +486,7 @@ impl Daemon {
                     self.emit_temporal_signals().await;
 
                     // Run gate pipeline after decay to re-check surfacing thresholds.
-                    self.run_gate_pipeline();
+                    self.run_gate_pipeline().await;
                 }
                 _ = guardian_interval.tick() => {
                     // Guardian health check — emit signals for degraded services (§9.11 JARVIS Domain 5).
@@ -1570,10 +1570,15 @@ Return ONLY valid JSON:
     /// Aggregates signals into candidates, applies pressure modifiers,
     /// surfaces candidates above threshold. Called after signal ingestion
     /// and on periodic decay tick.
-    fn run_gate_pipeline(&mut self) {
+    async fn run_gate_pipeline(&mut self) {
+        let write_serial_lock = Arc::clone(&self.write_serial_lock);
+        let _write_guard = write_serial_lock.lock().await;
+        self.reconcile_external_state().await;
+
         let active_id = self.state.focus_stack.active_id;
         let stack_path = self.state.focus_stack.stack_path_cache.clone();
         let threshold = self.config.gate_surface_threshold;
+        let gate_before = self.state.focus_gate.clone();
 
         let newly_surfaced = crate::gate::focus_gate::run_gate_pipeline(
             &mut self.state.focus_gate,
@@ -1581,6 +1586,28 @@ Return ONLY valid JSON:
             &stack_path,
             threshold,
         );
+        let changed = gate_before.signals.len() != self.state.focus_gate.signals.len()
+            || gate_before.candidates.len() != self.state.focus_gate.candidates.len()
+            || gate_before.processed_signal_ids != self.state.focus_gate.processed_signal_ids
+            || gate_before.inactivity_signal_frames
+                != self.state.focus_gate.inactivity_signal_frames
+            || gate_before.inactivity_signal_without_frame
+                != self.state.focus_gate.inactivity_signal_without_frame
+            || gate_before.long_running_signal_frames
+                != self.state.focus_gate.long_running_signal_frames
+            || newly_surfaced > 0;
+
+        if changed {
+            if let Err(error) = self.persist_reducer_batch(Vec::new(), false).await {
+                // Keep the durable cursor authoritative. Reverting makes the next
+                // pipeline call retry instead of silently treating an unpersisted
+                // signal as consumed.
+                self.state.focus_gate = gate_before;
+                tracing::error!(%error, "persistence actor rejected Focus Gate cursor update");
+            } else {
+                self.sync_shared_state().await;
+            }
+        }
 
         if newly_surfaced > 0 {
             tracing::info!(
@@ -1670,72 +1697,85 @@ Return ONLY valid JSON:
     /// These signals accumulate slowly and can surface candidates for
     /// frame review or session management.
     async fn emit_temporal_signals(&mut self) {
+        const MAX_TEMPORAL_SIGNALS_PER_TICK: usize = 1;
+
         let now = Utc::now();
         let inactivity_threshold =
             chrono::Duration::seconds(self.config.inactivity_threshold_secs.unwrap_or(300));
         let long_running_threshold =
             chrono::Duration::seconds(self.config.long_running_frame_secs.unwrap_or(1800));
         let active_id = self.state.focus_stack.active_id;
+        let mut emitted = 0usize;
 
-        // Check for inactivity (no turn completed recently).
+        // Emit once for a stuck active-turn episode. TurnStarted clears this
+        // frame marker; the reducer records it atomically with the signal event.
         if let Some(ref turn) = self.state.active_turn {
             let inactive_for = now - turn.started_at;
-            if inactive_for > inactivity_threshold {
-                let _ = self
+            let already_emitted = match active_id {
+                Some(frame_id) => self
+                    .state
+                    .focus_gate
+                    .inactivity_signal_frames
+                    .contains(&frame_id),
+                None => self.state.focus_gate.inactivity_signal_without_frame,
+            };
+            if inactive_for > inactivity_threshold && !already_emitted {
+                match self
                     .process_action(Action::EmitEvent {
                         event: FocusaEvent::IntuitionSignalObserved {
                             signal_id: Uuid::now_v7(),
                             signal_type: SignalKind::InactivityTick,
                             severity: "0.3".to_string(),
-                            // Stable summary: fingerprint-based candidate matching
-                            // dedupes on the normalized summary. Embedding the
-                            // ever-growing duration here made every decay tick
-                            // spawn a NEW candidate (label churn) and re-surface
-                            // it forever — a 148% CPU hot loop in production.
-                            // Keep the label stable; duration is a property, not
-                            // identity.
                             summary: "Frame inactive".to_string(),
                             related_frame_id: active_id,
                         },
                     })
-                    .await;
+                    .await
+                {
+                    Ok(()) => emitted += 1,
+                    Err(error) => tracing::warn!(%error, "inactivity signal emission failed"),
+                }
             }
         }
 
-        // Collect long-running frame info first (to avoid borrow issues).
-        let long_running: Vec<(FrameId, String, i64)> = self
+        // A frame emits LongRunningFrame once in its lifetime. Bound the first
+        // migration tick so a legacy stack cannot trigger hundreds of writes.
+        let mut long_running: Vec<(FrameId, String, chrono::DateTime<Utc>)> = self
             .state
             .focus_stack
             .frames
             .iter()
-            .filter(|f| f.status == FrameStatus::Active)
-            .filter_map(|f| {
-                let running_for = now - f.created_at;
-                if running_for > long_running_threshold {
-                    Some((f.id, f.title.clone(), running_for.num_minutes()))
-                } else {
-                    None
-                }
+            .filter(|frame| frame.status == FrameStatus::Active)
+            .filter(|frame| now - frame.created_at > long_running_threshold)
+            .filter(|frame| {
+                !self
+                    .state
+                    .focus_gate
+                    .long_running_signal_frames
+                    .contains(&frame.id)
             })
+            .map(|frame| (frame.id, frame.title.clone(), frame.created_at))
             .collect();
+        long_running.sort_by_key(|(_, _, created_at)| *created_at);
 
-        // Emit signals for long-running frames.
-        for (frame_id, title, _minutes) in long_running {
-            let _ = self
+        for (frame_id, title, _) in long_running
+            .into_iter()
+            .take(MAX_TEMPORAL_SIGNALS_PER_TICK.saturating_sub(emitted))
+        {
+            if let Err(error) = self
                 .process_action(Action::EmitEvent {
                     event: FocusaEvent::IntuitionSignalObserved {
                         signal_id: Uuid::now_v7(),
                         signal_type: SignalKind::LongRunningFrame,
                         severity: "0.4".to_string(),
-                        // Stable summary (see InactivityTick fix above): drop the
-                        // growing minute count from the matchable label so the
-                        // same frame dedupes into one candidate instead of a
-                        // fresh surfaced candidate every decay tick.
                         summary: format!("Frame '{}' long-running", title),
                         related_frame_id: Some(frame_id),
                     },
                 })
-                .await;
+                .await
+            {
+                tracing::warn!(%error, %frame_id, "long-running signal emission failed");
+            }
         }
     }
 
@@ -5031,8 +5071,8 @@ Return:
                     &mut self.state.focus_gate,
                     self.config.gate_decay_factor,
                 );
-                self.persist_reducer_batch(Vec::new(), false).await?;
-                self.sync_shared_state().await;
+                // process_action persists this mutation together with decay_event;
+                // writing here as well serialized the full snapshot twice per tick.
                 self.expire_stale_turn().await;
                 Ok(vec![decay_event])
             }

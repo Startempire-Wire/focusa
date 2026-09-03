@@ -20,8 +20,6 @@
 
 use crate::types::*;
 use chrono::Utc;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use uuid::Uuid;
 
 /// Default signal window for aggregation (5 minutes).
@@ -32,6 +30,9 @@ const MAX_SIGNALS: usize = 1000;
 
 /// Maximum candidates retained (spec: default 200).
 const MAX_CANDIDATES: usize = 200;
+
+/// Temporal marker cap matches the retained signal bound.
+const MAX_TEMPORAL_MARKERS: usize = MAX_SIGNALS;
 
 /// Compute base pressure increment for a signal kind.
 pub fn base_pressure(kind: SignalKind) -> f32 {
@@ -86,31 +87,6 @@ pub fn surfaced_candidates(gate: &FocusGateState, threshold: f32) -> Vec<&Candid
         .collect()
 }
 
-/// Compute fingerprint for a signal (Step 1 of G1-detail-06).
-///
-/// hash(kind + normalized summary + frame_context + key tags)
-fn signal_fingerprint(signal: &Signal) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    // kind
-    std::mem::discriminant(&signal.kind).hash(&mut hasher);
-    // normalized summary: lowercase, trim, first 100 chars
-    let norm: String = signal
-        .summary
-        .to_lowercase()
-        .trim()
-        .chars()
-        .take(100)
-        .collect();
-    norm.hash(&mut hasher);
-    // frame_context
-    signal.frame_context.hash(&mut hasher);
-    // key tags (sorted for determinism)
-    let mut sorted_tags = signal.tags.clone();
-    sorted_tags.sort();
-    sorted_tags.hash(&mut hasher);
-    hasher.finish()
-}
-
 /// Compute pressure modifier for goal alignment (G1-detail-06 §Step 3).
 ///
 /// - related_frame == active: ×1.3
@@ -148,100 +124,112 @@ pub fn run_gate_pipeline(
     let cutoff = now - chrono::Duration::seconds(SIGNAL_WINDOW_SECS);
     let mut newly_surfaced = 0usize;
 
-    // Step 1 + 2 + 3: Process recent signals → match/create candidates → pressure update.
-    // Collect signals within window; work on indices to avoid borrow issues.
-    let recent_indices: Vec<usize> = gate
+    // Bound and migrate legacy/restored state before doing any scan. Previous
+    // code capped only after processing and had no durable consumption cursor.
+    cap_signals(gate);
+    hydrate_temporal_markers(gate);
+    retain_processed_signal_ids(gate);
+    if gate.processed_signal_ids.is_empty()
+        && !gate.signals.is_empty()
+        && !gate.candidates.is_empty()
+    {
+        // Existing candidates prove this is a pre-cursor snapshot. Mark retained
+        // historical signals consumed instead of applying their pressure again.
+        gate.processed_signal_ids = gate.signals.iter().map(|signal| signal.id).collect();
+        return 0;
+    }
+
+    let processed: std::collections::HashSet<SignalId> =
+        gate.processed_signal_ids.iter().copied().collect();
+    let unseen_indices: Vec<usize> = gate
         .signals
         .iter()
         .enumerate()
-        .filter(|(_, s)| s.ts > cutoff)
-        .map(|(i, _)| i)
+        .filter(|(_, signal)| !processed.contains(&signal.id))
+        .map(|(index, _)| index)
         .collect();
 
-    for &idx in &recent_indices {
+    // Step 1 + 2 + 3: each retained signal is consumed exactly once. Expired
+    // unseen signals are acknowledged without affecting candidate pressure.
+    for idx in unseen_indices {
         let signal = &gate.signals[idx];
-        let _fp = signal_fingerprint(signal);
-        let kind = signal.kind;
-        let summary = signal.summary.clone();
         let signal_id = signal.id;
-        let related_frame = signal.frame_context;
-        let signal_ts = signal.ts;
+        if signal.ts > cutoff {
+            let kind = signal.kind;
+            let summary = signal.summary.clone();
+            let related_frame = signal.frame_context;
+            let signal_ts = signal.ts;
 
-        // Step 3: Compute pressure increment with modifiers.
-        let base = base_pressure(kind);
-        let alignment = goal_alignment_modifier(related_frame, active_id, stack_path);
-        let recency_bonus = if (now - signal_ts).num_seconds() < 300 {
-            0.3
-        } else {
-            0.0
-        };
-        let risk_bonus = match kind {
-            SignalKind::Error | SignalKind::Warning => 0.4,
-            _ => 0.0,
-        };
-        let delta_p = base * alignment + recency_bonus + risk_bonus;
+            let base = base_pressure(kind);
+            let alignment = goal_alignment_modifier(related_frame, active_id, stack_path);
+            let recency_bonus = if (now - signal_ts).num_seconds() < SIGNAL_WINDOW_SECS {
+                0.3
+            } else {
+                0.0
+            };
+            let risk_bonus = match kind {
+                SignalKind::Error | SignalKind::Warning => 0.4,
+                _ => 0.0,
+            };
+            let delta_p = base * alignment + recency_bonus + risk_bonus;
 
-        // Step 2: Match existing candidate by fingerprint or create new.
-        // Use fingerprint stored as label suffix for matching (simple approach —
-        // a proper fingerprint index could be added later).
-        let existing = gate.candidates.iter_mut().find(|c| {
-            c.kind == crate::intuition::aggregation::suggest_candidate_kind_from_signal(kind)
-                && c.related_frame_id == related_frame
-                && c.state != CandidateState::Resolved
-                && normalized_match(&c.label, &summary)
-        });
+            let existing = gate.candidates.iter_mut().find(|candidate| {
+                candidate.kind
+                    == crate::intuition::aggregation::suggest_candidate_kind_from_signal(kind)
+                    && candidate.related_frame_id == related_frame
+                    && candidate.state != CandidateState::Resolved
+                    && normalized_match(&candidate.label, &summary)
+            });
 
-        match existing {
-            Some(candidate) => {
-                candidate.times_seen += 1;
-                candidate.last_seen_at = now;
-                candidate.pressure += delta_p;
-                candidate.updated_at = now;
-                if !candidate.origin_signal_ids.contains(&signal_id) {
-                    candidate.origin_signal_ids.push(signal_id);
-                    // Cap origin signal IDs to prevent unbounded growth.
-                    if candidate.origin_signal_ids.len() > 20 {
-                        candidate.origin_signal_ids.remove(0);
+            match existing {
+                Some(candidate) => {
+                    candidate.times_seen += 1;
+                    candidate.last_seen_at = now;
+                    candidate.pressure += delta_p;
+                    candidate.updated_at = now;
+                    if !candidate.origin_signal_ids.contains(&signal_id) {
+                        candidate.origin_signal_ids.push(signal_id);
+                        if candidate.origin_signal_ids.len() > 20 {
+                            candidate.origin_signal_ids.remove(0);
+                        }
+                    }
+                    if candidate.state == CandidateState::Latent && candidate.pressure >= threshold
+                    {
+                        candidate.state = CandidateState::Surfaced;
+                        newly_surfaced += 1;
                     }
                 }
-                // Re-surface if was latent and now above threshold.
-                if candidate.state == CandidateState::Latent && candidate.pressure >= threshold {
-                    candidate.state = CandidateState::Surfaced;
-                    newly_surfaced += 1;
+                None => {
+                    let candidate_kind =
+                        crate::intuition::aggregation::suggest_candidate_kind_from_signal(kind);
+                    let initial_state = if delta_p >= threshold {
+                        newly_surfaced += 1;
+                        CandidateState::Surfaced
+                    } else {
+                        CandidateState::Latent
+                    };
+                    gate.candidates.push(Candidate {
+                        id: Uuid::now_v7(),
+                        created_at: now,
+                        updated_at: now,
+                        kind: candidate_kind,
+                        label: summary,
+                        origin_signal_ids: vec![signal_id],
+                        related_frame_id: related_frame,
+                        state: initial_state,
+                        pressure: delta_p,
+                        last_seen_at: now,
+                        times_seen: 1,
+                        suppressed_until: None,
+                        resolution: None,
+                        pinned: false,
+                    });
                 }
             }
-            None => {
-                // Create new candidate.
-                let candidate_kind =
-                    crate::intuition::aggregation::suggest_candidate_kind_from_signal(kind);
-                let initial_state = if delta_p >= threshold {
-                    newly_surfaced += 1;
-                    CandidateState::Surfaced
-                } else {
-                    CandidateState::Latent
-                };
-                gate.candidates.push(Candidate {
-                    id: Uuid::now_v7(),
-                    created_at: now,
-                    updated_at: now,
-                    kind: candidate_kind,
-                    label: summary,
-                    origin_signal_ids: vec![signal_id],
-                    related_frame_id: related_frame,
-                    state: initial_state,
-                    pressure: delta_p,
-                    last_seen_at: now,
-                    times_seen: 1,
-                    suppressed_until: None,
-                    resolution: None,
-                    pinned: false,
-                });
-            }
         }
+        gate.processed_signal_ids.push(signal_id);
     }
 
-    // Step 4: Re-check all candidates for surfacing (some may have accumulated
-    // pressure across multiple signals in this pass).
     for candidate in &mut gate.candidates {
         if candidate.state == CandidateState::Latent && candidate.pressure >= threshold {
             candidate.state = CandidateState::Surfaced;
@@ -249,11 +237,54 @@ pub fn run_gate_pipeline(
         }
     }
 
-    // Enforce caps: signals and candidates.
-    cap_signals(gate);
     cap_candidates(gate);
-
+    retain_processed_signal_ids(gate);
     newly_surfaced
+}
+
+fn hydrate_temporal_markers(gate: &mut FocusGateState) {
+    let historical: Vec<(SignalKind, Option<FrameId>)> = gate
+        .signals
+        .iter()
+        .map(|signal| (signal.kind, signal.frame_context))
+        .collect();
+    for (kind, frame_id) in historical {
+        match (kind, frame_id) {
+            (SignalKind::InactivityTick, Some(frame_id)) => {
+                push_bounded_unique(&mut gate.inactivity_signal_frames, frame_id)
+            }
+            (SignalKind::InactivityTick, None) => {
+                gate.inactivity_signal_without_frame = true;
+            }
+            (SignalKind::LongRunningFrame, Some(frame_id)) => {
+                push_bounded_unique(&mut gate.long_running_signal_frames, frame_id)
+            }
+            _ => {}
+        }
+    }
+}
+
+fn push_bounded_unique<T: Copy + PartialEq>(items: &mut Vec<T>, item: T) {
+    if items.contains(&item) {
+        return;
+    }
+    items.push(item);
+    if items.len() > MAX_TEMPORAL_MARKERS {
+        let remove = items.len() - MAX_TEMPORAL_MARKERS;
+        items.drain(..remove);
+    }
+}
+
+fn retain_processed_signal_ids(gate: &mut FocusGateState) {
+    let retained: std::collections::HashSet<SignalId> =
+        gate.signals.iter().map(|signal| signal.id).collect();
+    let mut seen = std::collections::HashSet::new();
+    gate.processed_signal_ids
+        .retain(|signal_id| retained.contains(signal_id) && seen.insert(*signal_id));
+    if gate.processed_signal_ids.len() > MAX_SIGNALS {
+        let remove = gate.processed_signal_ids.len() - MAX_SIGNALS;
+        gate.processed_signal_ids.drain(..remove);
+    }
 }
 
 /// Normalize and compare two summaries for candidate matching.
@@ -519,5 +550,63 @@ mod tests {
         assert_eq!(surfaced, 0);
         assert_eq!(gate.candidates.len(), 1);
         assert_eq!(gate.candidates[0].state, CandidateState::Latent);
+    }
+
+    #[test]
+    fn test_pipeline_does_not_reprocess_a_consumed_signal() {
+        let mut gate = FocusGateState::default();
+        gate.signals
+            .push(make_signal(SignalKind::Warning, "disk space low", None));
+        run_gate_pipeline(&mut gate, None, &[], 2.2);
+        let pressure = gate.candidates[0].pressure;
+        let times_seen = gate.candidates[0].times_seen;
+
+        assert_eq!(run_gate_pipeline(&mut gate, None, &[], 2.2), 0);
+        assert_eq!(gate.candidates[0].pressure, pressure);
+        assert_eq!(gate.candidates[0].times_seen, times_seen);
+        assert_eq!(gate.processed_signal_ids, vec![gate.signals[0].id]);
+    }
+
+    #[test]
+    fn test_pipeline_migrates_legacy_candidates_without_replaying_signals() {
+        let mut gate = FocusGateState::default();
+        gate.signals
+            .push(make_signal(SignalKind::Warning, "legacy warning", None));
+        gate.candidates
+            .push(make_candidate(4.0, CandidateState::Surfaced));
+
+        assert_eq!(run_gate_pipeline(&mut gate, None, &[], 2.2), 0);
+        assert_eq!(gate.candidates[0].pressure, 4.0);
+        assert_eq!(gate.candidates[0].times_seen, 1);
+        assert_eq!(gate.processed_signal_ids, vec![gate.signals[0].id]);
+    }
+
+    #[test]
+    fn test_pipeline_hydrates_legacy_temporal_markers() {
+        let frame_id = Uuid::now_v7();
+        let mut gate = FocusGateState::default();
+        gate.signals.push(make_signal(
+            SignalKind::LongRunningFrame,
+            "Frame long-running",
+            Some(frame_id),
+        ));
+
+        run_gate_pipeline(&mut gate, Some(frame_id), &[frame_id], 2.2);
+        assert_eq!(gate.long_running_signal_frames, vec![frame_id]);
+    }
+
+    #[test]
+    fn test_pipeline_cursor_survives_snapshot_round_trip() {
+        let mut gate = FocusGateState::default();
+        gate.signals
+            .push(make_signal(SignalKind::Error, "build failed", None));
+        run_gate_pipeline(&mut gate, None, &[], 2.2);
+        let pressure = gate.candidates[0].pressure;
+        let encoded = serde_json::to_vec(&gate).unwrap();
+        let mut restored: FocusGateState = serde_json::from_slice(&encoded).unwrap();
+
+        assert_eq!(run_gate_pipeline(&mut restored, None, &[], 2.2), 0);
+        assert_eq!(restored.candidates[0].pressure, pressure);
+        assert_eq!(restored.processed_signal_ids.len(), 1);
     }
 }
