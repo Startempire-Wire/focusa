@@ -232,10 +232,17 @@ require_in(RELEASE_WF, "Require exact candidate-SHA preflight receipts",
 require_in(RELEASE_WF, "headSha == $sha", "candidate gate reuse not bound to exact SHA")
 require_in(RELEASE_WF, "Lock exact release candidate", "exact release candidate lock missing")
 require_in(RELEASE_WF, "exact_sha: $exact_sha", "release candidate manifest lacks exact_sha")
-require_in(RELEASE_WF, ".exact_sha == env.GITHUB_SHA", "release candidate not bound to exact SHA")
+require_in(
+    RELEASE_WF,
+    "RELEASE_SHA: ${{ inputs.release_sha || github.sha }}",
+    "release authority is not bound to dispatch input or triggering SHA",
+)
+require_in(RELEASE_WF, ".exact_sha == env.RELEASE_SHA", "release candidate not bound to exact SHA")
+require_in(RELEASE_WF, 'tag_sha" != "$RELEASE_SHA"', "candidate tag not bound to release SHA")
+require_in(RELEASE_WF, 'head_sha" != "$RELEASE_SHA"', "checked-out head not bound to release SHA")
 
-# The candidate artifact manifest and trust metadata bind to the exact
-# pipeline SHA (GITHUB_SHA), not to a floating head.
+# The separate locked-candidate artifact workflow has no recovery-dispatch
+# override, so its trust metadata remains bound to the triggering GITHUB_SHA.
 require_in(CANDIDATE_WF, '--commit "$GITHUB_SHA"', "trust metadata not bound to exact pipeline SHA")
 require_in(CANDIDATE_WF, '--sha "$GITHUB_SHA"', "release intelligence not bound to exact pipeline SHA")
 
