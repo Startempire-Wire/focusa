@@ -1,0 +1,17 @@
+name: Architecture Authority Policy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  authority-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify architecture authority constitution
+        run: bash tests/architecture_authority_policy_static_test.sh
