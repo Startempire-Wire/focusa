@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   authority-policy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v4
       - name: Verify architecture authority constitution
