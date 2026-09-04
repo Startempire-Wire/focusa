@@ -5871,9 +5871,16 @@ mod tests {
         for index in 0..FRAME_COUNT {
             let frame_id = Uuid::now_v7();
             let mut frame = sample_frame_with_consults(frame_id);
+            let continuity_id = format!("legacy-continuity-{index}");
             frame.title = format!("legacy-active-frame-{index}");
+            frame.continuity_id = Some(continuity_id.clone());
+            frame.tags = vec![format!("continuity_id:{continuity_id}")];
             frame.created_at = old;
             frame.updated_at = old;
+            if index == 0 {
+                daemon.state.focus_stack.active_id = Some(frame_id);
+                daemon.state.focus_stack.stack_path_cache = vec![frame_id];
+            }
             daemon.state.focus_stack.frames.push(frame);
         }
 
