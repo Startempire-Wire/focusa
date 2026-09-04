@@ -4,6 +4,12 @@
 
 This policy governs architecture, product direction, trust boundaries, canonical specifications, authority semantics, and cross-system design decisions in Focusa and any Focusa-derived integration.
 
+## 0. GitHub estate scope
+
+This authority constitution applies to **every GitHub repository and organization owned, administered, or canonically controlled by Verious Smith III**, whether the repository lives under `verioussmith`, `Startempire-Wire`, `Philoveracity`, `WPUIAI`, or any present or future GitHub organization/account under his control.
+
+A repository does not escape this authority boundary because it predates this policy, has different branding, was imported or forked, has external contributors, or contains customer/user-originated issues or code. Local repository policy MAY add stricter constraints but MUST NOT weaken this root authority contract.
+
 ## 1. Sole current human architecture authority
 
 **Verious Smith III is the sole current and final canonical human architecture authority.**
