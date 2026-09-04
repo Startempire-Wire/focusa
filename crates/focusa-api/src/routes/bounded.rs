@@ -369,11 +369,29 @@ pub fn host_mem_available_kb() -> Option<u64> {
         .and_then(|text| parse_status_value_kb(&text, "MemAvailable"))
 }
 
-fn env_u64(name: &str, fallback: u64) -> u64 {
+fn env_u64_optional(name: &str) -> Option<u64> {
     std::env::var(name)
         .ok()
         .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(fallback)
+}
+
+fn env_u64(name: &str, fallback: u64) -> u64 {
+    env_u64_optional(name).unwrap_or(fallback)
+}
+
+fn resolve_lowmem_rss_budget(
+    soft_mb: Option<u64>,
+    hard_mb: Option<u64>,
+    legacy_hard_mb: Option<u64>,
+) -> (u64, u64) {
+    let hard_mb = hard_mb.or(legacy_hard_mb).unwrap_or(1000);
+    let soft_mb = soft_mb.unwrap_or(700);
+    let soft_mb = if hard_mb > 0 && soft_mb > hard_mb {
+        hard_mb
+    } else {
+        soft_mb
+    };
+    (soft_mb, hard_mb)
 }
 
 pub fn env_usize(name: &str, fallback: usize) -> usize {
@@ -385,9 +403,14 @@ pub fn env_usize(name: &str, fallback: usize) -> usize {
 }
 
 pub fn lowmem_budget() -> LowMemBudget {
+    let (rss_soft_mb, rss_hard_mb) = resolve_lowmem_rss_budget(
+        env_u64_optional("FOCUSA_LOWMEM_RSS_SOFT_MB"),
+        env_u64_optional("FOCUSA_LOWMEM_RSS_HARD_MB"),
+        env_u64_optional("FOCUSA_MEMORY_BUDGET_MB"),
+    );
     LowMemBudget {
-        rss_soft_mb: env_u64("FOCUSA_LOWMEM_RSS_SOFT_MB", 700),
-        rss_hard_mb: env_u64("FOCUSA_LOWMEM_RSS_HARD_MB", 1000),
+        rss_soft_mb,
+        rss_hard_mb,
         hot_route_timeout_ms: env_u64("FOCUSA_LOWMEM_HOT_TIMEOUT_MS", 1500),
         warm_route_timeout_ms: env_u64("FOCUSA_LOWMEM_WARM_TIMEOUT_MS", 1000),
         cold_route_timeout_ms: env_u64("FOCUSA_LOWMEM_COLD_TIMEOUT_MS", 3000),
@@ -1041,6 +1064,25 @@ mod tests {
         if let Ok(mut hysteresis) = RESOURCE_MODE_HYSTERESIS_STATE.lock() {
             hysteresis.remove(&scope_key);
         }
+    }
+
+    #[test]
+    fn rss_budget_has_one_canonical_resolution_with_legacy_fallback() {
+        assert_eq!(resolve_lowmem_rss_budget(None, None, None), (700, 1000));
+        assert_eq!(
+            resolve_lowmem_rss_budget(None, None, Some(4096)),
+            (700, 4096)
+        );
+        assert_eq!(
+            resolve_lowmem_rss_budget(Some(600), Some(900), Some(4096)),
+            (600, 900),
+            "canonical low-memory keys must outrank the legacy alias"
+        );
+        assert_eq!(
+            resolve_lowmem_rss_budget(None, None, Some(1)),
+            (1, 1),
+            "the default soft limit must not exceed a legacy hard limit"
+        );
     }
 
     #[test]
