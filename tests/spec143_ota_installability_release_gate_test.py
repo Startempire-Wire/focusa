@@ -4,6 +4,8 @@ import os
 import tomllib
 from pathlib import Path
 
+from install_target_contract import assert_linux_install_target_contract
+
 ROOT = Path(os.environ.get("FOCUSA_SPEC143_ROOT", Path(__file__).resolve().parents[1]))
 release_path = Path(
     os.environ.get("FOCUSA_RELEASE_WORKFLOW_PATH", ROOT / ".github/workflows/release.yml")
@@ -61,7 +63,7 @@ assert 'export FOCUSA_RELEASE_BASE_URL="$RELEASE_BASE_URL"' in installer
 assert 'return "focusa-$Tag-$Triple.exe"' in installer_ps1
 assert '$AssetName = "focusa-$Triple.exe"' not in installer_ps1
 assert '$env:FOCUSA_RELEASE_TAG = $Tag' in installer_ps1
-assert 'InstallTarget::Linux => "x86_64-unknown-linux-musl".to_string()' in install_rs
+assert_linux_install_target_contract(install_rs)
 assert '"deploy-success.json"' in trust
 assert '"deploy-success.json.sig"' in trust
 assert "verify_deploy_proof" in trust

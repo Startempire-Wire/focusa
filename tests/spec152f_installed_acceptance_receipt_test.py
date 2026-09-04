@@ -28,6 +28,8 @@ import re
 import sys
 from pathlib import Path
 
+from install_target_contract import assert_linux_install_target_contract
+
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDATE_WF = (ROOT / ".github/workflows/locked-release-candidate-artifacts.yml").read_text()
 OTA_WF = (ROOT / ".github/workflows/windows-ota-e2e.yml").read_text()
@@ -171,8 +173,7 @@ require_in(INSTALL_RS, "PersistedAuthorityState::from_verified_envelopes",
            "issued lease not verified before persistence")
 require_in(INSTALL_RS, "rotate_refresh_credential", "refresh credential rotation missing")
 require_in(INSTALL_RS, "KeyringCredentialStore", "native protected credential store missing")
-require_in(INSTALL_RS, 'InstallTarget::Linux => "x86_64-unknown-linux-musl".to_string()',
-           "Linux installed target does not use the musl triple")
+assert_linux_install_target_contract(INSTALL_RS)
 
 # The portable installer maps macOS arm64/x64 and Linux GNU/musl installed
 # flows to the exact cross-platform triples.
