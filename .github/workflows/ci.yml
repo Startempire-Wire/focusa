@@ -148,10 +148,11 @@ jobs:
       - name: Installer/update policy + Pi discovery static gate
         run: bash tests/installer_update_policy_static_test.sh
 
-      - name: Distribution parity report (#260, informational)
+      - name: Distribution manifest source contract (#260, blocking)
         run: |
-          node scripts/audit-distribution-parity.mjs --json > /tmp/distribution-manifest.json || true
-          python3 -c "import json; d=json.load(open('/tmp/distribution-manifest.json')); print('parity_ok=%s drift=%d' % (d['parity_ok'], len(d['drift']))); [print('  drift', r['surface'], r['source_value'], '->', r['observed_value']) for r in d['drift']]"
+          python3 tests/distribution_manifest_contract_test.py
+          node scripts/audit-distribution-parity.mjs --json > /tmp/distribution-manifest-audit.json || true
+          python3 -c "import json; d=json.load(open('/tmp/distribution-manifest-audit.json')); print('installed_parity_ok=%s drift=%d' % (d['parity_ok'], len(d['drift']))); [print('  drift', r['surface'], r['source_value'], '->', r['observed_value']) for r in d['drift']]"
 
       - name: Release readiness evaluation (#265, informational)
         run: node scripts/release-readiness-evaluation.mjs || true

@@ -132,8 +132,8 @@ def main() -> int:
                 "rollback guidance."
             ),
             (
-                "Agents receive matching CLI, daemon, Pi, TUI, installer, and "
-                "generated-context artifacts."
+                "Agents receive matching CLI, daemon, TUI, session runner, Pi, "
+                "installer, and generated-context artifacts bound by one distribution manifest."
             ),
         ],
         "included_work": changes,
@@ -145,6 +145,7 @@ def main() -> int:
             f"{run_ref}#final-release-gap-gate",
             "SHA256SUMS.txt",
             "release-provenance.json",
+            "distribution-manifest.json",
         ],
         "unproven_checks": [],
         "failed_checks": [],

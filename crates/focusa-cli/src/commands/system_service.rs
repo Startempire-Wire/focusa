@@ -7,8 +7,14 @@
 
 #[path = "system_service_callgraph.rs"]
 mod callgraph_probe;
+#[path = "system_service_manifest.rs"]
+mod distribution_manifest;
 #[path = "system_service_process.rs"]
 mod process;
+
+pub(crate) use distribution_manifest::{
+    prepare_distribution_manifest, validate_distribution_manifest,
+};
 
 use anyhow::{Context, Result, anyhow, bail};
 #[allow(deprecated)]
@@ -166,7 +172,7 @@ pub(crate) fn prepare_system_service() -> Result<SystemServiceTransaction> {
         return Err(error);
     }
     if let Err(error) = systemctl(&["daemon-reload"], "reload canonical system service") {
-        restore_unit_bytes(&unit_path, &staged_path, prior_unit.as_deref())?;
+        restore_file_bytes(&unit_path, &staged_path, prior_unit.as_deref())?;
         let _ = std::fs::remove_file(&backup_path);
         return Err(error);
     }
@@ -204,7 +210,7 @@ impl SystemServiceTransaction {
     }
 
     fn restore_prior_state(&mut self) -> Result<()> {
-        restore_unit_bytes(
+        restore_file_bytes(
             &self.unit_path,
             &self.staged_path,
             self.prior_unit.as_deref(),
@@ -310,22 +316,26 @@ fn write_new_file(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-fn restore_unit_bytes(unit_path: &Path, staged_path: &Path, prior: Option<&[u8]>) -> Result<()> {
+fn restore_file_bytes(path: &Path, staged_path: &Path, prior: Option<&[u8]>) -> Result<()> {
     let _ = std::fs::remove_file(staged_path);
     match prior {
         Some(bytes) => {
             let rollback_stage =
-                unit_path.with_extension(format!("service.restore-{}", std::process::id()));
+                path.with_extension(format!("focusa.restore-{}", std::process::id()));
             let _ = std::fs::remove_file(&rollback_stage);
             write_new_file(&rollback_stage, bytes)?;
-            std::fs::rename(&rollback_stage, unit_path)
-                .with_context(|| format!("restore {}", unit_path.display()))?;
+            focusa_core::durable_fs::atomic_replace(&rollback_stage, path)
+                .with_context(|| format!("restore {}", path.display()))?;
         }
-        None => match std::fs::remove_file(unit_path) {
+        None => match std::fs::remove_file(path) {
             Ok(()) => {}
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-            Err(error) => return Err(error).context(format!("remove {}", unit_path.display())),
+            Err(error) => return Err(error).context(format!("remove {}", path.display())),
         },
+    }
+    if let Some(parent) = path.parent() {
+        focusa_core::durable_fs::sync_directory(parent)
+            .with_context(|| format!("sync restored parent {}", parent.display()))?;
     }
     Ok(())
 }

@@ -2245,9 +2245,14 @@ pub async fn run(args: InstallArgs) -> Result<()> {
             .first()
             .map(|asset| asset.version.as_str())
             .ok_or_else(|| anyhow!("verified Focusa CLI asset identity is missing"))?;
+        let distribution_manifest = install_root.join("distribution-manifest.json");
+        let distribution_manifest = distribution_manifest
+            .is_file()
+            .then_some(distribution_manifest.as_path());
         match promote_system_links(
             &bin_dir,
             std::path::Path::new("/usr/local/bin"),
+            distribution_manifest,
             expected_tag,
             !args.no_service && matches!(target, InstallTarget::Linux | InstallTarget::Auto),
         ) {
@@ -3508,6 +3513,7 @@ fn install_agent_context_archive(
         .map_err(|error| anyhow!("agent context archive listing is not UTF-8: {error}"))?;
     let mut has_agents = false;
     let mut has_skill = false;
+    let mut has_distribution_manifest = false;
     for entry in listing.lines().filter(|line| !line.trim().is_empty()) {
         let entry = entry.trim_end_matches('/');
         if entry.starts_with('/')
@@ -3519,9 +3525,15 @@ fn install_agent_context_archive(
         has_agents |= entry == "focusa-agent-context/AGENTS.md";
         has_skill |=
             entry.starts_with("focusa-agent-context/skills/") && entry.ends_with("/SKILL.md");
+        has_distribution_manifest |= entry == "focusa-agent-context/distribution-manifest.json";
     }
-    if !has_agents || !has_skill {
-        bail!("agent context archive must contain AGENTS.md and at least one skills/*/SKILL.md");
+    if !has_agents
+        || !has_skill
+        || (release_requires_distribution_manifest(&asset.version) && !has_distribution_manifest)
+    {
+        bail!(
+            "agent context archive must contain AGENTS.md, the release-required distribution manifest, and at least one skills/*/SKILL.md"
+        );
     }
 
     let stage_parent = install_root.join(format!(".agent-context-stage-{}", uuid::Uuid::now_v7()));
@@ -3538,7 +3550,11 @@ fn install_agent_context_archive(
         bail!("agent context archive extraction failed");
     }
     let staged = stage_parent.join("focusa-agent-context");
-    if !staged.join("AGENTS.md").is_file() || !staged.join("skills").is_dir() {
+    if !staged.join("AGENTS.md").is_file()
+        || !staged.join("skills").is_dir()
+        || (release_requires_distribution_manifest(&asset.version)
+            && !staged.join("distribution-manifest.json").is_file())
+    {
         let _ = std::fs::remove_dir_all(&stage_parent);
         bail!("agent context extraction missing required files");
     }
@@ -3558,6 +3574,48 @@ fn install_agent_context_archive(
     let _ = std::fs::remove_dir_all(&backup);
     let _ = std::fs::remove_dir_all(&stage_parent);
     Ok(destination)
+}
+
+pub(crate) fn release_requires_distribution_manifest(tag: &str) -> bool {
+    let core = tag
+        .trim_start_matches('v')
+        .split(['-', '+'])
+        .next()
+        .unwrap_or_default();
+    let parts = core
+        .split('.')
+        .map(str::parse::<u64>)
+        .collect::<Result<Vec<_>, _>>();
+    matches!(parts.as_deref(), Ok([major, minor, patch]) if (*major, *minor, *patch) >= (0, 9, 188))
+}
+
+fn install_distribution_manifest(
+    agent_context_root: &std::path::Path,
+    install_root: &std::path::Path,
+    expected_tag: &str,
+) -> Result<Option<std::path::PathBuf>> {
+    let source = agent_context_root.join("distribution-manifest.json");
+    if !source.is_file() {
+        anyhow::ensure!(
+            !release_requires_distribution_manifest(expected_tag),
+            "release {expected_tag} requires distribution-manifest.json"
+        );
+        return Ok(None);
+    }
+    let bytes =
+        crate::commands::system_service::validate_distribution_manifest(&source, expected_tag)?;
+    let destination = install_root.join("distribution-manifest.json");
+    let staged = install_root.join(format!(
+        ".distribution-manifest.staged-{}",
+        uuid::Uuid::now_v7()
+    ));
+    let mut file =
+        std::fs::File::create(&staged).with_context(|| format!("create {}", staged.display()))?;
+    file.write_all(&bytes)?;
+    file.sync_all()?;
+    focusa_core::durable_fs::atomic_replace(&staged, &destination)?;
+    focusa_core::durable_fs::sync_directory(install_root)?;
+    Ok(Some(destination))
 }
 
 fn remove_path_if_present(path: &std::path::Path) -> Result<()> {
@@ -3896,6 +3954,7 @@ fn error_after_system_rollback(error: anyhow::Error, entries: &[SystemLinkEntry]
 fn promote_system_links(
     bin_dir: &std::path::Path,
     system_bin: &std::path::Path,
+    distribution_manifest: Option<&std::path::Path>,
     expected_tag: &str,
     restart_service: bool,
 ) -> Result<bool> {
@@ -3991,6 +4050,22 @@ fn promote_system_links(
             ));
         }
     }
+    let manifest_state_dir = if system_bin == std::path::Path::new("/usr/local/bin") {
+        std::path::PathBuf::from(crate::commands::system_service::SYSTEM_STATE_DIR)
+    } else {
+        system_bin
+            .parent()
+            .unwrap_or(system_bin)
+            .join("focusa-system-state")
+    };
+    let manifest_transaction = match crate::commands::system_service::prepare_distribution_manifest(
+        &manifest_state_dir,
+        distribution_manifest,
+        expected_tag,
+    ) {
+        Ok(transaction) => transaction,
+        Err(error) => return Err(error_after_system_rollback(error, &entries)),
+    };
     let service_restarted = if let Some(transaction) = service_transaction.as_mut() {
         if let Err(error) = transaction.activate_and_verify(expected_version) {
             return Err(error_after_system_rollback(error, &entries));
@@ -3999,6 +4074,12 @@ fn promote_system_links(
     } else {
         false
     };
+    if let Err(error) = manifest_transaction.commit() {
+        return Err(error_after_system_rollback(error, &entries));
+    }
+    if let Some(transaction) = service_transaction.take() {
+        transaction.commit();
+    }
     for entry in &entries {
         if entry.had_system_original
             && let Err(error) = std::fs::remove_file(&entry.system_backup)
@@ -4015,9 +4096,6 @@ fn promote_system_links(
             );
         }
     }
-    if let Some(transaction) = service_transaction.take() {
-        transaction.commit();
-    }
     Ok(service_restarted)
 }
 
@@ -4025,6 +4103,7 @@ fn promote_system_links(
 fn promote_system_links(
     _bin_dir: &std::path::Path,
     _system_bin: &std::path::Path,
+    _distribution_manifest: Option<&std::path::Path>,
     _expected_tag: &str,
     _restart_service: bool,
 ) -> Result<bool> {
@@ -4347,6 +4426,7 @@ fn installer_managed_entry(name: &str) -> bool {
             | ".focusa-version"
             | "install-manifest.json"
             | "install-metadata.json"
+            | "distribution-manifest.json"
     ) || name.starts_with(".pi-extension-stage-")
         || name.starts_with(".agent-context-stage-")
         || name.starts_with(".agent-context-backup-")
@@ -4677,6 +4757,7 @@ async fn execute_real_install(
         .first()
         .map(|asset| asset.version.as_str())
         .ok_or_else(|| anyhow!("verified release identity is missing"))?;
+    install_distribution_manifest(&agent_context_root, install_root, expected_tag)?;
     phase_smoke_test(target, &bin_dir, expected_tag)
         .await
         .context("pre-commit binary smoke test failed")?;
@@ -4960,8 +5041,15 @@ fn release_executable_suffix(target: InstallTarget) -> &'static str {
 
 fn triple_for(target: InstallTarget) -> String {
     match target {
-        // Static musl is the portable default for older production glibc hosts.
-        InstallTarget::Linux => "x86_64-unknown-linux-musl".to_string(),
+        // Static musl is the portable x64 default for older production glibc
+        // hosts; the canonical ARM64 release surface is GNU Linux.
+        InstallTarget::Linux => {
+            if cfg!(target_arch = "aarch64") {
+                "aarch64-unknown-linux-gnu".to_string()
+            } else {
+                "x86_64-unknown-linux-musl".to_string()
+            }
+        }
         InstallTarget::Darwin => {
             if cfg!(target_arch = "x86_64") {
                 "x86_64-apple-darwin".to_string()
@@ -4988,6 +5076,18 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
         std::fs::write(path, body).unwrap();
         std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[test]
+    fn distribution_manifest_requirement_is_additive_from_v0_9_188() {
+        assert!(!release_requires_distribution_manifest("v0.9.177"));
+        assert!(!release_requires_distribution_manifest("0.9.187"));
+        assert!(release_requires_distribution_manifest("v0.9.188"));
+        assert!(release_requires_distribution_manifest(
+            "v0.9.188-nightly.20260904"
+        ));
+        assert!(release_requires_distribution_manifest("v1.0.0"));
+        assert!(!release_requires_distribution_manifest("invalid"));
     }
 
     #[test]
@@ -5027,7 +5127,7 @@ mod tests {
             write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.187\\n'\n");
             std::fs::write(system.join(name), format!("old-{name}")).unwrap();
         }
-        assert!(!promote_system_links(&bin, &system, "v0.9.187", false).unwrap());
+        assert!(!promote_system_links(&bin, &system, None, "v0.9.187", false).unwrap());
         for name in CANONICAL_RELEASE_BINARIES {
             assert!(system.join(name).is_file());
             assert!(
@@ -5052,7 +5152,7 @@ mod tests {
             &bin.join("focusa-daemon"),
             "#!/bin/sh\nprintf 'focusa-daemon 0.9.186\\n'\n",
         );
-        assert!(promote_system_links(&bin, &system, "v0.9.187", false).is_err());
+        assert!(promote_system_links(&bin, &system, None, "v0.9.187", false).is_err());
         for name in CANONICAL_RELEASE_BINARIES {
             assert_eq!(
                 std::fs::read_to_string(system.join(name)).unwrap(),
@@ -5440,6 +5540,71 @@ mod tests {
         install_skill_doctor(&installed, &install_root).unwrap();
         assert!(install_root.join("bin/focusa-skill-doctor").is_file());
         let _ = std::fs::remove_dir_all(fixture);
+    }
+
+    #[test]
+    fn v0_9_188_agent_context_requires_and_installs_distribution_manifest() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-agent-context-manifest-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let package = fixture.join("package/focusa-agent-context");
+        std::fs::create_dir_all(package.join("skills/focusa")).unwrap();
+        std::fs::write(package.join("AGENTS.md"), "# Focusa agents\n").unwrap();
+        std::fs::write(
+            package.join("skills/focusa/SKILL.md"),
+            "---\nname: focusa\n---\n",
+        )
+        .unwrap();
+        let manifest = serde_json::json!({
+            "schema": "focusa.distribution_manifest.v1",
+            "release_version": "0.9.188",
+            "digest_contract": "sha256-tree-v1",
+            "components": {"runtime_contract": {
+                "installed_manifest_path": "/usr/local/lib/focusa/distribution-manifest.json",
+                "manifest_required_from": "0.9.188",
+                "binary_paths": {
+                    "cli": "/usr/local/bin/focusa",
+                    "daemon": "/usr/local/bin/focusa-daemon",
+                    "tui": "/usr/local/bin/focusa-tui",
+                    "session_runner": "/usr/local/bin/focusa-session-runner"
+                }
+            }}
+        });
+        std::fs::write(
+            package.join("distribution-manifest.json"),
+            serde_json::to_vec(&manifest).unwrap(),
+        )
+        .unwrap();
+        let archive = fixture.join("focusa-agent-context-v0.9.188.tar.gz");
+        assert!(
+            tar_command()
+                .args(["-czf"])
+                .arg(&archive)
+                .arg("-C")
+                .arg(fixture.join("package"))
+                .arg("focusa-agent-context")
+                .status()
+                .unwrap()
+                .success()
+        );
+        let asset = InstalledAsset {
+            name: "focusa-agent-context-v0.9.188.tar.gz".to_string(),
+            version: "v0.9.188".to_string(),
+            triple: "all".to_string(),
+            sha256: String::new(),
+            install_path: archive.display().to_string(),
+        };
+        let install_root = fixture.join("install");
+        let installed = install_agent_context_archive(&asset, &install_root).unwrap();
+        let active = install_distribution_manifest(&installed, &install_root, "v0.9.188")
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&std::fs::read(active).unwrap()).unwrap(),
+            manifest
+        );
+        std::fs::remove_dir_all(fixture).unwrap();
     }
 
     #[test]

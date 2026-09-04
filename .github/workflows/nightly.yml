@@ -77,6 +77,7 @@ jobs:
           tag="v${stamp}-nightly.${date}"
           python3 scripts/stamp-menubar-version.py "$tag"
           python3 scripts/verify-version-surfaces.py "$tag"
+          python3 scripts/distribution_manifest.py --check
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
 
@@ -124,7 +125,13 @@ jobs:
         run: |
           set -euo pipefail
           triple=x86_64-unknown-linux-musl
-          mkdir -p dist bundle/focusa-agent-context/skills bundle/focusa-agent-context/bin
+          mkdir -p \
+            dist \
+            bundle/focusa-agent-context/skills \
+            bundle/focusa-agent-context/bin \
+            bundle/focusa-agent-context/docs/contracts/spec141 \
+            bundle/focusa-agent-context/docs/contracts/spec135 \
+            bundle/focusa-agent-context/packages/generated
           for bin in focusa focusa-daemon focusa-tui focusa-session-runner; do
             src="${CARGO_TARGET_DIR}/${triple}/release/${bin}"
             asset="dist/${bin}-${TAG}-${triple}"
@@ -141,8 +148,25 @@ jobs:
             "dist/focusa-${TAG}-${triple}" \
             "dist/focusa-daemon-${TAG}-${triple}"
 
-          cp AGENTS.md bundle/focusa-agent-context/AGENTS.md
+          cp AGENTS.md README.md bundle/focusa-agent-context/
           cp -R .pi/skills/. bundle/focusa-agent-context/skills/
+          cp -R docs/current bundle/focusa-agent-context/docs/current
+          cp -R docs/contracts/spec141/generated-capability-v2 \
+            bundle/focusa-agent-context/docs/contracts/spec141/
+          cp -R docs/contracts/spec135/generated-contract-v1 \
+            bundle/focusa-agent-context/docs/contracts/spec135/
+          cp -R packages/generated/spec135 \
+            bundle/focusa-agent-context/packages/generated/
+          cp \
+            docs/07-reference-store.md \
+            docs/82-focusa-memory-optimization-spec.md \
+            docs/94-focusa-intent-preserving-memory-rpc-optimization-sow.md \
+            docs/canonical-live-release-pipeline.md \
+            bundle/focusa-agent-context/docs/
+          cp docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
+            bundle/focusa-agent-context/distribution-manifest.json
+          cp docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
+            dist/distribution-manifest.json
           install -m 0755 scripts/focusa-skill-doctor bundle/focusa-agent-context/bin/focusa-skill-doctor
           test -n "$(find bundle/focusa-agent-context/skills -name SKILL.md -type f -print -quit)"
           tar -C bundle -czf "dist/focusa-agent-context-${TAG}.tar.gz" focusa-agent-context
@@ -153,8 +177,9 @@ jobs:
             "focusa-pi-extension-${TAG}.tar.gz" \
             "focusa-installer-${TAG}.sh" \
             "focusa-agent-context-${TAG}.tar.gz" \
+            distribution-manifest.json \
             > SHA256SUMS.txt)
-          test "$(wc -l < dist/SHA256SUMS.txt)" -eq 7
+          test "$(wc -l < dist/SHA256SUMS.txt)" -eq 8
 
       - name: Generate trusted Nightly manifest, provenance, and signatures
         if: steps.changes.outputs.skip != 'true'

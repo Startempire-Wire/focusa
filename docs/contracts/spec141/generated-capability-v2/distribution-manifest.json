@@ -1,18 +1,138 @@
 {
+  "schema": "focusa.distribution_manifest.v1",
+  "release_version": "0.9.187",
+  "source_commit": "b136ee93d",
+  "generated_at": "2026-09-04T07:52:49.738885Z",
+  "digest_contract": "sha256-tree-v1",
   "artifacts": {
-    "Cargo.toml": "sha256:09fae7cb4562855ac4cf88d5e64d2d22f7b81d16fcc732e383f0b4e366a0eb9d",
+    "Cargo.toml": "sha256:99225d837b6c8cda80703585c3acbe455277bc6adf6b431e1f72339ef1fb05c9",
     "apps/pi-extension/package.json": "sha256:6e2ddea1f700084e4f04106bb051bb5c4e111d446dae47286c606d543a09e61a",
     "crates/focusa-core/src/hlt_extrapolation.rs": "sha256:9d2e3d2b85f69376ba18840f2c2242fd8e6aea6d0acdb81daf3ade070e9aa90f",
+    "crates/focusa-core/src/lib.rs": "sha256:2db43071bb500d7b16895a05f62cb6ad6fb572969c228d4e7f22f6e6b1b7dc59",
     "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:647a21291e6303cc8fe0aa62bdc6c93b54d3a5ee4bcf5f5814990fdf28d95534",
     "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:a66526810da63c379fad60c80c71884c556b6d297ca81d9dfcdd7ec7874f9991",
-    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:0969b4eb0662422a8dbbf524f2db281dd86286c6427b45f9a16140416a72109c",
-    "crates/focusa-core/src/lib.rs": "sha256:2db43071bb500d7b16895a05f62cb6ad6fb572969c228d4e7f22f6e6b1b7dc59"
+    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:0969b4eb0662422a8dbbf524f2db281dd86286c6427b45f9a16140416a72109c"
+  },
+  "components": {
+    "rust_runtime": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:b1dd8c534d5b1d1ec6a29df90843eef3f508a3f209ef28e0e24c14c8b2918007",
+      "file_count": 815,
+      "source_paths": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates"
+      ]
+    },
+    "pi_extension": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:e37dc61aefdcf586dcd462ef8218f1bb8de166b0db25a58e6025710e322e96f2",
+      "file_count": 186,
+      "source_paths": [
+        "apps/pi-extension"
+      ]
+    },
+    "agent_skills": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:9e2782725e1032330abf1053890638fd829e0f471888139eba767f448cc7dc80",
+      "file_count": 64,
+      "source_paths": [
+        ".pi/skills",
+        "scripts/focusa-skill-doctor"
+      ]
+    },
+    "documentation": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:1047faa390a3732212d0ccbd5442a4439eda87470423cbfbfcf9ae4672fe534e",
+      "file_count": 159,
+      "source_paths": [
+        "AGENTS.md",
+        "README.md",
+        "docs/current",
+        "docs/contracts/spec141/generated-capability-v2",
+        "docs/07-reference-store.md",
+        "docs/82-focusa-memory-optimization-spec.md",
+        "docs/94-focusa-intent-preserving-memory-rpc-optimization-sow.md",
+        "docs/canonical-live-release-pipeline.md"
+      ]
+    },
+    "generated_clients": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:4875bdfc81bdb6ced086449702ffeca8ebdbd17f2291f54f7746810d7550f73d",
+      "file_count": 159,
+      "source_paths": [
+        "packages/generated/spec135",
+        "docs/contracts/spec135/generated-contract-v1"
+      ]
+    },
+    "installers": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:afa82c6317b08875bdcbc6d6cbb458a5dd9a105153036c2a2a61a1151d3a1735",
+      "file_count": 3,
+      "source_paths": [
+        "scripts/install-focusa.sh",
+        "scripts/install-focusa.ps1",
+        "scripts/install-daemon.sh"
+      ]
+    },
+    "release_tooling": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:a4f92dd5ac23843eb9b8cb1a5b148b5a4c427d881213f7e4797b5dee417c7a5a",
+      "file_count": 25,
+      "source_paths": [
+        ".appveyor.yml",
+        "codemagic.yaml",
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        ".github/workflows/nightly.yml",
+        ".github/workflows/deploy-live-daemon.yml",
+        ".github/workflows/windows-ota-e2e.yml",
+        "scripts/distribution_manifest.py",
+        "scripts/audit-distribution-parity.mjs",
+        "scripts/stamp-menubar-version.py",
+        "scripts/local-release-preflight.sh",
+        "scripts/verify-canonical-release-assets.py",
+        "scripts/wait-for-external-release-assets.py",
+        "scripts/release-trust-metadata.py",
+        "scripts/release-deploy-proof.py",
+        "scripts/generate-release-intelligence-packet.py",
+        "tests/154-focusa-canonical-all-platform-release-test.sh",
+        "tests/154_focusa_canonical_release_assets_test.py",
+        "tests/distribution_manifest_contract_test.py",
+        "tests/release_deploy_automation_static_test.sh",
+        "tests/release_authority_root_embedding_test.py",
+        "tests/release_deploy_proof_test.py",
+        "tests/release_trust_metadata_static_test.sh",
+        "tests/spec177-nightly-contract-static-test.sh",
+        "tests/spec146_release_intelligence_workflow_gate.py"
+      ]
+    },
+    "capability_surfaces": {
+      "contract_count": 157,
+      "registry_sha256": "sha256:39736968dff3752679c7b00d0d8b7962b77e09ed003cebcb928a8d341d5933aa",
+      "agent_card_sha256": "sha256:647a21291e6303cc8fe0aa62bdc6c93b54d3a5ee4bcf5f5814990fdf28d95534",
+      "pi_tools_sha256": "sha256:0969b4eb0662422a8dbbf524f2db281dd86286c6427b45f9a16140416a72109c",
+      "mcp_tools_sha256": "sha256:a66526810da63c379fad60c80c71884c556b6d297ca81d9dfcdd7ec7874f9991",
+      "openai_tools_sha256": "sha256:39a5becb4c0cc66102da23d178861db3d42bce1227b1a13eded6ef844194ec88",
+      "openapi_sha256": "sha256:32f0db3c47ca2cd1817d62c103a60439cd0dfe88e6f3507e978c113b0a7aaab7"
+    },
+    "runtime_contract": {
+      "system_state_root": "/usr/local/lib/focusa",
+      "installed_manifest_path": "/usr/local/lib/focusa/distribution-manifest.json",
+      "manifest_required_from": "0.9.188",
+      "binary_paths": {
+        "cli": "/usr/local/bin/focusa",
+        "daemon": "/usr/local/bin/focusa-daemon",
+        "tui": "/usr/local/bin/focusa-tui",
+        "session_runner": "/usr/local/bin/focusa-session-runner"
+      },
+      "daemon_health_path": "/v1/health",
+      "callgraph_validation_path": "/v1/callgraphs/validate",
+      "pi_extension_package": "focusa-pi-bridge",
+      "capability_registry_schema": "focusa.tool_contracts.v1"
+    }
   },
   "compatibility_status": "compatible",
   "drift_findings": [],
-  "evidence_ref": "scripts/verify-version-surfaces.py",
-  "generated_at": "2026-09-03T23:08:35.598760Z",
-  "release_version": "0.9.187",
-  "schema": "focusa.distribution_manifest.v1",
-  "source_commit": "0044bd5b1"
+  "evidence_ref": "scripts/distribution_manifest.py --check"
 }

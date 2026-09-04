@@ -10,7 +10,7 @@ Focusa packaging is local-first by default: the product is not a cloud memory se
 | --- | --- | --- | --- |
 | Source reference / development shell | developers studying or contributing under BSL terms | public source checkout, contracts, tests, recovery/development surfaces | not an automatically entitled Evaluation; no protected commercial components; unsupported modified forks cannot obtain protected delivery by claiming success |
 | Authority-issued Evaluation | verified prospective evaluator | signed public product set plus explicitly granted evaluation features/limits and optional protected capsules | time/node/concurrency bounded; recovery/export/uninstall preserved after expiry |
-| Operator local | licensed professional operator | signed CLI/daemon/TUI/menubar/Pi set plus entitled protected components | install/update support, local data ownership, product-qualified features |
+| Operator local | licensed professional operator | signed CLI/daemon/TUI/session-runner/menubar/Pi/agent-context set plus entitled protected components | install/update support, local data ownership, product-qualified features |
 | Team self-hosted | licensed team/multi-agent workstreams | daemon/services/adapters/policy package plus team grants | seat/node/team scope, backup/migration, security review |
 | Enterprise | regulated organization | self-hosted bundle, protected/air-gap artifacts where contracted, support agreement | deployment review, SSO/auth planning, audit artifacts, pinned policy |
 | Developer | authorized core developer | private development channel and test trust boundary | authority-issued developer license; never inferred from source access or environment variables |

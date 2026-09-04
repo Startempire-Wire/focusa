@@ -226,6 +226,7 @@ pub(super) fn verify_release_metadata(
     }
     if manifest.gates.ci_success != Some(true)
         || manifest.gates.release_success != Some(true)
+        || manifest.gates.deploy_success != Some(true)
         || manifest.gates.smoke_success != Some(true)
         || manifest.gates.installer_proof_success != Some(true)
     {

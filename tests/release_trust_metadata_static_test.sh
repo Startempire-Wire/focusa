@@ -58,11 +58,15 @@ grep -q "workflow_id: 'release.yml'" "$DEPLOY_WORKFLOW" \
   || fail 'deploy workflow does not accept successful full release gate as CI-equivalent proof'
 grep -q 'scripts/release-deploy-proof.py' "$DEPLOY_WORKFLOW" \
   || fail 'deploy workflow does not generate signed deploy-success evidence'
+grep -q -- '--distribution-parity /tmp/focusa-release/distribution-parity.json' "$DEPLOY_WORKFLOW" \
+  || fail 'deploy-success proof is not bound to installed distribution parity'
 grep -q 'deploy-success.json.sig' "$DEPLOY_WORKFLOW" \
   || fail 'deploy workflow does not upload detached deploy-success signature'
 grep -q 'focusa.deploy_success.v1' "$DEPLOY_PROOF_SCRIPT" \
   || fail 'deploy-success proof schema missing'
 grep -q 'release manifest detached signature is invalid' "$DEPLOY_PROOF_SCRIPT" \
   || fail 'deploy proof does not validate signed release manifest'
+grep -q 'installed distribution parity proof is not accepted' "$DEPLOY_PROOF_SCRIPT" \
+  || fail 'deploy proof does not fail closed on installed parity drift'
 
 echo 'PASS: release/deploy workflows publish signatures, checksums, manifest, provenance, trust metadata, and signed deploy proof'
