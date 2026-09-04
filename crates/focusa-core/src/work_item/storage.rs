@@ -257,7 +257,11 @@ mod tests {
 
     #[test]
     fn list_returns_ids() {
-        let dir = std::env::temp_dir().join("focusa-claim-list-tests");
+        let dir =
+            std::env::temp_dir().join(format!("focusa-claim-list-tests-{}", std::process::id()));
+        if dir.exists() {
+            std::fs::remove_dir_all(&dir).unwrap();
+        }
         std::fs::create_dir_all(&dir).unwrap();
         let store = ClaimStorage::new(&dir);
         store.save(&sample_claim("c1")).unwrap();
@@ -265,7 +269,6 @@ mod tests {
         let mut ids = store.list().unwrap();
         ids.sort();
         assert_eq!(ids, vec!["c1", "c2"]);
-        store.delete("c1").unwrap();
-        store.delete("c2").unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }
