@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `674`
+- Classified paths: `681`
 - Agent eligible: `164`
-- Operator only: `498`
+- Operator only: `505`
 - Public health/pairing: `6`
 - Internal: `6`
 
