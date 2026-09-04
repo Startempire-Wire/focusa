@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import json
 import re
+
+from structured_contract_loader import load_contract_mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 required = [
@@ -48,7 +49,7 @@ for rel in required:
     assert path.is_file(), rel
     text = path.read_text()
     assert len(text) > 200, f"empty/shell artifact: {rel}"
-    data = json.loads(text)
+    data = load_contract_mapping(path)
     claim = data.get("runtime_claim")
     status = data.get("runtime_status")
     assert (claim, status) in {
@@ -86,7 +87,7 @@ for rel in (
     "docs/contracts/spec138a-normative-source-coverage.v1.yaml",
     "docs/contracts/spec144-normative-source-coverage.v1.yaml",
 ):
-    data = json.loads((ROOT / rel).read_text())
+    data = load_contract_mapping(ROOT / rel)
     assert data["source_atom_count"] == len(data["source_atoms"]), rel
     assert not data["unmapped_source_atom_refs"], rel
     for src in data["sources"]:
