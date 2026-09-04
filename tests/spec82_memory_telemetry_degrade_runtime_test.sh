@@ -34,7 +34,7 @@ done
 
 status_json=$(curl -sS "$BASE/status")
 
-jq -e '.runtime_memory.rss_kb != null and .runtime_memory.memory_budget_mb == 1 and .runtime_memory.host_mem_available_kb != null' <<<"$status_json" >/dev/null || {
+jq -e '.runtime_memory.rss_kb != null and .runtime_memory.memory_budget_mb == 1 and .runtime_memory.rss_soft_mb == 1 and .runtime_memory.rss_hard_mb == 1 and .runtime_memory.budget_authority == "resource_mode" and .resource_mode.budget.rss_hard_mb == .runtime_memory.rss_hard_mb and .runtime_memory.host_mem_available_kb != null' <<<"$status_json" >/dev/null || {
   echo "✗ FAIL: runtime_memory fields missing"
   echo "$status_json"
   exit 1
