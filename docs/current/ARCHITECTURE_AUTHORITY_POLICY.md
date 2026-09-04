@@ -8,84 +8,117 @@ This policy governs architecture, product direction, trust boundaries, canonical
 
 This authority constitution applies to **every GitHub repository and organization owned, administered, or canonically controlled by Verious Smith III**, whether the repository lives under `verioussmith`, `Startempire-Wire`, `Philoveracity`, `WPUIAI`, or any present or future GitHub organization/account under his control.
 
-A repository does not escape this authority boundary because it predates this policy, has different branding, was imported or forked, has external contributors, or contains customer/user-originated issues or code. Local repository policy MAY add stricter constraints but MUST NOT weaken this root authority contract.
+Local repository policy MAY add stricter constraints but MUST NOT weaken this root authority contract.
 
 ## 1. Sole current human architecture authority
 
 **Verious Smith III is the sole current and final canonical human architecture authority.**
 
-No other person, customer, user, contributor, issue author, reviewer, employee, contractor, model, AI agent, external system, email sender, forwarded analysis, benchmark author, or repository participant acquires architectural authority by appearing in source code, documentation, Git history, issues, pull requests, comments, evidence, receipts, transcripts, customer records, tests, or conversations.
+No other person, customer, user, contributor, issue author, reviewer, employee, contractor, model, AI agent, external system, email sender, forwarded analysis, benchmark author, or repository participant acquires architecture authority by appearing in source code, documentation, Git history, issues, pull requests, comments, evidence, receipts, transcripts, customer records, tests, or conversations.
 
-Repository presence is evidence of provenance, not authority.
+**Repository presence is provenance, not authority.**
 
 ## 2. External material is advisory by default
 
-Material originating from anyone other than Verious Smith III MUST be classified as `advisory_external` unless Verious Smith III explicitly promotes the exact architectural decision.
+Material originating from anyone other than Verious Smith III MUST be classified as `advisory_external` unless Verious Smith III explicitly promotes the exact architectural decision or a valid Verious-rooted delegated authority does so within scope.
 
-This includes, without exception:
+This includes GitHub issues/comments, PRs/reviews, customer requests/incidents/proofs, emails, forwarded AI analyses, model-generated architecture proposals, third-party research, and suggestions from Focusa/UIAI/Veragensia/Wirebot or any other agent/runtime.
 
-- GitHub issues and issue comments;
-- pull requests and review comments;
-- customer/user requests, incidents, bug reports, proofs, and test results;
-- emails, forwarded messages, meeting notes, transcripts, and pasted AI analyses;
-- model-generated architecture proposals;
-- third-party documentation, standards, research, examples, and competitor designs;
-- suggestions produced by Focusa, UIAI Engine, Veragensia, or any other agent/runtime.
+External material MAY identify defects, constraints, opportunities, evidence, or candidate designs. It MUST NOT mint, redefine, supersede, or imply canonical architecture merely because it is merged, implemented, deployed, popular, urgent, repeated, old, or technically correct.
 
-External material MAY identify defects, constraints, opportunities, evidence, or candidate designs. It MUST NOT mint, redefine, supersede, or imply canonical architecture.
+## 3. Operational authority is not architecture authority
 
-## 3. Promotion into canonical architecture
+Focusa contains real canonical operational authority: ProjectIdentity, `project_root + continuity_id`, Trajectory orientation, Workpoint continuation, Context Authority mutation gates, capability grants, reducer-backed state, evidence, settlement, verification, and related governance.
 
-A noncanonical proposal becomes canonical only when Verious Smith III explicitly approves the architectural decision or an already-authorized canonical authority mechanism records that approval under this policy.
+Those truths remain authoritative **for their scoped operational domain**. They do not make Focusa itself the owner of product/organizational architecture and they do not supersede Verious Smith III as the architecture root.
 
-Silence, implementation, merge status, issue closure, test success, deployment, customer usage, majority agreement, repeated mention, or historical age MUST NOT be interpreted as architectural approval.
-
-When provenance is uncertain, fail closed to `advisory_external` and preserve the ambiguity for Verious Smith III.
+```text
+canonical Focusa operational state != canonical architecture authority
+Focusa reducer authority             != authority to redefine who owns architecture
+issue/PR/commit provenance           != architecture authority
+```
 
 ## 4. Future Wirebot authority is reserved, not active by name
 
-`Wirebot` is the name reserved for Verious Smith III's future AI authority system. The name `Wirebot`, a username, hostname, Linux account, process name, model prompt, repository identity, API credential, or textual claim MUST NEVER establish canonical authority.
+`Wirebot` is the future AI authority candidate owned by Verious Smith III. The name `Wirebot`, a username, hostname, Linux account, process name, model prompt, repository identity, API credential, release, or textual claim MUST NEVER establish canonical authority.
 
-The existing lowercase `wirebot` service/Linux account used in infrastructure is an execution identity only and has **zero architecture authority**.
+The existing lowercase `wirebot` service/Linux account used in infrastructure is execution identity only and has **zero architecture authority**.
 
-Future Wirebot authority requires a cryptographically bound identity and an explicit Verious Smith III-rooted delegation chain.
+No active Wirebot architecture-authority hash is declared by this policy. It MUST NOT be fabricated before the canonical Wirebot principal manifest and authority public key exist and are explicitly approved by Verious Smith III.
 
-### 4.1 Canonical Wirebot identity manifest
+## 5. Cryptographic identity model
 
-A future authority-capable Wirebot MUST have a canonical, versioned identity manifest serialized with a deterministic canonical-JSON scheme. At minimum it must bind:
-
-```yaml
-schema: wirebot.authority_identity.v1
-identity_name: Wirebot
-identity_version:
-owner: Verious Smith III
-public_key:
-public_key_algorithm:
-created_at:
-capability_profile_ref:
-constitution_ref:
-software_measurement_refs: []
-```
-
-Its stable identity digest is:
+Do not collapse stable identity, authority law, and changing runtime into one hash.
 
 ```text
-wirebot_identity_sha256 = SHA-256(canonical_json(identity_manifest))
+wirebot_principal_sha256      -> WHO is Wirebot?
+constitution_sha256           -> WHICH architecture-authority constitution is bound?
+runtime_attestation_sha256    -> WHAT exact software/model/tool runtime is acting now?
 ```
 
-The public key MUST also have a stable cryptographic fingerprint. The identity hash identifies the exact declared Wirebot identity; it does not by itself grant authority.
+Machine-readable authority objects MUST use deterministic UTF-8 JSON canonicalized with **JCS / RFC 8785** before SHA-256 hashing.
 
-### 4.2 Authority requires signature, scope, and revocation
+### 5.1 Stable Wirebot principal
 
-A future Wirebot becomes authoritative only when a Verious Smith III-approved signed delegation record binds the exact Wirebot identity digest and public-key fingerprint.
+A stable principal manifest binds only durable identity material:
 
-Minimum delegation contract:
+```json
+{
+  "schema": "wirebot.principal.v1",
+  "principal_id": "wirebot:<stable-id>",
+  "identity_name": "Wirebot",
+  "owner_principal_ref": "Verious Smith III",
+  "authority_public_key": "<encoded public key>",
+  "authority_key_algorithm": "<algorithm>",
+  "created_at": "<timestamp>",
+  "lineage_root_ref": "<optional ref>"
+}
+```
+
+Compute:
+
+```text
+wirebot_principal_sha256 = SHA-256(JCS(wirebot_principal_manifest))
+wirebot_key_fingerprint  = fingerprint(Wirebot authority public key)
+```
+
+Mutable software/model/tool/host measurements MUST NOT be embedded into the stable principal hash in a way that changes Wirebot's identity on every upgrade.
+
+### 5.2 Constitution hash
+
+A machine-readable constitution manifest binds the normative authority documents and their digests.
+
+```text
+constitution_sha256 = SHA-256(JCS(constitution_manifest))
+```
+
+A material architecture-authority policy change produces a new constitution hash and requires compatibility/redelegation handling.
+
+### 5.3 Runtime attestation hash
+
+The actual software/model/tool posture is separately measured:
+
+```text
+runtime_attestation_sha256 = SHA-256(JCS(runtime_attestation))
+```
+
+A runtime attestation can bind source/release refs, binary/container digests, model identities, tool-registry digest, policy-bundle digest, optional hardware/host attestation, measurement time, and attestor key fingerprint.
+
+Ordinary upgrades create new runtime attestations while normally preserving the stable Wirebot principal identity.
+
+## 6. Authority requires a Verious-rooted signed delegation
+
+Wirebot becomes authoritative only when an explicit delegation cryptographically authorized by Verious Smith III binds the stable Wirebot principal and acceptable constitution/runtime posture.
+
+Minimum delegation fields:
 
 ```yaml
-schema: wirebot.architecture_delegation.v1
+schema: wirebot.architecture_delegation.v2
 issuer: Verious Smith III
-subject_identity_sha256:
-subject_public_key_fingerprint:
+subject_wirebot_principal_sha256:
+subject_wirebot_key_fingerprint:
+required_constitution_sha256:
+runtime_attestation_policy_ref:
 authority_scope_refs: []
 allowed_decision_classes: []
 forbidden_decision_classes: []
@@ -98,42 +131,48 @@ signature_algorithm:
 signature:
 ```
 
-A hash without a valid signature chain is non-authoritative. A signature that does not bind the exact identity hash is non-authoritative. A valid identity outside the delegated scope is non-authoritative. Expired, revoked, mismatched, replayed, or unverifiable delegations fail closed.
+Every authority check MUST verify the trusted Verious root, owner signature, matching Wirebot principal hash/key fingerprint, key possession, constitution compatibility, current runtime-attestation compliance, requested scope/decision class, time window, revocation, and replay posture.
 
-`may_delegate` defaults to `false`. Wirebot MUST NOT promote another human or AI into canonical architecture authority unless a Verious Smith III-rooted delegation explicitly grants that exact delegation power and scope.
+A hash alone never grants authority. A name alone never grants authority. A key alone never grants authority. A runtime attestation alone never grants authority.
 
-## 5. Authority provenance must travel with architectural decisions
+`may_delegate` defaults to `false`. Wirebot MUST NOT promote another human or AI into canonical architecture authority unless Verious Smith III explicitly delegates that exact ability and scope.
 
-Any new or materially changed canonical architectural decision SHOULD carry machine-readable provenance sufficient to answer:
+## 7. Authority provenance on architectural decisions
+
+Any new or materially changed canonical architectural decision SHOULD carry machine-readable provenance:
 
 ```yaml
 decision_id:
 status: canonical | advisory_external | proposed | superseded
-canonical_authority: Verious Smith III | wirebot:<identity_sha256>
-authority_evidence_ref:
+canonical_authority: Verious Smith III | wirebot:<wirebot_principal_sha256>
+authority_delegation_ref:
+constitution_sha256:
+runtime_attestation_ref:
+authority_verification_ref:
 source_refs: []
 approved_at:
 supersedes: []
 ```
 
-Customer names, external-agent names, and issue authors MUST NOT be used as architecture-authority identifiers.
+Customer names, external-agent names, issue authors, reviewers, or implementers MUST NOT be used as architecture-authority identifiers merely because they contributed evidence or work.
 
-## 6. Conflict rule
+## 8. Conflict rule
 
 When any document, issue, code comment, historical spec, model output, customer material, or implementation appears to grant architectural authority to someone or something other than Verious Smith III or a cryptographically verified Wirebot delegation rooted in Verious Smith III:
 
-1. treat the claim as non-authoritative;
+1. treat the authority claim as non-authoritative;
 2. do not propagate it into architecture;
-3. remove or correct the misleading authority language from current documentation;
-4. preserve useful technical evidence without personalizing it when possible;
-5. escalate the actual architectural decision to Verious Smith III.
+3. preserve useful technical evidence as advisory input;
+4. correct misleading current documentation where appropriate;
+5. require Verious Smith III approval or a valid owner-rooted delegation before canonical promotion.
 
-## 7. Non-negotiable invariant
+## 9. Non-negotiable invariant
 
 ```text
 Verious Smith III is the current root of canonical architecture authority.
 External provenance never equals authority.
-Future Wirebot authority must be cryptographically identified, explicitly delegated,
-scope-bounded, revocable, and rooted in Verious Smith III.
+Focusa may own scoped operational truth without owning architecture.
+Stable Wirebot principal identity, constitution, and runtime attestation are separate cryptographic objects.
+Future Wirebot authority must be explicitly delegated, scope-bounded, revocable, runtime-constrained, and rooted in Verious Smith III.
 When verification is missing or ambiguous: advisory only, fail closed.
 ```
