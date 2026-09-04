@@ -1,244 +1,244 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-31T17:03:56+00:00",
+  "generated_at": "2026-09-04T10:19:11+00:00",
   "runtime_claim": "none",
   "runtime_status": "implementation_open",
   "schema": "focusa.spec144_cross_spec_amendment_matrix.v1",
   "rows": [
     {
       "path": "docs/61-domain-general-cognition-core.md",
-      "sha256": "81db47e94a8e3f64d835a7d65ee04027e3349c74b9ee5bf9c6125ffbe2565273",
+      "sha256": "e85e9f67ab44fcc5951eefbf20eadb911c753ff80be2a8883aedea236d77d603",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/66-affordance-and-execution-environment-ontology.md",
-      "sha256": "b449f2df4c61905b58b5b2450c47fa49bfb77fbed91a65e80678b29ffcf05792",
+      "sha256": "9716cb60e7793906872773bd0f8818cdc4a82174235b2f9509af7805d097990c",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/70-shared-interfaces-statuses-and-lifecycle.md",
-      "sha256": "05df6a3751b072d75db4e4a7140a2ae8b8ffb4c9608c90b0b2154e8654fe1daa",
+      "sha256": "93f91252ab909fb24575d56642b4707cdbd7cc076783f468cfc6a877fc6dcb14",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/72-agent-identity-role-and-self-model-ontology.md",
-      "sha256": "a3e31f4a7c99645c2eac569323c86bab0eb6409a18e2e25ff25a81104890bf3f",
+      "sha256": "abf914bdedb583b4360590ccad653a22acd81a0b7d6156b1feed15f4be12a971",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/74-identity-and-reference-resolution.md",
-      "sha256": "c3d5930873fb5927b4c4a0a0b4864a798a45152713cee282f649d0c38d4ebdac",
+      "sha256": "df3538a10da0c403955f60ac777b5f9b16bf0745b08f755628f0be7713e33dd8",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/75-projection-and-view-semantics.md",
-      "sha256": "f83ead545ee1940328e4cb8d29630544213c395695f10ced014465714ede5989",
+      "sha256": "98f82d71478a80c91f655be6d013e90871f0bb6fb00c0930ff6f479fe7b09e63",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/76-retention-forgetting-and-decay-policy.md",
-      "sha256": "3081842600e6b1a508a60099db07d218d0922ef3bb91daff70ff20cfbd558aee",
+      "sha256": "cbc98985b002cfaa56e9ebaa63d2bca906e351109304e4986e22b1174560b6e9",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/77-ontology-governance-versioning-and-migration.md",
-      "sha256": "a427843081300c88949a732f9eef2665514dcf3fb50fe9b0d8b68bd91498759a",
+      "sha256": "176adfd633dd671cb6ca5f5f5e1df22b81ff6e95ac00b5606834eab261e66207",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/78-bounded-secondary-cognition-and-persistent-autonomy.md",
-      "sha256": "8d1ea9372ca32e8aeaf6d145d35ee6691dc33f2d7ee00a1bf9e71936228bb62a",
+      "sha256": "61e3955f6950a4790cd2784a265d24e62cac7466443f80885e05ce9939047ea7",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/79-focusa-governed-continuous-work-loop.md",
-      "sha256": "d9cbf5370d78b76a11bda834eff3d91e5ebb12e6556723bb4500fba114917ee6",
+      "sha256": "369fd9ab854c83ea78a121f464fd2148b8bccc1f043777de1e391c99937b2bcf",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/88-ontology-backed-workpoint-continuity.md",
-      "sha256": "a974b93e116759067338946133eb92fc23aba11f0fa57ec5c49cfdc1df56a1ee",
+      "sha256": "21dc7f8a423c0ed71afd8cc442e5d73907f4aac910681460a49aa3284981f8aa",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/97-focusa-reflex-primitives-spec.md",
-      "sha256": "7aeee48011a0aa308c68aca0666ca3bceee69d413ca5615d094b20b315db2328",
+      "sha256": "90d66531b767d95b73fc940e29c4c7b074c11c4b2dfd5a12689340980ddf7dd9",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/100-context-cognition-spec.md",
-      "sha256": "feaf2f84291a03b728ce5e3bcf250d6dc09c7b6faf98cbbf921de5821b309085",
+      "sha256": "da2cf6d07007de440f2abc1969ceae87b5f8ca4451176dfd1ef827f4015fb0be",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md",
-      "sha256": "df15c122006637c3f20807c582eae3a0dffc459d5ee6ec8c63a0334644638a55",
+      "sha256": "2d9a2b6e93549700681fae692c419e84c9231313199dfb6217479953902bf2ee",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/109-agent-first-api-redesign-ax-spec.md",
-      "sha256": "2b829129bd23b96bc85e1d39faaa68f6f74d622b5ad4a4405a5368983c288c96",
+      "sha256": "1a593f19864ae9993bbc044853f801babe45b60147fed75fcc36e01dca2d8438",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/113-agent-benchmark-spec.md",
-      "sha256": "b45a15cb5879eff422f3ef93eab36f141eaccc74afd5103f2d77d243413fc0b5",
+      "sha256": "9471085e69fbcc6d27e15cb39d8c61f722d306760b6b216e85a1c17300e269cd",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/116-provider-neutral-work-item-closure-authority-spec.md",
-      "sha256": "11369c8f313f1d6c55ba1d265f8c0e0f967c2ce02f04be26a2a51192aec70f93",
+      "sha256": "60c4349fb264208d465a1ff155e5007df071713725c29b796b629bf2892fa287",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/119-verifiable-agent-work-receipts-and-governed-execution-ledger-spec.md",
-      "sha256": "e8a07c3434b0d5785e7aa23c66e05625180005847b3125124761ad3dec75c72f",
+      "sha256": "ed2ae7075f2faf759f1989bdd40c11b719d945e80683177ffa93e60ec26b8375",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/120-adversarial-spec-workbench-and-operator-approval-gates.md",
-      "sha256": "5396bc4135c4f7958d7eabf774aa797096467ffcc9588a4ffa41e157e13ffade",
+      "sha256": "f98ba8c3428120807ad479071e4bcb2900e03c3872080473c6bbfcdfde88e35e",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/125-mandatory-trajectory-nonlazy-hlt-pi-receipt-ontology-interlock-spec.md",
-      "sha256": "4df9858e73745730b800a2986c81ed585143ac8538c79191644326ce69ce3901",
+      "sha256": "77f28fcb8f6348a36a21cf131629e888a93712beb08e20d75027e455186eb7d4",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/130-hlt-aware-compaction-mission-packet-and-bloatgaurd-context-firewall-spec.md",
-      "sha256": "f2957b9cf416bf8f8c7cbaf8c200116f5fc084da7730837c14dc542867d6e4cf",
+      "sha256": "8c1cd4fbb76e8bd833271d8d602c53ab90cc0ec06ead2dda67420051d9ee827a",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/131-focusa-workpoint-item-timing-velocity-and-closure-authority-spec.md",
-      "sha256": "52a9f8309fd92b7f4d262ea7020eff2ad59887de83ef1c9a9f7f494f24d1097f",
+      "sha256": "ee0e72ef66468109733ad98c76c068d2d089d7af84d90ff367cc9cd393d2dd00",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
-      "sha256": "37bbea813a990159e5d76a21e02c26c4ec1075a302ac4ee472ab5c1fcccd9e29",
+      "sha256": "a2df297e2ba71f99783cbd3813991d05eac4b75410d5b36a9ee842bc8e3e5323",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md",
-      "sha256": "3370eca309c32c69bf6e4992506d1b9edc859a6f72832a438a5b4507b2ae0aa4",
+      "sha256": "049ab591d4a8ebffbba272dca7060897c0facc7677843e46ffad1f7d0db9620e",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/136-governed-proposal-to-settlement-protocol-and-outcome-truth-infrastructure-spec.md",
-      "sha256": "765376ac20ce5ae6d2cee3ee91fb4857b67dd46250729a2f25ac6330473fd0fc",
+      "sha256": "a83c5033196579b94c36675d88a38d59553d9bec1544de67fdbdd6ee19c6a726",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
-      "sha256": "35f78d1d2d25786dc230bfac10f54eab353ba287d12b6cc8a8525898fb864ae6",
+      "sha256": "e1a4d958ac75c5aa6f8ef68d6dd0d924f765250d0219cf8f721913a3b6c13271",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
-      "sha256": "e244c1dd42f90c808703922ae2450221f04b04de851f10e98800f93dc3516aa6",
+      "sha256": "48a1b8f326f9b39c210a99e420842c15adfb00e18747ea2d2001a7e7df8113e2",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md",
-      "sha256": "0da6c17d8d8afc0e252fef53f5e38aff5fabc56b1c776eeeb409793cedd2d479",
+      "sha256": "81416faada6c9b070e38a054f6504698641816ee3698a3d2cb47b85499276148",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
-      "sha256": "df750294598f3aeea5a1a66d9ee3d61b6ab51469a9dbbd72083a066a42d23914",
+      "sha256": "f068f2203ed80e722e6d08ac6ad97470df71b153068cd8e0dc7c51bd7ce8dca0",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md",
-      "sha256": "19ebbe8499ea88839dcb443daa2b1c51a2afdc072983c627d804fffc83f61db1",
+      "sha256": "52d52368a07b3abdb74a37add0b94259c9ffbf3f299c6bfdab07faac8afd9d0a",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/142-focusa-release-requirement-trace-matrix.md",
-      "sha256": "779ffc485b6d82f7615d60d60af3fdd2d8aed57c258ade8667d4130a36e62e64",
+      "sha256": "c20a7e47b3cd317c8cee0876829d801b8735f5346d72cf38ef2a6c397d3f62fe",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md",
-      "sha256": "0a5f2a897c3e9c9af28e744768eb7fca23c91fefef3198bbf9f999a8768f2f4a",
+      "sha256": "10586876cb24ebc1ed8f52fe86ce160bda1779e15391d5f4b440d5aa11b15598",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/00-glossary.md",
-      "sha256": "364fa47863dc81284e2ad2fb6a846364488bee6a852e935036daf2f7097908a2",
+      "sha256": "4ab69aaa05610e1c1e9168fbd3e376dc684fbc188cf3d6db17c34c74c75a3b29",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/current/AUTHORITY_MODEL.md",
-      "sha256": "8fbd1bcc08677d355b25c3aff169bd7643ee78953f59cf7c9fbec3104631360a",
+      "sha256": "082f7bdc49b4be1d87f629c76c6040d26266c73841fb3bc30275171c7b696204",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
@@ -259,7 +259,7 @@
     },
     {
       "path": "docs/104-typed-scoped-runtime-and-singleton-elimination-spec.md",
-      "sha256": "4e6c2cb841edd60969710777c02ba88203d36599d0cda21c55ea31a1c9ff35e9",
+      "sha256": "bac74e7f4468d42398ecea01f2422c511e8173f850fd715bb8f9273daf9900c8",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_hardening",
       "runtime_implementation": "open"

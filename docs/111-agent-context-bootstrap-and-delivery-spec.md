@@ -1585,3 +1585,8 @@ Do not close Spec111 implementation work until:
 - any remaining missing native/runtime proof is labeled partial/surrogate/blocked, not complete.
 
 Partial bootstrap surfaces may ship behind preview labels, but public docs must not claim durable bootstrap delivery proof is complete until Spec119 receipt integration is implemented and verified.
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-bootstrap-delivery -->
+## Spec 144 Builder/Verifier bootstrap and delivery
+
+Agent Bootstrap MUST deliver target-specific Builder, Verifier, Router, coverage-challenger, and arbiter packets with exact role, Runtime Constitution, Work Contract, Workpoint revision, obligations, disclosure policy, tools, placement, temporal/presence posture, and context hash. Delivery Receipts prove what each lineage received; they do not prove the work passed.

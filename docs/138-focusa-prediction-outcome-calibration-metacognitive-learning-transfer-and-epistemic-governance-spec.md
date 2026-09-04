@@ -1,11 +1,11 @@
 # 138 — Focusa Prediction, Outcome, Calibration, Metacognitive Learning, Transfer, and Epistemic Governance Spec
 
-**Status:** Normative draft; primitive-owning; implementation not implied  
-**Owner:** Focusa core  
-**Source baseline:** `b08acf4f6a1f73c61a07cf6845b37efbad316ddb`  
-**Research audit:** `docs/evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md`  
-**Amends and deepens:** current Prediction, Metacognition, reflection, project-card algorithm, and prediction/metacognition flywheel surfaces  
-**Depends on:** Specs 45–50/135F ontology; Spec 76 retention/decay; Spec 80 metacognition tooling; Spec 96 trajectory projection; Spec 104 scoped CRDT; Spec 119 receipts; Spec 131 Workpoint Item timing; Spec 133 governed sessions; Spec 137 temporal authority  
+**Status:** Normative draft; primitive-owning; implementation not implied
+**Owner:** Focusa core
+**Source baseline:** `b08acf4f6a1f73c61a07cf6845b37efbad316ddb`
+**Research audit:** `docs/evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md`
+**Amends and deepens:** current Prediction, Metacognition, reflection, project-card algorithm, and prediction/metacognition flywheel surfaces
+**Depends on:** Specs 45–50/135F ontology; Spec 76 retention/decay; Spec 80 metacognition tooling; Spec 96 trajectory projection; Spec 104 scoped CRDT; Spec 119 receipts; Spec 131 Workpoint Item timing; Spec 133 governed sessions; combined Spec 137 + Spec 137A temporal authority
 **Does not activate:** market feeds, financial trading, live mutation, external source access, or domain-specific models
 
 ---
@@ -2493,3 +2493,10 @@ The operator-supplied example weights and `low/moderate/high` thresholds belong 
 34. Domain applications own domain models and thresholds.
 35. Every consequential epistemic mutation is receipted.
 36. The system may always report `unknown`, `insufficient evidence`, or `abstain`.
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:mandatory-spec138a-companion -->
+## Mandatory companion: Spec 138A
+
+Spec 138A is a mandatory companion to Spec 138. Full-profile runtime conformance
+remains bound to the current evidence-gated Spec 138 activation receipt and is not
+inferred from documentation closure or partial prediction primitives.

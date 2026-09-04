@@ -15,7 +15,7 @@
       "evidence_refs": [
         "docs/evidence/release/S138-E2E-01-runtime.txt"
       ],
-      "receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
     },
     {
       "id": "order_1",
@@ -123,5 +123,5 @@
     }
   ],
   "rule": "later_order_is_dependency_sequence_not_backlog",
-  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
+  "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
 }

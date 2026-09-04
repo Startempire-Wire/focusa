@@ -1486,3 +1486,8 @@ Every file in this annex must be assigned one of:
 ## 13. One-line definition
 
 Spec 104 turns Focusa into a typed scoped runtime whose canonical authority no longer depends on singleton state anywhere that can affect trust, continuation, implementation correctness, or proof.
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-scoped-runtime -->
+## Spec 144 scoped verification runtime
+
+Semantic Execution Pairs, Work Contracts, obligation graphs, Verification Plans, snapshots, findings, disputes, placement, and settlement evaluations MUST bind verified project/workstream/Workpoint scope. No daemon-global current Builder, Verifier, plan, Vertical, registry, or settlement singleton may become canonical authority. Cross-scope reuse is advisory until explicitly rebound and validated.

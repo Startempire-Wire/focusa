@@ -210,4 +210,5 @@ for fixture_mode in harness subprocess child-leak prompt-wait output-flood model
   run_gate python3 ./tests/spec133_fault_fixture.py "$fixture_mode" --lines 32
 done
 python3 ./tests/run_spec137_138_full_conformance_gates.py
+run_gate python3 ./tests/spec137a_138a_144_documentation_closure_gate.py
 run_gate python3 ./tests/bead_closure_evidence_gate.py

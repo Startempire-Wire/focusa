@@ -1,28 +1,170 @@
 {
   "schema": "focusa.latest_spec_public_doc_alignment.v1",
   "snapshot": "v0.9.121-dev",
-  "spec_count": 15,
+  "spec_count": 16,
   "rule": "rolling Spec135b through Spec140 set locked by Spec141",
   "entries": [
-    {"spec":"135b","path":"docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md","direction":"CRIST project genesis, context, roles, interviews, specs, and task materialization","status":"implemented_with_active_hardening","public_refs":["README.md","docs/README.md","docs/llms.txt"]},
-    {"spec":"135c","path":"docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md","direction":"UIAI rich artifacts, live refresh, and research bridge","status":"implemented_with_active_hardening","public_refs":["README.md","docs/llms.txt"]},
-    {"spec":"135d","path":"docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md","direction":"implementation order, framework reuse, performance, and no-deferral closure","status":"governance_active","public_refs":["docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md"]},
-    {"spec":"135e","path":"docs/135e-cross-spec-amendments-migration-and-closure-matrix.md","direction":"cross-spec amendments, migration, and closure truth","status":"governance_active","public_refs":["docs/README.md","docs/llms.txt"]},
-    {"spec":"135f","path":"docs/135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md","direction":"domain-general ontology, semantic graph, domain packs, and reactive context","status":"implemented_with_active_hardening","public_refs":["docs/llms.txt"]},
-    {"spec":"135g","path":"docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md","direction":"multiplexed Mission Canvas, work surfaces, attachments, and browser isolation","status":"implemented_with_active_hardening","public_refs":["README.md","docs/llms.txt"]},
-    {"spec":"135h","path":"docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md","direction":"cross-functional alpha grill and interview-driven acceleration","status":"implemented_with_active_hardening","public_refs":["docs/llms.txt"]},
-    {"spec":"135i","path":"docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md","direction":"real-time generated CRIST UI and nontechnical onboarding","status":"implemented_with_active_hardening","public_refs":["README.md","docs/llms.txt"]},
-    {"spec":"135j","path":"docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md","direction":"core operation registry, durable UI stream, and runtime reuse","status":"implemented_with_active_hardening","public_refs":["README.md","docs/llms.txt"]},
-    {"spec":"135k","path":"docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md","direction":"adaptive generated UI, friction learning, and nontechnical usability","status":"implemented_with_active_hardening","public_refs":["docs/llms.txt"]},
-    {"spec":"136","path":"docs/136-governed-proposal-to-settlement-protocol-and-outcome-truth-infrastructure-spec.md","direction":"governed proposal settlement and outcome truth","status":"implemented_with_active_hardening","public_refs":["docs/llms.txt"]},
-    {"spec":"137","path":"docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md","direction":"temporal authority, deadlines, urgency, and grounded forecasting","status":"implemented_with_active_hardening","public_refs":["docs/llms.txt"]},
-    {"spec":"138","path":"docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md","direction":"prediction calibration, metacognitive transfer, and epistemic governance","status":"implemented_with_active_hardening","public_refs":["README.md","docs/llms.txt"]},
-    {"spec":"139","path":"docs/139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md","direction":"distributed presence, environment awareness, placement, and multi-daemon coordination","status":"implemented_with_active_hardening","public_refs":["docs/llms.txt"]},
-    {"spec":"140","path":"docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md","direction":"project runtime constitution, instruction authority, system prompts, and cross-harness compilation","status":"implemented_with_active_hardening","public_refs":["README.md","docs/llms.txt"]}
+    {
+      "spec": "135b",
+      "path": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "direction": "CRIST project genesis, context, roles, interviews, specs, and task materialization",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "README.md",
+        "docs/README.md",
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "135c",
+      "path": "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md",
+      "direction": "UIAI rich artifacts, live refresh, and research bridge",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "README.md",
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "135d",
+      "path": "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md",
+      "direction": "implementation order, framework reuse, performance, and no-deferral closure",
+      "status": "governance_active",
+      "public_refs": [
+        "docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md"
+      ]
+    },
+    {
+      "spec": "135e",
+      "path": "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md",
+      "direction": "cross-spec amendments, migration, and closure truth",
+      "status": "governance_active",
+      "public_refs": [
+        "docs/README.md",
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "135f",
+      "path": "docs/135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md",
+      "direction": "domain-general ontology, semantic graph, domain packs, and reactive context",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "135g",
+      "path": "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md",
+      "direction": "multiplexed Mission Canvas, work surfaces, attachments, and browser isolation",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "README.md",
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "135h",
+      "path": "docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md",
+      "direction": "cross-functional alpha grill and interview-driven acceleration",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "135i",
+      "path": "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md",
+      "direction": "real-time generated CRIST UI and nontechnical onboarding",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "README.md",
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "135j",
+      "path": "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
+      "direction": "core operation registry, durable UI stream, and runtime reuse",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "README.md",
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "135k",
+      "path": "docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md",
+      "direction": "adaptive generated UI, friction learning, and nontechnical usability",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "136",
+      "path": "docs/136-governed-proposal-to-settlement-protocol-and-outcome-truth-infrastructure-spec.md",
+      "direction": "governed proposal settlement and outcome truth",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "137 + 137A",
+      "path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "direction": "temporal authority, deadlines, urgency, and grounded forecasting",
+      "status": "verified_runtime_slices_combined_full_conformance_open",
+      "public_refs": [
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "138 + 138A",
+      "path": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
+      "direction": "prediction calibration, metacognitive transfer, and epistemic governance",
+      "status": "combined_full_conformance_verified_stable_release_pending",
+      "public_refs": [
+        "README.md",
+        "docs/llms.txt"
+      ],
+      "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
+    },
+    {
+      "spec": "139",
+      "path": "docs/139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md",
+      "direction": "distributed presence, environment awareness, placement, and multi-daemon coordination",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "140",
+      "path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "direction": "project runtime constitution, instruction authority, system prompts, and cross-harness compilation",
+      "status": "implemented_with_active_hardening",
+      "public_refs": [
+        "README.md",
+        "docs/llms.txt"
+      ]
+    },
+    {
+      "spec": "144",
+      "path": "docs/144-focusa-semantic-integrity-rdf-owl-shacl-build-verify-routing-and-vertical-intelligence-spec.md",
+      "direction": "semantic integrity and domain-routed Build↔Verify fabric",
+      "status": "runtime_implementation_verified_stable_release_pending",
+      "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+      "public_refs": [
+        "docs/README.md",
+        "docs/llms.txt"
+      ]
+    }
   ],
   "integrity": {
     "unfinished_work_claimed_shipped": false,
     "spec_paths_resolve": true,
     "all_entries_have_public_refs": true
-  }
+  },
+  "source_runtime_release_boundary": "source runtime receipts do not prove stable release, installation, or current distribution parity"
 }

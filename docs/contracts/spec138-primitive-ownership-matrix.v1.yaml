@@ -69,5 +69,5 @@
       "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
     }
   ],
-  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
+  "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
 }
