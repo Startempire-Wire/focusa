@@ -3,6 +3,7 @@
 from pathlib import Path
 import hashlib
 import json
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS = ROOT / "docs/contracts/spec144"
@@ -10,19 +11,46 @@ REGISTRY_PATH = CONTRACTS / "semantic-artifact-registry-v1.json"
 REGISTRY = json.loads(REGISTRY_PATH.read_text())
 LEDGER = json.loads((ROOT / "docs/contracts/spec144-complete-feature-ledger.v1.yaml").read_text())
 ACTIVATION = json.loads((ROOT / "docs/contracts/spec144-activation.v1.json").read_text())
-SPEC143_RECEIPT = json.loads((ROOT / "docs/contracts/spec143-completion-receipt.v1.json").read_text())
+SPEC143_RECEIPT_PATH = ROOT / "docs/contracts/spec143-completion-receipt.v1.json"
+SPEC143_RECEIPT = json.loads(SPEC143_RECEIPT_PATH.read_text())
+SPEC143_TRANSPORT = json.loads(
+    (ROOT / "docs/contracts/spec143-completion-evidence-transport.v1.json").read_text()
+)
 INTEGRITY = (ROOT / "crates/focusa-core/src/semantic_integrity.rs").read_text()
 SEMANTIC_REGISTRY = (ROOT / "crates/focusa-core/src/semantic_registry.rs").read_text()
 
 
+def digest_bytes(payload: bytes) -> str:
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
 def digest(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    return digest_bytes(path.read_bytes())
 
 
 assert SPEC143_RECEIPT["status"] == "passed"
 assert len(SPEC143_RECEIPT["gate_evidence"]) == 7
+assert SPEC143_TRANSPORT["schema"] == "focusa.spec143_completion_evidence_transport.v1"
+assert SPEC143_TRANSPORT["receipt_ref"] == SPEC143_RECEIPT_PATH.relative_to(ROOT).as_posix()
+assert SPEC143_TRANSPORT["receipt_sha256"] == digest(SPEC143_RECEIPT_PATH)
+assert SPEC143_TRANSPORT["source_commit"] == SPEC143_RECEIPT["source_commit"]
+assert SPEC143_TRANSPORT["current_gate_owner"] == "scripts/ci/run-spec-gates.sh"
+historical_root = ROOT / SPEC143_TRANSPORT["immutable_blob_root"]
+source_commit = SPEC143_RECEIPT["source_commit"]
 for gate in SPEC143_RECEIPT["gate_evidence"]:
-    assert digest(ROOT / gate["path"]) == gate["sha256"]
+    historical_path = historical_root / gate["path"]
+    assert historical_path.is_file(), f"missing immutable Spec143 evidence: {historical_path}"
+    historical_bytes = historical_path.read_bytes()
+    assert digest_bytes(historical_bytes) == gate["sha256"]
+    assert (ROOT / gate["path"]).is_file(), f"missing current Spec143 gate: {gate['path']}"
+    git_blob = subprocess.run(
+        ["git", "show", f"{source_commit}:{gate['path']}"],
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+    )
+    if git_blob.returncode == 0:
+        assert git_blob.stdout == historical_bytes
     assert gate["result"] == "passed"
 assert ACTIVATION["schema"] == "focusa.spec144_activation.v1"
 assert ACTIVATION["status"] == "activated"

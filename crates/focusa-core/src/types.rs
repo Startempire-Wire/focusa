@@ -1045,34 +1045,8 @@ pub struct TrajectoryDefinitionOfDoneRecord {
     pub not_done_if: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub enum TrajectoryMilestoneStatus {
-    #[default]
-    NotStarted,
-    Active,
-    Blocked,
-    Verified,
-    Superseded,
-}
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct TrajectoryMilestoneRecord {
-    pub milestone_id: String,
-    pub title: String,
-    pub desired_state_delta: String,
-    #[serde(default)]
-    pub current_state_evidence_refs: Vec<String>,
-    #[serde(default)]
-    pub completion_evidence_refs: Vec<String>,
-    pub status: TrajectoryMilestoneStatus,
-    #[serde(default)]
-    pub next_workpoint_candidate: serde_json::Value,
-}
 #[derive(Debug, Clone, Serialize)]
 pub struct TrajectoryProjectionRecord {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub milestones: Vec<TrajectoryMilestoneRecord>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub active_milestone_id: Option<String>,
     pub trajectory_id: String,
     #[serde(default)]
     pub scope_ref: Option<crate::scoped_state::ScopeRef>,
@@ -1238,8 +1212,6 @@ impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
             merge_legacy_waypoint(&mut waypoints, legacy);
         }
         Ok(Self {
-            milestones: vec![],
-            active_milestone_id: None,
             trajectory_id: wire.trajectory_id,
             scope_ref: wire.scope_ref,
             session_identity: wire.session_identity,
@@ -1276,8 +1248,6 @@ impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
 impl Default for TrajectoryProjectionRecord {
     fn default() -> Self {
         Self {
-            milestones: vec![],
-            active_milestone_id: None,
             trajectory_id: String::new(),
             scope_ref: None,
             session_identity: None,

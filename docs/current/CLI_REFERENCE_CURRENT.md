@@ -173,6 +173,20 @@ Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `act
 - `metacognition recent-reflections` / `recent-adjustments` / `recent-evaluations` — read recent learning/evaluation packets.
 - `awareness card --continuity-id` — non-Pi utility card injection with trajectory orientation and logical-session scoping.
 
+### Project bootstrap lifecycle
+
+- `focusa project bootstrap preview --project-root <absolute-path>` — computes the local-only, idempotent bootstrap transaction without writing.
+- `focusa project bootstrap apply --project-root <absolute-path>` — applies only the previewed bounded transaction; it never creates or changes a remote implicitly.
+- `focusa project bootstrap status --project-root <absolute-path>` — reports marker, project identity, Genesis, Beads, and verification state without mutation.
+- `focusa project bootstrap repair --project-root <absolute-path>` — repairs only transaction-owned bootstrap artifacts while preserving operator choices and reporting rollback evidence.
+
+### Project Genesis lifecycle
+
+- `focusa project genesis start --project-root <absolute-path> --continuity-id <id> --idempotency-key <key>` — inventories authority and stages Genesis; missing High-Level Trajectory intent enters an explicit impasse instead of inventing one.
+- `focusa project genesis resume --project-root <absolute-path> --continuity-id <id> --idempotency-key <key>` — resumes the same bounded, idempotent Genesis transaction.
+- `focusa project genesis status --project-root <absolute-path>` — reads the durable Genesis packet without mutation.
+- `focusa project genesis commit --project-root <absolute-path> --continuity-id <id> --idempotency-key <key> --confirm` — atomically commits the confirmed Trajectory, first Workpoint, coordination state, and readiness receipt.
+
 ### Release-current lifecycle and autonomous execution
 
 - `focusa silent --help` exposes daemon-native Silent Session list/start/reopen/tail/send/interrupt/pause/resume/restart/kill/config/receipt/capabilities operations. Mutations use exact session/run/generation plus daemon-issued approval and idempotency fields; shell/tmux aliases are not authority.

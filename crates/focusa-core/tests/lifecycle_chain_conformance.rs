@@ -90,8 +90,6 @@ fn lifecycle_chain_proposal_promotion_goal_dispatch_settlement() {
         root_goal_stability: TrajectoryRootGoalStability::Stable,
         session_clarity_status: TrajectoryDefinitionStatus::Clear,
         gap_summary: None,
-        milestones: vec![],
-        active_milestone_id: None,
         active_workpoint_id: Some(wp_id),
         source_refs: serde_json::json!({}),
         blockers: vec![],

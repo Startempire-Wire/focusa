@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import yaml
+from structured_contract_loader import load_contract_mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS = ROOT / "docs/contracts"
@@ -13,7 +13,7 @@ PARENT = "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-
 
 
 def load(name: str):
-    return yaml.safe_load((CONTRACTS / name).read_text())
+    return load_contract_mapping(CONTRACTS / name)
 
 
 def require_text(path: str, needles: list[str]) -> None:
@@ -24,8 +24,11 @@ def require_text(path: str, needles: list[str]) -> None:
 
 def test_parent_spec138_ledger_has_zero_open_rows() -> None:
     ledger = load("spec138-complete-feature-ledger.v1.yaml")
+    coverage = load("spec138a-normative-source-coverage.v1.yaml")
     rows = [row for row in ledger["requirements"] if row["source_path"] == PARENT]
-    assert len(rows) == 273
+    parent_coverage = next(row for row in coverage["sources"] if row["path"] == PARENT)
+    assert rows
+    assert len(rows) == parent_coverage["normative_requirement_count"]
     assert all(row["runtime_status"] == "verified_complete" for row in rows)
     for row in rows:
         assert row["documentation_status"] == "verified_complete"

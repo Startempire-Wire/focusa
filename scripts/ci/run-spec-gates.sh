@@ -209,5 +209,26 @@ done
 for fixture_mode in harness subprocess child-leak prompt-wait output-flood model-mismatch retry-failure isolated-git entitlement runner-disconnect; do
   run_gate python3 ./tests/spec133_fault_fixture.py "$fixture_mode" --lines 32
 done
+mapfile -t SPEC143_GATES < <(python3 - "$ROOT_DIR" <<'PY'
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+receipt = json.loads(
+    (root / "docs/contracts/spec143-completion-receipt.v1.json").read_text(encoding="utf-8")
+)
+for gate in receipt["gate_evidence"]:
+    path = pathlib.PurePosixPath(gate["path"])
+    if path.is_absolute() or ".." in path.parts or not path.name.startswith("spec143_"):
+        raise SystemExit(f"unsafe Spec143 gate path: {path}")
+    print(path.as_posix())
+PY
+)
+for gate in "${SPEC143_GATES[@]}"; do
+  run_gate python3 "$ROOT_DIR/$gate"
+done
+run_gate python3 "$ROOT_DIR/tests/spec144_semantic_artifacts_gate.py"
 python3 ./tests/run_spec137_138_full_conformance_gates.py
+run_gate python3 ./tests/spec137a_138a_144_documentation_closure_gate.py
 run_gate python3 ./tests/bead_closure_evidence_gate.py

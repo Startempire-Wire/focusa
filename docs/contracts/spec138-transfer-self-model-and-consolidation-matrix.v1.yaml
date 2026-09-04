@@ -38,7 +38,7 @@
     "reactivation",
     "legal_hold"
   ],
-  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
   "transfer_status": "verified_complete",
   "self_model_status": "verified_complete",
   "consolidation_status": "verified_complete"
