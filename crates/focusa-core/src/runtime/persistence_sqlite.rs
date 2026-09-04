@@ -7,6 +7,7 @@
 //! ECS objects remain filesystem-backed (see reference::store).
 
 use crate::clt::retain_hot_window;
+use crate::reference::{DEFAULT_HOT_HANDLE_LIMIT, retain_hot_handles};
 use crate::semantic_migration::{MigrationPlan, MigrationReceipt};
 use crate::semantic_replay::{SemanticEventEnvelope, replay as replay_semantic_events};
 use crate::silent_session::{
@@ -42,6 +43,19 @@ fn hot_clt_snapshot_max_nodes() -> usize {
 
 fn trim_hot_clt_snapshot(state: &mut FocusaState) -> usize {
     retain_hot_window(&mut state.clt, hot_clt_snapshot_max_nodes())
+}
+
+fn trim_hot_reference_snapshot(state: &mut FocusaState) -> usize {
+    let active_session_id = state
+        .session
+        .as_ref()
+        .filter(|session| session.status == crate::types::SessionStatus::Active)
+        .map(|session| session.session_id);
+    retain_hot_handles(
+        &mut state.reference_index,
+        active_session_id,
+        DEFAULT_HOT_HANDLE_LIMIT,
+    )
 }
 
 /// Stable replay record joined to the append-only event hash-chain sequence.
@@ -331,6 +345,23 @@ impl SqlitePersistence {
     /// Canonical SQLite path used by bounded derived indexes such as Context retrieval.
     pub fn database_path(&self) -> PathBuf {
         self.data_dir.join("focusa.sqlite")
+    }
+
+    /// Serialized byte length of the canonical materialized state, excluding
+    /// SQLite pages, indexes, free space, and WAL bytes.
+    pub fn snapshot_payload_bytes(&self) -> anyhow::Result<u64> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let bytes: Option<i64> = conn
+            .query_row(
+                "SELECT length(CAST(state_json AS BLOB)) FROM snapshots WHERE name='focusa'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(bytes.unwrap_or(0).max(0) as u64)
     }
 
     pub(crate) fn with_connection_mut<T>(
@@ -1332,12 +1363,21 @@ impl SqlitePersistence {
     fn save_state_on_connection(conn: &Connection, state: &FocusaState) -> anyhow::Result<()> {
         let ts = Utc::now();
         let mut snapshot_state = state.clone();
-        let trimmed = trim_hot_clt_snapshot(&mut snapshot_state);
-        if trimmed > 0 {
+        let trimmed_clt = trim_hot_clt_snapshot(&mut snapshot_state);
+        if trimmed_clt > 0 {
             debug!(
-                trimmed,
+                trimmed = trimmed_clt,
                 remaining = snapshot_state.clt.nodes.len(),
                 "trimmed hot CLT snapshot before SQLite save"
+            );
+        }
+        let trimmed_handles = trim_hot_reference_snapshot(&mut snapshot_state);
+        if trimmed_handles > 0 {
+            debug!(
+                trimmed = trimmed_handles,
+                remaining = snapshot_state.reference_index.handles.len(),
+                cold = snapshot_state.reference_index.cold_handle_count,
+                "trimmed hot ECS handle snapshot before SQLite save"
             );
         }
         let state_json = serde_json::to_string(&snapshot_state)?;
@@ -1400,12 +1440,21 @@ impl SqlitePersistence {
             None => Ok(None),
             Some(json) => match serde_json::from_str::<FocusaState>(&json) {
                 Ok(mut s) => {
-                    let trimmed = trim_hot_clt_snapshot(&mut s);
-                    if trimmed > 0 {
+                    let trimmed_clt = trim_hot_clt_snapshot(&mut s);
+                    if trimmed_clt > 0 {
                         debug!(
-                            trimmed,
+                            trimmed = trimmed_clt,
                             remaining = s.clt.nodes.len(),
                             "trimmed hot CLT snapshot after SQLite load"
+                        );
+                    }
+                    let trimmed_handles = trim_hot_reference_snapshot(&mut s);
+                    if trimmed_handles > 0 {
+                        debug!(
+                            trimmed = trimmed_handles,
+                            remaining = s.reference_index.handles.len(),
+                            cold = s.reference_index.cold_handle_count,
+                            "trimmed hot ECS handle snapshot after SQLite load"
                         );
                     }
                     Ok(Some(s))
@@ -4102,8 +4151,8 @@ mod trajectory_ladder_ledger_tests {
     use super::*;
     use crate::runtime::events::create_entry;
     use crate::types::{
-        FocusaEvent, SignalOrigin, TrajectoryConfidence, TrajectoryLadderEventKind,
-        TrajectoryLadderLevel,
+        FocusaEvent, HandleKind, HandleRef, SignalOrigin, TrajectoryConfidence,
+        TrajectoryLadderContext, TrajectoryLadderEventKind, TrajectoryLadderLevel,
     };
 
     fn test_persistence() -> (SqlitePersistence, PathBuf) {
@@ -4148,6 +4197,62 @@ mod trajectory_ladder_ledger_tests {
             lamport_ts,
             timestamp: Utc::now(),
         }
+    }
+
+    #[test]
+    fn state_snapshot_retains_only_the_bounded_hot_ecs_projection() {
+        let (persistence, root) = test_persistence();
+        const PRODUCTION_HANDLE_COUNT: usize = 17_469;
+        let trajectory = TrajectoryLadderContext {
+            trajectory_id: Some("trajectory:production-shaped".to_string()),
+            project_root: Some("/tmp/project".to_string()),
+            continuity_id: Some("cont-a".to_string()),
+            hlt: Some("H".repeat(243)),
+            mlg: Some("M".repeat(360)),
+            stg: Some("S".repeat(240)),
+            waypoints: (0..8).map(|index| format!("waypoint-{index}")).collect(),
+            ..TrajectoryLadderContext::default()
+        };
+        let mut state = FocusaState::default();
+        for index in 0..PRODUCTION_HANDLE_COUNT {
+            state.reference_index.handles.push(HandleRef {
+                id: Uuid::now_v7(),
+                kind: HandleKind::Text,
+                label: format!("artifact-{index}"),
+                size: index as u64,
+                sha256: format!("{index:064x}"),
+                created_at: Utc::now(),
+                session_id: None,
+                project_root: Some("/tmp/project".to_string()),
+                continuity_id: Some("cont-a".to_string()),
+                pinned: false,
+                trajectory: Some(trajectory.clone()),
+            });
+        }
+        let unbounded_bytes = serde_json::to_vec(&state).unwrap().len() as u64;
+
+        persistence
+            .save_state(&state)
+            .expect("save bounded snapshot");
+        let loaded = persistence
+            .load_state()
+            .expect("load bounded snapshot")
+            .expect("snapshot exists");
+        assert_eq!(
+            loaded.reference_index.handles.len(),
+            DEFAULT_HOT_HANDLE_LIMIT
+        );
+        assert_eq!(
+            loaded.reference_index.cold_handle_count,
+            (PRODUCTION_HANDLE_COUNT - DEFAULT_HOT_HANDLE_LIMIT) as u64
+        );
+        let snapshot_bytes = persistence.snapshot_payload_bytes().unwrap();
+        assert!(snapshot_bytes > 0);
+        assert!(
+            snapshot_bytes * 100 < unbounded_bytes * 35,
+            "production-shaped hot snapshot must be at least 65% smaller: hot={snapshot_bytes} unbounded={unbounded_bytes}"
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

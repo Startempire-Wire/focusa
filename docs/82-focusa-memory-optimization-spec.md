@@ -132,6 +132,18 @@ Activation/deactivation surface:
 1. Move full records to durable layer (event log/sqlite).
 2. Keep RAM as hot index/cache only.
 3. Rehydrate on demand for detailed views.
+4. ECS specifically keeps immutable blobs and atomically published full metadata in
+   its existing filesystem store while `FocusaState.reference_index` retains a strict
+   2,048-record hot projection. Hot eviction is not artifact deletion; exact-ID
+   resolve/rehydrate remains lossless.
+5. Persistence telemetry distinguishes serialized `snapshot_bytes` from
+   `database_bytes` and `wal_bytes`; SQLite file allocation is never reported as
+   cognitive snapshot payload size.
+
+Read-only incident-shape measurement on 2026-09-04 found 17,469 hot handle records
+occupying 22,000,805 serialized bytes. Applying the 2,048-record policy to the same
+ordering retains 2,055,291 bytes and moves 15,421 records to exact-ID cold lookup—a
+90.7% reduction in the dominant snapshot field without deleting one artifact.
 
 **Acceptance:**
 - RAM index scales sublinearly with historical record growth.

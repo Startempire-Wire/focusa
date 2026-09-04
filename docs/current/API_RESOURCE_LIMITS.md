@@ -19,7 +19,7 @@ Several read-heavy routes already use route-level hard caps via `routes::bounded
 - telemetry event limits
 - trace retention limits
 - ontology/traverse payload limits
-- ECS handle limits
+- ECS response limits plus a strict 2,048-record hot state/snapshot index; durable cold metadata remains exact-ID rehydratable
 - semantic memory limits
 
 ## JSON depth posture

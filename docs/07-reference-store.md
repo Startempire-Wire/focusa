@@ -54,6 +54,13 @@ The handle:
 - is stable
 - contains no content
 - enables explicit rehydration
+- is stored losslessly under `ecs/handles/<id>.json`
+
+`FocusaState.reference_index` is only a bounded hot projection (2,048 complete
+records). It prefers pinned, active-session, and recent handles. Older metadata and
+content are not garbage-collected by hot eviction and remain available through
+exact-ID resolve/rehydrate operations. Store telemetry reports hot, cold, and total
+counts separately.
 
 ---
 
@@ -86,7 +93,8 @@ Unpinned artifacts may be GC’d when:
 - artifact age exceeds threshold
 - no references remain
 
-GC emits events and never deletes pinned artifacts.
+GC emits events and never deletes pinned artifacts. Hot-index eviction is not GC:
+it removes neither durable metadata nor content.
 
 ---
 

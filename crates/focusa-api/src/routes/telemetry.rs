@@ -122,7 +122,10 @@ async fn memory_payload(state: &AppState) -> Value {
                 "semantic_full_limit": env_usize("FOCUSA_MEMORY_SEMANTIC_FULL_LIMIT", 512),
             },
             "ecs": {
-                "handle_count": focusa.reference_index.handles.len(),
+                "handle_count": focusa.reference_index.total_handle_count(),
+                "hot_handle_count": focusa.reference_index.handles.len(),
+                "cold_handle_count": focusa.reference_index.cold_handle_count,
+                "hot_handle_limit": focusa_core::reference::DEFAULT_HOT_HANDLE_LIMIT,
                 "default_limit": env_usize("FOCUSA_ECS_HANDLES_DEFAULT_LIMIT", 100),
                 "full_limit": env_usize("FOCUSA_ECS_HANDLES_FULL_LIMIT", 512),
             },

@@ -11,7 +11,8 @@ use axum::{
     routing::{get, post},
 };
 use focusa_core::reference::store::ReferenceStore;
-use focusa_core::types::HandleKind;
+use focusa_core::reference::{DEFAULT_HOT_HANDLE_LIMIT, retain_hot_handles};
+use focusa_core::types::{HandleKind, SessionStatus};
 use serde::Deserialize;
 use serde_json::json;
 use std::path::PathBuf;
@@ -173,6 +174,16 @@ async fn store_visual_evidence(
         handle.project_root.as_deref(),
         handle.continuity_id.as_deref(),
     );
+    store.persist_metadata(&handle).map_err(|error| {
+        visual_failure(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("failed to bind visual ECS metadata: {error}"),
+            "storage_unavailable",
+            "visual evidence was stored but its scoped trajectory metadata could not be committed",
+            "check data_dir/ecs permissions; retry safely with a new evidence id",
+            "likely metadata directory permission, disk, or durability failure",
+        )
+    })?;
     if !focusa
         .reference_index
         .handles
@@ -180,6 +191,15 @@ async fn store_visual_evidence(
         .any(|h| h.id == handle.id)
     {
         focusa.reference_index.handles.push(handle.clone());
+        let active_session_id = session
+            .as_ref()
+            .filter(|session| session.status == SessionStatus::Active)
+            .map(|session| session.session_id);
+        retain_hot_handles(
+            &mut focusa.reference_index,
+            active_session_id,
+            DEFAULT_HOT_HANDLE_LIMIT,
+        );
         state.mark_external_mutation();
     }
     drop(focusa);
