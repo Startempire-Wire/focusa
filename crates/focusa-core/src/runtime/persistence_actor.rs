@@ -100,11 +100,11 @@ impl PersistenceActor {
                 let persistence_for_write = persistence.clone();
                 let started = Instant::now();
                 let result = tokio::task::spawn_blocking(move || -> anyhow::Result<(u64, u64)> {
-                    for event in &events {
-                        persistence_for_write.append_event(event)?;
-                    }
                     if let Some(latest_state) = &latest_state {
-                        persistence_for_write.save_state(latest_state)?;
+                        persistence_for_write
+                            .persist_event_batch_and_state(&events, latest_state)?;
+                    } else {
+                        persistence_for_write.append_event_batch(&events)?;
                     }
                     let snapshot_bytes =
                         std::fs::metadata(persistence_for_write.data_dir.join("focusa.sqlite"))

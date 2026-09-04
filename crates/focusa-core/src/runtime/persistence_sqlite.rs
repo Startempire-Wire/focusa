@@ -1329,11 +1329,7 @@ impl SqlitePersistence {
         Ok(imported)
     }
 
-    pub fn save_state(&self, state: &FocusaState) -> anyhow::Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+    fn save_state_on_connection(conn: &Connection, state: &FocusaState) -> anyhow::Result<()> {
         let ts = Utc::now();
         let mut snapshot_state = state.clone();
         let trimmed = trim_hot_clt_snapshot(&mut snapshot_state);
@@ -1357,6 +1353,34 @@ impl SqlitePersistence {
             params![state.version as i64, ts.to_rfc3339(), state_json],
         )?;
         Ok(())
+    }
+
+    /// Atomically append a reducer event batch and advance its materialized snapshot.
+    /// A restart can therefore never observe an event without the matching state cursor.
+    pub fn persist_event_batch_and_state(
+        &self,
+        entries: &[EventLogEntry],
+        state: &FocusaState,
+    ) -> anyhow::Result<()> {
+        let mut conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let transaction = conn.transaction()?;
+        for entry in entries {
+            Self::append_event_on_connection(&transaction, entry)?;
+        }
+        Self::save_state_on_connection(&transaction, state)?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn save_state(&self, state: &FocusaState) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        Self::save_state_on_connection(&conn, state)
     }
 
     pub fn load_state(&self) -> anyhow::Result<Option<FocusaState>> {
@@ -1535,17 +1559,11 @@ impl SqlitePersistence {
             .map_err(Into::into)
     }
 
-    pub fn append_event(&self, entry: &EventLogEntry) -> anyhow::Result<()> {
+    fn append_event_on_connection(conn: &Connection, entry: &EventLogEntry) -> anyhow::Result<()> {
         let payload_json = serde_json::to_string(entry)?;
         let event_id = entry.id.to_string();
         let timestamp = entry.timestamp.to_rfc3339();
         let payload_sha256 = sha256_hex(payload_json.as_bytes());
-
-        // Avoid re-locking the same mutex (machine_id() also locks conn).
-        let conn = self
-            .conn
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let machine_id = entry
             .machine_id
             .clone()
@@ -1583,7 +1601,7 @@ impl SqlitePersistence {
             ],
         )?;
 
-        let (chain_index, previous_hash) = latest_event_hash_checkpoint(&conn)?
+        let (chain_index, previous_hash) = latest_event_hash_checkpoint(conn)?
             .map(|(index, hash)| (index + 1, hash))
             .unwrap_or_else(|| (0, "GENESIS".to_string()));
         let event_hash = event_chain_hash(&previous_hash, &event_id, &timestamp, &payload_sha256);
@@ -1605,6 +1623,28 @@ impl SqlitePersistence {
         )?;
 
         Ok(())
+    }
+
+    pub fn append_event_batch(&self, entries: &[EventLogEntry]) -> anyhow::Result<()> {
+        let mut conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let transaction = conn.transaction()?;
+        for entry in entries {
+            Self::append_event_on_connection(&transaction, entry)?;
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn append_event(&self, entry: &EventLogEntry) -> anyhow::Result<()> {
+        // Avoid re-locking the same mutex (machine_id() also locks conn).
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        Self::append_event_on_connection(&conn, entry)
     }
     /// Ensure confidence calibration table exists.
     pub fn ensure_calibration_table(&self) -> anyhow::Result<()> {
@@ -4060,7 +4100,11 @@ fn _exists(path: &Path) -> bool {
 #[cfg(test)]
 mod trajectory_ladder_ledger_tests {
     use super::*;
-    use crate::types::{TrajectoryConfidence, TrajectoryLadderEventKind, TrajectoryLadderLevel};
+    use crate::runtime::events::create_entry;
+    use crate::types::{
+        FocusaEvent, SignalOrigin, TrajectoryConfidence, TrajectoryLadderEventKind,
+        TrajectoryLadderLevel,
+    };
 
     fn test_persistence() -> (SqlitePersistence, PathBuf) {
         let root = std::env::temp_dir().join(format!("focusa-ladder-ledger-{}", Uuid::now_v7()));
@@ -4104,6 +4148,68 @@ mod trajectory_ladder_ledger_tests {
             lamport_ts,
             timestamp: Utc::now(),
         }
+    }
+
+    #[test]
+    fn event_batch_and_snapshot_rollback_together() {
+        let (persistence, root) = test_persistence();
+        let baseline = FocusaState {
+            version: 7,
+            ..FocusaState::default()
+        };
+        persistence.save_state(&baseline).expect("save baseline");
+        {
+            let conn = persistence
+                .conn
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            conn.execute_batch(
+                r#"
+                CREATE TRIGGER reject_focusa_snapshot_update
+                BEFORE UPDATE ON snapshots
+                WHEN NEW.name = 'focusa'
+                BEGIN
+                    SELECT RAISE(ABORT, 'injected snapshot failure');
+                END;
+                "#,
+            )
+            .expect("install snapshot failure trigger");
+        }
+
+        let entry = create_entry(
+            FocusaEvent::MemoryDecayTick {
+                decay_factor: 0.98,
+                rules_affected: 0,
+            },
+            SignalOrigin::Daemon,
+            None,
+        );
+        let next = FocusaState {
+            version: 8,
+            ..FocusaState::default()
+        };
+        let error = persistence
+            .persist_event_batch_and_state(&[entry], &next)
+            .expect_err("snapshot failure must reject the complete transaction");
+        assert!(error.to_string().contains("injected snapshot failure"));
+        assert!(
+            persistence
+                .events_since(None, None, 10)
+                .expect("read events")
+                .is_empty(),
+            "event append must roll back when its matching snapshot fails"
+        );
+        assert_eq!(
+            persistence
+                .load_state()
+                .expect("load baseline")
+                .expect("baseline exists")
+                .version,
+            7,
+            "failed batch must preserve the previous snapshot"
+        );
+        drop(persistence);
+        std::fs::remove_dir_all(root).expect("clean test data");
     }
 
     #[test]
