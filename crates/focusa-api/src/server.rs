@@ -162,7 +162,7 @@ async fn resource_mode_monitor_loop(state: Arc<AppState>) {
     }
 }
 
-fn lowmem_background_throttle() -> Option<(String, String)> {
+pub(crate) fn lowmem_background_throttle() -> Option<(String, String)> {
     let status = resource_mode_status();
     if matches!(status.mode, "lowmem" | "emergency") && status.budget.background_concurrency == 0 {
         Some((status.mode.to_string(), status.reason.to_string()))
@@ -313,10 +313,7 @@ impl AppState {
         } else {
             let persistence = self.persistence.clone();
             tokio::task::spawn_blocking(move || {
-                for event in &events {
-                    persistence.append_event(event)?;
-                }
-                persistence.save_state(&state)
+                persistence.persist_event_batch_and_state(&events, &state)
             })
             .await
             .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
@@ -328,14 +325,9 @@ impl AppState {
             actor.append_events_checkpoint(events).await
         } else {
             let persistence = self.persistence.clone();
-            tokio::task::spawn_blocking(move || {
-                for event in &events {
-                    persistence.append_event(event)?;
-                }
-                Ok(())
-            })
-            .await
-            .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
+            tokio::task::spawn_blocking(move || persistence.append_event_batch(&events))
+                .await
+                .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
         }
     }
 }
@@ -592,7 +584,9 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::browser_interop::router())
         .merge(routes::metacognition::router())
         .merge(routes::ontology::router())
+        .merge(routes::events_retention::router())
         .merge(routes::events_sqlite::router())
+        .merge(routes::backups::router())
         .merge(routes::session::router())
         .merge(routes::shutdown::router())
         .merge(routes::silent_sessions::router())
@@ -1205,6 +1199,29 @@ pub async fn run(
         shutdown_accepted: Arc::new(Mutex::new(false)),
     });
 
+    // The daemon owns lifecycle cleanup. Settle stale queued/running rows
+    // before serving requests so every consumer sees one truthful ledger.
+    // Recovery-only startup remains read-only.
+    let may_reconcile_jobs =
+        focusa_license::base_product_projection(state.license_guard.entitlement.as_ref())
+            .is_ok_and(|projection| projection.permits_base_mutations);
+    if may_reconcile_jobs {
+        let background_job_path =
+            crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+        let reconciled_jobs = tokio::task::spawn_blocking(move || -> anyhow::Result<_> {
+            let conn = rusqlite::Connection::open(background_job_path)?;
+            focusa_core::background_job_store::reconcile_stale_jobs(&conn, chrono::Utc::now())
+        })
+        .await
+        .map_err(|error| anyhow::anyhow!("background job reconciliation join failed: {error}"))??;
+        if !reconciled_jobs.is_empty() {
+            tracing::warn!(
+                settled = reconciled_jobs.len(),
+                "settled stale background job records at daemon startup"
+            );
+        }
+    }
+
     let app = build_router(state.clone());
 
     // Bind readiness before eager pairing-ledger rehydration. The ledger shares
@@ -1247,6 +1264,11 @@ pub async fn run(
     let resource_monitor_state = state.clone();
     tokio::spawn(async move {
         resource_mode_monitor_loop(resource_monitor_state).await;
+    });
+
+    let backup_maintenance_state = state.clone();
+    tokio::spawn(async move {
+        routes::backup_maintenance::maintenance_loop(backup_maintenance_state).await;
     });
 
     tracing::info!("Listening on {}", bind_addr);

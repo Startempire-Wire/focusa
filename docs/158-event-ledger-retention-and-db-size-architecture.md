@@ -51,10 +51,12 @@ session, thread, chain) were already present.
 ### 2. Daemon surface
 
 - `POST /v1/events/prune` — `{epoch_junk?, before_days?, export?, dry_run?, batch_size?}`;
-  long work runs on `spawn_blocking`, batches clamped to [100, 100_000].
-- Daily retention sweep in the daemon (first tick at startup, then every
-  24h): exports + prunes beyond `FOCUSA_EVENT_RETENTION_DAYS` (default 30)
-  into `<data>/events-cold`; disable with `FOCUSA_EVENT_RETENTION_DISABLED=1`.
+  defaults to dry-run; mutation requires a fresh, restore-proven, off-host-settled
+  Spec 181 recovery point and cold export. Long work runs on `spawn_blocking`,
+  with batches clamped to [100, 100_000].
+- The daemon’s single Spec 181 maintenance coordinator evaluates at most one
+  mutating sweep per 24 hours. It writes planned/settled receipts and refuses
+  event deletion while backup health is degraded.
 
 ### 3. CLI
 
@@ -69,41 +71,23 @@ Hot window 30 days at observed ~250k events/day ≈ 7.5M events worst-case
 cold export, the SQLite ledger stays bounded and the filesystem grows only
 with compressed-if-wanted JSONL cold files (currently uncompressed).
 
-## Live pruning runbook (executed 2026-08-15)
+## Historical live pruning runbook (executed 2026-08-15; do not repeat)
 
-Pruning a **live** ledger while the daemon writes is possible but slow
-(lock contention). The proven procedure is a short maintenance window:
+The 2026-08-15 maintenance-window procedure stopped the daemon, dropped
+indexes, issued direct deletes/VACUUM, and repaired ownership. It is retained
+only as historical evidence. It is **not** current authority:
 
-1. Stop the daemon (it runs detached as root — `pgrep -f '^/usr/local/bin/focusa-daemon'`).
-2. Drop the event indexes (bulk deletes are index-bound; 50k-row batches
-   took ~4.5 min with indexes, ~seconds without):
-   `DROP INDEX IF EXISTS idx_events_ts; ... idx_event_hash_chain_index;`
-3. Batched deletes over stdin (exec argv has a 128 KB per-argument limit):
-   ```sql
-   .bail on
-   BEGIN IMMEDIATE;
-   DELETE FROM event_hash_chain WHERE event_id IN (<batch ids>);
-   DELETE FROM events WHERE event_id IN (<batch ids>);
-   COMMIT;
-   ```
-   Orphan chain sweep afterwards: `DELETE FROM event_hash_chain WHERE
-   event_id NOT IN (SELECT event_id FROM events);`
-4. Recreate the indexes with the same `CREATE INDEX IF NOT EXISTS` statements
-   used in `persistence_sqlite.rs`.
-5. `VACUUM` **as root** (the temp file is root-owned, bypassing the
-   wirebot 30 GB user quota that would otherwise fail the rewrite), then
-   `chown wirebot:wirebot` the db/wal/shm files.
-6. Relaunch the daemon with its recorded environment
-   (`FOCUSA_BIND`, `FOCUSA_HOME`, `FOCUSA_MAGIC_BIN`, `FOCUSA_DATA_DIR`,
-   snapshot/metacog caps), then verify `/v1/health`.
+- `focusa stop` and broad daemon termination are forbidden while #486 remains open;
+- direct root SQLite mutation/VACUUM is outside the governed retention contract;
+- current mutation must flow through the authenticated route, backup health
+  gate, cold-export fsync, bounded transactions, and durable receipts;
+- missing backup/off-host/restore proof fails closed without deleting data.
 
-Expected result: file shrinks from ~11.1 GB to ~5 GB (the junk share), and
-the freed blocks return to the wirebot quota.
 
 ## Verification
 
 - `cargo test -p focusa-core event_retention` — 4 tests: junk pruning,
   cold export + chain anchoring, lexicographic cutoff, orphan sweep.
-- `cargo clippy -p focusa-core --all-targets -- -D warnings` — clean.
-- Live prune evidence: maintenance-window log (`/tmp/focusa-maintenance2.log`),
-  before/after `ls -la` sizes, daemon health after restart.
+- `cargo test -p focusa-api retention` — route dry-run/cadence and recovery-gate coverage.
+- `tests/181-focusa-backup-runtime-contract-test.sh` — backup-gated route, receipt, and cold-export fsync wiring.
+- Released/installed live retention acceptance remains open; source tests are not production proof.

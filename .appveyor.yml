@@ -21,6 +21,14 @@ skip_branch_with_pr: true
 
 skip_tags: false
 
+# One hosted Windows job serves the whole account. Admit only canonical release
+# tags or the explicit immutable-candidate recovery controller; ordinary pushes
+# and pull requests use exact-SHA Linux gates and must not flood this serial lane.
+branches:
+  only:
+    - fix/issue-480-appveyor-recovery
+    - /^v\d+\.\d+\.\d+(-dev)?$/
+
 # Target-specific, Cargo.lock-keyed caches are bounded by architecture and never
 # contain release credentials. They avoid full 25–40 minute cold recompilation.
 cache:
@@ -331,15 +339,37 @@ on_success:
         $repo = "Startempire-Wire/focusa"
         $headers = @{ Authorization = "Bearer $uploadToken"; "User-Agent" = "appveyor"; "Accept" = "application/vnd.github+json" }
         $release = $null
+        $lastLookupError = "not_started"
         for ($attempt = 1; $attempt -le 80; $attempt++) {
+          $releases = $null
           try {
-            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/tags/$tag" -Headers $headers
-            break
+            # GitHub's tag endpoint returns 404 for draft releases. Enumerate the
+            # authenticated release collection so Windows assets can reach the
+            # exact gated draft that must remain unpublished until settlement.
+            $releases = @(Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases?per_page=100" -Headers $headers)
           } catch {
-            Start-Sleep -Seconds 30
+            $statusCode = $null
+            if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+              $statusCode = [int]$_.Exception.Response.StatusCode
+            }
+            if ($statusCode -eq 401 -or $statusCode -eq 403) {
+              throw "GitHub draft Release lookup authorization failed status=$statusCode"
+            }
+            $lastLookupError = if ($statusCode) { "http_$statusCode" } else { $_.Exception.Message }
           }
+          if ($null -ne $releases) {
+            $matches = @($releases | Where-Object { $_.tag_name -eq $tag })
+            if ($matches.Count -gt 1) { throw "ambiguous GitHub draft Release tag=$tag count=$($matches.Count)" }
+            if ($matches.Count -eq 1) {
+              if ($matches[0].draft -ne $true) { throw "GitHub Release must remain draft before AppVeyor upload tag=$tag" }
+              $release = $matches[0]
+              break
+            }
+            $lastLookupError = "draft_not_found"
+          }
+          if ($attempt -lt 80) { Start-Sleep -Seconds 30 }
         }
-        if (-not $release) { throw "canonical GitHub Release did not appear within 40 minutes" }
+        if (-not $release) { throw "canonical GitHub draft Release did not appear within 40 minutes tag=$tag last=$lastLookupError" }
         Get-ChildItem artifacts | ForEach-Object {
           $name = $_.Name
           Invoke-RestMethod -Method Post -Uri "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$name" `

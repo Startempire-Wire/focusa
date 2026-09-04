@@ -1,12 +1,12 @@
 # Focusa Data Retention, Backup, and Deletion Policy
 
-Status: current local-first policy baseline for persisted Focusa state. This policy implements the CIS Controls v8 data protection/recovery follow-up and complements `PERSISTED_STATE_PRIVACY_CLASSES.md`.
+Status: current policy baseline for persisted Focusa state. Spec 181 (`docs/181-focusa-continuous-rolling-backup-restore-and-retention-spec.md`) is the implementation authority; its 15-minute RPO remains breached until a conforming incremental mechanism is released and restore-proven.
 
 ## Store inventory
 
 | Store | Default privacy class | Retention baseline | Backup baseline | Deletion baseline |
 | --- | --- | --- | --- | --- |
-| SQLite `focusa.sqlite` events/snapshots/peers | P2/P3; peer tokens P4 | Keep until operator archive/delete; prune via future retention tooling | Back up with data directory; protect as private local data | Delete by stopping daemon and removing/archiving data dir; peer tokens require secure handling. |
+| SQLite `focusa.sqlite` events/snapshots/peers | P2/P3; peer tokens P4 | Governed hot-window retention only after Spec 181 recovery gates | SQLite online full generation plus a conforming incremental chain; private local and off-host copies | Delete only through receipt-bound governed retention/erasure authority; never use broad daemon stop or direct live-file removal. |
 | SQLite `event_hash_chain` | P1/P2 integrity metadata | Same lifetime as events | Back up with events to preserve audit continuity | Delete with events; chain alone is not enough to reconstruct payloads. |
 | Focus State / Workpoint / Trajectory | P2 | Keep active and recent continuity unless operator clears project data | Included in SQLite/state backups | Deletion must remove both state snapshots and related event history if privacy erasure is required. |
 | Metacognition / Predictions | P2/P3 | Keep reusable local learning while project remains active | Include in private backups | Provide project-scoped purge in future tooling before external sharing. |
@@ -17,15 +17,18 @@ Status: current local-first policy baseline for persisted Focusa state. This pol
 
 ## Backup rules
 
-1. Backups of `data/`, SQLite files, ECS objects, Workpoints, metacog, and predictions are private project backups.
-2. Backups containing peer `auth_token` values or other credential material are P4 and must use approved secret handling or encryption-at-rest.
-3. Backup/restore must preserve `event_hash_chain` rows with `events` rows to keep audit continuity.
-4. Public release artifacts should contain summaries/evidence handles, not raw state DBs.
+1. Recovery policy: 15-minute RPO, 2-hour RTO, 24 hourly/14 daily/8 weekly/12 monthly generations, weekly restore drill, and local plus off-host copies.
+2. Full generations use SQLite’s online backup API without stopping the daemon; a full temporary snapshot every 15 minutes is non-conforming.
+3. Never prune the last verified generation; pruning requires a newer verified generation, required off-host settlement, and newer restore proof.
+4. Backups of SQLite, ECS objects, Workpoints, metacog, and predictions are private project backups.
+5. Backups containing peer `auth_token` values or other credential material are P4 and require approved secret handling or encryption-at-rest.
+6. Backup/restore preserves `event_hash_chain` rows with `events` rows and binds ECS/cold-export inventories.
+7. Public release artifacts contain summaries/evidence handles, never raw state DBs.
 
 ## Deletion rules
 
-1. No deletion of Focusa data directories while the daemon is running.
-2. Prefer recoverable archive/trash moves before permanent deletion.
+1. No direct deletion of live Focusa data directories or SQLite files; daemon-stop workarounds are not deletion authority.
+2. Backup generation pruning follows Spec 181 exact allowlists and durable planned/settled receipts; ordinary user-file cleanup remains recoverable where quota semantics permit.
 3. Project privacy erasure must include events, snapshots, Workpoints, Trajectory records, metacog, predictions, ECS artifacts, and derived evidence files.
 4. P4 secret exposure in persisted state requires immediate token rotation plus data purge/archive decision.
 5. Deletion actions should be recorded as bounded evidence handles, not raw deleted payloads.

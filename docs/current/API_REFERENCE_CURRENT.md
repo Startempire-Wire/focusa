@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `674`
+- Classified paths: `681`
 - Agent eligible: `164`
-- Operator only: `498`
+- Operator only: `505`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -710,6 +710,62 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/background_jobs.rs`
+- Agent operations: none
+
+### `/v1/backups/generations`
+
+- Methods: `GET /v1/backups/generations`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/backups.rs`
+- Agent operations: none
+
+### `/v1/backups/health`
+
+- Methods: `GET /v1/backups/health`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/backups.rs`
+- Agent operations: none
+
+### `/v1/backups/prune`
+
+- Methods: `POST /v1/backups/prune`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/backups.rs`
+- Agent operations: none
+
+### `/v1/backups/restore-drill`
+
+- Methods: `POST /v1/backups/restore-drill`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/backups.rs`
+- Agent operations: none
+
+### `/v1/backups/run`
+
+- Methods: `POST /v1/backups/run`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/backups.rs`
+- Agent operations: none
+
+### `/v1/backups/settle-off-host`
+
+- Methods: `POST /v1/backups/settle-off-host`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/backups.rs`
+- Agent operations: none
+
+### `/v1/backups/verify`
+
+- Methods: `POST /v1/backups/verify`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/backups.rs`
 - Agent operations: none
 
 ### `/v1/bloatgaurd/domain/{name}`

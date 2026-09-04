@@ -1,5 +1,5 @@
 {
-  "enabled": true,
+  "enabled": false,
   "tag": "v0.9.187",
   "sha": "01aae7ea9ab886627d49b68e7aed2349d9ceafc0",
   "verified_test_receipts": {

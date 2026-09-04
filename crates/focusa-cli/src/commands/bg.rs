@@ -2,7 +2,7 @@
 //! The CLI owns monitoring; the daemon persists and broadcasts transitions.
 
 use clap::{Args, Subcommand};
-use focusa_core::background_jobs::BackgroundJobFailureClass;
+use focusa_core::background_jobs::{BackgroundJobFailureClass, current_process_start_token};
 use serde_json::{Value, json};
 
 use super::bg_lifecycle::{
@@ -196,6 +196,7 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                             "cwd": cwd,
                             "attachment": attachment,
                             "pid": std::process::id(),
+                            "process_start_token": current_process_start_token(),
                         }),
                     )
                     .await?;
@@ -325,7 +326,11 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
             let running = api
                 .post(
                     &format!("/v1/background-jobs/{job_id}"),
-                    &json!({ "status": "running", "pid": pid }),
+                    &json!({
+                        "status": "running",
+                        "pid": pid,
+                        "process_start_token": current_process_start_token(),
+                    }),
                 )
                 .await;
             let registration_error = match running {

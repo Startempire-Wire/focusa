@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 674,
+  "route_count": 681,
   "classification_counts": {
     "agent_eligible": 164,
     "internal": 6,
-    "operator_only": 498,
+    "operator_only": 505,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -1067,6 +1067,90 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/background_jobs.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/backups/generations",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/backups.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/backups/health",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/backups.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/backups/prune",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/backups.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/backups/restore-drill",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/backups.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/backups/run",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/backups.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/backups/settle-off-host",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/backups.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/backups/verify",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/backups.rs"
       ],
       "methods": [
         "POST"

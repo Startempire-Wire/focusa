@@ -2661,6 +2661,10 @@ pub fn reduce_with_meta(
         }
 
         // ─── Intuition → Gate ────────────────────────────────────────────
+        FocusaEvent::FocusGatePipelineCommitted { focus_gate } => {
+            state.focus_gate = focus_gate;
+        }
+
         FocusaEvent::IntuitionSignalObserved {
             signal_id,
             signal_type,

@@ -21,7 +21,7 @@ the canonical release scripts remain the authority.
 | Required surface | Temporary provider | Entry point | Required proof | Current limitation |
 |---|---|---|---|---|
 | Linux daemon, CLI, API, specs | GitHub Actions self-hosted `host-focusa-deploy` | `.github/workflows/ci.yml`, `release.yml` | Rust, Spec Gates, release automation, meaningful commits green | Shared production host; Rust exit-241 flake is tracked separately. |
-| Windows binaries and menubar packages | AppVeyor public-project lane | `.appveyor.yml` | MSVC builds/tests; tagged CLI, daemon, TUI, NSIS, MSI, and updater-signature assets | One concurrent public-project job; both target architectures run serially. |
+| Windows binaries and menubar packages | AppVeyor public-project lane | `.appveyor.yml` | MSVC builds/tests; tagged CLI, daemon, TUI, NSIS, MSI, and updater-signature assets | One concurrent public-project job; only exact release tags or the explicit recovery controller are admitted, and both target architectures run serially. |
 | macOS menubar package proof | Codemagic cloud `mac_mini_m2` | `codemagic.yaml`, workflow `menubar-macos-package-proof` | npm ci, typecheck, web build, Rust/Tauri `.app`, plist lint, ad-hoc codesign and verification green | Proof is ad-hoc signed; it is not notarized customer distribution. |
 | GitHub-hosted Linux/macOS/Windows jobs | temporarily non-authoritative | `ci.yml`, `spec132-terminal-matrix.yml`, `release.yml` | Informational only while account admission is billing-locked | Must not be silently deleted or individually re-enabled. The monolithic Spec 132 receipt is substituted by exact-SHA self-hosted CI plus the downstream AppVeyor/Codemagic receipt gates. |
 
@@ -32,8 +32,9 @@ tag through the existing release scripts. Exact candidate CI remains mandatory;
 the billing-locked Spec 132 workflow is recorded as substituted and its external
 surfaces remain publication gates. Never hand-build, hand-copy, or hand-publish
 an artifact.
-2. The matching `v*` tag automatically triggers both Codemagic release
-workflows and AppVeyor; release tags are never filtered by changed paths.
+2. The matching stable or `-dev` release tag automatically triggers both
+Codemagic release workflows and AppVeyor; Nightly and ordinary branch/PR builds
+must not consume the serial Windows release lane.
 3. Require Linux/self-hosted GitHub evidence plus AppVeyor Windows and
 Codemagic macOS evidence for the exact tagged commit.
 4. External providers wait boundedly for the canonical GitHub workflow to
@@ -62,9 +63,10 @@ repository variable `FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX` is explicitly set to
 11. AppVeyor recovery may load `config/appveyor-release-recovery.json` from a
 controller commit, verify the immutable tag/SHA pair, detach-checkout that SHA,
 and only then build/test/package/upload. Recovery assets use the immutable tag,
-not the controller commit. Disable the recovery record immediately after the
-release. Cargo/Tauri/test stderr must be redirected inside `cmd.exe`; successful
-native commands must not become PowerShell `NativeCommandError` failures.
+not the controller commit. The recovery record is disabled at rest, enabled only
+for one exact candidate, and disabled immediately after the recovery run.
+Cargo/Tauri/test stderr must be redirected inside `cmd.exe`; successful native
+commands must not become PowerShell `NativeCommandError` failures.
 12. Every `softprops/action-gh-release` step declares
 `tag_name: ${{ env.RELEASE_TAG }}`. Recovery dispatch runs from a controller
 branch, so no upload may infer release identity from `github.ref`.
@@ -120,14 +122,21 @@ while uploading a different pre-seal bundle is forbidden.
 in memory before Tauri packaging. No decoded signing-key file is written on
 either provider. The AppVeyor project must hold both the key payload and
 password as secure variables; absent authority fails before package work.
+19. AppVeyor must discover the receiving draft through the authenticated GitHub
+release collection and select exactly one matching `tag_name`. GitHub's
+`/releases/tags/{tag}` endpoint does not expose a draft and created a circular
+wait in build 265: Windows assets were required before publication while the
+Windows producer waited for publication before upload. Ambiguity, a non-draft
+match, authentication failure, or bounded timeout fails closed.
 
 ## 4. Spending and trigger boundary
 
 - Codemagic uses the personal-account 500 free macOS M2 minutes/month budget.
-- Both Codemagic workflows are release-tag (`v*`) scoped; ordinary push and PR
-work remains on the free self-hosted Linux and AppVeyor Windows lanes. The only
-branch-build exception is a bounded API-triggered immutable-tag recovery with
-the explicit recovery variable and enabled recovery record described above.
+- Both Codemagic workflows are release-tag (`v*`) scoped. AppVeyor admits only
+stable/`-dev` release tags and the explicit immutable-tag recovery controller;
+ordinary pushes, pull requests, and Nightlies stay on self-hosted Linux and do
+not fan out into its one-concurrent-job Windows matrix. The recovery record is
+disabled by default and enabled only for one exact authorized candidate.
 - Secure upload/signing variables live only in provider secret groups; the
 repository stores names and fail-closed checks, never secret values.
 - No agent may enable paid hosted macOS capacity, create a paid plan, or widen

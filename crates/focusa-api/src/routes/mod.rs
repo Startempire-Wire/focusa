@@ -11,6 +11,8 @@ pub mod attachments;
 pub mod autonomy;
 pub mod awareness;
 pub mod background_jobs;
+pub(crate) mod backup_maintenance;
+pub mod backups;
 pub mod bloatgaurd;
 pub mod bloatgaurd_optical;
 pub mod bounded;
@@ -48,6 +50,7 @@ pub mod sync_transfer;
 pub mod turn_recent;
 // pub mod events; // deprecated JSONL event tailing
 pub mod agent_reminder;
+pub mod events_retention;
 pub mod events_sqlite;
 pub mod focus;
 pub mod gate;

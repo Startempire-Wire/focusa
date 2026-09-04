@@ -436,6 +436,95 @@ fn status_rank(status: &str) -> u8 {
     }
 }
 
+fn service_authority_result(
+    active_state: &str,
+    service_pid: Option<u32>,
+    daemon_pid: Option<u32>,
+    daemon_version: Option<&str>,
+) -> Value {
+    let pid_matches = service_pid.is_some() && service_pid == daemon_pid;
+    let version_matches = daemon_version == Some(env!("CARGO_PKG_VERSION"));
+    let ready = active_state == "active" && pid_matches && version_matches;
+    json!({
+        "name": "installed daemon service authority",
+        "status": if ready { "completed" } else { "blocked" },
+        "path": "focusa-daemon.service",
+        "details": {
+            "active_state": active_state,
+            "service_pid": service_pid,
+            "daemon_pid": daemon_pid,
+            "cli_version": env!("CARGO_PKG_VERSION"),
+            "daemon_version": daemon_version,
+            "pid_matches": pid_matches,
+            "version_matches": version_matches,
+        },
+        "what_failed": if ready { Value::Null } else { json!("the installed service, daemon process, and CLI do not agree") },
+        "safe_recovery": if ready { Value::Null } else { json!("repair the installed service and version through the canonical lifecycle") },
+    })
+}
+
+#[cfg(target_os = "linux")]
+fn installed_service_authority_check(health_check: &Value) -> Value {
+    let output = std::process::Command::new("systemctl")
+        .args([
+            "show",
+            "focusa-daemon.service",
+            "-p",
+            "LoadState",
+            "-p",
+            "ActiveState",
+            "-p",
+            "MainPID",
+            "--no-pager",
+        ])
+        .output();
+    let Ok(output) = output else {
+        return json!({
+            "name": "installed daemon service authority",
+            "status": "not_checked",
+            "reason": "systemctl is unavailable",
+        });
+    };
+    let output_text = String::from_utf8_lossy(&output.stdout);
+    let fields: std::collections::HashMap<_, _> = output_text
+        .lines()
+        .filter_map(|line| line.split_once('='))
+        .collect();
+    if fields.get("LoadState") == Some(&"not-found") {
+        return json!({
+            "name": "installed daemon service authority",
+            "status": "not_checked",
+            "reason": "no systemd service is installed on this host",
+        });
+    }
+    let service_pid = fields
+        .get("MainPID")
+        .and_then(|value| value.parse::<u32>().ok())
+        .filter(|pid| *pid > 0);
+    let daemon_pid = health_check
+        .pointer("/details/daemon/pid")
+        .and_then(Value::as_u64)
+        .and_then(|pid| u32::try_from(pid).ok());
+    let daemon_version = health_check
+        .pointer("/details/version")
+        .and_then(Value::as_str);
+    service_authority_result(
+        fields.get("ActiveState").copied().unwrap_or("unknown"),
+        service_pid,
+        daemon_pid,
+        daemon_version,
+    )
+}
+
+#[cfg(not(target_os = "linux"))]
+fn installed_service_authority_check(_health_check: &Value) -> Value {
+    json!({
+        "name": "installed daemon service authority",
+        "status": "not_checked",
+        "reason": "service ownership is verified by the platform lifecycle adapter",
+    })
+}
+
 pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
     if matches!(args.command, Some(DoctorCommand::Security)) {
         let response = security_posture_payload();
@@ -450,7 +539,10 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
     let api = ApiClient::new();
     let mut checks = Vec::new();
 
-    checks.push(api_check(&api, "daemon health", "/v1/health").await);
+    let daemon_health = api_check(&api, "daemon health", "/v1/health").await;
+    let service_authority = installed_service_authority_check(&daemon_health);
+    checks.push(daemon_health);
+    checks.push(service_authority);
     checks.push(api_check(&api, "command-center doctor API", "/v1/doctor").await);
     checks.push(api_check(&api, "API route inventory surface", "/v1/agents").await);
     checks.push(api_check(&api, "Spec90 tool contracts", "/v1/ontology/tool-contracts").await);
@@ -576,8 +668,28 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
                     name.contains("release") || name.contains("Guardian") || name.contains("Mac")
                 })
     });
+    let service_authority_blocked = checks.iter().any(|check| {
+        check.get("name").and_then(Value::as_str) == Some("installed daemon service authority")
+            && check.get("status").and_then(Value::as_str) == Some("blocked")
+    });
+    let runtime_readiness = if service_authority_blocked {
+        json!({
+            "status": "blocked",
+            "reason": "the installed service, daemon process, or CLI version does not agree",
+        })
+    } else {
+        api_readiness
+            .get("runtime_readiness")
+            .cloned()
+            .unwrap_or_else(|| {
+                json!({
+                    "status": "blocked",
+                    "reason": "the daemon did not provide a runtime readiness decision",
+                })
+            })
+    };
     let readiness_categories = json!({
-        "runtime_readiness": api_readiness.get("runtime_readiness").cloned().unwrap_or_else(|| json!({"status":"ready", "reason":"daemon health and doctor API checks completed"})),
+        "runtime_readiness": runtime_readiness,
         "project_scope_readiness": api_readiness.get("project_scope_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"project scope is checked by project identity/verify routes"})),
         "workpoint_readiness": api_readiness.get("workpoint_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"workpoint current check is advisory in CLI doctor"})),
         "trajectory_readiness": api_readiness.get("trajectory_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"trajectory view is not required for CLI runtime doctor"})),
@@ -648,6 +760,30 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn service_authority_requires_active_matching_process_and_version() {
+        let ready = service_authority_result(
+            "active",
+            Some(42),
+            Some(42),
+            Some(env!("CARGO_PKG_VERSION")),
+        );
+        assert_eq!(ready["status"], "completed");
+
+        for blocked in [
+            service_authority_result(
+                "inactive",
+                Some(42),
+                Some(42),
+                Some(env!("CARGO_PKG_VERSION")),
+            ),
+            service_authority_result("active", Some(42), Some(7), Some(env!("CARGO_PKG_VERSION"))),
+            service_authority_result("active", Some(42), Some(42), Some("older")),
+        ] {
+            assert_eq!(blocked["status"], "blocked");
+        }
+    }
 
     #[test]
     fn unconfigured_work_loop_scope_is_not_daemon_blockage() {

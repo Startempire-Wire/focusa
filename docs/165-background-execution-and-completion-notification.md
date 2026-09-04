@@ -227,3 +227,22 @@ Acceptance requires both direct and detached unspawnable-command e2e proof:
 one durable row, terminal `failed`, typed `launch_failed`, exit 126,
 `completed_at`, bounded diagnostic, and the matching completion envelope. No
 failure may be relabeled `monitor_lost`, and no test may blanket-skip Windows.
+
+## v2.4 — daemon-owned stale-row repair with v1/v2 compatibility
+
+New rows use `focusa.background_job.v3` and may carry an OS process-start token
+alongside the PID. This prevents PID reuse from making an unrelated process look
+like the lifecycle owner. The migration only adds the nullable
+`process_start_token` column; v1 and v2 records remain readable unchanged.
+
+The daemon reconciles nonterminal rows once at startup and again before job-list
+responses. A queued legacy row without any PID settles after the existing
+30-second grace period. A row with a PID settles only when that process is gone
+or its available start token mismatches. If the platform cannot verify the start
+token for a live process, reconciliation leaves the row untouched rather than
+risking a false completion.
+
+Queued rows settle as typed `launch_failed`; running rows settle as
+`monitor_lost`. Both receive one completion time, failure code, and bounded
+reason. Existing CLI-side reconciliation remains as a compatibility fallback
+for older daemons, while the daemon is the owner for current installations.

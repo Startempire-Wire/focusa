@@ -271,6 +271,22 @@ fn print_daemon_usage() {
     );
 }
 
+async fn wait_for_os_shutdown() -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        let mut terminate =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+        tokio::select! {
+            result = tokio::signal::ctrl_c() => result,
+            _ = terminate.recv() => Ok(()),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     match detect_cli_action(std::env::args()) {
@@ -414,6 +430,7 @@ async fn main() -> anyhow::Result<()> {
     let external_mutation_epoch = Arc::new(AtomicU64::new(0));
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let shutdown_tx_for_supervisor = shutdown_tx.clone();
+    let shutdown_tx_for_os = shutdown_tx.clone();
     let daemon_shutdown_rx = shutdown_rx.clone();
     let api_shutdown_rx = shutdown_rx;
 
@@ -447,6 +464,18 @@ async fn main() -> anyhow::Result<()> {
         .next()
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(8787);
+
+    // SIGTERM is systemd's normal stop path. Convert OS termination into the
+    // same governed shutdown signal used by the API so the daemon's bounded
+    // state checkpoint and durable event cursor complete before process exit.
+    tokio::spawn(async move {
+        match wait_for_os_shutdown().await {
+            Ok(()) => {
+                let _ = shutdown_tx_for_os.send(true);
+            }
+            Err(error) => tracing::error!(error = %error, "OS shutdown signal listener failed"),
+        }
+    });
 
     // Spawn daemon event loop.
     let mut daemon_handle = tokio::spawn(async move {

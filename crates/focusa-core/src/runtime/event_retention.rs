@@ -64,7 +64,11 @@ fn civil_from_days(days: i64) -> (i64, u32, u32) {
 /// ISO-8601 UTC timestamp `days` ago at midnight. Lexicographically
 /// comparable with the `events.ts` TEXT column.
 pub fn retention_cutoff(days: u32) -> String {
-    let days = if days == 0 { DEFAULT_RETENTION_DAYS } else { days };
+    let days = if days == 0 {
+        DEFAULT_RETENTION_DAYS
+    } else {
+        days
+    };
     let now_secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -75,7 +79,8 @@ pub fn retention_cutoff(days: u32) -> String {
 }
 
 fn batch_ids(conn: &Connection, where_clause: &str, limit: usize) -> Result<Vec<String>> {
-    let sql = format!("SELECT event_id FROM events WHERE {where_clause} ORDER BY ts, event_id LIMIT ?");
+    let sql =
+        format!("SELECT event_id FROM events WHERE {where_clause} ORDER BY ts, event_id LIMIT ?");
     let mut statement = conn
         .prepare(&sql)
         .with_context(|| format!("prepare batch select: {sql}"))?;
@@ -89,7 +94,9 @@ fn batch_ids(conn: &Connection, where_clause: &str, limit: usize) -> Result<Vec<
 /// events removed. Explicit per-id chain deletes make the operation immune
 /// to foreign_keys pragma differences.
 fn delete_batch(conn: &Connection, ids: &[String]) -> Result<u64> {
-    let tx = conn.unchecked_transaction().context("begin delete transaction")?;
+    let tx = conn
+        .unchecked_transaction()
+        .context("begin delete transaction")?;
     let mut events_deleted = 0_u64;
     {
         let mut delete_event = tx.prepare("DELETE FROM events WHERE event_id = ?")?;
@@ -127,7 +134,11 @@ fn sweep_orphan_chain_rows(conn: &Connection, batch_size: usize) -> Result<u64> 
 /// bounded batches. Safe against the live daemon writer: each batch is its
 /// own short transaction.
 pub fn prune_epoch_junk(conn: &Connection, batch_size: usize) -> Result<JunkPruneSummary> {
-    let batch_size = if batch_size == 0 { DEFAULT_BATCH_SIZE } else { batch_size };
+    let batch_size = if batch_size == 0 {
+        DEFAULT_BATCH_SIZE
+    } else {
+        batch_size
+    };
     let mut summary = JunkPruneSummary {
         deleted_events: 0,
         deleted_chain_rows: 0,
@@ -157,23 +168,20 @@ fn export_batch(
          FROM events WHERE ts < ? ORDER BY ts, event_id LIMIT ?",
     )?;
     let rows = statement
-        .query_map(
-            rusqlite::params![cutoff, batch_size as i64],
-            |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                    row.get::<_, Option<String>>(3)?,
-                    row.get::<_, String>(4)?,
-                    row.get::<_, Option<String>>(5)?,
-                    row.get::<_, Option<String>>(6)?,
-                    row.get::<_, Option<String>>(7)?,
-                    row.get::<_, Option<String>>(8)?,
-                    row.get::<_, i64>(9)?,
-                ))
-            },
-        )?
+        .query_map(rusqlite::params![cutoff, batch_size as i64], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, Option<String>>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, Option<String>>(7)?,
+                row.get::<_, Option<String>>(8)?,
+                row.get::<_, i64>(9)?,
+            ))
+        })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     if rows.is_empty() {
         return Ok(Vec::new());
@@ -201,6 +209,7 @@ fn export_batch(
         ids.push(id);
     }
     file.flush()?;
+    file.sync_all()?;
     Ok(ids)
 }
 
@@ -213,7 +222,11 @@ pub fn prune_before(
     export_dir: Option<&Path>,
     batch_size: usize,
 ) -> Result<RetentionSummary> {
-    let batch_size = if batch_size == 0 { DEFAULT_BATCH_SIZE } else { batch_size };
+    let batch_size = if batch_size == 0 {
+        DEFAULT_BATCH_SIZE
+    } else {
+        batch_size
+    };
     let mut summary = RetentionSummary {
         cutoff_ts: cutoff.to_string(),
         exported_events: 0,
@@ -222,11 +235,15 @@ pub fn prune_before(
         anchor_chain_index: None,
         vacuumed_pages: 0,
     };
-    let export_file = export_dir.map(|dir| {
-        std::fs::create_dir_all(dir).ok();
-        let day = cutoff.get(..10).unwrap_or("archive").replace('-', "");
-        dir.join(format!("events-cold-{day}.jsonl"))
-    });
+    let export_file = match export_dir {
+        Some(dir) => {
+            std::fs::create_dir_all(dir)
+                .with_context(|| format!("create cold export directory {}", dir.display()))?;
+            let day = cutoff.get(..10).unwrap_or("archive").replace('-', "");
+            Some(dir.join(format!("events-cold-{day}.jsonl")))
+        }
+        None => None,
+    };
     loop {
         let ids = match &export_file {
             Some(file) => export_batch(conn, cutoff, file, batch_size)?,
@@ -262,8 +279,11 @@ pub fn anchor_hash_chain(conn: &Connection, keep: i64) -> Result<Option<i64>> {
     };
     let floor = max_index.saturating_sub(keep);
     if floor > 0 {
-        conn.execute("DELETE FROM event_hash_chain WHERE chain_index < ?", [floor])
-            .context("anchor hash chain")?;
+        conn.execute(
+            "DELETE FROM event_hash_chain WHERE chain_index < ?",
+            [floor],
+        )
+        .context("anchor hash chain")?;
     }
     let head_hash: Option<String> = conn
         .query_row(

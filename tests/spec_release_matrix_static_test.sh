@@ -213,6 +213,13 @@ grep -Fq "apps\\menubar\\src-tauri\\target\\%RUST_TARGET% -> apps\\menubar\\src-
   || fail "AppVeyor must isolate Rust tests into two architecture jobs"
 [ "$(grep -c '^      SURFACE: menubar$' "$APPVEYOR")" -eq 2 ] \
   || fail "AppVeyor must isolate Menubar work into two architecture jobs"
+grep -Fq -- '- fix/issue-480-appveyor-recovery' "$APPVEYOR" \
+  || fail "AppVeyor must admit the explicit immutable-candidate recovery controller"
+grep -Fq -- '- /^v\d+\.\d+\.\d+(-dev)?$/' "$APPVEYOR" \
+  || fail "AppVeyor must admit only canonical stable/dev release tags"
+if awk '/^branches:/{in_branches=1; next} in_branches && /^[^ ]/{in_branches=0} in_branches{print}' "$APPVEYOR" | grep -Eq '^    - (main|master)$'; then
+  fail "AppVeyor must not fan ordinary main/PR traffic into its serial release matrix"
+fi
 [ "$(grep -c '^  CARGO_PROFILE_RELEASE_LTO: "false"$' "$APPVEYOR")" -eq 1 ] \
   || fail "AppVeyor must disable only provider-local release LTO to fit the hosted quota"
 if grep -Eq '^  CARGO_PROFILE_RELEASE_(OPT_LEVEL|PANIC|STRIP):' "$APPVEYOR"; then
@@ -273,6 +280,17 @@ grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
   || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
 grep -Fq '@($env:GH_TOKEN, $env:GITHUB_RELEASE_TOKEN)' "$APPVEYOR" \
   || fail "AppVeyor does not consume the configured GitHub release token authority"
+grep -Fq 'releases?per_page=100' "$APPVEYOR" \
+  || fail "AppVeyor must enumerate authenticated GitHub releases so drafts are discoverable"
+if grep -Fq 'releases/tags/$tag' "$APPVEYOR"; then
+  fail "AppVeyor must not use GitHub's draft-blind tag release endpoint"
+fi
+grep -Fq '$matches[0].draft -ne $true' "$APPVEYOR" \
+  || fail "AppVeyor must reject a release that is no longer the gated draft"
+grep -Fq 'ambiguous GitHub draft Release' "$APPVEYOR" \
+  || fail "AppVeyor must reject ambiguous tag matches"
+grep -Fq 'GitHub draft Release lookup authorization failed' "$APPVEYOR" \
+  || fail "AppVeyor must fail immediately on draft lookup authorization errors"
 grep -Fq '$env:SURFACE -in @("binaries", "menubar")' "$APPVEYOR" \
   || fail "AppVeyor upload settlement must exclude non-artifact test jobs"
 grep -Fq '[Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY)' "$APPVEYOR" \
@@ -322,7 +340,7 @@ for recovery_path in sys.argv[1:3]:
     assert re.fullmatch(r"[0-9a-f]{40}", payload["sha"])
 appveyor_recovery = json.load(open(sys.argv[1], encoding="utf-8"))
 assert appveyor_recovery == {
-    "enabled": True,
+    "enabled": False,
     "tag": "v0.9.187",
     "sha": "01aae7ea9ab886627d49b68e7aed2349d9ceafc0",
     "verified_test_receipts": {
@@ -330,7 +348,7 @@ assert appveyor_recovery == {
         "x86_64_job": "6o84mlsuilovxtua",
         "aarch64_job": "uskaruf7e5hjkhqv",
     },
-}, "AppVeyor recovery identity and test receipts must remain pinned to v0.9.187"
+}, "AppVeyor recovery must rest disabled while retaining the immutable v0.9.187 audit identity"
 lines = open(sys.argv[3], encoding="utf-8").read().splitlines()
 uploads = [i for i, line in enumerate(lines) if "uses: softprops/action-gh-release@v2" in line]
 assert uploads, "release workflow has no GitHub Release upload actions"
@@ -368,7 +386,7 @@ fi
 if grep -q 'upload failed for' "$APPVEYOR"; then
   fail "AppVeyor must not swallow artifact upload failures"
 fi
-pass "external release adapters are unconditional on tags and fail closed"
+pass "external release adapters admit only canonical tags/recovery and fail closed"
 
 # Spec 178 keeps the billing-locked macOS job visible but non-authoritative;
 # Codemagic remains fail-closed at release receipt gates.
