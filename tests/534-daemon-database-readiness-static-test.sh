@@ -26,5 +26,11 @@ rg -q 'BACKGROUND_JOB_SCHEMA:.*background_job\.v3' \
   || fail 'new background records must use the v3 additive contract'
 rg -q 'BACKGROUND_JOB_SCHEMA_V2' crates/focusa-core/src/background_jobs.rs \
   || fail 'v2 compatibility marker must remain'
+rg -q 'SQLITE_OPEN_READ_ONLY' crates/focusa-api/src/routes/background_jobs.rs \
+  || fail 'background-job GET routes must open SQLite read-only'
+rg -q 'reconciliation_skipped' crates/focusa-api/src/routes/background_jobs.rs \
+  || fail 'recovery-only job listings must disclose skipped reconciliation'
+rg -q 'legacy_schema_reads_without_migration' crates/focusa-core/src/background_job_store.rs \
+  || fail 'legacy job reads must prove zero schema mutation'
 
-printf 'PASS: daemon/database readiness fails closed and background migration stays additive\n'
+printf 'PASS: readiness fails closed; recovery reads stay read-only; migrations remain additive\n'

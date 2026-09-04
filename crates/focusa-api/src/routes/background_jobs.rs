@@ -329,8 +329,10 @@ async fn get_job(
 ) -> Json<Value> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
-        let conn = rusqlite::Connection::open(path)?;
-        focusa_core::background_job_store::ensure_schema(&conn)?;
+        let conn = rusqlite::Connection::open_with_flags(
+            path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )?;
         let Some(record) = focusa_core::background_job_store::load_job(&conn, &job_id)? else {
             return Ok(json!({"status": "missing", "job_id": job_id}));
         };
@@ -364,11 +366,20 @@ async fn get_job(
 async fn list_jobs(State(state): State<Arc<AppState>>) -> Json<Value> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let events_tx = state.events_tx.clone();
+    let may_reconcile_jobs =
+        focusa_license::base_product_projection(state.license_guard.entitlement.as_ref())
+            .is_ok_and(|projection| projection.permits_base_mutations);
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
-        let conn = rusqlite::Connection::open(path)?;
-        focusa_core::background_job_store::ensure_schema(&conn)?;
-        let reconciled =
-            focusa_core::background_job_store::reconcile_stale_jobs(&conn, chrono::Utc::now())?;
+        let conn = if may_reconcile_jobs {
+            rusqlite::Connection::open(path)?
+        } else {
+            rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?
+        };
+        let reconciled = if may_reconcile_jobs {
+            focusa_core::background_job_store::reconcile_stale_jobs(&conn, chrono::Utc::now())?
+        } else {
+            Vec::new()
+        };
         let completion_events = reconciled
             .iter()
             .map(BackgroundJobCompletionEvent::from_record)
@@ -378,6 +389,7 @@ async fn list_jobs(State(state): State<Arc<AppState>>) -> Json<Value> {
             "status": "ok",
             "jobs": jobs,
             "reconciled_count": completion_events.len(),
+            "reconciliation_skipped": !may_reconcile_jobs,
             "reconciliation_events": completion_events,
         }))
     })
@@ -422,11 +434,13 @@ async fn wait_job(
     let job_id = query.job_id.clone();
     let wait_future =
         tokio::task::spawn_blocking(move || -> anyhow::Result<Option<BackgroundJobRecord>> {
-            let conn = match rusqlite::Connection::open(&path) {
+            let conn = match rusqlite::Connection::open_with_flags(
+                &path,
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            ) {
                 Ok(conn) => conn,
                 Err(error) => return Err(anyhow::anyhow!("connection open failed: {error}")),
             };
-            focusa_core::background_job_store::ensure_schema(&conn)?;
             let deadline = std::time::Instant::now() + Duration::from_millis(query.timeout_ms);
             loop {
                 let record = focusa_core::background_job_store::load_job(&conn, &job_id)?;

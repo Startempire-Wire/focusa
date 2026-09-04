@@ -24,6 +24,43 @@ fn has_column(conn: &Connection, expected: &str) -> Result<bool> {
         .any(|name| name == expected))
 }
 
+/// Project every supported background-job schema into the current row shape
+/// without migrating it. Recovery-only GET routes use this projection through
+/// a read-only SQLite connection, so legacy v1/v2 rows remain inspectable while
+/// the damaged authority plane cannot authorize schema or lifecycle writes.
+fn read_projection(conn: &Connection) -> Result<String> {
+    let attachment = if has_column(conn, "attachment_json")? {
+        "attachment_json"
+    } else {
+        "NULL AS attachment_json"
+    };
+    let output_tail = if has_column(conn, "output_tail")? {
+        "output_tail"
+    } else {
+        "'' AS output_tail"
+    };
+    let schema = if has_column(conn, "schema")? {
+        "schema"
+    } else {
+        "'focusa.background_job.v1' AS schema"
+    };
+    let failure_class = if has_column(conn, "failure_class")? {
+        "failure_class"
+    } else {
+        "NULL AS failure_class"
+    };
+    let process_start_token = if has_column(conn, "process_start_token")? {
+        "process_start_token"
+    } else {
+        "NULL AS process_start_token"
+    };
+    Ok(format!(
+        "job_id, name, command, cwd, {attachment}, status, exit_code, pid, \
+         log_path, started_at, completed_at, {output_tail}, {schema}, \
+         {failure_class}, {process_start_token}"
+    ))
+}
+
 pub fn ensure_schema(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         r#"
@@ -124,9 +161,9 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
 }
 
 pub fn load_job(conn: &Connection, job_id: &str) -> Result<Option<BackgroundJobRecord>> {
+    let columns = read_projection(conn)?;
     conn.query_row(
-        "SELECT job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema, failure_class, process_start_token
-         FROM background_jobs WHERE job_id = ?1",
+        &format!("SELECT {columns} FROM background_jobs WHERE job_id = ?1"),
         params![job_id],
         row_from,
     )
@@ -135,10 +172,10 @@ pub fn load_job(conn: &Connection, job_id: &str) -> Result<Option<BackgroundJobR
 }
 
 pub fn list_jobs(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
-    let mut stmt = conn.prepare(
-        "SELECT job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema, failure_class, process_start_token
-         FROM background_jobs ORDER BY started_at DESC",
-    )?;
+    let columns = read_projection(conn)?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {columns} FROM background_jobs ORDER BY started_at DESC"
+    ))?;
     let rows = stmt.query_map([], row_from)?;
     rows.collect::<rusqlite::Result<Vec<_>>>()
         .map_err(Into::into)
@@ -167,6 +204,14 @@ pub fn record_job_duration(conn: &Connection, name: &str, duration_ms: i64) -> R
 }
 
 pub fn eta_ms_for(conn: &Connection, name: &str) -> Result<Option<i64>> {
+    let stats_exist = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'bg_job_stats')",
+        [],
+        |row| row.get::<_, bool>(0),
+    )?;
+    if !stats_exist {
+        return Ok(None);
+    }
     conn.query_row(
         "SELECT ema_ms FROM bg_job_stats WHERE name = ?1",
         params![name],
@@ -177,20 +222,21 @@ pub fn eta_ms_for(conn: &Connection, name: &str) -> Result<Option<i64>> {
 }
 
 pub fn list_running(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
-    let mut stmt = conn.prepare(
-        "SELECT job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema, failure_class, process_start_token
-         FROM background_jobs WHERE status = 'running' ORDER BY started_at",
-    )?;
+    let columns = read_projection(conn)?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {columns} FROM background_jobs WHERE status = 'running' ORDER BY started_at"
+    ))?;
     let rows = stmt.query_map([], row_from)?;
     rows.collect::<rusqlite::Result<Vec<_>>>()
         .map_err(Into::into)
 }
 
 pub fn list_nonterminal(conn: &Connection) -> Result<Vec<BackgroundJobRecord>> {
-    let mut stmt = conn.prepare(
-        "SELECT job_id, name, command, cwd, attachment_json, status, exit_code, pid, log_path, started_at, completed_at, output_tail, schema, failure_class, process_start_token
-         FROM background_jobs WHERE status IN ('queued', 'running') ORDER BY started_at",
-    )?;
+    let columns = read_projection(conn)?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {columns} FROM background_jobs \
+         WHERE status IN ('queued', 'running') ORDER BY started_at"
+    ))?;
     let rows = stmt.query_map([], row_from)?;
     rows.collect::<rusqlite::Result<Vec<_>>>()
         .map_err(Into::into)
@@ -352,6 +398,51 @@ mod tests {
         assert_eq!(loaded.status, BackgroundJobStatus::Completed);
         assert_eq!(loaded.exit_code, Some(0));
         assert_eq!(loaded.completed_at.as_deref(), Some("t1"));
+    }
+
+    #[test]
+    fn legacy_schema_reads_without_migration() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE background_jobs (
+                job_id TEXT PRIMARY KEY, name TEXT NOT NULL, command TEXT NOT NULL,
+                cwd TEXT NOT NULL, status TEXT NOT NULL, exit_code INTEGER, pid INTEGER,
+                log_path TEXT NOT NULL, started_at TEXT NOT NULL, completed_at TEXT
+            );
+            INSERT INTO background_jobs
+                (job_id, name, command, cwd, status, log_path, started_at)
+                VALUES ('legacy-read', 'legacy', 'true', '.', 'queued', '/tmp/legacy.log', 't0');",
+        )
+        .unwrap();
+        let columns_before = conn
+            .prepare("PRAGMA table_info(background_jobs)")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+
+        let loaded = load_job(&conn, "legacy-read").unwrap().unwrap();
+        assert_eq!(
+            loaded.schema,
+            crate::background_jobs::BACKGROUND_JOB_SCHEMA_V1
+        );
+        assert_eq!(loaded.attachment, None);
+        assert_eq!(loaded.output_tail, "");
+        assert_eq!(loaded.failure_class, None);
+        assert_eq!(loaded.process_start_token, None);
+        assert_eq!(list_jobs(&conn).unwrap().len(), 1);
+        assert_eq!(list_nonterminal(&conn).unwrap().len(), 1);
+        assert_eq!(eta_ms_for(&conn, "legacy").unwrap(), None);
+
+        let columns_after = conn
+            .prepare("PRAGMA table_info(background_jobs)")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(columns_after, columns_before);
     }
 
     #[test]
