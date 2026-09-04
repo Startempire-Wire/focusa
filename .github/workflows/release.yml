@@ -787,14 +787,14 @@ jobs:
           EOF
             export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
             trap 'rm -f Cross.toml' EXIT
-            cross build --release --target ${{ matrix.target }}
+            scripts/ci/run-cancellation-safe-cross.sh build --release --target ${{ matrix.target }}
           elif [ "${{ matrix.cross || false }}" = "true" ]; then
             cat > Cross.toml <<'EOF'
           [build.env]
           passthrough = ["FOCUSA_AUTHORITY_ROOT_KEYS_JSON"]
           EOF
             trap 'rm -f Cross.toml' EXIT
-            cross build --release --target ${{ matrix.target }}
+            scripts/ci/run-cancellation-safe-cross.sh build --release --target ${{ matrix.target }}
           else
             cargo build --release --target ${{ matrix.target }}
           fi

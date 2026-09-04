@@ -22,7 +22,7 @@ assert "target: x86_64-unknown-linux-musl" in release
 assert "musl: true" in release
 assert '-f asset_suffix="x86_64-unknown-linux-musl"' in release
 assert '-f asset_suffix="x86_64-unknown-linux-gnu"' not in release
-assert "cross build --release --target ${{ matrix.target }}" in release
+assert "scripts/ci/run-cancellation-safe-cross.sh build --release --target ${{ matrix.target }}" in release
 assert "target: aarch64-unknown-linux-gnu" in release
 assert "matrix.musl == true || matrix.cross == true" in release
 assert "startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'" in release
