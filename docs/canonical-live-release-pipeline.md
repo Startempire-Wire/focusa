@@ -19,10 +19,12 @@ checks only, never for release artifact creation or live daemon deployment.
 3. Let GitHub Actions run the full chain:
    - `CI`
    - `Release`
-   - `Deploy Live Daemon`
+   - `Deploy Live Daemon`, which delegates installation to the Rust full-release lifecycle
    - `Audit Recorder (self-heal trigger)`
-   - `Auto Heal Release Pipeline`
    - `Release Pipeline Watchdog`
+
+   `Auto Heal Release Pipeline` remains quarantined and cannot redispatch a
+   failed deployment automatically.
 4. Trust only GitHub run conclusions + deploy health proof as release truth.
 
 ## Recovery policy
@@ -30,14 +32,11 @@ checks only, never for release artifact creation or live daemon deployment.
 When a build/deploy failure happens, fix the **pipeline/system**, not the host
 by hand:
 
-- CI/Release failure → Auto Heal reruns failed jobs once; Watchdog scans and
-  reruns missed failures continuously.
-- Deploy failure → Auto Heal/Watchdog re-dispatches `Deploy Live Daemon` with
-  the release tag and canonical musl asset.
-- Auto Heal failure → Audit Recorder records it; Watchdog reruns failed Auto
-  Heal jobs.
-- Watchdog failure → Audit Recorder records it; Auto Heal reruns failed
-  Watchdog jobs.
+- CI/Release failure → diagnose and repair the exact failed canonical gate.
+- Deploy failure → require the Rust transaction's rollback/process/unit evidence
+  before retrying the same immutable tag.
+- Audit/Watchdog failure → record it and repair that evidence lane; do not let a
+  generic retry hide the underlying release or host failure.
 
 Manual intervention is limited to editing source/workflow code that improves
 this system. Manual release building or live daemon installation is not an

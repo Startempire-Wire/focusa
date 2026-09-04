@@ -21,10 +21,11 @@ How to use this playbook:
    add it with a fix/guard/test triplet so the next agent can resolve it
    without re-debugging.
 
-3. Every `addition` event (new code in `scripts/install-daemon.sh`,
-   `scripts/safe-disk-cleanup.sh`, `scripts/install-self-hosted-runner.sh`,
-   `.github/workflows/deploy-live-daemon.yml`) is paired with the categories
-   its guards mitigate.
+3. Every `addition` event (new code in the Rust installer/system-service
+   transaction, `scripts/safe-disk-cleanup.sh`, runner provisioning, or the
+   deployment workflow) is paired with the categories its guards mitigate.
+   `scripts/install-daemon.sh` is a compatibility adapter and must not gain
+   lifecycle logic.
 
 ## Lessons (do-not-repeat)
 
@@ -37,8 +38,9 @@ How to use this playbook:
 - **GH-hosted transport risk**: do not rely on inbound SSH from GH-hosted
   runners; deploys must run on a self-hosted runner registered to the
   VPS with label `focusa-deploy`.
-- **Privileged scripts**: only the deploy/cleanup scripts get a NOPASSWD
-  sudoers rule; the runner user is otherwise unprivileged.
+- **Privileged scripts**: only the Rust-delegating deploy adapter, governed
+  cleanup, and exact public-file installation get NOPASSWD routes; direct
+  `kill`, `systemctl`, `sed`, `mv`, `rm`, and `ln` grants are forbidden.
 - **Disk pressure**: the deploy preflight runs the safe cleanup with a
   threshold; failure causes the deploy to abort instead of silently running
   the daemon on a starved root filesystem.
@@ -47,10 +49,9 @@ How to use this playbook:
 
 All hooks below are wired into CI, Release, Deploy, and the audit recorder workflow. They run automatically; operators do not invoke them by hand.
 
-- `scripts/install-daemon.sh` `watchdog_check()` + `watchdog_loop` — wall clock + RSS budget; emits `deploy_oom_killed` audit row and `TERM`s the parent shell on breach.
-- `scripts/install-daemon.sh` `patch_service_unit_execstart()` — auto-rewrites stale `ExecStart` + `WorkingDirectory` in `/etc/systemd/system/<unit>` and `daemon-reload`s.
-- `scripts/install-daemon.sh` `binary_version()` — filename-first parser + `timeout 3 ... --version` fallback; never wedges on a glibc-broken binary.
-- `.github/workflows/auto-retry-deploy.yml` — re-dispatches `Deploy Live Daemon` once on `workflow_run` failure with the same release tag.
+- `crates/focusa-cli/src/commands/system_service.rs` — nonblocking deployment lock, operator-halt gate, exact systemd process ownership, atomic unit staging, bounded health/CallGraph acceptance, and binary+unit rollback.
+- `scripts/install-daemon.sh` — validates legacy arguments and delegates exactly once to the signed Rust full-release installer; it never patches units or signals processes.
+- `.github/workflows/auto-retry-deploy.yml` — quarantined; it records the safe recovery route but has no automatic redispatch authority.
 - `scripts/install-self-hosted-runner.sh` systemd drop-in — `MemoryMax=2G Restart=always RestartSec=15` so the runner self-recovers from kernel OOM kills.
 - `scripts/auto-heal-audit.py` (via `.github/workflows/audit-recorder.yml`) — synthesizes `self_heal` rows for every failure lacking one; idempotent; runs on `workflow_run` + hourly `schedule`.
 - `tests/release_deploy_automation_static_test.sh` — asserts every self-heal branch's literal is present in source; prevents regression.

@@ -1365,6 +1365,23 @@ fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> 
         .entries
         .iter()
         .any(|entry| wanted(&entry.part) && entry.part == "daemon");
+    #[cfg(target_os = "linux")]
+    let _system_deploy_lock = if let Some(daemon_path) = manifest
+        .entries
+        .iter()
+        .find(|entry| wanted(&entry.part) && entry.part == "daemon")
+        .map(|entry| entry.target.as_path())
+        .filter(|path| crate::commands::system_service::is_canonical_system_daemon(path))
+    {
+        let system_bin = daemon_path
+            .parent()
+            .context("canonical daemon rollback target has no parent")?;
+        let lock = crate::commands::system_service::acquire_system_deploy_lock(system_bin)?;
+        crate::commands::system_service::preflight_system_install()?;
+        Some(lock)
+    } else {
+        None
+    };
     if restoring_daemon {
         stop_daemon_before_promotion()?;
     }
@@ -1780,18 +1797,17 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
         spawn_daemon_detached_with_retry(daemon_path)?;
         return Ok(());
     } else {
-        for args in [
-            vec!["--user", "restart", "focusa-daemon.service"],
-            vec!["restart", "focusa-daemon.service"],
-        ] {
-            if std::process::Command::new("systemctl")
-                .args(&args)
-                .status()
-                .map(|status| status.success())
-                .unwrap_or(false)
-            {
-                return Ok(());
-            }
+        #[cfg(target_os = "linux")]
+        if crate::commands::system_service::is_canonical_system_daemon(daemon_path) {
+            return crate::commands::system_service::restart_existing_system_service();
+        }
+        if std::process::Command::new("systemctl")
+            .args(["--user", "restart", "focusa-daemon.service"])
+            .status()
+            .map(|status| status.success())
+            .unwrap_or(false)
+        {
+            return Ok(());
         }
     }
     terminate_portable_daemon_from_lock();
@@ -1833,6 +1849,24 @@ async fn execute_verified_apply_locked(
     plan: &UpdatePlanEnvelope,
     state: &Path,
 ) -> anyhow::Result<Vec<String>> {
+    #[cfg(target_os = "linux")]
+    let _system_deploy_lock = if let Some(daemon_path) = plan
+        .parts
+        .iter()
+        .find(|part| part.part == "daemon")
+        .and_then(|part| part.target_path.as_deref())
+        .map(Path::new)
+        .filter(|path| crate::commands::system_service::is_canonical_system_daemon(path))
+    {
+        let system_bin = daemon_path
+            .parent()
+            .context("canonical daemon target has no parent")?;
+        let lock = crate::commands::system_service::acquire_system_deploy_lock(system_bin)?;
+        crate::commands::system_service::preflight_system_install()?;
+        Some(lock)
+    } else {
+        None
+    };
     let stamp = format!("{}-{}", std::process::id(), chrono_like_timestamp());
     let stage = state.join("staging").join(&stamp);
     let backup_root = state.join("backups").join(&stamp);

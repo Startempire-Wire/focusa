@@ -23,5 +23,5 @@ assert_version 0.9.137-rc.2 focusa-daemon-v0.9.137-rc.2-aarch64-apple-darwin
 assert_version 0.9.137-nightly.42 focusa-daemon-v0.9.137-nightly.42-x86_64-unknown-linux-gnu
 assert_version '' focusa-daemon-v0.9.137
 
-grep -Fq 'release_version_from_asset_name "$path" "$EXPECTED_VERSION"' "$ROOT_DIR/scripts/install-daemon.sh"
+grep -Fq 'release_version_from_asset_name "$BINARY" "$EXPECTED_VERSION"' "$ROOT_DIR/scripts/install-daemon.sh"
 echo "release asset version parsing: PASS"

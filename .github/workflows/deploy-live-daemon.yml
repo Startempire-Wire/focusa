@@ -300,14 +300,22 @@ jobs:
                 $REQUIRE_FLAG
           fi
 
-      - name: Verify deployed version locally
+      - name: Verify deployed full release locally
         if: ${{ !inputs.dry_run }}
         shell: bash
         run: |
           set -euo pipefail
+          expected='${{ steps.cfg.outputs.version }}'
+          for name in focusa focusa-daemon focusa-tui focusa-session-runner; do
+            test -x "/usr/local/bin/$name"
+            "/usr/local/bin/$name" --version | grep -Fq "$expected"
+          done
           curl -fsS '${{ steps.cfg.outputs.health_url }}' | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("version",""))' | tee /tmp/focusa-live-version.txt
           LIVE_VERSION="$(cat /tmp/focusa-live-version.txt)"
-          test "$LIVE_VERSION" = "${{ steps.cfg.outputs.version }}"
+          test "$LIVE_VERSION" = "$expected"
+          test "$(systemctl show focusa-daemon.service -p MainPID --value)" -gt 0
+          test "$(readlink -f /proc/$(systemctl show focusa-daemon.service -p MainPID --value)/exe)" = /usr/local/bin/focusa-daemon
+          test "$(systemctl show focusa-daemon.service -p WorkingDirectory --value)" = /usr/local/lib/focusa
 
       - name: Self-healing smoke check
         if: ${{ !inputs.dry_run }}

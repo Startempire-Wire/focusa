@@ -2,6 +2,18 @@
 
 Current local Focusa runtime configuration keys used by bounded memory/payload paths.
 
+## Canonical Linux system runtime
+
+| Key | Default | Meaning |
+|---|---:|---|
+| `FOCUSA_HOME` | `/usr/local/lib/focusa` | Canonical system state root rendered by the Rust installer. |
+| `FOCUSA_DATA_DIR` | `/usr/local/lib/focusa` | Canonical system data root; must resolve to the same directory as `FOCUSA_HOME`. |
+| `FOCUSA_DAEMON_URL` | `http://127.0.0.1:8787/v1/health` | Post-activation health/version probe. A base URL is accepted by the compatibility adapter and normalized by the deployment workflow. |
+
+The system installer rejects alternate system state roots. Development and test
+runtimes may use isolated temporary roots, but a checkout path is never a
+production system data root.
+
 ## Pi extension orientation
 
 | Key | Default | Meaning |

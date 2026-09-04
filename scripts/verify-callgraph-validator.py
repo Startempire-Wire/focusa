@@ -6,40 +6,16 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import pathlib
 import sys
 import urllib.error
 import urllib.request
 
-GOLDEN_GRAPH = {
-    "schema": "focusa.callgraph.v1",
-    "graph_id": "install-probe",
-    "revision": 1,
-    "scope": {"project_root": "/runtime-probe", "continuity_id": "install-probe"},
-    "mission_ref": "install-probe",
-    "title": "Installed CallGraph validator probe",
-    "description": "Proves the installed daemon exposes canonical validation.",
-    "entry_frame_ids": ["probe"],
-    "frames": [
-        {
-            "frame_id": "probe",
-            "name": "probe",
-            "purpose": "Validate one side-effect-free frame.",
-            "kind": "agent",
-            "input_schema": {},
-            "return_schema": {},
-            "preconditions": [],
-            "postconditions": [],
-            "side_effect_class": "none",
-            "capability_refs": [],
-            "acceptance": {"acceptance_atoms": ["probe-valid"], "verifier": None},
-        }
-    ],
-    "edges": [],
-    "policies": {},
-    "required_evidence": [],
-    "created_at": "install-probe",
-    "created_by": {"authority_kind": "operator", "reference": "install-probe"},
-}
+GOLDEN_GRAPH_PATH = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / "crates/focusa-cli/src/commands/install_callgraph_probe.json"
+)
+GOLDEN_GRAPH = json.loads(GOLDEN_GRAPH_PATH.read_text(encoding="utf-8"))
 
 
 class ProbeError(RuntimeError):
