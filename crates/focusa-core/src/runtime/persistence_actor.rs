@@ -13,6 +13,7 @@ use std::time::Instant;
 use tokio::sync::{mpsc, oneshot};
 
 const PERSISTENCE_QUEUE_CAPACITY: usize = 64;
+const ORDINARY_EVENTS_PER_SNAPSHOT: usize = 32;
 
 #[derive(Default)]
 pub struct PersistenceActorMetrics {
@@ -62,6 +63,7 @@ impl PersistenceActorMetrics {
 struct PersistenceRequest {
     events: Vec<EventLogEntry>,
     state: Option<FocusaState>,
+    checkpoint: bool,
     acknowledge: Option<oneshot::Sender<Result<(), String>>>,
 }
 
@@ -78,6 +80,7 @@ impl PersistenceActor {
         let actor_metrics = metrics.clone();
 
         tokio::spawn(async move {
+            let mut ordinary_events_since_snapshot = 0usize;
             while let Some(first) = rx.recv().await {
                 actor_metrics.queue_depth.fetch_sub(1, Ordering::AcqRel);
                 let mut requests = vec![first];
@@ -89,35 +92,62 @@ impl PersistenceActor {
                     .requests_coalesced_total
                     .fetch_add(requests.len().saturating_sub(1) as u64, Ordering::AcqRel);
 
+                let checkpoint_requested = requests.iter().any(|request| request.checkpoint);
+                let state_without_event = requests
+                    .iter()
+                    .any(|request| request.state.is_some() && request.events.is_empty());
+                let event_count = requests.iter().map(|request| request.events.len()).sum();
+                let snapshot_due = checkpoint_requested
+                    || state_without_event
+                    || ordinary_events_since_snapshot.saturating_add(event_count)
+                        >= ORDINARY_EVENTS_PER_SNAPSHOT;
                 let mut events = Vec::new();
                 for request in &mut requests {
                     events.append(&mut request.events);
                 }
-                let latest_state = requests
-                    .iter()
-                    .rev()
-                    .find_map(|request| request.state.clone());
+                // Coalescing owns every queued state. Move the newest one only
+                // when a bounded checkpoint is due; ordinary event-only batches
+                // remain restart-safe through the durable replay cursor.
+                let latest_state = snapshot_due
+                    .then(|| {
+                        requests
+                            .iter_mut()
+                            .rev()
+                            .find_map(|request| request.state.take())
+                    })
+                    .flatten();
+                let snapshot_written = latest_state.is_some();
                 let persistence_for_write = persistence.clone();
                 let started = Instant::now();
-                let result = tokio::task::spawn_blocking(move || -> anyhow::Result<(u64, u64)> {
-                    for event in &events {
-                        persistence_for_write.append_event(event)?;
-                    }
-                    if let Some(latest_state) = &latest_state {
-                        persistence_for_write.save_state(latest_state)?;
-                    }
-                    let snapshot_bytes =
-                        std::fs::metadata(persistence_for_write.data_dir.join("focusa.sqlite"))
+                let result = tokio::task::spawn_blocking(move || {
+                    std::thread::Builder::new()
+                        .name("focusa-persistence-writer".into())
+                        .stack_size(32 * 1024 * 1024)
+                        .spawn(move || -> anyhow::Result<(u64, u64)> {
+                            for event in &events {
+                                persistence_for_write.append_event(event)?;
+                            }
+                            if let Some(latest_state) = &latest_state {
+                                persistence_for_write.save_state(latest_state)?;
+                            }
+                            let snapshot_bytes = std::fs::metadata(
+                                persistence_for_write.data_dir.join("focusa.sqlite"),
+                            )
                             .map(|metadata| metadata.len())
                             .unwrap_or(0);
-                    let wal_bytes =
-                        std::fs::metadata(persistence_for_write.data_dir.join("focusa.sqlite-wal"))
+                            let wal_bytes = std::fs::metadata(
+                                persistence_for_write.data_dir.join("focusa.sqlite-wal"),
+                            )
                             .map(|metadata| metadata.len())
                             .unwrap_or(0);
-                    Ok((snapshot_bytes, wal_bytes))
+                            Ok((snapshot_bytes, wal_bytes))
+                        })
+                        .map_err(|error| anyhow::anyhow!("start persistence writer: {error}"))?
+                        .join()
+                        .map_err(|_| anyhow::anyhow!("persistence writer panicked"))?
                 })
                 .await
-                .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))
+                .map_err(|error| anyhow::anyhow!("persistence coordinator join failed: {error}"))
                 .and_then(|result| result);
 
                 let duration_ms = started.elapsed().as_millis() as u64;
@@ -135,6 +165,14 @@ impl PersistenceActor {
                     actor_metrics.wal_bytes.store(*wal_bytes, Ordering::Release);
                 } else {
                     actor_metrics.failures_total.fetch_add(1, Ordering::AcqRel);
+                }
+                if result.is_ok() {
+                    if snapshot_written {
+                        ordinary_events_since_snapshot = 0;
+                    } else {
+                        ordinary_events_since_snapshot =
+                            ordinary_events_since_snapshot.saturating_add(event_count);
+                    }
                 }
                 let acknowledgement = result.map(|_| ()).map_err(|error| error.to_string());
                 for request in requests {
@@ -176,6 +214,7 @@ impl PersistenceActor {
             .send(PersistenceRequest {
                 events,
                 state,
+                checkpoint: acknowledge,
                 acknowledge: acknowledge_tx,
             })
             .await
@@ -271,6 +310,94 @@ mod tests {
         assert!(metrics.requests_coalesced_total > 0);
         assert_eq!(metrics.failures_total, 0);
         assert!(metrics.snapshot_bytes > 0);
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn ordinary_events_are_append_only_until_bounded_snapshot() {
+        let (persistence, root) = test_persistence();
+        persistence
+            .save_state(&FocusaState::default())
+            .expect("save baseline state");
+        let actor = PersistenceActor::start(persistence.clone());
+        let mut state = FocusaState::default();
+
+        for index in 0..31 {
+            let event = crate::types::FocusaEvent::IntuitionSignalObserved {
+                signal_id: Uuid::now_v7(),
+                signal_type: crate::types::SignalKind::Warning,
+                severity: "info".into(),
+                summary: format!("ordinary event {index}"),
+                related_frame_id: None,
+            };
+            state = crate::reducer::reduce(state, event.clone())
+                .expect("reduce ordinary event")
+                .new_state;
+            actor
+                .persist_ordinary(
+                    vec![crate::types::EventLogEntry::captured(
+                        event,
+                        crate::types::SignalOrigin::Daemon,
+                        None,
+                    )],
+                    state.clone(),
+                )
+                .await
+                .expect("enqueue ordinary event");
+        }
+        for _ in 0..100 {
+            if persistence
+                .latest_durable_event_sequence()
+                .expect("read durable sequence")
+                == 31
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        let (saved, cursor) = persistence
+            .load_state_with_event_sequence()
+            .expect("load baseline checkpoint")
+            .expect("baseline checkpoint exists");
+        assert_eq!(saved.version, 0);
+        assert_eq!(cursor, 0);
+
+        let event = crate::types::FocusaEvent::IntuitionSignalObserved {
+            signal_id: Uuid::now_v7(),
+            signal_type: crate::types::SignalKind::Warning,
+            severity: "info".into(),
+            summary: "ordinary event 31".into(),
+            related_frame_id: None,
+        };
+        state = crate::reducer::reduce(state, event.clone())
+            .expect("reduce threshold event")
+            .new_state;
+        actor
+            .persist_ordinary(
+                vec![crate::types::EventLogEntry::captured(
+                    event,
+                    crate::types::SignalOrigin::Daemon,
+                    None,
+                )],
+                state,
+            )
+            .await
+            .expect("enqueue threshold event");
+        let mut settled = None;
+        for _ in 0..100 {
+            let loaded = persistence
+                .load_state_with_event_sequence()
+                .expect("load bounded checkpoint")
+                .expect("bounded checkpoint exists");
+            if loaded.0.version == 32 {
+                settled = Some(loaded);
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        let (saved, cursor) = settled.expect("32nd ordinary event created a checkpoint");
+        assert_eq!(saved.version, 32);
+        assert_eq!(cursor, 32);
         let _ = std::fs::remove_dir_all(root);
     }
 

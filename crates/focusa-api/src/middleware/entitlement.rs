@@ -685,14 +685,23 @@ fn route_recovery_allowance(path: &str) -> Option<RecoveryAllowance> {
         "/v1/doctor" => Some(RecoveryAllowance::AccountRecovery),
         "/v1/doctor/closure" => Some(RecoveryAllowance::AccountRecovery),
 
-        // Customer data export: run, status, history, manifest
+        // Customer data export and protection remain available during
+        // recovery-only operation. These routes create or verify recovery
+        // artifacts; they never mutate the live SQLite database.
         "/v1/export/run" => Some(RecoveryAllowance::CustomerDataExport),
         "/v1/export/status" => Some(RecoveryAllowance::CustomerDataExport),
         "/v1/export/history" => Some(RecoveryAllowance::CustomerDataExport),
+        "/v1/backups/health" => Some(RecoveryAllowance::CustomerDataExport),
+        "/v1/backups/generations" => Some(RecoveryAllowance::CustomerDataExport),
+        "/v1/backups/run" => Some(RecoveryAllowance::CustomerDataExport),
+        "/v1/backups/verify" => Some(RecoveryAllowance::CustomerDataExport),
+        "/v1/backups/settle-off-host" => Some(RecoveryAllowance::CustomerDataExport),
 
         // Repair and rollback
         "/v1/project/bootstrap/repair" => Some(RecoveryAllowance::RepairRollback),
         "/v1/update/rollback" => Some(RecoveryAllowance::RepairRollback),
+        "/v1/backups/restore-drill" => Some(RecoveryAllowance::RepairRollback),
+        "/v1/backups/prune" => Some(RecoveryAllowance::RepairRollback),
 
         // Stable security update
         "/v1/update/apply" => Some(RecoveryAllowance::StableSecurityUpdate),
@@ -1064,6 +1073,21 @@ mod tests {
             None,
             "export manifest must remain available during recovery-only paths"
         );
+        for (method, path) in [
+            (&Method::GET, "/v1/backups/health"),
+            (&Method::GET, "/v1/backups/generations"),
+            (&Method::POST, "/v1/backups/run"),
+            (&Method::POST, "/v1/backups/verify"),
+            (&Method::POST, "/v1/backups/restore-drill"),
+            (&Method::POST, "/v1/backups/settle-off-host"),
+            (&Method::POST, "/v1/backups/prune"),
+        ] {
+            assert_eq!(
+                route_entitlement_denial(&guard, method, path),
+                None,
+                "backup and isolated restore controls must remain available during recovery"
+            );
+        }
 
         // Rollback
         assert_eq!(

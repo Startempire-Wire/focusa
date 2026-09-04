@@ -234,25 +234,45 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
             .iter()
             .find(|record| record.workpoint_id == id)
     });
+    let base_product =
+        focusa_license::base_product_projection(state.license_guard.entitlement.as_ref()).ok();
+    let base_mutations_allowed = base_product
+        .as_ref()
+        .is_some_and(|projection| projection.permits_base_mutations);
+    let project_scope_ready = base_mutations_allowed
+        && active_workpoint.is_some_and(|record| {
+            record.canonical
+                && record
+                    .project_root
+                    .as_deref()
+                    .is_some_and(|root| !root.trim().is_empty())
+                && record
+                    .continuity_id
+                    .as_deref()
+                    .is_some_and(|continuity| !continuity.trim().is_empty())
+        });
     let readiness_categories = json!({
         "runtime_readiness": {
-            "status": "ready",
-            "reason": "daemon health route is reachable",
+            "status": if base_mutations_allowed { "ready" } else { "blocked" },
+            "reason": if base_mutations_allowed { "daemon is reachable and base mutations are allowed" } else { "daemon is reachable but signed authority blocks base mutations" },
             "scope": "runtime",
+            "process": &state.daemon_runtime_identity.process,
+            "data_store": crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir),
+            "base_product": base_product,
         },
         "project_scope_readiness": {
-            "status": if active_workpoint.and_then(|record| record.project_root.as_deref()).is_some() { "ready" } else { "not_checked" },
-            "reason": if active_workpoint.and_then(|record| record.project_root.as_deref()).is_some() { "active Workpoint carries project_root" } else { "no active project scope checked by /v1/doctor" },
-            "scope": "project_root",
+            "status": if project_scope_ready { "ready" } else { "blocked" },
+            "reason": if project_scope_ready { "canonical Workpoint, project root, continuity, and write authority agree" } else { "project readiness requires write authority plus one canonical Workpoint with project root and continuity" },
+            "scope": "project_root_plus_continuity_id",
         },
         "workpoint_readiness": {
-            "status": if active_workpoint.map(|record| record.canonical).unwrap_or(false) { "ready" } else { "not_checked" },
-            "reason": if active_workpoint.is_some() { "active Workpoint state inspected" } else { "no active Workpoint visible" },
+            "status": if project_scope_ready { "ready" } else { "blocked" },
+            "reason": if project_scope_ready { "active canonical Workpoint agrees with project scope" } else { "active Workpoint is missing, noncanonical, incomplete, or blocked by authority" },
             "workpoint_id": active_workpoint.map(|record| record.workpoint_id),
         },
         "trajectory_readiness": {
-            "status": if s.trajectory.active_trajectory_id.is_some() { "ready" } else { "not_checked" },
-            "reason": if s.trajectory.active_trajectory_id.is_some() { "active trajectory id present" } else { "trajectory view not required for runtime readiness" },
+            "status": if base_mutations_allowed && s.trajectory.active_trajectory_id.is_some() { "ready" } else { "blocked" },
+            "reason": if !base_mutations_allowed { "trajectory mutations are blocked by signed authority" } else if s.trajectory.active_trajectory_id.is_some() { "active trajectory id present" } else { "active trajectory is missing" },
             "trajectory_id": s.trajectory.active_trajectory_id,
         },
         "focus_state_readiness": {
@@ -279,8 +299,8 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         },
     });
     Json(json!({
-        "status": "ok",
-        "summary": "Focusa daemon is reachable; runtime readiness is separate from source/release helper planes",
+        "status": if base_mutations_allowed { "ok" } else { "blocked" },
+        "summary": if base_mutations_allowed { "Focusa daemon is reachable and permits base mutations" } else { "Focusa daemon is reachable but not operational for governed work" },
         "readiness_categories": readiness_categories,
         "daemon": {
             "ok": true,

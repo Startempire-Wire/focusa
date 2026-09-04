@@ -4353,6 +4353,11 @@ pub enum FocusaEvent {
     },
 
     // Intuition → Gate
+    /// Durable projection event for the bounded Focus Gate pipeline. This keeps
+    /// periodic cursor/candidate updates replayable without whole-state writes.
+    FocusGatePipelineCommitted {
+        focus_gate: FocusGateState,
+    },
     IntuitionSignalObserved {
         signal_id: SignalId,
         signal_type: SignalKind,

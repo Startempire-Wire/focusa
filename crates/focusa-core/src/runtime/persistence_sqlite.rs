@@ -619,7 +619,29 @@ impl SqlitePersistence {
               ts TEXT NOT NULL,
               state_json TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS snapshot_event_cursors (
+              name TEXT PRIMARY KEY,
+              event_sequence INTEGER NOT NULL,
+              snapshot_version INTEGER NOT NULL,
+              updated_at TEXT NOT NULL
+            );
             "#,
+        )?;
+        // Existing databases wrote a complete snapshot for every event. Bind
+        // their first additive cursor to the current durable ledger tail so an
+        // upgrade never replays events already represented by that snapshot.
+        conn.execute(
+            r#"
+            INSERT OR IGNORE INTO snapshot_event_cursors
+              (name, event_sequence, snapshot_version, updated_at)
+            SELECT s.name,
+                   COALESCE((SELECT MAX(chain_index) + 1 FROM event_hash_chain), 0),
+                   s.version,
+                   s.ts
+            FROM snapshots s
+            WHERE s.name = 'focusa'
+            "#,
+            [],
         )?;
 
         // V5 briefly used canonical Spec133 table names for a separate runtime
@@ -1330,10 +1352,6 @@ impl SqlitePersistence {
     }
 
     pub fn save_state(&self, state: &FocusaState) -> anyhow::Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let ts = Utc::now();
         let mut snapshot_state = state.clone();
         let trimmed = trim_hot_clt_snapshot(&mut snapshot_state);
@@ -1345,7 +1363,17 @@ impl SqlitePersistence {
             );
         }
         let state_json = serde_json::to_string(&snapshot_state)?;
-        conn.execute(
+        let mut conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let transaction = conn.transaction()?;
+        let event_sequence: i64 = transaction.query_row(
+            "SELECT COALESCE(MAX(chain_index) + 1, 0) FROM event_hash_chain",
+            [],
+            |row| row.get(0),
+        )?;
+        transaction.execute(
             r#"
             INSERT INTO snapshots(name, version, ts, state_json)
             VALUES('focusa', ?1, ?2, ?3)
@@ -1356,35 +1384,53 @@ impl SqlitePersistence {
             "#,
             params![state.version as i64, ts.to_rfc3339(), state_json],
         )?;
+        transaction.execute(
+            r#"
+            INSERT INTO snapshot_event_cursors
+              (name, event_sequence, snapshot_version, updated_at)
+            VALUES('focusa', ?1, ?2, ?3)
+            ON CONFLICT(name) DO UPDATE SET
+              event_sequence=excluded.event_sequence,
+              snapshot_version=excluded.snapshot_version,
+              updated_at=excluded.updated_at
+            "#,
+            params![event_sequence, state.version as i64, ts.to_rfc3339()],
+        )?;
+        transaction.commit()?;
         Ok(())
     }
 
-    pub fn load_state(&self) -> anyhow::Result<Option<FocusaState>> {
+    pub fn load_state_with_event_sequence(&self) -> anyhow::Result<Option<(FocusaState, u64)>> {
         let conn = self
             .conn
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let row: Option<String> = conn
+        let row: Option<(String, i64)> = conn
             .query_row(
-                "SELECT state_json FROM snapshots WHERE name='focusa'",
+                r#"
+                SELECT s.state_json, COALESCE(c.event_sequence, 0)
+                FROM snapshots s
+                LEFT JOIN snapshot_event_cursors c ON c.name = s.name
+                WHERE s.name='focusa'
+                "#,
                 [],
-                |r| r.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()?;
 
         match row {
             None => Ok(None),
-            Some(json) => match serde_json::from_str::<FocusaState>(&json) {
-                Ok(mut s) => {
-                    let trimmed = trim_hot_clt_snapshot(&mut s);
+            Some((json, event_sequence)) => match serde_json::from_str::<FocusaState>(&json) {
+                Ok(mut state) => {
+                    let trimmed = trim_hot_clt_snapshot(&mut state);
                     if trimmed > 0 {
                         debug!(
                             trimmed,
-                            remaining = s.clt.nodes.len(),
+                            remaining = state.clt.nodes.len(),
                             "trimmed hot CLT snapshot after SQLite load"
                         );
                     }
-                    Ok(Some(s))
+                    Ok(Some((state, u64::try_from(event_sequence)?)))
                 }
                 Err(_) => {
                     // Backward compatibility: older snapshots won't have newer fields.
@@ -1393,6 +1439,11 @@ impl SqlitePersistence {
                 }
             },
         }
+    }
+
+    pub fn load_state(&self) -> anyhow::Result<Option<FocusaState>> {
+        self.load_state_with_event_sequence()
+            .map(|loaded| loaded.map(|(state, _)| state))
     }
 
     pub fn machine_id(&self) -> anyhow::Result<String> {

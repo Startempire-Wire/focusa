@@ -48,6 +48,9 @@ pub struct CreateJobBody {
     /// creator can be reconciled instead of remaining queued forever.
     #[serde(default)]
     pub pid: Option<u32>,
+    /// Optional OS process-start identity. Older clients may omit it.
+    #[serde(default)]
+    pub process_start_token: Option<String>,
 }
 
 fn default_cwd() -> String {
@@ -60,6 +63,9 @@ pub struct UpdateJobBody {
     pub status: Option<String>,
     #[serde(default)]
     pub pid: Option<u32>,
+    /// Optional OS process-start identity. Older clients may omit it.
+    #[serde(default)]
+    pub process_start_token: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -116,6 +122,7 @@ async fn create_job(
             failure_class: None,
             exit_code: None,
             pid: body.pid,
+            process_start_token: body.process_start_token,
             log_path: body
                 .log_path
                 .unwrap_or_else(|| format!("/tmp/focusa-bg-{job_id}.log")),
@@ -156,7 +163,14 @@ async fn update_job(
         if let Some(status) = body.status {
             record.status = BackgroundJobStatus::parse(&status);
         }
-        record.pid = body.pid.or(record.pid);
+        if let Some(pid) = body.pid {
+            record.pid = Some(pid);
+            // A PID change without a matching start token must not retain the
+            // previous process identity. Legacy clients remain supported.
+            record.process_start_token = body.process_start_token;
+        } else if body.process_start_token.is_some() {
+            record.process_start_token = body.process_start_token;
+        }
         let became_running = record.status == BackgroundJobStatus::Running;
         let became_monitor_lost = record.status == BackgroundJobStatus::MonitorLost;
         if became_monitor_lost && record.completed_at.is_none() {
@@ -349,15 +363,42 @@ async fn get_job(
 
 async fn list_jobs(State(state): State<Arc<AppState>>) -> Json<Value> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let events_tx = state.events_tx.clone();
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         focusa_core::background_job_store::ensure_schema(&conn)?;
+        let reconciled =
+            focusa_core::background_job_store::reconcile_stale_jobs(&conn, chrono::Utc::now())?;
+        let completion_events = reconciled
+            .iter()
+            .map(BackgroundJobCompletionEvent::from_record)
+            .collect::<Vec<_>>();
         let jobs = focusa_core::background_job_store::list_jobs(&conn)?;
-        Ok(json!({"status": "ok", "jobs": jobs}))
+        Ok(json!({
+            "status": "ok",
+            "jobs": jobs,
+            "reconciled_count": completion_events.len(),
+            "reconciliation_events": completion_events,
+        }))
     })
     .await;
     match result {
-        Ok(Ok(payload)) => Json(payload),
+        Ok(Ok(mut payload)) => {
+            if let Some(events) = payload
+                .get("reconciliation_events")
+                .and_then(Value::as_array)
+            {
+                for event in events {
+                    if let Ok(serialized) = serde_json::to_string(event) {
+                        let _ = events_tx.send(serialized);
+                    }
+                }
+            }
+            if let Some(object) = payload.as_object_mut() {
+                object.remove("reconciliation_events");
+            }
+            Json(payload)
+        }
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
             "route",
             &error.to_string(),
@@ -415,5 +456,31 @@ async fn wait_job(
         Ok(Ok(None)) => Json(json!({"status": "timeout", "job_id": query.job_id})),
         Ok(Err(error)) => Json(json!({"status": "failed", "error": error.to_string()})),
         Err(error) => Json(json!({"status": "failed", "error": format!("join error: {error}")})),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_create_and_update_payloads_remain_valid() {
+        let create: CreateJobBody = serde_json::from_value(json!({
+            "name": "legacy",
+            "command": "true",
+            "cwd": ".",
+            "pid": 42
+        }))
+        .expect("legacy create payload");
+        assert_eq!(create.pid, Some(42));
+        assert_eq!(create.process_start_token, None);
+
+        let update: UpdateJobBody = serde_json::from_value(json!({
+            "status": "running",
+            "pid": 42
+        }))
+        .expect("legacy update payload");
+        assert_eq!(update.pid, Some(42));
+        assert_eq!(update.process_start_token, None);
     }
 }

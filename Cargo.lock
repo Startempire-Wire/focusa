@@ -1431,6 +1431,7 @@ dependencies = [
  "tracing",
  "tree-sitter",
  "uuid",
+ "zstd",
 ]
 
 [[package]]

@@ -13,7 +13,8 @@ use crate::scoped_state::AttachmentKey;
 use serde::{Deserialize, Serialize};
 
 pub const BACKGROUND_JOB_SCHEMA_V1: &str = "focusa.background_job.v1";
-pub const BACKGROUND_JOB_SCHEMA: &str = "focusa.background_job.v2";
+pub const BACKGROUND_JOB_SCHEMA_V2: &str = "focusa.background_job.v2";
+pub const BACKGROUND_JOB_SCHEMA: &str = "focusa.background_job.v3";
 pub const BACKGROUND_JOB_DISPATCH_SCHEMA: &str = "focusa.background_job_dispatch.v1";
 pub const BACKGROUND_JOB_COMPLETION_EVENT: &str = "background_job_completion";
 /// docs/165 v2: broadcast when a job transitions queued → running so
@@ -83,6 +84,101 @@ impl BackgroundJobFailureClass {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProcessIdentityStatus {
+    Match,
+    Missing,
+    Mismatch,
+    Unknown,
+}
+
+#[cfg(target_os = "linux")]
+pub fn process_start_token(pid: u32) -> Option<String> {
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    let fields = stat.get(stat.rfind(") ")? + 2..)?.split_whitespace();
+    // /proc/<pid>/stat field 22 is process start time. The slice begins
+    // at field 3, so start time is the twentieth value in this iterator.
+    fields.skip(19).next().map(str::to_string)
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn process_start_token(_pid: u32) -> Option<String> {
+    None
+}
+
+pub fn current_process_start_token() -> Option<String> {
+    process_start_token(std::process::id())
+}
+
+#[cfg(target_os = "linux")]
+fn pid_alive(pid: u32) -> bool {
+    std::path::Path::new(&format!("/proc/{pid}")).exists()
+}
+
+#[cfg(all(unix, not(target_os = "linux")))]
+fn pid_alive(pid: u32) -> bool {
+    unsafe extern "C" {
+        fn kill(pid: i32, signal: i32) -> i32;
+    }
+    // SAFETY: signal zero only checks process existence/permission.
+    let result = unsafe { kill(pid as i32, 0) };
+    result == 0 || std::io::Error::last_os_error().raw_os_error() == Some(1)
+}
+
+#[cfg(windows)]
+fn pid_alive(pid: u32) -> bool {
+    use std::ffi::c_void;
+
+    const SYNCHRONIZE: u32 = 0x0010_0000;
+    const WAIT_OBJECT_0: u32 = 0;
+    const WAIT_TIMEOUT: u32 = 0x0000_0102;
+
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn OpenProcess(access: u32, inherit_handle: i32, process_id: u32) -> *mut c_void;
+        fn WaitForSingleObject(handle: *mut c_void, milliseconds: u32) -> u32;
+        fn CloseHandle(handle: *mut c_void) -> i32;
+    }
+
+    // SAFETY: the returned handle is checked and closed exactly once.
+    let handle = unsafe { OpenProcess(SYNCHRONIZE, 0, pid) };
+    if handle.is_null() {
+        return std::io::Error::last_os_error().raw_os_error() != Some(87);
+    }
+    // SAFETY: handle remains valid until CloseHandle below.
+    let result = unsafe { WaitForSingleObject(handle, 0) };
+    unsafe {
+        CloseHandle(handle);
+    }
+    match result {
+        WAIT_OBJECT_0 => false,
+        WAIT_TIMEOUT => true,
+        _ => true,
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
+fn pid_alive(_pid: u32) -> bool {
+    true
+}
+
+pub fn process_identity_status(
+    pid: u32,
+    expected_start_token: Option<&str>,
+) -> ProcessIdentityStatus {
+    if !pid_alive(pid) {
+        return ProcessIdentityStatus::Missing;
+    }
+    let Some(expected) = expected_start_token.filter(|value| !value.is_empty()) else {
+        return ProcessIdentityStatus::Unknown;
+    };
+    match process_start_token(pid) {
+        Some(actual) if actual == expected => ProcessIdentityStatus::Match,
+        Some(_) => ProcessIdentityStatus::Mismatch,
+        None => ProcessIdentityStatus::Unknown,
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BackgroundJobRecord {
     pub schema: String,
@@ -99,6 +195,10 @@ pub struct BackgroundJobRecord {
     pub failure_class: Option<BackgroundJobFailureClass>,
     pub exit_code: Option<i32>,
     pub pid: Option<u32>,
+    /// OS process-start identity paired with `pid` where the platform can
+    /// provide one. Older records remain valid with this field absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_start_token: Option<String>,
     pub log_path: String,
     pub started_at: String,
     pub completed_at: Option<String>,
@@ -282,6 +382,7 @@ mod tests {
             failure_class: None,
             exit_code: Some(0),
             pid: Some(42),
+            process_start_token: None,
             log_path: "/tmp/j1.log".to_string(),
             started_at: "t0".to_string(),
             completed_at: Some("t1".to_string()),
@@ -339,6 +440,7 @@ mod tests {
             failure_class: Some(BackgroundJobFailureClass::MonitorFailed),
             exit_code: Some(1),
             pid: None,
+            process_start_token: None,
             log_path: "/not-visible-across-private-tmp/job.log".into(),
             started_at: "t0".into(),
             completed_at: Some("t1".into()),
@@ -376,6 +478,31 @@ mod tests {
     }
 
     #[test]
+    fn process_identity_uses_pid_and_start_token_when_available() {
+        let pid = std::process::id();
+        let token = current_process_start_token();
+        if let Some(token) = token {
+            assert_eq!(
+                process_identity_status(pid, Some(&token)),
+                ProcessIdentityStatus::Match
+            );
+            assert_eq!(
+                process_identity_status(pid, Some("not-the-current-start")),
+                ProcessIdentityStatus::Mismatch
+            );
+        } else {
+            assert_eq!(
+                process_identity_status(pid, None),
+                ProcessIdentityStatus::Unknown
+            );
+        }
+        assert_eq!(
+            process_identity_status(u32::MAX, None),
+            ProcessIdentityStatus::Missing
+        );
+    }
+
+    #[test]
     fn status_roundtrip_is_total() {
         for status in [
             BackgroundJobStatus::Queued,
@@ -405,6 +532,7 @@ mod tests {
             failure_class: Some(BackgroundJobFailureClass::LaunchFailed),
             exit_code: Some(1),
             pid: None,
+            process_start_token: None,
             log_path: "/tmp/j1.log".to_string(),
             started_at: "t0".to_string(),
             completed_at: None,
