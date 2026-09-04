@@ -16,6 +16,7 @@ for marker in \
   'queue_depth_max' \
   'last_write_duration_ms' \
   'snapshot_bytes' \
+  'database_bytes' \
   'wal_bytes' \
   'persist_checkpoint' \
   'append_events_checkpoint'; do
@@ -28,6 +29,10 @@ grep -F 'persistence_actor: Some(persistence_actor)' "$SERVER" >/dev/null || fai
 grep -F 'actor.metrics()' "$HEALTH" >/dev/null || fail "health omits persistence pressure metrics"
 grep -F '.unwrap_or(1_000)' "$ROOT/crates/focusa-core/src/runtime/persistence_sqlite.rs" >/dev/null \
   || fail "hot CLT projection remains large enough to stall reducer state clones"
+grep -F 'DEFAULT_HOT_HANDLE_LIMIT: usize = 2_048' "$ROOT/crates/focusa-core/src/reference/mod.rs" >/dev/null \
+  || fail "ECS handle projection lacks a strict hot-state bound"
+grep -F 'snapshot_payload_bytes()?' "$ACTOR" >/dev/null \
+  || fail "snapshot_bytes still aliases allocated SQLite database bytes"
 python3 - "$SERVER" <<'PY'
 import pathlib, sys
 text = pathlib.Path(sys.argv[1]).read_text()

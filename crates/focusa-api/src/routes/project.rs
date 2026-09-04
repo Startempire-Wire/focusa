@@ -3954,7 +3954,9 @@ async fn card(
         },
         "bridge_status": if runtime_ontology_objects > 0 { "runtime_ontology_plus_project_derivatives" } else { "project_derivatives_used_until_runtime_ontology_populates" }
     });
-    let reference_handles = focusa.reference_index.handles.len();
+    let reference_handles =
+        usize::try_from(focusa.reference_index.total_handle_count()).unwrap_or(usize::MAX);
+    let hot_reference_handles = focusa.reference_index.handles.len();
     let workpoint_verifications = focusa
         .workpoint
         .records
@@ -3969,6 +3971,9 @@ async fn card(
         .sum::<usize>();
     let evidence = json!({
         "reference_handles": reference_handles,
+        "hot_reference_handles": hot_reference_handles,
+        "cold_reference_handles": focusa.reference_index.cold_handle_count,
+        "cold_rehydrate_mode": "exact_handle_id",
         "workpoint_verifications": workpoint_verifications,
     });
     let recent_frames = focusa

@@ -1,13 +1,18 @@
 //! ECS store operations.
 //!
 //! Storage layout: ~/.focusa/ecs/
-//!   objects/  — immutable content-addressed blobs
-//!   handles/  — metadata json by id
-//!   index.json — small index
+//!   objects/ — immutable content-addressed blobs
+//!   handles/ — canonical complete metadata by id
+//!
+//! `FocusaState.reference_index` is the bounded hot projection; this filesystem
+//! store remains the lossless exact-id authority for cold metadata and content.
 
+use crate::durable_fs::{atomic_replace, sync_directory};
 use crate::types::*;
 use chrono::Utc;
 use sha2::{Digest, Sha256};
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -48,6 +53,11 @@ impl ReferenceStore {
 
         let id = handle_id.unwrap_or_else(Uuid::now_v7);
         let now = Utc::now();
+        let meta_path = self.root.join("handles").join(format!("{}.json", id));
+        anyhow::ensure!(
+            !meta_path.exists(),
+            "artifact {id} is already registered; immutable handle ids cannot be reused"
+        );
 
         // Write blob
         let blob_path = self.root.join("objects").join(&sha256);
@@ -69,12 +79,60 @@ impl ReferenceStore {
             trajectory: None,
         };
 
-        // Write metadata
-        let meta_path = self.root.join("handles").join(format!("{}.json", id));
-        let meta_json = serde_json::to_string_pretty(&handle)?;
-        std::fs::write(&meta_path, meta_json)?;
+        self.write_metadata(&handle, false)?;
 
         Ok(handle)
+    }
+
+    /// Atomically persist mutable handle metadata such as its trajectory binding.
+    /// Artifact content remains immutable and content-addressed.
+    pub fn persist_metadata(&self, handle: &HandleRef) -> anyhow::Result<()> {
+        self.write_metadata(handle, true)
+    }
+
+    fn write_metadata(&self, handle: &HandleRef, replace: bool) -> anyhow::Result<()> {
+        let handles_dir = self.root.join("handles");
+        let meta_path = handles_dir.join(format!("{}.json", handle.id));
+        let staged_path =
+            handles_dir.join(format!(".{}.{}.metadata.tmp", handle.id, Uuid::now_v7()));
+        if replace {
+            anyhow::ensure!(
+                meta_path.is_file(),
+                "cannot update missing artifact metadata for {}",
+                handle.id
+            );
+        }
+        let bytes = serde_json::to_vec_pretty(handle)?;
+        let result = (|| -> anyhow::Result<()> {
+            let mut staged = OpenOptions::new()
+                .create_new(true)
+                .write(true)
+                .open(&staged_path)?;
+            staged.write_all(&bytes)?;
+            staged.sync_all()?;
+            if replace {
+                atomic_replace(&staged_path, &meta_path)?;
+            } else {
+                std::fs::hard_link(&staged_path, &meta_path).map_err(|error| {
+                    anyhow::anyhow!(
+                        "artifact {} is already registered or metadata publication failed: {error}",
+                        handle.id
+                    )
+                })?;
+                if let Err(error) = std::fs::remove_file(&staged_path) {
+                    tracing::warn!(
+                        path = %staged_path.display(),
+                        "artifact metadata committed but staging hard link cleanup failed: {error}"
+                    );
+                }
+            }
+            sync_directory(&handles_dir)?;
+            Ok(())
+        })();
+        if result.is_err() {
+            let _ = std::fs::remove_file(&staged_path);
+        }
+        result
     }
 
     /// Resolve a handle — return metadata + content path.
@@ -187,6 +245,68 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(cont_err.contains("continuity_id scope mismatch"));
+    }
+
+    #[test]
+    fn duplicate_explicit_handle_id_is_rejected_before_metadata_replacement() {
+        let store = test_store();
+        let id = Uuid::now_v7();
+        let first = store
+            .store(
+                HandleKind::Text,
+                "first".to_string(),
+                b"first-content",
+                None,
+                Some(id),
+                None,
+                None,
+            )
+            .unwrap();
+        let error = store
+            .store(
+                HandleKind::Text,
+                "replacement".to_string(),
+                b"replacement-content",
+                None,
+                Some(id),
+                None,
+                None,
+            )
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("immutable handle ids cannot be reused"));
+        assert_eq!(store.resolve(id).unwrap().0.label, first.label);
+    }
+
+    #[test]
+    fn trajectory_binding_is_durable_in_handle_metadata() {
+        let store = test_store();
+        let mut handle = store
+            .store(
+                HandleKind::Text,
+                "trajectory-bound".to_string(),
+                b"content",
+                None,
+                None,
+                Some("/tmp/project".to_string()),
+                Some("cont-a".to_string()),
+            )
+            .unwrap();
+        handle.trajectory = Some(TrajectoryLadderContext {
+            trajectory_id: Some("trajectory-a".to_string()),
+            project_root: Some("/tmp/project".to_string()),
+            continuity_id: Some("cont-a".to_string()),
+            ..TrajectoryLadderContext::default()
+        });
+        store.persist_metadata(&handle).unwrap();
+
+        let resolved = store.resolve(handle.id).unwrap().0;
+        assert_eq!(
+            resolved
+                .trajectory
+                .and_then(|trajectory| trajectory.trajectory_id),
+            Some("trajectory-a".to_string())
+        );
     }
 
     #[test]

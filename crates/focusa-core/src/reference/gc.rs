@@ -5,7 +5,7 @@
 //! MVP strategy:
 //!   - Keep everything by default (no auto-GC)
 //!   - Provide manual GC for unpinned handles older than a threshold
-//!   - Ensure index consistency on startup (repair pass)
+//!   - Hot-index eviction is never artifact GC
 //!
 //! GC rules:
 //!   - Pinned artifacts are NEVER collected
@@ -41,7 +41,7 @@ pub fn find_eligible(state: &FocusaState, max_age: Duration) -> Vec<ArtifactId> 
         .collect()
 }
 
-/// Count total storage used by handles in the index.
+/// Count payload bytes represented by handles in the bounded hot index.
 pub fn total_storage_bytes(state: &FocusaState) -> u64 {
     state.reference_index.handles.iter().map(|h| h.size).sum()
 }
