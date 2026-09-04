@@ -16,14 +16,20 @@ grep -Fq 'Verious Smith III is the sole current and final canonical human archit
   || fail "Verious Smith III root authority invariant missing"
 grep -Fq 'every GitHub repository and organization owned, administered, or canonically controlled by Verious Smith III' "$POLICY" \
   || fail "GitHub estate scope invariant missing"
-grep -Fq 'wirebot_identity_sha256 = SHA-256(canonical_json(identity_manifest))' "$POLICY" \
-  || fail "Wirebot identity hash contract missing"
-grep -Fq 'subject_public_key_fingerprint' "$POLICY" \
+grep -Fq 'JCS / RFC 8785' "$POLICY" \
+  || fail "authority canonicalization profile missing"
+grep -Fq 'wirebot_principal_sha256 = SHA-256(JCS(wirebot_principal_manifest))' "$POLICY" \
+  || fail "stable Wirebot principal hash contract missing"
+grep -Fq 'constitution_sha256 = SHA-256(JCS(constitution_manifest))' "$POLICY" \
+  || fail "constitution hash contract missing"
+grep -Fq 'runtime_attestation_sha256 = SHA-256(JCS(runtime_attestation))' "$POLICY" \
+  || fail "runtime attestation hash contract missing"
+grep -Fq 'subject_wirebot_key_fingerprint' "$POLICY" \
   || fail "Wirebot public-key binding missing"
 grep -Fq 'may_delegate: false' "$POLICY" \
   || fail "Wirebot non-transitive delegation default missing"
-grep -Fq 'Verious Smith III-rooted signed delegation' "$POLICY" \
-  || fail "Wirebot signed delegation root missing"
+grep -Fq 'No active Wirebot architecture-authority hash is declared by this policy.' "$POLICY" \
+  || fail "anti-fabrication rule for Wirebot authority hash missing"
 grep -Fq 'advisory_external' "$POLICY" \
   || fail "external provenance advisory posture missing"
 grep -Fq 'Architecture authority hard stop' "$DOC_AGENTS" \
