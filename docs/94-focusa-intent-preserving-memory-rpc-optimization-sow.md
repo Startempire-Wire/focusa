@@ -509,6 +509,16 @@ Every PR under this SOW must prove:
 9. Bounded ontology responses preserve category counts and rehydrate/continue paths for omitted objects, links, actions, working sets, provenance, and verification records.
 10. Reducer-only canonical write authority remains unchanged; model-derived ontology outputs remain proposals unless reducer-promoted.
 
+### K4. Release/runtime lifecycle gate
+
+Memory acceptance is not complete against an unmanaged or mixed-version daemon.
+The canonical Rust system installer must bind the full signed release to one
+`/usr/local/lib/focusa` state/data root, preserve SQLite and signed authority,
+reject unmanaged or duplicate daemon processes without killing by name, and
+settle the systemd unit plus exact health/CallGraph acceptance in the same
+rollback boundary. An operator `RefuseManualStart=yes` halt remains absolute.
+Source tests do not authorize lifting that halt.
+
 ---
 
 ## 5) Out of scope

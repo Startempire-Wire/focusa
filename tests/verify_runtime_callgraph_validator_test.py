@@ -70,12 +70,18 @@ class CallGraphValidatorProbeTest(unittest.TestCase):
         with self.assertRaisesRegex(probe_module.ProbeError, "non-canonical or invalid"):
             probe_module.probe(self.url)
 
-    def test_installer_fails_closed_and_invokes_probe(self):
-        installer = (ROOT / "scripts" / "install-daemon.sh").read_text()
-        self.assertIn('rollback "health verification failed', installer)
-        self.assertNotIn("proceeding despite health check failure", installer)
-        self.assertIn("verify-callgraph-validator.py", installer)
-        self.assertIn('rollback "CallGraph validator verification failed', installer)
+    def test_rust_installer_fails_closed_and_compatibility_script_only_delegates(self):
+        installer = (ROOT / "crates/focusa-cli/src/commands/system_service.rs").read_text()
+        callgraph = (ROOT / "crates/focusa-cli/src/commands/system_service_callgraph.rs").read_text()
+        adapter = (ROOT / "scripts/install-daemon.sh").read_text()
+        self.assertIn("canonical daemon health verification failed", installer)
+        self.assertIn("callgraph_probe::verify", installer)
+        self.assertIn("/v1/callgraphs/validate", callgraph)
+        self.assertIn("installed CallGraph validator verification failed", callgraph)
+        self.assertIn("non-canonical or invalid envelope", callgraph)
+        self.assertIn('exec "$BOOTSTRAP"', adapter)
+        self.assertNotIn("systemctl ", adapter)
+        self.assertNotIn("proceeding despite health check failure", adapter)
 
 
 if __name__ == "__main__":

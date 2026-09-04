@@ -1963,8 +1963,8 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     let channel = args.channel;
     let dry_run = args.dry_run;
     anyhow::ensure!(
-        !args.system_install || target == InstallTarget::Linux,
-        "--system-install is supported only for the Linux authoritative /usr/local/bin surface"
+        !args.system_install || (target == InstallTarget::Linux && cfg!(target_os = "linux")),
+        "--system-install is supported only by the native Linux authoritative /usr/local/bin surface"
     );
     let install_root = std::env::var_os("HOME")
         .map(|h| std::path::PathBuf::from(h).join(".focusa"))
@@ -2029,6 +2029,19 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         }
         return Ok(());
     }
+
+    // A system install owns the deployment lock and proves operator/process
+    // safety before dependency, Pi, local-install, or system mutation begins.
+    #[cfg(target_os = "linux")]
+    let _system_deploy_lock = if args.system_install {
+        let lock = crate::commands::system_service::acquire_system_deploy_lock(
+            std::path::Path::new("/usr/local/bin"),
+        )?;
+        crate::commands::system_service::preflight_system_install()?;
+        Some(lock)
+    } else {
+        None
+    };
 
     // Install/verify workflow prerequisites before touching the existing Focusa
     // installation. These are customer-owned tools and are intentionally outside
@@ -3822,7 +3835,7 @@ fn create_symlink(_target: &std::path::Path, _link: &std::path::Path) -> Result<
     bail!("symlink install is unsupported on this platform")
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 struct SystemLinkEntry {
     system_path: std::path::PathBuf,
     system_backup: std::path::PathBuf,
@@ -3832,7 +3845,7 @@ struct SystemLinkEntry {
     local_swapped: bool,
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 fn rollback_system_links(entries: &[SystemLinkEntry]) -> Result<()> {
     let mut failures = Vec::new();
     for entry in entries.iter().rev() {
@@ -3871,7 +3884,7 @@ fn rollback_system_links(entries: &[SystemLinkEntry]) -> Result<()> {
     Ok(())
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 fn error_after_system_rollback(error: anyhow::Error, entries: &[SystemLinkEntry]) -> anyhow::Error {
     match rollback_system_links(entries) {
         Ok(()) => error,
@@ -3879,67 +3892,18 @@ fn error_after_system_rollback(error: anyhow::Error, entries: &[SystemLinkEntry]
     }
 }
 
-#[cfg(unix)]
-fn system_daemon_active() -> Result<bool> {
-    let output = std::process::Command::new("systemctl")
-        .args(["is-active", "--quiet", "focusa-daemon.service"])
-        .output()
-        .context("inspect authoritative system daemon state")?;
-    match output.status.code() {
-        Some(0) => Ok(true),
-        Some(3 | 4) => Ok(false),
-        _ => {
-            let detail = String::from_utf8_lossy(&output.stderr)
-                .chars()
-                .take(240)
-                .collect::<String>();
-            bail!(
-                "inspect authoritative system daemon failed: exit={}{}",
-                output.status.code().unwrap_or(-1),
-                if detail.trim().is_empty() {
-                    String::new()
-                } else {
-                    format!(" ({})", detail.trim())
-                }
-            )
-        }
-    }
-}
-
-#[cfg(unix)]
-fn restart_system_daemon() -> Result<()> {
-    let output = std::process::Command::new("systemctl")
-        .args(["restart", "focusa-daemon.service"])
-        .output()
-        .context("restart authoritative system daemon")?;
-    if !output.status.success() {
-        let detail = String::from_utf8_lossy(&output.stderr)
-            .chars()
-            .take(240)
-            .collect::<String>();
-        bail!(
-            "restart authoritative system daemon failed: exit={}{}",
-            output.status.code().unwrap_or(-1),
-            if detail.trim().is_empty() {
-                String::new()
-            } else {
-                format!(" ({})", detail.trim())
-            }
-        );
-    }
-    if !system_daemon_active()? {
-        bail!("authoritative system daemon is not active after restart");
-    }
-    Ok(())
-}
-
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 fn promote_system_links(
     bin_dir: &std::path::Path,
     system_bin: &std::path::Path,
     expected_tag: &str,
     restart_service: bool,
 ) -> Result<bool> {
+    let mut service_transaction = if restart_service {
+        Some(crate::commands::system_service::prepare_system_service()?)
+    } else {
+        None
+    };
     std::fs::create_dir_all(system_bin)
         .with_context(|| format!("create authoritative system path {}", system_bin.display()))?;
     let transaction = format!("{}", std::process::id());
@@ -4027,27 +3991,11 @@ fn promote_system_links(
             ));
         }
     }
-    let service_restarted = if restart_service {
-        match system_daemon_active() {
-            Ok(true) => {
-                if let Err(restart_error) = restart_system_daemon() {
-                    let rollback_error = rollback_system_links(&entries).err();
-                    let restore_error = restart_system_daemon().err();
-                    return Err(restart_error).context(format!(
-                        "new daemon restart failed; system rollback={}; prior daemon restart={}",
-                        rollback_error
-                            .map(|error| error.to_string())
-                            .unwrap_or_else(|| "ok".into()),
-                        restore_error
-                            .map(|error| error.to_string())
-                            .unwrap_or_else(|| "ok".into())
-                    ));
-                }
-                true
-            }
-            Ok(false) => false,
-            Err(error) => return Err(error_after_system_rollback(error, &entries)),
+    let service_restarted = if let Some(transaction) = service_transaction.as_mut() {
+        if let Err(error) = transaction.activate_and_verify(expected_version) {
+            return Err(error_after_system_rollback(error, &entries));
         }
+        true
     } else {
         false
     };
@@ -4067,10 +4015,13 @@ fn promote_system_links(
             );
         }
     }
+    if let Some(transaction) = service_transaction.take() {
+        transaction.commit();
+    }
     Ok(service_restarted)
 }
 
-#[cfg(not(unix))]
+#[cfg(not(target_os = "linux"))]
 fn promote_system_links(
     _bin_dir: &std::path::Path,
     _system_bin: &std::path::Path,
@@ -4935,7 +4886,8 @@ fn build_plan(
             )
         },
         service_manager_planned: if args.system_install {
-            "existing systemd focusa-daemon.service (restart only if active)".to_string()
+            "canonical systemd focusa-daemon.service (operator-halt and exact-process gated)"
+                .to_string()
         } else {
             match target {
                 InstallTarget::Linux => "systemd --user".to_string(),
@@ -5062,7 +5014,7 @@ mod tests {
         );
     }
 
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     #[test]
     fn system_promotion_is_atomic_and_rollback_safe() {
         let fixture =
@@ -5245,7 +5197,7 @@ mod tests {
         );
         assert_eq!(
             system_plan.service_manager_planned,
-            "existing systemd focusa-daemon.service (restart only if active)"
+            "canonical systemd focusa-daemon.service (operator-halt and exact-process gated)"
         );
     }
 

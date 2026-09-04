@@ -1380,6 +1380,7 @@ dependencies = [
  "focusa-license",
  "focusa-terminal-ui",
  "hex",
+ "nix",
  "parquet",
  "qrcode",
  "rand 0.8.6",

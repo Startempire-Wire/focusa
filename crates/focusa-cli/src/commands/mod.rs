@@ -72,6 +72,8 @@ pub mod silent;
 mod silent_render;
 pub mod skills;
 pub mod sms;
+#[cfg(target_os = "linux")]
+pub(crate) mod system_service;
 pub mod telemetry;
 pub mod temporal;
 pub mod temporal_clients;
