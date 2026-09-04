@@ -10,7 +10,6 @@ members = [
     "crates/focusa-tui",
     "crates/focusa-terminal-ui",
     "crates/focusa-bench",
-    "crates/focusa-session-runner",
     "crates/agent-stateful-cognitive-runtime",
     "crates/letta-adapter",
     "crates/pi-client-tool-gateway",

@@ -7,7 +7,7 @@ Scope: Rust workspace, CLI, daemon/API, TUI, Tauri menubar, Pi extension, script
 
 | Surface | Primary modern environments | Current posture |
 |---|---|---|
-| Rust CLI / daemon / TUI | macOS arm64/x64, Linux x64 glibc/musl, Windows x64/ARM64 release targets | Source and release workflows cover the Rust surfaces; Spec 132 terminal matrix proof remains open until all native hosted/runtime proofs and E7 target builds are complete. |
+| Rust CLI / daemon / TUI / session runner | macOS arm64/x64, Linux x64 glibc/musl plus Linux ARM64 glibc, Windows x64/ARM64 release targets | Source and release workflows cover all four Rust surfaces; Spec 132 terminal matrix proof remains open until all native hosted/runtime proofs and E7 target builds are complete. |
 | Menubar app | macOS arm64/x64 | Tauri package proof remains macOS-focused. Linux/Windows desktop packaging is not yet claimed. |
 | Pi extension | Pi environments with Node 20+ and a POSIX shell | Typechecks; daemon restart default no longer assumes systemd first. |
 | API scripts / spec gates | Linux CI, local POSIX shell | CI-proven on Ubuntu; helper scripts assume bash, curl, jq, Python 3, and cargo. |

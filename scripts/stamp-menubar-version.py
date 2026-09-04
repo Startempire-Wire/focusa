@@ -6,7 +6,7 @@ Usage:
   scripts/stamp-menubar-version.py 0.9.22-dev
 
 This is intentionally the single version-stamping template used by
-scripts/create-dev-release-tag.sh. It updates Rust workspace CLI/API/TUI/core,
+scripts/create-dev-release-tag.sh. It updates Rust workspace CLI/API/TUI/session-runner/core,
 root lockfile package entries, the menubar package/Tauri metadata, and the
 operator-visible Settings version.
 """
@@ -18,6 +18,8 @@ import json
 import re
 import sys
 from pathlib import Path
+
+from distribution_manifest import build_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION_RE = re.compile(r"^v?(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)$")
@@ -149,33 +151,21 @@ def replace_readme_version(path: str, version: str) -> None:
 
 
 def regenerate_distribution_manifest(version: str) -> None:
-    """Regenerate distribution-manifest.json as part of single-source stamp.
-
-    This is the ONLY writer for distribution-manifest.json. It recomputes
-    sha256 for every artifact, sets source_commit to HEAD, and sets
-    generated_at to now. No hand edits allowed.
-    """
+    """Write the canonical manifest from the shared deterministic contract."""
     import datetime
     import subprocess
+
     manifest_path = ROOT / "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json"
-    data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    data["release_version"] = version
-    # Recompute sha256 for each artifact listed in the manifest.
-    new_artifacts: dict[str, str] = {}
-    for rel in list(data.get("artifacts", {}).keys()):
-        artifact_path = ROOT / rel
-        if not artifact_path.exists():
-            raise SystemExit(f"Missing artifact for manifest: {rel}")
-        digest = "sha256:" + hashlib.sha256(artifact_path.read_bytes()).hexdigest()
-        new_artifacts[rel] = digest
-    data["artifacts"] = new_artifacts
-    # source_commit = short HEAD at stamp time.
-    head = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=str(ROOT)).decode().strip()
-    data["source_commit"] = head
-    data["generated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
-    # Ensure required keys exist.
-    data.setdefault("schema", "focusa.distribution_manifest.v1")
-    data.setdefault("compatibility_status", "compatible")
+    current = json.loads(manifest_path.read_text(encoding="utf-8"))
+    head = subprocess.check_output(
+        ["git", "rev-parse", "--short", "HEAD"], cwd=str(ROOT)
+    ).decode().strip()
+    generated_at = (
+        datetime.datetime.now(datetime.timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+    data = build_manifest(ROOT, current, version, head, generated_at)
     manifest_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 def replace_lock_package_versions(
@@ -219,7 +209,7 @@ def main() -> int:
         raise SystemExit("Usage: scripts/stamp-menubar-version.py <tag-or-version>")
     version = parse_version(sys.argv[1])
 
-    # Rust workspace surfaces: CLI, daemon/API, core, TUI.
+    # Rust workspace surfaces: CLI, daemon/API, core, TUI, session runner.
     replace_key_value_version("Cargo.toml", version)
     replace_lock_package_versions("Cargo.lock", ROOT_RUST_PACKAGES, version)
 

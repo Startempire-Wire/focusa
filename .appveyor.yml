@@ -7,7 +7,7 @@
 # https://ci.appveyor.com/projects/new (GitHub OAuth).
 #
 # Full Windows surface coverage:
-#   - Rust binaries (focusa-daemon, focusa, focusa-tui) for x86_64 + aarch64 MSVC
+#   - Rust binaries (focusa, daemon, TUI, session runner) for x86_64 + aarch64 MSVC
 #   - Menubar Tauri NSIS + MSI bundles (x86_64 + aarch64; tag only)
 #   - tag-gated upload of all artifacts back to the GitHub Release
 # AppVeyor hosted jobs have a hard 60-minute quota. Rust binaries, Rust tests,

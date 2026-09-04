@@ -5,12 +5,12 @@
  *
  * Usage: node scripts/audit-distribution-parity.mjs [--json]
  *
- * Emits focusa.distribution_manifest.v1 with per-surface version/digest
+ * Emits focusa.distribution_parity.v1 with per-surface version/digest
  * facts and a typed drift list. Exit code 1 when drift is detected.
  */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = new URL("..", import.meta.url).pathname;
@@ -26,7 +26,7 @@ function readJson(path) {
 
 function sha256(path) {
   try {
-    return createHash("sha256").update(readFileSync(path)).digest("hex").slice(0, 16);
+    return `sha256:${createHash("sha256").update(readFileSync(path)).digest("hex")}`;
   } catch {
     return null;
   }
@@ -37,6 +37,55 @@ function dirCount(path) {
     return readdirSync(path).length;
   } catch {
     return null;
+  }
+}
+
+const treeExcludedDirs = new Set([
+  ".git",
+  ".beads",
+  "node_modules",
+  "target",
+  "dist",
+  ".svelte-kit",
+  "__pycache__",
+]);
+const manifestRelative =
+  "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json";
+
+function treeDigestMappings(root, mappings) {
+  try {
+    const files = [];
+    function walk(directory, emittedPrefix) {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        if (treeExcludedDirs.has(entry.name)) continue;
+        const absolute = join(directory, entry.name);
+        const emitted = emittedPrefix ? `${emittedPrefix}/${entry.name}` : entry.name;
+        if (entry.isSymbolicLink()) throw new Error(`symlink:${emitted}`);
+        if (entry.isDirectory()) walk(absolute, emitted);
+        else if (entry.isFile() && emitted !== manifestRelative) files.push([emitted, absolute]);
+        else if (!entry.isFile()) throw new Error(`special:${emitted}`);
+      }
+    }
+    for (const [source, emitted] of mappings) {
+      const absolute = join(root, source);
+      if (!existsSync(absolute)) throw new Error(`missing:${source}`);
+      const metadata = lstatSync(absolute);
+      if (metadata.isSymbolicLink()) throw new Error(`symlink:${source}`);
+      if (metadata.isFile()) files.push([emitted, absolute]);
+      else if (metadata.isDirectory()) walk(absolute, emitted);
+      else throw new Error(`special:${source}`);
+    }
+    files.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
+    const digest = createHash("sha256");
+    for (const [relative, absolute] of files) {
+      digest.update(relative, "utf8");
+      digest.update(Buffer.from([0]));
+      digest.update(createHash("sha256").update(readFileSync(absolute)).digest());
+      digest.update(Buffer.from([0]));
+    }
+    return { algorithm: "sha256-tree-v1", sha256: `sha256:${digest.digest("hex")}`, file_count: files.length };
+  } catch (error) {
+    return { algorithm: "sha256-tree-v1", sha256: null, file_count: null, error: String(error) };
   }
 }
 
@@ -62,6 +111,23 @@ function tomlVersion(path) {
   }
 }
 
+const sourceManifestPath = join(
+  ROOT,
+  "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json",
+);
+const sourceManifest = readJson(sourceManifestPath);
+const installedManifestPath =
+  process.env.FOCUSA_DISTRIBUTION_MANIFEST ||
+  [
+    "/usr/local/lib/focusa/distribution-manifest.json",
+    join(process.env.HOME || "", ".focusa/distribution-manifest.json"),
+  ].find((candidate) => existsSync(candidate)) ||
+  null;
+const installedManifest = installedManifestPath ? readJson(installedManifestPath) : null;
+const releaseManifestPath = process.env.FOCUSA_RELEASE_MANIFEST || null;
+const releaseManifest = releaseManifestPath ? readJson(releaseManifestPath) : null;
+const releaseAssetSuffix = process.env.FOCUSA_RELEASE_ASSET_SUFFIX || null;
+
 const piExtDir =
   process.env.FOCUSA_PI_EXT_DIR ||
   [join(process.env.HOME || "", ".pi/agent/extensions/focusa"), "/root/.pi/agent/extensions/focusa"].find(
@@ -86,14 +152,74 @@ const source = {
   cli_reference_digest: sha256(join(ROOT, "docs/current/CLI_REFERENCE_CURRENT.md")),
 };
 
+function binaryVersion(path, fallback = null) {
+  const raw = run(path, ["--version"]) ?? (fallback ? run(fallback, ["--version"]) : null);
+  if (!raw) return null;
+  const match = raw.match(/\b\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\b/);
+  return match?.[0] ?? null;
+}
+
+const runtimeContract = sourceManifest?.components?.runtime_contract ?? {};
+const binaryPaths = runtimeContract.binary_paths ?? {
+  cli: "/usr/local/bin/focusa",
+  daemon: "/usr/local/bin/focusa-daemon",
+  tui: "/usr/local/bin/focusa-tui",
+  session_runner: "/usr/local/bin/focusa-session-runner",
+};
+const binaryVersions = {};
+const binaryDigests = {};
+for (const [surface, path] of Object.entries(binaryPaths)) {
+  binaryVersions[surface] = binaryVersion(path, surface === "cli" ? "focusa" : null);
+  binaryDigests[surface] = sha256(path);
+}
+const agentContextDir =
+  process.env.FOCUSA_AGENT_CONTEXT_DIR || join(process.env.HOME || "", ".focusa/agent-context");
+
+const installedComponents = {
+  pi_extension: piExtDir
+    ? treeDigestMappings(piExtDir, [[".", "apps/pi-extension"]])
+    : null,
+  agent_skills: existsSync(join(agentContextDir, "skills"))
+    ? treeDigestMappings(agentContextDir, [
+        ["skills", ".pi/skills"],
+        ["bin/focusa-skill-doctor", "scripts/focusa-skill-doctor"],
+      ])
+    : null,
+  documentation: existsSync(join(agentContextDir, "docs"))
+    ? treeDigestMappings(agentContextDir, [
+        ["AGENTS.md", "AGENTS.md"],
+        ["README.md", "README.md"],
+        ["docs/current", "docs/current"],
+        ["docs/contracts/spec141/generated-capability-v2", "docs/contracts/spec141/generated-capability-v2"],
+        ["docs/07-reference-store.md", "docs/07-reference-store.md"],
+        ["docs/82-focusa-memory-optimization-spec.md", "docs/82-focusa-memory-optimization-spec.md"],
+        ["docs/94-focusa-intent-preserving-memory-rpc-optimization-sow.md", "docs/94-focusa-intent-preserving-memory-rpc-optimization-sow.md"],
+        ["docs/canonical-live-release-pipeline.md", "docs/canonical-live-release-pipeline.md"],
+      ])
+    : null,
+  generated_clients: existsSync(join(agentContextDir, "packages/generated/spec135"))
+    ? treeDigestMappings(agentContextDir, [
+        ["packages/generated/spec135", "packages/generated/spec135"],
+        ["docs/contracts/spec135/generated-contract-v1", "docs/contracts/spec135/generated-contract-v1"],
+      ])
+    : null,
+};
+
 const installed = {
-  cli_version:
-    (() => {
-      const raw = run("/usr/local/bin/focusa", ["--version"]) ?? run("focusa", ["--version"]);
-      return raw ? raw.replace(/^focusa\s+/, "").trim() || null : null;
-    })(),
+  cli_version: binaryVersions.cli,
+  binary_versions: binaryVersions,
+  binary_digests: binaryDigests,
   extension_version: piExtDir ? (readJson(join(piExtDir, "package.json"))?.version ?? null) : null,
   installed_skills_count: piExtDir ? dirCount(join(piExtDir, "skills")) : null,
+  manifest_path: installedManifestPath,
+  manifest_sha256: installedManifestPath ? sha256(installedManifestPath) : null,
+  manifest_version: installedManifest?.release_version ?? null,
+  agent_context_path: existsSync(agentContextDir) ? agentContextDir : null,
+  agent_context_manifest_sha256: sha256(join(agentContextDir, "distribution-manifest.json")),
+  release_manifest_path: releaseManifestPath,
+  release_manifest_sha256: releaseManifestPath ? sha256(releaseManifestPath) : null,
+  agent_context_docs_present: existsSync(join(agentContextDir, "docs/current")),
+  component_digests: installedComponents,
 };
 
 let live = { daemon_ok: null, daemon_version: null };
@@ -113,98 +239,160 @@ try {
 }
 
 const drift = [];
-
-// Capability truth (#279/#260): the installed extension's runtime contract
-// set must match the source registry (names + families).
-let capabilityTruth = { source_contracts: 0, installed_contracts: 0, missing: [], extra: [], family_mismatches: [] };
-if (piExtDir && existsSync(join(piExtDir, "src/tool-contracts.ts"))) {
-  try {
-    const source = readFileSync(join(piExtDir, "src/tool-contracts.ts"), "utf8");
-    const sourceRegistry = readJson(join(ROOT, "docs/current/focusa-tool-contracts.json"));
-    const sourceList = Array.isArray(sourceRegistry)
-      ? sourceRegistry
-      : sourceRegistry?.tools ?? sourceRegistry?.contracts ?? [];
-    const sourceNames = new Map(
-      sourceList.filter((c) => c?.name).map((c) => [c.name, c.family ?? c.result_envelope ?? null])
-    );
-    // Installed extension runtime registry: transpile the real TS module to
-    // CommonJS and evaluate it — the registry ends in a ternary, so regex
-    // parsing is not trustworthy for capability truth.
-    const installedNames = new Map();
-    const tsCandidates = [
-      join(piExtDir, "node_modules/typescript"),
-      "/root/.pi/agent/extensions/focusa/node_modules/typescript",
-    ];
-    let ts = null;
-    for (const candidate of tsCandidates) {
-      try {
-        ts = (await import(`file://${candidate}/lib/typescript.js`)).default;
-        break;
-      } catch {
-        /* try next */
-      }
-    }
-    if (ts) {
-      const compiled = ts.transpileModule(source, {
-        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-      }).outputText;
-      const evaluate = new Function("exports", `${compiled}; return exports;`);
-      const exports = evaluate({});
-      const registry = exports?.FOCUSA_TOOL_CONTRACTS;
-      if (Array.isArray(registry)) {
-        for (const contract of registry) {
-          if (contract?.name) installedNames.set(contract.name, contract.family ?? null);
-        }
-      }
-    }
-    capabilityTruth.source_contracts = sourceNames.size;
-    capabilityTruth.installed_contracts = installedNames.size;
-    for (const [name] of sourceNames) {
-      if (!installedNames.has(name)) capabilityTruth.missing.push(name);
-    }
-    for (const [name] of installedNames) {
-      if (!sourceNames.has(name)) capabilityTruth.extra.push(name);
-    }
-    for (const [name, family] of sourceNames) {
-      if (installedNames.has(name) && installedNames.get(name) !== family && family) {
-        capabilityTruth.family_mismatches.push({ name, source_family: family, installed_family: installedNames.get(name) });
-      }
-    }
-    const truthDrift =
-      capabilityTruth.missing.length +
-      capabilityTruth.extra.length +
-      capabilityTruth.family_mismatches.length;
-    if (truthDrift > 0) {
-      drift.push({
-        surface: "capability_truth",
-        expected: "source_registry",
-        source_value: String(sourceNames.size),
-        observed_value: String(installedNames.size),
-        detail: `${capabilityTruth.missing.length} missing, ${capabilityTruth.extra.length} extra, ${capabilityTruth.family_mismatches.length} family mismatches`,
-      });
-    }
-  } catch {
-    capabilityTruth = { source_contracts: 0, installed_contracts: 0, missing: [], extra: [], family_mismatches: [], error: "capability-truth comparison unavailable" };
-  }
+const sourceManifestCheckRaw = run("python3", [
+  join(ROOT, "scripts/distribution_manifest.py"),
+  "--root",
+  ROOT,
+  "--manifest",
+  sourceManifestPath,
+  "--check",
+  "--json",
+]);
+const sourceManifestCheck = sourceManifestCheckRaw ? JSON.parse(sourceManifestCheckRaw) : null;
+if (!sourceManifestCheck?.ok) {
+  drift.push({
+    surface: "source_distribution_manifest",
+    expected: "current full SHA-256 component contract",
+    source_value: sourceManifest?.source_commit ?? null,
+    observed_value: sourceManifestCheck?.failures?.join("; ") ?? "validation unavailable",
+  });
 }
-
-// #260 digest axis: the installed extension's key runtime files must match
-// the canonical tree (or be explicitly flagged as deployed-line divergence).
-const digestFiles = ["src/tools.ts", "src/session.ts", "src/north-star.ts", "src/ota-activation.ts"];
-const digests = {};
-for (const relative of digestFiles) {
-  const sourceDigest = sha256(join(ROOT, "apps/pi-extension", relative));
-  const installedDigest = piExtDir ? sha256(join(piExtDir, relative)) : null;
-  digests[relative] = { source: sourceDigest, installed: installedDigest };
-  if (sourceDigest && installedDigest && sourceDigest !== installedDigest) {
+if (!installedManifestPath || !installedManifest) {
+  drift.push({
+    surface: "installed_distribution_manifest",
+    expected: runtimeContract.installed_manifest_path ?? "/usr/local/lib/focusa/distribution-manifest.json",
+    source_value: sourceManifest?.release_version ?? null,
+    observed_value: "missing_or_invalid",
+  });
+} else {
+  const sourceManifestDigest = sha256(sourceManifestPath);
+  if (sourceManifestDigest !== installed.manifest_sha256) {
     drift.push({
-      surface: `digest:${relative}`,
-      expected: "source_tree_digest",
-      source_value: sourceDigest,
-      observed_value: installedDigest,
+      surface: "installed_distribution_manifest",
+      expected: "byte-identical signed source manifest",
+      source_value: sourceManifestDigest,
+      observed_value: installed.manifest_sha256,
+    });
+  }
+  if (!installed.agent_context_manifest_sha256) {
+    drift.push({
+      surface: "agent_context_distribution_manifest",
+      expected: "installed agent context manifest",
+      source_value: installed.manifest_sha256,
+      observed_value: "missing",
+    });
+  } else if (installed.agent_context_manifest_sha256 !== installed.manifest_sha256) {
+    drift.push({
+      surface: "agent_context_distribution_manifest",
+      expected: "same manifest as installed runtime",
+      source_value: installed.manifest_sha256,
+      observed_value: installed.agent_context_manifest_sha256,
     });
   }
 }
+if (
+  releaseManifest &&
+  (releaseManifest.schema !== "focusa.release_manifest.v1" ||
+    releaseManifest.tag !== `v${sourceManifest?.release_version}`)
+) {
+  drift.push({
+    surface: "signed_release_identity",
+    expected: `v${sourceManifest?.release_version}`,
+    source_value: releaseManifest.tag ?? null,
+    observed_value: releaseManifest.commit ?? null,
+  });
+}
+if (releaseManifest) {
+  const releasedManifestDigest = releaseManifest.assets?.["distribution-manifest.json"]?.sha256;
+  const sourceManifestDigest = sha256(sourceManifestPath);
+  if (!releasedManifestDigest || sourceManifestDigest !== `sha256:${releasedManifestDigest}`) {
+    drift.push({
+      surface: "released_distribution_manifest_digest",
+      expected: "signed release asset digest",
+      source_value: releasedManifestDigest ? `sha256:${releasedManifestDigest}` : "release_asset_missing",
+      observed_value: sourceManifestDigest,
+    });
+  }
+}
+const releaseBinaryNames = {
+  cli: "focusa",
+  daemon: "focusa-daemon",
+  tui: "focusa-tui",
+  session_runner: "focusa-session-runner",
+};
+for (const [surface, path] of Object.entries(binaryPaths)) {
+  if (!installed.binary_digests[surface] || !installed.binary_versions[surface]) {
+    drift.push({
+      surface: `installed_binary:${surface}`,
+      expected: path,
+      source_value: sourceManifest?.release_version ?? null,
+      observed_value: "missing_or_unexecutable",
+    });
+  } else if (
+    installed.manifest_version &&
+    installed.binary_versions[surface] !== installed.manifest_version
+  ) {
+    drift.push({
+      surface: `installed_binary:${surface}`,
+      expected: "installed distribution manifest version",
+      source_value: installed.manifest_version,
+      observed_value: installed.binary_versions[surface],
+    });
+  }
+  if (releaseManifest && releaseAssetSuffix) {
+    const assetName = `${releaseBinaryNames[surface]}-${releaseManifest.tag}-${releaseAssetSuffix}`;
+    const releasedDigest = releaseManifest.assets?.[assetName]?.sha256 ?? null;
+    if (!releasedDigest || installed.binary_digests[surface] !== `sha256:${releasedDigest}`) {
+      drift.push({
+        surface: `installed_binary_digest:${surface}`,
+        expected: assetName,
+        source_value: releasedDigest ? `sha256:${releasedDigest}` : "release_asset_missing",
+        observed_value: installed.binary_digests[surface],
+      });
+    }
+  }
+}
+if (!releaseManifest || !releaseAssetSuffix) {
+  drift.push({
+    surface: "signed_release_binary_contract",
+    expected: "FOCUSA_RELEASE_MANIFEST and FOCUSA_RELEASE_ASSET_SUFFIX",
+    source_value: sourceManifest?.release_version ?? null,
+    observed_value: "release_contract_missing",
+  });
+}
+if (!installed.agent_context_path || !installed.agent_context_docs_present) {
+  drift.push({
+    surface: "installed_agent_documentation",
+    expected: "agent-context/docs/current",
+    source_value: sourceManifest?.components?.documentation?.sha256 ?? null,
+    observed_value: installed.agent_context_path ? "docs_missing" : "agent_context_missing",
+  });
+}
+for (const component of ["pi_extension", "agent_skills", "documentation", "generated_clients"]) {
+  const expected = sourceManifest?.components?.[component];
+  const observed = installedComponents[component];
+  if (!expected || !observed || observed.sha256 !== expected.sha256 || observed.file_count !== expected.file_count) {
+    drift.push({
+      surface: `installed_component:${component}`,
+      expected: "full SHA-256 tree and file-count parity",
+      source_value: expected ? `${expected.sha256}:${expected.file_count}` : "source_contract_missing",
+      observed_value: observed ? `${observed.sha256}:${observed.file_count}` : "installed_component_missing",
+      detail: observed?.error ?? null,
+    });
+  }
+}
+if (!piExtDir) {
+  drift.push({
+    surface: "installed_pi_extension",
+    expected: "one active focusa-pi-bridge package",
+    source_value: source.extension_version,
+    observed_value: "missing",
+  });
+}
+
+// The complete Pi-extension and documentation tree contracts above include
+// runtime tool sources and the inert capability registry. Do not reimplement
+// those digest checks per file or execute installed TypeScript during audit.
 const surfaces = [
   ["source.core_version", source.core_version, installed.cli_version, "cli"],
   ["source.extension_version", source.extension_version, installed.extension_version, "pi_extension"],
@@ -216,14 +404,35 @@ for (const [leftName, left, right, label] of surfaces) {
   }
 }
 
+if (live.daemon_ok !== true || !live.daemon_version) {
+  drift.push({
+    surface: "live_daemon_health",
+    expected: "healthy daemon with exact version",
+    source_value: installed.manifest_version,
+    observed_value: live.daemon_version ?? "unreachable_or_unhealthy",
+  });
+} else if (installed.manifest_version && live.daemon_version !== installed.manifest_version) {
+  drift.push({
+    surface: "live_daemon_version",
+    expected: "installed distribution manifest version",
+    source_value: installed.manifest_version,
+    observed_value: live.daemon_version,
+  });
+}
+
 const manifest = {
-  schema: "focusa.distribution_manifest.v1",
+  schema: "focusa.distribution_parity.v1",
   generated_at: new Date().toISOString(),
   source,
+  source_manifest: {
+    path: sourceManifestPath,
+    sha256: sha256(sourceManifestPath),
+    release_version: sourceManifest?.release_version ?? null,
+    source_commit: sourceManifest?.source_commit ?? null,
+    check: sourceManifestCheck,
+  },
   installed,
   live,
-  digests,
-  capability_truth: capabilityTruth,
   drift,
   parity_ok: drift.length === 0,
 };

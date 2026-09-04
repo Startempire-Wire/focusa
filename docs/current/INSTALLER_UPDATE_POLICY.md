@@ -16,7 +16,7 @@ Focusa installers and updates must be explicit, reversible, and guarded by Conte
 | Transition | Required behavior | Required proof |
 | --- | --- | --- |
 | inspect | `scripts/install-focusa.sh --dry-run` performs no mutation | bounded install plan |
-| install | signed/checksummed release assets, atomic activation, daemon/Pi integration | health + version + first Workpoint |
+| install | signed/checksummed release assets, atomic activation, daemon/Pi integration | health + version + installed distribution-manifest parity + first Workpoint |
 | repair/rerun | rerunning the same channel is idempotent; `--force` is explicit for downgrade/overwrite | prior state backup + repaired health |
 | OTA/update | trusted release metadata, anti-rollback, atomic replacement, extension reload/rollback | artifact checksum/signature + activated version + rollback receipt |
 | uninstall | public `--uninstall` removes managed software and preserves user data by default | managed artifacts absent + data-preservation evidence |
@@ -35,6 +35,18 @@ curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall --purge-dat
 ```
 
 `--system-install` is an explicit Linux-only bridge for an existing authoritative `/usr/local/bin` installation. The verified bootstrap delegates it to the Rust install transaction, which promotes all canonical binaries and owns rollback; the shell must never copy or relink product binaries itself.
+
+From `v0.9.188`, the checksummed agent-context archive must carry the exact
+`focusa.distribution_manifest.v1` bytes published and signed by the same Release.
+The Rust installer validates release identity and canonical paths, installs the
+local copy, and promotes `/usr/local/lib/focusa/distribution-manifest.json` inside
+the binary/service rollback boundary. A failed health or CallGraph probe restores
+the prior manifest with the prior runtime. For `v0.9.188+`, `focusa update apply`
+reuses this exact install lifecycle rather than maintaining a second binary/package
+promotion engine; its signed plan must include CLI, daemon, TUI, session runner,
+distribution manifest, Pi extension, and agent-context receipts. Older releases
+remain installable for rollback but report manifest parity as unavailable, never
+inferred.
 
 After install, repair, or update, verify daemon health/version, all-Pi-tool discovery, Mission Canvas, and canonical Workpoint resume. Uninstall must remain idempotent when binaries are already absent.
 
@@ -93,6 +105,8 @@ On a live build host, prefer local repo build/restart over release asset replace
 ## Rollback checklist
 
 - Restore previous binary or app bundle.
+- A manifest-bound update records the exact prior immutable tag; `--part all` reuses the canonical checksummed installer transaction, while part-only rollback is rejected because it would recreate version skew.
+- Restore the prior distribution manifest with the prior binaries and service unit.
 - Restore previous service unit/config when changed.
 - Restart daemon only after operator-safe preflight.
 - Run health, version, and smoke checks.

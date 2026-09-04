@@ -48,8 +48,14 @@ def main() -> int:
     parser.add_argument("--asset", type=pathlib.Path, required=True)
     parser.add_argument("--manifest", type=pathlib.Path, required=True)
     parser.add_argument("--manifest-signature", type=pathlib.Path, required=True)
+    parser.add_argument("--distribution-parity", type=pathlib.Path, required=True)
     parser.add_argument("--version", required=True)
     parser.add_argument("--private-key", type=pathlib.Path, required=True)
+    parser.add_argument(
+        "--settle",
+        action="store_true",
+        help="re-sign the deployed candidate after OTA acceptance for stable promotion",
+    )
     args = parser.parse_args()
 
     if not args.tag.startswith("v") or len(args.commit) != 40:
@@ -60,9 +66,10 @@ def main() -> int:
         not args.asset.is_file()
         or not args.manifest.is_file()
         or not args.manifest_signature.is_file()
+        or not args.distribution_parity.is_file()
     ):
         raise ValueError(
-            "deployed asset, release manifest, and manifest signature must exist"
+            "deployed asset, release manifest/signature, and distribution parity proof must exist"
         )
 
     private_key = load_private_key(args.private_key)
@@ -90,6 +97,33 @@ def main() -> int:
         raise ValueError(
             "release manifest trust root does not match active signing key"
         )
+    parity = json.loads(args.distribution_parity.read_bytes())
+    installed_parity = parity.get("installed", {})
+    binary_versions = installed_parity.get("binary_versions", {})
+    distribution_manifest_sha256 = installed_parity.get("manifest_sha256")
+    if (
+        parity.get("schema") != "focusa.distribution_parity.v1"
+        or parity.get("parity_ok") is not True
+        or parity.get("drift") != []
+        or installed_parity.get("manifest_version") != args.version
+        or (
+            not args.settle
+            and installed_parity.get("release_manifest_sha256")
+            != "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
+        )
+        or (
+            args.settle
+            and manifest.get("publication_status") != "deployed_candidate"
+        )
+        or not isinstance(distribution_manifest_sha256, str)
+        or len(distribution_manifest_sha256) != len("sha256:") + 64
+        or not distribution_manifest_sha256.startswith("sha256:")
+        or distribution_manifest_sha256
+        != parity.get("source_manifest", {}).get("sha256")
+        or set(binary_versions) != {"cli", "daemon", "tui", "session_runner"}
+        or set(binary_versions.values()) != {args.version}
+    ):
+        raise ValueError("installed distribution parity proof is not accepted")
     manifest_asset = manifest.get("assets", {}).get(args.asset.name)
     if not isinstance(manifest_asset, dict):
         raise ValueError("deployed daemon asset is absent from release manifest")
@@ -98,6 +132,44 @@ def main() -> int:
         raise ValueError(
             "deployed daemon asset checksum does not match release manifest"
         )
+
+    candidate_run_urls = {
+        asset_contract.get("url", "").split("#artifact-", 1)[0]
+        for asset_contract in manifest.get("assets", {}).values()
+        if isinstance(asset_contract, dict) and "#artifact-" in asset_contract.get("url", "")
+    }
+    release_run_url = (
+        next(iter(candidate_run_urls))
+        if len(candidate_run_urls) == 1
+        else manifest.get("gates", {}).get("release_run_url", "")
+    )
+    if "/actions/runs/" not in release_run_url:
+        raise ValueError("candidate manifest does not bind one canonical release run")
+    repository_url, separator, _ = args.run_url.partition("/actions/runs/")
+    if not separator or not repository_url.startswith("https://github.com/"):
+        raise ValueError("deploy run URL does not identify a canonical GitHub repository")
+    for asset_name, asset_contract in manifest.get("assets", {}).items():
+        if not isinstance(asset_contract, dict):
+            raise ValueError(f"release manifest asset contract is invalid: {asset_name}")
+        asset_contract["url"] = (
+            f"{repository_url}/releases/download/{args.tag}/{asset_name}"
+        )
+
+    manifest["publication_status"] = (
+        "published" if args.settle else "deployed_candidate"
+    )
+    manifest.setdefault("gates", {})["release_success"] = True
+    manifest["gates"]["deploy_success"] = True
+    manifest["gates"]["release_run_url"] = release_run_url
+    manifest["gates"]["deploy_run_url"] = args.run_url
+    if args.settle:
+        manifest["gates"]["ota_success"] = True
+    else:
+        manifest["gates"].pop("ota_success", None)
+    args.manifest.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    args.manifest_signature.write_bytes(private_key.sign(args.manifest.read_bytes()))
 
     payload = {
         "schema": SCHEMA,
@@ -112,6 +184,7 @@ def main() -> int:
         "asset_name": args.asset.name,
         "asset_sha256": asset_sha256,
         "release_manifest_sha256": sha256(args.manifest),
+        "distribution_parity_sha256": sha256(args.distribution_parity),
         "deployed_at": dt.datetime.now(dt.UTC)
         .replace(microsecond=0)
         .isoformat()

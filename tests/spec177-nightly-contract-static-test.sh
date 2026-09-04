@@ -39,10 +39,12 @@ require 'nightly-2026-08-28' "$WORKFLOW"
 require 'x86_64-unknown-linux-musl' "$WORKFLOW"
 require 'scripts/stamp-menubar-version.py "$tag"' "$WORKFLOW"
 require 'scripts/verify-version-surfaces.py "$tag"' "$WORKFLOW"
+require 'scripts/distribution_manifest.py --check' "$WORKFLOW"
+require 'distribution-manifest.json' "$WORKFLOW"
 for asset in focusa focusa-daemon focusa-tui focusa-session-runner; do
   require "$asset" "$WORKFLOW"
 done
-for asset in focusa-pi-extension focusa-installer focusa-agent-context SHA256SUMS.txt; do
+for asset in focusa-pi-extension focusa-installer focusa-agent-context distribution-manifest SHA256SUMS.txt; do
   require "$asset" "$WORKFLOW"
 done
 require 'timeout-minutes: 20' "$WORKFLOW"

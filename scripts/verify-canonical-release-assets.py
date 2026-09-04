@@ -11,11 +11,12 @@ RUST_TARGETS = (
     ("aarch64-apple-darwin", ""),
     ("x86_64-apple-darwin", ""),
     ("x86_64-unknown-linux-gnu", ""),
+    ("aarch64-unknown-linux-gnu", ""),
     ("x86_64-unknown-linux-musl", ""),
     ("x86_64-pc-windows-msvc", ".exe"),
     ("aarch64-pc-windows-msvc", ".exe"),
 )
-RUST_SURFACES = ("focusa", "focusa-daemon", "focusa-tui")
+RUST_SURFACES = ("focusa", "focusa-daemon", "focusa-tui", "focusa-session-runner")
 
 
 def required_exact(tag: str) -> list[str]:
@@ -31,6 +32,7 @@ def required_exact(tag: str) -> list[str]:
             f"focusa-generated-clients-{tag}.tar.gz",
             f"focusa-installer-{tag}.sh",
             f"focusa-installer-{tag}.ps1",
+            "distribution-manifest.json",
             f"Focusa-{tag}-aarch64-apple-darwin.app.zip",
             f"Focusa-{tag}-x86_64-apple-darwin.app.zip",
             "Focusa_aarch64.app.tar.gz",

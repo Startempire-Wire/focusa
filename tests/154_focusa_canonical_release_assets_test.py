@@ -23,9 +23,13 @@ class CanonicalReleaseAssetTests(unittest.TestCase):
             "Focusa_9.9.9_aarch64.dmg",
             "Focusa_9.9.9_x64.dmg",
             "Focusa_9.9.9_x64-setup.exe",
+            "Focusa_9.9.9_x64-setup.exe.sig",
             "Focusa_9.9.9_arm64-setup.exe",
+            "Focusa_9.9.9_arm64-setup.exe.sig",
             "Focusa_9.9.9_x64_en-US.msi",
+            "Focusa_9.9.9_x64_en-US.msi.sig",
             "Focusa_9.9.9_arm64_en-US.msi",
+            "Focusa_9.9.9_arm64_en-US.msi.sig",
         ):
             (directory / name).write_bytes(b"asset")
 

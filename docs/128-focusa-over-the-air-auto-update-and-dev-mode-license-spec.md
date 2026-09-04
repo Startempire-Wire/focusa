@@ -6,7 +6,7 @@ Release-blocked audit reopened 2026-07-22. Signed assets, guarded apply/rollback
 
 ## Problem
 
-A Focusa host can have multiple installed parts at different versions. The daemon may be latest while the CLI, TUI, Pi extension, installer, or menubar package is stale. Operators should not need to remember manual binary sync after every passing release.
+A Focusa host can have multiple installed parts at different versions. The daemon may be latest while the CLI, TUI, session runner, Pi extension, agent context, distribution manifest, installer, or menubar package is stale. Operators should not need to remember manual binary sync after every passing release.
 
 ## Goals
 
@@ -19,7 +19,7 @@ A Focusa host can have multiple installed parts at different versions. The daemo
 7. Detect the host system and dependency gaps before install or update.
 8. Offer to install missing system dependencies with a clear, reversible prompt.
 9. Make the installer feel polished and beginner-friendly, including a short terminal intro animation when the terminal supports it.
-10. Eliminate the customer-hostile stale-surface problem where daemon, CLI, TUI, Pi extension, installer, or menubar are on different effective releases.
+10. Eliminate the customer-hostile stale-surface problem where daemon, CLI, TUI, session runner, Pi extension, agent context, distribution manifest, installer, or menubar are on different effective releases.
 
 ## Non-goals
 
@@ -161,6 +161,8 @@ Daemon/API routes:
 14. Roll back automatically if health/proof fails.
 
 ## Release manifest
+
+From `v0.9.188`, the signed release metadata requires one deterministic `focusa.distribution_manifest.v1` contract binding full SHA-256 source trees, all four Rust binaries, Pi and agent context, generated clients, documentation, installer paths, and capability surfaces. Apply and rollback reuse the canonical full-install transaction; partial promotion is rejected rather than recreating skew. Older releases remain valid rollback targets but cannot claim distribution parity.
 
 The release workflow should publish a machine-readable manifest:
 
@@ -488,7 +490,7 @@ Additional installer best practices:
 - idempotent re-run: rerunning installer upgrades or repairs, not duplicates;
 - shell-profile changes require explicit consent and are reversible;
 - installer writes initial update policy: `dev_mode` automatic latest, evaluation notify-only, paid prompt/scheduled according to license;
-- installer verifies installed CLI/daemon/TUI immediately and prints a one-command next step.
+- installer verifies installed CLI/daemon/TUI/session-runner plus manifest-bound agent context immediately and prints a one-command next step.
 
 ## Observability, history, and admin controls
 

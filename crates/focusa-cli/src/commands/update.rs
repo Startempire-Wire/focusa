@@ -710,7 +710,7 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             let part = args.part;
             let mut rollback = build_rollback_envelope(args);
             if execute {
-                match execute_verified_rollback(part) {
+                match execute_verified_rollback(part).await {
                     Ok(restored) => {
                         rollback.status = "completed";
                         rollback.read_only = false;
@@ -776,14 +776,21 @@ async fn build_inventory(
     let channel = args.channel.clone().unwrap_or_else(effective_channel);
     let latest = resolve_latest(&channel, args.latest_version.as_deref()).await;
     let daemon_health = probe_daemon_health(&args.daemon_health_url).await;
-    let parts = vec![
+    let mut parts = vec![
         inspect_cli(&latest.version).await?,
-        inspect_daemon(&latest.version, daemon_health).await?,
         inspect_tui(&latest.version).await?,
+    ];
+    if crate::commands::install::release_requires_distribution_manifest(&latest.version) {
+        parts.push(inspect_session_runner(&latest.version).await?);
+        parts.push(inspect_distribution_manifest(&latest.version));
+        parts.push(inspect_agent_context(&latest.version));
+    }
+    parts.extend([
         inspect_pi_extension(&latest.version),
         inspect_menubar(&latest.version),
         inspect_installer(&latest.version),
-    ];
+        inspect_daemon(&latest.version, daemon_health).await?,
+    ]);
     let stale_parts = parts
         .iter()
         .filter(|part| part.stale == Some(true))
@@ -1337,9 +1344,13 @@ struct RollbackManifestEntry {
 #[derive(Deserialize)]
 struct RollbackManifest {
     entries: Vec<RollbackManifestEntry>,
+    strategy: Option<String>,
+    release_tag: Option<String>,
+    system_install: Option<bool>,
+    github_repo: Option<String>,
 }
 
-fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> {
+async fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> {
     let backups = update_state_root().join("backups");
     let manifest = std::fs::read_dir(&backups)?
         .filter_map(Result::ok)
@@ -1350,6 +1361,28 @@ fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> 
         .max_by_key(|path| path.metadata().and_then(|m| m.modified()).ok())
         .context("no rollback manifest available")?;
     let manifest: RollbackManifest = serde_json::from_slice(&std::fs::read(&manifest)?)?;
+    if manifest.strategy.as_deref() == Some("exact_release_reinstall") {
+        anyhow::ensure!(
+            part == RollbackPart::All,
+            "manifest-bound updates roll back as one full release; use --part all"
+        );
+        let tag = manifest
+            .release_tag
+            .as_deref()
+            .context("manifest-bound rollback release tag is missing")?;
+        let args = exact_release_install_args(
+            tag,
+            manifest
+                .github_repo
+                .as_deref()
+                .unwrap_or("Startempire-Wire/focusa"),
+            manifest.system_install.unwrap_or(false),
+        );
+        crate::commands::install::run(args)
+            .await
+            .context("exact prior-release reinstall failed")?;
+        return Ok(vec!["full_release".into()]);
+    }
     let wanted = |name: &str| match part {
         RollbackPart::All => true,
         RollbackPart::Cli => name == "cli",
@@ -1455,7 +1488,17 @@ fn build_rollback_envelope(args: UpdateRollbackArgs) -> UpdateRollbackEnvelope {
         ],
         restore_order: match args.part {
             RollbackPart::Daemon => vec!["daemon", "restart_daemon_after_health_contract_check"],
-            RollbackPart::All => vec!["daemon", "tui", "cli", "health_contract_check"],
+            RollbackPart::All => vec![
+                "full_release",
+                "daemon",
+                "session_runner",
+                "tui",
+                "cli",
+                "distribution_manifest",
+                "agent_context",
+                "health_contract_check",
+                "callgraph_contract_check",
+            ],
             RollbackPart::Cli => vec!["cli"],
             RollbackPart::Tui => vec!["tui"],
         },
@@ -1845,12 +1888,137 @@ fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<Stri
     Ok(restored)
 }
 
+fn exact_release_install_args(
+    tag: &str,
+    github_repo: &str,
+    system_install: bool,
+) -> crate::commands::install::InstallArgs {
+    let channel = if tag.contains("-nightly.") {
+        crate::commands::install::Channel::Nightly
+    } else if tag.contains('-') {
+        crate::commands::install::Channel::Preview
+    } else {
+        crate::commands::install::Channel::Stable
+    };
+    crate::commands::install::InstallArgs {
+        target: crate::commands::install::InstallTarget::Auto,
+        channel,
+        dry_run: false,
+        preflight: false,
+        no_animation: true,
+        quiet: true,
+        install_dependencies: false,
+        assume_yes: false,
+        license_key: None,
+        eval: false,
+        accept_license: true,
+        no_service: false,
+        reuse_existing_license: true,
+        suppress_completion_output: true,
+        release_tag_override: Some(tag.to_string()),
+        system_install,
+        persist_path: false,
+        no_persist_path: true,
+        on_shell: crate::commands::install::ShellFamily::Auto,
+        json: false,
+        github_repo: Some(github_repo.to_string()),
+    }
+}
+
+async fn execute_manifest_bound_apply(
+    plan: &UpdatePlanEnvelope,
+    state: &Path,
+    backup_root: &Path,
+) -> anyhow::Result<Vec<String>> {
+    let mutable_parts = plan
+        .parts
+        .iter()
+        .filter(|part| {
+            matches!(
+                part.action,
+                "would_update" | "would_install" | "would_update_package" | "would_install_package"
+            )
+        })
+        .map(|part| part.part.to_string())
+        .collect::<Vec<_>>();
+    if mutable_parts.is_empty() {
+        return Ok(Vec::new());
+    }
+    let system_install = plan.parts.iter().any(|part| {
+        part.target_path
+            .as_deref()
+            .is_some_and(|path| path.starts_with("/usr/local/"))
+    });
+    let args =
+        exact_release_install_args(&plan.latest.tag, &plan.latest.github_repo, system_install);
+    let journal = state.join("update-journal.json");
+    match crate::commands::install::run(args).await {
+        Ok(()) => {
+            if let Some(previous_version) = plan
+                .parts
+                .iter()
+                .find(|part| part.part == "cli")
+                .and_then(|part| part.current_version.as_deref())
+                .or_else(|| {
+                    plan.parts
+                        .iter()
+                        .find(|part| part.part == "daemon")
+                        .and_then(|part| part.current_version.as_deref())
+                })
+                .filter(|version| normalize_version(version) != plan.latest.version)
+            {
+                std::fs::write(
+                    backup_root.join("rollback-manifest.json"),
+                    serde_json::to_vec_pretty(&json!({
+                        "schema": "focusa.update_rollback_manifest.v1",
+                        "strategy": "exact_release_reinstall",
+                        "release_tag": release_tag_for_version(previous_version),
+                        "system_install": system_install,
+                        "github_repo": plan.latest.github_repo,
+                        "entries": [],
+                    }))?,
+                )?;
+            }
+            std::fs::write(
+                &journal,
+                serde_json::to_vec_pretty(&json!({
+                    "schema": "focusa.update_journal.v1",
+                    "state": "completed",
+                    "tag": plan.latest.tag,
+                    "lifecycle_owner": "focusa_install",
+                    "promoted": mutable_parts,
+                }))?,
+            )?;
+            Ok(mutable_parts)
+        }
+        Err(error) => {
+            std::fs::write(
+                &journal,
+                serde_json::to_vec_pretty(&json!({
+                    "schema": "focusa.update_journal.v1",
+                    "state": "failed_rolled_back",
+                    "tag": plan.latest.tag,
+                    "lifecycle_owner": "focusa_install",
+                    "error": error.to_string(),
+                }))?,
+            )?;
+            Err(error.context("canonical manifest-bound install transaction failed"))
+        }
+    }
+}
+
 async fn execute_verified_apply_locked(
     plan: &UpdatePlanEnvelope,
     state: &Path,
 ) -> anyhow::Result<Vec<String>> {
+    let manifest_bound =
+        crate::commands::install::release_requires_distribution_manifest(&plan.latest.version);
     #[cfg(target_os = "linux")]
-    let _system_deploy_lock = if let Some(daemon_path) = plan
+    let _system_deploy_lock = if manifest_bound {
+        // The one canonical install lifecycle acquires this same lock. Never
+        // acquire it twice through the OTA compatibility adapter.
+        None
+    } else if let Some(daemon_path) = plan
         .parts
         .iter()
         .find(|part| part.part == "daemon")
@@ -1881,6 +2049,9 @@ async fn execute_verified_apply_locked(
             "schema":"focusa.update_journal.v1", "state":"staging", "tag":plan.latest.tag, "started_at":stamp
         }))?,
     )?;
+    if manifest_bound {
+        return execute_manifest_bound_apply(plan, state, &backup_root).await;
+    }
     let daemon_health_url = std::env::var("FOCUSA_DAEMON_HEALTH_URL")
         .unwrap_or_else(|_| "http://127.0.0.1:8787/v1/health".into());
     let daemon_was_running = probe_daemon_health(&daemon_health_url).await.is_some();
@@ -2322,12 +2493,11 @@ fn build_apply_envelope(
             note: "consent allows verified promotion only after release trust and policy gates pass",
         },
         execution_order: vec![
-            "cli",
-            "tui",
-            "installer",
-            "pi_extension_package",
-            "daemon_last",
-            "restart_daemon_only_if_changed_and_allowed",
+            "verify_exact_release_and_every_manifest_asset",
+            "focusa_install_full_transaction",
+            "cli_tui_session_runner_daemon_manifest_agent_context_pi",
+            "daemon_restart_health_and_callgraph_acceptance",
+            "rollback_entire_release_on_any_failure",
             "pi_extension_runtime_auto_reload",
             "menubar_signed_updater_auto_install_and_relaunch",
         ],
@@ -2347,11 +2517,15 @@ fn build_apply_envelope(
             "release_manifest_signature_verified",
             "asset_sha256_verified",
             "cli_version_matches_target",
-            "tui_version_matches_target_or_not_installed",
+            "tui_version_matches_target_for_manifest_bound_release",
+            "session_runner_version_matches_target_for_manifest_bound_release",
             "daemon_health_version_matches_target_when_daemon_changed",
             "daemon_api_contract_matches_target_when_daemon_changed",
+            "distribution_manifest_matches_signed_release",
+            "agent_context_matches_distribution_manifest",
+            "installed_callgraph_acceptance_passes",
             "installer_version_matches_target_or_not_installed",
-            "pi_extension_activation_receipt_matches_target_or_not_installed",
+            "pi_extension_activation_receipt_matches_target_for_manifest_bound_release",
             "menubar_signed_updater_install_and_relaunch_or_not_installed",
             "no_data_env_license_overwrite",
             "rollback_journal_written",
@@ -2407,6 +2581,8 @@ fn build_safety_plan() -> UpdateSafetyPlan {
                 "asset_size",
                 "version_eligibility",
                 "platform_triple_match",
+                "distribution_manifest_full_tree_contract",
+                "agent_context_and_pi_archive_contracts",
                 "executable_smoke_test",
             ],
         },
@@ -2433,6 +2609,8 @@ fn build_safety_plan() -> UpdateSafetyPlan {
                 "promoting_cli",
                 "promoting_tui",
                 "promoting_daemon",
+                "promoting_manifest_bound_full_release",
+                "systemd_health_and_callgraph_acceptance",
                 "smoke_testing",
                 "rollback_required",
             ],
@@ -2447,6 +2625,8 @@ fn build_safety_plan() -> UpdateSafetyPlan {
         },
         preserves: vec![
             "license.json",
+            "signed_authority_leases",
+            "focusa.sqlite",
             ".env",
             "projects",
             "workpoints",
@@ -2764,11 +2944,16 @@ fn build_latest_from_release(
 ) -> Option<LatestVersion> {
     let tag = release.tag_name.clone();
     let mut assets = Vec::new();
-    for (part, prefix) in [
+    let requires_manifest = crate::commands::install::release_requires_distribution_manifest(&tag);
+    let mut rust_surfaces = vec![
         ("cli", "focusa"),
         ("daemon", "focusa-daemon"),
         ("tui", "focusa-tui"),
-    ] {
+    ];
+    if requires_manifest {
+        rust_surfaces.push(("session_runner", "focusa-session-runner"));
+    }
+    for (part, prefix) in rust_surfaces {
         let name = release_binary_asset_name(prefix, &tag, &triple);
         let gh_asset = release.assets.iter().find(|asset| asset.name == name)?;
         assets.push(ReleaseAssetRef {
@@ -2789,6 +2974,26 @@ fn build_latest_from_release(
         download_url: pi_extension.browser_download_url.clone(),
         sha256: None,
     });
+    if requires_manifest {
+        for (part, name) in [
+            (
+                "distribution_manifest",
+                "distribution-manifest.json".to_string(),
+            ),
+            (
+                "agent_context",
+                format!("focusa-agent-context-{tag}.tar.gz"),
+            ),
+        ] {
+            let asset = release.assets.iter().find(|asset| asset.name == name)?;
+            assets.push(ReleaseAssetRef {
+                part,
+                name,
+                download_url: asset.browser_download_url.clone(),
+                sha256: None,
+            });
+        }
+    }
     let installer_name = format!("focusa-installer-{tag}.sh");
     if let Some(installer) = release
         .assets
@@ -3038,7 +3243,7 @@ fn target_triple() -> String {
     match (std::env::consts::OS, std::env::consts::ARCH) {
         // Musl assets avoid stale glibc floors on long-lived AlmaLinux/RHEL hosts.
         ("linux", "x86_64") => "x86_64-unknown-linux-musl".into(),
-        ("linux", "aarch64") => "aarch64-unknown-linux-musl".into(),
+        ("linux", "aarch64") => "aarch64-unknown-linux-gnu".into(),
         ("macos", "x86_64") => "x86_64-apple-darwin".into(),
         ("macos", "aarch64") => "aarch64-apple-darwin".into(),
         ("windows", "x86_64") => "x86_64-pc-windows-msvc".into(),
@@ -3506,6 +3711,100 @@ async fn inspect_tui(latest: &str) -> anyhow::Result<InstalledPart> {
     })
 }
 
+async fn inspect_session_runner(latest: &str) -> anyhow::Result<InstalledPart> {
+    let path = resolve_path(
+        "focusa-session-runner",
+        "/usr/local/bin/focusa-session-runner",
+    );
+    inspect_executable_part(
+        "session_runner",
+        "/usr/local/bin/focusa-session-runner",
+        path,
+        latest,
+        true,
+    )
+    .await
+}
+
+fn inspect_manifest_part(
+    part: &'static str,
+    expected: PathBuf,
+    latest: &str,
+    notes: Vec<String>,
+) -> InstalledPart {
+    let exists = expected.is_file();
+    let version = std::fs::read(&expected)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+        .and_then(|value| {
+            value
+                .get("release_version")
+                .and_then(serde_json::Value::as_str)
+                .map(normalize_version)
+        });
+    let stale = version
+        .as_deref()
+        .map(|installed| version_is_stale(installed, latest));
+    InstalledPart {
+        part,
+        expected_path: expected.display().to_string(),
+        resolved_path: exists.then(|| expected.display().to_string()),
+        exists,
+        version,
+        version_source: "distribution_manifest_release_version",
+        version_probe_safe: true,
+        sha256: exists.then(|| sha256_file(&expected).ok()).flatten(),
+        stale,
+        stale_reason: if exists {
+            format!("{part} must match the complete signed distribution")
+        } else {
+            format!("{part} is not installed")
+        },
+        notes,
+    }
+}
+
+fn inspect_distribution_manifest(latest: &str) -> InstalledPart {
+    let expected = std::env::var_os("FOCUSA_DISTRIBUTION_MANIFEST")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            if resolve_path("focusa", "/usr/local/bin/focusa").as_deref()
+                == Some("/usr/local/bin/focusa")
+            {
+                PathBuf::from("/usr/local/lib/focusa/distribution-manifest.json")
+            } else {
+                std::env::var_os("HOME")
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| PathBuf::from("."))
+                    .join(".focusa/distribution-manifest.json")
+            }
+        });
+    inspect_manifest_part(
+        "distribution_manifest",
+        expected,
+        latest,
+        vec!["promoted only by the canonical manifest-bound install transaction".into()],
+    )
+}
+
+fn inspect_agent_context(latest: &str) -> InstalledPart {
+    let expected = std::env::var_os("FOCUSA_AGENT_CONTEXT_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            std::env::var_os("HOME")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join(".focusa/agent-context")
+        })
+        .join("distribution-manifest.json");
+    inspect_manifest_part(
+        "agent_context",
+        expected,
+        latest,
+        vec!["skills, current docs, and generated clients move with the signed release".into()],
+    )
+}
+
 async fn inspect_daemon(latest: &str, health: Option<String>) -> anyhow::Result<InstalledPart> {
     let path = resolve_path("focusa-daemon", "/usr/local/bin/focusa-daemon");
     let sha256 = path.as_deref().and_then(|p| sha256_file(Path::new(p)).ok());
@@ -3804,10 +4103,10 @@ fn print_human(envelope: &UpdateInventoryEnvelope) {
 #[cfg(test)]
 mod tests {
     use super::{
-        DaemonRestoreAction, PromotedPart, daemon_restore_action, inspect_package_part,
-        normalize_version, path_is_git_managed, pi_extension_package_from_agent_dir,
-        pi_extension_package_from_settings, release_binary_asset_name, release_tag_for_version,
-        rollback_promoted_parts,
+        DaemonRestoreAction, PromotedPart, daemon_restore_action, exact_release_install_args,
+        inspect_package_part, normalize_version, path_is_git_managed,
+        pi_extension_package_from_agent_dir, pi_extension_package_from_settings,
+        release_binary_asset_name, release_tag_for_version, rollback_promoted_parts,
     };
     #[cfg(target_os = "macos")]
     use super::{restart_daemon_service, stop_daemon_service};
@@ -3826,6 +4125,18 @@ mod tests {
     }
 
     #[test]
+    fn manifest_bound_update_and_rollback_reuse_exact_install_lifecycle() {
+        let stable = exact_release_install_args("v0.9.188", "Startempire-Wire/focusa", true);
+        assert_eq!(stable.release_tag_override.as_deref(), Some("v0.9.188"));
+        assert_eq!(stable.channel, crate::commands::install::Channel::Stable);
+        assert!(stable.system_install && stable.reuse_existing_license);
+        assert!(stable.suppress_completion_output);
+
+        let legacy = exact_release_install_args("v0.9.177", "Startempire-Wire/focusa", true);
+        assert_eq!(legacy.release_tag_override.as_deref(), Some("v0.9.177"));
+    }
+
+    #[test]
     fn release_binary_asset_names_cover_native_windows_targets_once() {
         assert_eq!(
             release_binary_asset_name("focusa", "v0.9.117-dev", "x86_64-pc-windows-msvc"),
@@ -3838,6 +4149,14 @@ mod tests {
         assert_eq!(
             release_binary_asset_name("focusa-tui", "v0.9.117-dev", "aarch64-apple-darwin"),
             "focusa-tui-v0.9.117-dev-aarch64-apple-darwin"
+        );
+        assert_eq!(
+            release_binary_asset_name(
+                "focusa-session-runner",
+                "v0.9.188",
+                "aarch64-pc-windows-msvc"
+            ),
+            "focusa-session-runner-v0.9.188-aarch64-pc-windows-msvc.exe"
         );
     }
 

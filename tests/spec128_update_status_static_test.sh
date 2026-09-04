@@ -50,6 +50,7 @@ rg -q 'jitter_percent|max_silent_failures_before_notice|maintenance-window.json|
 rg -q 'focusa-daemon --version starts the server|--version as startup input' "$SRC" || fail "daemon version probe safety note missing"
 rg -q 'release manifest eligibility/signature/provenance is required|automatic_apply_not_authorized_by_policy' "$SRC" || fail "missing automatic apply trust/policy guard"
 rg -q 'cli|daemon|tui' "$SRC" || fail "inventory must include CLI/daemon/TUI"
+rg -q 'session_runner|distribution_manifest|agent_context' "$SRC" || fail "manifest-bound inventory must include session runner, manifest, and agent context"
 [[ -f "$API" ]] || fail "missing update API route module"
 rg -q 'pub mod update;' "$API_MOD" || fail "API routes module does not export update"
 rg -q 'routes::update::router\(\)' "$API_SERVER" || fail "API server does not merge update router"

@@ -60,6 +60,7 @@ assert_not_grep() {
 # Workflow file assertions
 assert_grep 'name: Deploy Live Daemon' .github/workflows/deploy-live-daemon.yml 'workflow name missing'
 assert_grep 'types: [published]' .github/workflows/deploy-live-daemon.yml 'release trigger missing'
+assert_grep "github.event.release.prerelease == false" .github/workflows/deploy-live-daemon.yml 'candidate publication can dispatch a duplicate production deploy'
 assert_grep 'workflow_dispatch:' .github/workflows/deploy-live-daemon.yml 'workflow_dispatch trigger missing'
 assert_grep "*) CHANNEL='stable'" .github/workflows/deploy-live-daemon.yml 'stable tags must select the stable updater channel'
 assert_grep '--channel "$CHANNEL"' .github/workflows/deploy-live-daemon.yml 'OTA trust gate must use the tag-derived channel'
@@ -128,6 +129,27 @@ assert_grep 'Environment=FOCUSA_HOME={}' crates/focusa-cli/src/commands/system_s
 assert_grep 'Environment=FOCUSA_DATA_DIR={}' crates/focusa-cli/src/commands/system_service.rs 'canonical data-root binding missing'
 assert_grep 'automatic system service rollback failed' crates/focusa-cli/src/commands/system_service.rs 'service rollback evidence missing'
 assert_grep 'canonical daemon health verification failed' crates/focusa-cli/src/commands/system_service.rs 'health/version rollback gate missing'
+assert_grep 'prepare_distribution_manifest' crates/focusa-cli/src/commands/install.rs 'installed distribution manifest is outside the Rust rollback boundary'
+assert_grep 'distribution-manifest.json' crates/focusa-cli/src/commands/system_service_manifest.rs 'canonical system state omits distribution manifest parity'
+assert_grep 'dist/distribution-manifest.json' .github/workflows/release.yml 'release omits the signed distribution manifest asset'
+assert_grep 'distribution-manifest.json' scripts/verify-canonical-release-assets.py 'canonical release matrix does not require the distribution manifest'
+assert_grep '--candidate' .github/workflows/release.yml 'initial release manifest must remain candidate-only before deployment'
+assert_grep '--latest=false' .github/workflows/release.yml 'candidate publication must not change GitHub Latest'
+assert_grep 'Promote accepted stable release to Latest' .github/workflows/deploy-live-daemon.yml 'stable/Latest promotion is not downstream of installed and OTA proof'
+assert_grep '--distribution-parity' scripts/release-deploy-proof.py 'settled release manifest lacks installed parity binding'
+assert_grep 'execute_manifest_bound_apply' crates/focusa-cli/src/commands/update.rs 'v0.9.188+ OTA does not reuse the canonical install lifecycle'
+assert_grep 'crate::commands::install::run(args).await' crates/focusa-cli/src/commands/update.rs 'OTA retains a parallel promotion implementation for manifest-bound releases'
+assert_grep '("session_runner", "focusa-session-runner")' crates/focusa-cli/src/commands/update.rs 'OTA release inventory omits the fourth canonical binary'
+assert_grep 'exact_release_reinstall' crates/focusa-cli/src/commands/update.rs 'manifest-bound OTA does not retain an exact full-release rollback route'
+assert_grep 'manifest-bound updates roll back as one full release' crates/focusa-cli/src/commands/update.rs 'part-only rollback can recreate a mixed installed runtime'
+proof_line="$(grep -n -m1 'name: Publish signed deploy-success proof' .github/workflows/deploy-live-daemon.yml | cut -d: -f1)"
+ota_line="$(grep -n -m1 'name: Gate OTA installability against signed deployed release' .github/workflows/deploy-live-daemon.yml | cut -d: -f1)"
+settlement_line="$(grep -n -m1 'name: Settle signed release manifest after OTA acceptance' .github/workflows/deploy-live-daemon.yml | cut -d: -f1)"
+promotion_line="$(grep -n -m1 'name: Promote accepted stable release to Latest' .github/workflows/deploy-live-daemon.yml | cut -d: -f1)"
+if ! (( proof_line < ota_line && ota_line < settlement_line && settlement_line < promotion_line )); then
+  echo '✗ stable promotion must follow signed installed parity and OTA acceptance'
+  exit 1
+fi
 
 # safe-disk-cleanup.sh assertions
 assert_grep 'target' scripts/safe-disk-cleanup.sh 'target cleanup missing'
