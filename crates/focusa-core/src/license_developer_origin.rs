@@ -373,7 +373,14 @@ mod tests {
             if let Ok((mut stream, _)) = listener.accept() {
                 let mut buf = [0_u8; 2048];
                 let _ = stream.read(&mut buf);
-                let response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 31\r\nConnection: close\r\n\r\n{\"status\":\"ok\",\"ok\":true}";
+                // Satisfy both authenticated /v1/operator and unauthenticated
+                // /v1/health probes so host-local token presence cannot change
+                // how many fixture connections are required.
+                let body = r#"{"status":"ok","ok":true,"source":"fixture"}"#;
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
                 let _ = stream.write_all(response.as_bytes());
             }
         });

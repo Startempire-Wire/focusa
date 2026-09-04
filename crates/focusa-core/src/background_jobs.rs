@@ -95,10 +95,10 @@ pub enum ProcessIdentityStatus {
 #[cfg(target_os = "linux")]
 pub fn process_start_token(pid: u32) -> Option<String> {
     let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
-    let fields = stat.get(stat.rfind(") ")? + 2..)?.split_whitespace();
+    let mut fields = stat.get(stat.rfind(") ")? + 2..)?.split_whitespace();
     // /proc/<pid>/stat field 22 is process start time. The slice begins
     // at field 3, so start time is the twentieth value in this iterator.
-    fields.skip(19).next().map(str::to_string)
+    fields.nth(19).map(str::to_string)
 }
 
 #[cfg(not(target_os = "linux"))]

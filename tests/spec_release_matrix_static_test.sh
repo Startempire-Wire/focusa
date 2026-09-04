@@ -249,8 +249,23 @@ grep -Fq 'if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true"
   || fail "AppVeyor Rust tests must be surface-isolated"
 grep -Fq 'appveyor_recovery_test_receipt=passed' "$APPVEYOR" \
   || fail "AppVeyor immutable recovery does not prove reused exact-candidate tests"
-grep -Fq '$receiptControllerSha = "9b18fb6edb49aecf0656774b6e36a65e9fd8542d"' "$APPVEYOR" \
+grep -Fq '$recoveryReceiptControllerSha = "9b18fb6edb49aecf0656774b6e36a65e9fd8542d"' "$APPVEYOR" \
   || fail "AppVeyor reused tests are not bound to the frozen provider controller"
+[ "$(grep -Fc 'ConvertFrom-Json' "$APPVEYOR")" -eq 1 ] \
+  || fail "AppVeyor must parse controller recovery metadata exactly once before candidate checkout"
+if grep -Fq 'Get-Content "config/appveyor-release-recovery.json"' "$APPVEYOR"; then
+  fail "AppVeyor must not reread controller recovery metadata after checking out the immutable candidate"
+fi
+for receipt_variable in \
+  FOCUSA_RECOVERY_RECEIPT_BUILD \
+  FOCUSA_RECOVERY_RECEIPT_X64_JOB \
+  FOCUSA_RECOVERY_RECEIPT_ARM64_JOB \
+  FOCUSA_RECOVERY_RECEIPT_CONTROLLER_SHA; do
+  grep -Fq "Set-AppveyorBuildVariable -Name $receipt_variable" "$APPVEYOR" \
+    || fail "AppVeyor does not transport controller-owned receipt identity: $receipt_variable"
+  grep -Fq "env:$receipt_variable" "$APPVEYOR" \
+    || fail "AppVeyor does not consume transported receipt identity: $receipt_variable"
+done
 grep -Fq 'https://ci.appveyor.com/api/projects/verioussmith/focusa/build/$receiptBuild' "$APPVEYOR" \
   || fail "AppVeyor reused tests do not verify the frozen provider build"
 grep -Fq 'missing GitHub release upload credential' "$APPVEYOR" \
@@ -280,6 +295,8 @@ grep -q 'missing GitHub release upload credential' "$APPVEYOR" \
   || fail "AppVeyor must fail closed when GitHub upload authority is unavailable"
 grep -Fq '@($env:GH_TOKEN, $env:GITHUB_RELEASE_TOKEN)' "$APPVEYOR" \
   || fail "AppVeyor does not consume the configured GitHub release token authority"
+grep -Fq '$repositoryAccess.permissions.push' "$APPVEYOR" \
+  || fail "AppVeyor must verify GitHub upload authority before waiting for a draft"
 grep -Fq 'releases?per_page=100' "$APPVEYOR" \
   || fail "AppVeyor must enumerate authenticated GitHub releases so drafts are discoverable"
 if grep -Fq 'releases/tags/$tag' "$APPVEYOR"; then

@@ -254,7 +254,7 @@ fn online_backup_survives_concurrent_wal_writes() {
                 [format!("value-{counter}")],
             );
             counter += 1;
-            if counter % 50 == 0 {
+            if counter.is_multiple_of(50) {
                 std::thread::yield_now();
             }
         }

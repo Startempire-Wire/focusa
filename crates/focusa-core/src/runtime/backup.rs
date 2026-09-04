@@ -234,9 +234,9 @@ pub fn backup_health(policy: &BackupPolicy) -> BackupHealth {
         "breach_incremental_not_implemented"
     } else if latest.is_none() {
         "breach_no_recovery_point"
-    } else if (now - latest.expect("checked latest").completed_at).num_seconds()
-        > policy.rpo_seconds as i64
-    {
+    } else if latest.is_some_and(|manifest| {
+        (now - manifest.completed_at).num_seconds() > policy.rpo_seconds as i64
+    }) {
         "breach_stale_recovery_point"
     } else if !incremental_restore_proven {
         "breach_restore_unproven"

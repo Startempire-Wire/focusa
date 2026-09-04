@@ -259,12 +259,12 @@ pub(super) fn file_identity(path: &Path) -> Result<String> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
-        return Ok(format!(
+        Ok(format!(
             "dev:{}:ino:{}:len:{}",
             metadata.dev(),
             metadata.ino(),
             metadata.len()
-        ));
+        ))
     }
     #[cfg(not(unix))]
     {

@@ -61,10 +61,13 @@ depend on billing-locked GitHub Actions artifact storage.
 repository variable `FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX` is explicitly set to
 `enabled` as part of the all-at-once restoration procedure.
 11. AppVeyor recovery may load `config/appveyor-release-recovery.json` from a
-controller commit, verify the immutable tag/SHA pair, detach-checkout that SHA,
-and only then build/test/package/upload. Recovery assets use the immutable tag,
-not the controller commit. The recovery record is disabled at rest, enabled only
-for one exact candidate, and disabled immediately after the recovery run.
+controller commit, verify the immutable tag/SHA pair, and validate and transport
+its frozen test-receipt identity through provider build variables before
+checking out that SHA in detached mode. Later phases must not reread controller metadata
+from the now-candidate worktree. Only then may the provider
+build/test/package/upload. Recovery assets use the immutable tag, not the
+controller commit. The recovery record is disabled at rest, enabled only for one
+exact candidate, and disabled immediately after the recovery run.
 Cargo/Tauri/test stderr must be redirected inside `cmd.exe`; successful native
 commands must not become PowerShell `NativeCommandError` failures.
 12. Every `softprops/action-gh-release` step declares
@@ -127,7 +130,8 @@ release collection and select exactly one matching `tag_name`. GitHub's
 `/releases/tags/{tag}` endpoint does not expose a draft and created a circular
 wait in build 265: Windows assets were required before publication while the
 Windows producer waited for publication before upload. Ambiguity, a non-draft
-match, authentication failure, or bounded timeout fails closed.
+match, missing repository push authority, authentication failure, or bounded
+timeout fails closed.
 
 ## 4. Spending and trigger boundary
 
