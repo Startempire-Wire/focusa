@@ -137,30 +137,9 @@ jobs:
           install -m 0755 scripts/install-focusa.sh "dist/focusa-installer-${TAG}.sh"
           "dist/focusa-installer-${TAG}.sh" --version | grep -F "$VERSION"
 
-          python3 - \
+          python3 scripts/verify-embedded-authority-root.py \
             "dist/focusa-${TAG}-${triple}" \
-            "dist/focusa-daemon-${TAG}-${triple}" <<'PY'
-          import json
-          import os
-          from pathlib import Path
-          import sys
-
-          roots = json.loads(os.environ["FOCUSA_AUTHORITY_ROOT_KEYS_JSON"])
-          if not isinstance(roots, dict) or not roots:
-              raise SystemExit("configured production authority roots are empty")
-          for key_id in roots:
-              if any(marker in key_id.lower() for marker in ("test", "local", "dev")):
-                  raise SystemExit(f"forbidden non-production authority root key ID: {key_id}")
-          for raw_path in sys.argv[1:]:
-              path = Path(raw_path)
-              payload = path.read_bytes()
-              if not payload:
-                  raise SystemExit(f"authority binary is empty: {path}")
-              for key_id, public_key in roots.items():
-                  if key_id.encode() not in payload or public_key.encode() not in payload:
-                      raise SystemExit(f"authority_root_embedding=failed binary={path} key_id={key_id}")
-              print(f"authority_root_embedding=passed binary={path}")
-          PY
+            "dist/focusa-daemon-${TAG}-${triple}"
 
           cp AGENTS.md bundle/focusa-agent-context/AGENTS.md
           cp -R .pi/skills/. bundle/focusa-agent-context/skills/

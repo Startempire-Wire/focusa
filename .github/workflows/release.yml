@@ -784,12 +784,17 @@ jobs:
             # Pass exact stdint aliases into cross without changing non-musl builds.
             cat > Cross.toml <<'EOF'
           [build.env]
-          passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
+          passthrough = ["FOCUSA_AUTHORITY_ROOT_KEYS_JSON", "CFLAGS_x86_64_unknown_linux_musl"]
           EOF
             export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
             trap 'rm -f Cross.toml' EXIT
             cross build --release --target ${{ matrix.target }}
           elif [ "${{ matrix.cross || false }}" = "true" ]; then
+            cat > Cross.toml <<'EOF'
+          [build.env]
+          passthrough = ["FOCUSA_AUTHORITY_ROOT_KEYS_JSON"]
+          EOF
+            trap 'rm -f Cross.toml' EXIT
             cross build --release --target ${{ matrix.target }}
           else
             cargo build --release --target ${{ matrix.target }}
@@ -806,13 +811,17 @@ jobs:
           TAG="${RELEASE_TAG}"
           mkdir -p dist
           EXE="${{ matrix.exe || '' }}"
+          authority_binaries=()
           for bin in focusa-daemon focusa focusa-tui; do
             src="${CARGO_TARGET_DIR}/${{ matrix.target }}/release/${bin}${EXE}"
             dst="dist/${bin}-${TAG}-${{ matrix.target }}${EXE}"
-            if [ -f "$src" ]; then
-              cp "$src" "$dst"
+            test -s "$src"
+            cp "$src" "$dst"
+            if [ "$bin" != "focusa-tui" ]; then
+              authority_binaries+=("$dst")
             fi
           done
+          python3 scripts/verify-embedded-authority-root.py "${authority_binaries[@]}"
           ls -la dist/
 
       - name: Upload binaries to release

@@ -8,7 +8,7 @@ required = [
     "DESLOP_ARCHIVE_SHA256:",
     "DESLOP_CONTAINER:",
     "sha256sum -c -",
-    "runs-on: [self-hosted, Linux, X64, ovh-build]",
+    "runs-on: [self-hosted, Linux, X64, ovh-build-2]",
     "podman run --rm",
     "--memory 4g",
     "--memory-swap 4g",
