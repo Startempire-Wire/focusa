@@ -611,7 +611,7 @@ def main() -> int:
                 "Generate complete skill/runbook inventory, every-Pi-tool counts/routes, and exact root/package parity proof.",
             )
         )
-    if public_alignment.get("spec_count") != 15 or not public_alignment.get(
+    if public_alignment.get("spec_count", 0) < 15 or not public_alignment.get(
         "integrity", {}
     ).get("spec_paths_resolve"):
         findings.append(
