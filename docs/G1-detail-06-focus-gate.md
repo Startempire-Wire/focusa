@@ -187,6 +187,10 @@ Persist candidate list and the gate-consumption cursor with bounded size:
 - Keep last N candidates (default 200).
 - Persist temporal emission markers with state so restarts do not manufacture
   another time signal.
+- Reduce each newly observed signal through Focus Gate before its durable boundary;
+  the signal event, consumption cursor, temporal marker, and candidate update share
+  one persistence request. A restart must never expose a persisted signal without
+  its matching durable cursor.
 - Persist to the canonical Focusa snapshot/store selected by the daemon.
 
 ## Acceptance Tests
@@ -199,6 +203,10 @@ Persist candidate list and the gate-consumption cursor with bounded size:
   pressure or `times_seen` for an already consumed signal ID.
 - Idle daemon ticks do not append recurring inactivity/long-running events for
   the same episode or frame.
+- A migration with 115 eligible active frames over at least 100 ticks emits at
+  most one signal and one persistence request per signal-producing tick. After
+  every frame is marked, further temporal/gate ticks leave gate state unchanged;
+  a snapshot round trip preserves all cursors and markers.
 
 ---
 

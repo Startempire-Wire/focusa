@@ -287,10 +287,7 @@ impl Daemon {
             let persistence = self.persistence.clone();
             let state = self.state.clone();
             tokio::task::spawn_blocking(move || {
-                for entry in &entries {
-                    persistence.append_event(entry)?;
-                }
-                persistence.save_state(&state)
+                persistence.persist_event_batch_and_state(&entries, &state)
             })
             .await
             .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
@@ -544,6 +541,7 @@ impl Daemon {
         );
 
         for event in events {
+            let is_intuition_signal = matches!(&event, FocusaEvent::IntuitionSignalObserved { .. });
             // Determine thread_id for ownership enforcement.
             // current_thread_id is set during ThreadAttach actions.
             let thread_id = self.current_thread_id;
@@ -1467,6 +1465,15 @@ Return ONLY valid JSON:
                         }
                     }
 
+                    // Consume an intuition signal into Focus Gate before the durable
+                    // boundary. The signal, cursor, and candidate update must share one
+                    // persistence request so a restart cannot replay half a tick.
+                    let newly_surfaced = if is_intuition_signal {
+                        self.advance_focus_gate()
+                    } else {
+                        0
+                    };
+
                     // Telemetry: record each event.
                     self.state.telemetry.total_events += 1;
 
@@ -1486,6 +1493,14 @@ Return ONLY valid JSON:
                                 bus.publish(json);
                             }
                         }
+                    }
+
+                    if newly_surfaced > 0 {
+                        tracing::info!(
+                            newly_surfaced,
+                            total_candidates = self.state.focus_gate.candidates.len(),
+                            "Focus Gate: candidates surfaced"
+                        );
                     }
 
                     // Sync to shared handle so the API sees all updates.
@@ -1543,9 +1558,11 @@ Return ONLY valid JSON:
                         })
                         .collect::<Vec<_>>();
 
-                    // Same post-reduction bookkeeping as process_action.
+                    // Same post-reduction bookkeeping as process_action. Advance the
+                    // gate before persistence so signal and cursor remain atomic.
                     self.track_clt_event(&event);
                     self.state.telemetry.total_events += 1;
+                    let newly_surfaced = self.advance_focus_gate();
 
                     if let Err(error) = self.persist_reducer_batch(entries.clone(), false).await {
                         tracing::error!(%error, "persistence actor rejected intuition signal");
@@ -1556,6 +1573,13 @@ Return ONLY valid JSON:
                             }
                         }
                     }
+                    if newly_surfaced > 0 {
+                        tracing::info!(
+                            newly_surfaced,
+                            total_candidates = self.state.focus_gate.candidates.len(),
+                            "Focus Gate: candidates surfaced"
+                        );
+                    }
                     self.sync_shared_state().await;
                 }
                 Err(e) => {
@@ -1563,6 +1587,17 @@ Return ONLY valid JSON:
                 }
             }
         }
+    }
+
+    fn advance_focus_gate(&mut self) -> usize {
+        let active_id = self.state.focus_stack.active_id;
+        let stack_path = self.state.focus_stack.stack_path_cache.clone();
+        crate::gate::focus_gate::run_gate_pipeline(
+            &mut self.state.focus_gate,
+            active_id,
+            &stack_path,
+            self.config.gate_surface_threshold,
+        )
     }
 
     /// Run the Focus Gate 5-step pipeline (G1-detail-06).
@@ -1575,17 +1610,8 @@ Return ONLY valid JSON:
         let _write_guard = write_serial_lock.lock().await;
         self.reconcile_external_state().await;
 
-        let active_id = self.state.focus_stack.active_id;
-        let stack_path = self.state.focus_stack.stack_path_cache.clone();
-        let threshold = self.config.gate_surface_threshold;
         let gate_before = self.state.focus_gate.clone();
-
-        let newly_surfaced = crate::gate::focus_gate::run_gate_pipeline(
-            &mut self.state.focus_gate,
-            active_id,
-            &stack_path,
-            threshold,
-        );
+        let newly_surfaced = self.advance_focus_gate();
         let changed = gate_before.signals.len() != self.state.focus_gate.signals.len()
             || gate_before.candidates.len() != self.state.focus_gate.candidates.len()
             || gate_before.processed_signal_ids != self.state.focus_gate.processed_signal_ids
@@ -5831,6 +5857,82 @@ mod tests {
             external_mutation_epoch,
         )
         .expect("init daemon")
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn temporal_signal_migration_converges_with_one_persistence_request_per_tick() {
+        const FRAME_COUNT: usize = 115;
+        const TICK_COUNT: usize = 125;
+
+        let mut daemon = test_daemon();
+        let actor = PersistenceActor::start(daemon.persistence.clone());
+        daemon.attach_persistence_actor(actor.clone());
+        let old = Utc::now() - chrono::Duration::hours(1);
+        for index in 0..FRAME_COUNT {
+            let frame_id = Uuid::now_v7();
+            let mut frame = sample_frame_with_consults(frame_id);
+            frame.title = format!("legacy-active-frame-{index}");
+            frame.created_at = old;
+            frame.updated_at = old;
+            daemon.state.focus_stack.frames.push(frame);
+        }
+
+        let requests_before = {
+            let metrics = actor.metrics();
+            metrics.batches_total + metrics.requests_coalesced_total
+        };
+        for _ in 0..TICK_COUNT {
+            daemon.emit_temporal_signals().await;
+            daemon.run_gate_pipeline().await;
+        }
+        daemon
+            .persist_reducer_batch(Vec::new(), true)
+            .await
+            .expect("flush converged temporal state");
+
+        let metrics = actor.metrics();
+        let persistence_requests =
+            metrics.batches_total + metrics.requests_coalesced_total - requests_before;
+        assert_eq!(
+            persistence_requests,
+            FRAME_COUNT as u64 + 1,
+            "each signal-producing tick must persist the signal and gate cursor atomically; the final request is the explicit test flush"
+        );
+        assert_eq!(daemon.state.focus_gate.signals.len(), FRAME_COUNT);
+        assert_eq!(
+            daemon.state.focus_gate.processed_signal_ids.len(),
+            FRAME_COUNT
+        );
+        assert_eq!(
+            daemon.state.focus_gate.long_running_signal_frames.len(),
+            FRAME_COUNT
+        );
+        assert_eq!(daemon.state.focus_gate.candidates.len(), FRAME_COUNT);
+
+        let stable_gate = serde_json::to_vec(&daemon.state.focus_gate).expect("serialize gate");
+        for _ in 0..10 {
+            daemon.emit_temporal_signals().await;
+            daemon.run_gate_pipeline().await;
+        }
+        assert_eq!(
+            serde_json::to_vec(&daemon.state.focus_gate).expect("serialize converged gate"),
+            stable_gate,
+            "ticks after migration convergence must not mutate Focus Gate state"
+        );
+
+        let restored = daemon
+            .persistence
+            .load_state()
+            .expect("load persisted state")
+            .expect("persisted state exists");
+        assert_eq!(
+            restored.focus_gate.processed_signal_ids,
+            daemon.state.focus_gate.processed_signal_ids
+        );
+        assert_eq!(
+            restored.focus_gate.long_running_signal_frames,
+            daemon.state.focus_gate.long_running_signal_frames
+        );
     }
 
     #[tokio::test]
