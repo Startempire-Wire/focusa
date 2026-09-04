@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.187",
-  "source_commit": "0d93fac56",
-  "generated_at": "2026-09-04T08:40:48.471031Z",
+  "source_commit": "12dcd4ce1",
+  "generated_at": "2026-09-04T08:43:54.051855Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:99225d837b6c8cda80703585c3acbe455277bc6adf6b431e1f72339ef1fb05c9",
@@ -16,7 +16,7 @@
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:7bb242fe8b9f24edb9218544475be194ea8a860cd5b4ed4aa96f75632865df46",
+      "sha256": "sha256:1ee265994319aff2fa44d7edc67bb49f9dcfea5b19df205bd623ccbfc935a94e",
       "file_count": 815,
       "source_paths": [
         "Cargo.toml",

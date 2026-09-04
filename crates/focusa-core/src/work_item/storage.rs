@@ -257,10 +257,8 @@ mod tests {
 
     #[test]
     fn list_returns_ids() {
-        let dir = std::env::temp_dir().join(format!(
-            "focusa-claim-list-tests-{}",
-            std::process::id()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("focusa-claim-list-tests-{}", std::process::id()));
         if dir.exists() {
             std::fs::remove_dir_all(&dir).unwrap();
         }
