@@ -1,35 +1,16 @@
 #!/usr/bin/env python3
-"""One format-aware mapping loader for documentation contract gates."""
+"""Test import adapter for the canonical documentation contract loader."""
 
-from __future__ import annotations
-
+import sys
 from pathlib import Path
-from typing import Any
 
-import yaml
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
+from scripts.structured_contract_loader import (  # noqa: E402
+    StructuredContractError,
+    load_contract_mapping,
+)
 
-class StructuredContractError(ValueError):
-    """Typed, path-bound parse/type failure for a structured contract."""
-
-    def __init__(self, path: Path, code: str, reason: str) -> None:
-        self.path = path
-        self.code = code
-        self.reason = reason
-        super().__init__(f"{path}: {code}: {reason}")
-
-
-def load_contract_mapping(path: Path) -> dict[str, Any]:
-    """Load JSON-syntax or ordinary YAML through the canonical YAML parser."""
-
-    try:
-        value = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, yaml.YAMLError) as error:
-        raise StructuredContractError(path, "YAML_PARSE_ERROR", str(error)) from error
-    if not isinstance(value, dict):
-        raise StructuredContractError(
-            path,
-            "CONTRACT_ROOT_NOT_MAPPING",
-            f"expected mapping, got {type(value).__name__}",
-        )
-    return value
+__all__ = ["StructuredContractError", "load_contract_mapping"]
