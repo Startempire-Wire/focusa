@@ -96,13 +96,28 @@ cleanup_owned_containers() {
   fi
   for id in "${ids[@]}"; do
     [[ -n "$id" ]] || continue
-    observed="$("$engine" inspect --format '{{ index .Config.Labels "focusa.github.run_id" }}|{{ index .Config.Labels "focusa.github.run_attempt" }}|{{ index .Config.Labels "focusa.github.job" }}|{{ index .Config.Labels "focusa.cross.target" }}' "$id" 2>/dev/null)"
+    if ! observed="$(
+      "$engine" inspect \
+        --format '{{ index .Config.Labels "focusa.github.run_id" }}|{{ index .Config.Labels "focusa.github.run_attempt" }}|{{ index .Config.Labels "focusa.github.job" }}|{{ index .Config.Labels "focusa.cross.target" }}' \
+        "$id" 2>/dev/null
+    )"; then
+      if "$engine" inspect "$id" >/dev/null 2>&1; then
+        echo "failed to inspect exact job-owned container identity: id=$id" >&2
+        cleanup_status=77
+      fi
+      continue
+    fi
     if [[ "$observed" != "$GITHUB_RUN_ID|$GITHUB_RUN_ATTEMPT|$GITHUB_JOB|$target" ]]; then
       echo "refusing container with mismatched exact identity: id=$id labels=$observed" >&2
       cleanup_status=72
       continue
     fi
-    "$engine" rm -f "$id" >/dev/null || cleanup_status=73
+    if ! "$engine" rm -f "$id" >/dev/null; then
+      if "$engine" inspect "$id" >/dev/null 2>&1; then
+        echo "failed to remove exact job-owned cross container: id=$id" >&2
+        cleanup_status=73
+      fi
+    fi
   done
 
   if [[ -n "$child_pid" ]] && kill -0 "$child_pid" 2>/dev/null; then

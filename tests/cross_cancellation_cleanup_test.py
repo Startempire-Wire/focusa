@@ -89,6 +89,11 @@ def main() -> None:
                 fi
                 ;;
               inspect)
+                if [[ "${FAKE_DISAPPEAR_ON_INSPECT:-0}" == 1 ]]; then
+                  : > "$FAKE_CONTAINER_STATE"
+                  exit 1
+                fi
+                [[ -s "$FAKE_CONTAINER_STATE" ]] || exit 1
                 if [[ "${FAKE_INSPECT_MISMATCH:-0}" == 1 ]]; then
                   printf '%s\n' 'different|9|other-job|other-target'
                 else
@@ -97,9 +102,13 @@ def main() -> None:
                 ;;
               rm)
                 id="${@: -1}"
-                printf '%s\n' "$id" >> "$FAKE_DOCKER_REMOVED"
                 current="$(cat "$FAKE_CONTAINER_STATE")"
                 [[ "$id" == "$current" ]]
+                if [[ "${FAKE_DISAPPEAR_ON_RM:-0}" == 1 ]]; then
+                  : > "$FAKE_CONTAINER_STATE"
+                  exit 1
+                fi
+                printf '%s\n' "$id" >> "$FAKE_DOCKER_REMOVED"
                 : > "$FAKE_CONTAINER_STATE"
                 ;;
               *)
@@ -166,6 +175,30 @@ def main() -> None:
         assert "refusing container with mismatched exact identity" in mismatch.stderr
         assert not Path(env["FAKE_DOCKER_REMOVED"]).exists()
         assert state.read_text().strip() == "unrelated-container"
+
+        for race_variable in ("FAKE_DISAPPEAR_ON_INSPECT", "FAKE_DISAPPEAR_ON_RM"):
+            state.write_text("already-cleaned-container\n", encoding="utf-8")
+            race = subprocess.run(
+                [
+                    str(WRAPPER),
+                    "build",
+                    "--release",
+                    "--target=x86_64-unknown-linux-musl",
+                ],
+                env={
+                    **env,
+                    "FAKE_CROSS_MODE": "success",
+                    "FAKE_INSPECT_MISMATCH": "0",
+                    race_variable: "1",
+                },
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            assert race.returncode == 0, (race_variable, race.returncode, race.stderr)
+            assert state.read_text() == ""
+            assert not Path(env["FAKE_DOCKER_REMOVED"]).exists()
 
     print("cross cancellation cleanup ownership: PASS")
 
