@@ -46,6 +46,35 @@ The final historical invariant in this document remains controlling: **meaning l
 
 ---
 
+## Project Foreman / Radar / Ambient Operator hard stop
+
+Before changing persistent project-agent identity, proactive observation, autonomous attention, mobile/wearable presence, phone/earbud integration, wake-word behavior, meeting capture, location/context projection, or cross-surface identity routing, read:
+
+- `164-workstream-rooted-canonical-runtime-design.md` — current canonical Workstream Root identity/persistence;
+- `139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md` — runtime Presence/Operational Reality Field and placement;
+- `182-focusa-project-foreman-workstream-intelligence-projection-spec.md` — Project Foreman;
+- `183-focusa-radar-proactive-observation-episodes-signal-economics-and-attention-routing-spec.md` — Radar;
+- `184-focusa-ambient-operator-mobile-wearable-presence-meeting-and-sync-spec.md` — Ambient Operator;
+- `181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md` — voice/meeting/conversation provenance;
+- applicable Specs 53, 72, 79, 133, 135/135B, 136–141, 151, 156.
+
+Non-negotiable laws:
+
+- **Foreman is a Workstream-scoped project-intelligence role projection, not a chatbot/session/model or second memory store.** One default Foreman binds one Spec-164 Workstream Root.
+- **Model/harness switching changes runtime attachment, not Foreman/project identity.** Pi remains the reference harness; hidden harness memory never becomes canonical Foreman state.
+- **Radar notices; it does not authorize.** Radar observations/signals/episodes remain scoped evidence/proposals until normal Focusa operations accept or act on them.
+- **Radar is not Spec 139.** Spec 139 owns runtime environment/presence/placement; Radar consumes those facts plus other approved signals and owns proactive attention/economics/episodes.
+- **Radar is not hidden surveillance.** Prefer native structured events; no ambient microphone, keystroke or unrestricted screen capture merely to generate signals.
+- **Ambient Operator is a mobile/wearable projection of the same Focusa system, not a second brain.** Phone, earbuds and companion apps are paired surfaces/adapters.
+- **Raw phone GPS/sensor context remains in its owning context domain by default.** Focusa receives bounded, freshness/provenance/privacy-bearing presence projections where relevant.
+- **Meeting capture is a Spec-181 ConversationSession profile.** Speaker/ASR correction lineage is preserved; commitments/decisions become typed candidates, not automatic Workpoint/policy changes.
+- **Wake word is attention, not identity or authority.** Pre-trigger audio is volatile/discarded by default where the profile permits.
+- **Mobile sync never writes reducer/SQLite state directly.** It submits authenticated, replay-safe, idempotent proposals/observations/conversation segments through typed operations.
+- **Wirebot/Chief of Staff may reason across Workstreams and delegate to exact Foremen, but does not become a global Focusa Workstream singleton.**
+- **Historical proposal numbering is not current canon.** `Radar Spec 164` is historical proposal provenance only; current Spec 164 is Workstream Root. Historical `135M` is proposal provenance only; the current Spec 135 series is frozen at 135A–135K and Ambient Operator is Spec 184.
+
+---
+
 ## Agent-KB API Default Reference
 
 For KH/OVH/operator policy, use `agent-kb-api` first, verify freshness, retrieve exact documents after empty searches, and use local Agent KB files only as a read-only degraded fallback.
@@ -112,6 +141,14 @@ Public examples of conversation/audit contracts must use synthetic or redacted f
 - Link consequential utterances to resulting operation/Evidence/Receipt refs
 - Treat uncertain speaker/content attribution honestly
 
+### Foreman / Radar / Ambient Discipline
+- Resolve exact Workstream before Foreman mutation or delegation
+- Hydrate project intelligence from Focusa state, not transcript tail
+- Preserve Radar source/fingerprint/Episode provenance and attention economics
+- Route mobile/ambient inputs through typed projections and operations
+- Preserve offline/stale/mobile-platform states honestly
+- Keep life-context owner systems and Focusa Workstream cognition as separate authority domains
+
 ---
 
 ## Forbidden Agent Actions
@@ -125,6 +162,10 @@ Public examples of conversation/audit contracts must use synthetic or redacted f
 - Treating voice identity as authorization
 - Letting TTS/ASR adapters silently amend meaning
 - Promoting raw conversation directly into durable policy/knowledge without the governed path
+- Creating a daemon-global Foreman/Radar/current-project authority singleton
+- Treating a Radar Signal as self-authorizing work
+- Uploading ambient raw phone/microphone/location data to Focusa without its explicit bounded contract
+- Reusing stale historical proposal numbers as current spec authority
 
 ---
 
@@ -153,6 +194,8 @@ On confusion or ambiguity:
 3. Await instruction
 
 For speech ambiguity affecting consequential action, retain the hypothesis/evidence and request exact clarification rather than guessing.
+
+For ambiguous Foreman scope, resolve/clarify exact Workstream rather than falling back to a global project agent.
 
 ---
 
