@@ -17,6 +17,70 @@ use chrono::Utc;
 use rusqlite::Connection;
 use uuid::Uuid;
 
+#[test]
+fn device_token_restart_preserves_grants_and_rejects_corrupt_authority() {
+    let dir = temp_dir();
+    let mut cfg = FocusaConfig::default();
+    cfg.data_dir = dir.to_string_lossy().to_string();
+    let issued = "2020-01-01T00:00:00+00:00";
+    let expires = "2999-01-01T00:00:00+00:00";
+    let cases = [
+        (Some("[\"custom:read\"]"), issued, expires, true),
+        (Some("[]"), issued, expires, true),
+        (None, issued, expires, false),
+        (Some("{"), issued, expires, false),
+        (Some("{}"), issued, expires, false),
+        (Some("null"), issued, expires, false),
+        (Some("[1]"), issued, expires, false),
+        (Some("[\"read\"]"), "invalid-issued", expires, false),
+        (Some("[\"read\"]"), issued, "invalid-expiry", false),
+    ];
+    let p = SqlitePersistence::new(&cfg).unwrap();
+    for (i, (scopes, issued, expires, _)) in cases.iter().enumerate() {
+        p.put_device_token(
+            &format!("synthetic-token-{i}"),
+            &format!("synthetic-device-{i}"),
+            *scopes,
+            issued,
+            expires,
+            Some("test"),
+        )
+        .unwrap();
+    }
+    let before = p.list_device_tokens().unwrap();
+    drop(p);
+    let p = SqlitePersistence::new(&cfg).unwrap();
+    for (i, (_, _, _, valid)) in cases.iter().enumerate() {
+        let by_token = p.load_device_token_full(&format!("synthetic-token-{i}"));
+        let by_device = p.get_device_token_by_device_id(&format!("synthetic-device-{i}"));
+        if *valid {
+            let expected = if i == 0 {
+                vec!["custom:read".to_string()]
+            } else {
+                vec![]
+            };
+            let token = by_token.unwrap().unwrap();
+            let device = by_device.unwrap().unwrap();
+            assert_eq!(token.scopes, expected);
+            assert_eq!(device.scopes, expected);
+            assert_eq!(token.issued_at.to_rfc3339(), issued);
+            assert_eq!(token.expires_at.to_rfc3339(), expires);
+        } else {
+            assert!(
+                by_token.is_err(),
+                "case {i}: corrupt token authority accepted"
+            );
+            assert!(
+                by_device.is_err(),
+                "case {i}: corrupt device authority accepted"
+            );
+        }
+    }
+    assert_eq!(p.list_device_tokens().unwrap(), before);
+    drop(p);
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
 fn sample_silent_session(dir: &std::path::Path) -> (SilentSession, SilentSessionEvent) {
     let session_id = SilentSessionId::new();
     let run_id = SilentSessionRunId::new();

@@ -1857,6 +1857,35 @@ pub struct PersistedDeviceToken {
     pub issued_to: String,
 }
 
+impl PersistedDeviceToken {
+    // Both token lookups select scopes, issued_at, expires_at and issued_to
+    // at columns 1..=4. Corruption cannot manufacture grants or a new lifetime.
+    fn decode(row: &rusqlite::Row<'_>, device_id: String) -> anyhow::Result<Self> {
+        use anyhow::Context;
+        let scopes_json: Option<String> = row.get(1)?;
+        let scopes = serde_json::from_str(
+            scopes_json
+                .as_deref()
+                .context("missing stored device grants")?,
+        )
+        .context("invalid stored device grants")?;
+        let issued_at: String = row.get(2)?;
+        let expires_at: String = row.get(3)?;
+        let issued_to: Option<String> = row.get(4)?;
+        Ok(Self {
+            device_id,
+            scopes,
+            issued_at: chrono::DateTime::parse_from_rfc3339(&issued_at)
+                .context("invalid stored device issuance time")?
+                .with_timezone(&chrono::Utc),
+            expires_at: chrono::DateTime::parse_from_rfc3339(&expires_at)
+                .context("invalid stored device expiry")?
+                .with_timezone(&chrono::Utc),
+            issued_to: issued_to.unwrap_or_else(|| "ledger".to_string()),
+        })
+    }
+}
+
 /// V2: SQL row shape for the device_tokens table, used by
 /// list_device_tokens(). Aliased so callers don't have to spell out the
 /// long tuple type.
@@ -2378,28 +2407,15 @@ impl SqlitePersistence {
         let mut rows = stmt.query(params![device_id])?;
         if let Some(row) = rows.next()? {
             let token: String = row.get(0)?;
-            let scopes_json: Option<String> = row.get(1).ok();
-            let issued_at: String = row.get(2)?;
-            let expires_at: String = row.get(3)?;
-            let issued_to: Option<String> = row.get(4).ok();
-            let scopes: Vec<String> = scopes_json
-                .as_deref()
-                .and_then(|j| serde_json::from_str(j).ok())
-                .unwrap_or_default();
-            let issued_at_dt = chrono::DateTime::parse_from_rfc3339(&issued_at)
-                .map(|t| t.with_timezone(&chrono::Utc))
-                .unwrap_or_else(|_| chrono::Utc::now());
-            let expires_at_dt = chrono::DateTime::parse_from_rfc3339(&expires_at)
-                .map(|t| t.with_timezone(&chrono::Utc))
-                .unwrap_or_else(|_| chrono::Utc::now() + chrono::Duration::days(30));
+            let stored = PersistedDeviceToken::decode(row, device_id.to_string())?;
             return Ok(Some(DeviceToken {
                 device_id: device_id.to_string(),
                 token,
-                scopes,
-                issued_at: issued_at_dt,
-                expires_at: expires_at_dt,
+                scopes: stored.scopes,
+                issued_at: stored.issued_at,
+                expires_at: stored.expires_at,
                 last_used_at: None,
-                issued_to: issued_to.unwrap_or_else(|| "ledger".to_string()),
+                issued_to: stored.issued_to,
             }));
         }
         Ok(None)
@@ -2579,27 +2595,7 @@ impl SqlitePersistence {
         let mut rows = stmt.query(params![token, now])?;
         if let Some(row) = rows.next()? {
             let device_id: String = row.get(0)?;
-            let scopes_json: Option<String> = row.get(1).ok();
-            let issued_at: String = row.get(2)?;
-            let expires_at: String = row.get(3)?;
-            let issued_to: Option<String> = row.get(4).ok();
-            let scopes: Vec<String> = scopes_json
-                .as_deref()
-                .and_then(|j| serde_json::from_str(j).ok())
-                .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
-            let issued_at_dt = chrono::DateTime::parse_from_rfc3339(&issued_at)
-                .map(|t| t.with_timezone(&chrono::Utc))
-                .unwrap_or_else(|_| chrono::Utc::now());
-            let expires_at_dt = chrono::DateTime::parse_from_rfc3339(&expires_at)
-                .map(|t| t.with_timezone(&chrono::Utc))
-                .unwrap_or_else(|_| chrono::Utc::now() + chrono::Duration::seconds(86400 * 30));
-            Ok(Some(PersistedDeviceToken {
-                device_id,
-                scopes,
-                issued_at: issued_at_dt,
-                expires_at: expires_at_dt,
-                issued_to: issued_to.unwrap_or_else(|| "ledger".to_string()),
-            }))
+            Ok(Some(PersistedDeviceToken::decode(row, device_id)?))
         } else {
             Ok(None)
         }

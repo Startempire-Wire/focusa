@@ -6,7 +6,7 @@
 //!
 //! ## Mode A — loopback dev (no FOCUSA_AUTH_TOKEN set, daemon on
 //! 127.0.0.1):
-//!   - No Bearer required. `is_authorized` short-circuits to true.
+//!   - No Bearer required for the local-first fallback.
 //!   - Pre-auth pairing routes (Mac join, phone PWA approve, /status,
 //!     /scan page) work without any setup.
 //!   - Pairing mints a device token that subsequent calls use as Bearer.
@@ -60,25 +60,34 @@ fn is_pre_auth(path: &str) -> bool {
         .any(|p| path.starts_with(p) || path == p.trim_end_matches('/'))
 }
 
-/// V2 auth: accept admin token OR device pairing token.
-async fn is_authorized(auth_header: &str) -> bool {
+enum AuthenticatedGrants {
+    Owner,
+    Device(crate::routes::permissions::PermissionContext),
+}
+
+/// Resolve identity and original grants together; a boolean loses authority.
+async fn authenticated_grants(auth_header: &str) -> Option<AuthenticatedGrants> {
     let token = match auth_header.strip_prefix("Bearer ") {
         Some(t) if !t.is_empty() => t,
-        _ => return false,
+        _ => return None,
     };
 
     // 1. Admin token check
     if let Ok(expected) = std::env::var("FOCUSA_AUTH_TOKEN") {
         if !expected.is_empty() && token == expected {
-            return true;
+            return Some(AuthenticatedGrants::Owner);
         }
     }
 
     // 2. Device pairing token check (look up in shared pairing state)
     let pairing_state = crate::routes::device_pairing::shared_state();
     let s = pairing_state.read().await;
-    if s.tokens.contains_key(token) {
-        return true;
+    if let Some(stored) = s.tokens.get(token) {
+        return (stored.expires_at > chrono::Utc::now()).then(|| {
+            AuthenticatedGrants::Device(
+                crate::routes::permissions::PermissionContext::from_device_grants(&stored.scopes),
+            )
+        });
     }
     drop(s);
 
@@ -90,32 +99,42 @@ async fn is_authorized(auth_header: &str) -> bool {
     // so route-scope checks see the actual granted permissions.
     let req_state = crate::server::app_state_for_token_lookup();
     if let Some(state) = req_state {
-        if let Ok(Some(stored)) = state.persistence.load_device_token_full(token) {
-            let pairing_state = crate::routes::device_pairing::shared_state();
-            let mut s = pairing_state.write().await;
-            if !s.tokens.contains_key(token) {
-                s.tokens.insert(
-                    token.to_string(),
-                    focusa_core::types::DeviceToken {
-                        token: token.to_string(),
-                        device_id: stored.device_id.clone(),
-                        scopes: stored.scopes.clone(),
-                        issued_at: stored.issued_at,
-                        expires_at: stored.expires_at,
-                        last_used_at: None,
-                        issued_to: stored.issued_to.clone(),
-                    },
+        match state.persistence.load_device_token_full(token) {
+            Ok(Some(stored)) => {
+                if stored.expires_at <= chrono::Utc::now() {
+                    return None;
+                }
+                let grants = crate::routes::permissions::PermissionContext::from_device_grants(
+                    &stored.scopes,
                 );
+                let pairing_state = crate::routes::device_pairing::shared_state();
+                let mut s = pairing_state.write().await;
+                if !s.tokens.contains_key(token) {
+                    s.tokens.insert(
+                        token.to_string(),
+                        focusa_core::types::DeviceToken {
+                            token: token.to_string(),
+                            device_id: stored.device_id.clone(),
+                            scopes: stored.scopes.clone(),
+                            issued_at: stored.issued_at,
+                            expires_at: stored.expires_at,
+                            last_used_at: None,
+                            issued_to: stored.issued_to.clone(),
+                        },
+                    );
+                }
+                return Some(AuthenticatedGrants::Device(grants));
             }
-            return true;
+            Ok(None) => {}
+            Err(error) => tracing::warn!("device grant lookup rejected: {error}"),
         }
     }
 
-    false
+    None
 }
 
 /// Auth middleware — admin token or device pairing token.
-pub async fn auth_layer(req: Request, next: Next) -> Result<Response, StatusCode> {
+pub async fn auth_layer(mut req: Request, next: Next) -> Result<Response, StatusCode> {
     let path = req.uri().path();
 
     // Shutdown has a dedicated per-start bearer credential and exact process
@@ -140,7 +159,10 @@ pub async fn auth_layer(req: Request, next: Next) -> Result<Response, StatusCode
         .get("authorization")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
-    if is_authorized(auth_header).await {
+    if let Some(grants) = authenticated_grants(auth_header).await {
+        if let AuthenticatedGrants::Device(permissions) = grants {
+            permissions.bind_device_request(req.headers_mut())?;
+        }
         return Ok(next.run(req).await);
     }
 
@@ -154,4 +176,192 @@ pub async fn auth_layer(req: Request, next: Next) -> Result<Response, StatusCode
     // Admin token configured and request did not present a valid admin
     // or device token: reject.
     Err(StatusCode::UNAUTHORIZED)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        Router,
+        body::Body,
+        routing::{get, post},
+    };
+    use chrono::{Duration, Utc};
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn device_permissions_cannot_exceed_verified_grants() {
+        const CHILD: &str = "FOCUSA_ISOLATED_PERMISSION_PROBE";
+        const OWNER: &str = "synthetic-owner-permission-probe";
+        if std::env::var_os(CHILD).is_none() {
+            // Isolate environment and pairing globals from every other test.
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .env_clear()
+                .env(CHILD, "1")
+                .env("FOCUSA_AUTH_TOKEN", OWNER)
+                .args([
+                    "device_permissions_cannot_exceed_verified_grants",
+                    "--nocapture",
+                    "--test-threads=1",
+                ])
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "isolated permission probe failed:\n{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            return;
+        }
+
+        let pairing = crate::routes::device_pairing::shared_state();
+        let now = Utc::now();
+        for (token, scopes) in [
+            ("synthetic-read-device", vec!["read"]),
+            ("synthetic-write-device", vec!["read", "write"]),
+            ("synthetic-expired-device", vec!["read"]),
+        ] {
+            pairing.write().await.tokens.insert(
+                token.to_string(),
+                focusa_core::types::DeviceToken {
+                    device_id: token.to_string(),
+                    token: token.to_string(),
+                    scopes: scopes.into_iter().map(str::to_string).collect(),
+                    issued_at: now,
+                    expires_at: if token == "synthetic-expired-device" {
+                        now - Duration::seconds(1)
+                    } else {
+                        now + Duration::hours(1)
+                    },
+                    last_used_at: None,
+                    issued_to: "isolated-test".to_string(),
+                },
+            );
+        }
+
+        // Exercise the real middleware without a listener, application state,
+        // entitlement provider, persistence, or mutating route handlers.
+        let app = Router::new()
+            .route(
+                "/v1/state/permission-probe",
+                get(|| async { StatusCode::NO_CONTENT }).post(|| async { StatusCode::NO_CONTENT }),
+            )
+            .route(
+                "/v1/commands/permission-probe",
+                post(|| async { StatusCode::NO_CONTENT }),
+            )
+            .layer(axum::middleware::from_fn(
+                crate::middleware::route_scope::route_scope_layer,
+            ))
+            .layer(axum::middleware::from_fn(auth_layer));
+
+        let cases = [
+            (
+                "read grant",
+                "synthetic-read-device",
+                "GET",
+                "/v1/state/permission-probe",
+                "state:read",
+                StatusCode::NO_CONTENT,
+            ),
+            (
+                "read cannot claim write",
+                "synthetic-read-device",
+                "POST",
+                "/v1/state/permission-probe",
+                "state:write",
+                StatusCode::FORBIDDEN,
+            ),
+            (
+                "read cannot claim admin",
+                "synthetic-read-device",
+                "POST",
+                "/v1/commands/permission-probe",
+                "admin:*",
+                StatusCode::FORBIDDEN,
+            ),
+            (
+                "write grant",
+                "synthetic-write-device",
+                "POST",
+                "/v1/state/permission-probe",
+                "state:write",
+                StatusCode::NO_CONTENT,
+            ),
+            (
+                "owner grant",
+                OWNER,
+                "POST",
+                "/v1/commands/permission-probe",
+                "admin:*",
+                StatusCode::NO_CONTENT,
+            ),
+            (
+                "unissued token",
+                "synthetic-unissued-device",
+                "GET",
+                "/v1/state/permission-probe",
+                "state:read",
+                StatusCode::UNAUTHORIZED,
+            ),
+            (
+                "expired token",
+                "synthetic-expired-device",
+                "GET",
+                "/v1/state/permission-probe",
+                "state:read",
+                StatusCode::UNAUTHORIZED,
+            ),
+            (
+                "mixed over-request",
+                "synthetic-read-device",
+                "GET",
+                "/v1/state/permission-probe",
+                "state:read,admin:*",
+                StatusCode::FORBIDDEN,
+            ),
+            (
+                "write is not admin",
+                "synthetic-write-device",
+                "POST",
+                "/v1/commands/permission-probe",
+                "admin:*",
+                StatusCode::FORBIDDEN,
+            ),
+            (
+                "empty request grants nothing",
+                "synthetic-read-device",
+                "GET",
+                "/v1/state/permission-probe",
+                "",
+                StatusCode::FORBIDDEN,
+            ),
+        ];
+        let mut outcomes = Vec::new();
+        for (label, token, method, path, requested, expected) in cases {
+            let request = Request::builder()
+                .method(method)
+                .uri(path)
+                .header("authorization", format!("Bearer {token}"))
+                .header("x-focusa-permissions", requested)
+                .body(Body::empty())
+                .unwrap();
+            let actual = app.clone().oneshot(request).await.unwrap().status();
+            outcomes.push((label, actual, expected));
+        }
+        for token in [
+            "synthetic-read-device",
+            "synthetic-write-device",
+            "synthetic-expired-device",
+        ] {
+            pairing.write().await.tokens.remove(token);
+        }
+        assert!(
+            outcomes
+                .iter()
+                .all(|(_, actual, expected)| actual == expected),
+            "permission outcomes (case, actual, expected): {outcomes:?}"
+        );
+    }
 }
