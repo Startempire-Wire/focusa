@@ -19,6 +19,33 @@ Before writing, revising, interpreting, or promoting architecture/product-direct
 
 ---
 
+## Voice / Conversation primitive hard stop
+
+Before changing voice, speech, transcript, agent-speaker, conversation-room, Audio UI, ASR/TTS, or voice-modality behavior, read:
+
+- `08-expression-engine.md` — Focusa semantic expression owner;
+- `181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md` — Voice/Conversation, utterance, participant, transcript-revision and Conversation Ledger primitive;
+- `151-focusa-frictionless-program-design-runtime-and-agent-capability-fabric-spec.md` §56 — modality parity;
+- applicable authority/settlement/temporal/credential contracts.
+
+Non-negotiable voice laws:
+
+- **Conversation is not memory.** A complete durable transcript does not become Focus State, Workpoint, policy, ontology or durable knowledge automatically.
+- **Voice is not authority.** Voiceprint, speaker-recognition result, wake word, TTS voice or familiar-sounding audio never grants permission by itself.
+- **Expression Engine owns semantic expression.** TTS/audio rendering cannot add, remove or change commitments, uncertainty, safety warnings or authority language.
+- **ASR is observation, not perfect user text.** Speech hypotheses preserve engine/version, confidence, timing and correction lineage; consequential ambiguity fails closed.
+- **Every speaker is attributable or explicitly unknown.** Never silently assign an ambiguous human speaker to an enrolled principal.
+- **Every agent/expert speaker is bound to a stable agent principal independent of synthetic voice presentation.**
+- **Corrections append/supersede; they do not erase prior machine hypotheses.**
+- **Human barge-in/new steering takes precedence over stale agent speech.**
+- **Voice invokes the same canonical Focusa operations as CLI/Desktop/Pi/generated UI.** Do not create a parallel speech-only authority/task system.
+- **Conversation/audio content is a separate privacy/retention domain, not generic telemetry.**
+- Large transcript/audio content belongs behind bounded handles/content-addressed storage; do not bloat the canonical event chain with repeated raw blobs.
+
+The final historical invariant in this document remains controlling: **meaning lives in Focus State, not in conversation.** Spec 181 adds durable conversational provenance without weakening that rule.
+
+---
+
 ## Agent-KB API Default Reference
 
 For KH/OVH/operator policy, use `agent-kb-api` first, verify freshness, retrieve exact documents after empty searches, and use local Agent KB files only as a read-only degraded fallback.
@@ -44,7 +71,9 @@ Private operator docs may exist locally at `.focusa-private/`.
 
 Agents must read `.focusa-private/INDEX.md` before touching SaaS strategy, SignalOS, commercial pricing/caps, install/purchase backend, raw proof, launch planning, or vendor/license registry work.
 
-Agents must never commit `.focusa-private/`, raw transcripts, runtime objects, local host paths, admin URLs, customer data, or license data.
+Agents must never commit `.focusa-private/`, raw private transcripts/audio, runtime objects, local host paths, admin URLs, customer data, or license data.
+
+Public examples of conversation/audit contracts must use synthetic or redacted fixtures.
 
 ---
 
@@ -72,6 +101,16 @@ Agents must never commit `.focusa-private/`, raw transcripts, runtime objects, l
 ### Expression Discipline
 - Respect deterministic structure
 - Do not inject hidden instructions
+- Preserve semantic parity across text/spoken rendering
+- Link governed spoken outputs to the exact ExpressionOutput they render
+- Do not let a speech/TTS provider become a second expression authority
+
+### Conversation Discipline
+- Preserve participant/speaker provenance
+- Preserve ASR/transcript correction lineage
+- Keep Conversation Ledger state separate from Focus State/memory promotion
+- Link consequential utterances to resulting operation/Evidence/Receipt refs
+- Treat uncertain speaker/content attribution honestly
 
 ---
 
@@ -82,6 +121,10 @@ Agents must never commit `.focusa-private/`, raw transcripts, runtime objects, l
 - Bypassing Focus Gate
 - Editing archived frames
 - Acting without Beads backing
+- Treating transcript order as canonical instruction precedence
+- Treating voice identity as authorization
+- Letting TTS/ASR adapters silently amend meaning
+- Promoting raw conversation directly into durable policy/knowledge without the governed path
 
 ---
 
@@ -108,6 +151,8 @@ On confusion or ambiguity:
 1. Pause
 2. Surface candidate
 3. Await instruction
+
+For speech ambiguity affecting consequential action, retain the hypothesis/evidence and request exact clarification rather than guessing.
 
 ---
 
