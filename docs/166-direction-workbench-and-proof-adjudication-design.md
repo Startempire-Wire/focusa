@@ -26,6 +26,41 @@ The Workbench is a projection of the event ledger — never a second
 store. Reuse: completion_authority (276), claim_gate (263),
 capability_truth (279), background_jobs receipts (311-family).
 
+## Typed ownership and legacy disposition — implementation gate
+
+This design remains IR0; the existing SQL prototype and passing source tests do
+not establish canonical operation authority or installed acceptance. The owning
+foundations are [Spec 98](98-project-root-crdt-reconciliation-foundation-spec.md),
+[Spec 104](104-typed-scoped-runtime-and-singleton-elimination-spec.md), and the
+[capability permissions model](25-capability-permissions.md).
+
+- Every new canonical operation/receipt requires a verified `WorkstreamKey`
+  (`ScopeRef` plus `continuity_id`) and authenticated actor provenance. Reuse
+  `scoped_state` types rather than introducing a second identity model.
+- `Steer.scope` describes operation scope; its free text is **not** project or
+  workstream ownership. Target labels, cwd, current selection and continuity
+  alone cannot supply missing root authority.
+- Request scope selection and capability permission are separate checks. Reuse
+  the authentication, route-scope and entitlement owners; caller-supplied
+  permission labels cannot substitute for verified grants.
+- Bind the receipt to the canonical typed event/reducer path before treating
+  its SQL projection as canonical authority. Do not create a parallel ledger
+  or grant execution/release power through a steering receipt.
+- Version the ownership-bearing envelope and prove cross-version consumption.
+  Retain legacy receipt bytes as non-authoritative observations until an
+  evidence-backed association is separately approved through the owning
+  migration path. Never stamp old rows with the current caller's scope or
+  silently rewrite history.
+- Corrupt records remain explicit errors, not invented decisions or empty
+  success. Missing ownership is a distinct blocked/quarantined disposition,
+  not proof that the requested project has no steering.
+
+Before scoped bounded queries or HTTP registration, acceptance must cover exact
+root/workstream matching, foreign and incomplete identities, insufficient
+permissions, legacy/unresolved ownership, replay/idempotency, corruption,
+read-only observation and bounds applied **after scoped selection**. Cross-harness
+and installed evidence remain required; source-only tests do not close #291.
+
 ## Workbench surface composition (#290/#284)
 
 - Mission Canvas: direction lane bound to the active Workpoint.
