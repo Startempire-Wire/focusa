@@ -28,11 +28,13 @@ function handlerBody(eventName) {
   return handlerBodyFrom(source, eventName);
 }
 
-test("module reload clears stale global owner and re-registers", () => {
-  assert.match(source, /const MODULE_LOAD_ID = randomUUID\(\)/);
-  assert.match(source, /processLease\.owner\.moduleLoadId === MODULE_LOAD_ID/);
+test("session replacement or reload clears only a stale global owner", () => {
+  assert.match(source, /function registrationApiIsActive\(/);
+  assert.match(source, /owner\.extensionApi\.getAllTools\(\)/);
+  assert.match(source, /stale after session replacement or reload/);
   assert.match(source, /processLease\.owner = undefined/);
-  assert.match(source, /moduleLoadId: MODULE_LOAD_ID/);
+  assert.match(source, /processLease\.request = undefined/);
+  assert.match(source, /extensionApi: pi/);
 });
 
 test("session reload preserves, rebinds, and proves the compaction coordinator", () => {
@@ -195,14 +197,15 @@ test("compaction exposes elapsed heartbeat and bounded no-retry resume outcomes"
   assert.doesNotMatch(compactionSource, /Retrying automatically/);
 });
 
-test("one process-wide first-owner coordinator suppresses duplicate registrations", () => {
+test("one process-wide coordinator suppresses active duplicates but rebinds stale owners", () => {
   assert.match(source, /Symbol\.for\("focusa\.compaction\.coordinator\.v1"\)/);
   assert.match(source, /if \(processLease\.owner\)/);
-  assert.match(source, /compaction coordinator retained across session replacement/);
-  // Different-install duplicates are superseded in place: first lease is
-  // dropped and a fresh owner registers (Spec130A takeover semantics).
+  assert.match(source, /registrationApiIsActive\(processLease\.owner\)/);
+  assert.match(source, /duplicate compaction coordinator registration suppressed/);
+  assert.match(source, /compaction coordinator rebound after session replacement or reload/);
   assert.match(source, /processLease\.owner = undefined;/);
-  assert.match(source, /return false;[\s\S]{0,400}const maxTransientRetries/);
+  assert.match(source, /processLease\.request = undefined;/);
+  assert.match(source, /return false;[\s\S]{0,400}const previousSource/);
   assert.match(indexSource, /if \(!ownsCompactionCoordinator\) return/);
   assert.match(source, /nativeCompactionCallCount >= 1/);
   assert.match(source, /nativeCompactionCallCount \+= 1/);

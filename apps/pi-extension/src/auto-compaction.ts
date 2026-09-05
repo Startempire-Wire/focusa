@@ -158,8 +158,7 @@ type CompactionLeaseOwner = {
   attachmentId: string;
   nativeSession?: string;
   registeredHandlers: string[];
-  moduleLoadId: string;
-  moduleIdentity?: string;
+  extensionApi?: Pick<ExtensionAPI, "getAllTools">;
 };
 
 type CompactionOperatorOverride = {
@@ -190,7 +189,6 @@ type ProcessCompactionLease = {
 
 const PROCESS_LEASE_SYMBOL = Symbol.for("focusa.compaction.coordinator.v1");
 const PI_TOOL_BOUNDARY_COMPACTION_SYMBOL = Symbol.for("focusa.pi.tool-boundary-compaction.v1");
-const MODULE_IDENTITY_SYMBOL = Symbol.for("focusa.compaction.module-identity");
 const EXTENSION_BUILD = "focusa-pi-bridge@0.9.187";
 const REGISTRATION_SOURCE = import.meta.url;
 const REGISTERED_HANDLERS = [
@@ -467,20 +465,18 @@ function estimateEntryRange(entries: readonly BranchEntry[], start: number, end:
   return total;
 }
 
-// Stable across duplicate module loads (including ?duplicate-install query
-// instances): the first load owns the identity, so the duplicate-install guard
-// can detect re-registration instead of treating each copy as a new owner.
-const MODULE_LOAD_ID = randomUUID();
-// Stable identity across duplicate loads of the same file (including query-string
-// re-imports): reloads of a different module path re-register; duplicates of the
-// same file are suppressed without re-registering handlers.
-const moduleIdentityScope = globalThis as typeof globalThis & {
-  [MODULE_IDENTITY_SYMBOL]?: string;
-};
-const MODULE_IDENTITY: string =
-  moduleIdentityScope[MODULE_IDENTITY_SYMBOL] ??
-  (moduleIdentityScope[MODULE_IDENTITY_SYMBOL] =
-    `focusa-compaction:${import.meta.url.split("?")[0]}`);
+function registrationApiIsActive(owner: CompactionLeaseOwner): boolean {
+  if (!owner.extensionApi) return false;
+  try {
+    owner.extensionApi.getAllTools();
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return !/stale after session replacement or reload|failed to load and its API is no longer active/i.test(
+      message
+    );
+  }
+}
 
 /** Test-only: release the process compaction lease so a fresh harness can
  * register as a new owner. Never called in production paths. */
@@ -505,26 +501,21 @@ export function registerAutoCompaction(
 ): boolean {
   const processLease = processCompactionLease();
   if (processLease.owner) {
-    if (
-      processLease.owner.moduleLoadId === MODULE_LOAD_ID ||
-      processLease.owner.moduleIdentity === MODULE_IDENTITY
-    ) {
+    if (registrationApiIsActive(processLease.owner)) {
       if (!processLease.duplicateDiagnosticEmitted) {
         processLease.duplicateDiagnosticEmitted = true;
-        // Same-URL re-registration happens on every in-process session
-        // replacement (ctx.newSession / /tree navigation): pi rebuilds all
-        // extension instances against the existing process lease. That is
-        // benign — the original coordinator stays authoritative and no
-        // handlers are double-registered. Only a *different* module URL
-        // reaches the takeover branch below, so this can never indicate a
-        // second installation on disk.
-        console.info(
-          `[focusa] compaction coordinator retained across session replacement (same install at ${processLease.owner.registrationSource}; nothing to remove).`
+        console.warn(
+          `[focusa] duplicate compaction coordinator registration suppressed; active owner remains ${processLease.owner.registrationSource}.`
         );
       }
       return false;
     }
+    const previousSource = processLease.owner.registrationSource;
     processLease.owner = undefined;
+    processLease.request = undefined;
+    console.info(
+      `[focusa] compaction coordinator rebound after session replacement or reload (previous owner ${previousSource}).`
+    );
   }
 
   // Spec130A §16 permits one linked retry per pressure crossing. Provider
@@ -540,8 +531,7 @@ export function registerAutoCompaction(
     registrationSource: REGISTRATION_SOURCE,
     attachmentId: `pending:${registrationId}`,
     registeredHandlers: [...REGISTERED_HANDLERS],
-    moduleLoadId: MODULE_LOAD_ID,
-    moduleIdentity: MODULE_IDENTITY,
+    extensionApi: pi,
   };
   processLease.duplicateDiagnosticEmitted = false;
   const ownsRegistrationLease = (): boolean => processLease.owner?.registrationId === registrationId;
