@@ -37,35 +37,29 @@ fn workset_summaries(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> 
         let definition: focusa_core::workset_ledger::WorksetDefinition =
             serde_json::from_str(&definition_json)?;
         let events = focusa_core::workset_store::list_events(conn, &workset_id)?;
-        let projection = focusa_core::workset_ledger::replay_projection(&definition, &events).ok();
-        let (status, met, open) = match &projection {
-            Some(p) => {
-                let met: Vec<String> = p
-                    .requirements
-                    .values()
-                    .filter(|req| req.disposition.is_some())
-                    .map(|req| req.requirement_id.clone())
-                    .collect();
-                let open: Vec<String> = p
-                    .requirements
-                    .values()
-                    .filter(|req| req.disposition.is_none())
-                    .map(|req| req.requirement_id.clone())
-                    .collect();
-                (
-                    if p.settled { "settled" } else { "in_progress" }.to_string(),
-                    met,
-                    open,
-                )
-            }
-            None => (String::from("unparsable"), vec![], vec![]),
+        let projection = focusa_core::workset_ledger::replay_projection(&definition, &events)
+            .map_err(anyhow::Error::msg)?;
+        let met = projection
+            .requirements
+            .values()
+            .filter(|req| req.disposition.is_some())
+            .count();
+        let open = projection
+            .requirements
+            .values()
+            .filter(|req| req.disposition.is_none())
+            .count();
+        let status = if projection.settled {
+            "settled"
+        } else {
+            "in_progress"
         };
         out.push(json!({
             "workset_id": workset_id,
             "revision": revision,
             "status": status,
-            "met": met.len(),
-            "open": open.len(),
+            "met": met,
+            "open": open,
             "digest": focusa_core::workset_ledger::workset_digest(&definition),
         }));
     }
@@ -202,8 +196,7 @@ pub fn router() -> axum::Router<Arc<AppState>> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn corrupt_workset_events_cannot_be_reported_as_empty_success() {
+    fn workset_fixture() -> rusqlite::Connection {
         use focusa_core::workset_ledger::{CompletionContract, WorksetDefinition, WorksetScope};
         let conn = rusqlite::Connection::open_in_memory().unwrap();
         focusa_core::workset_store::ensure_schema(&conn).unwrap();
@@ -221,6 +214,56 @@ mod tests {
             },
         };
         focusa_core::workset_store::upsert_definition(&conn, &definition).unwrap();
+        conn
+    }
+
+    #[test]
+    fn invalid_history_cannot_be_reported_as_empty_success() {
+        use focusa_core::workset_ledger::{RequirementDisposition, WorksetEvent};
+        let conn = workset_fixture();
+        focusa_core::workset_store::append_event(
+            &conn,
+            "test-workset",
+            &WorksetEvent::RequirementDisposed {
+                requirement_id: "never-admitted".to_string(),
+                disposition: RequirementDisposition::Met,
+                evidence_ref: None,
+            },
+        )
+        .unwrap();
+        assert!(
+            workset_summaries(&conn)
+                .unwrap_err()
+                .to_string()
+                .contains("disposed before admission")
+        );
+        assert_eq!(
+            focusa_core::workset_store::list_events(&conn, "test-workset")
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn unknown_definition_schema_is_not_success() {
+        let conn = workset_fixture();
+        let mut definition = focusa_core::workset_store::load_definition(&conn, "test-workset", 1)
+            .unwrap()
+            .unwrap();
+        definition.schema = "unknown-schema".to_string();
+        focusa_core::workset_store::upsert_definition(&conn, &definition).unwrap();
+        assert!(
+            workset_summaries(&conn)
+                .unwrap_err()
+                .to_string()
+                .contains("unexpected schema")
+        );
+    }
+
+    #[test]
+    fn corrupt_workset_events_cannot_be_reported_as_empty_success() {
+        let conn = workset_fixture();
         assert_eq!(workset_summaries(&conn).unwrap().len(), 1);
         conn.execute(
             "INSERT INTO workset_events (workset_id, event_json, recorded_at)
