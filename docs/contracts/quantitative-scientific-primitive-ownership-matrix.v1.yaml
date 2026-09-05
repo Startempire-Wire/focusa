@@ -1,0 +1,209 @@
+schema: focusa.quantitative_scientific_primitive_ownership_matrix.v1
+version: 1
+status: normative_initial
+created_at: 2026-08-01
+source_baseline: 77966bc82cd4229cf23985d0bff1a6bf14264363
+manifest_ref: docs/quantitative-scientific-cognition-series-current-manifest.md
+
+ownership:
+  - primitive_family: temporal_authority
+    owner: spec137_combined
+    extension_owner: spec137b
+    includes:
+      - trusted_time
+      - deadlines
+      - urgency
+      - temporal_uncertainty
+      - high_resolution_stamps
+      - capture_points
+      - causal_ordering
+      - deterministic_temporal_guards
+    must_not_be_redefined_by:
+      - spec138b
+      - spec152
+      - spec152a
+      - spec153
+      - verticals
+
+  - primitive_family: prediction_and_learning
+    owner: spec138_combined
+    extension_owner: spec138b
+    includes:
+      - forecast_questions
+      - information_sets
+      - immutable_commitments
+      - outcomes
+      - scoring
+      - calibration
+      - metacognitive_learning
+      - transfer
+      - blind_counterforecasting
+      - evidence_responsiveness
+      - matched_controls
+      - promotion_assurance
+
+  - primitive_family: runtime_constitution
+    owner: spec140_combined
+    includes:
+      - instruction_identity
+      - runtime_constitution
+      - target_profile
+      - temporal_adaptation_envelope
+      - canonical_amendment
+      - model_and_tool_identity
+
+  - primitive_family: semantic_verification
+    owner: spec144
+    includes:
+      - formal_semantics
+      - ontology_parity
+      - obligation_compilation
+      - verifier_routing
+      - independence
+      - immutable_verification_snapshots
+      - settlement_gates
+
+  - primitive_family: mathematical_cognition
+    owner: spec152
+    includes:
+      - numeric_representations
+      - exactness
+      - quantities
+      - units
+      - dimensions
+      - expressions
+      - equations
+      - constraints
+      - objectives
+      - models
+      - solvers
+      - computation_runs
+      - numerical_validity
+      - quantitative_proof
+      - decision_frontiers
+      - failure_envelopes
+      - countermodels
+
+  - primitive_family: statistical_cognition
+    owner: spec152a
+    includes:
+      - probability
+      - distributions
+      - populations
+      - samples
+      - estimands
+      - estimators
+      - inference
+      - experiments
+      - missingness
+      - censoring
+      - dependence
+      - time_series
+      - calibration_statistics
+      - causal_analysis
+
+  - primitive_family: runtime_integration
+    owner: spec152b
+    includes:
+      - quantitative_applicability
+      - ontology_modules
+      - reflex_execution_classes
+      - secondary_cognition_jobs
+      - intuition_signals
+      - focus_gate_salience
+      - reducer_events
+      - bounded_state
+      - persistence
+      - compaction
+      - retrieval
+      - tool_and_client_parity
+
+  - primitive_family: learning_and_discovery
+    owner: spec152c
+    includes:
+      - concept_graph
+      - mastery
+      - misconceptions
+      - explanation_ladders
+      - derivations
+      - equation_maps
+      - conjecture_portfolios
+      - counterexample_search
+      - invariant_mining
+      - residual_intelligence
+      - learning_transfer
+
+  - primitive_family: physical_scientific_cognition
+    owner: spec153
+    extension_owner: spec153a
+    includes:
+      - physical_systems
+      - reference_frames
+      - state_variables
+      - physical_laws
+      - conservation
+      - measurements
+      - sensors
+      - simulations
+      - experiments
+      - digital_twins
+      - physical_feasibility
+      - calibration_authority
+      - physical_verification
+      - experimental_settlement
+      - actuation_safety
+
+  - primitive_family: domain_verticals
+    owner: vertical_intelligence_bundles
+    includes:
+      - domain_variables
+      - domain_models
+      - domain_constants
+      - utility_and_risk_policy
+      - specialized_solver_adapters
+      - specialist_verifier_profiles
+      - domain_interpretation
+    constraints:
+      - reuse_core_quantity_unit_dimension
+      - reuse_core_statistics
+      - reuse_core_temporal_authority
+      - reuse_core_prediction_authority
+      - reuse_core_physical_primitives
+      - do_not_fork_reducer_or_settlement
+
+canonical_authority_order:
+  - operator_and_safety_authority
+  - primitive_owning_specification
+  - activated_runtime_constitution
+  - temporal_and_environment_authority
+  - reducer_state_and_fencing
+  - formal_semantic_and_verification_policy
+  - vertical_domain_policy
+  - client_projection
+  - model_or_worker_proposal
+
+forbidden_duplication:
+  - client_local_canonical_formulas
+  - vertical_specific_unit_system_fork
+  - prediction_specific_clock_authority
+  - physics_specific_probability_system
+  - secondary_cognition_state_mutation
+  - verifier_self_settlement
+  - simulation_presented_as_observation
+  - registry_only_reflex_claimed_implemented
+  - llm_in_deterministic_microsecond_loop
+
+closure:
+  implementation_status: documentation_only
+  full_conformance_status: not_claimed
+  required_followup_artifacts:
+    - docs/contracts/quantitative-scientific-normative-source-coverage.v1.yaml
+    - docs/contracts/quantitative-scientific-complete-feature-ledger.v1.yaml
+    - docs/contracts/quantitative-scientific-ontology-module-matrix.v1.yaml
+    - docs/contracts/quantitative-scientific-reflex-activation-matrix.v1.yaml
+    - docs/contracts/quantitative-scientific-secondary-cognition-matrix.v1.yaml
+    - docs/contracts/quantitative-scientific-reducer-event-coverage.v1.yaml
+    - docs/contracts/quantitative-scientific-surface-parity-matrix.v1.yaml
+    - docs/contracts/quantitative-scientific-verification-obligation-matrix.v1.yaml
+    - docs/contracts/quantitative-scientific-compaction-continuity-matrix.v1.yaml
+    - docs/contracts/quantitative-scientific-proof-matrix.v1.yaml
