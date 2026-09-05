@@ -34,6 +34,9 @@ pub enum UpdateCmd {
     Plan(UpdateStatusArgs),
     /// Guarded update apply. Mutates only with explicit consent and complete signed-release trust.
     Apply(UpdateApplyArgs),
+    /// Bootstrap the signed historical baseline into an empty isolated canary root.
+    /// Uses the current candidate's authority and the canonical install transaction.
+    CompatibilityBootstrap(UpdateApplyArgs),
     /// Read-only update history/observability view.
     History(UpdateHistoryArgs),
     /// Guarded rollback. Defaults to dry-run and restores only SHA-verified backups with consent.
@@ -551,6 +554,10 @@ struct ReleaseTrustSummary {
     production_apply_authorized: bool,
     trusted_key_id: Option<String>,
     trusted_key_fingerprint: Option<String>,
+    #[serde(skip)]
+    candidate_asset_digests: Option<crate::commands::install::VerifiedInstallDigests>,
+    #[serde(skip)]
+    baseline_asset_digests: Option<crate::commands::install::VerifiedInstallDigests>,
     key_revoked: bool,
     ci_proof_required: bool,
     signature_required: bool,
@@ -647,6 +654,9 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             } else {
                 print_plan_human(&plan);
             }
+        }
+        UpdateCmd::CompatibilityBootstrap(args) => {
+            run_compatibility_bootstrap(args, json_mode).await?;
         }
         UpdateCmd::Apply(args) => {
             let dry_run = args.dry_run;
@@ -782,6 +792,70 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             }
         }
         UpdateCmd::Policy(cmd) => run_policy(cmd, json_mode)?,
+    }
+    Ok(())
+}
+
+async fn run_compatibility_bootstrap(args: UpdateApplyArgs, json_mode: bool) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        !args.automatic && std::env::var_os("INVOCATION_ID").is_none(),
+        "compatibility bootstrap is explicit and manual-only"
+    );
+    let configured_root = args
+        .status
+        .compatibility_canary_root
+        .as_deref()
+        .context("compatibility bootstrap requires an isolated canary root")?;
+    let candidate_tag = args
+        .status
+        .latest_version
+        .as_deref()
+        .context("compatibility bootstrap requires an exact current candidate tag")?;
+    let latest = resolve_latest("stable", Some(candidate_tag), Some(configured_root)).await;
+    let root = validate_compatibility_canary_root_binding(&latest)?;
+    let previous_tag = latest
+        .trust
+        .required_previous_tag
+        .as_deref()
+        .context("signed baseline tag is missing")?;
+    let digests = latest
+        .trust
+        .baseline_asset_digests
+        .clone()
+        .context("current-signer baseline asset digests are missing")?;
+    validate_canary_mutation_target(&root, &root.join(".focusa"))?;
+    anyhow::ensure!(
+        !root.join(".focusa/bin/focusa").exists(),
+        "compatibility bootstrap requires an empty installation; use the guarded rollback path for an installed candidate"
+    );
+    if !args.dry_run {
+        anyhow::ensure!(
+            args.yes && args.allow_apply,
+            "compatibility bootstrap requires --yes --allow-apply with --dry-run=false"
+        );
+        let mut install =
+            exact_release_install_args(previous_tag, &latest.github_repo, false, true, true);
+        install.verified_asset_digests = Some(digests);
+        crate::commands::install::run(install)
+            .await
+            .context("current-authorized compatibility baseline installation failed")?;
+    }
+    let result = serde_json::json!({
+        "schema": "focusa.compatibility_baseline_bootstrap.v1",
+        "status": if args.dry_run { "planned" } else { "completed" },
+        "candidate_tag": latest.tag,
+        "baseline_tag": previous_tag,
+        "read_only": args.dry_run,
+        "mutations_performed": !args.dry_run,
+        "production_apply_authorized": false,
+    });
+    if json_mode {
+        println!("{}", serde_json::to_string_pretty(&result)?);
+    } else {
+        println!(
+            "Compatibility baseline {}: {}",
+            previous_tag, result["status"]
+        );
     }
     Ok(())
 }
@@ -1612,6 +1686,7 @@ async fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<Str
             .as_deref()
             .context("manifest-bound rollback release tag is missing")?;
         let compatibility_canary = manifest.compatibility_canary_root.is_some();
+        let mut verified_asset_digests = None;
         if let Some(root) = manifest.compatibility_canary_root.as_deref() {
             anyhow::ensure!(
                 !manifest.system_install.unwrap_or(false),
@@ -1630,8 +1705,23 @@ async fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<Str
                 "compatibility canary rollback target differs from signed prior tag"
             );
             validate_isolated_canary_root_binding(root, candidate_tag, Some(previous_tag))?;
+            // A local rollback journal is routing information, not signing authority.
+            // Reverify the current candidate before accepting any historical digest.
+            let latest = resolve_latest("stable", Some(candidate_tag), Some(Path::new(root))).await;
+            validate_compatibility_canary_root_binding(&latest)?;
+            anyhow::ensure!(
+                latest.trust.required_previous_tag.as_deref() == Some(tag),
+                "rollback baseline differs from current signed authorization"
+            );
+            verified_asset_digests = Some(
+                latest
+                    .trust
+                    .baseline_asset_digests
+                    .clone()
+                    .context("signed rollback baseline asset binding is missing")?,
+            );
         }
-        let args = exact_release_install_args(
+        let mut args = exact_release_install_args(
             tag,
             manifest
                 .github_repo
@@ -1641,6 +1731,7 @@ async fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<Str
             compatibility_canary,
             true,
         );
+        args.verified_asset_digests = verified_asset_digests;
         crate::commands::install::run(args)
             .await
             .context("exact prior-release reinstall failed")?;
@@ -2183,6 +2274,7 @@ fn exact_release_install_args(
         release_tag_override: Some(tag.to_string()),
         allow_verified_rollback,
         compatibility_canary,
+        verified_asset_digests: None,
         system_install,
         persist_path: false,
         no_persist_path: true,
@@ -2235,12 +2327,19 @@ async fn execute_manifest_bound_apply(
                 .as_deref()
                 .is_some_and(|path| path.starts_with("/usr/local/"))
         });
-    let args = exact_release_install_args(
+    let mut args = exact_release_install_args(
         &plan.latest.tag,
         &plan.latest.github_repo,
         system_install,
         compatibility_canary_root.is_some(),
         false,
+    );
+    args.verified_asset_digests = Some(
+        plan.latest
+            .trust
+            .candidate_asset_digests
+            .clone()
+            .context("manifest-bound install lacks authenticated asset digests")?,
     );
     let journal = state.join("update-journal.json");
     match crate::commands::install::run(args).await {
@@ -3163,6 +3262,8 @@ fn unresolved_latest(version: String, source: &str) -> LatestVersion {
             production_apply_authorized: false,
             trusted_key_id: None,
             trusted_key_fingerprint: None,
+            candidate_asset_digests: None,
+            baseline_asset_digests: None,
             key_revoked: false,
             ci_proof_required: true,
             signature_required: true,
@@ -3334,6 +3435,14 @@ fn build_latest_from_release(
         update_trust::ReleaseMetadataMode::Production
     };
     let trust_result = update_trust::verify_release_metadata(&release, &mut assets, trust_mode);
+    let candidate_asset_digests = trust_result
+        .as_ref()
+        .ok()
+        .map(|verified| verified.candidate_asset_digests.clone());
+    let baseline_asset_digests = trust_result
+        .as_ref()
+        .ok()
+        .and_then(|verified| verified.baseline_asset_digests.clone());
     let checksums_resolved =
         trust_result.is_ok() && assets.iter().all(|asset| asset.sha256.is_some());
     let signature_verified = trust_result.is_ok();
@@ -3415,6 +3524,8 @@ fn build_latest_from_release(
             production_apply_authorized: deploy_proof_verified,
             trusted_key_id,
             trusted_key_fingerprint,
+            candidate_asset_digests,
+            baseline_asset_digests,
             key_revoked,
             ci_proof_required: true,
             signature_required: true,

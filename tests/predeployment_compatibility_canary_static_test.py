@@ -29,6 +29,15 @@ def main() -> int:
     deploy_proof = text("scripts/release-deploy-proof.py")
     parity_audit = text("scripts/audit-distribution-parity.mjs")
 
+    require(generator, '"baseline_release": compatibility_baseline_input', "current signer must bind the complete baseline")
+    require(trust, "signed compatibility baseline binding is missing", "missing signed baseline must fail closed")
+    require(install, "compatibility canary install requires current-signer frozen asset digests", "installer must require authenticated baseline bytes")
+    require(install, "binding.expected_checksum(asset)?", "signed digests must override mutable checksum downloads")
+    require(update, "baseline_asset_digests", "bootstrap and rollback must consume verified baseline authority")
+    require(runner, "update compatibility-bootstrap", "current CLI must own baseline installation")
+    assert "PRIOR_CLI" not in runner and "bootstrap/prior" not in runner, "old installer execution is forbidden"
+    assert runner.index("unset GITHUB_TOKEN GH_TOKEN") < runner.index("update compatibility-bootstrap")
+
     for token in (
         "focusa.compatibility_canary_authorization.v1",
         '"environment": "isolated_preproduction"',

@@ -178,6 +178,37 @@ impl Drop for InstallerUi {
     }
 }
 
+/// Request-local digest authority produced only after release-metadata verification.
+/// No CLI, environment, or deserialization surface can supply this value.
+#[derive(Debug, Clone)]
+pub(crate) struct VerifiedInstallDigests {
+    release_tag: String,
+    assets: std::collections::BTreeMap<String, String>,
+}
+
+impl VerifiedInstallDigests {
+    pub(super) fn from_verified_release(
+        release_tag: String,
+        assets: std::collections::BTreeMap<String, String>,
+    ) -> Self {
+        Self {
+            release_tag,
+            assets,
+        }
+    }
+
+    fn expected_checksum(&self, asset: &InstalledAsset) -> Result<&str> {
+        anyhow::ensure!(
+            self.release_tag == asset.version,
+            "verified install release tag mismatch"
+        );
+        self.assets
+            .get(&asset.name)
+            .map(String::as_str)
+            .with_context(|| format!("signed digest binding missing for {}", asset.name))
+    }
+}
+
 #[derive(Args, Debug)]
 pub struct InstallArgs {
     /// Platform target (auto-detected by default).
@@ -252,6 +283,10 @@ pub struct InstallArgs {
     /// deterministic recovery injection and is never exposed as a CLI flag.
     #[arg(skip)]
     pub compatibility_canary: bool,
+
+    /// Internal immutable digest authority; never accepted from a CLI flag.
+    #[arg(skip)]
+    pub(crate) verified_asset_digests: Option<VerifiedInstallDigests>,
 
     /// Promote verified assets to the authoritative `/usr/local/bin` system surface.
     /// Used explicitly by the verified bootstrap when bridging an older system install.
@@ -1972,6 +2007,16 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     let target = resolve_target(args.target)?;
     let channel = args.channel;
     let dry_run = args.dry_run;
+    if let Some(binding) = &args.verified_asset_digests {
+        anyhow::ensure!(
+            args.release_tag_override.as_deref() == Some(binding.release_tag.as_str()),
+            "verified install digest authority must match the exact requested release"
+        );
+    }
+    anyhow::ensure!(
+        !args.compatibility_canary || args.verified_asset_digests.is_some(),
+        "compatibility canary install requires current-signer frozen asset digests"
+    );
     anyhow::ensure!(
         !args.system_install || (target == InstallTarget::Linux && cfg!(target_os = "linux")),
         "--system-install is supported only by the native Linux authoritative /usr/local/bin surface"
@@ -3815,32 +3860,37 @@ fn install_root_for(target: InstallTarget) -> std::path::PathBuf {
 }
 
 // ----- Phase 3: Checksum verify (focusa-112-checksum) -----
-async fn verify_checksum(asset: &InstalledAsset) -> Result<()> {
-    // Per Spec 112 §5.1: download SHA256SUMS, parse, verify asset.
-    // When the GitHub release doesn't have SHA256SUMS (some previews don't),
-    // we surface a recovery_hint but don't fail.
-    let sha256sums_url =
-        release_asset_url("Startempire-Wire/focusa", &asset.version, "SHA256SUMS.txt");
-    let client = reqwest::Client::builder()
-        .user_agent("focusa-install/0.9.54-dev")
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|e| anyhow!("checksum client build failed: {e}"))?;
-    let resp = client.get(&sha256sums_url).send().await;
-    let body = match resp {
-        Ok(r) if r.status().is_success() => {
-            r.text().await.context("read SHA256SUMS response body")?
+async fn verify_checksum(
+    asset: &InstalledAsset,
+    verified: Option<&VerifiedInstallDigests>,
+) -> Result<()> {
+    // A signed binding is authoritative and never falls back to mutable metadata.
+    let body = if let Some(binding) = verified {
+        format!("{}  {}", binding.expected_checksum(asset)?, asset.name)
+    } else {
+        let sha256sums_url =
+            release_asset_url("Startempire-Wire/focusa", &asset.version, "SHA256SUMS.txt");
+        let client = reqwest::Client::builder()
+            .user_agent("focusa-install/0.9.54-dev")
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
+            .map_err(|e| anyhow!("checksum client build failed: {e}"))?;
+        let resp = client.get(&sha256sums_url).send().await;
+        match resp {
+            Ok(r) if r.status().is_success() => {
+                r.text().await.context("read SHA256SUMS response body")?
+            }
+            Ok(r) => bail!(
+                "SHA256SUMS.txt unavailable for {}: HTTP {}; refusing unverified install",
+                asset.version,
+                r.status()
+            ),
+            Err(error) => bail!(
+                "SHA256SUMS.txt request failed for {}: {}; refusing unverified install",
+                asset.version,
+                error
+            ),
         }
-        Ok(r) => bail!(
-            "SHA256SUMS.txt unavailable for {}: HTTP {}; refusing unverified install",
-            asset.version,
-            r.status()
-        ),
-        Err(error) => bail!(
-            "SHA256SUMS.txt request failed for {}: {}; refusing unverified install",
-            asset.version,
-            error
-        ),
     };
     let expected_line = body
         .lines()
@@ -4842,8 +4892,12 @@ async fn execute_real_install(
         phase: InstallPhase::VerifyIntegrity,
         message: "Verifying checksums and trust metadata".into(),
     });
+    anyhow::ensure!(
+        args.verified_asset_digests.is_none() || pi_extension.is_some(),
+        "signed distribution requires the Pi extension asset"
+    );
     if let Some(pi_asset) = pi_extension {
-        match verify_checksum(&pi_asset).await {
+        match verify_checksum(&pi_asset, args.verified_asset_digests.as_ref()).await {
             Ok(()) => match integrate_pi_extension(&pi_asset, install_root, None, None) {
                 Ok(path) => {
                     sink.emit(InstallEvent::PhaseSucceeded {
@@ -4851,12 +4905,18 @@ async fn execute_real_install(
                         detail: Some(format!("verified at {}", redact_url(&path))),
                     });
                 }
+                Err(error) if args.verified_asset_digests.is_some() => {
+                    return Err(error).context("signed distribution Pi integration failed");
+                }
                 Err(error) => sink.emit(InstallEvent::PhaseWarning {
                     phase: InstallPhase::IntegratePi,
                     message: "Pi integration could not be completed".into(),
                     recovery_hint: Some(redact_url(&error.to_string())),
                 }),
             },
+            Err(error) if args.verified_asset_digests.is_some() => {
+                return Err(error).context("signed distribution Pi checksum failed");
+            }
             Err(error) => sink.emit(InstallEvent::PhaseWarning {
                 phase: InstallPhase::IntegratePi,
                 message: "Pi extension verification unavailable".into(),
@@ -4872,7 +4932,7 @@ async fn execute_real_install(
     let bin_dir = install_root.join("bin");
     ensure_not_cancelled(cancellation)?;
     for asset in &assets {
-        verify_checksum(asset).await?;
+        verify_checksum(asset, args.verified_asset_digests.as_ref()).await?;
         sink.emit(InstallEvent::VerificationScan {
             asset: asset.name.clone(),
             outcome: focusa_terminal_ui::VerificationScanOutcome::Succeeded,
@@ -5216,6 +5276,69 @@ mod install_e6_failure_matrix_tests;
 mod tests {
     use super::*;
 
+    #[tokio::test]
+    async fn signed_install_digests_bind_bytes_tag_and_asset_without_fallback() {
+        let root =
+            std::env::temp_dir().join(format!("focusa-signed-digests-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("asset");
+        std::fs::write(&path, b"approved baseline bytes").unwrap();
+        let mut asset = InstalledAsset {
+            name: "focusa-v0.9.177-x86_64-unknown-linux-musl".into(),
+            version: "v0.9.177".into(),
+            triple: "x86_64-unknown-linux-musl".into(),
+            sha256: String::new(),
+            install_path: path.display().to_string(),
+        };
+        let binding = VerifiedInstallDigests::from_verified_release(
+            asset.version.clone(),
+            [(
+                asset.name.clone(),
+                hex::encode(Sha256::digest(b"approved baseline bytes")),
+            )]
+            .into(),
+        );
+        verify_checksum(&asset, Some(&binding)).await.unwrap();
+        asset.version = "v0.9.188".into();
+        assert!(
+            verify_checksum(&asset, Some(&binding))
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("tag mismatch")
+        );
+        asset.version = "v0.9.177".into();
+        let original_name = asset.name.clone();
+        asset.name = "unbound-asset".into();
+        assert!(
+            verify_checksum(&asset, Some(&binding))
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("binding missing")
+        );
+        asset.name = original_name;
+        std::fs::write(&path, b"tampered baseline bytes").unwrap();
+        assert!(
+            verify_checksum(&asset, Some(&binding))
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("checksum mismatch")
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn signed_install_digests_cannot_be_supplied_as_cli_authority() {
+        let command = InstallArgs::augment_args(clap::Command::new("install"));
+        assert!(
+            command
+                .try_get_matches_from(["install", "--verified-asset-digests", "{}"])
+                .is_err()
+        );
+    }
+
     #[cfg(unix)]
     fn write_executable(path: &std::path::Path, body: &str) {
         use std::os::unix::fs::PermissionsExt;
@@ -5440,6 +5563,7 @@ mod tests {
     #[test]
     fn dry_run_plan_lists_four_binaries_and_context() {
         let args = InstallArgs {
+            verified_asset_digests: None,
             target: InstallTarget::Linux,
             channel: Channel::Stable,
             dry_run: true,
@@ -5502,6 +5626,7 @@ mod tests {
     #[test]
     fn dry_run_plan_with_eval_flag_marks_limited_access_license() {
         let args = InstallArgs {
+            verified_asset_digests: None,
             target: InstallTarget::Darwin,
             channel: Channel::Stable,
             dry_run: true,
@@ -5934,6 +6059,7 @@ mod tests {
     #[test]
     fn dry_run_plan_with_license_key_marks_commercial() {
         let args = InstallArgs {
+            verified_asset_digests: None,
             target: InstallTarget::Linux,
             channel: Channel::Stable,
             dry_run: true,

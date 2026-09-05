@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import importlib.util
 import json
 import pathlib
 import subprocess
@@ -23,6 +24,31 @@ def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
 
 
 def main() -> int:
+    spec = importlib.util.spec_from_file_location("release_trust_metadata", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    metadata = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(metadata)
+    baseline = metadata.compatibility_baseline_input("v0.9.177")
+    for field, invalid in (
+        ("schema", "unknown"), ("tag", "v0.9.178"),
+        ("source_commit", "main"), ("provider_release_id", True),
+        ("checksums_sha256", "bad"), ("assets", {}),
+    ):
+        broken = {**baseline, field: invalid}
+        try:
+            metadata.validate_compatibility_baseline_input(broken, "v0.9.177")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"invalid baseline {field} was accepted")
+    for asset_name, digest in (("../escape-v0.9.177", "a" * 64), ("extra-v0.9.177", "invalid")):
+        broken = {**baseline, "assets": {**baseline["assets"], asset_name: digest}}
+        try:
+            metadata.validate_compatibility_baseline_input(broken, "v0.9.177")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("invalid baseline asset was accepted")
     with tempfile.TemporaryDirectory(prefix="focusa-release-trust-") as raw:
         root = pathlib.Path(raw)
         dist = root / "dist"
@@ -143,6 +169,9 @@ def main() -> int:
             "environment": "isolated_preproduction",
             "allowed_install_scope": "non_root_ephemeral_home",
             "required_previous_tag": "v0.9.177",
+            "baseline_release": json.loads(
+                (ROOT / "config/compatibility-canary-baselines/v0.9.177.json").read_text()
+            ),
             "required_sequence": [
                 "prior_release",
                 "candidate_manifest_bound_apply",
@@ -163,6 +192,18 @@ def main() -> int:
         assert candidate_provenance["workflow"].endswith(
             "locked-release-candidate-artifacts.yml"
         )
+
+        candidate_bytes = (dist / "release-manifest.json").read_bytes()
+        candidate_signature = (dist / "release-manifest.json.sig").read_bytes()
+        public.verify(candidate_signature, candidate_bytes)
+        altered = json.loads(candidate_bytes)
+        altered["compatibility_canary"]["baseline_release"]["checksums_sha256"] = "0" * 64
+        try:
+            public.verify(candidate_signature, json.dumps(altered, sort_keys=True).encode())
+        except InvalidSignature:
+            pass
+        else:
+            raise AssertionError("modified baseline binding retained candidate authority")
 
         unauthorized = run(
             *common_args,

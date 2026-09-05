@@ -57,8 +57,17 @@ marker, a signed lease fixture, a nonempty Focusa legacy database, and a user
 sentinel. The official prior CLI bootstrap must pass SHA-256 and detached Ed25519
 verification under current pinned authority before execution. Revoked keys remain
 blocked: an old signed timestamp or rotation note cannot authorize historical assets;
-a separately authorized current-root digest binding is required. The canary must prove deterministic recovery
-from an interrupted candidate install, then perform full-release apply, full rollback,
+a separately authorized current-root digest binding is required. The candidate's
+signed `compatibility_canary.baseline_release` binds the prior tag, source commit,
+provider release identity, checksum-document digest, and complete baseline asset
+map. Reviewed inputs live in `config/compatibility-canary-baselines/`; those files
+alone grant no authority. Missing or malformed bindings fail closed. Bootstrap and
+rollback must enforce the verified digests through the canonical Rust installer
+before executable probes; reauthorizing only an old installer does not authorize
+unbound files it may download. Until that installer binding is available, baseline
+execution remains blocked even if manifest generation passes.
+
+The canary must prove deterministic recovery from an interrupted candidate install, then perform full-release apply, full rollback,
 and reapply through the canonical installer transaction. Every phase verifies binary
 and Pi versions, daemon health, lease/sentinel preservation, SQLite integrity, additive
 schema/row-count evidence, and—on candidate phases—the complete installed

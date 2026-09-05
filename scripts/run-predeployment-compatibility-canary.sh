@@ -103,7 +103,6 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 mkdir -p \
-  "$CANARY_ROOT/bootstrap/prior" \
   "$CANARY_ROOT/bootstrap/candidate" \
   "$CANARY_ROOT/.config/focusa" \
   "$CANARY_ROOT/.local/share" \
@@ -137,6 +136,10 @@ export XDG_CONFIG_HOME="$CANARY_ROOT/.config"
 export XDG_DATA_HOME="$CANARY_ROOT/.local/share"
 export XDG_STATE_HOME="$CANARY_ROOT/.local/state"
 export XDG_CACHE_HOME="$CANARY_ROOT/.cache"
+export npm_config_cache="$CANARY_ROOT/.cache/npm"
+export NPM_CONFIG_USERCONFIG="$CANARY_ROOT/.config/npmrc"
+: > "$NPM_CONFIG_USERCONFIG"
+unset NODE_OPTIONS NODE_PATH BUN_INSTALL BUN_INSTALL_CACHE_DIR COREPACK_HOME XDG_RUNTIME_DIR
 export FOCUSA_DATA_DIR="$CANARY_ROOT/data"
 export FOCUSA_PI_EXT_DIR="$CANARY_ROOT/pi/extensions"
 export PI_CODING_AGENT_DIR="$CANARY_ROOT/pi"
@@ -316,34 +319,30 @@ PRODUCTION_BEFORE="$(production_fingerprint)"
 LICENSE_BEFORE="$(sha256sum "$CANARY_ROOT/.config/focusa/license.json" | awk '{print $1}')"
 SENTINEL_BEFORE="$(sha256sum "$CANARY_ROOT/user-sentinel.txt" | awk '{print $1}')"
 
-PRIOR_CLI="focusa-${PREVIOUS_TAG}-x86_64-unknown-linux-musl"
 CANDIDATE_CLI="focusa-${RELEASE_TAG}-x86_64-unknown-linux-musl"
 CANDIDATE_INSTALLER="focusa-installer-${RELEASE_TAG}.sh"
-download_bootstrap_bundle "$PREVIOUS_TAG" "$PRIOR_CLI" "$CANARY_ROOT/bootstrap/prior"
 download_bootstrap_bundle "$RELEASE_TAG" "$CANDIDATE_CLI" "$CANARY_ROOT/bootstrap/candidate"
 download_bootstrap_bundle "$RELEASE_TAG" "$CANDIDATE_INSTALLER" "$CANARY_ROOT/bootstrap/candidate"
 # No downloaded executable receives repository credentials. Subsequent GitHub
 # release reads are public and remain exact-tag/signature bound.
 unset GITHUB_TOKEN GH_TOKEN
 chmod 0755 \
-  "$CANARY_ROOT/bootstrap/prior/$PRIOR_CLI" \
   "$CANARY_ROOT/bootstrap/candidate/$CANDIDATE_CLI" \
   "$CANARY_ROOT/bootstrap/candidate/$CANDIDATE_INSTALLER"
 cp "$CANARY_ROOT/bootstrap/candidate/$CANDIDATE_CLI" \
   "$CANARY_ROOT/bootstrap/candidate/focusa-updater"
 chmod 0755 "$CANARY_ROOT/bootstrap/candidate/focusa-updater"
 
-FOCUSA_RELEASE_TAG="$PREVIOUS_TAG" \
-  "$CANARY_ROOT/bootstrap/prior/$PRIOR_CLI" install \
-    --target linux \
-    --channel stable \
-    --github-repo "$GITHUB_REPOSITORY" \
-    --accept-license \
-    --assume-yes \
-    --no-service \
-    --no-persist-path \
-    --no-animation \
-    --quiet
+# Only the current, verified CLI installs the baseline. Its signed candidate
+# manifest authorizes every historical digest before any installed probe runs.
+"$CANARY_ROOT/bootstrap/candidate/focusa-updater" update compatibility-bootstrap \
+  --channel stable \
+  --latest-version "$RELEASE_TAG" \
+  --daemon-health-url "http://127.0.0.1:$DAEMON_PORT/v1/health" \
+  --compatibility-canary-root "$CANARY_ROOT" \
+  --yes \
+  --allow-apply \
+  --dry-run=false
 verify_phase "$PREVIOUS_TAG" 0 prior-initial
 
 # The separately signed public candidate bootstrap is inert inside the canary;

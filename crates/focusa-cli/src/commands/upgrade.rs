@@ -112,6 +112,7 @@ pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
         release_tag_override: Some(resolved.tag.clone()),
         allow_verified_rollback: false,
         compatibility_canary: false,
+        verified_asset_digests: None,
         system_install,
         persist_path: args.persist_path,
         no_persist_path: args.no_persist_path,

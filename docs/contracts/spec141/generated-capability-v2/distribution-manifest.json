@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.187",
-  "source_commit": "c3d3c83bf",
-  "generated_at": "2026-09-05T02:30:28.587485Z",
+  "source_commit": "e508d81f4",
+  "generated_at": "2026-09-05T03:56:56.834966Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:99225d837b6c8cda80703585c3acbe455277bc6adf6b431e1f72339ef1fb05c9",
@@ -16,7 +16,7 @@
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:c09ca4490d0ab80c30e089f320505211fa90e881c21b2761c38db2f39600d3f0",
+      "sha256": "sha256:95c0c5035f08dc83bb23dcb89e55551ba0ee4c6df0e6b80d7e0e6e430ae2e4e7",
       "file_count": 825,
       "source_paths": [
         "Cargo.toml",
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:f9c51ca3919f3d2508a5f781660b4734e3934543946da245a9c8f024133a4e0f",
+      "sha256": "sha256:4e437114372efc547f2e0af85d0ff76f450a003f28b2ddb2b9e937090de80608",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -77,8 +77,8 @@
     },
     "release_tooling": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:0e039ad86242e0fc1f59b95c32b2662ebc618c73e7da3b71aa4452d3e7324c65",
-      "file_count": 33,
+      "sha256": "sha256:2cba852481d5ed5791f5fd54732faa77320dac6ce53815801e411d8a210f5efb",
+      "file_count": 34,
       "source_paths": [
         ".appveyor.yml",
         "codemagic.yaml",
@@ -94,6 +94,7 @@
         "scripts/verify-canonical-release-assets.py",
         "scripts/wait-for-external-release-assets.py",
         "scripts/release-trust-metadata.py",
+        "config/compatibility-canary-baselines/v0.9.177.json",
         "scripts/release-deploy-proof.py",
         "scripts/verify-release-bootstrap-asset.py",
         "scripts/run-predeployment-compatibility-canary.sh",

@@ -1,4 +1,5 @@
 use super::{GithubAsset, GithubRelease, ReleaseAssetRef, TrustedReleaseKeySet};
+use crate::commands::install::VerifiedInstallDigests;
 use anyhow::{Context, Result, anyhow, bail};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use focusa_core::update::{
@@ -26,6 +27,8 @@ pub(super) struct VerifiedReleaseTrust {
     pub required_previous_tag: Option<String>,
     pub trusted_key_id: String,
     pub trusted_key_fingerprint: String,
+    pub candidate_asset_digests: VerifiedInstallDigests,
+    pub baseline_asset_digests: Option<VerifiedInstallDigests>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -222,6 +225,12 @@ fn verify_compatibility_canary_authorization(manifest: &ReleaseManifest) -> Resu
     if !manifest.assets.contains_key("distribution-manifest.json") {
         bail!("compatibility canary candidate lacks a signed distribution manifest");
     }
+    authorization
+        .baseline_release
+        .as_ref()
+        .context("signed compatibility baseline binding is missing")?
+        .validate_for_tag(previous)
+        .map_err(anyhow::Error::msg)?;
     Ok(previous.to_string())
 }
 
@@ -436,7 +445,26 @@ pub(super) fn verify_release_metadata(
         required.sha256 = Some(manifest_asset.sha256.clone());
     }
 
+    let baseline_asset_digests = if mode == ReleaseMetadataMode::CompatibilityCanary {
+        manifest
+            .compatibility_canary
+            .as_ref()
+            .and_then(|authorization| authorization.baseline_release.as_ref())
+            .map(|baseline| {
+                VerifiedInstallDigests::from_verified_release(
+                    baseline.tag.clone(),
+                    baseline.assets.clone(),
+                )
+            })
+    } else {
+        None
+    };
     Ok(VerifiedReleaseTrust {
+        candidate_asset_digests: VerifiedInstallDigests::from_verified_release(
+            manifest.tag.clone(),
+            checksums,
+        ),
+        baseline_asset_digests,
         manifest_signature_verified: true,
         provenance_verified: true,
         deploy_proof_verified: mode == ReleaseMetadataMode::Production,
@@ -472,6 +500,9 @@ mod tests {
                 "environment": "isolated_preproduction",
                 "allowed_install_scope": "non_root_ephemeral_home",
                 "required_previous_tag": "v0.9.177",
+                "baseline_release": serde_json::from_str::<Value>(include_str!(
+                    "../../../../config/compatibility-canary-baselines/v0.9.177.json"
+                )).expect("reviewed baseline input"),
                 "required_sequence": [
                     "prior_release",
                     "candidate_manifest_bound_apply",
@@ -539,6 +570,38 @@ mod tests {
             verify_compatibility_canary_authorization(&manifest).unwrap(),
             "v0.9.177"
         );
+    }
+
+    #[test]
+    fn signed_canary_baseline_binding_rejects_unbound_history() {
+        let mut missing = valid_canary_manifest();
+        missing
+            .compatibility_canary
+            .as_mut()
+            .unwrap()
+            .baseline_release = None;
+        assert!(verify_compatibility_canary_authorization(&missing).is_err());
+        let mut manifest = valid_canary_manifest();
+        let baseline = serde_json::from_str(include_str!(
+            "../../../../config/compatibility-canary-baselines/v0.9.177.json"
+        ))
+        .expect("reviewed baseline fixture");
+        manifest
+            .compatibility_canary
+            .as_mut()
+            .unwrap()
+            .baseline_release = Some(baseline);
+        assert!(verify_compatibility_canary_authorization(&manifest).is_ok());
+        manifest
+            .compatibility_canary
+            .as_mut()
+            .unwrap()
+            .baseline_release
+            .as_mut()
+            .unwrap()
+            .assets
+            .clear();
+        assert!(verify_compatibility_canary_authorization(&manifest).is_err());
     }
 
     #[test]

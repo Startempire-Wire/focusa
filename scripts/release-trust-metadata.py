@@ -33,6 +33,45 @@ METADATA_NAMES = {
 }
 
 
+def validate_compatibility_baseline_input(baseline: dict[str, Any], tag: str) -> dict[str, Any]:
+    """Validate input; this function never grants authority or accepts old keys."""
+    if baseline.get("schema") != "focusa.compatibility_baseline_input.v1" or baseline.get("tag") != tag:
+        raise ValueError("compatibility baseline identity mismatch")
+    release_id = baseline.get("provider_release_id")
+    if type(release_id) is not int or not 0 < release_id < 2**64:
+        raise ValueError("compatibility baseline provider release identity is invalid")
+    if not re.fullmatch(r"[0-9a-f]{40}", baseline.get("source_commit", "")):
+        raise ValueError("compatibility baseline requires an exact source commit")
+    if not re.fullmatch(r"[0-9a-f]{64}", baseline.get("checksums_sha256", "")):
+        raise ValueError("compatibility baseline checksum document digest is invalid")
+    assets = baseline.get("assets")
+    if not isinstance(assets, dict) or not assets:
+        raise ValueError("compatibility baseline asset digests are missing")
+    for name, digest in assets.items():
+        # Publisher aliases (latest.json, app archives) need not encode a tag;
+        # the signed baseline identity and exact digest bind their release.
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*", name):
+            raise ValueError("compatibility baseline asset name is invalid")
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValueError("compatibility baseline asset digest is invalid")
+    required = {
+        f"{binary}-{tag}-x86_64-unknown-linux-musl"
+        for binary in ("focusa", "focusa-daemon", "focusa-tui")
+    } | {f"focusa-pi-extension-{tag}.tar.gz", f"focusa-agent-context-{tag}.tar.gz"}
+    if not required.issubset(assets):
+        raise ValueError("compatibility baseline lacks a complete canary distribution")
+    return baseline
+
+
+def compatibility_baseline_input(tag: str) -> dict[str, Any]:
+    """Repository-reviewed input becomes authority only inside the signed manifest."""
+    if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag):
+        raise ValueError("compatibility baseline tag is invalid")
+    path = pathlib.Path(__file__).resolve().parents[1] / "config" / "compatibility-canary-baselines" / f"{tag}.json"
+    baseline = json.loads(path.read_text(encoding="utf-8"))
+    return validate_compatibility_baseline_input(baseline, tag)
+
+
 def sha256(path: pathlib.Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -242,6 +281,7 @@ def main() -> int:
                 "environment": "isolated_preproduction",
                 "allowed_install_scope": "non_root_ephemeral_home",
                 "required_previous_tag": args.compatibility_from_tag,
+                "baseline_release": compatibility_baseline_input(args.compatibility_from_tag),
                 "required_sequence": [
                     "prior_release",
                     "candidate_manifest_bound_apply",

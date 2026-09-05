@@ -67,6 +67,7 @@ COMPONENT_PATHS: dict[str, tuple[str, ...]] = {
         "scripts/verify-canonical-release-assets.py",
         "scripts/wait-for-external-release-assets.py",
         "scripts/release-trust-metadata.py",
+        "config/compatibility-canary-baselines/v0.9.177.json",
         "scripts/release-deploy-proof.py",
         "scripts/verify-release-bootstrap-asset.py",
         "scripts/run-predeployment-compatibility-canary.sh",
