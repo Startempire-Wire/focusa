@@ -192,7 +192,7 @@ focusa device pair-start --device-name operator-macbook --platform macos
 
 ### 08 · Public proof, redacted by default
 
-![Focusa public proof cards](docs/assets/readme/08-public-proof-cards.svg)
+![Focusa public proof cards](docs/assets/readme/08-public-proof.svg)
 
 Focusa can produce public-safe proof summaries without exposing local paths, full chat logs, license data, secrets, or personal operator state.
 
