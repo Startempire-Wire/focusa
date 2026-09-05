@@ -13,6 +13,9 @@ trap cleanup_ephemeral_builds EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+# Fail cheap on fixture regressions before compiling the isolated daemon.
+python3 "$ROOT_DIR/tests/spec_gate_git_fixture_test.py"
+
 EXPECTED_OWNER="$(stat -c %U "$ROOT_DIR")"
 find_owner_drift() {
   find "$ROOT_DIR" -xdev     \( -path "$ROOT_DIR/.git" -o -path "$ROOT_DIR/target" -o -path '*/node_modules' -o -path "$ROOT_DIR/data" -o -path "$ROOT_DIR/ecs" \) -prune -o     -user root -print -quit
@@ -54,8 +57,12 @@ if [[ "$FOCUSA_TEST_MODE" == "1" ]] && ! git -C "$ROOT_DIR" rev-parse --git-dir 
   git init -q "$TEST_GIT_DIR"
   git -C "$TEST_GIT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate base'
   git -C "$TEST_GIT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate head'
-  export GIT_DIR="$TEST_GIT_DIR"
+  export GIT_DIR="$TEST_GIT_DIR/.git"
   export GIT_WORK_TREE="$ROOT_DIR"
+  [[ "$(git rev-list --count HEAD)" == "2" ]] || {
+    echo "synthetic gate history must contain exactly two commits" >&2
+    exit 1
+  }
 fi
 if [[ "$FOCUSA_TEST_MODE" == "1" && ! -s "$ROOT_DIR/.beads/issues.jsonl" ]]; then
   # OVH source sync intentionally excludes repository Beads history. Supply
@@ -92,6 +99,7 @@ cleanup() {
     rm -f "$TEST_BEADS_FIXTURE" >/dev/null 2>&1 || true
   fi
   if [[ -n "$TEST_GIT_DIR" ]]; then
+    unset GIT_DIR GIT_WORK_TREE
     rm -rf "$TEST_GIT_DIR" >/dev/null 2>&1 || true
   fi
   cleanup_ephemeral_builds
