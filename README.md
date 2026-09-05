@@ -31,6 +31,8 @@ When a coding session gets long, context compacts, the mission drifts, proof get
 - **Customer lifecycle:** idempotent install/repair, trusted Linux/macOS/Windows release assets, OTA/update rollback, and uninstall with user data preserved unless purge is explicit.
 - **Release provider map:** temporary Linux/GitHub-self-hosted, Windows/AppVeyor, and macOS/Codemagic routing—and the one-change-set return to GitHub—is defined in [`docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md`](docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md).
 - **Agent-ready by construction:** every Focusa Pi tool has a runtime contract, generated machine schema, per-tool document, skill routing, and a progressively disclosed runbook.
+- **Pi reference harness:** Pi + the Focusa Pi extension is the default/reference Focusa-aware harness integration. That role is fundamental to the reference agent experience but does not move cognitive authority out of Focusa daemon/core or make non-Pi harnesses second-class.
+- **Focusa Desktop presenter:** Focusa Desktop is a governed presenter over the same Focusa authority and operation guards. In supported full Veragensia Agent Computer profiles it is the default human work/cognition surface; it does not become a second reducer, state store, or product authority.
 
 Trajectory ladder: **HLT** (High-Level Trajectory) → **MLG** (Mid-Level Goal) → **STG** (Short-Term Goal) → **Waypoints** (concrete progress markers). Workpoint remains immediate action authority. The operator has authority; agents actively offer HLT-aligned Waypoints, STGs, and MLGs without silently changing the root goal.
 
@@ -157,11 +159,13 @@ focusa tui --headless-self-test --json
 
 ![Focusa Pi extension](docs/assets/readme/05-pi-extension.svg)
 
-The Pi extension lets agents call Focusa directly, linking Workpoints, Evidence, trajectory, recovery tools, and bounded state without inventing a parallel memory system.
+The Pi extension is Focusa's reference/default harness integration. It lets agents call Focusa directly, linking Workpoints, Evidence, trajectory, recovery tools, and bounded state without inventing a parallel memory system.
 
 ```text
 focusa_workpoint_resume → focusa_trajectory_view → focusa_evidence_capture
 ```
+
+Non-Pi agents remain first-class through the same canonical daemon/core state and generated contracts; their adapters must stay thin rather than reconstructing Focusa as local harness memory.
 
 ### 06 · Local daemon, typed API
 
@@ -175,11 +179,11 @@ focusa status operator --json
 focusa help migration
 ```
 
-### 07 · Menubar cockpit preview
+### 07 · Menubar / Focusa Desktop presenter preview
 
 ![Focusa menubar preview](docs/assets/readme/07-menubar-preview.svg)
 
-The macOS/Tauri menubar is a preview surface. The primary Operator Preview today is daemon, CLI, TUI, Workpoints, Evidence, and Pi integration.
+The macOS/Tauri menubar and Focusa Desktop bridge are presenter surfaces over Focusa operations. The primary Operator Preview today is daemon, CLI, TUI, Workpoints, Evidence, and Pi integration; presenter surfaces must preserve the same authority decisions rather than evaluate them independently.
 
 ```bash
 focusa pairing start --help
@@ -188,7 +192,7 @@ focusa device pair-start --device-name operator-macbook --platform macos
 
 ### 08 · Public proof, redacted by default
 
-![Focusa public proof cards](docs/assets/readme/08-public-proof.svg)
+![Focusa public proof cards](docs/assets/readme/08-public-proof-cards.svg)
 
 Focusa can produce public-safe proof summaries without exposing local paths, full chat logs, license data, secrets, or personal operator state.
 
@@ -241,8 +245,8 @@ Deprecated aliases warn and point to canonical commands; for example, `focusa pa
 - **`focusa-cli`** — operator and agent command surface.
 - **`focusa-core`** — Workpoints, Evidence, reducers, runtime state, and persistence.
 - **`focusa-tui`** — terminal Mission Deck.
-- **`apps/pi-extension`** — Pi coding-agent integration.
-- **`apps/menubar`** — preview macOS/Tauri cockpit.
+- **`apps/pi-extension`** — reference/default Pi coding-agent integration and generated Focusa tool/skill surface.
+- **`apps/menubar`** — native/Tauri presenter implementation, including Focusa Desktop bridge behavior; presenter only, not cognitive authority.
 
 ## Proof and CI
 
