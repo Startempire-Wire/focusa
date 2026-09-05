@@ -31,6 +31,12 @@ When a coding session gets long, context compacts, the mission drifts, proof get
 - **Customer lifecycle:** idempotent install/repair, trusted Linux/macOS/Windows release assets, OTA/update rollback, and uninstall with user data preserved unless purge is explicit.
 - **Release provider map:** temporary Linux/GitHub-self-hosted, Windows/AppVeyor, and macOS/Codemagic routing—and the one-change-set return to GitHub—is defined in [`docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md`](docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md).
 - **Agent-ready by construction:** every Focusa Pi tool has a runtime contract, generated machine schema, per-tool document, skill routing, and a progressively disclosed runbook.
+- **Pi reference harness:** Pi + the Focusa Pi extension is the default/reference Focusa-aware harness integration. That role is fundamental to the reference agent experience but does not move cognitive authority out of Focusa daemon/core or make non-Pi harnesses second-class.
+- **Focusa Desktop presenter:** Focusa Desktop is a governed presenter over the same Focusa authority and operation guards. In supported full Veragensia Agent Computer profiles it is the default human work/cognition surface; it does not become a second reducer, state store, or product authority.
+- **Voice / Conversation primitive:** Doc 08 Expression Engine remains the semantic expression owner; [Spec 181](docs/181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md) defines full-duplex spoken interaction, speaker/agent attribution, transcript correction lineage, interruption, group conversation and a local-first Conversation Ledger while preserving the rule that conversation is not memory and voice is not authority.
+- **Project Foreman:** [Spec 182](docs/182-focusa-project-foreman-workstream-intelligence-projection-spec.md) defines the Foreman as the persistent Workstream-scoped projection of project intelligence across models, sessions, Desktop, mobile, voice and workers—not another chatbot or memory store.
+- **Radar:** [Spec 183](docs/183-focusa-radar-proactive-observation-episodes-signal-economics-and-attention-routing-spec.md) defines proactive scoped observation, deduplicated Episodes, Signal economics and attention routing while preserving `observation != authority` and Spec 139 ownership of runtime presence/placement.
+- **Ambient Operator:** [Spec 184](docs/184-focusa-ambient-operator-mobile-wearable-presence-meeting-and-sync-spec.md) projects the same governed system through phone/earbuds/wearables for bounded presence, wake/conversation, meetings, Radar attention, Foreman/Wirebot routing and private/offline sync without making the device a second brain.
 
 Trajectory ladder: **HLT** (High-Level Trajectory) → **MLG** (Mid-Level Goal) → **STG** (Short-Term Goal) → **Waypoints** (concrete progress markers). Workpoint remains immediate action authority. The operator has authority; agents actively offer HLT-aligned Waypoints, STGs, and MLGs without silently changing the root goal.
 
@@ -114,7 +120,7 @@ focusa workpoint resume --project-root "$PWD" --continuity-id demo-continuity --
 
 ![Focusa evidence refs](docs/assets/readme/02-evidence-refs.svg)
 
-Focusa stores proof as Evidence refs tied to the active Workpoint: tests, files, routes, screenshots, command output, and release checks.
+Focusa stores proof as Evidence refs tied to the active Workpoint: tests, files, route checks, screenshots, command output, and release checks.
 
 ```bash
 focusa workpoint evidence-link \
@@ -157,11 +163,13 @@ focusa tui --headless-self-test --json
 
 ![Focusa Pi extension](docs/assets/readme/05-pi-extension.svg)
 
-The Pi extension lets agents call Focusa directly, linking Workpoints, Evidence, trajectory, recovery tools, and bounded state without inventing a parallel memory system.
+The Pi extension is Focusa's reference/default harness integration. It lets agents call Focusa directly, linking Workpoints, Evidence, trajectory, recovery tools, and bounded state without inventing a parallel memory system.
 
 ```text
 focusa_workpoint_resume → focusa_trajectory_view → focusa_evidence_capture
 ```
+
+Non-Pi agents remain first-class through the same canonical daemon/core state and generated contracts; their adapters must stay thin rather than reconstructing Focusa as local harness memory.
 
 ### 06 · Local daemon, typed API
 
@@ -175,11 +183,11 @@ focusa status operator --json
 focusa help migration
 ```
 
-### 07 · Menubar cockpit preview
+### 07 · Menubar / Focusa Desktop presenter preview
 
 ![Focusa menubar preview](docs/assets/readme/07-menubar-preview.svg)
 
-The macOS/Tauri menubar is a preview surface. The primary Operator Preview today is daemon, CLI, TUI, Workpoints, Evidence, and Pi integration.
+The macOS/Tauri menubar and Focusa Desktop bridge are presenter surfaces over Focusa operations. The primary Operator Preview today is daemon, CLI, TUI, Workpoints, Evidence, and Pi integration; presenter surfaces must preserve the same authority decisions rather than evaluate them independently.
 
 ```bash
 focusa pairing start --help
@@ -241,8 +249,12 @@ Deprecated aliases warn and point to canonical commands; for example, `focusa pa
 - **`focusa-cli`** — operator and agent command surface.
 - **`focusa-core`** — Workpoints, Evidence, reducers, runtime state, and persistence.
 - **`focusa-tui`** — terminal Mission Deck.
-- **`apps/pi-extension`** — Pi coding-agent integration.
-- **`apps/menubar`** — preview macOS/Tauri cockpit.
+- **`apps/pi-extension`** — reference/default Pi coding-agent integration and generated Focusa tool/skill surface.
+- **`apps/menubar`** — native/Tauri presenter implementation, including Focusa Desktop bridge behavior; presenter only, not cognitive authority.
+- **Voice/Conversation** — [Spec 181](docs/181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md) extends the Expression Engine into an auditable spoken-conversation contract; provider-specific ASR/TTS remain adapters.
+- **Project Foreman** — [Spec 182](docs/182-focusa-project-foreman-workstream-intelligence-projection-spec.md) is one Workstream's persistent project-responsible agent role projection across surfaces/runtimes.
+- **Radar** — [Spec 183](docs/183-focusa-radar-proactive-observation-episodes-signal-economics-and-attention-routing-spec.md) turns approved runtime/external observations into scoped Episodes/Signals and optimized attention without becoming action authority.
+- **Ambient Operator** — [Spec 184](docs/184-focusa-ambient-operator-mobile-wearable-presence-meeting-and-sync-spec.md) binds phone/earbuds/wearables, meetings, bounded presence and offline/private sync to the same Focusa operations and identities.
 
 ## Proof and CI
 
@@ -259,6 +271,12 @@ The cross-phase smoke suite checks project dashboard commands, first-mission dry
 
 ## Documentation
 
+- Voice/conversation primitive: [`docs/181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md`](docs/181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md)
+- Project Foreman: [`docs/182-focusa-project-foreman-workstream-intelligence-projection-spec.md`](docs/182-focusa-project-foreman-workstream-intelligence-projection-spec.md)
+- Radar: [`docs/183-focusa-radar-proactive-observation-episodes-signal-economics-and-attention-routing-spec.md`](docs/183-focusa-radar-proactive-observation-episodes-signal-economics-and-attention-routing-spec.md)
+- Ambient Operator: [`docs/184-focusa-ambient-operator-mobile-wearable-presence-meeting-and-sync-spec.md`](docs/184-focusa-ambient-operator-mobile-wearable-presence-meeting-and-sync-spec.md)
+- Voice/Foreman/Radar/Ambient current manifest: [`docs/181-184-voice-foreman-radar-ambient-operator-current-manifest.md`](docs/181-184-voice-foreman-radar-ambient-operator-current-manifest.md)
+- Expression Engine semantic voice boundary: [`docs/08-expression-engine.md`](docs/08-expression-engine.md)
 - Current CLI reference: [`docs/current/CLI_REFERENCE_CURRENT.md`](docs/current/CLI_REFERENCE_CURRENT.md)
 - Production/release commands: [`docs/current/PRODUCTION_RELEASE_COMMANDS.md`](docs/current/PRODUCTION_RELEASE_COMMANDS.md)
 - Troubleshooting: [`docs/current/TROUBLESHOOTING_CURRENT.md`](docs/current/TROUBLESHOOTING_CURRENT.md)
