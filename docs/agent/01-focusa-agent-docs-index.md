@@ -12,6 +12,8 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 
 **Voice/Conversation is a first-class Focusa primitive.** Doc 08 Expression Engine owns semantic expression—what Focusa says now—and Spec 181 owns spoken ConversationSession/Participant/Utterance/TranscriptRevision/SpokenOutput lineage and the local-first Conversation Ledger. Conversation can be extensively retained and audited without becoming canonical memory or authority.
 
+**Project Foreman, Radar, and Ambient Operator are now current primitives.** Spec 182 defines one Workstream's persistent project-intelligence role projection, Spec 183 proactive scoped attention, and Spec 184 the paired mobile/wearable/meeting surface. Historical `Radar Spec 164` and `135M` are proposal provenance only; current Spec 164 remains Workstream-rooted runtime.
+
 ## 2. Architecture map
 
 | Layer | Purpose | Key locations |
@@ -21,6 +23,9 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 | Core | reducers, Workpoints, Evidence, runtime state, persistence | `crates/focusa-core/src/` |
 | Expression Engine | deterministic semantic expression; modality-neutral content before text/audio rendering | `docs/08-expression-engine.md`, `crates/focusa-core/src/expression/` |
 | Voice / Conversation | spoken-session participants, ASR hypotheses/corrections, utterances, group conversation, spoken-output lineage, Conversation Ledger | `docs/181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md` |
+| Project Foreman | persistent Workstream-scoped project-responsible intelligence across models/surfaces/workers | `docs/182-focusa-project-foreman-workstream-intelligence-projection-spec.md` |
+| Radar | proactive scoped observations, Episodes, Signals, attention economics and Foreman routing | `docs/183-focusa-radar-proactive-observation-episodes-signal-economics-and-attention-routing-spec.md` |
+| Ambient Operator | paired mobile/wearable presence, meetings, voice routing, offline/private sync | `docs/184-focusa-ambient-operator-mobile-wearable-presence-meeting-and-sync-spec.md` |
 | Work loop + Silent Sessions | governed execution, durable runs, steering, receipts | `crates/focusa-core/src/silent_sessions/`, `docs/133-silent-sessions-final-release-proof.md` |
 | Mission Canvas + Work Rail | scoped work surfaces, interviews, artifacts, generated UI | `docs/135-series-current-manifest.md`, `apps/menubar/` |
 | Connectors + domains | provider-neutral context, auth lifecycle, software/domain projections | `crates/focusa-core/src/connectors.rs`, `docs/contracts/spec135/` |
@@ -35,9 +40,13 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 ### 2.1 Current authority and recovery model
 
 - Exact authority is `project_root + continuity_id`; parent repositories and worktrees are ranked binding candidates, then verified before mutation.
+- Workstream Root (Spec 164) is the durable project runtime root; state does not become daemon-global merely for convenience.
 - Workpoint is immediate action authority; Trajectory supplies destination, current state, gap, and waypoints.
 - Focus State is the bounded decision/constraint/failure journal, not a transcript replacement.
 - **Conversation Ledger is provenance/audit history, not Focus State or memory authority.** Full transcripts may survive while meaning/continuation still comes from Focusa canonical state.
+- **Project Foreman is a role projection over one Workstream's canonical intelligence, not a hidden session memory.** Model/provider/harness switching changes runtime attachment rather than project identity.
+- **Radar is observation/attention, not authority.** Radar Signals/Episodes never directly mint a Workpoint, grant, or canonical fact.
+- **Ambient Operator is a paired surface, not a second brain.** Raw phone/life context remains in its owning domain until a bounded projection is explicitly relevant.
 - ASR output is a speech hypothesis with confidence/correction lineage. Consequential ambiguity does not silently become operator instruction.
 - Speaker/agent attribution remains explicit; synthetic TTS voice is presentation, not principal identity or authority.
 - Silent Sessions are daemon-native. Exact `session_id`, `run_id`, `generation`, approval, and idempotency values govern mutations.
@@ -61,7 +70,22 @@ When a change touches speech, audio, transcript, group conversation, speaker ide
 7. Preserve transcript/speaker correction lineage instead of rewriting history.
 8. In group conversations, preserve independent agent/expert speaker identity and action/Evidence/Receipt lineage.
 
-### 2.3 All-Pi-tool and skill discovery
+### 2.3 Foreman / Radar / Ambient fast path
+
+When a change touches persistent project-agent identity, proactive monitoring, Radar Signals/Episodes, mobile/earbud presence, wake words, meeting capture, Context Core projection, or Wirebot cross-project routing:
+
+1. Read `docs/181-184-voice-foreman-radar-ambient-operator-current-manifest.md`.
+2. Read Spec 164 before changing Workstream/Foreman identity.
+3. Read Spec 139 before changing environment presence or execution placement.
+4. Read Specs 182–184 for Foreman/Radar/Ambient ownership.
+5. Resolve exact Workstream before Foreman mutation/delegation.
+6. Keep Radar source/freshness/fingerprint/Episode lineage and never promote observation directly into authority.
+7. Keep life-context raw sensors/GPS in their owner domain by default; publish bounded Ambient presence projections only when relevant.
+8. Keep meeting/wake/voice under Spec 181; raw transcript/audio does not become Radar storage or project memory.
+9. Mobile sync submits typed, authenticated, replay-safe operations/segments rather than reducer/database writes.
+10. Wirebot/Chief of Staff may aggregate bounded cross-Workstream projections but does not become a global Focusa project singleton.
+
+### 2.4 All-Pi-tool and skill discovery
 
 1. `focusa_agent_card` reports the runtime tool count, complete installed skill/runbook inventory, interfaces, auth, and registry digest.
 2. `focusa_tool_search` finds the narrowest capability without hot-loading every schema.
@@ -124,17 +148,20 @@ bash tests/spec_cli_cross_phase_smoke_test.sh
 - Telemetry snapshot route: `GET /v1/telemetry/snapshot`.
 - Project-scoped mutations must use a verified safe project root.
 - Daemon-global advisory surfaces must say they are advisory and non-canonical.
-- Future voice/conversation routes must preserve canonical operation/authority semantics and use bounded handles for large audio/transcript content.
+- Future voice/conversation, Foreman, Radar, and Ambient routes must preserve canonical scope/operation/authority semantics and use bounded handles for large audio/transcript content.
 
-## 5. Workpoints, Evidence, Trajectory, and Conversation
+## 5. Workpoints, Evidence, Trajectory, Conversation, Foreman, and Radar
 
 - **Workpoint** is the immediate continuation contract: mission, scope, current action, next action, blockers, and proof handles.
 - **Evidence** is proof linked to the active Workpoint: tests, files, route checks, screenshots, command output, or release checks.
 - **Trajectory** is advisory north-star context: long-term direction and current gap. It orients work but does not override a canonical Workpoint.
 - **Context Authority** decides whether a proposed action matches the task, project, environment, and install role.
 - **Conversation Ledger** records attributable interaction provenance and action links; it does not become a replacement Workpoint, Focus State, durable knowledge store, or authority system.
+- **Project Foreman** presents one Workstream's persistent project responsibility; it does not create a new task/memory/permission universe.
+- **Radar** turns approved observations into scoped Episodes/Signals/attention decisions; it does not turn detection into authorization.
+- **Ambient Operator** routes paired mobile/wearable context and conversation into the same canonical operations.
 
-Never treat transcript tail, old spoken discussion, or synthetic voice identity as canonical authority when Workpoint/scope/authority gates are available.
+Never treat transcript tail, old spoken discussion, Radar notification text, Foreman persona wording, or synthetic voice identity as canonical authority when Workpoint/scope/authority gates are available.
 
 ## 6. Update and release policy
 
@@ -142,7 +169,7 @@ Never treat transcript tail, old spoken discussion, or synthetic voice identity 
 - Keep CLI/daemon versions paired.
 - Run focused tests for changed crates, then broader smoke tests when command surfaces change.
 - Public release gates include the public-surface guard and cross-phase CLI smoke script.
-- Do not publish local-only runtime data, private audio/transcripts, or internal proof bundles as public release proof.
+- Do not publish local-only runtime data, private audio/transcripts, phone/location projections, or internal proof bundles as public release proof.
 
 ## 7. Public/private boundary rules
 
@@ -155,6 +182,7 @@ Do not add:
 - secrets, tokens, keys, or customer data
 - full private chat/voice transcripts or raw audio
 - speaker voiceprints/biometric material
+- precise personal location or raw phone-sensor history
 - local runtime databases, ledgers, or pairing state
 - internal launch strategy or commercial calculations
 
@@ -165,6 +193,7 @@ Use public-safe replacements:
 | host-specific paths | `~/projects/focusa-demo` or `$PWD` |
 | backend/admin URLs | `https://focusa.dev/support` or `https://install.focusa.dev/license` |
 | full conversation dumps | synthetic transcript fixtures, bounded proof summaries or Evidence refs |
+| life-context/location | synthetic/coarse example projections |
 | license/customer records | public license terms and support path |
 
 ## 8. Software layout checklist for agents
@@ -182,7 +211,13 @@ Before code changes:
 ## 9. Helpful references
 
 - README product overview: `README.md`
+- Voice/Foreman/Radar/Ambient manifest: `docs/181-184-voice-foreman-radar-ambient-operator-current-manifest.md`
 - Voice/Conversation primitive: `docs/181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md`
+- Project Foreman: `docs/182-focusa-project-foreman-workstream-intelligence-projection-spec.md`
+- Radar: `docs/183-focusa-radar-proactive-observation-episodes-signal-economics-and-attention-routing-spec.md`
+- Ambient Operator: `docs/184-focusa-ambient-operator-mobile-wearable-presence-meeting-and-sync-spec.md`
+- Workstream Root: `docs/164-workstream-rooted-canonical-runtime-design.md`
+- Distributed Presence/Placement: `docs/139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md`
 - Expression Engine: `docs/08-expression-engine.md`
 - Spec151 modality parity: `docs/151-focusa-frictionless-program-design-runtime-and-agent-capability-fabric-spec.md`
 - Pi reference contract: `docs/52-pi-extension-contract.md`
