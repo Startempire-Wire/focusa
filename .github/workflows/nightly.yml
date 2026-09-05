@@ -95,6 +95,7 @@ jobs:
           tool: cross
 
       - name: Build complete installable Linux runtime
+        id: cross_build
         if: steps.changes.outputs.skip != 'true'
         shell: bash
         run: |
@@ -112,6 +113,9 @@ jobs:
             -p focusa-tui \
             -p focusa-session-runner
 
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target x86_64-unknown-linux-musl
       - name: Install canonical release signing tools
         if: steps.changes.outputs.skip != 'true'
         uses: sigstore/cosign-installer@v3.10.0

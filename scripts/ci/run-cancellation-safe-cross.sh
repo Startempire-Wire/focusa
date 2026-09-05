@@ -2,11 +2,19 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: run-cancellation-safe-cross.sh <cross-subcommand> [arguments...]" >&2
+  echo "usage: run-cancellation-safe-cross.sh <cross-subcommand> [arguments...] | cleanup-owned --target <target>" >&2
   exit 64
 }
 
 (($# > 0)) || usage
+cleanup_only=0
+if [[ "$1" == cleanup-owned ]]; then
+  cleanup_only=1
+  if ! { (($# == 3)) && [[ "$2" == --target ]]; } &&
+     ! { (($# == 2)) && [[ "$2" == --target=* ]]; }; then
+    usage
+  fi
+fi
 [[ "${GITHUB_RUN_ID:-}" =~ ^[0-9]+$ ]] || {
   echo "GITHUB_RUN_ID must be a numeric provider run identity" >&2
   exit 65
@@ -51,10 +59,12 @@ fi
   echo "CROSS_CONTAINER_ENGINE must name one executable" >&2
   exit 70
 }
-command -v cross >/dev/null 2>&1 || {
-  echo "cross is not installed" >&2
-  exit 71
-}
+if ((cleanup_only == 0)); then
+  command -v cross >/dev/null 2>&1 || {
+    echo "cross is not installed" >&2
+    exit 71
+  }
+fi
 
 label_run="focusa.github.run_id=$GITHUB_RUN_ID"
 label_attempt="focusa.github.run_attempt=$GITHUB_RUN_ATTEMPT"
@@ -143,11 +153,16 @@ cleanup_owned_containers() {
   if ((cleanup_status != 0)); then
     exit "$cleanup_status"
   fi
+  echo "cross cleanup verified: run=$GITHUB_RUN_ID attempt=$GITHUB_RUN_ATTEMPT job=$GITHUB_JOB target=$target"
   exit "$original_status"
 }
 trap cleanup_owned_containers EXIT
 trap 'exit 143' TERM HUP
 trap 'exit 130' INT
+
+# A workflow finalizer can invoke the same owner after the launching shell was
+# cancelled before its signal trap ran. Never launch a compiler in this mode.
+((cleanup_only == 0)) || exit 0
 
 setsid --wait cross "$@" &
 child_pid=$!

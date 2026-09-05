@@ -47,6 +47,7 @@ jobs:
         with:
           tool: cross
       - name: Build candidate binaries
+        id: cross_build
         shell: bash
         run: |
           set -euo pipefail
@@ -67,6 +68,10 @@ jobs:
             test -s "$src"
             cp "$src" "dist/${bin}-v0.9.144-${{ matrix.target }}${{ matrix.exe || '' }}"
           done
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && matrix.musl == true && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        shell: bash
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target "${{ matrix.target }}"
       - uses: actions/upload-artifact@v4
         with:
           name: rel4-rust-${{ matrix.target }}

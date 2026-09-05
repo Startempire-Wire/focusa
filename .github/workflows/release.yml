@@ -775,6 +775,7 @@ jobs:
           tool: cross
 
       - name: Build release binaries (Unix)
+        id: cross_build
         if: ${{ !contains(matrix.target, 'windows-msvc') }}
         shell: bash
         run: |
@@ -799,6 +800,9 @@ jobs:
             cargo build --release --target ${{ matrix.target }}
           fi
 
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && contains(matrix.target, 'linux') && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target "${{ matrix.target }}"
       - name: Build release binaries (Windows MSVC)
         if: ${{ contains(matrix.target, 'windows-msvc') }}
         shell: pwsh

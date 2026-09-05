@@ -42,6 +42,7 @@ jobs:
           CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-gnu
         run: cargo build --release --target x86_64-unknown-linux-gnu
       - name: Warm musl release build (canonical cross path)
+        id: cross_musl
         env:
           CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-musl
         run: |
@@ -52,10 +53,17 @@ jobs:
           export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
           scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl
           rm -f Cross.toml
+      - name: Finalize exact-owned musl cross containers
+        if: ${{ always() && steps.cross_musl.outcome != 'skipped' && steps.cross_musl.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target x86_64-unknown-linux-musl
       - name: Warm arm64 release build (canonical cross path)
+        id: cross_arm64
         env:
           CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-release-target/aarch64-unknown-linux-gnu
         run: scripts/ci/run-cancellation-safe-cross.sh build --release --target aarch64-unknown-linux-gnu
+      - name: Finalize exact-owned arm64 cross containers
+        if: ${{ always() && steps.cross_arm64.outcome != 'skipped' && steps.cross_arm64.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target aarch64-unknown-linux-gnu
       - name: Smoke release binaries (musl runs on host, gnu daemon boots)
         run: |
           /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-musl/x86_64-unknown-linux-musl/release/focusa --version
