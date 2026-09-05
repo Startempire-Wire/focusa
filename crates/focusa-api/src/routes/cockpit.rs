@@ -20,7 +20,6 @@ const MAX_RUNS: usize = 20;
 const MAX_JOBS: usize = 30;
 
 fn workset_summaries(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> {
-    focusa_core::workset_store::ensure_schema(conn)?;
     let mut stmt = conn.prepare(
         "SELECT workset_id, revision, definition_json FROM worksets ORDER BY workset_id, revision",
     )?;
@@ -67,7 +66,6 @@ fn workset_summaries(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> 
 }
 
 fn callgraph_frontiers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> {
-    focusa_core::callgraph_store::ensure_schema(conn)?;
     let mut stmt = conn.prepare(
         "SELECT run_id, graph_id, revision, state FROM callgraph_runs WHERE state IN ('running','paused') ORDER BY updated_at DESC LIMIT ?1",
     )?;
@@ -105,7 +103,6 @@ fn callgraph_frontiers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>
 }
 
 fn direction_steers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> {
-    focusa_core::direction_ledger::ensure_schema(conn)?;
     Ok(focusa_core::direction_ledger::list_operations(conn)?
         .into_iter()
         .filter(|receipt| {
@@ -135,7 +132,6 @@ fn direction_steers(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> {
 }
 
 fn background_board(conn: &rusqlite::Connection) -> anyhow::Result<Value> {
-    focusa_core::background_job_store::ensure_schema(conn)?;
     let jobs = focusa_core::background_job_store::list_jobs(conn)?;
     let active = jobs
         .iter()
@@ -157,24 +153,27 @@ fn background_board(conn: &rusqlite::Connection) -> anyhow::Result<Value> {
     }))
 }
 
+// Schema initialization belongs to the owning writers, never to a read.
+fn read_projection(path: &std::path::Path) -> anyhow::Result<Value> {
+    let conn =
+        rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let worksets = workset_summaries(&conn)
+        .map(|items| items.into_iter().take(MAX_WORKSETS).collect::<Vec<_>>())?;
+    let callgraph = callgraph_frontiers(&conn)?;
+    let steers = direction_steers(&conn)?;
+    let background = background_board(&conn)?;
+    Ok(json!({
+        "status": "ok",
+        "worksets": worksets,
+        "callgraph": callgraph,
+        "steers": steers,
+        "background": background,
+    }))
+}
+
 pub async fn projection(State(state): State<Arc<AppState>>) -> Json<Value> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
-    let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
-        let conn = rusqlite::Connection::open(path)?;
-        let worksets = workset_summaries(&conn)
-            .map(|items| items.into_iter().take(MAX_WORKSETS).collect::<Vec<_>>())?;
-        let callgraph = callgraph_frontiers(&conn)?;
-        let steers = direction_steers(&conn)?;
-        let background = background_board(&conn)?;
-        Ok(json!({
-            "status": "ok",
-            "worksets": worksets,
-            "callgraph": callgraph,
-            "steers": steers,
-            "background": background,
-        }))
-    })
-    .await;
+    let result = tokio::task::spawn_blocking(move || read_projection(&path)).await;
     match result {
         Ok(Ok(payload)) => Json(payload),
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
@@ -195,6 +194,73 @@ pub fn router() -> axum::Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn fixture_dir() -> std::path::PathBuf {
+        let path = std::env::temp_dir().join(format!("focusa-cockpit-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir(&path).unwrap();
+        path
+    }
+
+    #[test]
+    fn absent_database_is_not_created() {
+        let dir = fixture_dir();
+        let path = dir.join("focusa.sqlite");
+        assert!(read_projection(&path).is_err());
+        assert!(!path.exists());
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
+        std::fs::remove_dir(dir).unwrap();
+    }
+
+    #[test]
+    fn read_collectors_do_not_initialize_missing_schemas() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        assert!(workset_summaries(&conn).is_err());
+        assert!(callgraph_frontiers(&conn).is_err());
+        assert!(direction_steers(&conn).is_err());
+        assert!(background_board(&conn).is_err());
+        let count: i64 = conn
+            .query_row("SELECT count(*) FROM sqlite_master", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn missing_schema_preserves_existing_database() {
+        let dir = fixture_dir();
+        let path = dir.join("focusa.sqlite");
+        let conn = rusqlite::Connection::open(&path).unwrap();
+        conn.execute("CREATE TABLE sentinel (value TEXT)", [])
+            .unwrap();
+        conn.execute("INSERT INTO sentinel VALUES ('preserve-me')", [])
+            .unwrap();
+        drop(conn);
+        let before = std::fs::read(&path).unwrap();
+        assert!(read_projection(&path).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1);
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_dir(dir).unwrap();
+    }
+
+    #[test]
+    fn initialized_database_can_be_read_without_changes() {
+        let dir = fixture_dir();
+        let path = dir.join("focusa.sqlite");
+        let conn = rusqlite::Connection::open(&path).unwrap();
+        focusa_core::workset_store::ensure_schema(&conn).unwrap();
+        focusa_core::callgraph_store::ensure_schema(&conn).unwrap();
+        focusa_core::direction_ledger::ensure_schema(&conn).unwrap();
+        focusa_core::background_job_store::ensure_schema(&conn).unwrap();
+        drop(conn);
+        let before = std::fs::read(&path).unwrap();
+        let result = read_projection(&path).unwrap();
+        assert_eq!(result["status"], "ok");
+        assert_eq!(result["worksets"], json!([]));
+        assert_eq!(result["background"]["active"], 0);
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_dir(dir).unwrap();
+    }
 
     fn workset_fixture() -> rusqlite::Connection {
         use focusa_core::workset_ledger::{CompletionContract, WorksetDefinition, WorksetScope};
