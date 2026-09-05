@@ -57,5 +57,16 @@ assert not exercise(cli_error=True)
 assert not exercise(missing_file="authority-lease.json")
 assert not exercise(missing_file="node-identity.json")
 assert "run_candidate_apply() {\n  verify_authority_fixture || return 1" in SOURCE
+# A failed authority check must stop phase work even when a caller disables
+# errexit or invokes the phase in a conditional context.
+phase_guard = SOURCE.split("verify_phase() {", 1)[1].split("  local expected_tag=", 1)[0]
+with tempfile.TemporaryDirectory(prefix="focusa-authority-phase-test-") as temporary:
+    marker = Path(temporary) / "phase-entered"
+    script = ("set +e\nverify_authority_fixture() { return 1; }\n"
+              + "verify_phase() {" + phase_guard
+              + '\n  printf unsafe > "$MARKER"\n}\nverify_phase\nexit $?\n')
+    result = subprocess.run(["bash", "-c", script],
+                            env={**os.environ, "MARKER": str(marker)}, capture_output=True)
+    assert result.returncode != 0 and not marker.exists(), "rejected authority reached phase work"
 assert SOURCE.index("verify_authority_fixture\n\n# Only the current") < SOURCE.index("update compatibility-bootstrap")
 print("PASS: authority delegation rejects inactive, missing, foreign, altered and failed verifications even with errexit disabled")

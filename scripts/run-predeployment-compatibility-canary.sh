@@ -292,7 +292,7 @@ verify_authority_fixture() {
 }
 
 verify_phase() {
-  verify_authority_fixture
+  verify_authority_fixture || return 1
   local expected_tag="$1"
   local require_runner="$2"
   local phase="$3"
