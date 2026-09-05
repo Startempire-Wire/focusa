@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import importlib.util
 import re
 import subprocess
 import tempfile
@@ -8,6 +9,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/audit-agent-first-tool-surfaces.py"
 RELEASE_WORKFLOW = ROOT / ".github/workflows/release.yml"
+route_spec = importlib.util.spec_from_file_location(
+    "route_classification", ROOT / "scripts/generate-agent-route-classification.py"
+)
+route_classifier = importlib.util.module_from_spec(route_spec)
+route_spec.loader.exec_module(route_classifier)
+subprocess.run(
+    ["python3", str(ROOT / "tests/spec141_route_test_module_exclusion_test.py")],
+    cwd=ROOT,
+    check=True,
+)
 
 workflow = RELEASE_WORKFLOW.read_text()
 assert "open-issue-release-gate:" in workflow
@@ -51,7 +62,7 @@ with tempfile.TemporaryDirectory(prefix="focusa-spec141-") as tmp:
     classified_paths = {item["path"] for item in classification["routes"]}
     constant_route_paths = set()
     for source in sorted((ROOT / "crates/focusa-api/src").rglob("*.rs")):
-        body = source.read_text(errors="replace")
+        body = route_classifier.without_inline_test_modules(source.read_text(errors="strict"))
         constants = dict(
             re.findall(
                 r'^\s*(?:pub(?:\([^)]*\))?\s+)?const\s+([A-Z][A-Z0-9_]*)\s*:\s*&str\s*=\s*"([^"]+)"\s*;',

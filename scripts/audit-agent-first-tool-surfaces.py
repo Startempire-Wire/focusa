@@ -8,6 +8,7 @@ Use --strict to fail while release-gating findings remain.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import subprocess
@@ -16,6 +17,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+ROUTE_SPEC = importlib.util.spec_from_file_location(
+    "route_classification", ROOT / "scripts/generate-agent-route-classification.py"
+)
+ROUTE_CLASSIFIER = importlib.util.module_from_spec(ROUTE_SPEC)
+ROUTE_SPEC.loader.exec_module(ROUTE_CLASSIFIER)
 
 
 def text(path: str) -> str:
@@ -111,7 +117,7 @@ def main() -> int:
 
     route_paths = set()
     for source in rust_api_sources:
-        body = source.read_text(errors="replace")
+        body = ROUTE_CLASSIFIER.without_inline_test_modules(source.read_text(errors="strict"))
         string_constants = dict(
             re.findall(
                 r'^\s*(?:pub(?:\([^)]*\))?\s+)?const\s+([A-Z][A-Z0-9_]*)\s*:\s*&str\s*=\s*"([^"]+)"\s*;',

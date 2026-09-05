@@ -1,6 +1,6 @@
 # Current API Route Inventory
 
-Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
+Generated from current Axum route declarations plus the Spec135/Spec141 operation registry. Explicit inline cfg(test) modules are excluded. This source inventory does not prove HTTP mounting, permissions, or installed availability. It is release-gated; do not edit route rows manually.
 
 - Classified paths: `681`
 - Agent eligible: `164`
