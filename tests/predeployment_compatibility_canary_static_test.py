@@ -22,6 +22,10 @@ def main() -> int:
     trust = text("crates/focusa-cli/src/commands/update_trust.rs")
     update = text("crates/focusa-cli/src/commands/update.rs")
     install = text("crates/focusa-cli/src/commands/install.rs")
+    ci = text(".github/workflows/ci.yml")
+    require(ci, "cargo test --workspace -- --test-threads=1", "unfiltered workspace coverage must remain")
+    require(ci, "cargo clippy --workspace --all-targets -- -D warnings", "all-target workspace lint is mandatory")
+    assert ci.count("cargo clippy ") == 1, "source CI must not repeat overlapping lint passes"
     release = text(".github/workflows/release.yml")
     deploy = text(".github/workflows/deploy-live-daemon.yml")
     runner = text("scripts/run-predeployment-compatibility-canary.sh")

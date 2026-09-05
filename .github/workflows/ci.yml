@@ -68,15 +68,11 @@ jobs:
         env:
           FOCUSA_TEST_MODE: "1"
         run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace -- --test-threads=1"
-      - name: Process-health check + Clippy
-        run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace -- -D warnings"
-      - name: Focused Pi package transaction + update gates
-        env:
-          FOCUSA_TEST_MODE: "1"
-        run: |
-          cargo test -p focusa-cli pi_package
-          cargo test -p focusa-cli update
-          cargo clippy -p focusa-cli --all-targets -- -D warnings
+      # Workspace tests above already include the Pi transaction and update
+      # regressions. Keep one lint pass, with stronger all-target coverage,
+      # rather than alternating test/lint modes again against the same artifacts.
+      - name: Process-health check + all-target workspace Clippy
+        run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace --all-targets -- -D warnings"
 
   # TEMPORARY: GitHub hosted macOS is billing-locked. This job remains the
   # restoration target; Codemagic supplies the required macOS proof meanwhile.

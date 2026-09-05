@@ -56,6 +56,17 @@ fails. Regression: `shutdown_checkpoint_preserves_external_frame_state`; consume
 proof: the isolated restart test above. Source/unit success is not installed
 recovery acceptance.
 
+## CI dependency-info artifacts disappear
+
+When Cargo reports a missing dependency-info file during linting, preserve the
+exact run/job/SHA and error path before blaming source changes or deleting caches.
+Verify runner workspace separation and process ownership; later checkout cleanup
+is not evidence that files disappeared concurrently. Source CI uses unfiltered
+workspace tests followed by one workspace-wide **all-targets** Clippy pass; focused
+Pi/update cases are already in that suite. Keep warnings fatal and the process-health
+wrapper. An exact-head rerun must prove recovery; recurring failures require cache/
+artifact-layout investigation, never blind deletion of shared targets (issue #573).
+
 ## Self-healing hooks (live)
 
 All hooks below are wired into CI, Release, Deploy, and the audit recorder workflow. They run automatically; operators do not invoke them by hand.
