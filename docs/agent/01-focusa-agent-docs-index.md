@@ -81,7 +81,7 @@ When a change touches persistent project-agent identity, proactive monitoring, R
 5. Resolve exact Workstream before Foreman mutation/delegation.
 6. Keep Radar source/freshness/fingerprint/Episode lineage and never promote observation directly into authority.
 7. Keep life-context raw sensors/GPS in their owner domain by default; publish bounded Ambient presence projections only when relevant.
-8. Keep meeting/wake/voice under Spec 181; raw transcript/audio does not become Radar storage or project memory.
+8. Keep meeting/wake/voice under Spec 181; conversation content does not become Radar storage or project memory.
 9. Mobile sync submits typed, authenticated, replay-safe operations/segments rather than reducer/database writes.
 10. Wirebot/Chief of Staff may aggregate bounded cross-Workstream projections but does not become a global Focusa project singleton.
 
@@ -150,7 +150,7 @@ bash tests/spec_cli_cross_phase_smoke_test.sh
 - Daemon-global advisory surfaces must say they are advisory and non-canonical.
 - Future voice/conversation, Foreman, Radar, and Ambient routes must preserve canonical scope/operation/authority semantics and use bounded handles for large audio/transcript content.
 
-## 5. Workpoints, Evidence, Trajectory, Conversation, Foreman, and Radar
+## 5. Workpoints, Evidence, and Trajectory
 
 - **Workpoint** is the immediate continuation contract: mission, scope, current action, next action, blockers, and proof handles.
 - **Evidence** is proof linked to the active Workpoint: tests, files, route checks, screenshots, command output, or release checks.
