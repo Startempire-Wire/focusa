@@ -33,6 +33,7 @@ When a coding session gets long, context compacts, the mission drifts, proof get
 - **Agent-ready by construction:** every Focusa Pi tool has a runtime contract, generated machine schema, per-tool document, skill routing, and a progressively disclosed runbook.
 - **Pi reference harness:** Pi + the Focusa Pi extension is the default/reference Focusa-aware harness integration. That role is fundamental to the reference agent experience but does not move cognitive authority out of Focusa daemon/core or make non-Pi harnesses second-class.
 - **Focusa Desktop presenter:** Focusa Desktop is a governed presenter over the same Focusa authority and operation guards. In supported full Veragensia Agent Computer profiles it is the default human work/cognition surface; it does not become a second reducer, state store, or product authority.
+- **Voice / Conversation primitive:** Doc 08 Expression Engine remains the semantic expression owner; [Spec 181](docs/181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md) defines full-duplex spoken interaction, speaker/agent attribution, transcript correction lineage, interruption, group conversation and a local-first Conversation Ledger while preserving the rule that conversation is not memory and voice is not authority.
 
 Trajectory ladder: **HLT** (High-Level Trajectory) → **MLG** (Mid-Level Goal) → **STG** (Short-Term Goal) → **Waypoints** (concrete progress markers). Workpoint remains immediate action authority. The operator has authority; agents actively offer HLT-aligned Waypoints, STGs, and MLGs without silently changing the root goal.
 
@@ -116,7 +117,7 @@ focusa workpoint resume --project-root "$PWD" --continuity-id demo-continuity --
 
 ![Focusa evidence refs](docs/assets/readme/02-evidence-refs.svg)
 
-Focusa stores proof as Evidence refs tied to the active Workpoint: tests, files, routes, screenshots, command output, and release checks.
+Focusa stores proof as Evidence refs tied to the active Workpoint: tests, files, route checks, screenshots, command output, and release checks.
 
 ```bash
 focusa workpoint evidence-link \
@@ -247,6 +248,7 @@ Deprecated aliases warn and point to canonical commands; for example, `focusa pa
 - **`focusa-tui`** — terminal Mission Deck.
 - **`apps/pi-extension`** — reference/default Pi coding-agent integration and generated Focusa tool/skill surface.
 - **`apps/menubar`** — native/Tauri presenter implementation, including Focusa Desktop bridge behavior; presenter only, not cognitive authority.
+- **Voice/Conversation** — [Spec 181](docs/181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md) extends the Expression Engine into an auditable spoken-conversation contract; provider-specific ASR/TTS remain adapters.
 
 ## Proof and CI
 
@@ -263,6 +265,8 @@ The cross-phase smoke suite checks project dashboard commands, first-mission dry
 
 ## Documentation
 
+- Voice/conversation primitive: [`docs/181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md`](docs/181-focusa-voice-conversation-expression-and-auditable-interaction-spec.md)
+- Expression Engine semantic voice boundary: [`docs/08-expression-engine.md`](docs/08-expression-engine.md)
 - Current CLI reference: [`docs/current/CLI_REFERENCE_CURRENT.md`](docs/current/CLI_REFERENCE_CURRENT.md)
 - Production/release commands: [`docs/current/PRODUCTION_RELEASE_COMMANDS.md`](docs/current/PRODUCTION_RELEASE_COMMANDS.md)
 - Troubleshooting: [`docs/current/TROUBLESHOOTING_CURRENT.md`](docs/current/TROUBLESHOOTING_CURRENT.md)
