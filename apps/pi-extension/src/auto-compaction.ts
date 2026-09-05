@@ -505,26 +505,23 @@ export function registerAutoCompaction(
 ): boolean {
   const processLease = processCompactionLease();
   if (processLease.owner) {
-    if (
-      processLease.owner.moduleLoadId === MODULE_LOAD_ID ||
-      processLease.owner.moduleIdentity === MODULE_IDENTITY
-    ) {
+    if (processLease.owner.moduleLoadId === MODULE_LOAD_ID) {
+      // Pi re-invokes the cached extension module for in-process session
+      // replacement. Its old runtime handlers are gone, so transfer the lease
+      // to the replacement registration instead of suppressing every Focusa
+      // tool and hook in the new session.
+      processLease.owner = undefined;
+    } else if (processLease.owner.moduleIdentity === MODULE_IDENTITY) {
       if (!processLease.duplicateDiagnosticEmitted) {
         processLease.duplicateDiagnosticEmitted = true;
-        // Same-URL re-registration happens on every in-process session
-        // replacement (ctx.newSession / /tree navigation): pi rebuilds all
-        // extension instances against the existing process lease. That is
-        // benign — the original coordinator stays authoritative and no
-        // handlers are double-registered. Only a *different* module URL
-        // reaches the takeover branch below, so this can never indicate a
-        // second installation on disk.
-        console.info(
-          `[focusa] compaction coordinator retained across session replacement (same install at ${processLease.owner.registrationSource}; nothing to remove).`
+        console.warn(
+          `[focusa] duplicate extension suppressed (existing install at ${processLease.owner.registrationSource}). Remove the duplicate Focusa installation and reload Pi.`
         );
       }
       return false;
+    } else {
+      processLease.owner = undefined;
     }
-    processLease.owner = undefined;
   }
 
   // Spec130A §16 permits one linked retry per pressure crossing. Provider
