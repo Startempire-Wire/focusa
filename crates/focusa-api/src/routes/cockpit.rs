@@ -36,7 +36,7 @@ fn workset_summaries(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Value>> 
         let (workset_id, revision, definition_json) = row?;
         let definition: focusa_core::workset_ledger::WorksetDefinition =
             serde_json::from_str(&definition_json)?;
-        let events = focusa_core::workset_store::list_events(conn, &workset_id).unwrap_or_default();
+        let events = focusa_core::workset_store::list_events(conn, &workset_id)?;
         let projection = focusa_core::workset_ledger::replay_projection(&definition, &events).ok();
         let (status, met, open) = match &projection {
             Some(p) => {
@@ -196,4 +196,49 @@ pub async fn projection(State(state): State<Arc<AppState>>) -> Json<Value> {
 
 pub fn router() -> axum::Router<Arc<AppState>> {
     axum::Router::new().route("/v1/cockpit/projection", axum::routing::get(projection))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn corrupt_workset_events_cannot_be_reported_as_empty_success() {
+        use focusa_core::workset_ledger::{CompletionContract, WorksetDefinition, WorksetScope};
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        focusa_core::workset_store::ensure_schema(&conn).unwrap();
+        let definition = WorksetDefinition {
+            schema: focusa_core::workset_ledger::WORKSET_LEDGER_SCHEMA.to_string(),
+            workset_id: "test-workset".to_string(),
+            revision: 1,
+            scope: WorksetScope {
+                project_root: "/test-project".to_string(),
+                continuity_id: "test-continuity".to_string(),
+            },
+            completion_contract: CompletionContract {
+                required_requirement_ids: vec!["requirement-1".to_string()],
+                release_gate_ref: None,
+            },
+        };
+        focusa_core::workset_store::upsert_definition(&conn, &definition).unwrap();
+        assert_eq!(workset_summaries(&conn).unwrap().len(), 1);
+        conn.execute(
+            "INSERT INTO workset_events (workset_id, event_json, recorded_at)
+             VALUES ('test-workset', '{bad-json', 'test-fixture')",
+            [],
+        )
+        .unwrap();
+        assert_eq!(
+            workset_summaries(&conn).unwrap_err().to_string(),
+            "invalid stored Workset event"
+        );
+        let raw: String = conn
+            .query_row(
+                "SELECT event_json FROM workset_events WHERE workset_id = 'test-workset'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(raw, "{bad-json");
+    }
 }
