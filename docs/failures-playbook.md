@@ -45,6 +45,17 @@ How to use this playbook:
   threshold; failure causes the deploy to abort instead of silently running
   the daemon on a starved root filesystem.
 
+## Restart loses recently acknowledged API state
+
+If `tests/restart_recovery_test.sh` sees a frame before SIGTERM but reports
+`frame_unavailable` after restart, inspect the final shutdown checkpoint before
+changing database compatibility or deleting state. A daemon-local snapshot can
+lag direct API writes. The shutdown checkpoint must hold the canonical write
+lock, adopt the external mutation epoch, and refuse persistence if adoption
+fails. Regression: `shutdown_checkpoint_preserves_external_frame_state`; consumer
+proof: the isolated restart test above. Source/unit success is not installed
+recovery acceptance.
+
 ## Self-healing hooks (live)
 
 All hooks below are wired into CI, Release, Deploy, and the audit recorder workflow. They run automatically; operators do not invoke them by hand.

@@ -584,9 +584,23 @@ impl Daemon {
 
         // Channel closed — flush final state.
         tracing::info!("Focusa daemon shutting down");
-        self.persist_reducer_batch(Vec::new(), true).await?;
+        self.persist_shutdown_checkpoint().await?;
         tracing::info!("Focusa daemon shutdown persistence flush complete");
         Ok(())
+    }
+
+    /// Final persistence uses the same serialization boundary as API writes.
+    /// Otherwise a stale daemon snapshot can overwrite acknowledged API state.
+    async fn persist_shutdown_checkpoint(&mut self) -> anyhow::Result<()> {
+        let write_serial_lock = Arc::clone(&self.write_serial_lock);
+        let _write_guard = write_serial_lock.lock().await;
+        self.reconcile_external_state().await;
+        anyhow::ensure!(
+            self.observed_external_mutation_epoch
+                == self.external_mutation_epoch.load(Ordering::Acquire),
+            "shutdown checkpoint could not adopt external state; refusing stale persistence"
+        );
+        self.persist_reducer_batch(Vec::new(), true).await
     }
 
     /// Translate an Action to event(s), reduce, persist, observe.
@@ -6136,6 +6150,64 @@ mod tests {
         assert_eq!(
             restored.focus_gate.long_running_signal_frames,
             daemon.state.focus_gate.long_running_signal_frames
+        );
+    }
+
+    #[tokio::test]
+    async fn shutdown_checkpoint_preserves_external_frame_state() {
+        let data_dir =
+            std::env::temp_dir().join(format!("focusa-shutdown-test-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&data_dir).expect("isolated persistence directory");
+        let config = FocusaConfig {
+            data_dir: data_dir.to_string_lossy().into_owned(),
+            ..FocusaConfig::default()
+        };
+        let shared_state = Arc::new(RwLock::new(FocusaState::default()));
+        let write_serial_lock = Arc::new(Mutex::new(()));
+        let epoch = Arc::new(AtomicU64::new(0));
+        let mut daemon = Daemon::new(
+            config,
+            Arc::clone(&shared_state),
+            Arc::clone(&write_serial_lock),
+            Arc::clone(&epoch),
+        )
+        .expect("initialize daemon");
+        daemon.attach_persistence_actor(PersistenceActor::start(daemon.persistence()));
+        let frame_id = Uuid::now_v7();
+        let mut frame = sample_frame_with_consults(frame_id);
+        frame
+            .focus_state
+            .decisions
+            .push("preserve API decision".to_string());
+        {
+            let _write_guard = write_serial_lock.lock().await;
+            let mut shared = shared_state.write().await;
+            shared.focus_stack.frames.push(frame);
+            shared.focus_stack.active_id = Some(frame_id);
+            epoch.fetch_add(1, Ordering::AcqRel);
+        }
+        assert!(daemon.state.focus_stack.frames.is_empty());
+        daemon
+            .persist_shutdown_checkpoint()
+            .await
+            .expect("shutdown checkpoint");
+        let restored = daemon
+            .persistence
+            .load_state()
+            .expect("read durable state")
+            .expect("checkpoint exists");
+        assert_eq!(restored.focus_stack.active_id, Some(frame_id));
+        let frame = restored
+            .focus_stack
+            .frames
+            .iter()
+            .find(|frame| frame.id == frame_id)
+            .expect("external frame survived shutdown");
+        assert!(
+            frame
+                .focus_state
+                .decisions
+                .contains(&"preserve API decision".to_string())
         );
     }
 
